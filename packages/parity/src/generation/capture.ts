@@ -32,9 +32,9 @@ import { findJavaTemplateSource } from '@jsprismarine/prismarine/world/generator
 import type { JavaWorldgenRegistries } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
 import {
     cacheRoot,
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
+    findJavaWorldgenSources
+} from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
 
 import type { ChunkDigest, StructurePlacement, WholeChunkSample } from './golden.ts';
 import type { CorpusChunk } from './plan.ts';

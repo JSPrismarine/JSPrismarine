@@ -25,7 +25,8 @@ import { DataDrivenGenerator } from '../datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../datadriven/javaStructureTemplates';
 import { bedrockBiomeIdOf } from '../datadriven/javaTranslation';
 import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
-import { cacheRoot, findJavaWorldgenSources, loadJavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
+import { cacheRoot, findJavaWorldgenSources } from '../datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
 import { createNoiseGeneratorFactory } from './noise';
 
 const sources = findJavaWorldgenSources();

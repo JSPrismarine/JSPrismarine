@@ -8,11 +8,8 @@ import { worldSeedOf } from '../utils/Seed';
 import { GeneratorFactories } from './GeneratorFactories';
 import type { TerrainCacheSettings } from './GeneratorFactories';
 import { dimensionByName } from './DimensionType';
-import {
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistriesFrom,
-    requireJavaWorldgenSources
-} from './generators/datadriven/javaWorldgenData';
+import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistriesFrom, requireJavaWorldgenSources } from './generators/datadriven/javaWorldgenData';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 import { normalizeWorldData, worldDataOf } from '../config/normalizeWorldData';
 import { BUILT_IN_WORLD_PRESETS, dimensionTypesOf, loadOf, resolveStems, worldPresetsOf } from './resolveStems';

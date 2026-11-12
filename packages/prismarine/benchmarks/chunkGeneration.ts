@@ -27,9 +27,9 @@ import {
 import { findJavaTemplateSource } from '@jsprismarine/prismarine/world/generators/datadriven/javaStructureTemplates';
 import {
     cacheRoot,
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
+    findJavaWorldgenSources
+} from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
 import { shareClimateTables } from '../src/world/generators/datadriven/sharedClimateTables';
 import { SharedTerrainTileStore } from '../src/world/generators/datadriven/SharedTerrainTileStore';
 import { percentile } from './percentile';

@@ -32,11 +32,8 @@ import type { DimensionType } from '../../world/DimensionType';
 import type { StemKey } from '../../world/generators/datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator } from '../../world/generators/datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../../world/generators/datadriven/javaStructureTemplates';
-import {
-    cacheRoot,
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '../../world/generators/datadriven/javaWorldgenData';
+import { cacheRoot, findJavaWorldgenSources } from '../../world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '../../world/generators/datadriven/javaWorldgenData';
 import type { Level } from '../../world/Level';
 import { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';

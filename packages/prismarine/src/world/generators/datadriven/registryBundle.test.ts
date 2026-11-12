@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
-import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
+import { findJavaWorldgenSources } from './javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from './javaWorldgenData';
 import {
     buildRegistryBundle,
     readRegistryBundle,

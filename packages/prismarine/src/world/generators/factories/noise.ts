@@ -7,7 +7,7 @@ import type { PipelineKey, StagePoolOptions, StemKey } from '../datadriven/DataD
 import { DataDrivenGenerator, defaultChunkPipeline } from '../datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../datadriven/javaStructureTemplates';
 import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
-import { cacheRoot } from '../datadriven/javaWorldgenData';
+import { cacheRoot } from '../datadriven/javaWorldgenSources';
 
 /** The kind id of Java's noise generator, which every vanilla dimension uses. */
 export const NOISE_GENERATOR_KIND = 'minecraft:noise';

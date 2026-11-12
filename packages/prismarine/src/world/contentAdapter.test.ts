@@ -27,7 +27,8 @@ import { VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
 import GameRuleManager, { GameRules } from './GameRuleManager';
 import { DataDrivenGenerator } from './generators/datadriven/DataDrivenGenerator';
 import { bedrockBiomeIdOf } from './generators/datadriven/javaTranslation';
-import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
+import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 import { World } from './World';
 import { fakeLevel } from '../testing/level';
 

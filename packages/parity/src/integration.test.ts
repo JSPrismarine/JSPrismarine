@@ -50,10 +50,8 @@ import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 import { parityCase, reportParityCases } from './trackerCases.ts';
 import type { TrackerRuntimeSupport } from './trackerCases.ts';
-import {
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
+import { findJavaWorldgenSources } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
 
 interface EntityCoverageCounts {
     declared: number;

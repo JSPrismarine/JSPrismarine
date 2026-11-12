@@ -21,11 +21,8 @@ import type { Generator } from '../src/world/Generator';
 import type { PipelineKey } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultChunkPipeline } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
-import {
-    cacheRoot,
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '../src/world/generators/datadriven/javaWorldgenData';
+import { cacheRoot, findJavaWorldgenSources } from '../src/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '../src/world/generators/datadriven/javaWorldgenData';
 import type Chunk from '../src/world/chunk/Chunk';
 
 const SEED = 1234n;

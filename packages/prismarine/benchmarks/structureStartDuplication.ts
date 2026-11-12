@@ -28,11 +28,8 @@ import {
     structureStartOwnerOf
 } from '../src/world/generators/datadriven/javaStructurePlanBroker';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
-import {
-    cacheRoot,
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '../src/world/generators/datadriven/javaWorldgenData';
+import { cacheRoot, findJavaWorldgenSources } from '../src/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '../src/world/generators/datadriven/javaWorldgenData';
 
 const SEED = 1234n;
 const REGION_CHUNKS = 8;
