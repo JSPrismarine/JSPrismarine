@@ -89,6 +89,19 @@ interface LiveSession {
 /** Work a run does before a tick, with that tick; awaited before the run settles. */
 type BeforeTick = (tick: number) => void | Promise<void>;
 
+/** A sealed tick of a world's change log; the change log modules are internal to the server. */
+type SealedTick = NonNullable<ReturnType<World['sealChangeTick']>>;
+/** An entry that changes state, which a store writes forward. */
+type StateEntry = Extract<SealedTick['entries'][number], { readonly kind: 'field' | 'membership' }>;
+
+/** One tick of a replay as it sealed: its change log and the world's digest at that moment. */
+interface LoggedTick {
+    /** The server tick that sealed it. */
+    readonly tick: number;
+    readonly sealed: SealedTick;
+    readonly digest: string;
+}
+
 const SESSION_SEED = '2847';
 const REPLAY_START_TICK = 160;
 const SAMPLE_LEAD_TICKS = 2;
@@ -811,9 +824,14 @@ const replayOn = async (
             const tick = live.server.getTick();
             if (tick >= sampleStart && tick <= sampleEnd) changeLogCosts.push([tick - REPLAY_START_TICK, cost]);
         });
-        const stopComparing = live.world.getEntityStore().onSealed(() => {
+        // Each sampled tick as it sealed, from the tick before the sample, with the digest the
+        // world had then, for a replay of the log onto a snapshot to reach.
+        const loggedTicks: LoggedTick[] = [];
+        const stopComparing = live.world.getEntityStore().onSealed((sealed) => {
             const tick = live.server.getTick();
             if (instrumented && tick >= sampleStart && tick <= sampleEnd) compareEntityViews(tick);
+            if (instrumented && tick >= sampleStart - 1 && tick <= sampleEnd)
+                loggedTicks.push({ tick, sealed, digest: live.world.replayStateDigest() });
         });
         live.server.on('tick', onTick);
         try {
@@ -888,6 +906,9 @@ const replayOn = async (
             entityReplica: live.server.getWorldReplicators().for(live.world).entityReplicaCounts(),
             entityViewDivergences,
             entityViewsCompared,
+            loggedTicks,
+            sampleStart,
+            runtimeIds: { mover: startGame.runtimeEntityId, observer: observerStartGame.runtimeEntityId },
             sampledAdmissions,
             admissionDivergences,
             capturedAdmissions: admissionsIn(
@@ -937,6 +958,104 @@ const replayOn = async (
                   }
                 : {})
         };
+    } finally {
+        await live.close();
+    }
+};
+
+/**
+ * Builds a world at the tick before the sample, as a replay reaches it, and then runs no tick:
+ * it writes each sampled tick of `logged` onto that snapshot and compares the digest after each
+ * with the one the replay had as the tick sealed (ADR 0012). The digest is taken with the sealed
+ * tick's header, which holds what no entry carries.
+ *
+ * A chunk entry names a chunk without its content, which arrived as an input, so the snapshot
+ * takes the same input: it asks for the chunk and admits it when the entry comes. A chunk that
+ * left needs nothing but its position.
+ */
+const replayLogOnSnapshot = async (
+    moverAuth: OfflineAuthProvider,
+    observerAuth: OfflineAuthProvider,
+    captured: CapturedSession,
+    logged: {
+        readonly loggedTicks: readonly LoggedTick[];
+        readonly sampleStart: number;
+        readonly runtimeIds: { readonly mover: bigint; readonly observer: bigint };
+    }
+) => {
+    const live = await openSession(moverAuth, observerAuth, {
+        initialState: deserializeReplayInitialStateManifest(captured.initialStateManifest)
+    });
+    try {
+        const mover = live.mover.getStartGame();
+        const observer = live.observer.getStartGame();
+        if (mover === null || observer === null) throw new Error('A snapshot client did not receive StartGame');
+        // Runtime ids are process-local, so an entry names the replay's entity and the snapshot
+        // holds the same one under its own id.
+        const ids = new Map([
+            [logged.runtimeIds.mover, mover.runtimeEntityId],
+            [logged.runtimeIds.observer, observer.runtimeEntityId]
+        ]);
+        const idOf = (entity: bigint): bigint => {
+            const id = ids.get(entity);
+            if (id === undefined) throw new Error(`The snapshot holds no entity for runtime id ${entity}`);
+            return id;
+        };
+        const remapped = (entry: StateEntry): StateEntry => {
+            if (entry.kind === 'membership') return { ...entry, entity: idOf(entry.entity) };
+            if (entry.field === 'entity')
+                return { ...entry, address: { ...entry.address, entity: idOf(entry.address.entity) } };
+            if (entry.field === 'inventory-slot')
+                return { ...entry, address: { ...entry.address, entity: idOf(entry.address.entity) } };
+            return entry;
+        };
+
+        await live.stepTo(logged.sampleStart);
+        const [boundary, ...after] = logged.loggedTicks;
+        if (boundary?.tick !== logged.sampleStart - 1) throw new Error('The log does not start at the snapshot');
+        const divergences: string[] = [];
+        const compare = ({ tick, sealed, digest }: LoggedTick): void => {
+            if (sealed.header === undefined) throw new Error(`Tick ${tick} sealed without a header`);
+            if (live.world.replayStateDigest(sealed.header) !== digest)
+                divergences.push(`tick ${tick - REPLAY_START_TICK}`);
+        };
+        compare(boundary);
+
+        const store = live.world.getEntityStore();
+        const queue = live.server.getChunkCompletionQueue();
+        const kinds = new Set<string>();
+        let chunksEntered = 0;
+        let chunksLeft = 0;
+        for (const each of after) {
+            let pending: StateEntry[] = [];
+            for (const entry of each.sealed.entries) {
+                if (entry.kind === 'chunk') {
+                    store.replay(pending);
+                    pending = [];
+                    if (entry.change === 'leave') {
+                        if (!live.world.replayChunkLeave(entry.x, entry.z))
+                            throw new Error(`Chunk ${entry.x},${entry.z} left the replay but not the snapshot`);
+                        chunksLeft += 1;
+                        continue;
+                    }
+                    const chunk = live.world.getChunk(entry.x, entry.z, { urgency: 'idle' });
+                    for (let turns = 0; queue.admitParked().length === 0; turns += 1) {
+                        if (turns > 1000) throw new Error(`Chunk ${entry.x},${entry.z} never became ready`);
+                        queue.drain(Number.MAX_SAFE_INTEGER);
+                        await nextTurn();
+                    }
+                    await chunk;
+                    chunksEntered += 1;
+                } else if (entry.kind === 'field' || entry.kind === 'membership') {
+                    kinds.add(entry.kind === 'field' ? entry.field : entry.kind);
+                    pending.push(remapped(entry));
+                }
+            }
+            store.replay(pending);
+            compare(each);
+        }
+
+        return { divergences, compared: logged.loggedTicks.length, kinds, chunksEntered, chunksLeft };
     } finally {
         await live.close();
     }
@@ -1098,6 +1217,37 @@ describe('live session replay', () => {
                         `${replica.entriesRead} block entries read and ${replica.folded} compounds folded`,
                     'Replica cost'
                 );
+            } finally {
+                random.mockRestore();
+                vi.unstubAllEnvs();
+            }
+        }
+    );
+
+    it(
+        "reaches each sampled tick's digest from a snapshot of the tick before the sample and the log after it",
+        { tags: ['real-data'], timeout: 120_000 },
+        async () => {
+            const random = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+            const moverAuth = new OfflineAuthProvider({ displayName: 'ReplayMover', identity: MOVER_ID });
+            const observerAuth = new OfflineAuthProvider({ displayName: 'ReplayObserver', identity: OBSERVER_ID });
+
+            try {
+                const captured = await captureSession(moverAuth, observerAuth);
+                const first = await replaySession(moverAuth, observerAuth, captured);
+                const rebuilt = await replayLogOnSnapshot(moverAuth, observerAuth, captured, first);
+
+                expect(rebuilt.divergences).toEqual([]);
+                // Every sampled tick and the snapshot's own were compared, and the log they
+                // replayed held the blocks, the block update queue, the players and the chunks the
+                // sample changed. The session queues no scheduled tick: its water reacts through
+                // block updates, so `WorldChangeTick.test.ts` covers that kind.
+                expect(rebuilt.compared).toBe(first.worldSeries.length + 1);
+                expect([...rebuilt.kinds]).toEqual(expect.arrayContaining(['block', 'block-update', 'entity']));
+                expect(rebuilt.chunksEntered).toBeGreaterThanOrEqual(BACKGROUND_CHUNKS);
+                expect(rebuilt.chunksLeft).toBeGreaterThan(0);
+                const digests = first.loggedTicks.map(({ digest }) => digest);
+                expect(new Set(digests).size).toBeGreaterThan(digests.length / 2);
             } finally {
                 random.mockRestore();
                 vi.unstubAllEnvs();
