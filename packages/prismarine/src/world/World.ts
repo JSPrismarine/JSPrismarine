@@ -1857,12 +1857,32 @@ export class World implements Service {
     }
 
     /**
-     * A noise one entity made: being hit, dying, swinging at something.
+     * A noise one entity made: being hit, dying, swinging at something. It is an `actor-sound`
+     * occurrence in the change log, at where the entity stands now, which replication sends to
+     * whoever is near enough rather than to whoever is tracking the entity, because a sound is
+     * audible from further than a mob is worth drawing.
+     *
+     * Separate from a block's sound because the wire format differs in a way that matters: a
+     * mob's sound carries which mob is making it, so a client can pick the zombie's grunt over
+     * the skeleton's rattle.
      * @param {ShownActor} entity - Who made it.
      * @param {LevelSoundEvent} sound - Which noise.
      */
     public async sendActorSound(entity: ShownActor, sound: LevelSoundEvent): Promise<void> {
-        this.changes.actorSound(entity, sound);
+        const position = entity.getPosition();
+        if (!this.isHere(position)) return;
+        this.occurred({
+            kind: 'occurrence',
+            occurrence: 'actor-sound',
+            data: {
+                entity: entity.getRuntimeId(),
+                x: position.getX(),
+                y: position.getY(),
+                z: position.getZ(),
+                sound,
+                type: entity.getType()
+            }
+        });
     }
 
     /**

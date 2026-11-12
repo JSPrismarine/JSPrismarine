@@ -188,6 +188,36 @@ describe('network', () => {
             });
         });
 
+        describe('actor-sound', () => {
+            it('attributes a mob sound to the mob that made it, and a player sound to no type', async () => {
+                // A player's client plays its own player sounds, and naming the player type
+                // plays them twice.
+                const near = viewer(1n);
+                const replicator = replicatorOver([near.session]);
+
+                sealOccurrences(
+                    replicator,
+                    {
+                        kind: 'occurrence',
+                        occurrence: 'actor-sound',
+                        data: { entity: 2n, x: 1, y: 64, z: 1, sound: LevelSoundEvent.HURT, type: 'minecraft:zombie' }
+                    },
+                    {
+                        kind: 'occurrence',
+                        occurrence: 'actor-sound',
+                        data: { entity: 1n, x: 1, y: 64, z: 1, sound: LevelSoundEvent.HURT, type: 'minecraft:player' }
+                    }
+                );
+                await replicator.flushOccurrences();
+
+                const sounds = near.sent.filter((packet) => packet instanceof LevelSoundEventPacket);
+                expect(sounds.map((packet) => [packet.entityType, packet.entityUniqueId])).toStrictEqual([
+                    ['minecraft:zombie', 2n],
+                    ['', 1n]
+                ]);
+            });
+        });
+
         describe('block-sound', () => {
             it('plays at the center of the block to everyone near but the player it names', async () => {
                 // The one striking a block, whose client plays its own hits.

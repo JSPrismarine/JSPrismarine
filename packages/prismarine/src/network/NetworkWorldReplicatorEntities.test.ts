@@ -15,12 +15,10 @@ import { BatchCodec } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
-import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
-import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Position } from '../world/Position';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
@@ -453,27 +451,6 @@ describe('network', () => {
 
                 expect(first.spy.frames).toHaveLength(0);
                 expect(second.spy.frames).toHaveLength(0);
-            });
-        });
-
-        describe('actorSound', () => {
-            it('attributes a mob sound to the mob that made it', () => {
-                const { player, spy } = fakePlayer(1n);
-                const world = stub<World>();
-                const mob = stub<ShownActor>({
-                    getRuntimeId: () => 2n,
-                    getType: () => 'minecraft:zombie',
-                    getPosition: () => new Position(1, 64, 1, world)
-                });
-                const replicator = replicatorOver({ players: [player], proximity: false });
-
-                replicator.actorSound(mob, LevelSoundEvent.HURT);
-
-                const packet = spy.sent[0];
-                expect(packet).toBeInstanceOf(LevelSoundEventPacket);
-                if (!(packet instanceof LevelSoundEventPacket)) throw new Error('expected an actor sound packet');
-                expect(packet.entityType).toBe('minecraft:zombie');
-                expect(packet.entityUniqueId).toBe(2n);
             });
         });
     });

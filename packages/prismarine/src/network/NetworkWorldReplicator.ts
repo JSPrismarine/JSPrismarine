@@ -297,6 +297,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             case 'named-particle':
                 this.sendNamedParticle(entry.data);
                 return undefined;
+            case 'actor-sound':
+                this.sendActorSound(entry.data);
+                return undefined;
             default:
                 // A shown block goes out with the block changes, and a vetoed action is a record.
                 return undefined;
@@ -649,15 +652,13 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         this.sendAround(position, packet, { radius: WORLD_EVENT_RADIUS });
     }
 
-    /** @inheritdoc */
-    public actorSound(entity: ShownActor, sound: LevelSoundEvent): void {
-        const position = entity.getPosition();
-
+    /** An entity's noise, to the players near where it stood. */
+    private sendActorSound({ entity, x, y, z, sound, type }: OccurrenceKinds['actor-sound']): void {
         const packet = new LevelSoundEventPacket();
         packet.sound = sound;
-        packet.positionX = position.getX();
-        packet.positionY = position.getY();
-        packet.positionZ = position.getZ();
+        packet.positionX = x;
+        packet.positionY = y;
+        packet.positionZ = z;
 
         // Not a block runtime id here - for an actor sound the extra data is a pitch adjustment,
         // and -1 means "whatever this mob's own sound is". A zero would be read as a block.
@@ -666,12 +667,12 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         // Which mob is making it, so the client picks the zombie's grunt rather than a generic
         // thud. A player is deliberately the empty string: the client uses its own player sounds,
         // and naming `minecraft:player` here plays them twice.
-        packet.entityType = this.world.viewerOf(entity.getRuntimeId()) === undefined ? entity.getType() : '';
-        packet.entityUniqueId = entity.getRuntimeId();
+        packet.entityType = this.world.viewerOf(entity) === undefined ? type : '';
+        packet.entityUniqueId = entity;
         packet.isBabyMob = false;
         packet.disableRelativeVolume = false;
 
-        this.sendAround(position, packet, { radius: SOUND_RADIUS });
+        this.sendAround(new Vector3(x, y, z), packet, { radius: SOUND_RADIUS });
     }
 
     /** A numbered level event, at a point or to the whole world. */

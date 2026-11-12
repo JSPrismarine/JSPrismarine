@@ -64,7 +64,6 @@ const worldTicking = ({
         tickSealed: () => calls.push('tickSealed'),
         chunkEntered: () => calls.push('chunkEntered'),
         chunkLeft: () => calls.push('chunkLeft'),
-        actorSound: () => calls.push('actorSound'),
         entityMoved: () => calls.push('entityMoved'),
         entityAttributesChanged: entityAttributesChanged ?? record('entityAttributesChanged'),
         entityMetadataChanged: record('entityMetadataChanged'),
