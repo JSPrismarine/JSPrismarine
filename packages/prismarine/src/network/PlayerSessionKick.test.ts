@@ -105,5 +105,23 @@ describe('PlayerSession', () => {
 
             expect(() => session.getPlayer()).toThrow(/has left/);
         });
+
+        it('lets go of every claim when an early step of the leave throws, and passes the first on', async () => {
+            const { session, world, roster, server } = fakePlayer({ name: 'Leaver' });
+            await session.join();
+            vi.spyOn(session, 'stopMining').mockImplementation(() => {
+                throw new Error('cracks unavailable');
+            });
+            vi.spyOn(world, 'removePlayer').mockImplementation(() => {
+                roster.push('remove');
+                throw new Error('world unavailable');
+            });
+
+            expect(() => session.leave()).toThrow('cracks unavailable');
+
+            expect(roster).toEqual(['save', 'remove']);
+            expect(server.getChatManager().hasJoined('Leaver')).toBe(false);
+            expect(session.isConnected()).toBe(false);
+        });
     });
 });

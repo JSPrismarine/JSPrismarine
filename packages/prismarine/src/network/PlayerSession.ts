@@ -675,35 +675,54 @@ export default class PlayerSession {
     private takePlayerOff(): void {
         if (!this.joined) return;
 
-        this.stopMining();
+        // Each claim is let go of even when a step before it throws, and the first failure is
+        // passed on. A step that stopped the rest left the session in the world's player map
+        // and the chat fan-out for the life of the process, after `disable` forgot its player.
+        let failure: { readonly error: unknown } | undefined;
+        const release = (step: () => void): void => {
+            try {
+                step();
+            } catch (error: unknown) {
+                failure ??= { error };
+            }
+        };
+
+        release(() => this.stopMining());
 
         // Whether or not they have an XUID: `keyOfPlayer` falls back to the name for an offline
         // player, and this server accepts offline players. The record is built here and written
         // off the tick.
-        void this.world
-            .savePlayerData(this.getPlayer())
-            .catch((error: unknown) => this.server.getLogger().error(error));
+        release(
+            () =>
+                void this.world
+                    .savePlayerData(this.getPlayer())
+                    .catch((error: unknown) => this.server.getLogger().error(error))
+        );
         // Tells everyone who could see this player to take them away, world-scoped and only the
         // clients that actually had them.
-        this.world.removePlayer(this);
-        this.released(this.removeFromPlayerList());
+        release(() => this.world.removePlayer(this));
+        release(() => this.released(this.removeFromPlayerList()));
 
         // Announce disconnection. The leaving player is still in the fan-out here.
         const chat = this.server.getChatManager();
-        const announced = chat.send(
-            new Chat({
-                sender: this.server.getConsoleSender(),
-                // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
-                message: `%multiplayer.player.left`,
-                parameters: [this.identity.name],
-                needsTranslation: true,
-                type: ChatType.TRANSLATION
-            })
+        release(() =>
+            this.released(
+                chat.send(
+                    new Chat({
+                        sender: this.server.getConsoleSender(),
+                        // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
+                        message: `%multiplayer.player.left`,
+                        parameters: [this.identity.name],
+                        needsTranslation: true,
+                        type: ChatType.TRANSLATION
+                    })
+                )
+            )
         );
-        this.released(announced);
 
         this.joined = false;
         chat.leave(this.chatRecipient);
+        if (failure !== undefined) throw failure.error;
     }
 
     /** The queue the scheduler drains - see {@link ChunkRecipient}. */
