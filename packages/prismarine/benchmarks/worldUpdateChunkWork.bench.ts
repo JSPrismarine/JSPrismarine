@@ -13,6 +13,7 @@ import { MobSpawner } from '../src/blockentity/BlockEntities';
 import { BlockEntityRegistry } from '../src/blockentity/BlockEntityRegistry';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import type { StoreActors } from '../src/entity/data/storeActors';
+import { entityFixture } from '../src/entity/data/testing';
 import { testContent } from '../src/testing/entityServer';
 import { stub } from '../src/testing/stub.test.helper';
 import Chunk from '../src/world/chunk/Chunk';
@@ -65,6 +66,7 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
     }
 
     let world: World;
+    const { runtime } = entityFixture();
     const systems = {
         isLightingSettled: true,
         prepareLighting: () => {},
@@ -95,11 +97,15 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
         getDragonFight: () => undefined,
         getRaidManager: () => undefined,
         dataEntities: () => ({
+            // A real store, empty, whose tick the update opens and seals around the chunk work.
+            runtime,
             tick: async () => {},
             persist: () => {},
             unload: () => false,
             actors: stub<StoreActors>({ all: () => [][Symbol.iterator]() })
         }),
+        // The header the store seals each tick with, which reads level state this fixture has not.
+        tickHeader: () => undefined,
         flushEntityAttributes: async () => {},
         updateTracking: async () => {},
         flushMovement: async () => {},

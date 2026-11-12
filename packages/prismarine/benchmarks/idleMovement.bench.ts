@@ -79,6 +79,7 @@ const connection = stub<ClientConnection>({
 });
 const moverSession = stub<PlayerSession>({
     getPlayer: () => mover,
+    holdsMovementForTeleport: () => false,
     getActor: () => moverBody,
     shown: () => moverBody,
     getWorld: () => world,
@@ -114,11 +115,10 @@ const server = stub<Server>({
         })
 });
 replicator = new NetworkWorldReplicator(world, server);
-const session = stub<PlayerSession>({ getPlayer: () => mover, holdsMovementForTeleport: () => false });
 /** The sends one movement hands its input step, awaited before the next as the step does. */
 const outputs: Promise<void>[] = [];
 const context: MovementContext = {
-    session,
+    session: moverSession,
     log: server.getLogger(),
     services: { events: { post: () => 0 } },
     step: {

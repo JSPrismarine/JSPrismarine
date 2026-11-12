@@ -31,6 +31,7 @@ const makeEntities = (count: number, chunkWidth: number): StoreActor[] => {
         persistentNbt.addValue('UniqueID', new Types.LongVal(BigInt(index + 1)));
 
         return stub<StoreActor>({
+            getRuntimeId: () => BigInt(index + 1),
             getType: () => 'minecraft:cow',
             getPosition: () => position,
             getTags: () => [],
