@@ -84,6 +84,15 @@ Nether" is a world you ask the level for by stem id, `level.world('minecraft:the
 clock is read back from the `Time` field of `level.dat` when the level opens, so a restart
 continues the day where the last run left it.
 
+A level saves every dimension in one pass, as the state of one tick boundary
+([ADR 0018](../adr/0018-a-save-is-a-snapshot-of-one-tick-boundary.md)). The autosave takes its
+cut at the end of a tick: every player record, the actor records of every chunk, and which
+sections of each chunk changed. The changed sections are encoded over the next few ticks, and a
+section that gameplay is about to write is encoded first. The pass then goes to the database as
+one batch, appended and synced off the server thread, and `level.dat` is rewritten once, through
+a rename. A crash before that batch is on disk leaves the previous save as it was. A save that is
+asked for, such as a shutdown's, takes its cut between two ticks and writes at once.
+
 `WorldManager` loads every entry under `worlds`, not only `level-name`; `level-name` is the one
 players join. For each entry it reads the config in either spelling, reads the stems the save was
 generated with, resolves the stems from the preset, the entry's `dimensions` and the saved ones in
