@@ -174,7 +174,7 @@ The quoted sentences are from the ADR as it stands at `8988e0aa19`. The proposed
    Proposed: "A save pass writes the authoritative state of one tick boundary of a level, called the save cut, for every dimension the level holds, and commits it as one atomic write."
 2. "At the cut the world encodes the player and entity records and marks the chunks that changed since the last pass."
    Proposed: "At the cut the level encodes the player and entity records, takes each chunk's entity membership, and marks the chunks that gameplay changed since the last pass. A chunk generated since the last pass and not changed by gameplay is not part of the cut. It is written on its own, as terrain and generation spawns, with no actor records or digest."
-3. "A chunk in the marked set that is about to be written to is encoded first, which every write makes possible because every write goes through a logged setter ([ADR 0012](0012-the-change-log-is-the-history.md))."
+3. "A chunk in the marked set that is about to be written to is encoded first, which every write makes possible because every write goes through a logged setter ([ADR 0012](../adr/0012-the-change-log-is-the-history.md))."
    Proposed: "A sub chunk of a marked chunk that is about to be written to is encoded first, with the chunk's height and biome record. Every chunk write goes through a method of `Chunk`, and no code outside generation and loading holds a mutable sub chunk or biome store, so the hook sees every write."
 4. "The encoded bytes go to disk between ticks."
    Proposed: "Once the last marked chunk is encoded, the encoded bytes go to disk as one batch. The append and its sync run off the server thread, and the next pass waits for the commit."
