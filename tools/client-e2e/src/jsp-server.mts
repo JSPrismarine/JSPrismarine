@@ -131,6 +131,9 @@ export const answersRakNetPing = (port: number): Promise<boolean> =>
         socket.send(ping, port, '127.0.0.1');
     });
 
+/** The second level's `worlds` key, when a suite asks for one with `secondLevel`. */
+export const SECOND_LEVEL = 'e2e_other';
+
 /**
  * Starts a scratch server from source or the built workspace output, then waits until it listens.
  *
@@ -147,6 +150,8 @@ export const answersRakNetPing = (port: number): Promise<boolean> =>
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
  * @param options.preloadRadius - Chunks around spawn to generate and keep resident before listening.
  * @param options.worldgenSpawn - Boots the normal Overworld at seed 1234 for spawn testing.
+ * @param options.secondLevel - Adds a second flat `worlds` entry, {@link SECOND_LEVEL}, whose
+ *   Overworld shares the default level's dimension.
  * @param options.udpPorts - Where NetherNet's UDP goes; see {@link UdpPortsLayout}.
  * @param options.publicIp - The `server-public-ip` the server advertises.
  * @throws When the process exits or the readiness line does not appear in time.
@@ -163,6 +168,7 @@ export const startServer = async (
         profile?: boolean;
         preloadRadius?: number;
         worldgenSpawn?: boolean;
+        secondLevel?: boolean;
         udpPorts?: UdpPortsLayout;
         publicIp?: string;
     } = {}
@@ -464,7 +470,8 @@ export const startServer = async (
                         generator: flatGenerator('minecraft:stone')
                     }
                 }
-            }
+            },
+            ...(options.secondLevel === true ? { [SECOND_LEVEL]: { seed: '2', preset: 'minecraft:flat' } } : {})
         },
         'content-world-packs': [behaviorPack],
         'content-datapacks': [datapack],
