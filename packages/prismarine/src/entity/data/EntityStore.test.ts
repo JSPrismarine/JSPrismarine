@@ -728,6 +728,24 @@ describe('the entity store', () => {
             expect(entity.body.damage.records()).toEqual(before);
         });
 
+        it('forgets when a mob was hurt by a blow that was undone', () => {
+            const { runtime } = fixture();
+            const entity = spawnLogged(runtime);
+            // What a piglin's barter and admiration cooldowns read, which nothing else exposes.
+            const hurtAt = (): unknown => {
+                const lastDamagedAt: unknown = Reflect.get(runtime, 'lastDamagedAt');
+                return lastDamagedAt instanceof WeakMap ? lastDamagedAt.get(entity) : 'unreadable';
+            };
+            beginMeasuredTick(runtime.store);
+
+            runtime.store.unit(() => {
+                runtime.damage({ target: entity.id, cause: 'fall', amount: 1, source: { route: 'component' } });
+                throw new Planned();
+            });
+
+            expect(hurtAt()).toBeUndefined();
+        });
+
         it('starts a fuse again whose first count an undone update made', () => {
             const { runtime } = entityFixture(
                 undefined,

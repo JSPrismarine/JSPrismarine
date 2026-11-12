@@ -2455,7 +2455,7 @@ export class EntityRuntime implements EntityScene {
         if (result.amount > 0 && source.remembered !== false) {
             this.keepDamageRecord(entity);
             entity.body.damage.record(intent.attacker, intent.cause, result.amount);
-            this.lastDamagedAt.set(entity, this.world.level.gameTime());
+            this.setLastDamagedAt(entity, this.world.level.gameTime());
             this.disablePiglinAdmirationAfterDamage(entity);
         }
         if (result.died) {
@@ -2778,6 +2778,20 @@ export class EntityRuntime implements EntityScene {
      * Registers how to put an entity's damage record back as it is now, so `hurt_by_target` and
      * the others that read it do not answer a blow that was undone.
      */
+    /**
+     * Records when an entity was last hurt, which a piglin's barter and admiration cooldowns read,
+     * with an undo: a unit that took the blow back would otherwise leave the piglin refusing gold
+     * for a hit it never took.
+     */
+    private setLastDamagedAt(entity: DataEntity, at: number): void {
+        const before = this.lastDamagedAt.get(entity);
+        this.lastDamagedAt.set(entity, at);
+        this.store.undoWith(() => {
+            if (before === undefined) this.lastDamagedAt.delete(entity);
+            else this.lastDamagedAt.set(entity, before);
+        });
+    }
+
     private keepDamageRecord(entity: DataEntity): void {
         const records = entity.body.damage.records();
         // By id: an undone removal adds the entity back with a new, empty record.
