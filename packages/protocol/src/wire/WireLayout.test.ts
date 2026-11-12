@@ -168,6 +168,37 @@ describe('a wire layout', () => {
         }
     });
 
+    it.each([true, false])('preserves object-valued special keys with useCompiler=%s', (useCompiler) => {
+        for (const includeField of [true, false]) {
+            const definition = definePacket('PrototypeFieldPacket', {
+                ['__proto__']: gated(since(PROTOCOL_2225, 'object field'), t.vec3, { x: 4, y: 5, z: 6 }),
+                constructor: t.varuint32,
+                toString: t.string
+            });
+            const layout = layoutAt(definition, includeField ? PROTOCOL_2225 : PROTOCOL_2193, useCompiler);
+            const fieldValue = { x: 1, y: 2, z: 3 };
+            const payload = { ['__proto__']: fieldValue, constructor: 7, toString: 'value' };
+            const stream = new BinaryStream();
+            layout.encode(stream, payload);
+            const decoded = layout.decode(new BinaryStream(writtenBytes(stream)));
+
+            expect(layout.implementation).toBe(useCompiler ? 'compiled' : 'walker');
+            expect(Object.getPrototypeOf(decoded)).toBe(Object.prototype);
+            expect(Object.getOwnPropertyDescriptor(decoded, '__proto__')).toEqual({
+                value: includeField ? fieldValue : { x: 4, y: 5, z: 6 },
+                writable: true,
+                enumerable: true,
+                configurable: true
+            });
+            expect('x' in decoded).toBe(false);
+            expect(decoded.constructor).toBe(7);
+            expect(decoded.toString).toBe('value');
+            expect(Object.keys(decoded)).toEqual(
+                includeField ? ['__proto__', 'constructor', 'toString'] : ['constructor', 'toString', '__proto__']
+            );
+        }
+    });
+
     it('compiles arbitrary payload keys as quoted own properties', () => {
         const quotedKey = 'a"quoted\\key';
         const definition = definePacket('ArbitraryKeyPacket', {

@@ -136,8 +136,22 @@ const resolve = (definition: PacketDefinition, protocolVersion: number, useCompi
             compiled?.decode ??
             ((stream: BinaryStream): Record<string, unknown> => {
                 const payload: Record<string, unknown> = {};
-                for (const { key, of } of frozenFields) payload[key] = of.read(stream);
-                for (const [key, fallback] of frozenAbsent) payload[key] = fallback;
+                for (const { key, of } of frozenFields) {
+                    Object.defineProperty(payload, key, {
+                        value: of.read(stream),
+                        writable: true,
+                        enumerable: true,
+                        configurable: true
+                    });
+                }
+                for (const [key, fallback] of frozenAbsent) {
+                    Object.defineProperty(payload, key, {
+                        value: fallback,
+                        writable: true,
+                        enumerable: true,
+                        configurable: true
+                    });
+                }
                 return payload;
             })
         // The walker is type-erased internally; the definition's field map carries the real
