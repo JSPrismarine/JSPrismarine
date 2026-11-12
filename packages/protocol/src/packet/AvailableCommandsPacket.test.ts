@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import AvailableCommandsPacket from './AvailableCommandsPacket';
 import { CommandParameterFlags, CommandParameterTypeFlag } from '../wire/structures/CommandParameter';
+import { CommandEnum } from '../wire/structures/CommandEnum';
+import CommandEnumConstraint from '../wire/structures/CommandEnumConstraint';
+import AvailableCommandsPacket from './AvailableCommandsPacket';
 
 const identifier = 'name\r\n[INFO] forged\t\b\u001b[2J\u0085\u2028\u2029"\\';
 const quotedIdentifier = '"name\\r\\n[INFO] forged\\t\\b\\u001b[2J\\u0085\\u2028\\u2029\\"\\\\"';
@@ -70,5 +72,60 @@ describe('AvailableCommandsPacket diagnostics', () => {
     ])('escapes the wire identifier for an invalid %s', (kind, label, detail) => {
         const packet = malformedPacket(kind);
         expect(() => packet.decodePayload()).toThrow(`${label} ${quotedIdentifier} ${detail}`);
+    });
+});
+
+const hardEnum = (name: string, values: string[]): CommandEnum =>
+    Object.assign(new CommandEnum(), { name, values, soft: false });
+
+/** Encodes `packet` and decodes the bytes into a fresh packet. */
+const roundTrip = (packet: AvailableCommandsPacket): AvailableCommandsPacket => {
+    packet.encode();
+    const decoded = new AvailableCommandsPacket(packet.getBuffer());
+    decoded.decode();
+    return decoded;
+};
+
+describe('AvailableCommandsPacket', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('resolves each constraint to its value in the constrained enum', () => {
+        const gameModes = hardEnum('GameMode', ['survival', 'creative', 'adventure']);
+        const difficulty = hardEnum('Difficulty', ['peaceful', 'easy', 'creative']);
+        const packet = new AvailableCommandsPacket();
+        packet.hardcodedEnums = [gameModes, difficulty];
+        packet.enumConstraints = [
+            new CommandEnumConstraint(gameModes, 1, [1]),
+            new CommandEnumConstraint(gameModes, 2, [0, 2]),
+            new CommandEnumConstraint(difficulty, 2, [1])
+        ];
+
+        const decoded = roundTrip(packet).enumConstraints;
+
+        expect(decoded.map((c) => [c.getEnum().name, c.getValueOffset(), c.getConstraints()])).toEqual([
+            ['GameMode', 1, [1]],
+            ['GameMode', 2, [0, 2]],
+            ['Difficulty', 2, [1]]
+        ]);
+    });
+
+    it('does not search the enum once per constraint', () => {
+        const values = Array.from({ length: 64 }, (_, i) => `value${i}`);
+        const big = hardEnum('Big', values);
+        const packet = new AvailableCommandsPacket();
+        packet.hardcodedEnums = [big];
+        packet.enumConstraints = values.map((_, offset) => new CommandEnumConstraint(big, offset, [0]));
+        packet.encode();
+        const decoded = new AvailableCommandsPacket(packet.getBuffer());
+
+        const indexOf = vi.spyOn(Array.prototype, 'indexOf');
+        decoded.decode();
+        const scansOfTheEnum = indexOf.mock.contexts.filter((array) => Array.isArray(array) && array.length >= 64);
+        indexOf.mockRestore();
+
+        expect(scansOfTheEnum).toHaveLength(0);
+        expect(decoded.enumConstraints.map((c) => c.getValueOffset())).toEqual(values.map((_, i) => i));
     });
 });
