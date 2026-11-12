@@ -1,6 +1,7 @@
 /** The scenario contract: a named check run against a live server and an in-world client. */
 import assert from 'node:assert/strict';
 
+import { isRecord } from './cinnabar.mts';
 import type { CinnabarClient } from './client.mts';
 import type { JspServer } from './jsp-server.mts';
 
@@ -230,6 +231,29 @@ export const vec3 = (state: Record<string, unknown>, key: string): [number, numb
     }
     return value as [number, number, number];
 };
+
+/** Where the client draws the player named `name`, or undefined while it lists no such player. */
+export const actorPosition = (state: Record<string, unknown>, name: string): [number, number, number] | undefined => {
+    if (!Array.isArray(state.actors)) return undefined;
+    const actor = state.actors.find((candidate) => isRecord(candidate) && candidate.name === name);
+    if (!isRecord(actor)) return undefined;
+    return vec3(actor, 'position');
+};
+
+/** Waits until the client lists the player named `name`, and returns where it draws them. */
+export const waitForActor = async (client: CinnabarClient, name: string): Promise<[number, number, number]> => {
+    const deadline = Date.now() + 60_000;
+    for (;;) {
+        const position = actorPosition(await client.state(), name);
+        if (position !== undefined) return position;
+        if (Date.now() >= deadline) throw new Error(`observer never listed player ${name}`);
+        await sleep(250);
+    }
+};
+
+/** The straight-line distance between two positions, in blocks. */
+export const distance = (left: readonly [number, number, number], right: readonly [number, number, number]): number =>
+    Math.hypot(left[0] - right[0], left[1] - right[1], left[2] - right[2]);
 
 /** Matches every reply `testforblock` gives, whether or not the block is there. */
 const BLOCK_CHECK_REPLY = /Found the block at|The block is |The \w+ state does not match|That chunk is not loaded/;
