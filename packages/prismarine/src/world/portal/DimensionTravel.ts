@@ -377,21 +377,30 @@ export class DimensionTravel {
             ...dataEntityRecordOf(
                 entity,
                 from.runtime.poolOf(entity.id),
-                from.runtime.leashHolderIdentityOf(entity.id)
+                from.runtime.leashHolderIdentityOf(entity.id),
+                from.runtime.merchantSnapshotOf(entity)
             ),
             yaw: arrival.yaw,
             pitch: arrival.pitch
         };
         const persistentNbt = actor.persistentNbt ?? new NBTTagCompound('');
         writeDataEntityRecord(persistentNbt, record);
-        from.runtime.remove(entity.id, 'body removed');
 
+        // Restored before the source is removed, so a destination that cannot take the entity
+        // leaves it where it was rather than in neither world.
         const restored = to.restoreRecord(record, at, {
             persistentNbt,
             tags: actor.getTags(),
             statusEffects: actor.getStatusEffects()
         });
-        if (restored !== undefined) to.actors.actorOf(restored.id)?.setPortalCooldown();
+        if (restored === undefined) {
+            from.runtime.report(
+                `${entity.identifier} ${entity.id} could not enter ${arrival.world.getName()}, so it stays`
+            );
+            return;
+        }
+        from.runtime.remove(entity.id, 'body removed');
+        to.actors.actorOf(restored.id)?.setPortalCooldown();
     }
 
     /** Whether the entity rides or is ridden, as far as the data-driven runtime of its world knows. */
