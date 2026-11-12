@@ -241,19 +241,29 @@ export default class LevelDB extends BaseProvider {
     /**
      * Commits whatever is still held, then closes. A level's last pass took everything held
      * before it, so this is what was written after that pass's cut. A commit that fails is
-     * logged and the database still closes, so the folder is not left locked.
+     * logged and tried once more, and the database still closes, so the folder is not left
+     * locked.
      */
     public override async disable(): Promise<void> {
         const held = this.held;
         this.held = new OverlayBatch();
-        try {
-            if (this.database !== null && held.count > 0) {
-                this.chunkWriteBatchBytes += held.approximateSize;
-                await this.database.commit(held.toWriteBatch(), { sync: true });
+        if (this.database !== null && held.count > 0) {
+            this.chunkWriteBatchBytes += held.approximateSize;
+            // Once more after a failure: the database reports a background flush's failure to
+            // the next write and then takes writes again, so the second commit can land. One
+            // whose append failed is refused again before anything is applied, so a batch is
+            // never applied twice.
+            for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    await this.database.commit(held.toWriteBatch(), { sync: true });
+                    break;
+                } catch (error: unknown) {
+                    this.getServer()
+                        .getLogger()
+                        .error(`Failed to commit ${held.count} held writes to ${this.getPath()} (attempt ${attempt})`);
+                    this.getServer().getLogger().error(error);
+                }
             }
-        } catch (error: unknown) {
-            this.getServer().getLogger().error(`Failed to commit ${held.count} held writes to ${this.getPath()}`);
-            this.getServer().getLogger().error(error);
         }
         await this.database?.close();
         this.database = null;
