@@ -9,8 +9,40 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-/** What comes right before a module specifier: `from`, `import`, `import(` or `declare module`. */
-const BEFORE_SPECIFIER = /(?:\bfrom|\bimport\s*\(|\bimport|\bdeclare\s+module)\s*$/;
+/** Where a line comment ends: at any ECMAScript line terminator, not only a line feed. */
+const LINE_TERMINATOR = /[\n\r\u2028\u2029]/g;
+
+/** The index just past the last character before `end` that is not whitespace. */
+const skipSpaceBack = (source: string, end: number): number => {
+    let at = end;
+    while (at > 0 && /\s/.test(source.charAt(at - 1))) at -= 1;
+    return at;
+};
+
+/** The identifier that ends at `end`, or an empty string when none does. */
+const wordBefore = (source: string, end: number): string => {
+    let start = end;
+    while (start > 0 && /[\w$]/.test(source.charAt(start - 1))) start -= 1;
+    return source.slice(start, end);
+};
+
+/**
+ * Whether what stands before a string literal makes it a module specifier: `from`, `import`,
+ * `import(` or `declare module`.
+ *
+ * Read backward a token at a time, so any amount of whitespace may stand between the keyword and
+ * the quote, or inside `import (` and `declare module`.
+ * @param source - The declaration file's contents.
+ * @param quoteAt - Where the literal's opening quote stands.
+ */
+const followsSpecifierKeyword = (source: string, quoteAt: number): boolean => {
+    const end = skipSpaceBack(source, quoteAt);
+    if (source.charAt(end - 1) === '(') return wordBefore(source, skipSpaceBack(source, end - 1)) === 'import';
+
+    const word = wordBefore(source, end);
+    if (word === 'from' || word === 'import') return true;
+    return word === 'module' && wordBefore(source, skipSpaceBack(source, end - word.length)) === 'declare';
+};
 
 /** A relative specifier: `.` or `..`, alone or followed by a path. */
 const RELATIVE = /^\.\.?(?:\/|$)/;
@@ -24,8 +56,8 @@ function* stringLiterals(source: string): Generator<{ readonly start: number; re
     while (at < source.length) {
         const char = source[at];
         if (char === '/' && source[at + 1] === '/') {
-            const newline = source.indexOf('\n', at);
-            at = newline === -1 ? source.length : newline;
+            LINE_TERMINATOR.lastIndex = at;
+            at = LINE_TERMINATOR.exec(source)?.index ?? source.length;
         } else if (char === '/' && source[at + 1] === '*') {
             const close = source.indexOf('*/', at + 2);
             at = close === -1 ? source.length : close + 2;
@@ -74,8 +106,7 @@ export const withJsExtensions = (source: string, declarationFile: string): strin
     let copied = 0;
     for (const { start, end } of stringLiterals(source)) {
         const quote = source[start];
-        // The keyword stands just before the quote, so a short look back finds it.
-        if (quote === '`' || !BEFORE_SPECIFIER.test(source.slice(Math.max(copied, start - 64), start))) continue;
+        if (quote === '`' || !followsSpecifierKeyword(source, start)) continue;
         const specifier = source.slice(start + 1, end - 1);
         if (!RELATIVE.test(specifier)) continue;
         written += `${source.slice(copied, start)}${quote}${withJsExtension(declarationFile, specifier)}${quote}`;
