@@ -176,3 +176,33 @@ describe('namespace resolution', () => {
         expect(written[0]).toContain('built server');
     });
 });
+
+describe('untrusted text in a message', () => {
+    it('strips escape sequences and carriage returns before any transport sees them', () => {
+        const { logger, written } = makeLogger();
+        const records: string[] = [];
+        const lines: string[] = [];
+        const capturing = new Logger('info', [{ log: (record) => void records.push(record.message) }]);
+        capturing.onLine((line) => lines.push(line));
+
+        const name = 'Steve\u001B[2J\u001B]0;owned\u0007\rAdmin';
+        logger.warn(`${name} failed to log in`);
+        capturing.warn(`${name} failed to log in`);
+
+        expect(written[0]).not.toContain('\u001B[2J');
+        expect(written[0]).not.toContain('owned');
+        expect(written[0]).not.toContain('\r');
+        expect(records).toEqual(['SteveAdmin failed to log in.']);
+        expect(lines).toEqual(['SteveAdmin failed to log in.']);
+    });
+
+    it('indents every further console line so it cannot pass for a record', () => {
+        const { logger, written } = makeLogger();
+
+        logger.info('signed "x"\n[12:00:00 INFO]: Steve was made an operator');
+
+        const [first, second] = written[0]!.split('\n');
+        expect(first).toContain('signed "x"');
+        expect(second?.startsWith('    [12:00:00 INFO]: Steve was made an operator')).toBe(true);
+    });
+});

@@ -4,6 +4,10 @@ import type { LogLevel } from './levels';
 import { isAtLeastLevel } from './levels';
 import type { ConsoleLike, LogTransport } from './transport';
 import { PrismarineTransport } from './transport';
+import { terminalText } from './terminalText';
+
+/** What a console line starts each further line of a multi-line record with. */
+const CONTINUATION_INDENT = '    ';
 
 /** ANSI open sequence per level, mirroring the palette winston used to apply. */
 const LEVEL_COLOR: Record<LogLevel, string> = {
@@ -125,14 +129,24 @@ export class Logger {
         return this.isLevelEnabled(level);
     }
 
-    private emit(level: LogLevel, message: string, namespace: string): void {
+    /**
+     * Hands one record to every transport and line listener.
+     *
+     * The message is made terminal-safe first: it often carries text a client chose, such as a
+     * player name, a book title or a command, and an escape sequence or carriage return in it
+     * would otherwise reach the console as is. Line feeds stay, since stack traces need them,
+     * and each further line of the console record is indented so it cannot pass for a record
+     * of its own. `FileTransport` frames the file the same way.
+     */
+    private emit(level: LogLevel, untrusted: string, namespace: string): void {
+        const message = terminalText(untrusted);
         const now = new Date();
         const timestamp = [now.getHours(), now.getMinutes(), now.getSeconds()]
             .map((part) => part.toString().padStart(2, '0'))
             .join(':');
         const coloredLevel = `${LEVEL_COLOR[level]}${level.toUpperCase()}\u001b[39m`;
         const formatted = colorParser(
-            `[${timestamp} ${coloredLevel}${namespace ? ` ${namespace}` : ''}§r]: ${message}§r`
+            `[${timestamp} ${coloredLevel}${namespace ? ` ${namespace}` : ''}§r]: ${message.replaceAll('\n', `\n${CONTINUATION_INDENT}`)}§r`
         );
 
         for (const transport of this.transports) {
