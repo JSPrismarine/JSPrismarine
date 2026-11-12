@@ -667,7 +667,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 if (recordInbound && this.inboundPacketRecorder !== undefined) {
                     this.recordInboundPacket(packet, connection);
                 }
-                await handler.handle(packet, ConnectionContexts.of(this.server).contextOf(connection));
+                await handler.handle(packet, ConnectionContexts.of(this.server).contextOf(connection, this.inputs));
             } else if (session !== null) {
                 if (recordInbound && this.inboundPacketRecorder !== undefined) {
                     this.recordInboundPacket(packet, connection);

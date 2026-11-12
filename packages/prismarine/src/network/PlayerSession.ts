@@ -2289,6 +2289,9 @@ export default class PlayerSession {
         this.viewDistance = distance;
         const packet = new ChunkRadiusUpdatedPacket({ radius: distance });
         await this.connection.sendDataPacket(packet);
+        // The request is applied in an input step, and a removal later in the same step, such as
+        // a login of the same account replacing this one, can take the player off meanwhile.
+        if (!this.isConnected()) return;
 
         // A retail client discards every LevelChunk that reaches it before it has asked for a
         // radius and been answered with the ChunkRadiusUpdated above - that exchange is the

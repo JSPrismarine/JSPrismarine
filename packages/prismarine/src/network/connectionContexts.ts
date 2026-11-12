@@ -10,11 +10,13 @@ import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { StorePlayer } from '../entity/storePlayer';
+import { currentTickWaitTracker } from '../world/TickWaits';
 import type Server from '../Server';
 import type ClientConnection from './ClientConnection';
 import { createConnectedPlayer } from './createConnectedPlayer';
 import type { ConnectionContext, JoinPreparation, LoginIdentity, LoginServices } from './handler/ConnectionContext';
 import { accountOf } from './handler/ConnectionContext';
+import { InputQueue } from './InputQueue';
 import type PlayerSession from './PlayerSession';
 
 /** The login's preparation of a player, over the default world. */
@@ -69,20 +71,11 @@ export class ConnectionContexts {
     private static readonly built = new WeakMap<Server, ConnectionContexts>();
 
     private readonly server: Server;
-    private readonly login: LoginServices;
+    private readonly players: JoinPreparation;
 
     private constructor(server: Server) {
         this.server = server;
-        const players = joinPreparationOf(server);
-        this.login = {
-            get sessions() {
-                return server.getSessionManager();
-            },
-            get bans() {
-                return server.getBanManager();
-            },
-            players
-        };
+        this.players = joinPreparationOf(server);
     }
 
     /**
@@ -104,9 +97,38 @@ export class ConnectionContexts {
      * read when the handler uses them, not when the context is built.
      *
      * @param connection - The connection the packet arrived on.
+     * @param inputs - Where the dispatcher holds inputs, which a login's replacement of another
+     *   connection waits in. Without one, the replacement is applied at once, as on a server with
+     *   no input step.
      */
-    public contextOf(connection: ClientConnection): ConnectionContext {
+    public contextOf(connection: ClientConnection, inputs = new InputQueue(() => false)): ConnectionContext {
         const server = this.server;
+        const login: LoginServices = {
+            get sessions() {
+                return server.getSessionManager();
+            },
+            get bans() {
+                return server.getBanManager();
+            },
+            players: this.players,
+            async removeAsInput(replaced, remove) {
+                let removed: Promise<void> = Promise.resolve();
+                const held = inputs.hold(replaced, () => {
+                    removed = remove();
+                });
+                // Waiting only for an input step, which a harness that steps the ticks has to
+                // run: parked, so its wait for quiet counts this login as waiting for the tick.
+                // A shutdown applies every held input, so the park is always released.
+                const tracker = currentTickWaitTracker();
+                tracker?.park();
+                try {
+                    await held;
+                } finally {
+                    tracker?.unpark();
+                }
+                await removed;
+            }
+        };
         return {
             connection,
             get log() {
@@ -115,7 +137,7 @@ export class ConnectionContexts {
             get config() {
                 return server.getConfig();
             },
-            login: this.login
+            login
         };
     }
 }
