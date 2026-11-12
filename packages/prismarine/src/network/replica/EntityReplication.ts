@@ -192,7 +192,7 @@ export class EntityReplication {
             if (membership.change === 'leave' && !entersAgain) {
                 this.shown.delete(membership.entity);
                 this.departures.push(membership.entity);
-            } else sends.push(this.showMembership(membership));
+            } else sends.push(this.showingMembership(membership));
         }
         this.sights.clear();
 
@@ -250,6 +250,20 @@ export class EntityReplication {
         const session = this.ports.viewers().find((candidate) => candidate.identity.uuid === identity);
         return session === undefined ? undefined : Number(session.runtimeId);
     };
+
+    /**
+     * {@link showMembership}, with a throw turned into the rejection of its sends. A first sight
+     * that cannot be built throws while the flush runs, inside the world's replication, and would
+     * otherwise skip the memberships after it and every phase of the world's replication after
+     * the entities, block changes and movement among them.
+     */
+    private showingMembership(membership: MembershipChange): Promise<void> {
+        try {
+            return this.showMembership(membership);
+        } catch (error: unknown) {
+            return Promise.reject(error);
+        }
+    }
 
     private showMembership(membership: MembershipChange): Promise<void> {
         const { entity } = membership;
