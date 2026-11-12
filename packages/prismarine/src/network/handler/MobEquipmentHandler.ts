@@ -56,7 +56,21 @@ export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPa
         }
 
         const inventory = player.getInventory();
+        const previousSlot = inventory.getHandSlotIndex();
         inventory.setHandSlot(data.hotbarSlot);
+
+        // A block being mined was timed for the tool held when mining began. A switch starts the
+        // mining over for the new tool, as a Bedrock client restarts its own break progress, so a
+        // fast tool's time cannot be kept for a block finished with a slow one. A report of the
+        // slot already held changes nothing.
+        const mining = player.getMining();
+        if (mining !== null && data.hotbarSlot !== previousSlot) {
+            const world = player.getWorld();
+            await world.stopBlockCracking(mining.position);
+            player.setMining(
+                await world.startBlockCracking(mining.position, mining.face, inventory.getItemInHand(), null)
+            );
+        }
 
         // The server's stack for that slot under the sender's runtime id, not the client's
         // bytes forwarded: a client could otherwise show everyone else an item it does not have.
