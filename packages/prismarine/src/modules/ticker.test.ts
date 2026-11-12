@@ -157,7 +157,7 @@ describe('modules/ticker', () => {
         expect(order).toEqual(['inputs', 'functions', 'tick', 'world', 'network']);
     });
 
-    it('opens each world change log tick before the input step and closes one the world did not update', async () => {
+    it('opens each world change log tick before the input step and closes it after the world updates', async () => {
         const order: string[] = [];
         const harness = buildHarness({
             isTickingEnabled: () => false,
@@ -180,6 +180,32 @@ describe('modules/ticker', () => {
         await harness.ticker.advance();
 
         expect(order).toEqual(['begin', 'inputs', 'world', 'close']);
+    });
+
+    it('closes every opened world tick when the input step throws', async () => {
+        const order: string[] = [];
+        const harness = buildHarness({
+            isTickingEnabled: () => false,
+            admitInputs: () => {
+                order.push('inputs');
+                throw new Error('planned');
+            },
+            getWorlds: () => [
+                {
+                    getName: () => 'world',
+                    beginChangeTick: () => order.push('begin'),
+                    update: () => {
+                        order.push('world');
+                    },
+                    closeTick: () => void order.push('close')
+                }
+            ]
+        });
+
+        await harness.ticker.advance();
+        await harness.ticker.advance();
+
+        expect(order).toEqual(['begin', 'inputs', 'close', 'begin', 'inputs', 'close']);
     });
 
     it('closes a frozen world in every tick without updating it, and the next world after one that throws', async () => {
