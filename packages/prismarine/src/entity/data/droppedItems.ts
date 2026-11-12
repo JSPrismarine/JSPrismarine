@@ -568,28 +568,27 @@ export class DroppedItems {
     }
 
     /**
-     * Gives the stack to the first player standing close enough who is not a spectator, and takes
-     * it out of the world.
+     * Gives the stack to the players standing close enough who are not spectators, in turn, and
+     * takes it out of the world once one has taken all of it.
      *
-     * A full inventory leaves it where it is. A partial fit leaves what did not fit on the ground.
+     * A full inventory passes the stack on to the next player in reach. A partial fit leaves
+     * what did not fit on the ground, and the next player in reach is offered that.
      */
     private pickUp(entity: DataEntity, tuning: ItemTuning): void {
-        const view = itemViewOf(entity);
+        let view = itemViewOf(entity);
         if (view === undefined || view.pickupDelay > 0) return;
 
-        const taker = this.host
-            .players()
-            .find((player) => player.spectator !== true && this.reaches(entity, player, tuning));
-        if (taker === undefined) return;
-
-        const left = this.host.give(taker.id, entity.id, view.stack);
-        if (left >= view.stack.count) return;
-        if (left <= 0) {
-            this.host.remove(entity.id, 'picked_up');
-            return;
+        for (const taker of this.host.players()) {
+            if (taker.spectator === true || !this.reaches(entity, taker, tuning)) continue;
+            const left = this.host.give(taker.id, entity.id, view.stack);
+            if (left >= view.stack.count) continue;
+            if (left <= 0) {
+                this.host.remove(entity.id, 'picked_up');
+                return;
+            }
+            view = updateView(entity, view, { stack: { ...view.stack, count: left } });
+            this.host.stackChanged(entity.id, left);
         }
-        updateView(entity, view, { stack: { ...view.stack, count: left } });
-        this.host.stackChanged(entity.id, left);
     }
 
     /**
