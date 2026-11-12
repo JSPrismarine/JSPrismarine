@@ -1,5 +1,6 @@
 import type { ChangeEntry, StateEntry } from './ChangeEntry';
 import { inverseOf } from './ChangeEntry';
+import type { TickHeader } from './TickHeader';
 
 /**
  * Where an entry sits in the history: the tick that appended it and its position in that tick.
@@ -21,6 +22,8 @@ export type SealedTick = {
     readonly tick: number;
     /** The tick's entries in append order. */
     readonly entries: readonly ChangeEntry[];
+    /** What the world's own clocks and in-flight work were as the tick sealed, when the world gave it. */
+    readonly header?: TickHeader;
 };
 
 /** A change log was used out of order, such as appending to a tick that is already sealed. */
@@ -120,16 +123,18 @@ export class ChangeLog {
 
     /**
      * Closes the open tick. No entry can be appended to it afterwards.
+     * @param {TickHeader} [header] - What the world's own clocks and in-flight work are now.
      * @returns {SealedTick} The tick's entries, for its consumers.
      * @throws {ChangeLogError} When no tick is open or a span is still open.
      */
-    public seal(): SealedTick {
+    public seal(header?: TickHeader): SealedTick {
         const current = this.open('seal');
         if (this.spans.length > 0)
             throw new ChangeLogError(`Cannot seal tick ${current.tick}: ${this.spans.length} span(s) still open`);
         this.current = null;
-        this.retained = current;
-        return current;
+        const sealed: SealedTick = header === undefined ? current : { ...current, header };
+        this.retained = sealed;
+        return sealed;
     }
 
     /**

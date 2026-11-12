@@ -29,6 +29,7 @@ import type { ServerContent } from '../ServerContent';
 import type { ContentPosition } from './adapter';
 import { serverWorldSource } from './serverSource';
 import { fakeLevel } from '../../testing/level';
+import { QUIET_TICK_HEADER } from '../../testing/tickHeader.test.helper';
 
 /**
  * The blocks this fixture declares, which are also the whole of its palette.
@@ -152,6 +153,7 @@ const liveWorld = (
     };
 
     const world: World = Object.assign(Object.create(World.prototype), {
+        tickHeader: () => QUIET_TICK_HEADER,
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
         dimension: Dimensions.Overworld,

@@ -43,6 +43,7 @@ import { isCarriedEntry } from '../../world/changelog/ChangeEntry';
 import type { SealedTick, Span } from '../../world/changelog/ChangeLog';
 import { ChangeLog } from '../../world/changelog/ChangeLog';
 import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
+import type { TickHeader } from '../../world/changelog/TickHeader';
 import { plainOf, samePlain } from '../../world/changelog/PlainData';
 import type { DataEntity } from './DataEntity';
 
@@ -313,12 +314,13 @@ export class EntityStore {
 
     /**
      * Seals the open tick, which is what the tick's close phase does.
+     * @param header - What the world's own clocks and in-flight work are now, which no entry carries.
      * @returns The sealed tick, or undefined when no tick was open.
      */
-    public sealTick(): SealedTick | undefined {
+    public sealTick(header?: TickHeader): SealedTick | undefined {
         if (!this.open) return undefined;
         this.open = false;
-        const sealed = this.log.seal();
+        const sealed = this.log.seal(header);
         for (const listener of this.sealListeners) listener(sealed);
         return sealed;
     }

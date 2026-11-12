@@ -10,6 +10,7 @@ import { Dimensions } from './Dimension';
 import { Position } from './Position';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
 
 /** The session of a player in the world, joined or still joining. */
 const playerWith = (runtimeId: bigint, online: boolean) => ({
@@ -19,6 +20,7 @@ const playerWith = (runtimeId: bigint, online: boolean) => ({
 /** A world holding these sessions in its player map, by entity id. */
 const worldWith = (...sessions: PlayerSession[]): World =>
     Object.assign(Object.create(World.prototype), {
+        tickHeader: () => QUIET_TICK_HEADER,
         players: new Map(sessions.map((session) => [Number(session.runtimeId), session]))
     });
 
@@ -50,6 +52,7 @@ describe('World viewers', () => {
             getContent: () => entities.content()
         });
         const created: World = Object.assign(Object.create(World.prototype), {
+            tickHeader: () => QUIET_TICK_HEADER,
             chunks: new Map(),
             players: new Map(),
             dimension: Dimensions.Overworld,

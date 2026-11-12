@@ -621,6 +621,46 @@ describe("a world's blocks and block entities in its change log", () => {
         expect(world.replayStateDigest()).toBe(digest);
     });
 
+    it('seals each tick with the clocks and in-flight work no entry carries, which the digest hashes', async () => {
+        const { world, stone } = await worldWithChunk();
+        beginMeasuredChangeTick(world);
+        world.setLoadedBlockRuntimeId(1, 64, 1, stone);
+        const sealed = world.sealChangeTick();
+
+        expect(sealed?.header).toEqual(world.tickHeader());
+        expect(structuredClone(sealed)).toEqual(sealed);
+        expect(world.replayStateDigest(sealed?.header)).toBe(world.replayStateDigest());
+        expect(world.replayStateDigest({ ...world.tickHeader(), randomTickState: 7 })).not.toBe(
+            world.replayStateDigest()
+        );
+    });
+
+    it("reaches another world's digest from the same start and that world's sealed tick", async () => {
+        const live = await worldWithChunk();
+        const copy = await worldWithChunk();
+        const fluids = live.world.getSystems().ticks.list('fluid');
+        settle(live.world);
+        settle(copy.world);
+        expect(copy.world.replayStateDigest()).toBe(live.world.replayStateDigest());
+
+        beginMeasuredChangeTick(live.world);
+        live.world.setLoadedBlockRuntimeId(1, 64, 1, live.stone);
+        fluids.schedule({ x: 1, y: 65, z: 1 }, 'minecraft:water', 3);
+        fluids.schedule({ x: 2, y: 65, z: 1 }, 'minecraft:water', 1);
+        fluids.tick(1, () => {});
+        live.world.getBlockUpdates().due(live.world.getTicks() + 1);
+        live.world.setLoadedBlockRuntimeId(1, 64, 1, live.dirt);
+        const sealed = live.world.sealChangeTick();
+        if (sealed === undefined) throw new Error('no tick was open');
+
+        expect(new Set(sealed.entries.map((entry) => (entry.kind === 'field' ? entry.field : entry.kind)))).toEqual(
+            new Set(['block', 'block-update', 'scheduled-tick'])
+        );
+        expect(copy.world.replayStateDigest(sealed.header)).not.toBe(live.world.replayStateDigest());
+        copy.world.getEntityStore().replay(sealed.entries);
+        expect(copy.world.replayStateDigest(sealed.header)).toBe(live.world.replayStateDigest());
+    });
+
     it('logs a block entity as its data and one field for each slot, by block position', async () => {
         const { world } = await worldWithChunk();
         beginMeasuredChangeTick(world);
