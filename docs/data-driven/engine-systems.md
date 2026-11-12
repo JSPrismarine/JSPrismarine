@@ -66,8 +66,8 @@ offers each recorded packet before the tick its capture recorded, and the same s
 
 Chunks enter and leave the world through the same step. A chunk read from disk or generated, and
 one whose unload has been saved, waits until the next input step, which admits it after the
-packets: at most <!-- fact:tick.chunkAdmissionBudget -->64<!-- /fact --> chunks, three turns of
-chunks a player is waiting for to one each of background and idle ones. Admitting a chunk puts it
+packets: at most <!-- fact:tick.chunkAdmissionBudget -->64<!-- /fact --> chunks, <!-- fact:tick.chunkAdmissionTurns.immediate -->3<!-- /fact --> turns of
+chunks a player is waiting for to <!-- fact:tick.chunkAdmissionTurns.soon -->1<!-- /fact --> of background ones and <!-- fact:tick.chunkAdmissionTurns.idle -->1<!-- /fact --> of idle ones. Admitting a chunk puts it
 in the world, lights it, gives the fluid that borders air its ticks and creates its entities, so
 no tick sees a chunk appear or vanish in its middle. Each admission is recorded with its tick and
 a digest of the chunk's content, and a replay admits the recorded chunks at the recorded ticks,
