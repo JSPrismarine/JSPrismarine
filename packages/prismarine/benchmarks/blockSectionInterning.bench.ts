@@ -11,7 +11,7 @@ import os from 'node:os';
 import type { FlatGeneratorSettings } from '@jsprismarine/worldgen';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
-import BlockStorage from '../src/world/chunk/BlockStorage';
+import type { ReadonlyBlockStorage } from '../src/world/chunk/BlockStorage';
 import Chunk from '../src/world/chunk/Chunk';
 import { DataDrivenGenerator } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
@@ -37,10 +37,10 @@ const packedIndexBytesForPaletteSize = (paletteSize: number): number => {
     return Math.ceil(BLOCKS_PER_SECTION / blocksPerWord) * Uint32Array.BYTES_PER_ELEMENT;
 };
 
-const storagesOf = (chunks: readonly Chunk[]): BlockStorage[] =>
+const storagesOf = (chunks: readonly Chunk[]): ReadonlyBlockStorage[] =>
     chunks.flatMap((chunk) => Array.from(chunk.getSubChunkEntries()).flatMap(([, subChunk]) => subChunk.getStorages()));
 
-const isUniform = (storage: BlockStorage): number | null => {
+const isUniform = (storage: ReadonlyBlockStorage): number | null => {
     const firstIndex = storage.getPaletteIndexAtIndex(0);
     for (let index = 1; index < BLOCKS_PER_SECTION; index++) {
         if (storage.getPaletteIndexAtIndex(index) !== firstIndex) return null;

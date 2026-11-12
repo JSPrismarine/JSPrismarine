@@ -122,7 +122,7 @@ describe('the biome a chunk stores', () => {
         const content = contentWith({ 'minecraft:mesa': ['mesa', 'overworld'] });
         const { blocks } = groupsOver(chunk, content);
 
-        chunk.getBiomes().fillColumn(3, 9, bedrockBiomeIdOf('minecraft:badlands'));
+        chunk.fillBiomeColumn(3, 9, bedrockBiomeIdOf('minecraft:badlands'));
 
         expect(blocks.biome({ x: 3, y: 64, z: 9 })).toBe('minecraft:mesa');
         expect(blocks.biomeTags({ x: 3, y: 64, z: 9 })).toEqual(['mesa', 'overworld']);

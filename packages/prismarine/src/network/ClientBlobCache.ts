@@ -1,7 +1,7 @@
 import type { MissingBlobData } from '@jsprismarine/protocol/packet/ClientCacheMissResponsePacket';
 
 import type Chunk from '../world/chunk/Chunk';
-import type SubChunk from '../world/chunk/SubChunk';
+import type { ReadonlySubChunk } from '../world/chunk/SubChunk';
 import { xxHash64 } from './xxHash64';
 
 /** One content-addressed byte range named by a cached LevelChunk packet. */
@@ -25,7 +25,7 @@ export interface PreparedClientChunkBlobs {
 }
 
 interface CachedSubChunkBlob extends ClientBlob {
-    readonly source: SubChunk;
+    readonly source: ReadonlySubChunk;
     readonly revision: number;
 }
 

@@ -83,7 +83,28 @@ const writeNetworkPalette = (stream: BinaryStream, bitsPerBlock: number, palette
     for (const runtimeId of palette) stream.writeVarInt(runtimeId);
 };
 
-export default class BlockStorage {
+/**
+ * A block storage that can be read and not written.
+ *
+ * What a chunk hands out once it is in a world: a write has to go through the chunk, so the save
+ * cut hears of it before it lands (ADR 0018). A list of what may be read rather than of what may
+ * not, so a mutator added to {@link BlockStorage} later stays out of it.
+ */
+export type ReadonlyBlockStorage = Pick<
+    BlockStorage,
+    | 'getBlock'
+    | 'getRevision'
+    | 'getRuntimeId'
+    | 'getIndexStorageByteLength'
+    | 'getRetainedIndexStorageByteLength'
+    | 'getPalette'
+    | 'getPaletteIndexAt'
+    | 'getPaletteIndexAtIndex'
+    | 'networkSerialize'
+    | 'isEmpty'
+>;
+
+export default class BlockStorage implements ReadonlyBlockStorage {
     /**
      * Counts every block write and storage swap in this process. A chunk whose last block
      * revision was read at the current value cannot have changed since, so it skips summing its

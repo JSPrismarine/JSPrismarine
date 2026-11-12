@@ -174,7 +174,7 @@ describe('network', () => {
             const afterBlockEntity = await getBatch();
             expect(afterBlockEntity.content).not.toBe(afterBlock.content);
 
-            chunk.getBiomes().set(1, 70, 2, 2);
+            chunk.setBiome(1, 70, 2, 2);
             const afterBiome = await getBatch();
             expect(afterBiome.content).not.toBe(afterBlockEntity.content);
             expect(cache.compressionCount).toBe(4);

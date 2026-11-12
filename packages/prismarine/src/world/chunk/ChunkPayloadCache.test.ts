@@ -47,7 +47,7 @@ describe('world', () => {
             const chunk = filled();
             const before = chunk.networkSerialize();
 
-            chunk.getBiomes().set(1, 20, 1, 2);
+            chunk.setBiome(1, 20, 1, 2);
             const after = chunk.networkSerialize();
 
             expect(after).not.toBe(before);

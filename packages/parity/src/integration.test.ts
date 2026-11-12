@@ -363,7 +363,7 @@ const biomeWorldViewGaps = (content: ServerContent): string[] => {
 
         const { id } = biome.bedrock;
         const position = { x: id % 16, y: 64, z: Math.floor(id / 16) };
-        chunk.getBiomes().fillColumn(position.x, position.z, id);
+        chunk.fillBiomeColumn(position.x, position.z, id);
 
         if (groups.blocks.biome(position) !== identifier) gaps.push(`biome:${identifier}:identifier`);
         const definition = content.biomes.get(identifier);

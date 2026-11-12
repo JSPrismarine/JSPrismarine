@@ -7,10 +7,12 @@ import type { WriteBatch } from '@jsprismarine/leveldb';
 import type { Logger } from '@jsprismarine/logger';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { Block } from '../../../block/Block';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type Server from '../../../Server';
 import { stub } from '../../../testing/stub.test.helper';
 import Chunk from '../../chunk/Chunk';
+import { ChunkBiomes, PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import { Dimensions } from '../../DimensionType';
 import type { World } from '../../World';
 import { createChunkSaveContext } from '../ChunkSaveContext';
@@ -81,6 +83,23 @@ const twoSectionChunk = (x: number, z: number): Chunk => {
     return chunk;
 };
 
+const DESERT = 2;
+
+/** Every way a block write reaches a chunk, each putting gold at 1, 0, 0 in section 0. */
+const blockWrites: readonly { readonly name: string; readonly write: (chunk: Chunk) => void }[] = [
+    { name: 'setBlockRuntimeId', write: (chunk) => chunk.setBlockRuntimeId(1, 0, 0, gold) },
+    { name: 'setBlock', write: (chunk) => chunk.setBlock(1, 0, 0, new Block({ name: 'minecraft:gold_block' })) },
+    { name: 'restoreBlockRuntimeId', write: (chunk) => chunk.restoreBlockRuntimeId(1, 0, 0, gold) },
+    { name: 'fillColumn', write: (chunk) => chunk.fillColumn(1, 0, 0, 0, gold) }
+];
+
+/** Every way a biome write reaches a chunk, each making 1, 0, 0 desert. */
+const biomeWrites: readonly { readonly name: string; readonly write: (chunk: Chunk) => void }[] = [
+    { name: 'setBiome', write: (chunk) => chunk.setBiome(1, 0, 0, DESERT) },
+    { name: 'fillBiomeColumn', write: (chunk) => chunk.fillBiomeColumn(1, 0, DESERT) },
+    { name: 'setBiomes', write: (chunk) => chunk.setBiomes(new ChunkBiomes(Dimensions.Overworld, DESERT)) }
+];
+
 const context = () => createChunkSaveContext(Dimensions.Overworld.bedrockId, [], () => 0);
 
 const readBack = async (leveldb: LevelDB, x: number, z: number): Promise<Chunk> =>
@@ -139,6 +158,94 @@ describe('a LevelDB save pass', () => {
         expect(saved.getBlockRuntimeId(0, 0, 0)).toBe(stone);
         expect(saved.getBlockRuntimeId(1, 0, 0)).toBe(air);
         await reopened.disable();
+    });
+
+    it.each(blockWrites)('saves the cut, not a later $name, encoding one sub chunk early', async ({ write }) => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        const chunk = twoSectionChunk(0, 0);
+
+        const pass = leveldb.beginSavePass();
+        pass.cutChunk(chunk, context());
+        write(chunk);
+
+        expect(pass.stats.forcedSubChunkEncodes).toBe(1);
+        expect(pass.stats.subChunkEncodes).toBe(1);
+        await pass.commit({ sync: false });
+        expect(pass.stats.subChunkEncodes).toBe(2);
+        expect(pass.stats.forcedSubChunkEncodes).toBe(1);
+        expect(pass.stats.bypassedWrites).toBe(0);
+        await leveldb.disable();
+
+        const reopened = provider(worldPath);
+        await reopened.enable();
+        const saved = await readBack(reopened, 0, 0);
+        expect(saved.getBlockRuntimeId(0, 0, 0)).toBe(stone);
+        expect(saved.getBlockRuntimeId(1, 0, 0)).toBe(air);
+        await reopened.disable();
+    });
+
+    it.each(biomeWrites)('saves the cut, not a later $name, encoding no sub chunk early', async ({ write }) => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        const chunk = twoSectionChunk(0, 0);
+
+        const pass = leveldb.beginSavePass();
+        pass.cutChunk(chunk, context());
+        write(chunk);
+
+        // A biome write moves only the height and biome record, so no sub chunk is encoded for it.
+        expect(pass.stats.forcedSubChunkEncodes).toBe(0);
+        expect(pass.stats.subChunkEncodes).toBe(0);
+        await pass.commit({ sync: false });
+        expect(pass.stats.subChunkEncodes).toBe(2);
+        expect(pass.stats.bypassedWrites).toBe(0);
+        expect(chunk.getHasChanged()).toBe(true);
+        await leveldb.disable();
+
+        const reopened = provider(worldPath);
+        await reopened.enable();
+        const saved = await readBack(reopened, 0, 0);
+        expect(saved.getBiome(1, 0, 0)).toBe(PLAINS_BIOME);
+        await reopened.disable();
+    });
+
+    it('encodes nothing early for getOrCreateSubChunk of a section the cut holds', async () => {
+        const leveldb = provider(scratch());
+        await leveldb.enable();
+        const chunk = twoSectionChunk(0, 0);
+
+        const pass = leveldb.beginSavePass();
+        pass.cutChunk(chunk, context());
+        chunk.getOrCreateSubChunk(0);
+
+        expect(pass.stats.subChunkEncodes).toBe(0);
+        await pass.commit({ sync: false });
+        expect(pass.stats.forcedSubChunkEncodes).toBe(0);
+        expect(pass.stats.bypassedWrites).toBe(0);
+        await leveldb.disable();
+    });
+
+    it('counts and logs a write that went around the chunk', async () => {
+        // The read-only view stops a TypeScript caller. A plugin in plain JavaScript can still
+        // reach the sub chunk's own setBlock, and the revision check is what notices it.
+        const leveldb = provider(scratch());
+        await leveldb.enable();
+        const chunk = twoSectionChunk(0, 0);
+        errors.length = 0;
+
+        const pass = leveldb.beginSavePass();
+        pass.cutChunk(chunk, context());
+        // @ts-expect-error the view has no setBlock; this stands in for an untyped caller
+        chunk.getSubChunk(0)!.setBlock(1, 0, 0, gold, 0);
+        await pass.commit({ sync: false });
+
+        expect(pass.stats.bypassedWrites).toBe(1);
+        expect(pass.stats.forcedSubChunkEncodes).toBe(0);
+        expect(errors).toHaveLength(1);
+        await leveldb.disable();
     });
 
     it('writes nothing for a chunk that has not changed since the last pass', async () => {

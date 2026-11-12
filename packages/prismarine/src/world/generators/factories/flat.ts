@@ -6,6 +6,7 @@ import type { ServerContent } from '../../../content/ServerContent';
 import BaseGenerator from '../../BaseGenerator';
 import type { GeneratorLogger } from '../../BaseGenerator';
 import Chunk from '../../chunk/Chunk';
+import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import { maxSubChunk, maxY, minSubChunk } from '../../Dimension';
 import type { DimensionType } from '../../DimensionType';
 import type { SurfaceProbe } from '../../Generator';
@@ -81,9 +82,12 @@ export class FlatGenerator extends BaseGenerator {
         }
 
         const biome = bedrockBiomeIdOf(this.settings.biome);
+        // Built apart and handed over, since a chunk hands out its own column read-only.
+        const biomes = new ChunkBiomes(this.dimension);
         for (let section = minSubChunk(this.dimension); section <= maxSubChunk(this.dimension); section++) {
-            chunk.getBiomes().fillSection(section, biome);
+            biomes.fillSection(section, biome);
         }
+        chunk.setBiomes(biomes);
 
         return chunk;
     }

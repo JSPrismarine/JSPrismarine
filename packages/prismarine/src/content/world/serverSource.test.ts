@@ -526,7 +526,7 @@ describe('serverWorldSource', () => {
         expect(adapter.blocks.biomeTags(at)).toEqual(BIOME_TAGS['minecraft:plains']);
 
         // Java calls it the badlands and Bedrock calls it the mesa; the chunk holds 37.
-        chunk.getBiomes().fillColumn(5, 5, 37);
+        chunk.fillBiomeColumn(5, 5, 37);
         expect(adapter.blocks.biome(at)).toBe('minecraft:mesa');
         expect(adapter.blocks.biomeTags(at)).toEqual(BIOME_TAGS['minecraft:mesa']);
 

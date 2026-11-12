@@ -21,7 +21,7 @@ import { isRandomlyTicking } from '@jsprismarine/engine-systems';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
-import type SubChunk from './chunk/SubChunk';
+import type { ReadonlySubChunk } from './chunk/SubChunk';
 
 /**
  * What each runtime id this world has met answers, keyed by the id itself.
@@ -72,7 +72,7 @@ export const takesRandomTicks = (runtimeId: number): boolean => {
  * own writes, so a section that has not been written to answers from the number it answered
  * with last time. Weak, so a chunk leaving memory takes its entry with it.
  */
-let bySection = new WeakMap<SubChunk, { revision: number; answer: boolean }>();
+let bySection = new WeakMap<ReadonlySubChunk, { revision: number; answer: boolean }>();
 
 /**
  * Java's `LevelChunkSection.isRandomlyTicking`, over Bedrock's two block layers.
@@ -84,7 +84,7 @@ let bySection = new WeakMap<SubChunk, { revision: number; answer: boolean }>();
  * @returns Whether any palette entry in the section names a randomly ticking block. An empty
  *   sub chunk answers false, because an all-air palette holds nothing that ticks.
  */
-export const sectionTakesRandomTicks = (section: SubChunk): boolean => {
+export const sectionTakesRandomTicks = (section: ReadonlySubChunk): boolean => {
     forgetStaleAnswers();
 
     const revision = section.getRevision();

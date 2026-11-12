@@ -4,6 +4,7 @@ import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type { ServerContent } from '../../../content/ServerContent';
 import type { GeneratorLogger } from '../../BaseGenerator';
 import Chunk from '../../chunk/Chunk';
+import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import { maxSubChunk, maxY, minSubChunk } from '../../Dimension';
 import type { DimensionType } from '../../DimensionType';
 import type { Generator, SurfaceProbe } from '../../Generator';
@@ -127,9 +128,12 @@ export class DebugGenerator implements Generator {
         }
 
         const biome = bedrockBiomeIdOf(DEBUG_BIOME);
+        // Built apart and handed over, since a chunk hands out its own column read-only.
+        const biomes = new ChunkBiomes(this.dimension);
         for (let section = minSubChunk(this.dimension); section <= maxSubChunk(this.dimension); section++) {
-            chunk.getBiomes().fillSection(section, biome);
+            biomes.fillSection(section, biome);
         }
+        chunk.setBiomes(biomes);
 
         return chunk;
     }

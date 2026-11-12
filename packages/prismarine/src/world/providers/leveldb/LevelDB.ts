@@ -47,7 +47,7 @@ import type { SaveIdentity } from '../BaseProvider';
 import type { Level } from '../../Level';
 import Chunk from '../../chunk/Chunk';
 import type { ChunkPersistedState, ChunkSaveCutHook } from '../../chunk/Chunk';
-import type SubChunk from '../../chunk/SubChunk';
+import type { ReadonlySubChunk } from '../../chunk/SubChunk';
 import type { ProviderSavePass } from '../SavePass';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
@@ -661,7 +661,7 @@ export default class LevelDB extends BaseProvider {
             encodeChunkKey({ x: chunk.getX(), z: chunk.getZ(), dimension: dimension.bedrockId, tag, subChunk });
         const state = chunk.persistedStateNow();
         const changes = chunk.getPersistenceChanges();
-        const held = new Map<number, { subChunk: SubChunk; revision: number }>();
+        const held = new Map<number, { subChunk: ReadonlySubChunk; revision: number }>();
 
         for (const { index, subChunk, stored } of changes.subChunks) {
             if (!stored || subChunk === null) {
@@ -1247,11 +1247,11 @@ class LevelDBChunkCut implements ChunkSaveCutHook {
         public readonly chunk: Chunk,
         /** The chunk as the cut saw it, which it is marked saved as once the pass commits. */
         public readonly state: ChunkPersistedState,
-        private readonly held: Map<number, { readonly subChunk: SubChunk; readonly revision: number }>,
+        private readonly held: Map<number, { readonly subChunk: ReadonlySubChunk; readonly revision: number }>,
         data3D: boolean,
         private readonly report: ChunkCutReport,
         private readonly put: {
-            readonly subChunk: (index: number, subChunk: SubChunk) => void;
+            readonly subChunk: (index: number, subChunk: ReadonlySubChunk) => void;
             readonly data3D: () => void;
         }
     ) {

@@ -15,8 +15,10 @@ import { maxSubChunk, maxY, minSubChunk, subChunkCount } from '../Dimension';
 import type { DimensionType } from '../DimensionType';
 import type { EntitySpawn } from '../EntitySpawn';
 import { ChunkBiomes } from './ChunkBiomes';
+import type { ReadonlyChunkBiomes } from './ChunkBiomes';
 import BlockStorage from './BlockStorage';
 import SubChunk from './SubChunk';
+import type { ReadonlySubChunk } from './SubChunk';
 import { sectionTakesRandomTicks } from '../randomTickSections';
 
 /**
@@ -51,7 +53,7 @@ export interface ChunkPersistenceChanges {
     /** Changed sub chunks, with whether the corresponding database key should exist. */
     readonly subChunks: readonly {
         readonly index: number;
-        readonly subChunk: SubChunk | null;
+        readonly subChunk: ReadonlySubChunk | null;
         readonly stored: boolean;
     }[];
     /** Whether heightmap or biome data changed. */
@@ -100,7 +102,7 @@ export interface ChunkSaveCutHook {
 /** The serialized bytes and source revision for one chunk blob. */
 export interface ChunkNetworkBlobPart {
     /** The sub chunk whose network revision identifies these bytes. */
-    readonly subChunk: SubChunk;
+    readonly subChunk: ReadonlySubChunk;
     /** Revision sampled when the bytes were written. */
     readonly revision: number;
     /** The exact byte range written into an uncached LevelChunk payload. */
@@ -230,6 +232,11 @@ export default class Chunk {
     private persistedBlockEntitiesPresent = false;
     private static readonly EMPTY_SUBCHUNK = new SubChunk();
 
+    /**
+     * @param subChunks - The sub chunks the chunk starts with, which it takes over. A generator or
+     *   a provider builds them and hands them in before the chunk is in a world, and keeps no
+     *   reference: a write through one would land without the save cut hearing of it.
+     */
     public constructor(
         chunkX = 0,
         chunkZ = 0,
@@ -249,13 +256,20 @@ export default class Chunk {
         for (const [index, subChunk] of subChunks) this.setSubChunk(index, subChunk);
     }
 
-    /** The biome of every block in this chunk, live, for a generator or a provider to write. */
-    public getBiomes(): ChunkBiomes {
+    /**
+     * The biome of every block in this chunk, to read. A write goes through {@link setBiome},
+     * {@link fillBiomeColumn} or {@link setBiomes}, so a save cut hears of it first.
+     */
+    public getBiomes(): ReadonlyChunkBiomes {
         return this.biomes;
     }
 
     /**
-     * Replaces the whole biome column, which is what reading one back from disk does.
+     * Replaces the whole biome column, which is what reading one back from disk does, and how a
+     * generator hands over the column it built.
+     *
+     * The chunk takes `biomes` over: the caller keeps no reference and writes nothing through it
+     * afterward, since such a write would land without the save cut hearing of it.
      *
      * The payload revision tracks the palette itself, while the epoch distinguishes replacing a
      * palette with another instance at the same revision.
@@ -264,6 +278,23 @@ export default class Chunk {
         this.saveCut?.beforeBiomeWrite();
         this.biomes = biomes;
         this.biomesEpoch++;
+        this.markChanged();
+        this.invalidateNetworkSerialization();
+    }
+
+    /** Replaces the biome at a position, with x and z in world coordinates. */
+    public setBiome(x: number, y: number, z: number, biome: number): void {
+        this.saveCut?.beforeBiomeWrite();
+        this.biomes.set(x & 0xf, y, z & 0xf, biome);
+        this.markChanged();
+        this.invalidateNetworkSerialization();
+    }
+
+    /** Puts one biome through a whole column, floor to ceiling, with x and z in world coordinates. */
+    public fillBiomeColumn(x: number, z: number, biome: number): void {
+        this.saveCut?.beforeBiomeWrite();
+        this.biomes.fillColumn(x & 0xf, z & 0xf, biome);
+        this.markChanged();
         this.invalidateNetworkSerialization();
     }
 
@@ -638,9 +669,12 @@ export default class Chunk {
 
     /**
      * Returns the Chunk slice at the given index, which is signed - the Overworld's floor is -4.
+     *
+     * Read-only: a block write goes through {@link setBlockRuntimeId}, {@link setBlock} or
+     * {@link fillColumn}, which tell a save cut holding the sub chunk before the write lands.
      * @param {number} y - The sub chunk index to get.
      */
-    public getSubChunk(y: number): SubChunk | null {
+    public getSubChunk(y: number): ReadonlySubChunk | null {
         if (y < minSubChunk(this.dimension) || y > maxSubChunk(this.dimension)) {
             throw new Error(`Invalid subchunk height: ${y}`);
         }
@@ -654,28 +688,38 @@ export default class Chunk {
      * @internal The world calls this once the provider has finished every write to the chunk.
      */
     public packBlockStorage(): void {
-        for (const [, subChunk] of this.getSubChunkEntries()) {
-            for (const storage of subChunk.getStorages()) storage.pack();
+        for (const index of this.subChunkOrder) {
+            for (const storage of this.subChunkAtIndex(index)!.getStorages()) storage.pack();
         }
         this.invalidateNetworkSerialization();
     }
 
-    public getOrCreateSubChunk(y: number): SubChunk {
-        this.saveCut?.beforeSubChunkWrite(y);
+    /**
+     * The sub chunk at `y`, created empty when there is none, to read. Creating one writes no
+     * block, so the chunk is not marked changed.
+     * @param {number} y - The sub chunk index, signed.
+     */
+    public getOrCreateSubChunk(y: number): ReadonlySubChunk {
+        return this.subChunkAtIndex(y) ?? this.createSubChunk(y);
+    }
+
+    /** Puts an empty sub chunk at `index`, for a write that is about to reach it. */
+    private createSubChunk(index: number): SubChunk {
+        this.saveCut?.beforeSubChunkWrite(index);
         const subChunk = new SubChunk();
-        this.setSubChunk(y, subChunk);
+        this.setSubChunk(index, subChunk);
         return subChunk;
     }
 
     /** Iterates stored sub chunks in insertion order without allocating a Map view. */
-    public *getSubChunkEntries(): IterableIterator<[number, SubChunk]> {
+    public *getSubChunkEntries(): IterableIterator<[number, ReadonlySubChunk]> {
         for (const index of this.subChunkOrder) {
             yield [index, this.subChunks[index - this.minSubChunkY]!];
         }
     }
 
     /** Returns a Map snapshot of stored sub chunks in insertion order. */
-    public getSubChunks(): Map<number, SubChunk> {
+    public getSubChunks(): Map<number, ReadonlySubChunk> {
         return new Map(this.getSubChunkEntries());
     }
 
@@ -982,7 +1026,7 @@ export default class Chunk {
         // dropping it would show up much later as a hole in the terrain.
         const index = this.requireSubChunkIndex(y);
         this.saveCut?.beforeSubChunkWrite(index);
-        const subChunk = this.subChunkAtIndex(index) ?? this.getOrCreateSubChunk(index);
+        const subChunk = this.subChunkAtIndex(index) ?? this.createSubChunk(index);
         subChunk.setBlock(x, y & 0xf, z, runtimeId, layer);
 
         // Whatever block entity stood here belonged to the block that just went away. Leaving it
@@ -1003,7 +1047,7 @@ export default class Chunk {
     public restoreBlockRuntimeId(x: number, y: number, z: number, runtimeId: number, layer = 0): void {
         const index = this.requireSubChunkIndex(y);
         this.saveCut?.beforeSubChunkWrite(index);
-        const subChunk = this.subChunkAtIndex(index) ?? this.getOrCreateSubChunk(index);
+        const subChunk = this.subChunkAtIndex(index) ?? this.createSubChunk(index);
         subChunk.setBlock(x, y & 0xf, z, runtimeId, layer);
         this.markChanged();
         this.invalidateNetworkSerialization();
@@ -1032,7 +1076,7 @@ export default class Chunk {
         for (let y = fromY; y <= toY;) {
             const index = this.requireSubChunkIndex(y);
             this.saveCut?.beforeSubChunkWrite(index);
-            const subChunk = this.subChunkAtIndex(index) ?? this.getOrCreateSubChunk(index);
+            const subChunk = this.subChunkAtIndex(index) ?? this.createSubChunk(index);
 
             // Stop at whichever comes first: the end of the run, or the sub chunk boundary.
             const spanEnd = Math.min(toY, (index + 1) * 16 - 1);
@@ -1077,8 +1121,9 @@ export default class Chunk {
     /**
      * Revision of everything included in a LevelChunk payload.
      *
-     * Sub chunks and biomes are mutable through live objects, so their revisions are sampled here
-     * instead of relying on the chunk's block-write methods to invalidate a network cache. The
+     * Whoever built a sub chunk or a biome column can still write through it, and so can a plugin
+     * the compiler never checked, so their revisions are sampled here instead of relying on the
+     * chunk's write methods to invalidate a network cache. The
      * sampled values are retained in place so checking them does not allocate on each send.
      * @returns A per-chunk revision that changes when the serialized contents change.
      */
@@ -1108,7 +1153,7 @@ export default class Chunk {
 
     /**
      * The block-state revision used to keep per-chunk navigation reads valid.
-     * Subchunk revisions also cover direct {@link SubChunk.setBlock} writes and column fills.
+     * Subchunk revisions also cover column fills and a write that reached a sub chunk directly.
      */
     public getBlockRevision(): number {
         const cache = this.blockRevisionCache;
