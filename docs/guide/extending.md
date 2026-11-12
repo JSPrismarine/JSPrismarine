@@ -146,7 +146,8 @@ subscribe on the kernel's event bus, `server.getKernel().events`, which the serv
 event on.
 
 - Listeners run in the order they subscribed. Subscribing the same function to an event twice
-  calls it once.
+  calls it once. When one of the two is `server.on` and the other `server.once`, in either order,
+  the function stays subscribed until `server.removeListener` removes it.
 - Calling `event.preventDefault()` cancels an event where the server checks for it, such as a chat
   message, a player's move or a trip through a portal. The server reads the cancel as soon as the
   listeners return, so a listener that cancels after an `await` is too late.
