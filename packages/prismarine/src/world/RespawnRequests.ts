@@ -9,7 +9,7 @@
  * that admits the chunk tries again and applies the answer. No step waits for a chunk, so which
  * tick applies an answer depends only on which tick admitted what the search read.
  */
-import type { RespawnAnswer, RespawnRequest, RespawnSearch } from './RespawnSearch';
+import type { RespawnAnswer, RespawnAttempt, RespawnRequest, RespawnSearch } from './RespawnSearch';
 
 /** One search a player asked for, with what to do with its answer. */
 interface PendingRespawn {
@@ -49,7 +49,13 @@ export class RespawnRequests {
      *
      * A search that throws, such as one whose spawn point's world failed to build, is reported
      * and asked again for the world spawn alone. The death screen and the respawn wait for an
-     * answer, and a client that never gets one cannot leave the death screen.
+     * answer, and a client that never gets one cannot leave the death screen. What a waiting
+     * attempt says failed, such as a world spawn search it started again, is reported, and the
+     * request waits on.
+     *
+     * An answer that fails to apply is reported and not asked again. The search found its place,
+     * so the world spawn is not the answer, and asking for it would apply a second answer over
+     * whatever the first one did before it threw.
      *
      * @returns How many answers were applied.
      */
@@ -66,20 +72,28 @@ export class RespawnRequests {
                 continue;
             }
 
+            let attempt: RespawnAttempt;
             try {
-                const attempt = pending.search.attempt(pending.request);
-                if (attempt.kind === 'waiting') {
-                    blocked.add(player);
-                    waiting.push(pending);
-                    continue;
-                }
-                pending.apply(attempt.answer);
-                applied += 1;
+                attempt = pending.search.attempt(pending.request);
             } catch (error: unknown) {
                 this.report(error);
                 if (pending.fallback === true || pending.request.spawnPoint === undefined) continue;
                 blocked.add(player);
                 waiting.push({ ...pending, request: { ...pending.request, spawnPoint: undefined }, fallback: true });
+                continue;
+            }
+            if (attempt.kind === 'waiting') {
+                for (const failure of attempt.failed ?? []) this.report(failure);
+                blocked.add(player);
+                waiting.push(pending);
+                continue;
+            }
+
+            try {
+                pending.apply(attempt.answer);
+                applied += 1;
+            } catch (error: unknown) {
+                this.report(error);
             }
         }
         // A request an answer filed goes after the ones that were already waiting.
