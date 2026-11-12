@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { MAX_SCHEDULED_TICKS_PER_TICK, TICK_PRIORITIES, TickList, TickScheduler } from './scheduler';
-import type { ScheduledTick } from './scheduler';
+import type { ScheduledTick, TickListChange } from './scheduler';
 import type { BlockPosition } from './world';
 
 const at = (x: number, y = 0, z = 0): BlockPosition => ({ x, y, z });
@@ -263,6 +263,48 @@ describe('TickList', () => {
         expect(list.hasScheduledTick(at(0), 'minecraft:fire')).toBe(false);
     });
 
+    it('reports each tick queued, drained and cleared, in order', () => {
+        const list = new TickList();
+        const changes: TickListChange[] = [];
+        list.observer = (change) => void changes.push(change);
+        list.schedule(at(0), 'minecraft:water', 2);
+        list.schedule(at(0), 'minecraft:water', 5);
+        list.schedule(at(1), 'minecraft:fire', 3, TICK_PRIORITIES.HIGH);
+        list.tick(2, () => list.schedule(at(2), 'minecraft:water', 4));
+        list.clearAt(at(1));
+
+        expect(changes.map(({ at: { x }, type, before, after }) => [x, type, before, after])).toEqual([
+            [0, 'minecraft:water', null, { triggerTick: 2, priority: 0, subTickOrder: 0 }],
+            [1, 'minecraft:fire', null, { triggerTick: 3, priority: -1, subTickOrder: 1 }],
+            [0, 'minecraft:water', { triggerTick: 2, priority: 0, subTickOrder: 0 }, null],
+            [2, 'minecraft:water', null, { triggerTick: 4, priority: 0, subTickOrder: 2 }],
+            [1, 'minecraft:fire', { triggerTick: 3, priority: -1, subTickOrder: 1 }, null]
+        ]);
+    });
+
+    it('reaches the same queue by restoring the reported changes, and back by restoring their before-values', () => {
+        const live = new TickList();
+        const changes: TickListChange[] = [];
+        live.observer = (change) => void changes.push(change);
+        for (let x = 0; x < 6; x += 1) live.schedule(at(x), 'minecraft:water', 1 + (x % 3), x % 2);
+        live.tick(1, (tick) => live.schedule(at(tick.at.x + 10), 'minecraft:lava', 4));
+        live.clearAt(at(2));
+
+        const replayed = new TickList();
+        for (const { at: position, type, after } of changes) replayed.restore(position, type, after);
+        expect(replayed.snapshot()).toEqual(live.snapshot());
+        expect(changes.length).toBeGreaterThan(0);
+
+        for (const { at: position, type, before } of [...changes].reverse()) replayed.restore(position, type, before);
+        expect(replayed.snapshot()).toEqual([]);
+        // A restore is not reported, and a tick queued after it sorts after every restored one.
+        replayed.restore(at(0), 'minecraft:water', { triggerTick: 1, priority: 0, subTickOrder: 40 });
+        replayed.schedule(at(1), 'minecraft:water', 1);
+        expect(replayed.snapshot().map((tick) => tick.subTickOrder)).toEqual([40, 41]);
+        // Six queued, the two due on tick 1 drained, the two they queued, and one cleared.
+        expect(changes).toHaveLength(11);
+    });
+
     it('uses the jar budget of 65536 ticks per list by default', () => {
         expect(MAX_SCHEDULED_TICKS_PER_TICK).toBe(65536);
     });
@@ -278,6 +320,24 @@ describe('TickScheduler', () => {
             block: [{ type: 'minecraft:repeater', at: at(1), triggerTick: 3, priority: 0, subTickOrder: 0 }],
             fluid: [{ type: 'minecraft:water', at: at(0), triggerTick: 4, priority: 0, subTickOrder: 0 }]
         });
+    });
+
+    it('tells an observer which list each change was made to', () => {
+        const scheduler = new TickScheduler();
+        const kinds: string[] = [];
+        scheduler.observe((kind, change) => void kinds.push(`${kind}:${change.type}`));
+        scheduler.list('fluid').schedule(at(0), 'minecraft:water', 1);
+        scheduler.list('block').schedule(at(1), 'minecraft:repeater', 1);
+        scheduler.tick(1, () => {});
+        scheduler.observe(undefined);
+        scheduler.list('block').schedule(at(2), 'minecraft:repeater', 3);
+
+        expect(kinds).toEqual([
+            'fluid:minecraft:water',
+            'block:minecraft:repeater',
+            'block:minecraft:repeater',
+            'fluid:minecraft:water'
+        ]);
     });
 
     it('runs every block tick before any fluid tick, as ServerLevel.tick does', () => {

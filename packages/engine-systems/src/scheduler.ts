@@ -59,6 +59,34 @@ export interface ScheduledTick {
 /** What a drained tick's handler receives. */
 export type TickHandler = (tick: ScheduledTick) => void;
 
+/** When a queued tick fires and where it sorts: everything a tick holds besides its position and type. */
+export type ScheduledTickTiming = {
+    readonly triggerTick: number;
+    readonly priority: number;
+    readonly subTickOrder: number;
+};
+
+/**
+ * One tick queued on a list or taken off it, as a host that records the lists sees it. `before`
+ * is null for a tick that was queued and `after` is null for one that was taken off, whether it
+ * ran or was cleared.
+ */
+export interface TickListChange {
+    readonly at: BlockPosition;
+    readonly type: string;
+    readonly before: ScheduledTickTiming | null;
+    readonly after: ScheduledTickTiming | null;
+}
+
+/** Hears every change to one tick list. */
+export type TickListObserver = (change: TickListChange) => void;
+
+const timingOf = ({ triggerTick, priority, subTickOrder }: ScheduledTick): ScheduledTickTiming => ({
+    triggerTick,
+    priority,
+    subTickOrder
+});
+
 const identity = (tick: Pick<ScheduledTick, 'at' | 'type'>): string => `${positionKey(tick.at)}|${tick.type}`;
 
 /**
@@ -93,6 +121,12 @@ export class TickList {
     private subTickCounter = 0;
 
     /**
+     * Hears each tick queued and each tick taken off, in the order they happen. A host that keeps
+     * a history of its world sets it; {@link TickList.restore} does not report to it.
+     */
+    public observer: TickListObserver | undefined;
+
+    /**
      * Queue a tick, unless one is already queued for the same position and type.
      *
      * Java's `LevelChunkTicks.schedule` adds to a `ticksPerPosition` set first
@@ -110,8 +144,33 @@ export class TickList {
         const key = identity({ at, type });
         if (this.queued.has(key)) return false;
         this.queued.add(key);
-        this.queue.push({ type, at, triggerTick, priority, subTickOrder: this.subTickCounter++ });
+        const tick: ScheduledTick = { type, at, triggerTick, priority, subTickOrder: this.subTickCounter++ };
+        this.queue.push(tick);
+        this.observer?.({ at, type, before: null, after: timingOf(tick) });
         return true;
+    }
+
+    /**
+     * Puts one tick back as a recorded change left it, without reporting it: queued with the
+     * timing given, or taken off when the timing is null. A host undoes a change or replays its
+     * history through this.
+     *
+     * @param at - The tick's position.
+     * @param type - The block or fluid identifier.
+     * @param timing - What the tick holds, or null for no tick at that position and type.
+     */
+    restore(at: BlockPosition, type: string, timing: ScheduledTickTiming | null): void {
+        const key = identity({ at, type });
+        const index = this.queue.findIndex((tick) => identity(tick) === key);
+        if (index !== -1) this.queue.splice(index, 1);
+        if (timing === null) {
+            this.queued.delete(key);
+            return;
+        }
+        this.queued.add(key);
+        this.queue.push({ type, at: { x: at.x, y: at.y, z: at.z }, ...timing });
+        // Ticks queued after this sort after it, as they did when it was first queued.
+        this.subTickCounter = Math.max(this.subTickCounter, timing.subTickOrder + 1);
     }
 
     /** Whether a tick is queued for this position and type. */
@@ -150,6 +209,7 @@ export class TickList {
             if (tick.at.x === at.x && tick.at.y === at.y && tick.at.z === at.z) {
                 this.queued.delete(identity(tick));
                 this.queue.splice(i, 1);
+                this.observer?.({ at: tick.at, type: tick.type, before: timingOf(tick), after: null });
             }
         }
     }
@@ -184,7 +244,10 @@ export class TickList {
 
         // A single prefix splice moves the remaining queue once; shifting each due tick moves it repeatedly.
         const collected = this.queue.splice(0, dueCount);
-        for (const tick of collected) this.queued.delete(identity(tick));
+        for (const tick of collected) {
+            this.queued.delete(identity(tick));
+            this.observer?.({ at: tick.at, type: tick.type, before: timingOf(tick), after: null });
+        }
 
         collected.sort(intraTickDrainOrder);
         this.batch = collected;
@@ -215,6 +278,15 @@ export class TickScheduler {
     /** One of the two tick lists. */
     list(kind: TickKind): TickList {
         return this.lists[kind];
+    }
+
+    /**
+     * Hears every change to both lists, each with the list it was made to, or stops when given
+     * undefined.
+     */
+    observe(observer: ((kind: TickKind, change: TickListChange) => void) | undefined): void {
+        for (const kind of ['block', 'fluid'] as const)
+            this.lists[kind].observer = observer === undefined ? undefined : (change) => observer(kind, change);
     }
 
     /** Copies pending block and fluid ticks without changing their live drain order. */
