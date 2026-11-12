@@ -100,9 +100,19 @@ export class PrismarineTransport implements LogTransport {
 // biome-ignore lint/suspicious/noControlCharactersInRegex: the escapes are what gets stripped
 const ANSI_PATTERN = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
+/** What a continuation line of a multi-line record starts with in a log file. */
+const CONTINUATION_INDENT = '    ';
+
 /**
  * Transport that appends plain-text lines to a log file. Colors are stripped,
  * and the containing directory is created when missing.
+ *
+ * Every record starts at the beginning of a line with its timestamp, and every
+ * further line of the same record - a stack trace, or a line break inside text
+ * a client sent - is indented by {@link CONTINUATION_INDENT}. A player could
+ * otherwise put a line break and a fake `[12:00:00] [INFO]` header into a book
+ * title or a name and have it read as a record the server wrote. A lone carriage
+ * return counts as a line break, so it cannot hide text in front of it either.
  */
 export class FileTransport implements LogTransport {
     private stream: fs.WriteStream;
@@ -124,7 +134,8 @@ export class FileTransport implements LogTransport {
 
         const namespace = record.namespace ? ` [${record.namespace}]` : '';
         const line = `[${record.timestamp}] [${record.level.toUpperCase()}]${namespace}: ${record.message}`;
-        this.stream.write(`${line.replaceAll(ANSI_PATTERN, '').replaceAll(/§[\da-fk-or]/g, '')}\n`);
+        const plain = line.replaceAll(ANSI_PATTERN, '').replaceAll(/§[\da-fk-or]/g, '');
+        this.stream.write(`${plain.replaceAll(/\r\n|\r|\n/g, `\n${CONTINUATION_INDENT}`)}\n`);
     }
 
     public close(): void {

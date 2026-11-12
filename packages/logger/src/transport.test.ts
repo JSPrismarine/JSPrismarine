@@ -1,7 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LogRecord } from './transport';
-import { PrismarineTransport } from './transport';
+import { FileTransport, PrismarineTransport } from './transport';
+
+/** What the file transport starts a record's continuation lines with. */
+const CONTINUATION_INDENT = '    ';
 
 const record = (formatted: string): LogRecord => ({
     level: 'info',
@@ -118,5 +124,46 @@ describe('transport', () => {
             expect(write).toHaveBeenNthCalledWith(1001, 'line 1000');
             expect(write).toHaveBeenLastCalledWith('last');
         });
+    });
+});
+
+describe('FileTransport', () => {
+    let directory: string;
+
+    beforeEach(() => {
+        directory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-logger-file-'));
+    });
+    afterEach(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+    /** Logs one record through a file transport and reads the file back. */
+    const written = async (message: string): Promise<string> => {
+        const filename = path.join(directory, 'server.log');
+        const transport = new FileTransport({ filename });
+        transport.log({ ...record(message), message, level: 'debug', namespace: 'BookEditHandler/handle' });
+        await new Promise<void>((resolve) => {
+            transport['stream'].end(resolve);
+        });
+        return fs.readFileSync(filename, 'utf8');
+    };
+
+    it('writes a one-line record as one line', async () => {
+        expect(await written('Steve signed the book')).toBe(
+            '[00:00:00] [DEBUG] [BookEditHandler/handle]: Steve signed the book\n'
+        );
+    });
+
+    it('indents every further line, so client text cannot forge a record', async () => {
+        const forged = 'signed "x"\n[00:00:01] [INFO]: Steve was made an operator\r\n[00:00:02] [INFO]: two\rthree';
+
+        const lines = (await written(forged)).split('\n');
+
+        expect(lines).toEqual([
+            '[00:00:00] [DEBUG] [BookEditHandler/handle]: signed "x"',
+            `${CONTINUATION_INDENT}[00:00:01] [INFO]: Steve was made an operator`,
+            `${CONTINUATION_INDENT}[00:00:02] [INFO]: two`,
+            `${CONTINUATION_INDENT}three`,
+            ''
+        ]);
+        expect(lines.filter((line) => line.startsWith('['))).toHaveLength(1);
     });
 });
