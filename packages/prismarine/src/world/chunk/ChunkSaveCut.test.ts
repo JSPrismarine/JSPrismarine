@@ -12,7 +12,8 @@ const recordingHook = (): ChunkSaveCutHook & { calls: string[] } => {
     return {
         calls,
         beforeSubChunkWrite: (index) => calls.push(`sub chunk ${index}`),
-        beforeBiomeWrite: () => calls.push('biomes')
+        beforeBiomeWrite: () => calls.push('biomes'),
+        finish: () => calls.push('finish')
     };
 };
 
@@ -64,6 +65,31 @@ describe('a chunk held by a save cut', () => {
         expect(chunk.getHasChanged()).toBe(true);
         // The write after the cut is what the next save finds to write: one sub chunk.
         expect(chunk.getPersistenceChanges().subChunks.map(({ index }) => index)).toEqual([1]);
+    });
+
+    it('keeps the newer saved state when a pass that cut it earlier commits after it', () => {
+        const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+        chunk.setBlockRuntimeId(0, 70, 0, stone());
+        const atCut = chunk.persistedStateNow();
+        chunk.setBlockRuntimeId(0, 20, 0, stone());
+        // A write of the chunk as it is now, held after the cut, such as the unload pass's.
+        chunk.markSavedAs(chunk.persistedStateNow());
+
+        chunk.markSavedAs(atCut);
+
+        expect(chunk.getHasChanged()).toBe(false);
+        expect(chunk.getPersistenceChanges().subChunks).toEqual([]);
+    });
+
+    it('asks the cut holding it to finish, and nothing once none does', () => {
+        const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+        const hook = recordingHook();
+        chunk.setSaveCut(hook);
+        chunk.finishSaveCut();
+        chunk.setSaveCut(null);
+        chunk.finishSaveCut();
+
+        expect(hook.calls).toEqual(['finish']);
     });
 
     it('is clean when marked saved as it is', () => {

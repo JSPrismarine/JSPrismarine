@@ -9,6 +9,8 @@ export interface SavePassStats {
     readonly keys: number;
     /** The batch's approximate size, keys and values together. */
     readonly bytes: number;
+    /** Keys written outside a pass and held for this one, which it commits ahead of its own. */
+    readonly heldWrites: number;
     /** Sub chunks encoded after the cut, whether on the pass's own schedule or before a write. */
     readonly subChunkEncodes: number;
     /** Sub chunks a write made the pass encode before their turn. */
@@ -56,12 +58,16 @@ export interface ProviderSavePass {
      */
     encode(budget: number): number;
     /**
-     * Writes the pass, once nothing is held back. A pass that holds nothing writes nothing.
+     * Writes the pass, once nothing is held back, with the writes held for it ahead of its own.
+     * A pass that holds nothing writes nothing.
      * @param options - `sync` to have the write on disk, not only handed to the operating system.
      * @throws When the write fails. Every chunk stays dirty, and the next pass writes it again.
      */
     commit(options: { readonly sync: boolean }): Promise<void>;
-    /** Lets go of every chunk without writing, so they stay dirty for the next pass. */
+    /**
+     * Lets go of every chunk without writing, so they stay dirty for the next pass, and hands the
+     * writes held for this pass to the next one.
+     */
     abandon(): void;
     readonly stats: SavePassStats;
 }

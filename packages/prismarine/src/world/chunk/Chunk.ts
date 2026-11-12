@@ -97,6 +97,8 @@ export interface ChunkSaveCutHook {
     beforeSubChunkWrite(index: number): void;
     /** Runs before the biomes are replaced. */
     beforeBiomeWrite(): void;
+    /** Encodes everything the cut still holds of the chunk, before another save writes it. */
+    finish(): void;
 }
 
 /** The serialized bytes and source revision for one chunk blob. */
@@ -230,6 +232,8 @@ export default class Chunk {
     private persistedBlockEntityRevision = -1;
     private persistedEntityRevision = -1;
     private persistedBlockEntitiesPresent = false;
+    /** {@link ChunkPersistedState.changes} of the state the save holds, or -1 before one. */
+    private persistedChanges = -1;
     private static readonly EMPTY_SUBCHUNK = new SubChunk();
 
     /**
@@ -508,6 +512,10 @@ export default class Chunk {
      * dirty if it changed since, so the next save writes the change.
      */
     public markSavedAs(state: ChunkPersistedState): void {
+        // A pass that cut the chunk can commit after a later write of it was held, such as the
+        // unload pass's (ADR 0018). That write lands after the pass, so the save holds the newer
+        // state, and taking the older one back would mark a saved chunk dirty again.
+        if (state.changes < this.persistedChanges) return;
         this.recordPersistedState(state);
         this.hasChanged = this.changes !== state.changes;
     }
@@ -536,6 +544,11 @@ export default class Chunk {
      */
     public setSaveCut(hook: ChunkSaveCutHook | null): void {
         this.saveCut = hook;
+    }
+
+    /** Has the save cut that still holds part of this chunk encode it now; see {@link ChunkSaveCutHook.finish}. */
+    public finishSaveCut(): void {
+        this.saveCut?.finish();
     }
 
     /** The provider's section-level write plan, derived from the last successful save. */
@@ -592,6 +605,7 @@ export default class Chunk {
         this.persistedBlockEntityRevision = state.blockEntityRevision;
         this.persistedEntityRevision = state.entityRevision;
         this.persistedBlockEntitiesPresent = state.blockEntitiesPresent;
+        this.persistedChanges = state.changes;
     }
 
     /** Holds an actor read from disk until the world can create it. */

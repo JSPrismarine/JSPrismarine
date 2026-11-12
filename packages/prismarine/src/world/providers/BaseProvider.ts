@@ -239,9 +239,28 @@ export default abstract class BaseProvider implements Provider {
                 chunks.length = 0;
             },
             get stats(): SavePassStats {
-                return { keys: 0, bytes: 0, subChunkEncodes: 0, forcedSubChunkEncodes: 0, bypassedWrites: 0 };
+                return {
+                    keys: 0,
+                    bytes: 0,
+                    heldWrites: 0,
+                    subChunkEncodes: 0,
+                    forcedSubChunkEncodes: 0,
+                    bypassedWrites: 0
+                };
             }
         };
+    }
+
+    /**
+     * Holds each write made outside a save pass until the next pass commits it with its own
+     * batch, for a format that commits a pass as one atomic write (ADR 0018). The level's save
+     * calls this. This one writes everything at once, so it holds nothing.
+     */
+    public holdOutsideWrites(): void {}
+
+    /** Bytes held for the next pass; see {@link BaseProvider.holdOutsideWrites}. */
+    public heldWriteBytes(): number {
+        return 0;
     }
 
     /** Persists provider-specific level metadata when the format supports it. */
