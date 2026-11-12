@@ -356,6 +356,17 @@ describe('dropped items in the store', () => {
             expect(fixture.world.stackChanges).toEqual([{ itemId: item.id, count: 3 }]);
         });
 
+        it('goes to the next player in reach when the first has no room', () => {
+            const fixture = fixtureOf({ players: [player(7, 0.5, 0.5), player(8, 0.5, 0.5)] });
+            fixture.world.room.set(7, 0);
+            const item = drop(fixture, 0.5, SURFACE, 0.5, { pickupDelay: 0 });
+
+            step(fixture);
+
+            expect(fixture.world.given.map((given) => given.playerId)).toEqual([8]);
+            expect(item.removed).toBe('picked_up');
+        });
+
         it('gives a mob what it takes and leaves the rest lying there', () => {
             const fixture = fixtureOf();
             const item = drop(fixture, 0.5, SURFACE, 0.5, { stack: cobblestone(5) });
