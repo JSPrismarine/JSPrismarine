@@ -1,8 +1,8 @@
-# The change log is a world's history, complete and invertible
+# The change log is a world's history, complete and invertible back to its last chunk entry
 
 Status: accepted
 
-The simulation's change log is the history of a world. It is complete. Every mutation of authoritative state goes through a setter that appends a delta, so a change that is not in the log did not happen, and a test checks that a snapshot plus the log reproduces the replay digest. Every delta carries the before-value and the after-value of what it changed, so the history can be read forward or backward from any tick. A tick, at whatever scale, is the unit of history, and entries are addressed by tick and sequence number. A finer internal tick rate would change the scale and leave the format alone.
+The simulation's change log is the history of a world. It is complete. Every mutation of authoritative state goes through a setter that appends a delta, so a change that is not in the log did not happen, and a test checks that a snapshot plus the log reproduces the replay digest. Every delta carries the before-value and the after-value of what it changed, so the history can be read forward from any tick, and backward from any tick as far as the last chunk entry before it. A tick, at whatever scale, is the unit of history, and entries are addressed by tick and sequence number. A finer internal tick rate would change the scale and leave the format alone.
 
 A replay (see [ADR 0006](0006-replay-determinism-contract.md)) re-simulates forward from a keyframe. It cannot undo a selected change in a live world, such as one player's griefing. Before-values make that possible. They cost the old value of each changed field, which is three doubles for an entity position. The server re-architecture plan rejected event sourcing as the whole architecture because it is a tarpit at 20 TPS. This decision is narrower. State stays stored directly, and the log has to be complete.
 
