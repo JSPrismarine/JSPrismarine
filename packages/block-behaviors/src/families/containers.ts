@@ -228,7 +228,7 @@ export const cauldronFamily = defineFamily(
                 setStates(world, event.block, { fill_level: CAULDRON_FULL, cauldron_liquid: poured });
                 world.dropItem(event.block.position, { identifier: 'minecraft:bucket', count: 1 });
                 world.playSound(event.block.position, liquidSounds(poured).empty);
-                return true;
+                return { consumed: true, consumesHeldItem: true };
             }
 
             if (isEmptyBucket(event.itemStack)) {
@@ -236,7 +236,7 @@ export const cauldronFamily = defineFamily(
                 setStates(world, event.block, { fill_level: 0 });
                 world.dropItem(event.block.position, { identifier: bucketOf(liquid), count: 1 });
                 world.playSound(event.block.position, liquidSounds(liquid).fill);
-                return true;
+                return { consumed: true, consumesHeldItem: true };
             }
 
             // A bottle only ever carries water, so lava and powder snow are
@@ -248,7 +248,7 @@ export const cauldronFamily = defineFamily(
                 setStates(world, event.block, { fill_level: level - CAULDRON_BOTTLE_LEVELS });
                 world.dropItem(event.block.position, { identifier: 'minecraft:potion', count: 1 });
                 world.playSound(event.block.position, 'bucket.fill_water');
-                return true;
+                return { consumed: true, consumesHeldItem: true };
             }
 
             if (isWaterBottle(event.itemStack)) {
@@ -259,7 +259,7 @@ export const cauldronFamily = defineFamily(
                 });
                 world.dropItem(event.block.position, { identifier: 'minecraft:glass_bottle', count: 1 });
                 world.playSound(event.block.position, 'bucket.empty_water');
-                return true;
+                return { consumed: true, consumesHeldItem: true };
             }
 
             return undefined;

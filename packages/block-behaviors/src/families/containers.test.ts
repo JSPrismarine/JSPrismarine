@@ -218,7 +218,10 @@ describe('cauldronFamily', () => {
     it('takes a whole bucket and gives the empty one back', () => {
         const harness = emptyCauldron();
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:water_bucket') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:water_bucket') })).toEqual({
+            consumed: true,
+            consumesHeldItem: true
+        });
 
         expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(CAULDRON_FULL);
         expect(harness.dimension.stateAt(origin, 'cauldron_liquid')).toBe('water');
@@ -232,7 +235,10 @@ describe('cauldronFamily', () => {
 
         expect(harness.dimension.stateAt(origin, 'cauldron_liquid')).toBe('lava');
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toEqual({
+            consumed: true,
+            consumesHeldItem: true
+        });
 
         expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(0);
         expect(harness.dimension.drops.at(-1)?.drop.identifier).toBe('minecraft:lava_bucket');
@@ -249,12 +255,18 @@ describe('cauldronFamily', () => {
     it('moves two levels per bottle in each direction', () => {
         const harness = emptyCauldron();
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:potion') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:potion') })).toEqual({
+            consumed: true,
+            consumesHeldItem: true
+        });
 
         expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(CAULDRON_BOTTLE_LEVELS);
         expect(harness.dimension.drops.at(-1)?.drop.identifier).toBe('minecraft:glass_bottle');
 
-        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toBe(true);
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toEqual({
+            consumed: true,
+            consumesHeldItem: true
+        });
 
         expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(0);
         expect(harness.dimension.drops.at(-1)?.drop.identifier).toBe('minecraft:potion');

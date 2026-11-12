@@ -51,6 +51,7 @@ interface OpenWindow {
 
 /** The blocks the fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
+    'minecraft:cauldron',
     'minecraft:air',
     'minecraft:stone',
     'minecraft:dirt',
@@ -77,6 +78,12 @@ const BLOCKS = [
 
 /** The items the fixture declares, which is one of each family the tests reach. */
 const ITEMS = [
+    'minecraft:water_bucket',
+    'minecraft:lava_bucket',
+    'minecraft:powder_snow_bucket',
+    'minecraft:bucket',
+    'minecraft:potion',
+    'minecraft:glass_bottle',
     'minecraft:bone_meal',
     'minecraft:wheat_seeds',
     'minecraft:bread',
@@ -607,6 +614,52 @@ describe('useItemOnBlock', () => {
         expect(click(playerHolding(world, 'minecraft:chest', true), { x: 2, y: 64, z: 2 })).toBe('handled');
         expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(0);
         expect(world.loadedBlockAt(2, 65, 2)?.name).toBe('minecraft:wooden_door');
+    });
+
+    describe('cauldron exchanges', () => {
+        const exchanges = [
+            ['minecraft:water_bucket', 'water', 0, 6],
+            ['minecraft:lava_bucket', 'lava', 0, 6],
+            ['minecraft:powder_snow_bucket', 'powder_snow', 0, 6],
+            ['minecraft:bucket', 'water', 6, 0],
+            ['minecraft:bucket', 'lava', 6, 0],
+            ['minecraft:bucket', 'powder_snow', 6, 0],
+            ['minecraft:glass_bottle', 'water', 2, 0],
+            ['minecraft:potion', 'water', 0, 2]
+        ] as const;
+
+        it.each(exchanges)('charges one %s for %s at level %i', (name, liquid, before, after) => {
+            place(chunk, { x: 3, y: 64, z: 3 }, 'minecraft:cauldron', {
+                fill_level: before,
+                cauldron_liquid: liquid
+            });
+            const player = playerHolding(world, new Item({ name, count: 2, content }));
+
+            expect(click(player, { x: 3, y: 64, z: 3 })).toBe('handled');
+
+            expect(world.loadedBlockAt(3, 64, 3)?.states['fill_level']).toBe(after);
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('empties the hand when exchanging the last bucket', () => {
+            place(chunk, { x: 3, y: 64, z: 3 }, 'minecraft:cauldron', { fill_level: 0 });
+            const player = playerHolding(world, new Item({ name: 'minecraft:water_bucket', count: 1, content }));
+            expect(click(player, { x: 3, y: 64, z: 3 })).toBe('handled');
+            expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:air');
+        });
+
+        it('preserves the creative exemption', () => {
+            place(chunk, { x: 3, y: 64, z: 3 }, 'minecraft:cauldron', { fill_level: 0 });
+            const player = playerHolding(
+                world,
+                new Item({ name: 'minecraft:water_bucket', count: 1, content }),
+                false,
+                Gametype.CREATIVE
+            );
+            expect(click(player, { x: 3, y: 64, z: 3 })).toBe('handled');
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
+        });
     });
 
     describe('useItemInAir', () => {
