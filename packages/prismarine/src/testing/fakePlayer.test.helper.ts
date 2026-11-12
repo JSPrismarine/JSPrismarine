@@ -171,7 +171,15 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
             roster.push('remove');
             leaveStore(entities.entityRuntime(Dimensions.Overworld.name).runtime, leaving.getPlayer(), 'left_world');
         },
-        addPlayer: async () => void roster.push('add'),
+        // Into the store, as a real world enters an arriving player's entity into its store.
+        addPlayer: async (arriving) => {
+            roster.push('add');
+            enterStore(
+                entities.entityRuntime(Dimensions.Overworld.name).runtime,
+                entities.players,
+                arriving.getPlayer()
+            );
+        },
         getSpawnPosition: async () => new Vector3(0, 64, 0),
         getKnownSpawnPosition: () => new Vector3(0, 64, 0),
         // Feet one block above the stored spawn, centered, as a Bedrock server places them.
