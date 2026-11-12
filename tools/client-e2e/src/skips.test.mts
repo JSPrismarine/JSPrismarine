@@ -122,6 +122,14 @@ describe('skipProblems', () => {
         expect(problems(skip(), () => undefined)).toEqual([]);
         expect(problems(skip(), () => false)).toEqual([]);
     });
+
+    it('accepts a stale skip for the --run-skipped run that confirms its fix, and nothing malformed', () => {
+        const context = { scenarios, versions, contains: () => true, allowStale: true };
+
+        expect(skipProblems([skip()], context)).toEqual([]);
+        expect(skipProblems([skip({ fixedIn: oldBuild })], context)).toEqual([]);
+        expect(skipProblems([skip({ fixedIn: 'not-a-commit' })], context)[0]).toContain('fixedIn must be the full');
+    });
 });
 
 describe('applySkips', () => {

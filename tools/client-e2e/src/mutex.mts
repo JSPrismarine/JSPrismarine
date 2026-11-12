@@ -4,6 +4,10 @@ export interface Mutex {
     acquire(): Promise<() => void>;
 }
 
+/**
+ * Creates a mutex that grants its turns in the order they were asked for.
+ * @returns A mutex with no holder.
+ */
 export const createMutex = (): Mutex => {
     let tail: Promise<void> = Promise.resolve();
     return {

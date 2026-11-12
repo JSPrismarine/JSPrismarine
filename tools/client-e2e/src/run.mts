@@ -18,7 +18,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { buildName, containsCommit, ensureCinnabar, parseTransport, readManifest } from './cinnabar.mts';
+import { buildCommit, buildName, containsCommit, ensureCinnabar, parseTransport, readManifest } from './cinnabar.mts';
 import { CinnabarClient } from './client.mts';
 import { startServer, UDP_PORTS_LAYOUTS } from './jsp-server.mts';
 import { createMutex } from './mutex.mts';
@@ -151,15 +151,21 @@ console.log(
 );
 
 // Only the checkout knows the build's history, so a skip whose build already has its fix is
-// caught here, not in the unit tests.
-const { commit } = cinnabar.pin;
+// caught here, not in the unit tests. The build is the checkout's own commit, which a
+// `JSP_CINNABAR_PATH` checkout need not share with the pin, so the skips are the ones for it.
+const commit = buildCommit(cinnabar.pin, cinnabar.checkout);
+const runSkipped = values['run-skipped'];
 exitOnSkipProblems(
     skipProblems(
         pinSkips.filter((skip) => skip.commit === commit),
-        { ...skipContext, contains: (descendant, ancestor) => containsCommit(cinnabar.checkout, descendant, ancestor) }
+        {
+            ...skipContext,
+            contains: (descendant, ancestor) => containsCommit(cinnabar.checkout, descendant, ancestor),
+            // Running a stale skip is how its fix is confirmed before the skip is deleted.
+            allowStale: runSkipped
+        }
     )
 );
-const runSkipped = values['run-skipped'];
 const { suites: selectedSuites, skipped } = applySkips(requestedSuites, pinSkips, commit, runSkipped);
 for (const skip of skipped) {
     console.log(
@@ -479,15 +485,21 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                     const recording = await client.recordStop().catch(() => undefined);
                     if (recording) console.log(`${scenario.name}: recording ${String(recording.path)}`);
                 }
-                for (const [clientIndex, additional] of scenarioClients.entries()) {
-                    additional.keepLog(path.join(scenarioArtifacts, `additional-${clientIndex + 1}.client.log`));
+                // The turn goes back however the cleanup ends: a log copy that throws, such as onto
+                // an artifact folder that is no longer writable, would otherwise keep every other
+                // suite waiting for it.
+                try {
+                    for (const [clientIndex, additional] of scenarioClients.entries()) {
+                        additional.keepLog(path.join(scenarioArtifacts, `additional-${clientIndex + 1}.client.log`));
+                    }
+                    for (const additional of scenarioClients.reverse()) {
+                        await additional.close().catch((error: unknown) => {
+                            console.warn(`${scenario.name}: additional client cleanup failed: ${String(error)}`);
+                        });
+                    }
+                } finally {
+                    if (additionalClientTurn !== undefined) (await additionalClientTurn)();
                 }
-                for (const additional of scenarioClients.reverse()) {
-                    await additional.close().catch((error: unknown) => {
-                        console.warn(`${scenario.name}: additional client cleanup failed: ${String(error)}`);
-                    });
-                }
-                if (additionalClientTurn !== undefined) (await additionalClientTurn)();
             }
 
             if (scenarioIndex < suite.scenarios.length - 1) {
