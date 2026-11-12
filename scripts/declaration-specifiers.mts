@@ -9,8 +9,34 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-const RELATIVE_SPECIFIER =
-    /(\bfrom\s+|\bimport\s*\(\s*|\bimport\s+|\bdeclare\s+module\s+)(['"])(\.\.?(?:\/[^'"]*)?)\2/g;
+/** What comes right before a module specifier: `from`, `import`, `import(` or `declare module`. */
+const BEFORE_SPECIFIER = /(?:\bfrom|\bimport\s*\(|\bimport|\bdeclare\s+module)\s*$/;
+
+/** A relative specifier: `.` or `..`, alone or followed by a path. */
+const RELATIVE = /^\.\.?(?:\/|$)/;
+
+/**
+ * Where each string literal of a source starts and ends, quotes included, skipping comments.
+ * A template literal counts as one, so a string inside its `${}` is never taken for a specifier.
+ */
+function* stringLiterals(source: string): Generator<{ readonly start: number; readonly end: number }> {
+    let at = 0;
+    while (at < source.length) {
+        const char = source[at];
+        if (char === '/' && source[at + 1] === '/') {
+            const newline = source.indexOf('\n', at);
+            at = newline === -1 ? source.length : newline;
+        } else if (char === '/' && source[at + 1] === '*') {
+            const close = source.indexOf('*/', at + 2);
+            at = close === -1 ? source.length : close + 2;
+        } else if (char === "'" || char === '"' || char === '`') {
+            let end = at + 1;
+            while (end < source.length && source[end] !== char) end += source[end] === '\\' ? 2 : 1;
+            yield { start: at, end: end + 1 };
+            at = end + 1;
+        } else at += 1;
+    }
+}
 
 /**
  * The specifier of the module a relative import in `declarationFile` names, with its `.js`
@@ -35,13 +61,25 @@ const withJsExtension = (declarationFile: string, specifier: string): string => 
 /**
  * Gives every relative import, re-export, `import()` type and module augmentation in a
  * declaration file the `.js` extension of the module it names.
+ *
+ * Only a string literal that follows one of those keywords is a specifier. Comments are skipped
+ * and each string literal is read whole, so a string literal type that spells an import, such as
+ * `"from './logger'"`, keeps its value.
  * @param source - The declaration file's contents.
  * @param declarationFile - The declaration file's path, which the specifiers are relative to.
  * @returns The contents with each resolvable relative specifier rewritten.
  */
-export const withJsExtensions = (source: string, declarationFile: string): string =>
-    source.replace(
-        RELATIVE_SPECIFIER,
-        (_match, keyword: string, quote: string, specifier: string) =>
-            `${keyword}${quote}${withJsExtension(declarationFile, specifier)}${quote}`
-    );
+export const withJsExtensions = (source: string, declarationFile: string): string => {
+    let written = '';
+    let copied = 0;
+    for (const { start, end } of stringLiterals(source)) {
+        const quote = source[start];
+        // The keyword stands just before the quote, so a short look back finds it.
+        if (quote === '`' || !BEFORE_SPECIFIER.test(source.slice(Math.max(copied, start - 64), start))) continue;
+        const specifier = source.slice(start + 1, end - 1);
+        if (!RELATIVE.test(specifier)) continue;
+        written += `${source.slice(copied, start)}${quote}${withJsExtension(declarationFile, specifier)}${quote}`;
+        copied = end;
+    }
+    return written + source.slice(copied);
+};

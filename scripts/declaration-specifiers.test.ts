@@ -58,6 +58,20 @@ describe('withJsExtensions', () => {
         );
     });
 
+    it('leaves a string literal type that spells an import alone, and a commented import', () => {
+        declare('logger.d.ts');
+        const source = [
+            `export type Query = "from './logger'";`,
+            "export type Template = `import('./logger')`;",
+            "// import { a } from './logger';",
+            "export * from './logger';"
+        ].join('\n');
+
+        expect(withJsExtensions(source, path.join(dist, 'index.d.ts'))).toBe(
+            source.replace("export * from './logger';", "export * from './logger.js';")
+        );
+    });
+
     it('leaves package imports, .js specifiers and unresolved paths alone', () => {
         const source =
             "import { Logger } from '@jsprismarine/logger';\nexport * from './done.js';\nexport * from './missing';";
