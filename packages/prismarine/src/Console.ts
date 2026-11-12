@@ -1,4 +1,5 @@
-import type { Server, Service } from './';
+import type Server from './Server';
+import type { Service } from './utils/Service';
 import type { CommandExecutor } from './command/CommandExecutor';
 import { consoleTextOf } from './chat/ConsoleText';
 import type ChatEvent from './events/chat/ChatEvent';

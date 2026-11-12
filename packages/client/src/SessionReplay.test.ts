@@ -2,7 +2,8 @@
 import { SlowHost, nextTurn } from './testing/slowHost.test.helper';
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
-import { Config, Server } from '@jsprismarine/prismarine';
+import { Config } from '@jsprismarine/prismarine/config/Config';
+import { Server } from '@jsprismarine/prismarine';
 import type { InboundPacketRecord, InboundPacketTrace } from '@jsprismarine/prismarine/network/InboundPacketTrace';
 import { InboundPacketTrace as PacketTrace } from '@jsprismarine/prismarine/network/InboundPacketTrace';
 import type {

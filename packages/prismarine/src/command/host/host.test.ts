@@ -13,7 +13,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type { GeneratorDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Server } from '../../';
+import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { definitionsOf, definitionOf } from '../../content/ContentOptions';
 import type { ServerContent } from '../../content/ServerContent';

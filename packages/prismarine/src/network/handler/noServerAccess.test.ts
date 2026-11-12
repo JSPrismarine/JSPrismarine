@@ -20,34 +20,21 @@ const handlerModules = (): string[] =>
         .map((entry) => entry.name)
         .sort();
 
-/** Whether `specifier`, imported from `file`, is `src/Server` or the package root. */
-const resolvesTo = (file: string, specifier: string): 'server' | 'root' | null => {
-    if (!specifier.startsWith('.')) return null;
+/** Whether `specifier`, imported from `file`, is `src/Server`, which is also the package root. */
+const isServerModule = (file: string, specifier: string): boolean => {
+    if (specifier === '@jsprismarine/prismarine') return true;
+    if (!specifier.startsWith('.')) return false;
     const target = resolve(dirname(file), specifier);
-    if (target === join(src, 'Server') || target === join(src, 'Server.ts')) return 'server';
-    if (target === src || target === join(src, 'index') || target === join(src, 'index.ts')) return 'root';
-    return null;
+    return target === join(src, 'Server') || target === join(src, 'Server.ts');
 };
 
-/**
- * Whether a module imports `Server`: anything from `src/Server`, or a binding named `Server`
- * from the package root.
- */
+/** Whether a module imports anything from `src/Server`, by a relative path or the package root. */
 const importsServer = (file: string, text = readFileSync(file, 'utf8')): boolean => {
     const source = parseSourceFile(file, text);
-    for (const statement of source.statements.nodes) {
-        if (!isImport(statement)) continue;
-        const target = resolvesTo(file, getTextOfNode(statement.moduleSpecifier).slice(1, -1));
-        if (target === 'server') return true;
-        const bindings = statement.importClause?.namedBindings;
-        if (target !== 'root' || bindings === undefined) continue;
-        let named = false;
-        walkPreorder(bindings, (node) => {
-            if (node.kind === SyntaxKind.Identifier && getTextOfNode(node) === 'Server') named = true;
-        });
-        if (named) return true;
-    }
-    return false;
+    return source.statements.nodes.some(
+        (statement) =>
+            isImport(statement) && isServerModule(file, getTextOfNode(statement.moduleSpecifier).slice(1, -1))
+    );
 };
 
 /** Whether a module calls `getServer()` on anything, such as a session or a world. */
@@ -99,9 +86,8 @@ describe('network/handler', () => {
     it('finds each way a module can reach Server', () => {
         const file = join(here, 'Example.ts');
         expect(importsServer(file, "import type Server from '../../Server';")).toBe(true);
-        expect(importsServer(file, "import type { Server } from '../../';")).toBe(true);
-        expect(importsServer(file, "import { Server as Host } from '../../index';")).toBe(true);
-        expect(importsServer(file, "import type { PlayerSession } from '../../';")).toBe(false);
+        expect(importsServer(file, "import { Server as Host } from '@jsprismarine/prismarine';")).toBe(true);
+        expect(importsServer(file, "import type PlayerSession from '../PlayerSession';")).toBe(false);
         expect(importsServer(file, "import type { SessionContext } from './HandlerContext';")).toBe(false);
         expect(importsServer(file, "import type { ServerContent } from '../../content/ServerContent';")).toBe(false);
         expect(callsGetServer(file, 'const content = session.getServer().getContent();')).toBe(true);

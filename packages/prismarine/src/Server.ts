@@ -1128,3 +1128,6 @@ export default class Server {
         return this.ticker;
     }
 }
+
+// A named export too, so the package root, which is this module, can be imported as `{ Server }`.
+export { Server };

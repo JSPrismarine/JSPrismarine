@@ -1,6 +1,7 @@
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
-import { Config, Server } from '@jsprismarine/prismarine';
+import { Config } from '@jsprismarine/prismarine/config/Config';
+import { Server } from '@jsprismarine/prismarine';
 import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
 import { insideTick } from '@jsprismarine/prismarine/world/TickContext';
 import { TextPacket, TextPacketType } from '@jsprismarine/protocol';

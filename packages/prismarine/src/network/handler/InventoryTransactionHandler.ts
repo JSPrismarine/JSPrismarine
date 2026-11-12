@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
-import type { PlayerSession } from '../../';
+import type PlayerSession from '../PlayerSession';
 import { EXHAUSTION } from '../../entity/playerHunger';
 import { BOW, loose } from '../../entity/Archery';
 import { CREATIVE_REACH, meleeAttack, SURVIVAL_REACH } from '../../entity/Combat';

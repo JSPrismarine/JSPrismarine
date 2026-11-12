@@ -2,7 +2,8 @@ import fs from 'node:fs';
 
 import { PlayerNotFoundError } from '@jsprismarine/errors';
 import Console from '../Console';
-import type { Server, Service } from '../';
+import type Server from '../Server';
+import type { Service } from '../utils/Service';
 import type { PlayerIdentity } from '../playerIdentity';
 import type PlayerSession from '../network/PlayerSession';
 import { parseConfigDocument } from '../config/ConfigDocument';

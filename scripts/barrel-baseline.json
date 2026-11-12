@@ -262,10 +262,6 @@
         "noBarrelFile": 1,
         "noReExportAll": 4
     },
-    "packages/prismarine/src/index.ts": {
-        "noBarrelFile": 1,
-        "noReExportAll": 13
-    },
     "packages/prismarine/src/inventory/index.ts": {
         "noBarrelFile": 1,
         "noReExportAll": 4

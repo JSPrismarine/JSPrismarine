@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import type { Logger } from '@jsprismarine/logger';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Server } from '../';
+import type Server from '../Server';
 import type { ChatManager } from '../chat/ChatManager';
 import type { ServerContent } from '../content/ServerContent';
 import Console from '../Console';

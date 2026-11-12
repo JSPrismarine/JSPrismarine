@@ -15,14 +15,15 @@ import {
     ServerboundLoadingScreenPacket,
     ServerboundLoadingScreenPacketType
 } from '@jsprismarine/protocol';
-import { Config, Server } from '@jsprismarine/prismarine';
+import { Config } from '@jsprismarine/prismarine/config/Config';
+import { Server } from '@jsprismarine/prismarine';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ChangeDimensionPayload, NetworkPacket } from '@jsprismarine/protocol';
-import type { PlayerSession } from '@jsprismarine/prismarine';
+import type PlayerSession from '@jsprismarine/prismarine/network/PlayerSession';
 import type { DecodedPacket } from './net/ClientPacketRegistry';
 import type { PendingDimensionChange } from './DimensionChange';
 

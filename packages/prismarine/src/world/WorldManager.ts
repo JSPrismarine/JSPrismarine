@@ -1,7 +1,8 @@
 import type { WorldPreset } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
-import type { Server, Service } from '../';
+import type Server from '../Server';
+import type { Service } from '../utils/Service';
 import { withCwd } from '../utils/cwd';
 import { worldSeedOf } from '../utils/Seed';
 import { GeneratorFactories } from './GeneratorFactories';

@@ -6,9 +6,9 @@
         "access": "public",
         "exports": {
             ".": {
-                "types": "./dist/index.d.ts",
-                "import": "./dist/index.js",
-                "module": "./dist/index.js"
+                "types": "./dist/Server.d.ts",
+                "import": "./dist/Server.js",
+                "module": "./dist/Server.js"
             },
             "./block/Block": {
                 "types": "./dist/block/Block.d.ts",
@@ -410,11 +410,6 @@
                 "import": "./dist/profiling/TickRecorder.js",
                 "module": "./dist/profiling/TickRecorder.js"
             },
-            "./Server": {
-                "types": "./dist/Server.d.ts",
-                "import": "./dist/Server.js",
-                "module": "./dist/Server.js"
-            },
             "./testing/entityServer": {
                 "types": "./dist/testing/entityServer.d.ts",
                 "import": "./dist/testing/entityServer.js",
@@ -583,12 +578,12 @@
         "CHANGELOG.md",
         "README.md"
     ],
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
+    "module": "./dist/Server.js",
+    "types": "./dist/Server.d.ts",
     "exports": {
         ".": {
-            "jsprismarine:dist": "./dist/index.js",
-            "default": "./src/index.ts"
+            "jsprismarine:dist": "./dist/Server.js",
+            "default": "./src/Server.ts"
         },
         "./block/Block": {
             "jsprismarine:dist": "./dist/block/Block.js",
@@ -909,10 +904,6 @@
         "./profiling/TickRecorder": {
             "jsprismarine:dist": "./dist/profiling/TickRecorder.js",
             "default": "./src/profiling/TickRecorder.ts"
-        },
-        "./Server": {
-            "jsprismarine:dist": "./dist/Server.js",
-            "default": "./src/Server.ts"
         },
         "./testing/entityServer": {
             "jsprismarine:dist": "./dist/testing/entityServer.js",
