@@ -520,6 +520,10 @@ export class ServerTicker implements Ticker, TickControl {
      * exactly one tick, whatever the host's speed, so two runs of the same input take the same
      * steps. It runs the same work, in the same order, as a tick of the loop.
      *
+     * The harness activates the chunk completion queue before its first step, as {@link start}
+     * does for the loop. While the queue is inactive, inputs and finished chunks are applied when
+     * they arrive rather than held for the next input step.
+     *
      * @throws {Error} While the loop runs, or when called from inside the tick it is running.
      */
     public advance(): void {
