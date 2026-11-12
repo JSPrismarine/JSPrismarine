@@ -43,17 +43,18 @@ export default class RequestAbilityHandler implements InputLaneHandler<RequestAb
     /**
      * Applies a flight toggle, then answers a refusal with the current abilities.
      *
-     * Started inside the handler's unit: `PlayerSession.setFlying` posts
-     * `PlayerToggleFlightEvent` and writes the state before its first send, so only the sends
-     * are left for the input step to wait for.
+     * Run inside the handler's unit: `PlayerSession.setFlying` posts `PlayerToggleFlightEvent`
+     * and writes the state before its first send, so only the sends are left for the input step.
+     * Not an async function, which would turn a listener's throw into a rejected send after the
+     * unit kept what the listener wrote; the throw leaves the handler, and the unit undoes it.
      */
-    private async toggleFlight(session: PlayerSession, flying: boolean): Promise<void> {
+    private toggleFlight(session: PlayerSession, flying: boolean): Promise<void> {
         const player = session.getPlayer();
         const wasFlying = player.isFlying();
-        await session.setFlying(flying);
+        const sent = session.setFlying(flying);
         // A change broadcasts itself. A refusal, or a request for the state the server
         // already holds, gets the current abilities back so the client's state matches.
-        if (player.isFlying() !== wasFlying) return;
-        await session.sendAbilities();
+        if (player.isFlying() !== wasFlying) return sent;
+        return sent.then(() => session.sendAbilities());
     }
 }
