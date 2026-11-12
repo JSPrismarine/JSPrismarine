@@ -106,14 +106,20 @@ const summarizeLateTicks = (profiles: readonly LateTickProfile[]): string => {
 /** One world as the tick loop sees it: a name for the lag profile, and an update that runs to its end. */
 export interface TickerWorld {
     getName(): string;
-    update(tick: number): unknown;
+    /**
+     * Runs the world's tick to its end. The ticker does not wait for it, so it returns
+     * `undefined` and not `void`: an asynchronous method satisfies `void`, and its rejection would
+     * go unhandled.
+     */
+    update(tick: number): undefined;
     /** Opens the world's change log tick before the input step, so the inputs land in it. */
     beginChangeTick?(): void;
     /**
      * Closes a tick the world did not update, such as a frozen one: seals the change log tick
-     * opened before the input step and sends what the inputs did in it.
+     * opened before the input step and sends what the inputs did in it. It returns `undefined`
+     * for the reason `update` does.
      */
-    closeTick?(tick: number): void;
+    closeTick?(tick: number): undefined;
 }
 
 /**
@@ -143,8 +149,12 @@ export interface TickerServer {
     pollNetwork(): number;
     /** The worlds to update this tick, in the order the ticker updates them, one after another. */
     getWorlds(): TickerWorld[];
-    /** Runs `#minecraft:tick` and whatever `/schedule` put on this tick, as the input step's last input. */
-    tickFunctions(): unknown;
+    /**
+     * Runs `#minecraft:tick` and whatever `/schedule` put on this tick, as the input step's last
+     * input, and returns how many command lines ran. The ticker does not wait for it, so an
+     * asynchronous one does not satisfy this.
+     */
+    tickFunctions(): number;
     /** The server-wide chunk scheduler the tick hands a time slice to. */
     getChunkScheduler(): {
         setBudget(budgetMs: number): void;

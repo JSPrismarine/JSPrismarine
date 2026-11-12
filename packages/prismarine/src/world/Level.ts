@@ -850,7 +850,7 @@ export class Level {
      *
      * @param tick - The server's tick counter, which the worlds pace their own work by.
      */
-    public update(tick: number): void {
+    public update(tick: number): undefined {
         if (this.closing) return;
 
         this.currentTick++;
@@ -880,7 +880,7 @@ export class Level {
      *
      * @param tick - The server tick.
      */
-    public closeTick(tick: number): void {
+    public closeTick(tick: number): undefined {
         for (const world of this.worlds()) {
             try {
                 world.closeTick(tick);

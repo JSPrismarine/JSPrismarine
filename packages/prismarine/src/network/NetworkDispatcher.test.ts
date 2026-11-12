@@ -918,7 +918,7 @@ describe('network', () => {
                 events: { post: () => 0 },
                 pollNetwork: () => 0,
                 getWorlds: () => worlds,
-                tickFunctions: async () => 0,
+                tickFunctions: () => 0,
                 getChunkScheduler: () => ({ setBudget: () => {}, tick: async () => 0 }),
                 getChunkCompletionQueue: () => completions,
                 getChunkSendBudgetMs: () => 0,
