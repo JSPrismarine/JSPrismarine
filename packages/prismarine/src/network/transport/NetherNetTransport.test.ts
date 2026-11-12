@@ -158,6 +158,20 @@ describe('network/transport/NetherNetTransport', () => {
             ]);
         });
 
+        it('holds no more than 64 KiB for a peer that has not opened', async () => {
+            const source = new FakeNetherNetServer();
+            const transport = new NetherNetTransport(source, new ConnectionIds());
+            const frames: [Buffer, number][] = [];
+            transport.onFrame((payload, id) => void frames.push([payload, id]));
+
+            source.emit('encapsulated', Buffer.from('first'), 7n);
+            source.emit('encapsulated', Buffer.alloc(64 * 1024), 7n);
+            source.emit('openConnection', fakePeer(7n).peer);
+            await settle();
+
+            expect(frames).toStrictEqual([[batch('first'), 1]]);
+        });
+
         it('forgets the early messages of a peer that closes before it opens', async () => {
             const source = new FakeNetherNetServer();
             const transport = new NetherNetTransport(source, new ConnectionIds());

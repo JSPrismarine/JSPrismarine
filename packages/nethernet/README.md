@@ -12,8 +12,9 @@ implements it, for a server and a client:
 - `NetherNetClient` opens the reliable and unreliable data channels, sends the offer with every
   candidate through whatever carries its signals, and connects on the answer. `LanDiscovery`
   finds servers on the local network and carries those signals there.
-- `Connection` splits each message into segments of 10,000 bytes, each led by the number of
-  segments still to come, and joins them back.
+- `Connection` splits each message into segments as large as the peer's description allows, each
+  led by the number of segments still to come, and joins them back. It delivers messages from
+  both channels and closes a peer that sends too much or reads too little.
 - `SignalStructure`, `encodeDiscoveryPacket` and `decodeDiscoveryPacket` are the wire formats:
   the signal text, and LAN discovery's packets with their checksum and AES encryption.
 - `HttpSignaling`, the HTTP signaling a client joining by address uses: `GET /v1/join` for the

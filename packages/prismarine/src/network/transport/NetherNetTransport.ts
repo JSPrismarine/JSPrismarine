@@ -21,9 +21,12 @@ const NETHERNET_CAPABILITIES: TransportCapabilities = {
 /**
  * How many messages a peer may send before the server says it opened. A client sends its first
  * packet as soon as its reliable channel opens, which can be before its other channel arrives;
- * a handful covers that, and the cap keeps a peer that never opens from holding memory.
+ * a handful covers that, and the caps keep a peer that never opens from holding memory.
  */
 const EARLY_MESSAGE_LIMIT = 16;
+
+/** How many bytes those messages may add up to. What a client sends this early is a few bytes. */
+const EARLY_BYTES_LIMIT = 64 * 1024;
 
 /** Where a peer whose address the transport could not learn is said to be. */
 const UNKNOWN_ADDRESS = new InetAddress('0.0.0.0', 0);
@@ -158,6 +161,8 @@ export default class NetherNetTransport extends KeyedTransport<NetherNetTranspor
             // them loses a client's first packet, and the client then waits for a reply forever.
             const early = this.early.get(connectionId) ?? [];
             if (early.length >= EARLY_MESSAGE_LIMIT) return;
+            const held = early.reduce((bytes, held) => bytes + held.byteLength, 0);
+            if (held + frame.byteLength > EARLY_BYTES_LIMIT) return;
             early.push(frame);
             this.early.set(connectionId, early);
         });
