@@ -976,7 +976,7 @@ describe('the data-driven entity runtime over a live world', () => {
             )
         );
 
-        HandlerContexts.of(server).runInput(new InventoryTransactionHandler(), packet, player, (error) => {
+        await HandlerContexts.of(server).runInput(new InventoryTransactionHandler(), packet, player, (error) => {
             throw error;
         });
     };

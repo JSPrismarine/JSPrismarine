@@ -142,6 +142,34 @@ describe('network/handlerContexts', () => {
         expect(reported).toEqual([new Error('the send failed')]);
     });
 
+    it('settles once its outputs have, and rejects with what a throwing report throws', async () => {
+        const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
+        const send = deferred();
+        let settled = false;
+
+        const ran = contexts.runInput(
+            inputHandler(({ step }) =>
+                step.output(send.promise.then(() => Promise.reject(new Error('the send failed'))))
+            ),
+            'packet',
+            sessionInWorld([]),
+            (error) => {
+                throw error;
+            }
+        );
+        void ran.then(
+            () => undefined,
+            () => {
+                settled = true;
+            }
+        );
+        await Promise.resolve();
+        expect(settled).toBe(false);
+
+        send.resolve();
+        await expect(ran).rejects.toThrow('the send failed');
+    });
+
     it('throws the error of an input that throws, after its unit closed', () => {
         const order: string[] = [];
         const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
