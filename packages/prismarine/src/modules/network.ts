@@ -1,4 +1,4 @@
-import { isIPv4 } from 'node:net';
+import { isIPv4, isIPv6 } from 'node:net';
 
 import type { Module } from '@jsprismarine/kernel';
 import { NativeNetwork, SharedPort } from '@jsprismarine/native-network';
@@ -147,11 +147,12 @@ export class ServerNetworking implements Networking {
                       config.getServerPublicIp()
                   );
         // A RakNet port inside NetherNet's range is shared: the native library owns the socket and
-        // hands RakNet its datagrams (ADR 0008). Opened before anything binds, so a taken port
-        // stops the start here.
+        // hands RakNet its datagrams (ADR 0008). With RakNet off, the server port is opened the
+        // same way when NetherNet's range covers it, so query can answer there too. Opened before
+        // anything binds, so a taken port stops the start here.
         const shared =
-            driver !== undefined && udpPorts?.local !== undefined && config.getEnableRakNet()
-                ? await this.openSharedPorts(address, port, udpPorts.local)
+            driver !== undefined && udpPorts?.local !== undefined
+                ? await this.openSharedPorts(address, port, udpPorts.local, config.getEnableRakNet())
                 : new Map<number, SharedPort>();
         const rakNet: RakNetTransport[] = [];
         // One per transport that binds, settled once it listens or cannot.
@@ -197,7 +198,7 @@ export class ServerNetworking implements Networking {
                     () => server.getConfig().getPacketCompressionThreshold()
                 )
         });
-        if (config.getEnableQuery()) this.startQuery(address, port, serverName, rakNet);
+        if (config.getEnableQuery()) this.startQuery(address, port, serverName, rakNet, shared.get(port));
 
         // After the dispatcher, so the count changes once a connection is registered or released.
         // Counted here rather than per transport: every transport advertises the same total.
@@ -296,10 +297,17 @@ export class ServerNetworking implements Networking {
     /**
      * Starts answering the query protocol. A `query-port` equal to `port` answers on the RakNet
      * listeners beside the game, as Bedrock servers have always done, since query datagrams
-     * never look like RakNet's; with RakNet off, or on any other port, query gets a socket of its
-     * own. `enable-query` is read again per datagram, so a reload that turns it off silences it.
+     * never look like RakNet's. With RakNet off, it answers through the port NetherNet shares,
+     * when NetherNet's UDP is on `port`; on any other port, query gets a socket of its own.
+     * `enable-query` is read again per datagram, so a reload that turns it off silences it.
      */
-    private startQuery(address: string, port: number, serverName: ServerName, rakNet: RakNetTransport[]): void {
+    private startQuery(
+        address: string,
+        port: number,
+        serverName: ServerName,
+        rakNet: RakNetTransport[],
+        sharedPort: SharedPort | undefined
+    ): void {
         const server = this.server;
         const config = server.getConfig();
         const status = (): QueryStatus => ({
@@ -331,9 +339,19 @@ export class ServerNetworking implements Networking {
             return;
         }
 
+        // The shared port's unclaimed datagrams go to the RakNet rings, which query reads instead.
+        const source = (() => {
+            if (!shared || sharedPort === undefined) return undefined;
+            const family = isIPv6(address) ? 6 : 4;
+            const rings = allocateDatagramRings();
+            return new RingDatagramSource(rings, family, sharedPort.port, (wakePort) =>
+                sharedPort.attach(family, rings, wakePort)
+            );
+        })();
         const querySocket = new QuerySocket(
             { respond: (datagram, from, fromPort) => answer(datagram, from, fromPort) },
-            server.getLogger()
+            server.getLogger(),
+            source
         );
         this.querySocket = querySocket;
         const queryPort = shared ? port : config.getQueryPort();
@@ -393,10 +411,15 @@ export class ServerNetworking implements Networking {
      * the two are equal, since the mux socket is dual-stack.
      * @throws {Error} When a port cannot be bound, naming it.
      */
-    private async openSharedPorts(address: string, port: number, local: PortRange): Promise<Map<number, SharedPort>> {
+    private async openSharedPorts(
+        address: string,
+        port: number,
+        local: PortRange,
+        withRakNet: boolean
+    ): Promise<Map<number, SharedPort>> {
         const network = await NativeNetwork.load();
         const wildcard = address === IPV4_WILDCARD;
-        const portV6 = wildcard ? this.portV6(port) : port;
+        const portV6 = wildcard && withRakNet ? this.portV6(port) : port;
         const wanted = new Set(
             [port, ...(wildcard ? [portV6] : [])].filter(
                 (candidate) => candidate >= local.start && candidate <= local.end
@@ -408,11 +431,10 @@ export class ServerNetworking implements Networking {
                 opened.set(candidate, SharedPort.open(network, candidate, wildcard ? '' : address));
             } catch (error: unknown) {
                 for (const shared of opened.values()) shared.close();
-                throw new Error(`RakNet and NetherNet cannot share UDP port ${candidate}: ${errorMessage(error)}`, {
-                    cause: error
-                });
+                const what = withRakNet ? 'RakNet and NetherNet cannot share' : 'NetherNet cannot bind';
+                throw new Error(`${what} UDP port ${candidate}: ${errorMessage(error)}`, { cause: error });
             }
-            this.server.getLogger().info(`RakNet and NetherNet share UDP port ${candidate}`);
+            if (withRakNet) this.server.getLogger().info(`RakNet and NetherNet share UDP port ${candidate}`);
         }
         this.sharedPorts = [...opened.values()];
         return opened;
