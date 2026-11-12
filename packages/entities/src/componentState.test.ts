@@ -104,6 +104,14 @@ describe('ComponentStates', () => {
         expect(Object.isFrozen(entity.componentState.get(COUNTER)?.seen)).toBe(true);
     });
 
+    it('freezes what a frozen value holds', () => {
+        const entity = spawn();
+        start(entity);
+        entity.componentState.set(COUNTER, Object.freeze({ count: 2, seen: ['a'], last: null }));
+
+        expect(Object.isFrozen(entity.componentState.get(COUNTER)?.seen)).toBe(true);
+    });
+
     it('returns to the exact earlier slot when the writes are undone in reverse', () => {
         const writes: ComponentStateWrite[] = [];
         const entity = spawn(writes);
