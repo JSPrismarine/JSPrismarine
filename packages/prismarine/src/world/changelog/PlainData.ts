@@ -85,15 +85,16 @@ export function plainOf(value: unknown): PlainData | undefined {
 }
 
 /**
- * Whether two plain values hold the same data: equal primitives, typed arrays of the same kind
- * with equal elements, arrays with equal items in order, and objects with the same keys holding
- * equal values in any order.
+ * Whether two plain values hold the same data: the same primitives (`Object.is`, so `0` and `-0`
+ * differ), typed arrays of the same kind with equal elements, arrays with equal items in order,
+ * and objects with the same keys holding equal values in any order.
  * @param {PlainData} left - One value.
  * @param {PlainData} right - The other.
  * @returns {boolean} Whether they are equal.
  */
 export function samePlain(left: PlainData, right: PlainData): boolean {
-    if (left === right) return true;
+    // `Object.is`, so a zero that changes sign is a change: a client is sent the float's bits.
+    if (Object.is(left, right)) return true;
     if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object') return false;
     if (ArrayBuffer.isView(left) || ArrayBuffer.isView(right)) {
         if (!ArrayBuffer.isView(left) || !ArrayBuffer.isView(right)) return false;
