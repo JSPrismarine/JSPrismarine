@@ -3,6 +3,10 @@ import { deserialize, serialize } from 'node:v8';
 import type { Definitions } from '@jsprismarine/packs';
 import { describe, expect, it } from 'vitest';
 
+import { createContentBlockGroup } from '../../block/contentAdapter';
+import { createItemActorPort } from '../../item/actorPort';
+import { createContentItemGroup } from '../../item/contentAdapter';
+
 import { buildServerContent } from '../ServerContent';
 import { fixtureContentOptions } from '../testing';
 import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
@@ -83,6 +87,71 @@ const contentFor = (adapter: ServerWorldAdapter) =>
     buildServerContent(fixtureContentOptions({ world: singleDimension(adapter) }));
 
 describe('the content world views', () => {
+    it('keeps item queries and coordinate effects in the initiating dimension', () => {
+        const overworld = stubWorld('minecraft:overworld');
+        const nether = stubWorld('minecraft:nether');
+        const content = contentFor(overworld.adapter);
+        const makeDimension = (stub: ReturnType<typeof stubWorld>) => {
+            let block: ContentBlock = { identifier: 'minecraft:air', states: {} };
+            const blocks = createContentBlockGroup({
+                storage: {
+                    at: () => block,
+                    write: (at, value) => {
+                        block = value;
+                        stub.writes.push(at);
+                    }
+                },
+                blockEntities: { at: () => undefined, put: () => undefined },
+                content: () => content
+            });
+            const actors = createItemActorPort({
+                world: () => undefined,
+                entities: stub.adapter.entities,
+                level: stub.adapter.level
+            });
+            const adapter: ServerWorldAdapter = {
+                ...stub.adapter,
+                blocks: { ...stub.adapter.blocks, ...blocks },
+                items: createContentItemGroup({ ...stub.adapter, blocks, actors, content: () => content })
+            };
+            return { adapter, actors };
+        };
+        const main = makeDimension(overworld);
+        const other = makeDimension(nether);
+        const source: ServerWorldSource = {
+            at: (dimension) => {
+                if (dimension === 'minecraft:overworld') return main.adapter;
+                if (dimension === 'minecraft:nether') return other.adapter;
+                throw new Error(`Unknown dimension ${dimension}`);
+            }
+        };
+        const actions = contentWorldViews(source, () => content).itemActions;
+        const player = { identifier: 'minecraft:player', runtimeId: 1 };
+        const position = { x: 1, y: 64, z: 1 };
+
+        other.actors.duringInteraction(player, undefined, () => {
+            expect(actions.environment().dimension).toBe('minecraft:nether');
+            expect(actions.blockAt(position)?.identifier).toBe('minecraft:air');
+            actions.perform({ kind: 'ignite', position, face: 'up' });
+            actions.perform({ kind: 'play-sound', position, sound: 'fire.ignite' });
+            expect(actions.blockAt(position)?.identifier).toBe('minecraft:fire');
+            expect(() =>
+                main.actors.duringInteraction(player, undefined, () => {
+                    expect(actions.environment().dimension).toBe('minecraft:overworld');
+                    throw new Error('nested hook failed');
+                })
+            ).toThrow('nested hook failed');
+            expect(actions.environment().dimension).toBe('minecraft:nether');
+        });
+
+        expect(overworld.writes).toEqual([]);
+        expect(overworld.sounds).toEqual([]);
+        expect(nether.writes).toEqual([{ x: 1, y: 65, z: 1 }]);
+        expect(nether.sounds).toEqual(['fire.ignite']);
+        expect(actions.environment().dimension).toBe('minecraft:overworld');
+        expect(actions.blockAt(position)?.identifier).toBe('minecraft:air');
+    });
+
     it('gives the block behaviors a world in the dimension they asked for', () => {
         const { adapter, writes, sounds } = stubWorld();
         const content = contentFor(adapter);

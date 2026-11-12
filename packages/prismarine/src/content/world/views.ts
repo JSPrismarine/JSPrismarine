@@ -34,6 +34,8 @@ import type { BlockLightProperties, BlockLightView } from '@jsprismarine/lightin
 import type { BlockReference, WorldActions as ItemWorldActions } from '@jsprismarine/item-behaviors';
 import type { SpawnWorld } from '@jsprismarine/spawning';
 
+import { itemInteractionDimension } from '../../item/interactionContext';
+
 import type { ServerContent } from '../ServerContent';
 import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import { CONTENT_AREAS, notWired } from './notWired';
@@ -60,7 +62,7 @@ export type ContentLookup = () => ServerContent;
 export interface ContentWorldViews {
     /** `BlockWorld` for `@jsprismarine/block-behaviors`, which resolves a dimension per event. */
     readonly blockWorld: BlockWorld;
-    /** `WorldActions` for `@jsprismarine/item-behaviors`, in the default dimension. */
+    /** `WorldActions` for `@jsprismarine/item-behaviors`, resolved per interaction. */
     readonly itemActions: ItemWorldActions;
     /** `BlockLightView` for `@jsprismarine/lighting`, in the default dimension. */
     readonly lightView: BlockLightView;
@@ -88,7 +90,7 @@ export const contentWorldViews = (
 
     return {
         blockWorld: { at: (dimension) => blockActionsOf(world.at(dimension), content) },
-        itemActions: itemActionsOf(main(), content),
+        itemActions: itemActionsOf(() => world.at(itemInteractionDimension() ?? defaultDimension), content),
         lightView: lightViewOf(main(), content),
         engineWorld: engineWorldOf(main()),
         spawnWorld: spawnWorldOf(main(), content),
@@ -256,12 +258,12 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
 };
 
 /** `WorldActions` as `@jsprismarine/item-behaviors` declares it, which is a different interface. */
-const itemActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): ItemWorldActions => {
-    const items = () => adapter.items ?? notWired('items', CONTENT_AREAS.blocksAndItems)();
+const itemActionsOf = (adapter: () => ServerWorldAdapter, content: ContentLookup): ItemWorldActions => {
+    const items = () => adapter().items ?? notWired('items', CONTENT_AREAS.blocksAndItems)();
 
     return {
         blockAt: (position): BlockReference | undefined => {
-            const block = adapter.blocks.get(position);
+            const block = adapter().blocks.get(position);
             return (
                 block && {
                     identifier: block.identifier,
@@ -286,7 +288,7 @@ const itemActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Ite
         includes: (set, member) => items().includes(set, member),
         transform: (transformer, block, face) => items().transform(transformer, block, face),
         effectsOf: (potion) => items().effectsOf(potion),
-        random: () => adapter.random.nextFloat(),
+        random: () => adapter().random.nextFloat(),
         perform: (action) => items().perform(action)
     };
 };
