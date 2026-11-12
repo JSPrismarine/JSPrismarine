@@ -6,7 +6,11 @@ export interface OutboundPacketRecord {
     readonly connectionId: number;
     /** Zero-based order among packets queued for this connection. */
     readonly sequence: number;
-    /** Server tick when the packet is handed to the transport. */
+    /**
+     * The server tick whose work queued the packet: the tick that ran or replicated it, which for
+     * a packet replication sends is the sealed tick it read, not the tick in which the transport
+     * framed it ([ADR 0006](../../../../docs/adr/0006-replay-determinism-contract.md)).
+     */
     readonly tick: number;
     /** Protocol version used to encode the packet. */
     readonly protocolVersion: number;

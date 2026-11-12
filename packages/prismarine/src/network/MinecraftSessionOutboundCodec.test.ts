@@ -170,17 +170,20 @@ describe('network', () => {
             expect(getBuffer).not.toHaveBeenCalled();
         });
 
-        it('records the tick when async packet framing reaches the transport', async () => {
+        it('records the tick a packet was queued in, though the transport frames it in a later one', async () => {
             const { session } = fakeSession(Codec2193);
             const trace = new OutboundPacketTrace();
             let tick = 12;
             session.setOutboundPacketRecorder(trace, 4, () => tick);
 
-            const sending = session.sendPacketsAsync([animate()]);
+            const compressed = session.sendPacketsAsync([animate()]);
+            const queued = session.sendDataPacket(animate(), false);
+            session.sendPackets([animate()], { direct: false, compressed: false });
             tick = 13;
-            await sending;
+            session.sendPackets([animate()], { direct: false, compressed: false });
+            await Promise.all([compressed, queued, session.flushOutboundPackets()]);
 
-            expect(trace.records().map((record) => record.tick)).toEqual([13]);
+            expect(trace.records().map((record) => record.tick)).toEqual([12, 12, 12, 13]);
         });
 
         it('sends a framed packet even when the outbound recorder fails', async () => {
