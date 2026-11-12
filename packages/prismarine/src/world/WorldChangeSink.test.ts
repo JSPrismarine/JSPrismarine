@@ -190,8 +190,10 @@ describe('world', () => {
             world.sealChangeTick();
 
             expect(sealed).toHaveLength(2);
+            // The write, then the seven block updates it queued around itself.
             expect(sealed[1]!.entries).toEqual([
-                expect.objectContaining({ field: 'block', address: { x: 2, y: GROUND + 1, z: 2, layer: 0 } })
+                expect.objectContaining({ field: 'block', address: { x: 2, y: GROUND + 1, z: 2, layer: 0 } }),
+                ...Array.from({ length: 7 }, () => expect.objectContaining({ field: 'block-update', before: null }))
             ]);
         });
 

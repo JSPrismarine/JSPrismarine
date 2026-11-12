@@ -1,4 +1,3 @@
-import type { UnitJournal } from '../entity/data/EntityStore';
 import { blockPositionKey } from './positionKeys';
 import type { BlockPositionKey } from './positionKeys';
 
@@ -43,13 +42,25 @@ export interface BlockUpdate {
 }
 
 /**
+ * Hears one change to the queue: a position queued, moved to an earlier tick or taken off. The
+ * due tick before and after, null for no update at the position.
+ */
+export type BlockUpdateObserver = (
+    x: number,
+    y: number,
+    z: number,
+    before: number | null,
+    after: number | null
+) => void;
+
+/**
  * Coalesces delayed block-physics checks and drains them within a per-tick budget.
  *
- * It is a {@link UnitJournal} of the world's change log: while a unit of work runs, each schedule
- * records what it replaced, so undoing a unit that wrote a block also takes back the updates the
- * write queued.
+ * The world's change log records every change to the queue through {@link BlockUpdateScheduler.observer},
+ * so undoing a unit that wrote a block also takes back the updates the write queued, and a
+ * snapshot of the queue plus the log reaches the queue a later tick holds.
  */
-export class BlockUpdateScheduler implements UnitJournal {
+export class BlockUpdateScheduler {
     /**
      * Pending updates, keyed by position so duplicate schedules update their due time in place.
      *
@@ -62,8 +73,11 @@ export class BlockUpdateScheduler implements UnitJournal {
     /** Earliest due tick, allowing an all-future queue to return without scanning. */
     private earliestDue = Number.POSITIVE_INFINITY;
 
-    /** What each schedule since the outermost open unit began replaced, oldest first, or null outside units. */
-    private journal: { readonly key: BlockPositionKey; readonly replaced: PendingUpdate | undefined }[] | null = null;
+    /**
+     * Hears each change in the order it happens. The world sets it to its change log;
+     * {@link BlockUpdateScheduler.restore} does not report to it.
+     */
+    public observer: BlockUpdateObserver | undefined;
 
     /**
      * Queues a position to be looked at.
@@ -81,8 +95,8 @@ export class BlockUpdateScheduler implements UnitJournal {
         const existing = this.pending.get(key);
         if (existing && existing.at <= at) return;
 
-        this.journal?.push({ key, replaced: existing });
         this.pending.set(key, { at, update: { x, y, z } });
+        this.observer?.(x, y, z, existing?.at ?? null, at);
 
         if (Number.isNaN(at)) this.earliestDue = Number.NEGATIVE_INFINITY;
         else if (at < this.earliestDue) this.earliestDue = at;
@@ -105,28 +119,16 @@ export class BlockUpdateScheduler implements UnitJournal {
         this.schedule(x, y, z - 1, now, delay);
     }
 
-    /** How many updates are waiting, for tests and diagnostics. */
-    /** Starts recording what each schedule replaces, for a unit that is starting. */
-    public markUnit(): number {
-        this.journal ??= [];
-        return this.journal.length;
-    }
-
-    /** Takes back every schedule made since `mark`, newest first, for a unit that was undone. */
-    public revertUnit(mark: number): void {
-        const journal = this.journal;
-        if (journal === null) return;
-        while (journal.length > mark) {
-            const { key, replaced } = journal.pop()!;
-            if (replaced === undefined) this.pending.delete(key);
-            else this.pending.set(key, replaced);
-        }
+    /**
+     * Puts one position back as a recorded change left it, without reporting it: queued for the
+     * tick given, or taken off when it is null. A position already queued keeps its place in the
+     * processing order, and a new one goes last, as a schedule does.
+     */
+    public restore(x: number, y: number, z: number, dueTick: number | null): void {
+        const key = blockPositionKey(x, y, z);
+        if (dueTick === null) this.pending.delete(key);
+        else this.pending.set(key, { at: dueTick, update: { x, y, z } });
         this.recomputeEarliestDue();
-    }
-
-    /** Stops recording, once no unit is open. */
-    public settleUnits(): void {
-        this.journal = null;
     }
 
     /** How many positions are waiting. */
@@ -144,7 +146,9 @@ export class BlockUpdateScheduler implements UnitJournal {
         return [...this.pending.values()].map(({ at, update }) => ({ dueTick: at, position: { ...update } }));
     }
 
+    /** Takes every position off the queue, reporting each. */
     public clear(): void {
+        for (const { at, update } of this.pending.values()) this.observer?.(update.x, update.y, update.z, at, null);
         this.pending.clear();
         this.earliestDue = Number.POSITIVE_INFINITY;
     }
@@ -165,6 +169,7 @@ export class BlockUpdateScheduler implements UnitJournal {
 
             ready.push(entry.update);
             this.pending.delete(key);
+            this.observer?.(entry.update.x, entry.update.y, entry.update.z, entry.at, null);
 
             if (ready.length >= BLOCK_UPDATE_BUDGET_PER_TICK) {
                 reachedBudget = true;

@@ -31,6 +31,7 @@ import { worldBlockStorage } from './contentAdapter';
 import { createEngineWorld } from './EngineWorld';
 import { chestTags } from '../testing/sealedBlocks.test.helper';
 import { beginMeasuredChangeTick } from '../testing/changeTicks.test.helper';
+import { inverseOf } from './changelog/ChangeEntry';
 
 /** A world whose dimension's entity runtime is the real one the entity fixture builds. */
 const worldWithStore = () => {
@@ -576,6 +577,47 @@ describe("a world's blocks and block entities in its change log", () => {
         expect(world.lastChangeTick()?.entries).toEqual([]);
         expect(world.loadedBlockAt(1, 64, 1)?.name).toBe('minecraft:stone');
         expect(world.loadedBlockAt(1, 65, 1)?.name).toBe('minecraft:air');
+        expect(world.replayStateDigest()).toBe(digest);
+    });
+
+    it('logs the block updates and scheduled ticks a unit queued, and undoes them with it', async () => {
+        const { world, stone } = await worldWithChunk();
+        const fluids = world.getSystems().ticks.list('fluid');
+        fluids.schedule({ x: 3, y: 64, z: 3 }, 'minecraft:water', 50);
+        settle(world);
+        const digest = world.replayStateDigest();
+        beginMeasuredChangeTick(world);
+
+        const kept = world.getEntityStore().unit(() => {
+            world.setLoadedBlockRuntimeId(4, 64, 4, stone);
+            fluids.schedule({ x: 4, y: 65, z: 4 }, 'minecraft:water', 5);
+        });
+        expect(kept.failed).toBe(false);
+        const undone = world.getEntityStore().unit(() => {
+            world.setLoadedBlockRuntimeId(5, 64, 5, stone);
+            fluids.schedule({ x: 5, y: 65, z: 5 }, 'minecraft:water', 5);
+            fluids.clearAt({ x: 3, y: 64, z: 3 });
+            throw new Error('planned');
+        });
+        world.sealChangeTick();
+
+        expect(undone.failed).toBe(true);
+        // The kept unit's write, the seven updates it queued around itself and its fluid tick.
+        expect(
+            world.lastChangeTick()?.entries.map((entry) => (entry.kind === 'field' ? entry.field : entry.kind))
+        ).toEqual(['block', ...Array<string>(7).fill('block-update'), 'scheduled-tick']);
+        expect(fluids.hasScheduledTick({ x: 3, y: 64, z: 3 }, 'minecraft:water')).toBe(true);
+        expect(fluids.hasScheduledTick({ x: 5, y: 65, z: 5 }, 'minecraft:water')).toBe(false);
+        expect(
+            world
+                .getBlockUpdates()
+                .snapshot()
+                .some(({ position: { x, z } }) => x === 5 && z === 5)
+        ).toBe(false);
+
+        // Undoing the kept unit's entries too, newest first, returns the digest to where it was.
+        const entries = [...(world.lastChangeTick()?.entries ?? [])].reverse();
+        world.getEntityStore().replay(entries.flatMap((entry) => (entry.kind === 'field' ? [inverseOf(entry)] : [])));
         expect(world.replayStateDigest()).toBe(digest);
     });
 

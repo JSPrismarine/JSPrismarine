@@ -723,6 +723,12 @@ export class World implements Service {
             blockTickHandlers,
             redstoneUpdateHandlers
         });
+        // Logged once the store holds this world's inverse writer, as block writes are.
+        this.blockUpdates.observer = (x, y, z, before, after) =>
+            this.blockLogStore?.writtenBlockUpdate(x, y, z, before, after);
+        this.systems.ticks.observe((list, { at: { x, y, z }, type, before, after }) =>
+            this.blockLogStore?.writtenScheduledTick({ list, x, y, z, type }, before, after)
+        );
     }
 
     /**
@@ -2730,9 +2736,9 @@ export class World implements Service {
     }
 
     /**
-     * The entity store whose change log holds this world's block writes, with this world's
-     * inverse writer and block update journal installed on it, and each tick it seals handed to
-     * this world's change sink, which is how replication reads the log.
+     * The entity store whose change log holds this world's block writes, block update queue and
+     * scheduled ticks, with this world's inverse writer installed on it, and each tick it seals
+     * handed to this world's change sink, which is how replication reads the log.
      * @returns The store, or undefined while the server has no entity runtime, so no log.
      */
     private blockLog(): EntityStore | undefined {
@@ -2741,7 +2747,6 @@ export class World implements Service {
         if (this.blockLogStore !== store) {
             this.blockLogStore = store;
             store.addInverseWriter((inverse) => this.restoreLogged(inverse));
-            store.addUnitJournal(this.blockUpdates);
             store.onSealed((sealed) => this.changes.tickSealed(sealed));
         }
         return store;
@@ -2761,15 +2766,27 @@ export class World implements Service {
     }
 
     /**
-     * Writes one inverse entry of a block or a block entity back, which is how the change log
-     * undoes a unit that wrote one. The write tells light and the portal index, as any block
+     * Writes one inverse entry of a block, a block entity, the block update queue or a scheduled
+     * tick back, which is how the change log undoes a unit that wrote one, and how a snapshot
+     * replays the log forward. A block write tells light and the portal index, as any block
      * change does, and schedules no neighbor updates and runs no block behavior: the
      * unit's own updates are taken back with it, and an undo writes nothing it did not log.
-     * @returns Whether the entry was a block or a block entity, so this world wrote it.
+     * @returns Whether the entry was one of those, so this world wrote it.
      * @throws {Error} When the entry's chunk has left the world.
      */
     private restoreLogged(inverse: StateEntry): boolean {
-        if (inverse.kind !== 'field' || (inverse.field !== 'block' && inverse.field !== 'block-entity')) return false;
+        if (inverse.kind !== 'field') return false;
+        if (inverse.field === 'block-update') {
+            const { x, y, z } = inverse.address;
+            this.blockUpdates.restore(x, y, z, inverse.after);
+            return true;
+        }
+        if (inverse.field === 'scheduled-tick') {
+            const { list, x, y, z, type } = inverse.address;
+            this.systems.ticks.list(list).restore({ x, y, z }, type, inverse.after);
+            return true;
+        }
+        if (inverse.field !== 'block' && inverse.field !== 'block-entity') return false;
         const { x, y, z } = inverse.address;
         const chunk = this.getLoadedChunk(x >> 4, z >> 4);
         if (chunk === null) throw new Error(`Cannot undo the ${inverse.field} at ${x}, ${y}, ${z}: its chunk left`);

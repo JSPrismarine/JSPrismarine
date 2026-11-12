@@ -24,39 +24,51 @@ describe('BlockUpdateScheduler', () => {
     });
 });
 
-describe('BlockUpdateScheduler as a unit journal', () => {
-    it('takes back what an undone unit scheduled, and keeps what was there before it', () => {
+describe('BlockUpdateScheduler changes', () => {
+    it('reports each position queued, moved earlier and taken off, and restoring them reaches the same queue in the same order', () => {
+        const live = new BlockUpdateScheduler();
+        const changes: [number, number, number, number | null, number | null][] = [];
+        live.observer = (x, y, z, before, after) => void changes.push([x, y, z, before, after]);
+        live.schedule(1, 64, 1, 10, 4);
+        live.scheduleAround(0, 64, 0, 10, 2);
+        // Later than the queued time, so nothing changes and nothing is reported.
+        live.schedule(1, 64, 1, 10, 9);
+        live.schedule(0, 64, 0, 10, 1);
+        live.due(11);
+
+        expect(changes).toEqual([
+            [1, 64, 1, null, 14],
+            [0, 64, 0, null, 12],
+            [1, 64, 0, null, 12],
+            [-1, 64, 0, null, 12],
+            [0, 65, 0, null, 12],
+            [0, 63, 0, null, 12],
+            [0, 64, 1, null, 12],
+            [0, 64, -1, null, 12],
+            [0, 64, 0, 12, 11],
+            [0, 64, 0, 11, null]
+        ]);
+
+        const replayed = new BlockUpdateScheduler();
+        let reported = 0;
+        replayed.observer = () => void (reported += 1);
+        for (const [x, y, z, , after] of changes) replayed.restore(x, y, z, after);
+
+        expect(reported).toBe(0);
+        expect(replayed.snapshot()).toEqual(live.snapshot());
+        expect(replayed.due(14)).toEqual(live.due(14));
+    });
+
+    it('goes back to where it was by restoring the before-values, newest first', () => {
         const scheduler = new BlockUpdateScheduler();
         scheduler.schedule(0, 64, 0, 10, 5);
         const before = scheduler.snapshot();
-
-        const mark = scheduler.markUnit();
+        const changes: [number, number, number, number | null][] = [];
+        scheduler.observer = (x, y, z, was) => void changes.push([x, y, z, was]);
         scheduler.scheduleAround(0, 64, 0, 10, 1);
-        scheduler.revertUnit(mark);
-        scheduler.settleUnits();
+        for (const [x, y, z, was] of changes.reverse()) scheduler.restore(x, y, z, was);
 
         expect(scheduler.snapshot()).toEqual(before);
         expect(scheduler.due(15)).toEqual([{ x: 0, y: 64, z: 0 }]);
-    });
-
-    it('undoes only the inner unit when units nest', () => {
-        const scheduler = new BlockUpdateScheduler();
-        const outer = scheduler.markUnit();
-        scheduler.schedule(1, 64, 1, 0);
-        const inner = scheduler.markUnit();
-        scheduler.schedule(2, 64, 2, 0);
-        scheduler.revertUnit(inner);
-
-        expect(scheduler.snapshot().map(({ position }) => position)).toEqual([{ x: 1, y: 64, z: 1 }]);
-        scheduler.revertUnit(outer);
-        expect(scheduler.size()).toBe(0);
-    });
-
-    it('records nothing outside units', () => {
-        const scheduler = new BlockUpdateScheduler();
-        scheduler.schedule(1, 64, 1, 0);
-        scheduler.revertUnit(0);
-
-        expect(scheduler.size()).toBe(1);
     });
 });
