@@ -9,6 +9,8 @@ import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type PlayerSession from '../PlayerSession';
+import type ClientConnection from '../ClientConnection';
+import type { SessionPhase } from '../SessionPhase';
 import { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
 import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
 import PlayerSkinHandler from './PlayerSkinHandler';
@@ -44,10 +46,11 @@ const classicSkin = (id: string, overrides: Partial<ClientData> = {}) =>
     });
 
 /** An online player, as its store player, whose session records what it is sent. */
-const onlinePlayer = (name: string, runtimeId: bigint) => {
+const onlinePlayer = (name: string, runtimeId: bigint, phase: SessionPhase = 'play') => {
     const send = vi.fn(async () => {});
     const player = stub<StorePlayer>({ skin: classicSkin(`${name}-old`) });
-    const session = stub<PlayerSession>({ runtimeId, send });
+    const connection = stub<ClientConnection>({ phase });
+    const session = stub<PlayerSession>({ runtimeId, send, getConnection: () => connection });
     return { player, session, send };
 };
 
@@ -63,6 +66,8 @@ const setUp = () => {
     const sender = onlinePlayer('runner', 7n);
     const alice = onlinePlayer('alice', 8n);
     const bob = onlinePlayer('bob', 9n);
+    // Online since its login, still in the resource pack exchange.
+    const joining = onlinePlayer('joining', 10n, 'resourcePacks');
     const debug = vi.fn();
 
     // The entry built at login, which `sendPlayerList` hands to whoever joins later.
@@ -80,7 +85,7 @@ const setUp = () => {
     const playerList = new Map([[SENDER_UUID, loginEntry]]);
 
     const sessions = stub<SessionManager>({
-        getSessions: () => [sender.session, alice.session, bob.session],
+        getSessions: () => [sender.session, alice.session, bob.session, joining.session],
         getPlayerList: () => playerList
     });
     const session = stub<PlayerSession>({
@@ -92,7 +97,7 @@ const setUp = () => {
         log: stub<Logger>({ debug }),
         services: { sessions }
     });
-    return { sender, alice, bob, debug, context, outputs, settled, playerList, loginEntry };
+    return { sender, alice, bob, joining, debug, context, outputs, settled, playerList, loginEntry };
 };
 
 /** The one packet a session was sent, typed for the assertions that follow. */
@@ -131,6 +136,15 @@ describe('PlayerSkinHandler', () => {
         expect(debug).toHaveBeenCalledOnce();
         expect(debug.mock.calls[0]?.[0]).toContain('runner');
         expect(debug.mock.calls[0]?.[0]).toContain('new-skin');
+    });
+
+    it('relays nothing to a client still in the resource pack exchange', async () => {
+        const { joining, context, settled } = setUp();
+
+        new PlayerSkinHandler().handle(skinChange(SENDER_UUID), context);
+        await settled();
+
+        expect(joining.send).not.toHaveBeenCalled();
     });
 
     it('puts the new skin on the player list entry and keeps the rest of it', async () => {
