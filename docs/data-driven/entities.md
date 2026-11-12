@@ -625,21 +625,24 @@ lifetime it plays its break sound and leaves, dropping the eye as a stack or bur
 `LevelEvent` 2003, as the roll made when it was thrown decided. Its definition is
 `minecraft:transient`, so it is never saved, since a restored eye would have no thrower.
 
-Until replication reads the change log, clients are shown a mob and the eye through a
-`StoreActor` from `entity/data/storeActors.ts`, which answers the network layer from store state
-and sends each tick's moves, metadata, health and equipment. The rest of the server reaches an
-entity through the same actor: commands and selectors, blasts and a player's swing, item
+Clients are shown a mob, the eye and every other entity from the world's change log
+([ADR 0016](../adr/0016-replication-reads-the-change-log.md)). After each tick seals,
+`network/replica/EntityReplication.ts` reads it into the entity replica, shows an entity that
+entered to the clients in range as it entered, takes one that left off every client, and sends
+the equipment, metadata, health and moves of the entities the tick wrote, and of no others. The
+rest of the server reaches an entity through a `StoreActor` from `entity/data/storeActors.ts`,
+which answers from store state: commands and selectors, blasts and a player's swing, item
 interactions and trades, saves and the replay digest, portal travel and spawner caps.
 `World.actors`, `World.getActors` and `World.getActor` walk, list and find a world's entities as
 their actors, and the actor hands every effect back to the store: a blow goes through the damage
 pipeline, a shove onto the body, a tag or a status effect into the entity's state. A dropped
-stack gets an `ItemActor` from `entity/data/itemActor.ts`, which goes on the wire as an
-`AddItemActor`, is followed six chunks rather than eight and sends no metadata or attribute
-updates. A saved actor whose type no loaded pack declares comes back as an `InertActor`: a store entity of the entity overlay's
+stack gets an `ItemActor` from `entity/data/itemActor.ts`; clients are shown it as an
+`AddItemActor`, follow it six chunks rather than eight, and are sent no metadata or attribute
+updates for it. A saved actor whose type no loaded pack declares comes back as an `InertActor`: a store entity of the entity overlay's
 [`jsprismarine:inert_actor`](../../packages/entities/vanilla_overlay/entities/inert_actor.json)
 type, which has health and runs nothing, shown and saved under the
 identifier it was saved with and with every actor record tag it was loaded with. A player in the store gets a `StorePlayerActor` from
-`entity/data/storePlayers.ts`, which other clients are sent as an `AddPlayer` followed by its
+`entity/data/storePlayers.ts`, and other clients are shown it as an `AddPlayer` followed by its
 abilities and armor, at the height of its eyes. Every live player is a store player: a login
 builds one, files it in the server's `StorePlayers` and spawns it into its world's store, and
 `PlayerSession.getPlayer()` returns it. The session holds what is not entity state: the
