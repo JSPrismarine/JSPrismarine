@@ -165,6 +165,8 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         | { readonly byTick: ReadonlyMap<number, readonly ChunkAdmissionRecord[]>; readonly fromTick: number }
         | undefined;
     private readonly divergences: string[] = [];
+    /** Recorded completions that were not ready at their tick, in the order the trace named them. */
+    private readonly missed: ChunkAdmissionRecord[] = [];
 
     /**
      * @param tick - The tick the server is running, read for an admission made outside an input
@@ -219,6 +221,7 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         }
         for (const atTick of byTick.values()) atTick.sort((left, right) => left.order - right.order);
         this.trace = { byTick, fromTick };
+        this.missed.length = 0;
     }
 
     /**
@@ -276,7 +279,8 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
      *
      * Without a trace, the step takes up to the budget of the completions held when it begins.
      * Under a trace, it takes the recorded completions of `tick` in recorded order, and a recorded
-     * one that is not held is reported as a divergence and skipped.
+     * one that is not held is reported as a divergence and skipped. A skipped one is admitted at
+     * the first later step that holds it, ahead of that step's own records, and reported again.
      *
      * @param tick - The tick whose input step this is.
      * @returns How many completions the step applied.
@@ -309,12 +313,29 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         }
 
         const step: (readonly [HeldCompletion, ChunkAdmissionRecord])[] = [];
+        // A recorded completion that was not ready at its tick goes first in the first step that
+        // holds it. Left held, it would wait for good, since no later tick records it.
+        for (let index = 0; index < this.missed.length;) {
+            const record = this.missed[index]!;
+            const held = this.keyed.get(keyOf(record));
+            if (held === undefined) {
+                index++;
+                continue;
+            }
+            this.missed.splice(index, 1);
+            this.divergences.push(
+                `tick ${tick}: recorded ${record.change} of ${record.world} chunk ${record.x},${record.z} was admitted late`
+            );
+            this.remove(held);
+            step.push([held, record]);
+        }
         for (const record of trace.byTick.get(tick) ?? []) {
             const held = this.keyed.get(keyOf(record));
             if (held === undefined) {
                 this.divergences.push(
                     `tick ${tick}: recorded ${record.change} of ${record.world} chunk ${record.x},${record.z} was not ready`
                 );
+                this.missed.push(record);
                 continue;
             }
             this.remove(held);
@@ -323,26 +344,31 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         return step;
     }
 
+    /**
+     * Applies one completion and settles its caller. Never throws: the completion is already out
+     * of the queue, so a throw here would leave its caller waiting for good, and in a step it
+     * would skip the completions taken after it.
+     */
     private apply(held: HeldCompletion, tick: number, step: ChunkAdmissionStep, expected?: ChunkAdmissionRecord): void {
         const { completion } = held;
-        const wantsDigest = this.recorder !== undefined || this.trace !== undefined;
-        const digest =
-            wantsDigest && completion.content !== undefined
-                ? createHash('sha256').update(completion.content()).digest('hex')
-                : null;
-        if (expected !== undefined && expected.digest !== null && digest !== null && expected.digest !== digest) {
-            this.divergences.push(
-                `tick ${tick}: ${completion.world} chunk ${completion.x},${completion.z} has digest ${digest}, recorded ${expected.digest}`
-            );
-        }
-
-        if (step === 'input') this.admitted++;
-        else this.admittedIdle++;
-
-        const { world, change, x, z } = completion;
-        this.recorder?.record({ order: this.nextOrder++, tick, world, change, x, z, step, digest });
-
         try {
+            const wantsDigest = this.recorder !== undefined || this.trace !== undefined;
+            const digest =
+                wantsDigest && completion.content !== undefined
+                    ? createHash('sha256').update(completion.content()).digest('hex')
+                    : null;
+            if (expected !== undefined && expected.digest !== null && digest !== null && expected.digest !== digest) {
+                this.divergences.push(
+                    `tick ${tick}: ${completion.world} chunk ${completion.x},${completion.z} has digest ${digest}, recorded ${expected.digest}`
+                );
+            }
+
+            if (step === 'input') this.admitted++;
+            else this.admittedIdle++;
+
+            const { world, change, x, z } = completion;
+            this.recorder?.record({ order: this.nextOrder++, tick, world, change, x, z, step, digest });
+
             held.resolve(completion.apply());
         } catch (error: unknown) {
             held.reject(error);
