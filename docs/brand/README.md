@@ -151,7 +151,8 @@ scrolling off the screen edge, under a strip that holds the label and the copy b
 - Release notes lead each change with its first sentence in bold. Inline code in them is mono in the
   body color, without a chip, so accent still means a link. A breaking note folds behind one label,
   "Breaking: what to update", on its signal rule, so the changes read as a list and upgraders open
-  the details they need.
+  the details they need. A long note keeps its bold lead sentence in view and folds the rest behind
+  "Details", in the same control in the muted color.
 - Inline code is never a green on the dark page; it is cream on its forest chip, so green still means
   a link.
 - The parity tracker's rows and group tiles mark anything under

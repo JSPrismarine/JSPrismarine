@@ -10,6 +10,9 @@ const changelog = path.join(repoRoot, 'packages', 'prismarine', 'CHANGELOG.md');
 /** Releases shown in full on the page; older ones are linked on GitHub. */
 const SHOWN_RELEASES = 6;
 
+/** Characters of body text after a note's lead sentence beyond which the body folds behind "Details". */
+const FOLD_AFTER = 360;
+
 /** One changeset in a release. */
 export interface ReleaseChange {
     /** Rendered HTML of the change's description. */
@@ -152,8 +155,8 @@ export { data };
 
 /**
  * Marks up a rendered change for scanning: its opening sentence becomes a lead-in, when that sentence
- * is plain text, and the paragraphs that break or remove something fold into a labeled disclosure the
- * notes set apart.
+ * is plain text, a long body after it folds behind "Details", and the paragraphs that break or remove
+ * something fold into a labeled disclosure the notes set apart.
  */
 function markChange(html: string) {
     return (
@@ -166,6 +169,15 @@ function markChange(html: string) {
             .replace(
                 /<p class="release__breaking">([\s\S]*?)<\/p>/g,
                 '<details class="release__breaking"><summary>Breaking: what to update</summary><p>$1</p></details>'
+            )
+            // A long note keeps its lead sentence in view and folds what follows, up to its first breaking
+            // note, so the list stays scannable.
+            .replace(
+                /^(<p><strong class="release__lead">[\s\S]*?<\/strong>)([\s\S]*?)(?=<details class="release__breaking"|$)/,
+                (note, lead: string, body: string) =>
+                    body.replace(/<[^>]+>/g, '').trim().length > FOLD_AFTER
+                        ? `${lead}</p><details class="release__details"><summary>Details</summary><p>${body.trimStart()}</details>`
+                        : note
             )
     );
 }

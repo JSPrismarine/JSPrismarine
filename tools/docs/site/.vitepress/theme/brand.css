@@ -349,14 +349,12 @@
 }
 
 /* A doc page ends on its edit link and date, then the footer: no tall empty band between them. */
-@media (min-width: 768px) {
-    .Layout .VPContent .VPDoc {
-        padding-bottom: 48px;
-    }
+.Layout .VPContent .VPDoc {
+    padding-bottom: 48px;
+}
 
-    .Layout .VPDoc .content {
-        padding-bottom: 0;
-    }
+.Layout .VPDoc .content {
+    padding-bottom: 0;
 }
 
 /* Pages with `pageClass: is-wide` use the full content width for their grids. */

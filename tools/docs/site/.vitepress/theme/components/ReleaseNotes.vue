@@ -199,8 +199,14 @@ function toggle(key: string) {
     border-left: 3px solid var(--jsp-signal);
 }
 
-/* Every breaking note folds behind the same label, whatever word its text starts with. */
-.release__text :deep(.release__breaking > summary) {
+/* A long note's body folds behind a quiet label under its lead sentence. */
+.release__text :deep(.release__details) {
+    margin: 0 0 8px;
+}
+
+/* Every breaking note folds behind the same label, whatever word its text starts with; a long body's
+   "Details" uses the same control, in the muted color. */
+.release__text :deep(:is(.release__breaking, .release__details) > summary) {
     display: flex;
     gap: 8px;
     align-items: center;
@@ -214,11 +220,11 @@ function toggle(key: string) {
     list-style: none;
 }
 
-.release__text :deep(.release__breaking > summary::-webkit-details-marker) {
+.release__text :deep(:is(.release__breaking, .release__details) > summary::-webkit-details-marker) {
     display: none;
 }
 
-.release__text :deep(.release__breaking > summary)::after {
+.release__text :deep(:is(.release__breaking, .release__details) > summary)::after {
     width: 0;
     height: 0;
     content: '';
@@ -228,17 +234,21 @@ function toggle(key: string) {
     transition: transform 0.15s;
 }
 
-.release__text :deep(.release__breaking[open] > summary)::after {
+.release__text :deep(:is(.release__breaking, .release__details)[open] > summary)::after {
     transform: rotate(90deg);
 }
 
 @media (max-width: 640px) {
-    .release__text :deep(.release__breaking > summary) {
+    .release__text :deep(:is(.release__breaking, .release__details) > summary) {
         min-height: var(--jsp-target);
     }
 }
 
-.release__text :deep(.release__breaking > p) {
+.release__text :deep(.release__details > summary) {
+    color: var(--vp-c-text-2);
+}
+
+.release__text :deep(:is(.release__breaking, .release__details) > p) {
     margin: 4px 0 0;
 }
 
