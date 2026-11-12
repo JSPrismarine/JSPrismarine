@@ -485,13 +485,12 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      * Whether a packet's handler may run now: the connection's phase accepts it, and a replayed
      * record runs in its own tick.
      *
-     * The phase gate runs here, when the packet's turn comes, and the packet is decoded only once
-     * the gate admits it. A retail client routinely races the next step - `ClientCacheStatus`
-     * lands while the login is still being handled - so a live packet outside the handler's
-     * phases is dropped with a debug line.
+     * The phase gate runs here, when the packet's turn comes. A retail client routinely races the
+     * next step - `ClientCacheStatus` lands while the login is still being handled - so a live
+     * packet outside the handler's phases is dropped with a debug line.
      *
-     * @throws {Error} Only for a replayed record that its connection's phase does not accept, that
-     *   does not decode, or whose handler runs in another tick than its own.
+     * @throws {Error} Only for a replayed record that its connection's phase does not accept, or
+     *   whose handler runs in another tick than its own.
      */
     private admits({ packet, handler }: GatedPacket, connection: ClientConnection, expectedTick?: number): boolean {
         const phases: readonly SessionPhase[] = handler.phases;
@@ -513,10 +512,28 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /**
-     * Runs one connection-lane or read-lane handler, if {@link admits} lets it, and unless it is
-     * a replay, records its packet with the tick it ran in.
+     * {@link admits}, then the decode: the packet's body is parsed only once its gate admits it,
+     * and one that does not decode is dropped. What decodes is logged.
      *
-     * @throws {Error} As {@link admits} does.
+     * @throws {Error} As {@link admits} does, and for a replayed record that does not decode.
+     */
+    private admitsDecoded(gated: GatedPacket, connection: ClientConnection, expectedTick?: number): boolean {
+        if (!this.admits(gated, connection, expectedTick)) return false;
+
+        const { packet } = gated;
+        if (!this.decodePacket(packet, connection)) {
+            if (expectedTick !== undefined) throw new Error(`Replay bytes did not decode as ${packet.getName()}`);
+            return false;
+        }
+        this.logInbound(packet);
+        return true;
+    }
+
+    /**
+     * Runs one connection-lane or read-lane handler, if {@link admitsDecoded} lets it, and unless
+     * it is a replay, records its packet with the tick it ran in.
+     *
+     * @throws {Error} As {@link admitsDecoded} does.
      */
     private async runHandler(
         gated: GatedPacket,
@@ -524,14 +541,13 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         recordInbound: boolean,
         expectedTick: number | undefined
     ): Promise<void> {
-        if (!this.admits(gated, connection, expectedTick)) return;
         const { packet, handler } = gated;
-
-        if (!this.decodePacket(packet, connection)) {
-            if (expectedTick !== undefined) throw new Error(`Replay bytes did not decode as ${packet.getName()}`);
+        // Decoded where it is applied, so a packet is never decoded twice.
+        if (handler.lane === 'input' && !takesConnection(handler)) {
+            this.runInputHandler(gated, connection, recordInbound, expectedTick);
             return;
         }
-        this.logInbound(packet);
+        if (!this.admitsDecoded(gated, connection, expectedTick)) return;
 
         try {
             // A handshake- or login-phase handler takes the connection's context; every other
@@ -544,8 +560,6 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                     this.recordInboundPacket(packet, connection);
                 }
                 await handler.handle(packet, ConnectionContexts.of(this.server).contextOf(connection));
-            } else if (handler.lane === 'input') {
-                this.runInputHandler(gated, connection, recordInbound, expectedTick);
             } else if (session !== null) {
                 if (recordInbound && this.inboundPacketRecorder !== undefined) {
                     this.recordInboundPacket(packet, connection);
@@ -558,11 +572,11 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /**
-     * Applies one input-lane handler in one call, inside the input step, if {@link admits} lets
-     * it, and unless it is a replay, records its packet with the tick it ran in. What the handler
-     * hands its step's outputs finishes outside the tick.
+     * Applies one input-lane handler in one call, inside the input step, if {@link admitsDecoded}
+     * lets it, and unless it is a replay, records its packet with the tick it ran in. What the
+     * handler hands its step's outputs finishes outside the tick.
      *
-     * @throws {Error} As {@link admits} does.
+     * @throws {Error} As {@link admitsDecoded} does.
      */
     private runInputHandler(
         gated: GatedPacket,
@@ -570,7 +584,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         recordInbound: boolean,
         expectedTick: number | undefined
     ): void {
-        if (!this.admits(gated, connection, expectedTick)) return;
+        if (!this.admitsDecoded(gated, connection, expectedTick)) return;
         const { packet, handler } = gated;
         if (handler.lane !== 'input') throw new Error(`${packet.getName()} has no input-lane handler`);
 
