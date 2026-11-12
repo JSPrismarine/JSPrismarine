@@ -26,7 +26,7 @@ const buildHarness = (overrides: Partial<TickerServer> = {}) => {
         emitTick: async (event) => {
             tickEvents.push(event);
         },
-        admitInputs: async () => 0,
+        admitInputs: () => 0,
         pollNetwork: () => 0,
         getWorlds: () => [],
         tickFunctions: async () => 0,
@@ -115,7 +115,7 @@ describe('modules/ticker', () => {
         const order: string[] = [];
         const harness = buildHarness({
             isTickingEnabled: () => false,
-            admitInputs: async () => {
+            admitInputs: () => {
                 order.push('inputs');
                 return 0;
             },
@@ -150,7 +150,7 @@ describe('modules/ticker', () => {
         const order: string[] = [];
         const harness = buildHarness({
             isTickingEnabled: () => false,
-            admitInputs: async () => {
+            admitInputs: () => {
                 order.push('inputs');
                 return 0;
             },
@@ -175,7 +175,7 @@ describe('modules/ticker', () => {
         const inside: Record<string, boolean> = {};
         const harness = buildHarness({
             isTickingEnabled: () => false,
-            admitInputs: async () => {
+            admitInputs: () => {
                 inside.inputs = insideTick();
                 return 0;
             },
@@ -517,7 +517,7 @@ describe('modules/ticker', () => {
                 x: -5,
                 z: 3,
                 priority: 'immediate',
-                apply: async () => true
+                apply: () => true
             });
             let waited = false;
             const harness = buildHarness({
@@ -574,7 +574,7 @@ describe('modules/ticker', () => {
                 x: 0,
                 z: 0,
                 priority: 'idle',
-                apply: async () => true
+                apply: () => true
             });
 
             await vi.advanceTimersByTimeAsync(TICK_STALL_MS * 2);

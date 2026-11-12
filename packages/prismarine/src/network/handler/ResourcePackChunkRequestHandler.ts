@@ -29,9 +29,9 @@ export default class ResourcePackChunkRequestHandler implements InputLaneHandler
             `${session.identity.name} requested chunk ${packet.chunk} of pack ${packet.resourceName}, which the server does not serve`,
             'ResourcePackChunkRequestHandler/handle'
         );
-        // Slice 9: taking the player off saves its record and announces the departure in chat,
-        // and the kick waits for both until they leave the tick.
-        step.defer(() =>
+        // The kick queues the goodbye and takes the player off in this input's unit; the step
+        // lets the connection close without waiting for it.
+        step.output(
             session.kick('Asked for a resource pack this server does not have', DisconnectReason.RESOURCE_PACK_PROBLEM)
         );
     }

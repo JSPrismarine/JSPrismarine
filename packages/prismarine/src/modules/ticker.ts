@@ -168,7 +168,7 @@ export interface TickerServer {
      * count, then the chunk completions it admits. The ticker awaits it before anything else in
      * the tick, and before any world updates.
      */
-    admitInputs(): Promise<number>;
+    admitInputs(): number;
     /** Delivers pending network records at this tick's fixed game-thread boundary. */
     pollNetwork(): number;
     /** The worlds to update this tick, in the order the ticker updates them, one after another. */

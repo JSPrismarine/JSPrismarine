@@ -81,12 +81,12 @@ export default class ClientConnection extends MinecraftSession {
      * {@link PlayerSession.leave} takes the player down and then itself, even if the player's
      * part fails.
      */
-    public async closePlayerSession(): Promise<void> {
+    public closePlayerSession(): void {
         const session = this.playerSession;
         if (session === null) return;
 
         this.playerSession = null;
-        await session.leave();
+        session.leave();
     }
 
     /**
@@ -112,20 +112,21 @@ export default class ClientConnection extends MinecraftSession {
             filteredMessage: ''
         });
 
-        // Both at once, because neither waits on the other, and both awaited so the caller
-        // knows the whole tear-down is done. Framing can be queued behind a chunk batch
-        // still compressing, so hanging up has to wait for the packet rather than race it -
-        // a session RakNet has already dropped never frames anything, and the player would
-        // be kicked with no reason shown.
-        await Promise.all([
-            // RakNet holds the session open until the client acknowledges this, so a lost
-            // datagram costs a retransmission rather than the reason. NetherNet waits for the
-            // acknowledgement before it hangs up, and `finally` waits for that. Before the network
-            // settings exchange nothing is compressed, and a deflated goodbye would be read
-            // as garbage by a client that has not agreed to compression yet.
-            this.sendDataPacket(packet, this.hasCompression, true).finally(() => this.forceDisconnect()),
-            this.closePlayerSession()
-        ]);
+        // The goodbye is queued first and the player taken off after it, and the caller waits
+        // for the packet: framing can be queued behind a chunk batch still compressing, so
+        // hanging up has to wait for the packet rather than race it - a session RakNet has
+        // already dropped never frames anything, and the player would be kicked with no reason
+        // shown. RakNet holds the session open until the client acknowledges this, so a lost
+        // datagram costs a retransmission rather than the reason. NetherNet waits for the
+        // acknowledgement before it hangs up, and `finally` waits for that. Before the network
+        // settings exchange nothing is compressed, and a deflated goodbye would be read as
+        // garbage by a client that has not agreed to compression yet.
+        const goodbye = this.sendDataPacket(packet, this.hasCompression, true).finally(() => this.forceDisconnect());
+        try {
+            this.closePlayerSession();
+        } finally {
+            await goodbye;
+        }
     }
 
     public getPlayerSession(): PlayerSession | null {

@@ -542,25 +542,30 @@ export class CommandManager implements Service {
     }
 
     /**
-     * Runs one vanilla command.
+     * Runs one vanilla command, parking what its verbs start in `started`.
      *
      * @returns True when the command ran, false when the sender was refused or
      * the command reported a failure; either way the sender has been told.
      */
-    private async dispatchVanilla(
+    private runVanilla(
         sender: CommandExecutor,
         target: CommandExecutor,
         name: string,
-        input: string
-    ): Promise<boolean> {
+        input: string,
+        started: Promise<unknown>[]
+    ): boolean {
         const vanilla = this.vanillaRegistry();
         const metadata = vanilla.getMetadata(name)!;
 
         if (isPlayerSender(sender)) {
             if (!this.server.getPermissionManager().can(sender).execute(commandPermissionOf(name))) {
-                await sender.sendMessage(
-                    "§cI'm sorry, but you do not have permission to perform this command. " +
-                        'Please contact the server administrators if you believe that this is in error.'
+                started.push(
+                    Promise.resolve(
+                        sender.sendMessage(
+                            "§cI'm sorry, but you do not have permission to perform this command. " +
+                                'Please contact the server administrators if you believe that this is in error.'
+                        )
+                    )
                 );
                 return false;
             }
@@ -568,18 +573,18 @@ export class CommandManager implements Service {
 
         const source = this.vanillaSource(sender, target);
         if (metadata.permissionLevel > source.permissionLevel) {
-            await sender.sendMessage('§cThat command needs a higher permission level');
+            started.push(Promise.resolve(sender.sendMessage('§cThat command needs a higher permission level')));
             return false;
         }
 
-        // The dispatcher is synchronous and the host verbs park their delivery
-        // on one shared queue, so everything one command
-        // line started is awaited here before the call returns.
+        // The dispatcher is synchronous and the host verbs park their delivery on one shared
+        // queue, so everything one command line started is in `started` when this returns.
         let results: unknown = [];
-        const started = collectAsyncCommands(() => {
-            results = vanilla.getDispatcher().execute(input, source);
-        });
-        await Promise.all(started);
+        started.push(
+            ...collectAsyncCommands(() => {
+                results = vanilla.getDispatcher().execute(input, source);
+            })
+        );
 
         // The port's `execute` answers with one result per executed context, so
         // a forked `execute as @e run ...` reports the whole fan-out's total,
@@ -591,21 +596,31 @@ export class CommandManager implements Service {
     }
 
     /**
-     * Dispatches a command and executes it.
+     * Runs a command to its end in one call, for code that cannot wait, such as an input-lane
+     * handler. Every write the command makes is made, and every packet it sends is queued, before
+     * this returns; what its verbs started and did not finish, such as a kick or a file write,
+     * is in `settled`.
      *
      * @param sender - the player/console who executed the command
      * @param target - the player, entity or console who should execute the command
      * @param input - the command input including arguments
-     * @returns True when the command ran. False when the target cannot run commands, the
-     * sender lacks the permission, the command is unknown, or it threw; in each of those
-     * cases the sender has been sent the reason.
+     * @returns Whether the command ran, as {@link dispatchCommand} answers it, and a promise that
+     *   settles once what it started has. A failure among those is logged, and `settled` never
+     *   rejects.
      */
-    public async dispatchCommand(sender: CommandExecutor, target: CommandTarget, input = ''): Promise<boolean> {
+    public runCommand(
+        sender: CommandExecutor,
+        target: CommandTarget,
+        input = ''
+    ): { readonly ran: boolean; readonly settled: Promise<void> } {
+        const started: Promise<unknown>[] = [];
+        const settle = (after?: () => void): Promise<void> =>
+            Promise.all(started).then(after, (error: unknown) => this.server.getLogger().error(error));
         try {
             // Anything else an `@e` selector can match has no way to be answered.
             if (!isCommandExecutor(target)) {
-                await sender.sendMessage(`§c${target.getName()} cannot execute commands`);
-                return false;
+                started.push(Promise.resolve(sender.sendMessage(`§c${target.getName()} cannot execute commands`)));
+                return { ran: false, settled: settle() };
             }
             if (input.startsWith('/')) input = input.slice(1);
             input = input.trim();
@@ -623,29 +638,29 @@ export class CommandManager implements Service {
                 }
 
                 const stopRequestsBefore = this.stopCommandRequests;
-                const succeeded = await this.dispatchVanilla(sender, target, vanilla, input);
+                const ran = this.runVanilla(sender, target, vanilla, input, started);
                 // `/stop` parks teardown and its confirmation on the vanilla command path.
                 // Notify the process entry only after both have settled.
-                if (vanilla === 'stop' && this.stopCommandRequests > stopRequestsBefore) this.onStopCommandComplete?.();
-                return succeeded;
+                const stopped = vanilla === 'stop' && this.stopCommandRequests > stopRequestsBefore;
+                return { ran, settled: settle(stopped ? () => this.onStopCommandComplete?.() : undefined) };
             }
 
-            await sender.sendMessage('§cUnknown command. Type "/help" for help.');
-            return false;
+            started.push(Promise.resolve(sender.sendMessage('§cUnknown command. Type "/help" for help.')));
+            return { ran: false, settled: settle() };
         } catch (error: unknown) {
             switch (true) {
                 case error instanceof CommandSyntaxException:
-                    await sender.sendMessage(`§c${error.getMessage()}`);
-                    return false;
+                    started.push(Promise.resolve(sender.sendMessage(`§c${error.getMessage()}`)));
+                    return { ran: false, settled: settle() };
                 case error instanceof Error:
-                    await sender.sendMessage(`§c${error.message}`);
-                    return false;
+                    started.push(Promise.resolve(sender.sendMessage(`§c${error.message}`)));
+                    return { ran: false, settled: settle() };
                 default:
                     this.server.getLogger().error(error);
                     break;
             }
 
-            await sender.sendMessage(`§c${error}`);
+            started.push(Promise.resolve(sender.sendMessage(`§c${error}`)));
             this.server
                 .getLogger()
                 .debug(
@@ -653,7 +668,23 @@ export class CommandManager implements Service {
                     'CommandManager/dispatchCommand'
                 );
             this.server.getLogger().error(error);
-            return false;
+            return { ran: false, settled: settle() };
         }
+    }
+
+    /**
+     * Dispatches a command and executes it, and settles once what it started has.
+     *
+     * @param sender - the player/console who executed the command
+     * @param target - the player, entity or console who should execute the command
+     * @param input - the command input including arguments
+     * @returns True when the command ran. False when the target cannot run commands, the
+     * sender lacks the permission, the command is unknown, or it threw; in each of those
+     * cases the sender has been sent the reason.
+     */
+    public async dispatchCommand(sender: CommandExecutor, target: CommandTarget, input = ''): Promise<boolean> {
+        const { ran, settled } = this.runCommand(sender, target, input);
+        await settled;
+        return ran;
     }
 }

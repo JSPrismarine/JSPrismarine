@@ -578,13 +578,15 @@ export default class PlayerSession {
      * taken out of its world and the player list, and said to have left, and
      * {@link PlayerSession.disable} runs whether or not that succeeded.
      *
-     * `ClientConnection.closePlayerSession` calls this once per connection.
+     * `ClientConnection.closePlayerSession` calls this once per connection. Every write is made
+     * and every packet queued before this returns; the record's save is handed to work outside
+     * the tick, and a later read of the record waits for it.
      * @throws {Error} What the player's leave threw, after the session is disabled.
      * @group Lifecycle
      */
-    public async leave(): Promise<void> {
+    public leave(): void {
         try {
-            await this.takePlayerOff();
+            this.takePlayerOff();
         } finally {
             this.disable();
         }
@@ -662,22 +664,25 @@ export default class PlayerSession {
      * nothing to take down: it was never added to a world or the player list, and announcing its
      * departure would name somebody who never arrived.
      */
-    private async takePlayerOff(): Promise<void> {
+    private takePlayerOff(): void {
         if (!this.joined) return;
 
-        await this.stopMining();
+        this.stopMining();
 
         // Whether or not they have an XUID: `keyOfPlayer` falls back to the name for an offline
-        // player, and this server accepts offline players.
-        await this.world.savePlayerData(this.getPlayer());
+        // player, and this server accepts offline players. The record is built here and written
+        // off the tick.
+        void this.world
+            .savePlayerData(this.getPlayer())
+            .catch((error: unknown) => this.server.getLogger().error(error));
         // Tells everyone who could see this player to take them away, world-scoped and only the
         // clients that actually had them.
         this.world.removePlayer(this);
-        await this.removeFromPlayerList();
+        this.released(this.removeFromPlayerList());
 
         // Announce disconnection. The leaving player is still in the fan-out here.
         const chat = this.server.getChatManager();
-        await chat.send(
+        const announced = chat.send(
             new Chat({
                 sender: this.server.getConsoleSender(),
                 // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
@@ -687,6 +692,7 @@ export default class PlayerSession {
                 type: ChatType.TRANSLATION
             })
         );
+        this.released(announced);
 
         this.joined = false;
         chat.leave(this.chatRecipient);
@@ -2374,7 +2380,8 @@ export default class PlayerSession {
         const left = from.getDimension();
 
         // The cracks belong to a block in the world being left.
-        const sends = [this.stopMining()];
+        this.stopMining();
+        const sends: Promise<void>[] = [];
 
         // The record goes to the level being left while the player is still in it, so it
         // carries that world's dimension and the next login finds them where they were should
@@ -3383,13 +3390,13 @@ export default class PlayerSession {
      * mode or of world. A death is the player systems', inside the blow. Left alone, the cracks
      * would go out every tick for good.
      */
-    public stopMining(): Promise<void> {
+    public stopMining(): void {
         const components = this.getPlayer().getComponents();
         const mining = blockMiningOf(components.get('mining.block'));
-        if (mining === null) return allSent([]);
+        if (mining === null) return;
 
         components.set('mining.block', null);
-        return this.world.stopBlockCracking(mining.position);
+        this.world.stopBlockCracking(mining.position);
     }
 
     /**
@@ -3411,7 +3418,7 @@ export default class PlayerSession {
         const sends: Promise<void>[] = [];
         // A new game mode changes how, or whether, the player breaks blocks, so the mining in
         // progress does not carry over into it.
-        if (event.getGamemode() !== player.gamemode) sends.push(this.stopMining());
+        if (event.getGamemode() !== player.gamemode) this.stopMining();
 
         // A logged component field, which the store's player systems and the actor read.
         this.inputs().setPlayerGamemode(player, event.getGamemode());

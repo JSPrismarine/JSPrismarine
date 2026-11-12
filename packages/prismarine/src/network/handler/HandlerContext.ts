@@ -48,9 +48,9 @@ export interface SessionContext {
 
 /**
  * The server-wide services an input-lane handler may use, each narrowed to the members handlers
- * call. The commands and the chat still return promises, because they can do anything, so a
- * handler hands them to {@link InputStep.defer}. A service that writes a file changes memory at
- * once and writes the file off the tick.
+ * call. Each runs to its end in the handler's unit and hands back a promise only for what it
+ * leaves to the transport or the disk. A service that writes a file changes memory at once and
+ * writes the file off the tick.
  */
 export interface HandlerServices {
     /** The content registries: items, blocks, recipes and enchantments. */
@@ -66,9 +66,15 @@ export interface HandlerServices {
      * the operator file off the tick.
      */
     readonly permissions: Pick<PermissionManager, 'isOp' | 'setOpNow' | 'can'>;
-    /** The command dispatcher. A command can do anything, so a handler defers it. */
-    readonly commands: Pick<CommandManager, 'dispatchCommand'>;
-    /** Chat fan-out, which runs the plugins' chat listeners, so a handler defers it. */
+    /**
+     * The command dispatcher. `runCommand` runs a command in the handler's unit and hands back
+     * what the command started, which the handler gives to {@link InputStep.output}.
+     */
+    readonly commands: Pick<CommandManager, 'runCommand'>;
+    /**
+     * Chat fan-out, which calls the plugins' chat listeners as it is called; what an
+     * asynchronous listener does after its first wait runs after the input.
+     */
     readonly chat: Pick<ChatManager, 'send'>;
     /** The per-world replicators, for a handler that relays a packet to the players near a point. */
     readonly replicators: Pick<WorldReplicators, 'for'>;
@@ -93,25 +99,14 @@ export interface InputStep {
     /** The tick whose input step applies the input. */
     readonly tick: number;
     /**
-     * Hands the step a send the handler started, so the handler need not wait for it. The step
-     * waits for every output once the handler returns, before the next input, and a failed one is
-     * reported as the handler's failure. The handler's writes are already committed by then, so a
-     * failed send does not undo them.
+     * Hands the step something the handler started and does not wait for: a send whose packets
+     * are already queued, or what a command left running, such as a kick. The step lets it finish
+     * outside the tick and reports a failure as the handler's. The handler's writes are committed
+     * by then, so a failed send does not undo them.
      *
      * @param send - The send, already started.
      */
     output(send: Promise<void>): void;
-    /**
-     * Hands the step work that still has to wait, such as a world change that loads chunks or a
-     * command, which later slices turn into messages and loaded-chunk reads. The step runs each
-     * piece after the handler returns, in the order handed over, each as a unit of its own, and
-     * finishes them before the next input, so the order of effects is the one an awaiting handler
-     * had. A piece that throws undoes its own writes and not the handler's, and the pieces after
-     * it do not run. Name the slice that removes the wait beside each call.
-     *
-     * @param work - Starts the work once the handler's unit is closed.
-     */
-    defer(work: () => Promise<void>): void;
 }
 
 /** What an input-lane handler is handed. */

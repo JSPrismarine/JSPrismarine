@@ -88,15 +88,14 @@ describe('SetLocalPlayerAsInitializedHandler', () => {
 
     it("adds the player and completes the spawn in the input's own unit", () => {
         const { order, session } = fakeSession();
-        const { context, outputs, deferred } = inputContext(session);
+        const { context, outputs } = inputContext(session);
 
         expect(
             new SetLocalPlayerAsInitializedHandler().handle(new SetLocalPlayerAsInitializedPacket(), context)
         ).toBeUndefined();
 
-        // Nothing deferred: both have written before the handler returns, and the one output is
+        // Both have written before the handler returns, and the one output is
         // the spawn's sends.
-        expect(deferred).toHaveLength(0);
         expect(outputs).toHaveLength(1);
         expect(order).toEqual(['addPlayer', 'completeSpawn']);
     });

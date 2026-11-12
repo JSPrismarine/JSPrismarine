@@ -22,11 +22,21 @@ import type ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet
 import ResourcePackStackPacket from '@jsprismarine/protocol/packet/ResourcePackStackPacket';
 import { ResourcePackStatus } from '@jsprismarine/protocol';
 import { joinContentPayloads } from '../contentPayloads';
-import { overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
+import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
+import { allSent } from '../allSent';
+import { outsideTick } from '../../world/TickContext';
+import type { World } from '../../world/World';
 import { createStartGameData } from '../startGameData';
 import { sendCachedJoinPacket } from '../joinPacketCache';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+
+/** The spawn of a world and its level's Overworld spawn, when both are found. */
+const knownSpawns = (world: World): { readonly world: Vector3; readonly overworld: Vector3 } | undefined => {
+    const spawn = world.getKnownSpawnPosition();
+    const overworld = knownOverworldSpawnOf(world);
+    return spawn === null || overworld === null ? undefined : { world: spawn, overworld };
+};
 
 /**
  * Drives the end of the login exchange, from the client's answer about resource packs to the
@@ -143,10 +153,9 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
 
         switch (response.status) {
             case ResourcePackStatus.Refused:
-                // The kick waits for the connection to close, the player's record to be saved
-                // and the departure line in chat. Slice 8 saves at a tick boundary and slice 9
-                // takes the chat line out of the input step.
-                step.defer(() => session.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM));
+                // The kick queues the goodbye and takes the player off in this input's unit; the
+                // step lets the connection close without waiting for it.
+                step.output(session.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM));
                 return;
 
             case ResourcePackStatus.SendPacks:
@@ -154,8 +163,8 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                     `${name} asked for ${response.packIds.length} resource pack(s); the server offers none`,
                     'ResourcePackClientResponseHandler/handle'
                 );
-                // As for a refusal: the kick waits for the close, the save and the chat line.
-                step.defer(() =>
+                // As for a refusal.
+                step.output(
                     session.kick(
                         'Asked for resource packs this server does not have',
                         DisconnectReason.RESOURCE_PACK_PROBLEM
@@ -261,14 +270,40 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
         services.events.post(['playerSpawn', spawnEvent]);
         if (spawnEvent.isCanceled()) return;
 
-        // The burst waits for the spawn of the world the player joins, which may still have to
-        // search for dry land, and it ends with the join line in chat. Slice 9 builds worlds
-        // outside the tick and takes the chat line out of the input step.
-        step.defer(() => this.sendJoinBurst(context));
+        // The burst reads the spawn of the world the player joins and the level's Overworld
+        // spawn, which placing a new player found before this. A world that has not found its
+        // own yet, such as a Nether a returning player comes back to, searches outside the tick,
+        // and the burst is then a message to that world, applied at the input step after it.
+        const world = session.getWorld();
+        const spawns = knownSpawns(world);
+        if (spawns !== undefined) {
+            step.output(this.sendJoinBurst(context, spawns));
+            return;
+        }
+        outsideTick(() =>
+            Promise.all([world.getSpawnPosition(), overworldSpawnOf(world)]).then(
+                () =>
+                    services.messages.send(world, () => {
+                        const found = knownSpawns(world);
+                        if (found === undefined) throw new Error(`${world.getName()} lost its spawn before the join`);
+                        session.released(this.sendJoinBurst(context, found));
+                    }),
+                (error: unknown) => log.error(error)
+            )
+        );
     }
 
-    /** The packets of {@link startJoin}, in order, once the `playerSpawn` event let the join go on. */
-    private async sendJoinBurst({ session, log, config, services, step }: InputContext): Promise<void> {
+    /**
+     * The packets of {@link startJoin}, in order, once the `playerSpawn` event let the join go on.
+     * Every packet is queued before this returns.
+     *
+     * @param spawns - The spawn of the player's world and the level's Overworld spawn.
+     * @returns Settles once the transport has framed the packets.
+     */
+    private sendJoinBurst(
+        { session, log, config, services, step }: InputContext,
+        spawns: { readonly world: Vector3; readonly overworld: Vector3 }
+    ): Promise<void> {
         const { identity } = session;
         const connection = session.getConnection();
         const world = session.getWorld();
@@ -285,81 +320,91 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
             itemData: connection.codec.itemData
         });
 
-        await sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, new JigsawStructureDataPacket());
+        const sends = [
+            sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, new JigsawStructureDataPacket())
+        ];
 
-        const worldSpawnPos = await world.getSpawnPosition();
-        await connection.sendDataPacket(
-            new StartGamePacket(
-                createStartGameData({
-                    config,
-                    tick: step.tick,
-                    player: session,
-                    world,
-                    worldSpawnPosition: worldSpawnPos,
-                    serverVersion: connection.codec.minecraftVersions.at(-1) ?? '',
-                    blockProperties: payloads?.blockProperties
-                })
+        const worldSpawnPos = spawns.world;
+        sends.push(
+            connection.sendDataPacket(
+                new StartGamePacket(
+                    createStartGameData({
+                        config,
+                        tick: step.tick,
+                        player: session,
+                        world,
+                        worldSpawnPosition: worldSpawnPos,
+                        serverVersion: connection.codec.minecraftVersions.at(-1) ?? '',
+                        blockProperties: payloads?.blockProperties
+                    })
+                )
             )
         );
 
         const dimensionData = ResourcePackClientResponseHandler.customDimensionData(world.getLevel());
-        if (dimensionData !== undefined) await connection.sendDataPacket(dimensionData);
+        if (dimensionData !== undefined) sends.push(connection.sendDataPacket(dimensionData));
 
         // Every item the content build resolved, with the numbers the
         // captured table gives them. Without it a pack's own item has no row
         // the client could resolve it through.
         const itemRegistry =
             payloads === undefined ? new ItemRegistryPacket() : new ItemRegistryPacket({ items: [...payloads.items] });
-        await sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, itemRegistry);
+        sends.push(sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, itemRegistry));
 
         // Register each type's render-facing properties before any actor of that type spawns.
         for (const type of content.entities.registry.values()) {
             const propertyPacket = syncActorPropertyPacket(type.identifier, type.entity.description.properties);
             if (propertyPacket !== undefined) {
-                await sendCachedJoinPacket(
-                    connection,
-                    content,
-                    recipeLimit,
-                    compressionLevel,
-                    propertyPacket,
-                    type.identifier
+                sends.push(
+                    sendCachedJoinPacket(
+                        connection,
+                        content,
+                        recipeLimit,
+                        compressionLevel,
+                        propertyPacket,
+                        type.identifier
+                    )
                 );
             }
         }
 
-        await sendCachedJoinPacket(
-            connection,
-            content,
-            recipeLimit,
-            compressionLevel,
-            new AvailableActorIdentifiersPacket()
+        sends.push(
+            sendCachedJoinPacket(
+                connection,
+                content,
+                recipeLimit,
+                compressionLevel,
+                new AvailableActorIdentifiersPacket()
+            )
         );
-        await sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, new BiomeDefinitionListPacket());
-        await sendCachedJoinPacket(
-            connection,
-            content,
-            recipeLimit,
-            compressionLevel,
-            new FeatureRegistryPacket({ features: [] })
+        sends.push(
+            sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, new BiomeDefinitionListPacket())
         );
-        await session.sendCreativeContents();
-        await session.sendCraftingData();
-        await session.sendAvailableCommands();
-
-        await session.addToPlayerList();
-        await session.sendPlayerList();
-
-        await session.sendTime(world.getTicks());
-
-        await connection.sendDataPacket(
-            playerSpawnPositionPacket(session.getPlayer(), world, await overworldSpawnOf(world))
+        sends.push(
+            sendCachedJoinPacket(
+                connection,
+                content,
+                recipeLimit,
+                compressionLevel,
+                new FeatureRegistryPacket({ features: [] })
+            )
         );
+        sends.push(session.sendCreativeContents());
+        sends.push(session.sendCraftingData());
+        sends.push(session.sendAvailableCommands());
 
-        await session.announceSettings();
-        await session.sendAttributes();
-        await session.sendMetadata();
+        sends.push(session.addToPlayerList());
+        sends.push(session.sendPlayerList());
 
-        await session.sendInventory();
+        sends.push(session.sendTime(world.getTicks()));
+
+        sends.push(connection.sendDataPacket(playerSpawnPositionPacket(session.getPlayer(), world, spawns.overworld)));
+
+        sends.push(session.announceSettings());
+        sends.push(session.sendAttributes());
+        sends.push(session.sendMetadata());
+
+        sends.push(session.sendInventory());
 
         // A packet object encodes once and keeps its bytes, so each of these is its own.
         for (const [position, state, runtimeEntityId] of ResourcePackClientResponseHandler.joinRespawns(session)) {
@@ -368,7 +413,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 state,
                 runtimeEntityId
             });
-            await connection.sendDataPacket(respawn);
+            sends.push(connection.sendDataPacket(respawn));
         }
 
         const chatSpawnEvent = new ChatEvent(
@@ -382,6 +427,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 type: ChatType.TRANSLATION
             })
         );
-        await services.events.emit('chat', chatSpawnEvent);
+        sends.push(services.events.emit('chat', chatSpawnEvent));
+        return allSent(sends);
     }
 }

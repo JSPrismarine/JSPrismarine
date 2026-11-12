@@ -28,24 +28,21 @@ export const sessionContext = (session: PlayerSession, parts: ContextParts = {})
  * The context of an input-lane handler, over a test's session, with a step that keeps what the
  * handler hands it.
  *
- * @returns The context, the outputs and deferred work in the order the handler handed them over,
- *   and `settled`, which runs the deferred work and waits for the outputs as the input step does.
+ * @returns The context, the outputs in the order the handler handed them over, and `settled`,
+ *   which waits for the outputs, as the transport finishes them after the step.
  */
 export const inputContext = (session: PlayerSession, parts: ContextParts = {}) => {
     const outputs: Promise<void>[] = [];
-    const deferred: (() => Promise<void>)[] = [];
     const context: InputContext = {
         ...sessionContext(session, parts),
         services: stub<HandlerServices>(parts.services),
         step: {
             tick: parts.tick ?? 0,
-            output: (send) => void outputs.push(send),
-            defer: (work) => void deferred.push(work)
+            output: (send) => void outputs.push(send)
         }
     };
     const settled = async () => {
-        for (const work of deferred) await work();
         await Promise.all(outputs);
     };
-    return { context, outputs, deferred, settled };
+    return { context, outputs, settled };
 };

@@ -1080,19 +1080,8 @@ export class World implements Service {
     }
 
     /**
-     * Applies one input as a unit of the change log: when it throws, what it wrote is undone and
-     * the error is thrown on to the caller.
-     *
-     * @param apply - The input's handler.
-     */
-    public async runInput(apply: () => Promise<void>): Promise<void> {
-        const outcome = await this.getEntityStore().unitAsync(apply);
-        if (outcome.failed) throw outcome.error;
-    }
-
-    /**
-     * {@link World.runInput} for a synchronous input-lane handler, whose unit closes when it
-     * returns.
+     * Applies one input as a unit of the change log, which closes when the input returns: when it
+     * throws, what it wrote is undone and the error is thrown on to the caller.
      *
      * @param apply - The input's handler.
      */
@@ -1690,13 +1679,13 @@ export class World implements Service {
         );
 
         let discardedStacklessItems = false;
-        const enter = async (): Promise<boolean> => {
-            discardedStacklessItems = await this.enterChunk(index, chunk);
+        const enter = (): boolean => {
+            discardedStacklessItems = this.enterChunk(index, chunk);
             return true;
         };
         const admissions = this.admissions;
         if (admissions === undefined) {
-            await enter();
+            enter();
         } else {
             // The chunk is ready, and it enters the world only when the input step admits it
             // (ADR 0009), so no tick sees the loaded set change in its middle. A tick that waits
@@ -1752,7 +1741,7 @@ export class World implements Service {
      *
      * @returns Whether a stored item without a stack was dropped, which the caller saves.
      */
-    private async enterChunk(index: number, chunk: Chunk): Promise<boolean> {
+    private enterChunk(index: number, chunk: Chunk): boolean {
         const x = chunk.getX();
         const z = chunk.getZ();
         // Named before its entities, which enter after it and leave before it. Every logged block
@@ -1779,9 +1768,9 @@ export class World implements Service {
         this.measured('chunk-lighting', () => this.systems.onChunkLoaded(x, z));
         this.measured('chunk-fluids', () => this.scheduleExposedFluids(chunk));
 
-        return this.measuredAsync('chunk-entities/wall', async () => {
-            const discarded = await this.createStoredEntities(chunk);
-            await this.createGeneratedEntities(chunk);
+        return this.measured('chunk-entities', () => {
+            const discarded = this.createStoredEntities(chunk);
+            this.createGeneratedEntities(chunk);
             return discarded;
         });
     }
@@ -1792,27 +1781,8 @@ export class World implements Service {
         return queue?.measure === undefined ? work() : queue.measure(label, work);
     }
 
-    /**
-     * Books the wall time of an asynchronous piece, from its start to its settling.
-     *
-     * Includes any time spent suspended, so it reads as main-thread time only for a piece whose
-     * awaits resolve without waiting on I/O, which is the case for the entity registration this
-     * is used on. The label says `wall` so a reader does not take it for a CPU figure.
-     */
-    private async measuredAsync<T>(label: string, work: () => Promise<T>): Promise<T> {
-        const queue = this.completionQueue;
-        if (queue?.record === undefined) return work();
-
-        const startedAt = performance.now();
-        try {
-            return await work();
-        } finally {
-            queue.record(label, performance.now() - startedAt);
-        }
-    }
-
     /** Restores the actor NBT the provider read for this chunk. */
-    private async createStoredEntities(chunk: Chunk): Promise<boolean> {
+    private createStoredEntities(chunk: Chunk): boolean {
         let discardedStacklessItems = false;
 
         for (const nbt of chunk.takeStoredEntities()) {
@@ -1890,7 +1860,7 @@ export class World implements Service {
      * villagers.
      * @param {Chunk} chunk - The chunk that was just loaded.
      */
-    private async createGeneratedEntities(chunk: Chunk): Promise<void> {
+    private createGeneratedEntities(chunk: Chunk): void {
         const spawns = chunk.takeEntitySpawns();
         if (spawns.length === 0) return;
 
@@ -1987,11 +1957,11 @@ export class World implements Service {
      * @param {number} face - Which side was hit; the chips come off that one.
      * @param [striker] - Who is striking it, when a player is, matched by entity id.
      */
-    public async hitBlock(position: Vector3, face: number, striker?: Pick<ShownActor, 'getRuntimeId'>): Promise<void> {
-        const state = await this.getBlockState(position.getX(), position.getY(), position.getZ());
-        if (state.name === 'minecraft:air') return;
-
-        const runtimeId = BlockRuntimeIds.get(state);
+    public hitBlock(position: Vector3, face: number, striker?: Pick<ShownActor, 'getRuntimeId'>): void {
+        // From the loaded chunk: a block nobody has loaded makes no sound.
+        const state = this.loadedBlockAt(position.getX(), position.getY(), position.getZ());
+        const runtimeId = this.loadedBlockRuntimeIdAt(position.getX(), position.getY(), position.getZ());
+        if (state === undefined || runtimeId === undefined || state.name === 'minecraft:air') return;
 
         if (this.isHere(position))
             this.occurred({
@@ -2008,7 +1978,7 @@ export class World implements Service {
             });
 
         const particles = CRACK_PARTICLES[face];
-        if (particles !== undefined) await this.sendWorldEvent(position, particles, runtimeId);
+        if (particles !== undefined) this.sendWorldEvent(position, particles, runtimeId);
     }
 
     /**
@@ -2023,28 +1993,33 @@ export class World implements Service {
      * @param {Item | null} tool - What the player holds, or null for a bare hand.
      * @param {BlockMining | null} previous - What the player was mining until now. When it is
      * this same block, the mining carries on from when it began rather than starting over.
-     * @returns {Promise<BlockMining | null>} What the player is mining now, or null for air and
-     * for a block that breaks at once, which have nothing to animate.
+     * @returns {BlockMining | null} What the player is mining now, or null for air, for a block
+     * in a chunk that is not loaded and for a block that breaks at once, which have nothing to
+     * animate.
      */
-    public async startBlockCracking(
+    public startBlockCracking(
         position: Vector3,
         face: number,
         tool: Item | null,
         previous: BlockMining | null
-    ): Promise<BlockMining | null> {
-        if (previous !== null) await this.stopBlockCracking(previous.position);
+    ): BlockMining | null {
+        if (previous !== null) this.stopBlockCracking(previous.position);
 
-        const state = await this.getBlockState(position.getX(), position.getY(), position.getZ());
-        if (state.name === 'minecraft:air') return null;
+        const x = position.getX();
+        const y = position.getY();
+        const z = position.getZ();
+        const state = this.loadedBlockAt(x, y, z);
+        const runtimeId = this.loadedBlockRuntimeIdAt(x, y, z);
+        if (state === undefined || runtimeId === undefined || state.name === 'minecraft:air') return null;
 
-        const block = await this.getBlock(position.getX(), position.getY(), position.getZ());
+        const block = this.loadedBlock(x, y, z);
+        if (block === undefined) return null;
         const breakTicks = Math.ceil(block.getBreakTime(tool, this.server) * 20);
 
         // A block that gives way instantly has no progress to animate, and the 65535/0 the
         // client would be handed is not a number this event can carry.
         if (breakTicks <= 0) return null;
 
-        const runtimeId = BlockRuntimeIds.get(state);
         // A client restarts the cracks on the block it is already mining, sometimes in the
         // same input as the prediction that it broke, and that must not reset the time it took.
         const sameBlock = previous !== null && previous.position.equals(position) && previous.runtimeId === runtimeId;
@@ -2058,7 +2033,7 @@ export class World implements Service {
             startedAt: sameBlock ? previous.startedAt : this.server.getTick()
         };
 
-        await this.sendWorldEvent(position, LevelEvent.START_BLOCK_CRACKING, mining.progressPerTick);
+        this.sendWorldEvent(position, LevelEvent.START_BLOCK_CRACKING, mining.progressPerTick);
         return mining;
     }
 
@@ -2085,8 +2060,8 @@ export class World implements Service {
      * Ends the crack animation on a block, as when the player stops mining it or moves on.
      * @param {Vector3} position - The block.
      */
-    public async stopBlockCracking(position: Vector3): Promise<void> {
-        await this.sendWorldEvent(position, LevelEvent.STOP_BLOCK_CRACKING, 0);
+    public stopBlockCracking(position: Vector3): void {
+        this.sendWorldEvent(position, LevelEvent.STOP_BLOCK_CRACKING, 0);
     }
 
     /**
@@ -3601,7 +3576,7 @@ export class World implements Service {
 
         const leave = () => this.leaveChunk(chunk);
         const admissions = this.admissions;
-        if (admissions === undefined) return { left: leave() };
+        if (admissions === undefined) return { left: Promise.resolve(leave()) };
         return {
             left: admissions.hold({
                 ...this.chunkAdmission('leave', chunk.getX(), chunk.getZ()),
@@ -3617,7 +3592,7 @@ export class World implements Service {
      *
      * @returns Whether it left.
      */
-    private async leaveChunk(chunk: Chunk): Promise<boolean> {
+    private leaveChunk(chunk: Chunk): boolean {
         const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
         this.getPlayerChunkRefCounts().synchronize(this.players);
         if (

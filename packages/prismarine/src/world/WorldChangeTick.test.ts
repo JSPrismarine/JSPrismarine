@@ -130,7 +130,7 @@ const PLAYER_SLOT_WRITES: readonly { readonly name: string; readonly write: (pla
 /** One write to each component field of a player, with what reads it back. */
 const PLAYER_COMPONENT_WRITES: readonly {
     readonly field: string;
-    readonly write: (player: PlayerSession) => void | Promise<void>;
+    readonly write: (player: PlayerSession) => void;
     readonly read: (player: PlayerSession) => unknown;
 }[] = [
     {
@@ -254,7 +254,7 @@ describe('a world tick and its change log', () => {
 
         // What the ticker does: open the tick, apply the inputs, then update the world.
         beginMeasuredChangeTick(world);
-        await world.runInput(async () => {
+        world.runInputNow(() => {
             cow.body.nameTag = 'Daisy';
         });
         expect(world.lastChangeTick()).toBeUndefined();
@@ -277,12 +277,12 @@ describe('a world tick and its change log', () => {
         const before = runtime.savedFormOf(cow);
 
         beginMeasuredChangeTick(world);
-        await expect(
-            world.runInput(async () => {
+        expect(() =>
+            world.runInputNow(() => {
                 cow.instance.attributes.set('health', 1);
                 throw new Error('the handler failed');
             })
-        ).rejects.toThrow('the handler failed');
+        ).toThrow('the handler failed');
 
         expect(runtime.savedFormOf(cow)).toEqual(before);
         world.sealChangeTick();
@@ -373,7 +373,7 @@ describe('a world tick and its change log', () => {
                 const before = world.replayStateDigest();
                 beginMeasuredChangeTick(world);
 
-                const outcome = await world.getEntityStore().unitAsync(async () => {
+                const outcome = world.getEntityStore().unit(() => {
                     write(player);
                     throw new Error('planned');
                 });
@@ -461,8 +461,8 @@ describe('a world tick and its change log', () => {
                 const digest = world.replayStateDigest();
                 beginMeasuredChangeTick(world);
 
-                const outcome = await world.getEntityStore().unitAsync(async () => {
-                    await write(player);
+                const outcome = world.getEntityStore().unit(() => {
+                    write(player);
                     throw new Error('planned');
                 });
                 world.sealChangeTick();
@@ -473,7 +473,7 @@ describe('a world tick and its change log', () => {
                 expect(world.replayStateDigest()).toBe(digest);
 
                 beginMeasuredChangeTick(world);
-                await write(player);
+                write(player);
                 world.sealChangeTick();
                 expect(world.lastChangeTick()?.entries).toEqual([
                     expect.objectContaining({

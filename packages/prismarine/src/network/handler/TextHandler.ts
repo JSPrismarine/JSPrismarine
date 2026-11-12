@@ -71,8 +71,8 @@ export default class TextHandler implements InputLaneHandler<TextPacket> {
         if (message.length === 0) return;
 
         const chat = new Chat({ sender: session, message, type: ChatType.CHAT });
-        // The chat event runs the plugins' listeners, which can do anything, and the chat
-        // manager waits for them. Slice 9 removes the wait.
-        step.defer(async () => services.chat.send(chat));
+        // The chat event calls the plugins' listeners in this input's unit; what an
+        // asynchronous one does after its first wait is the step's to finish.
+        step.output(services.chat.send(chat));
     }
 }

@@ -295,9 +295,9 @@ export default class Server extends EventEmitter {
             // sees them from its first update. A chunk an input-lane handler waits for enters at
             // once, because the step cannot finish without it. Portal trips come after the chunks, so
             // a trip whose arrival chunks this step admitted lands in it.
-            admitInputs: async () =>
-                (await this.networking.admitInputs()) +
-                (await this.chunkCompletionQueue.admissions.admit(this.getTick())) +
+            admitInputs: () =>
+                this.networking.admitInputs() +
+                this.chunkCompletionQueue.admissions.admit(this.getTick()) +
                 this.respawnRequests.admit() +
                 this.dimensionTravel.admit() +
                 this.worldMessages.admit(),
@@ -594,7 +594,7 @@ export default class Server extends EventEmitter {
             // No tick will apply what is still held for the input step, so apply it here: a player
             // whose connection closed during the last tick is torn down and saved like the rest,
             // rather than left in its world with nobody to remove it.
-            await this.networking.admitInputs(Number.POSITIVE_INFINITY);
+            this.networking.admitInputs(Number.POSITIVE_INFINITY);
 
             // Kick all online players. `kickAllPlayers` would send the `KICKED` code, and a
             // client told the server shut down shows that code instead.

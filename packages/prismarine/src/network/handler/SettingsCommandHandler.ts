@@ -19,10 +19,7 @@ export default class SettingsCommandHandler implements InputLaneHandler<Settings
     public handle(packet: SettingsCommandPacket, { session, services, step }: InputContext): undefined {
         const data = packet.getPacketData();
         if (data === null) throw new Error('Cannot handle a SettingsCommandPacket without decoded data');
-        // A command can do anything, and the command manager waits on what it does. Slice 9
-        // removes the wait, unless the command is synchronous by then.
-        step.defer(async () => {
-            await services.commands.dispatchCommand(session, session, data.command);
-        });
+        // The command runs in this input's unit; what it started is the step's to finish.
+        step.output(services.commands.runCommand(session, session, data.command).settled);
     }
 }

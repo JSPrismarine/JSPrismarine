@@ -101,7 +101,7 @@ export interface Networking {
      * @param budget - The most inputs to apply; the rest wait for the next step, in order.
      * @returns How many inputs were applied.
      */
-    admitInputs(budget?: number): Promise<number>;
+    admitInputs(budget?: number): number;
 
     /**
      * Whether every frame received so far has been handled, or waits behind an input held for
@@ -303,8 +303,8 @@ export class ServerNetworking implements Networking {
     }
 
     /** Applies the held inputs through the dispatcher, which holds them; nothing before it starts. */
-    public async admitInputs(budget?: number): Promise<number> {
-        return (await this.dispatcher?.admitInputs(budget)) ?? 0;
+    public admitInputs(budget?: number): number {
+        return this.dispatcher?.admitInputs(budget) ?? 0;
     }
 
     /** Whether the dispatcher has handled every frame, but for those that wait for the input step. */

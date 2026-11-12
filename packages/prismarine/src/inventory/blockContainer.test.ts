@@ -334,10 +334,13 @@ const move = (
 
 /** Runs requests through the real handler and answers with the result of the first one. */
 const apply = async (server: Server, player: PlayerSession, requests: ItemStackRequest[]) => {
-    await HandlerContexts.of(server).run(
+    HandlerContexts.of(server).runInput(
         new ItemStackRequestHandler(),
         Object.assign(new ItemStackRequestPacket(), { requests }),
-        player
+        player,
+        (error) => {
+            throw error;
+        }
     );
 };
 

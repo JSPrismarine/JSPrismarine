@@ -170,18 +170,10 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                 const tool = player.getInventory().getItemInHand();
 
                 if (config.getServerAuthoritativeBlockBreaking()) {
-                    // Deferred until the D2 close (slice 6) gives the world a loaded-chunk
-                    // `startBlockCracking`: it reads the block through `getBlockState`, which waits.
-                    step.defer(async () => {
-                        const mining = player.getComponents().get('mining.block');
-                        const started = await world.startBlockCracking(
-                            blockPosition,
-                            blockFace,
-                            tool,
-                            blockMiningOf(mining)
-                        );
-                        inputs.setPlayerMining(player, playerMiningOf(started));
-                    });
+                    // The block is read from its loaded chunk; one nobody has loaded starts nothing.
+                    const mining = player.getComponents().get('mining.block');
+                    const started = world.startBlockCracking(blockPosition, blockFace, tool, blockMiningOf(mining));
+                    inputs.setPlayerMining(player, playerMiningOf(started));
                     return;
                 }
 
@@ -201,24 +193,19 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                 // 65535/0 the client would be handed is not a number this packet can carry.
                 const breakTime = Math.ceil(block.getBreakTime(tool) * 20);
 
-                // Deferred until the D2 close (slice 6) gives the world a loaded-chunk
-                // `hitBlock`, which reads the block through `getBlockState` and waits.
-                step.defer(async () => {
-                    // The first swing, heard by everyone near but the player, whose client
-                    // plays its own. The rest arrive as `CRACK_BLOCK`.
-                    await world.hitBlock(blockPosition, blockFace, session.getPlayer());
-                    if (breakTime <= 0) return;
+                // The first swing, heard by everyone near but the player, whose client plays its
+                // own. The rest arrive as `CRACK_BLOCK`.
+                world.hitBlock(blockPosition, blockFace, session.getPlayer());
+                if (breakTime <= 0) return;
 
-                    // The client is told how much progress a tick is worth, not how long the
-                    // block takes, so this is only ever as right as `getBreakTime` is.
-                    world.sendWorldEvent(blockPosition, LevelEvent.START_BLOCK_CRACKING, Math.floor(65535 / breakTime));
-                });
+                // The client is told how much progress a tick is worth, not how long the block
+                // takes, so this is only ever as right as `getBreakTime` is.
+                world.sendWorldEvent(blockPosition, LevelEvent.START_BLOCK_CRACKING, Math.floor(65535 / breakTime));
                 return;
             }
 
             case PlayerActionType.AbortDestroyBlock: {
-                // The world queues the stop before it returns.
-                step.output(world.stopBlockCracking(blockPosition));
+                world.stopBlockCracking(blockPosition);
                 inputs.setPlayerMining(player, null);
                 return;
             }
@@ -283,8 +270,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
             // Every swing after the first. The client sends one per punch for as long as the
             // button is held, and each is a hit to be heard - this is the sound of digging.
             case PlayerActionType.CrackBlock: {
-                // Deferred until the D2 close (slice 6), as the first swing's `hitBlock`.
-                step.defer(async () => world.hitBlock(blockPosition, blockFace, session.getPlayer()));
+                world.hitBlock(blockPosition, blockFace, session.getPlayer());
                 return;
             }
 

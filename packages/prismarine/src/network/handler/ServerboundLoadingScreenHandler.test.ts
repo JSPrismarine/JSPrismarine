@@ -35,11 +35,11 @@ const fakeSession = ({ open = [], pending }: { open?: number[]; pending?: number
         }
     });
 
-    const { context, outputs, deferred, settled } = inputContext(session, {
+    const { context, outputs, settled } = inputContext(session, {
         log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
     });
 
-    return { logged, ended, completed, released, context, outputs, deferred, settled };
+    return { logged, ended, completed, released, context, outputs, settled };
 };
 
 describe('ServerboundLoadingScreenHandler', () => {
@@ -70,7 +70,7 @@ describe('ServerboundLoadingScreenHandler', () => {
     });
 
     it('finishes the pending dimension change when its screen closes', async () => {
-        const { logged, completed, context, deferred, outputs, settled } = fakeSession({ open: [3], pending: 3 });
+        const { logged, completed, context, outputs, settled } = fakeSession({ open: [3], pending: 3 });
         const packet = new ServerboundLoadingScreenPacket({
             loadingScreenType: ServerboundLoadingScreenPacketType.EndLoadingScreen,
             loadingScreenId: 3
@@ -79,7 +79,6 @@ describe('ServerboundLoadingScreenHandler', () => {
         new ServerboundLoadingScreenHandler().handle(packet, context);
         // Finished in the handler, whose unit holds the end of the pending change; its sends are
         // queued, and nothing waits behind the handler.
-        expect(deferred).toHaveLength(0);
         expect(outputs).toHaveLength(0);
         expect(completed).toEqual([3]);
         await settled();
@@ -132,7 +131,7 @@ describe('ServerboundLoadingScreenHandler', () => {
     });
 
     it("releases the pending change's arrival columns when its screen opens", async () => {
-        const { logged, released, context, outputs, deferred, settled } = fakeSession({ open: [3], pending: 3 });
+        const { logged, released, context, outputs, settled } = fakeSession({ open: [3], pending: 3 });
         const packet = new ServerboundLoadingScreenPacket({
             loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen,
             loadingScreenId: 3
@@ -142,7 +141,6 @@ describe('ServerboundLoadingScreenHandler', () => {
         // Released in the handler; the columns are a send the step waits for.
         expect(released).toEqual([3]);
         expect(outputs).toHaveLength(1);
-        expect(deferred).toHaveLength(0);
         await settled();
 
         expect(released).toEqual([3]);

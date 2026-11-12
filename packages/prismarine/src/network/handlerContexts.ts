@@ -7,9 +7,9 @@
  * `network/handler/`, which is meant to import no `Server` at all once every handler has moved.
  */
 import type Server from '../Server';
-import { applyInput, applyInputNow } from '../world/inputUnit';
+import { applyInputNow } from '../world/inputUnit';
 import type { HandlerServices, InputStep, SessionContext } from './handler/HandlerContext';
-import type { SessionHandler } from './handler/SessionHandler';
+import type { InputLaneHandler, SessionHandler } from './handler/SessionHandler';
 import type PlayerSession from './PlayerSession';
 
 /** The parts of the server a context is built from. */
@@ -116,43 +116,45 @@ export class HandlerContexts {
     }
 
     /**
-     * Runs one handler for a packet that arrived on a session, in the way its lane asks.
-     *
-     * A connection-lane or read-lane handler is awaited. An input-lane handler is applied as one
-     * synchronous unit of the world the session's player is in, so a throw undoes what it wrote.
-     * The work it handed to {@link InputStep.defer} then runs in order, each piece a unit of its
-     * own, and the sends it handed to {@link InputStep.output} are awaited last, before this
-     * settles, so the next input still starts after all of it, as it did when handlers awaited.
+     * Runs a connection-lane or read-lane handler for a packet that arrived on a session, and
+     * waits for it.
      *
      * @param handler - The handler.
      * @param packet - The decoded packet.
      * @param session - The session the packet arrived on.
-     * @returns Settles once the handler and its outputs are done.
-     * @throws The handler's error, a deferred piece's, or the first output's, once every output
-     *   has settled.
+     * @returns Settles once the handler is done.
      */
-    public async run<P>(handler: SessionHandler<P>, packet: P, session: PlayerSession): Promise<void> {
-        if (handler.lane !== 'input') {
-            await handler.handle(packet, contextOf(this.server, session, {}));
-            return;
-        }
+    public async run<P>(
+        handler: Exclude<SessionHandler<P>, InputLaneHandler<P>>,
+        packet: P,
+        session: PlayerSession
+    ): Promise<void> {
+        await handler.handle(packet, contextOf(this.server, session, {}));
+    }
 
-        const outputs: Promise<void>[] = [];
-        const deferred: (() => Promise<void>)[] = [];
+    /**
+     * Applies an input-lane handler as one synchronous unit of the world the session's player is
+     * in, so a throw undoes what it wrote. Nothing waits: what the handler handed to
+     * {@link InputStep.output} finishes outside the tick, and a failure there is reported to
+     * `report` ([ADR 0014](../../../../docs/adr/0014-handlers-share-a-shape-and-run-in-the-input-step.md)).
+     *
+     * @param handler - The handler.
+     * @param packet - The decoded packet.
+     * @param session - The session the packet arrived on.
+     * @param report - Where a failed output goes.
+     * @throws The handler's error, after its writes are undone.
+     */
+    public runInput<P>(
+        handler: InputLaneHandler<P>,
+        packet: P,
+        session: PlayerSession,
+        report: (error: unknown) => void
+    ): void {
         const step: InputStep = {
             tick: this.server.getTick(),
-            output: (send) => void outputs.push(send),
-            defer: (work) => void deferred.push(work)
+            output: (send) => void send.catch(report)
         };
         const context = contextOf(this.server, session, { services: this.services, step });
-        try {
-            applyInputNow(session, () => handler.handle(packet, context));
-            // A piece deferred by an earlier piece joins the end of the list and runs too.
-            for (const work of deferred) await applyInput(session, work);
-        } catch (error: unknown) {
-            await Promise.allSettled(outputs);
-            throw error;
-        }
-        await Promise.all(outputs);
+        applyInputNow(session, () => handler.handle(packet, context));
     }
 }

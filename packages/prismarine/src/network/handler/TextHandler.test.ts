@@ -39,14 +39,13 @@ describe('network', () => {
                 expect(sent[0]?.getSender()).toBe(session);
             });
 
-            it('defers the chat line to after the handler returns', async () => {
+            it('sends the chat line in the handler and hands the step its delivery', async () => {
                 const { handle } = fakeChat();
 
                 expect(await handle(chatPacket('hello'))).toEqual({
                     returned: undefined,
-                    outputs: 0,
-                    deferred: 1,
-                    sent: 0
+                    outputs: 1,
+                    sent: 1
                 });
             });
 
@@ -127,14 +126,14 @@ const fakeChat = () => {
         session,
         /** Runs one packet as the input step would, and returns what the handler handed the step. */
         handle: async (packet: TextPacket) => {
-            const { context, outputs, deferred, settled } = inputContext(session, {
+            const { context, outputs, settled } = inputContext(session, {
                 log: stub<Logger>({ verbose: (message: string) => void dropped.push(message) }),
                 services: {
                     chat: stub<HandlerServices['chat']>({ send: async (chat) => void sent.push(chat) })
                 }
             });
             const returned = new TextHandler().handle(packet, context);
-            const handed = { returned, outputs: outputs.length, deferred: deferred.length, sent: sent.length };
+            const handed = { returned, outputs: outputs.length, sent: sent.length };
             await settled();
             return handed;
         }

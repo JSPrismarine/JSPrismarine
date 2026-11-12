@@ -22,7 +22,7 @@ describe('ShowCreditsHandler', () => {
         });
         const packet = Object.assign(new ShowCreditsPacket(), { creditsState });
 
-        const { context, deferred, settled } = inputContext(session, {
+        const { context, settled } = inputContext(session, {
             log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
 
@@ -30,16 +30,15 @@ describe('ShowCreditsHandler', () => {
         // The world change is a message the session files, so the handler finishes the credits itself.
         const completedInHandler = completions;
         await settled();
-        return { logged, completions, completedInHandler, deferred: deferred.length };
+        return { logged, completions, completedInHandler };
     };
 
     it('finishes the pending credits when the client reports them over, without a log', async () => {
-        const { logged, completions, completedInHandler, deferred } = await run(CreditsState.Finished, {
+        const { logged, completions, completedInHandler } = await run(CreditsState.Finished, {
             pending: true
         });
 
         expect(completedInHandler).toBe(1);
-        expect(deferred).toBe(0);
         expect(completions).toBe(1);
         expect(logged).toEqual([]);
     });
@@ -52,9 +51,7 @@ describe('ShowCreditsHandler', () => {
     });
 
     it('logs a client-sent start and drops it', async () => {
-        const { logged, completions, deferred } = await run(CreditsState.Start);
-
-        expect(deferred).toBe(0);
+        const { logged, completions } = await run(CreditsState.Start);
         expect(completions).toBe(0);
         expect(logged).toEqual(['Steve reported the end credits started, which only the server may say']);
     });

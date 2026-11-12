@@ -23,22 +23,21 @@ const fakeSession = (permissions: string[]) => {
         setGamemode: async (mode?: Gametype) => void applied.push(mode ?? Gametype.SURVIVAL),
         sendGamemode: async (gamemode) => void resent.push(gamemode)
     });
-    const { context, outputs, deferred, settled } = inputContext(session, {
+    const { context, outputs, settled } = inputContext(session, {
         services: { permissions: stub<PermissionManager>({ can: canExecute }) }
     });
-    return { applied, resent, context, outputs, deferred, settled };
+    return { applied, resent, context, outputs, settled };
 };
 
 const request = (gametype: Gametype): SetPlayerGameTypePacket => new SetPlayerGameTypePacket({ gametype });
 
 describe('SetPlayerGameTypeHandler', () => {
     it('applies the requested game type for a player who may run the gamemode command', async () => {
-        const { applied, resent, context, deferred, outputs, settled } = fakeSession(['minecraft.command.gamemode']);
+        const { applied, resent, context, outputs, settled } = fakeSession(['minecraft.command.gamemode']);
 
         new SetPlayerGameTypeHandler().handle(request(Gametype.CREATIVE), context);
         // In the input's own unit: the change is written before the handler returns, and only
         // the sends are left to wait on.
-        expect(deferred).toHaveLength(0);
         expect(outputs).toHaveLength(1);
         expect(applied).toEqual([Gametype.CREATIVE]);
         await settled();

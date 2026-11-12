@@ -92,6 +92,7 @@ const harness = ({
         getDimension: () => Dimensions.Overworld,
         getGenerator: () => stub<Generator>(),
         getSpawnPosition: async () => spawn,
+        getKnownSpawnPosition: () => spawn,
         getName: () => 'test-world',
         getUUID: () => 'level-uuid',
         getSeed: () => 42n,
@@ -117,10 +118,18 @@ const harness = ({
             sent.push(packet.constructor.name);
             packets.push(packet);
         },
-        sendSharedBatchAsync: async (batch) => {
-            const encoded = await batch;
-            sent.push(...encoded.packets.map((packet) => packet.constructor.name));
-            packets.push(...encoded.packets);
+        // As the real session does, the batch takes its place in the order as it is handed over,
+        // before its compression finishes.
+        // Each join batch holds one packet, so filling the slot moves nothing after it.
+        sendSharedBatchAsync: (batch) => {
+            const nameAt = sent.length;
+            const packetAt = packets.length;
+            sent.push('');
+            packets.push(stub<NetworkPacket>());
+            return batch.then((encoded) => {
+                sent.splice(nameAt, 1, ...encoded.packets.map((packet) => packet.constructor.name));
+                packets.splice(packetAt, 1, ...encoded.packets);
+            });
         }
     });
 
@@ -180,7 +189,7 @@ const harness = ({
 const response = (status: ResourcePackStatus, packIds: string[] = []) =>
     new ResourcePackClientResponsePacket({ status, packIds });
 
-/** Applies one response as the input step does: the handler, then its deferred work and sends. */
+/** Applies one response as the input step does: the handler, then its sends. */
 const respond = async (
     handler: ResourcePackClientResponseHandler,
     packet: ResourcePackClientResponsePacket,
@@ -618,9 +627,9 @@ describe('ResourcePackClientResponseHandler', () => {
         expect(second.sent).toContain('StartGamePacket');
     });
 
-    it('hands the step the burst as one piece of deferred work and sends nothing itself', () => {
+    it('queues the burst in the handler and hands the step its sends as one output', () => {
         const { sent, parts, session } = harness();
-        const { context, outputs, deferred } = inputContext(session, parts);
+        const { context, outputs } = inputContext(session, parts);
 
         expect(
             new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), context)
@@ -628,19 +637,17 @@ describe('ResourcePackClientResponseHandler', () => {
 
         // The play phase opens inside the handler, before the burst it lets the client answer.
         expect(session.getConnection().phase).toBe('play');
-        expect(deferred).toHaveLength(1);
-        expect(outputs).toHaveLength(0);
-        expect(sent).toEqual([]);
+        expect(outputs).toHaveLength(1);
+        expect(sent).toContain('StartGamePacket');
     });
 
     it('hands the step the pack stack as its one output', () => {
         const { parts, session } = harness();
-        const { context, outputs, deferred } = inputContext(session, parts);
+        const { context, outputs } = inputContext(session, parts);
 
         new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.HaveAllPacks), context);
 
         expect(outputs).toHaveLength(1);
-        expect(deferred).toHaveLength(0);
     });
 
     it('sends nothing when a subscriber cancels the spawn', async () => {

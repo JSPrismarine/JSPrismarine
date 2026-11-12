@@ -18,7 +18,6 @@ import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackReque
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import type { InputContext } from './HandlerContext';
-import { orderedParts, withStep } from './inputParts';
 import { applyClientMovement } from './MovePlayerHandler';
 import PlayerActionHandler from './PlayerActionHandler';
 import type { InputLaneHandler } from './SessionHandler';
@@ -117,9 +116,9 @@ export const rejectionReason = (input: ReturnType<typeof playerAuthInputFromProt
  * A packet with a value no client can send is dropped whole, at debug level, before anything
  * is done with it. See {@link rejectionReason}.
  *
- * The order is the client's: movement first, then what was done from that position. A part
- * that still waits, such as a break, is deferred, and every part after it waits behind it
- * (`orderedParts`), so a block placed in the same input as a break still goes down after it.
+ * The order is the client's: movement first, then what was done from that position. Each part
+ * runs to its end in the handler's unit before the next, so a block placed in the same input
+ * as a break goes down after it.
  */
 export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAuthInputPacket> {
     public static PacketName = 'PlayerAuthInputPacket';
@@ -155,27 +154,20 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
 
         if (!session.isConnected()) return;
 
-        // Each part is handed the step it runs against, so a part after one that deferred is
-        // deferred behind it.
-        const apply = orderedParts(context.step);
-        const within = (step: InputContext['step']): InputContext => withStep(context, step);
-
-        apply((step) =>
-            applyClientMovement(within(step), {
-                position: input.position,
-                pitch: input.pitch,
-                yaw: input.yaw,
-                headYaw: input.headYaw,
-                // The input has no "on ground" bit. A vertical collision is the nearest thing it
-                // says: the ground pushing back, every tick the player stands on it.
-                onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION),
-                handledTeleport: input.inputData.has(PlayerAuthInputData.HANDLED_TELEPORT)
-            })
-        );
+        applyClientMovement(context, {
+            position: input.position,
+            pitch: input.pitch,
+            yaw: input.yaw,
+            headYaw: input.headYaw,
+            // The input has no "on ground" bit. A vertical collision is the nearest thing it
+            // says: the ground pushing back, every tick the player stands on it.
+            onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION),
+            handledTeleport: input.inputData.has(PlayerAuthInputData.HANDLED_TELEPORT)
+        });
 
         for (const [flag, action] of FLAG_ACTIONS) {
             if (input.inputData.has(flag)) {
-                apply((step) => this.actions.handleAction(action, NOWHERE, 0, within(step)));
+                this.actions.handleAction(action, NOWHERE, 0, context);
             }
         }
 
@@ -184,7 +176,7 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
             this.flagged(input, PlayerAuthInputData.PERFORM_BLOCK_ACTIONS, 'Player Block Actions', context)
         ) {
             for (const { action, position, face } of input.blockActions) {
-                apply((step) => this.actions.handleAction(action, position, face, within(step)));
+                this.actions.handleAction(action, position, face, context);
             }
         }
 
@@ -208,7 +200,7 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
                 )
             );
             const rotation = { pitch: input.interactRotation.x, yaw: input.interactRotation.y };
-            apply((step) => this.transactions.handle(transaction, within(step), rotation));
+            this.transactions.handle(transaction, context, rotation);
         }
 
         if (
@@ -217,7 +209,7 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
         ) {
             const request = new ItemStackRequestPacket();
             request.requests = [input.itemStackRequest];
-            apply((step) => this.requests.handle(request, within(step)));
+            this.requests.handle(request, context);
         }
     }
 

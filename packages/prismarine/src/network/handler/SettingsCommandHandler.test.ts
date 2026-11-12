@@ -12,13 +12,13 @@ describe('SettingsCommandHandler', () => {
         const dispatched: string[] = [];
         const senders: unknown[] = [];
         const session = stub<PlayerSession>({});
-        const { context, deferred, settled } = inputContext(session, {
+        const { context, outputs, settled } = inputContext(session, {
             services: {
                 commands: stub<HandlerServices['commands']>({
-                    dispatchCommand: async (sender, target, input) => {
+                    runCommand: (sender, target, input) => {
                         senders.push(sender, target);
                         dispatched.push(input ?? '');
-                        return true;
+                        return { ran: true, settled: Promise.resolve() };
                     }
                 })
             }
@@ -29,9 +29,8 @@ describe('SettingsCommandHandler', () => {
         });
 
         expect(new SettingsCommandHandler().handle(packet, context)).toBeUndefined();
-        // The command runs once the handler has returned, as deferred work.
-        expect(dispatched).toEqual([]);
-        expect(deferred).toHaveLength(1);
+        // The command runs in the handler, which hands the step what it started.
+        expect(outputs).toHaveLength(1);
         await settled();
 
         expect(dispatched).toEqual(['/gamerule showcoordinates true']);

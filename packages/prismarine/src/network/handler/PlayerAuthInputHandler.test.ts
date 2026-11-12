@@ -49,13 +49,13 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
     const world = stub<World>({
         getViewers: () => [],
         broadcastMove: vi.fn(async () => {}),
-        hitBlock: async (position, face) =>
+        hitBlock: (position, face) =>
             void calls.push(`hit ${position.getX()},${position.getY()},${position.getZ()} face ${face}`),
         // Every chunk is loaded, and every block in it is stone.
         getLoadedChunk: () => stub<Chunk>({}),
         loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
         sendWorldEvent: () => {},
-        startBlockCracking: async (position, face) => {
+        startBlockCracking: (position, face) => {
             calls.push(`crack ${position.getX()},${position.getY()},${position.getZ()} face ${face}`);
             return null;
         },
@@ -130,7 +130,7 @@ type Scene = ReturnType<typeof fake>;
 /** The context of one input from the scene's player, with what it defers and sends kept. */
 const contextOf = ({ session, log, config, services }: Scene) => inputContext(session, { log, config, services });
 
-/** Applies one input as the input step does: the handler, then what it deferred and sent. */
+/** Applies one input as the input step does: the handler, then what it sent. */
 const handle = async (scene: Scene, packet: PlayerAuthInputPacket): Promise<void> => {
     const { context, settled } = contextOf(scene);
     new PlayerAuthInputHandler().handle(packet, context);
@@ -236,7 +236,7 @@ describe('PlayerAuthInputHandler', () => {
 
     it('applies a movement and a jump in its own unit, deferring nothing', () => {
         const scene = fake();
-        const { context, deferred } = contextOf(scene);
+        const { context } = contextOf(scene);
 
         new PlayerAuthInputHandler().handle(
             input((packet) => packet.inputData.add(PlayerAuthInputData.START_JUMPING)),
@@ -244,7 +244,6 @@ describe('PlayerAuthInputHandler', () => {
         );
 
         expect(scene.calls).toEqual(['move 3,70,-4', 'jump']);
-        expect(deferred).toHaveLength(0);
     });
 
     it('applies an item use after the break before it, both in the handler', () => {
@@ -257,7 +256,7 @@ describe('PlayerAuthInputHandler', () => {
         });
 
         try {
-            const { context, deferred } = contextOf(scene);
+            const { context } = contextOf(scene);
             new PlayerAuthInputHandler().handle(
                 input((packet) => {
                     packet.inputData.add(PlayerAuthInputData.PERFORM_BLOCK_ACTIONS);
@@ -271,7 +270,6 @@ describe('PlayerAuthInputHandler', () => {
             );
 
             // The break, then the use, in the order the client gave them.
-            expect(deferred).toHaveLength(0);
             expect(scene.calls).toEqual(['move 3,70,-4', 'break 1,63,2', 'use']);
         } finally {
             use.mockRestore();
