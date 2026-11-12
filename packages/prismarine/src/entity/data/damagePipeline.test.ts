@@ -107,6 +107,28 @@ describe('the damage pipeline', () => {
             expect(entries).toHaveLength(1);
         });
 
+        it('still runs the next before-hook when one removes itself', () => {
+            const { runtime } = entityFixture();
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            const asked: string[] = [];
+            const removeOnce = runtime.damagePipeline.addBeforeHook('once', () => {
+                asked.push('once');
+                removeOnce();
+                return PASS;
+            });
+            runtime.damagePipeline.addBeforeHook('veto', () => {
+                asked.push('veto');
+                return VETO;
+            });
+
+            expect(runtime.damage(blow(cow.id, 3))).toMatchObject({ committed: false, rejectedBy: 'veto' });
+            expect(runtime.damage(blow(cow.id, 3))).toMatchObject({ committed: false, rejectedBy: 'veto' });
+
+            expect(asked).toEqual(['once', 'veto', 'veto']);
+            expect(cow.instance.attributes.get('health')?.current).toBe(10);
+        });
+
         it('runs no before-hook once a pack guard has vetoed', () => {
             const { runtime } = entityFixture();
             const cow = runtime.spawn('minecraft:cow', GROUND);
