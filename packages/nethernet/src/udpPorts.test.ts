@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { parsePublicIp, parseUdpPorts, UdpPortsError, withMappedCandidates } from './udpPorts';
+import {
+    hasPublicCandidate,
+    parsePublicIp,
+    parseUdpPorts,
+    UdpPortsError,
+    withDialedCandidates,
+    withMappedCandidates
+} from './udpPorts';
 
 /**
  * Every value docs/research/bds-server-udp-ports.md started Bedrock Dedicated Server 1.26.70.24
@@ -155,5 +162,86 @@ describe('withMappedCandidates', () => {
 
     it('leaves an answer alone when nothing is mapped and no address is public', () => {
         expect(withMappedCandidates(ANSWER, [])).toBe(ANSWER);
+    });
+});
+
+describe('withDialedCandidates', () => {
+    // As a server in a container answers: its bridge addresses, on the port signaling shares.
+    const ANSWER = [
+        'v=0',
+        'a=candidate:1 1 UDP 2122317823 fdba:17c8:6c97::e 19132 typ host',
+        'a=candidate:2 1 UDP 2122317311 172.21.0.15 19132 typ host',
+        'm=application 9 UDP/DTLS/SCTP webrtc-datachannel',
+        ''
+    ].join('\r\n');
+    const added = (answer: string) => answer.split('\r\n').filter((line) => line.includes('srflx'));
+
+    it('adds the address the client dialed, on the port it dialed, beside the host of its family', () => {
+        const dialed = { addresses: ['203.0.113.9'], port: 19132, localPort: 19132 };
+
+        expect(added(withDialedCandidates(ANSWER, dialed))).toStrictEqual([
+            'a=candidate:2d 1 UDP 1686109695 203.0.113.9 19132 typ srflx raddr 172.21.0.15 rport 19132'
+        ]);
+    });
+
+    it('follows a forwarded port: the dialed port stands in for the one signaling listens on', () => {
+        const dialed = { addresses: ['203.0.113.9', '2001:db8::7'], port: 25565, localPort: 19132 };
+
+        expect(added(withDialedCandidates(ANSWER, dialed))).toStrictEqual([
+            'a=candidate:1d 1 UDP 1686110207 2001:db8::7 25565 typ srflx raddr fdba:17c8:6c97::e rport 19132',
+            'a=candidate:2d 1 UDP 1686109695 203.0.113.9 25565 typ srflx raddr 172.21.0.15 rport 19132'
+        ]);
+    });
+
+    it('uses a mapping for the port, and a port of its own for players apart from signaling', () => {
+        const mapped = { addresses: ['203.0.113.9'], port: 19132, localPort: 19132 };
+        const apart = { addresses: ['203.0.113.9'], port: 19132, localPort: 19000 };
+
+        expect(added(withDialedCandidates(ANSWER, mapped, parseUdpPorts('29489:19132').mappings))).toStrictEqual([
+            'a=candidate:2d 1 UDP 1686109695 203.0.113.9 29489 typ srflx raddr 172.21.0.15 rport 19132'
+        ]);
+        expect(added(withDialedCandidates(ANSWER, apart))).toStrictEqual([
+            'a=candidate:2d 1 UDP 1686109695 203.0.113.9 19132 typ srflx raddr 172.21.0.15 rport 19132'
+        ]);
+    });
+
+    it('adds one candidate for an address two hosts of a family would both give', () => {
+        const twoHosts = ANSWER.replace(
+            'm=application',
+            'a=candidate:3 1 UDP 2122317055 10.0.0.4 19132 typ host\r\nm=application'
+        );
+        const dialed = { addresses: ['203.0.113.9'], port: 19132, localPort: 19132 };
+
+        expect(added(withDialedCandidates(twoHosts, dialed))).toHaveLength(1);
+    });
+
+    it('leaves an answer alone that lists the address already, however it is spelled, or has none dialed', () => {
+        const listed = withMappedCandidates(ANSWER, [], '2001:db8::7');
+
+        expect(withDialedCandidates(listed, { addresses: ['2001:DB8:0::7'], port: 19132, localPort: 19132 })).toBe(
+            listed
+        );
+        expect(withDialedCandidates(ANSWER, { addresses: ['172.21.0.15'], port: 19132, localPort: 19132 })).toBe(
+            ANSWER
+        );
+        expect(withDialedCandidates(ANSWER, undefined)).toBe(ANSWER);
+    });
+});
+
+describe('hasPublicCandidate', () => {
+    const answerAt = (...addresses: string[]) =>
+        addresses.map((address, index) => `a=candidate:${index} 1 UDP 1 ${address} 19132 typ host`).join('\r\n');
+
+    it.each([
+        ['a container network', ['172.21.0.15', 'fdba:17c8:6c97::e']],
+        ['a home network, carrier NAT and loopback', ['192.168.2.52', '10.199.87.208', '100.122.230.7', '127.0.0.1']],
+        ['link-local and loopback IPv6', ['fe80::1', '::1']],
+        ['no candidate', []]
+    ])('finds none in an answer with %s', (_name, addresses) => {
+        expect(hasPublicCandidate(answerAt(...addresses))).toBe(false);
+    });
+
+    it.each(['203.0.113.9', '2003:f3:4f35:b230::1'])('finds %s beside private ones', (address) => {
+        expect(hasPublicCandidate(answerAt('172.21.0.15', address))).toBe(true);
     });
 });

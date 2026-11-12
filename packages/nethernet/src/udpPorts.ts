@@ -1,5 +1,7 @@
 import { isIPv4, isIPv6 } from 'node:net';
 
+import { familyOf, isPublicAddress, sameAddress } from './addresses';
+
 /** An inclusive range of UDP ports. */
 export interface PortRange {
     readonly start: number;
@@ -192,6 +194,56 @@ export const parseUdpPorts = (setting: string, publicIpSetting = ''): UdpPorts =
 /** A server-reflexive candidate's type preference, the top byte of its priority (RFC 8445 section 5.1.2.1). */
 const REFLEXIVE_PREFERENCE = 100;
 
+/** A UDP host candidate line, as libdatachannel writes it. */
+const HOST_CANDIDATE = /^a=candidate:(\S+) (\d+) (udp) (\d+) (\S+) (\d+) typ host(.*)$/i;
+
+/** A host candidate's parts. */
+interface HostCandidate {
+    readonly foundation: string;
+    readonly component: string;
+    readonly protocol: string;
+    readonly priority: number;
+    readonly address: string;
+    readonly port: number;
+    readonly rest: string;
+}
+
+/** The host candidate a line holds, or undefined for any other line. */
+const hostCandidateOf = (line: string): HostCandidate | undefined => {
+    const match = HOST_CANDIDATE.exec(line);
+    if (match === null) return undefined;
+    const [, foundation, component, protocol, priority, address, port, rest] = match;
+    return {
+        foundation: foundation!,
+        component: component!,
+        protocol: protocol!,
+        priority: Number(priority),
+        address: address!,
+        port: Number(port),
+        rest: rest!
+    };
+};
+
+/**
+ * A server-reflexive candidate for a host candidate: another address and port that reach it. It
+ * keeps the host's local preference and component under a server-reflexive type preference, and
+ * its related address and port name the host.
+ * @param host - The host candidate.
+ * @param tag - Added to the host's foundation, so the two candidates differ.
+ * @param address - The address clients reach.
+ * @param port - The port clients reach.
+ */
+const reflexiveLine = (host: HostCandidate, tag: string, address: string, port: number): string => {
+    const priority = (host.priority & 0x00ff_ffff) + REFLEXIVE_PREFERENCE * 0x0100_0000;
+    return `a=candidate:${host.foundation}${tag} ${host.component} ${host.protocol} ${priority} ${address} ${port} typ srflx raddr ${host.address} rport ${host.port}${host.rest}`;
+};
+
+/** The public port a local port maps to, or undefined when no mapping covers it. */
+const mappedPort = (mappings: readonly PortMapping[], port: number): number | undefined => {
+    const mapping = mappings.find((entry) => port >= entry.internal.start && port <= entry.internal.end);
+    return mapping === undefined ? undefined : mapping.external.start + (port - mapping.internal.start);
+};
+
 /**
  * The answer with a server-reflexive candidate after each host candidate that clients outside
  * the network reach another way, as Bedrock Dedicated Server 1.26.70.24 answers: for a host on a
@@ -206,25 +258,77 @@ const REFLEXIVE_PREFERENCE = 100;
  */
 export const withMappedCandidates = (answer: string, mappings: readonly PortMapping[], publicIp?: string): string => {
     if (mappings.length === 0 && publicIp === undefined) return answer;
-    const publicFamily = publicIp === undefined ? undefined : isIPv4(publicIp) ? 4 : 6;
-    const lines = answer.split(/\r?\n/);
+    const publicFamily = publicIp === undefined ? undefined : familyOf(publicIp);
     const output: string[] = [];
-    for (const line of lines) {
+    for (const line of answer.split(/\r?\n/)) {
         output.push(line);
-        const candidate = /^a=candidate:(\S+) (\d+) (udp) (\d+) (\S+) (\d+) typ host(.*)$/i.exec(line);
-        if (candidate === null) continue;
-        const [, foundation, component, protocol, priority, address, portText, rest] = candidate;
-        const port = Number(portText);
-        const family = isIPv4(address!) ? 4 : 6;
-        const mapping = mappings.find((entry) => port >= entry.internal.start && port <= entry.internal.end);
-        const externalPort = mapping === undefined ? port : mapping.external.start + (port - mapping.internal.start);
-        if (mapping === undefined && publicIp === undefined) continue;
-        if (publicFamily !== undefined && publicFamily !== family) continue;
-        // The host's local preference and component under a server-reflexive type preference.
-        const reflexivePriority = (Number(priority) & 0x00ff_ffff) + REFLEXIVE_PREFERENCE * 0x0100_0000;
-        output.push(
-            `a=candidate:${foundation}m ${component} ${protocol} ${reflexivePriority} ${publicIp ?? address} ${externalPort} typ srflx raddr ${address} rport ${port}${rest}`
-        );
+        const host = hostCandidateOf(line);
+        if (host === undefined) continue;
+        const external = mappedPort(mappings, host.port);
+        if (external === undefined && publicIp === undefined) continue;
+        if (publicFamily !== undefined && publicFamily !== familyOf(host.address)) continue;
+        output.push(reflexiveLine(host, 'm', publicIp ?? host.address, external ?? host.port));
+    }
+    return output.join('\r\n');
+};
+
+/** Where a client sent its offer: the address it typed, as the signaling request names it. */
+export interface DialedAddress {
+    /** The IP addresses the client's server address names: itself, or what its hostname resolves to. */
+    readonly addresses: readonly string[];
+    /** The port the client dialed. */
+    readonly port: number;
+    /** The local port the request arrived on, which the dialed port is forwarded to. */
+    readonly localPort: number;
+}
+
+/** Every candidate's address in a description. */
+const candidateAddresses = (description: string): string[] =>
+    [...description.matchAll(/^a=candidate:\S+ \d+ \S+ \d+ (\S+) \d+ typ /gim)].map(([, address]) => address!);
+
+/**
+ * Whether a description has a candidate a host elsewhere on the internet can send to. An answer
+ * without one reaches clients on the server's own network and nobody else.
+ * @param description - The SDP description, with its candidates.
+ */
+export const hasPublicCandidate = (description: string): boolean =>
+    candidateAddresses(description).some(isPublicAddress);
+
+/**
+ * The answer with the address the client dialed added as a server-reflexive candidate, when the
+ * answer does not list it already. The client reached signaling there, so behind NAT, port
+ * forwarding or a container network it is the one address known to lead to this server, and the
+ * server's own interface addresses do not. Each host candidate of the address's family gets one:
+ * on the public port a mapping gives its local port, else on the dialed port when its local port
+ * is the one signaling listens on, as with the default of one port for both, else on its own
+ * port. The client names the address and only that client receives the answer, so a false one
+ * costs it a candidate that goes nowhere.
+ * @param answer - The SDP answer, with its candidates and any mapped ones.
+ * @param dialed - Where the client sent its offer, when the request said.
+ * @param mappings - The mappings `server-udp-ports` declares.
+ * @returns The answer.
+ */
+export const withDialedCandidates = (
+    answer: string,
+    dialed: DialedAddress | undefined,
+    mappings: readonly PortMapping[] = []
+): string => {
+    if (dialed === undefined) return answer;
+    const listed = candidateAddresses(answer);
+    const missing = dialed.addresses.filter((address) => !listed.some((other) => sameAddress(address, other)));
+    if (missing.length === 0) return answer;
+    const added = new Set<string>();
+    const output: string[] = [];
+    for (const line of answer.split(/\r?\n/)) {
+        output.push(line);
+        const host = hostCandidateOf(line);
+        if (host === undefined) continue;
+        const port = mappedPort(mappings, host.port) ?? (host.port === dialed.localPort ? dialed.port : host.port);
+        for (const address of missing) {
+            if (familyOf(address) !== familyOf(host.address) || added.has(`${address} ${port}`)) continue;
+            added.add(`${address} ${port}`);
+            output.push(reflexiveLine(host, 'd', address, port));
+        }
     }
     return output.join('\r\n');
 };

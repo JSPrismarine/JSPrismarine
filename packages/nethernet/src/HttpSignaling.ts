@@ -1,11 +1,16 @@
+import { lookup } from 'node:dns/promises';
 import http from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
+
+import { familyOf, isPublicAddress, unmapped } from './addresses';
 
 import { SignalStructure, SignalType } from './protocol/Signal';
 import { randomUint64 } from './randomUint64';
 import { withoutIdentity } from './sdp';
 import { describeCandidates, tracePeerConnection } from './tracePeerConnection';
+import { hasPublicCandidate } from './udpPorts';
+import type { DialedAddress } from './udpPorts';
 import type { DriverPeer } from './WebRtcDriver';
 
 /** The largest SDP offer accepted. A real offer with every candidate is a few kilobytes. */
@@ -19,6 +24,16 @@ const DEFAULT_ANSWER_TIMEOUT_MS = 15_000;
  * at most, and Mojang's guide says the format may change, to a GUID for one.
  */
 const MAX_NETWORK_ID_LENGTH = 128;
+
+/** How long a hostname a client dialed may take to resolve before its answer goes out without it. */
+const RESOLVE_TIMEOUT_MS = 1_000;
+
+/** How long a resolved hostname is remembered, and how many are: players dial the same few names. */
+const RESOLVED_TTL_MS = 60_000;
+const RESOLVED_LIMIT = 64;
+
+/** A hostname as DNS allows one, which keeps anything else in a `Host` header from being looked up. */
+const HOSTNAME = /^(?=.{1,253}$)[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.?$/i;
 
 /** The part of {@link NetherNetServer} that turns an offer into an answer. */
 export interface NetherNetOfferAnswerer {
@@ -42,8 +57,16 @@ export interface HttpSignalingOptions {
     readonly answerer: NetherNetOfferAnswerer;
     /** The `GET /v1/join` body, read per request. */
     readonly status: () => string;
-    /** Adds the server's `a=identity` to an answer; the client refuses one without it. */
-    readonly sign: (answer: string) => string | Promise<string>;
+    /**
+     * Adds the server's `a=identity` to an answer; the client refuses one without it. `dialed` is
+     * where the client sent its offer, for `withDialedCandidates` to add to the answer first.
+     */
+    readonly sign: (answer: string, dialed?: DialedAddress) => string | Promise<string>;
+    /**
+     * Resolves a hostname a client dialed to its IP addresses; the system resolver when absent.
+     * The name comes from the request's `Host` header, so anyone who can reach signaling picks it.
+     */
+    readonly resolve?: (hostname: string) => Promise<readonly string[]>;
     readonly logger: SignalingLogger;
     /** How long an offer may wait for its answer. */
     readonly answerTimeoutMs?: number;
@@ -79,6 +102,8 @@ class RefusedRequest extends Error {
 export class HttpSignaling {
     private readonly server: http.Server;
     private readonly answerTimeoutMs: number;
+    /** What each hostname clients dialed resolved to, and until when that holds. */
+    private readonly resolved = new Map<string, { readonly addresses: readonly string[]; readonly until: number }>();
 
     public constructor(private readonly options: HttpSignalingOptions) {
         this.answerTimeoutMs = options.answerTimeoutMs ?? DEFAULT_ANSWER_TIMEOUT_MS;
@@ -147,10 +172,15 @@ export class HttpSignaling {
         const started = Date.now();
         const result = await this.negotiate(offer);
         if ('answer' in result) {
-            const answer = await this.options.sign(result.answer);
+            const answer = await this.options.sign(result.answer, await this.dialedBy(request));
             logger.info(
                 `NetherNet join from ${from} answered in ${Date.now() - started} ms as connection ${result.connectionId}, offering ${describeCandidates(answer).join(', ') || 'no candidates'}`
             );
+            if (isPublicAddress(request.socket.remoteAddress ?? '') && !hasPublicCandidate(answer)) {
+                logger.warn(
+                    `NetherNet join from ${from} was offered no public address, so the player cannot connect from outside this network. Set server-public-ip to the address players reach this server at.`
+                );
+            }
             response.writeHead(200, { 'Content-Type': 'application/sdp' }).end(answer);
             return;
         }
@@ -161,6 +191,52 @@ export class HttpSignaling {
         }
         logger.warn(`NetherNet join from ${from} timed out waiting for an answer`);
         text(response, 504, 'Timed out waiting for answer');
+    }
+
+    /**
+     * Where the client sent its offer, from the request's `Host` header: the address the player
+     * typed, with the port, which leads to this server through whatever NAT or port forwarding
+     * sits in front of it. Undefined when the header names nothing usable.
+     */
+    private async dialedBy(request: IncomingMessage): Promise<DialedAddress | undefined> {
+        const localPort = request.socket.localPort;
+        if (localPort === undefined) return undefined;
+        let url: URL;
+        try {
+            url = new URL(`http://${request.headers.host ?? ''}`);
+        } catch {
+            return undefined;
+        }
+        // A URL keeps an IPv6 host in its brackets.
+        const host = url.hostname.replace(/^\[(.*)\]$/, '$1');
+        const addresses = familyOf(host) === undefined ? await this.addressesOf(host) : [host];
+        if (addresses.length === 0) return undefined;
+        // A `Host` without a port is the scheme's default, which signaling was not dialed on.
+        return { addresses, port: url.port === '' ? localPort : Number(url.port), localPort };
+    }
+
+    /** The addresses a hostname resolves to, remembered for a while; none when it does not resolve in time. */
+    private async addressesOf(hostname: string): Promise<readonly string[]> {
+        if (!HOSTNAME.test(hostname)) return [];
+        const name = hostname.toLowerCase();
+        const known = this.resolved.get(name);
+        if (known !== undefined && known.until > Date.now()) return known.addresses;
+        const resolve =
+            this.options.resolve ??
+            (async (host: string) => (await lookup(host, { all: true })).map(({ address }) => address));
+        let timer: NodeJS.Timeout | undefined;
+        const addresses = await Promise.race([
+            resolve(name).catch((): readonly string[] => []),
+            new Promise<readonly string[]>((done) => {
+                timer = setTimeout(() => done([]), RESOLVE_TIMEOUT_MS);
+            })
+        ]);
+        clearTimeout(timer);
+        // The oldest entry makes room: a Map keeps its keys in the order they were set.
+        this.resolved.delete(name);
+        if (this.resolved.size >= RESOLVED_LIMIT) this.resolved.delete(this.resolved.keys().next().value ?? name);
+        this.resolved.set(name, { addresses: addresses.map(unmapped), until: Date.now() + RESOLVED_TTL_MS });
+        return this.resolved.get(name)?.addresses ?? [];
     }
 
     /** Hands the offer to the answerer under a fresh connection ID and waits for its answer. */
