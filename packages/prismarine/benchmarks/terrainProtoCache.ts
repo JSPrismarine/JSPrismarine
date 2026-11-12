@@ -18,9 +18,9 @@ import type { TerrainProtoCacheEvent } from '@jsprismarine/prismarine/world/gene
 import { findJavaTemplateSource } from '@jsprismarine/prismarine/world/generators/datadriven/javaStructureTemplates';
 import {
     cacheRoot,
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
+    findJavaWorldgenSources
+} from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
 
 const seed = 1234n;
 const cacheBudgetBytes = 512 * 1024 * 1024;

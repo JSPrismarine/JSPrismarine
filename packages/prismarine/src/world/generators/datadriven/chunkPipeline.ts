@@ -30,7 +30,7 @@ import type { PipelineKey, TerrainTaskInput } from './DataDrivenGenerator';
 import { DataDrivenGenerator, isPipelineKey } from './DataDrivenGenerator';
 import type { StructureStartCandidate, StructureStartPlanEntry } from './javaStructureStarts';
 import { findJavaTemplateSource } from './javaStructureTemplates';
-import { cacheRoot } from './javaWorldgenData';
+import { cacheRoot } from './javaWorldgenSources';
 import { readRegistryBundle } from './registryBundle';
 import type { GenerationRegionPayload } from './GenerationRegion';
 import { SharedTerrainTileStore } from './SharedTerrainTileStore';

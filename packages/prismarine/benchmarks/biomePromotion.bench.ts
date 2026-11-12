@@ -13,10 +13,8 @@ import { createHash } from 'node:crypto';
 import os, { availableParallelism } from 'node:os';
 
 import { DataDrivenGenerator, defaultTerrainPipeline } from '../src/world/generators/datadriven/DataDrivenGenerator';
-import {
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '../src/world/generators/datadriven/javaWorldgenData';
+import { findJavaWorldgenSources } from '../src/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '../src/world/generators/datadriven/javaWorldgenData';
 import { percentile } from './percentile';
 
 const workers = Number.parseInt(process.argv[2] ?? '4', 10);

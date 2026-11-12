@@ -14,11 +14,8 @@ import BlockStorage from '../src/world/chunk/BlockStorage';
 import Chunk from '../src/world/chunk/Chunk';
 import { DataDrivenGenerator } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
-import {
-    cacheRoot,
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '../src/world/generators/datadriven/javaWorldgenData';
+import { cacheRoot, findJavaWorldgenSources } from '../src/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '../src/world/generators/datadriven/javaWorldgenData';
 import { encodeSubChunk } from '../src/world/providers/leveldb/SubChunkCodec';
 import { encodePersistentStorage } from '../src/world/providers/leveldb/PersistentBlockStorage';
 

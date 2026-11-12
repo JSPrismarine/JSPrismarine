@@ -11,7 +11,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import type Chunk from '../../chunk/Chunk';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
-import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
+import { findJavaWorldgenSources } from './javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from './javaWorldgenData';
 
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;

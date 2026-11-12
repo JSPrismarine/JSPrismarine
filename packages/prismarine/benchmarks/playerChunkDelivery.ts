@@ -22,11 +22,8 @@ import { ChunkCompletionQueue, DEFAULT_CHUNK_COMPLETION_BUDGET_MS } from '../src
 import type { ChunkCompletionScheduler } from '../src/world/ChunkCompletionQueue';
 import { DataDrivenGenerator, defaultChunkPipeline } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
-import {
-    cacheRoot,
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '../src/world/generators/datadriven/javaWorldgenData';
+import { cacheRoot, findJavaWorldgenSources } from '../src/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '../src/world/generators/datadriven/javaWorldgenData';
 
 const args = process.argv.slice(2).filter((value) => value !== '--');
 

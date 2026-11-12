@@ -14,7 +14,8 @@ import type Chunk from '../../chunk/Chunk';
 import { Dimensions } from '../../DimensionType';
 import type { Generator } from '../../Generator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
-import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
+import { findJavaWorldgenSources } from './javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from './javaWorldgenData';
 
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;

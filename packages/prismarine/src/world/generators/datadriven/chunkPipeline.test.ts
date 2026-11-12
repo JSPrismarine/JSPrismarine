@@ -28,7 +28,7 @@ import type { ChunkPipelineSetup, ChunkTaskInput } from './chunkPipeline';
 import { createGenerationPipeline } from './chunkPipeline';
 import { defaultChunkPipeline, isPipelineKey, pipelineDimensionOf } from './DataDrivenGenerator';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
-import { findJavaWorldgenSources } from './javaWorldgenData';
+import { findJavaWorldgenSources } from './javaWorldgenSources';
 import { shareRegistryBundle } from './registryBundle';
 
 const enabled = findJavaWorldgenSources() !== undefined;

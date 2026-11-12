@@ -12,7 +12,7 @@ import { createTemplateSource, findJavaTemplates } from './javaStructureTemplate
 import type { StructureLevel, StructurePiece, StructureWriter } from './javaStructureWorld';
 import { unionOf } from './javaStructureWorld';
 import type { TemplateSource } from './javaTemplatePlacement';
-import { cacheRoot } from './javaWorldgenData';
+import { cacheRoot } from './javaWorldgenSources';
 
 /** Terrain high enough for a mansion, which refuses anything under y 60. */
 const GROUND = 80;

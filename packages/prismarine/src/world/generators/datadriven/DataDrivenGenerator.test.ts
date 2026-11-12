@@ -22,7 +22,8 @@ import { Dimensions } from '../../DimensionType';
 import { GenerationStopped } from '../../Generator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { bedrockBiomeIdOf } from './javaTranslation';
-import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
+import { findJavaWorldgenSources } from './javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from './javaWorldgenData';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { ChunkCompletionQueue } from '../../ChunkCompletionQueue';
 

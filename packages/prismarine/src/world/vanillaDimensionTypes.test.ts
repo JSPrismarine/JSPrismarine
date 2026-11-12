@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenData';
+import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenSources';
 import { VANILLA_DIMENSION_TYPES, VANILLA_DIMENSION_TYPE_JSON } from './vanillaDimensionTypes';
 
 const sources = findJavaWorldgenSources();

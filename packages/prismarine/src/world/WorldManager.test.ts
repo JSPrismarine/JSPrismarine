@@ -29,7 +29,7 @@ import { Dimensions } from './DimensionType';
 import type { DimensionType } from './DimensionType';
 import type { Generator } from './Generator';
 import type { TerrainCacheSettings } from './GeneratorFactories';
-import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenData';
+import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenSources';
 import WorldManager from './WorldManager';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 

@@ -19,10 +19,8 @@ import { stub } from '../src/testing/stub.test.helper';
 import type BaseProvider from '../src/world/providers/BaseProvider';
 import type Provider from '../src/world/providers/Provider';
 import { fakeLevel, TEST_OVERWORLD_STEM } from '../src/testing/level';
-import {
-    findJavaWorldgenSources,
-    loadJavaWorldgenRegistries
-} from '../src/world/generators/datadriven/javaWorldgenData';
+import { findJavaWorldgenSources } from '../src/world/generators/datadriven/javaWorldgenSources';
+import { loadJavaWorldgenRegistries } from '../src/world/generators/datadriven/javaWorldgenData';
 
 const workers = Number.parseInt(process.argv[2] ?? '6', 10);
 const mode = process.argv[3] ?? 'climate';
