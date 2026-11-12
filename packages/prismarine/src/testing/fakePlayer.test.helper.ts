@@ -155,6 +155,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         getDimension: () => Dimensions.Overworld,
         broadcastMove: async () => {},
         dataEntities: () => entities.entityRuntime(Dimensions.Overworld.name),
+        getEntityStore: () => entities.entityRuntime(Dimensions.Overworld.name).runtime.store,
         getTicks: () => clock.ticks,
         // No chunk is loaded for the store, so its systems read no block.
         getLoadedChunk: () => null,
