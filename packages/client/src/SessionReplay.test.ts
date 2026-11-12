@@ -17,7 +17,6 @@ import { entityViewOf } from '@jsprismarine/prismarine/entity/data/actorView';
 import type { World } from '@jsprismarine/prismarine/world/World';
 import type { ChunkAdmissionRecord } from '@jsprismarine/prismarine/world/ChunkAdmissions';
 import LevelDB from '@jsprismarine/prismarine/world/providers/leveldb/LevelDB';
-import { MovePlayerPacket, PositionMode } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import { createHash } from 'node:crypto';
@@ -35,6 +34,7 @@ import {
 
 import { reportProgress } from '../../../.test/reportProgress';
 import Client from './Client';
+import { playerAuthInput } from './playerAuthInput';
 import { LoopbackNetwork } from './testing/loopback.test.helper';
 
 interface Position {
@@ -44,7 +44,6 @@ interface Position {
 }
 
 interface CapturedSession {
-    readonly moverRuntimeId: bigint;
     readonly moverStart: Position;
     readonly movement: readonly InboundPacketRecord[];
     /** The tick in which the server applied each movement packet. */
@@ -536,17 +535,15 @@ const captureSession = async (
         for (let index = 0; index < MOVEMENT_COUNT; index += 1) {
             await live.stepTo(firstSendTick + index * MOVEMENT_INTERVAL_TICKS, scripted.beforeTick);
             await live.mover.getSession().send(
-                new MovePlayerPacket({
-                    runtimeEntityId: startGame.runtimeEntityId,
-                    position: { x: moverStart.x + (index + 1) * 0.25, y: moverStart.y, z: moverStart.z },
-                    pitch: 0,
-                    yaw: 0,
-                    headYaw: 0,
-                    mode: PositionMode.Normal,
-                    onGround: true,
-                    ridingEntityRuntimeId: 0n,
-                    tick: BigInt(index + 1)
-                })
+                playerAuthInput(
+                    {
+                        position: { x: moverStart.x + (index + 1) * 0.25, y: moverStart.y, z: moverStart.z },
+                        pitch: 0,
+                        yaw: 0,
+                        headYaw: 0
+                    },
+                    { tick: BigInt(index + 1) }
+                )
             );
             await live.settle();
         }
@@ -555,7 +552,7 @@ const captureSession = async (
         await live.stepTo(live.server.getTick() + SAMPLE_TRAIL_TICKS + 1, scripted.beforeTick);
         await Promise.all(scripted.requests);
 
-        const movement = live.inbound.records().filter((record) => record.packetName === 'MovePlayerPacket');
+        const movement = live.inbound.records().filter((record) => record.packetName === 'PlayerAuthInputPacket');
         if (movement.length !== MOVEMENT_COUNT) {
             throw new Error(`Captured ${movement.length} movement packets, expected ${MOVEMENT_COUNT}`);
         }
@@ -567,7 +564,6 @@ const captureSession = async (
         }
 
         return {
-            moverRuntimeId: startGame.runtimeEntityId,
             moverStart,
             movement,
             moveTicks,
@@ -664,25 +660,13 @@ const replayOn = async (
 
         // The trace starts at the first movement, so replay logs in normally before feeding the
         // captured play-phase segment. Re-number it because replay counters begin at the live session.
-        // Runtime entity ids are process-local, so decode and re-encode this input with the mover's
-        // id from the fresh server while preserving every other recorded movement field.
-        const records = captured.movement.map((record, index) => {
-            const packet = new MovePlayerPacket(null, Buffer.from(record.payload));
-            packet.decode();
-            const data = packet.getPacketData();
-            if (data === null) throw new Error('Captured movement packet has no payload');
-            if (data.runtimeEntityId !== captured.moverRuntimeId) {
-                throw new Error(
-                    `Captured movement names runtime id ${data.runtimeEntityId}, expected ${captured.moverRuntimeId}`
-                );
-            }
-
-            const payload = new MovePlayerPacket({
-                ...data,
-                runtimeEntityId: startGame.runtimeEntityId
-            }).encodeTransient();
-            return { ...record, connectionId: moverConnectionId, order: index, sequence: index, payload };
-        });
+        // An input names no runtime id, so its recorded payload replays as it was captured.
+        const records = captured.movement.map((record, index) => ({
+            ...record,
+            connectionId: moverConnectionId,
+            order: index,
+            sequence: index
+        }));
         const firstRecord = records[0];
         if (firstRecord === undefined) throw new Error('The captured movement segment is empty');
         const tickOffset = REPLAY_START_TICK - firstRecord.tick;

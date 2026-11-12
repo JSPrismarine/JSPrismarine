@@ -86,13 +86,13 @@ or every pending simulation subsystem.
 
 `packages/client/src/SessionReplay.test.ts` exercises the live replay path with two flat replay
 worlds using seed `2847`. It captures a provider snapshot before client login, restores that
-snapshot into both replay worlds, then replays four scripted `MovePlayerPacket` records from a real
-client through `networkToken`. The test logs the same two identities into each world and compares
-world and outbound packet digests at each tick. It seeds `Server` randomness, fixes the remaining
-global random calls, and disables natural mob spawning in the flat fixture so unrelated spawn
-timing does not change the world digest. Login remains live because the trace does not restore
-connection lifecycle or pre-login sessions; the test maps the captured connection order and input
-entity id onto each live session. Its per-tick outbound digest normalizes process-local actor ids
+snapshot into both replay worlds, then replays four scripted `PlayerAuthInputPacket` records from a
+real client through `networkToken`. The test logs the same two identities into each world and
+compares world and outbound packet digests at each tick. It seeds `Server` randomness, fixes the
+remaining global random calls, and disables natural mob spawning in the flat fixture so unrelated
+spawn timing does not change the world digest. Login remains live because the trace does not restore
+connection lifecycle or pre-login sessions; the test maps the captured connection order onto each
+live session. Its per-tick outbound digest normalizes process-local actor ids
 by the logged-in players and by first-seen packet order for other actors before hashing packet
 bytes. The test does not cover frame grouping, restoration of in-memory runtime or pending
 simulation state, complete lighting work queues, or Java-verified entity update order. Packet bytes
