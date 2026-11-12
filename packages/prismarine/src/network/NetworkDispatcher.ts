@@ -20,7 +20,7 @@ import type { SessionPhase } from './SessionPhase';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type { RegisteredHandler } from './PacketHandlerRegistry';
 import type { InboundPacketRecord, InboundPacketRecorder } from './InboundPacketTrace';
-import { InputQueue } from './InputQueue';
+import { INPUT_ADMISSION_BUDGET_PER_TICK, InputQueue } from './InputQueue';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { ConnectionId } from './transport/ConnectionId';
@@ -88,6 +88,15 @@ class WorkChain {
     }
 }
 
+/**
+ * The most inputs one connection may hold for the input step. A packet past it is dropped, as Bedrock
+ * Dedicated Server's packet rate limiter rejects a packet over its limit rather than closing the
+ * connection. A client sends about one input per client tick, 20 a second, so it takes a stall of
+ * minutes to reach. It is what one step applies, so a connection alone on the server never holds
+ * more than one step can clear.
+ */
+export const MAX_HELD_INPUTS_PER_CONNECTION = INPUT_ADMISSION_BUDGET_PER_TICK;
+
 /** An input held for the input step. */
 interface HeldInputState {
     /** Whether the step that applied it is over. */
@@ -106,6 +115,8 @@ interface ConnectionInbound {
     heldInputs: number;
     /** The input the connection sent last. */
     lastInput: HeldInputState | undefined;
+    /** How many input-lane packets were dropped since the connection last met its bound. */
+    droppedInputs: number;
 }
 
 /** What the dispatcher needs from each collaborator; the server wires its own parts in. */
@@ -303,7 +314,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 frames: new WorkChain(this.busyChains),
                 deferred: new WorkChain(this.busyChains),
                 heldInputs: 0,
-                lastInput: undefined
+                lastInput: undefined,
+                droppedInputs: 0
             };
             this.connectionInbound.set(connection, inbound);
         }
@@ -422,7 +434,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      *
      * - An input-lane handler is held for the next input step, behind every input its connection
      *   held before it. The frame queue goes on at once, so every input a connection sends before
-     *   a step is applied in that step, up to the connection's share of the step's budget.
+     *   a step is applied in that step, up to the connection's share of the step's budget. A live
+     *   input from a connection that already holds {@link MAX_HELD_INPUTS_PER_CONNECTION} inputs is
+     *   dropped.
      * - A connection-lane or read-lane handler from a connection with no held input, and nothing
      *   of its own still waiting, runs now, and the frame queue waits for it.
      * - Any other connection-lane or read-lane handler waits until the step that applies the last
@@ -446,6 +460,10 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const run = () => this.runHandler(gated, connection, recordInbound, expectedTick);
 
         if (gated.handler.lane === 'input') {
+            if (this.overBound(gated.packet, connection, inbound, expectedTick)) {
+                return { now: true, done: Promise.resolve() };
+            }
+
             const done = this.inputs.hold(connection, () =>
                 this.runInputHandler(gated, connection, recordInbound, expectedTick)
             );
@@ -477,6 +495,42 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             await run();
         });
         return { now: false, done };
+    }
+
+    /**
+     * Whether a live input-lane packet comes from a connection that already holds
+     * {@link MAX_HELD_INPUTS_PER_CONNECTION} inputs, and is dropped. The drops are logged once when
+     * the connection reaches the bound and summed up when its next input is held, so a flood does
+     * not flood the log too.
+     *
+     * @param expectedTick - Set for a replayed record, which is never dropped: its capture held it
+     *   within the bound, and dropping it would make the replay apply other inputs than the capture.
+     */
+    private overBound(
+        packet: NetworkPacket<unknown>,
+        connection: ClientConnection,
+        inbound: ConnectionInbound,
+        expectedTick: number | undefined
+    ): boolean {
+        if (expectedTick === undefined && inbound.heldInputs >= MAX_HELD_INPUTS_PER_CONNECTION) {
+            this.packetPayloads?.delete(packet);
+            if (inbound.droppedInputs === 0) {
+                this.logger.warn(
+                    `Connection ${connection.getConnectionId()} holds ${MAX_HELD_INPUTS_PER_CONNECTION} inputs for the input step; dropping its input-lane packets until a step applies some`,
+                    'NetworkDispatcher/route'
+                );
+            }
+            inbound.droppedInputs++;
+            return true;
+        }
+        if (inbound.droppedInputs > 0) {
+            this.logger.warn(
+                `Dropped ${inbound.droppedInputs} input-lane packets from connection ${connection.getConnectionId()} over its bound of ${MAX_HELD_INPUTS_PER_CONNECTION} held inputs`,
+                'NetworkDispatcher/route'
+            );
+            inbound.droppedInputs = 0;
+        }
+        return false;
     }
 
     /** Marks a held input's step as over. */

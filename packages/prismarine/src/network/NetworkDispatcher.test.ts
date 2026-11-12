@@ -12,7 +12,7 @@ import { stub } from '../testing/stub.test.helper';
 import Codec2193 from './codec/Codec2193';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type ClientConnection from './ClientConnection';
-import NetworkDispatcher from './NetworkDispatcher';
+import NetworkDispatcher, { MAX_HELD_INPUTS_PER_CONNECTION } from './NetworkDispatcher';
 import { INPUT_ADMISSION_BUDGET_PER_TICK } from './InputQueue';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { PacketLogFilter } from './PacketLogFilter';
@@ -1238,6 +1238,46 @@ describe('network', () => {
             expect(flooded).toEqual(
                 flood.slice(0, flooded.length).map((packet) => `input:${packet.getPacketData()!.message}`)
             );
+        });
+
+        it('drops the inputs a connection sends past its bound, logs it once, and keeps it connected', async () => {
+            const handled: string[] = [];
+            const { transport, dispatcher, lines } = makeSessionDispatcher({
+                lanes: { TextPacket: 'input' },
+                handler: {
+                    phases: ['play'],
+                    handle: async (packet) => {
+                        handled.push(nameOf(packet));
+                    }
+                }
+            });
+            const { connection, closed } = fakeConnection(1);
+            await transport.emitConnect(connection);
+
+            const over = 5;
+            const flood = Array.from({ length: MAX_HELD_INPUTS_PER_CONNECTION + over }, (_unused, index) =>
+                message(`${index}`)
+            );
+            await transport.emitFrame(batchOf(flood), 1);
+            expect(dispatcher.pendingInputs).toBe(MAX_HELD_INPUTS_PER_CONNECTION);
+            const warnings = () => lines.filter((line) => line.level === 'warn');
+            expect(warnings()).toHaveLength(1);
+
+            while (dispatcher.pendingInputs > 0) dispatcher.admitInputs();
+            await turn();
+            // The first inputs, in order; the ones past the bound were never applied.
+            expect(handled).toEqual(
+                flood
+                    .slice(0, MAX_HELD_INPUTS_PER_CONNECTION)
+                    .map((packet) => `input:${packet.getPacketData()!.message}`)
+            );
+
+            // Under its bound again, the connection's next input is held, and the drop is summed up.
+            await transport.emitFrame(frameOf(message('after')), 1);
+            expect(dispatcher.pendingInputs).toBe(1);
+            expect(warnings()).toHaveLength(2);
+            expect(warnings()[1]!.message).toContain(`Dropped ${over} `);
+            expect(closed).toEqual([]);
         });
 
         it('stamps a captured input with the tick whose input step applied it', async () => {
