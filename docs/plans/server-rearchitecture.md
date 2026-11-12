@@ -77,9 +77,7 @@ Progress (2026-10-30):
     and `SetHudPacket`. `StartGamePacket`, `LevelChunkPacket`, and `UpdateSubChunkBlocksPacket`
     already use their declarative layouts.
   - The version-aware `ItemStackRequest` reader (the `CraftReservedAction` renumber at 2225).
-  - Replicating entities and transient facts from the change log, as blocks already are (slice 7
-    of the entity and tick re-architecture); the version-independent intent/update vocabulary;
-    NetherNet and Java transports.
+  - The version-independent intent/update vocabulary; NetherNet and Java transports.
   - `bedrock-data`'s versioned captures beyond the wire fixtures (see "bedrock-data versioning"
     below); worker support for the Node single executable.
 - The entity and tick re-architecture ([its plan](entity-simulation-rearchitecture.md)) finished
@@ -87,11 +85,13 @@ Progress (2026-10-30):
   `Player` and `Entity` classes are gone. `PlayerSession` is the player's handle for plugins and
   server code: it holds the connection, the world, the permissions and the operations that post
   player events, and `getPlayer()` returns the store player.
-- Slice 6 of that plan started with D1: packet handlers have one shape, defined in
-  `@jsprismarine/protocol` for the server and the client, and a handler in it takes a narrow
-  context instead of the `Server`. Four handlers use it; D2 moves the rest.
-- Slice 7 started with D4a: replication sends block and block entity changes from the sealed
-  tick of each world's change log and keeps a replica of the block entities in loaded chunks.
+- Slice 6 of that plan has landed: packet handlers have one shape, defined in
+  `@jsprismarine/protocol` for the server and the client, and every handler takes a narrow
+  context instead of the `Server`.
+- Slice 7 has landed: replication sends blocks, block entities, entities, transient facts such as
+  sounds and status effects, and an owner's own view from the sealed tick of each world's change
+  log, and keeps a replica of what clients are shown. The log is complete for everything the
+  replay digest hashes, so a snapshot plus the log reproduces the digest.
 - Accepted deviation: `ServerName` advertises only the newest supported version rather than every
   registered codec version. This matches what a Bedrock Dedicated Server of that version
   advertises; as the constructor comment in `packages/raknet/src/utils/ServerName.ts` records,
