@@ -359,6 +359,22 @@ describe('the entity store', () => {
         ]);
     });
 
+    it('keeps a stored stack from changing through the object its caller still holds', () => {
+        const { runtime } = fixture();
+        const entity = spawnLogged(runtime);
+        const saddle = { identifier: 'minecraft:saddle', count: 1, lore: ['worn'] };
+        const sword = { identifier: 'minecraft:iron_sword', count: 1, enchantments: { sharpness: 1 } };
+        entity.body.setContainerSlot(1, saddle);
+        entity.body.setEquipment({ mainhand: sword });
+
+        // Strict mode turns a write to a frozen object into a throw, so a caller learns at once.
+        expect(() => (saddle.count = 2)).toThrow(TypeError);
+        expect(() => saddle.lore.push('torn')).toThrow(TypeError);
+        expect(() => (sword.enchantments.sharpness = 5)).toThrow(TypeError);
+        expect(entity.body.containerSlots[1]).toEqual({ identifier: 'minecraft:saddle', count: 1, lore: ['worn'] });
+        expect(entity.body.equipment.mainhand?.enchantments).toEqual({ sharpness: 1 });
+    });
+
     it('appends at most one position write per walking mob in a tick', () => {
         const { runtime } = fixture();
         const walkers = 6;

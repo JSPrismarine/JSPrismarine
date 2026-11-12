@@ -155,6 +155,17 @@ const sameValue = (left: unknown, right: unknown): boolean => {
 };
 
 /**
+ * Freezes a stack, or a set or list of stacks, all the way down before a body stores it. The body
+ * keeps the object it is given, so a caller that changed its own stack afterwards would change
+ * the slot without a write, and the log and the next save would disagree about it.
+ */
+const frozenStacks = <T>(value: T): T => {
+    if (value === null || typeof value !== 'object') return value;
+    for (const item of Object.values(value)) frozenStacks(item);
+    return Object.isFrozen(value) ? value : Object.freeze(value);
+};
+
+/**
  * Everything about a live entity that exists before its components do.
  *
  * The split is forced rather than chosen: a goal component builds its
@@ -388,7 +399,7 @@ export class MobBody {
                 this.equipmentInventorySlots.delete(slot);
         }
 
-        this.write('equipment', equipment);
+        this.write('equipment', frozenStacks(equipment));
         this.equipmentRevision += 1;
         this.onEquipmentChanged?.(previous, equipment);
 
@@ -425,12 +436,12 @@ export class MobBody {
         if (this.containerSlots[index] === item && index < this.containerSlots.length) return;
         const slots = [...this.containerSlots];
         slots[index] = item;
-        this.write('containerSlots', slots);
+        this.write('containerSlots', frozenStacks(slots));
     }
 
     /** Replaces every container slot. */
     public setContainerSlots(slots: readonly (ContentItemDrop | undefined)[]): void {
-        this.write('containerSlots', [...slots]);
+        this.write('containerSlots', frozenStacks([...slots]));
     }
 
     /** Capacity of the active `minecraft:inventory` component, for filters and slot validation. */
