@@ -104,6 +104,22 @@ describe('logged inventory slots', () => {
 
     it('refuses a logged value that is not a stored stack', () => {
         expect(() => itemOfSlotValue({ count: 1 })).toThrow(TypeError);
+        expect(() => itemOfSlotValue({ name: 'minecraft:stone_pickaxe', count: 1, canDestroy: [1] })).toThrow(
+            TypeError
+        );
+    });
+
+    it('keeps the blocks a stack may be placed on and may destroy through its logged value', () => {
+        const pickaxe = new Item({
+            name: 'minecraft:stone_pickaxe',
+            canPlaceOnBlocks: ['minecraft:dirt'],
+            canDestroyBlocks: ['minecraft:stone', 'minecraft:cobblestone']
+        });
+
+        const restored = itemOfSlotValue(slotValueOfItem(pickaxe));
+
+        expect(restored?.getCanPlaceOnBlocks()).toEqual(['minecraft:dirt']);
+        expect(restored?.getCanDestroyBlocks()).toEqual(['minecraft:stone', 'minecraft:cobblestone']);
     });
 
     it('reports every crafting slot a clear empties, and none it leaves empty', () => {
