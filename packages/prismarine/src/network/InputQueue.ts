@@ -26,6 +26,10 @@ interface HeldInput {
  * updates. The levels tick one after another, so that is the input step of every world. When the
  * worlds tick apart, each world takes a queue of its own and the dispatcher holds an input on the
  * queue of the world its sender's entity is in.
+ *
+ * A server whose tick loop does not run, because ticking is disabled, has no input step to wait
+ * for. Its inputs are applied when they arrive, as its chunk completions are
+ * (`ChunkAdmissions.hold`), unless something steps its ticks by hand.
  */
 export class InputQueue {
     /**
@@ -35,6 +39,14 @@ export class InputQueue {
      */
     private readonly sources = new Map<unknown, HeldInput[]>();
     private count = 0;
+    private applyingOnArrival = false;
+
+    /**
+     * @param stepped - Whether an input step will come for what is held: true while the tick loop
+     *   runs or a harness steps the ticks by hand. While it is false, an input is applied when it
+     *   is held. Read at each hold.
+     */
+    public constructor(private readonly stepped: () => boolean = () => true) {}
 
     /** How many inputs wait for an input step. */
     public get pending(): number {
@@ -42,7 +54,7 @@ export class InputQueue {
     }
 
     /**
-     * Holds one input for the next input step.
+     * Holds one input for the next input step, or applies it now when no input step will come.
      *
      * @param source - Who caused the input, compared by identity, such as its connection. Inputs of
      *   one source are applied in the order they were held.
@@ -52,7 +64,7 @@ export class InputQueue {
      *   every input it took.
      */
     public hold(source: unknown, apply: () => void): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
+        const applied = new Promise<void>((resolve, reject) => {
             let inputs = this.sources.get(source);
             if (inputs === undefined) {
                 inputs = [];
@@ -61,6 +73,24 @@ export class InputQueue {
             inputs.push({ apply, resolve, reject });
             this.count++;
         });
+        if (!this.stepped()) this.applyOnArrival();
+        return applied;
+    }
+
+    /**
+     * Applies what is held now, for a queue no input step will drain. Inputs held while the step
+     * still ran go first, so arrival order holds across the switch. An input held by one this
+     * applies, such as a removal a handler causes, is applied by the loop here after it rather
+     * than inside it, so each input still runs to its end before the next begins.
+     */
+    private applyOnArrival(): void {
+        if (this.applyingOnArrival) return;
+        this.applyingOnArrival = true;
+        try {
+            while (this.count > 0) this.admit(Number.POSITIVE_INFINITY);
+        } finally {
+            this.applyingOnArrival = false;
+        }
     }
 
     /**

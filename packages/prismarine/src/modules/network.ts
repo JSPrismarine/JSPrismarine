@@ -27,6 +27,7 @@ import type { PortRange, UdpPorts, WebRtcDriver } from '@jsprismarine/nethernet'
 
 import ClientConnection from '../network/ClientConnection';
 import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
+import { InputQueue } from '../network/InputQueue';
 import type { OutboundPacketRecorder } from '../network/OutboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
 import { QueryResponder } from '../network/query/QueryResponder';
@@ -238,6 +239,12 @@ export class ServerNetworking implements Networking {
             logFilter: server.getPacketLogFilter(),
             inboundPacketRecorder: this.inboundPacketRecorder,
             outboundPacketRecorder: this.outboundPacketRecorder,
+            // The chunk completion queue is active exactly while something runs the input step:
+            // the tick loop turns it on when it starts and off when it stops, and a harness that
+            // steps ticks by hand turns it on itself. Inputs wait for that step under the same
+            // switch, so a hand-stepped tick still applies them in its input step, and a server
+            // whose loop does not run applies them on arrival instead of holding them forever.
+            inputs: new InputQueue(() => server.getChunkCompletionQueue().isActive),
             createConnection: (connection) =>
                 new ClientConnection(
                     connection,

@@ -77,6 +77,52 @@ describe('network', () => {
             expect(applied).toEqual(['after']);
         });
 
+        it('applies an input when it is held while no input step will come', async () => {
+            const queue = new InputQueue(() => false);
+            const applied: number[] = [];
+            const held = queue.hold('a', () => {
+                applied.push(1);
+            });
+
+            expect(applied).toEqual([1]);
+            expect(queue.pending).toBe(0);
+            await held;
+        });
+
+        it('holds inputs while an input step will come, and applies them first once none will', async () => {
+            let stepped = true;
+            const queue = new InputQueue(() => stepped);
+            const applied: string[] = [];
+            const push = (value: string) => () => {
+                applied.push(value);
+            };
+            void queue.hold('a', push('early'));
+            void queue.hold('a', push('earlier step'));
+            expect(applied).toEqual([]);
+            expect(queue.pending).toBe(2);
+
+            stepped = false;
+            await queue.hold('a', push('arrived'));
+            expect(applied).toEqual(['early', 'earlier step', 'arrived']);
+            expect(queue.pending).toBe(0);
+        });
+
+        it('applies an input held by one it applies on arrival after it, not inside it', async () => {
+            const queue = new InputQueue(() => false);
+            const applied: string[] = [];
+            let later: Promise<void> | undefined;
+            await queue.hold('a', () => {
+                applied.push('first begins');
+                later = queue.hold('a', () => {
+                    applied.push('later');
+                });
+                applied.push('first ends');
+            });
+
+            await later;
+            expect(applied).toEqual(['first begins', 'first ends', 'later']);
+        });
+
         it('defaults to the per-tick budget', async () => {
             const queue = new InputQueue();
             for (let index = 0; index < INPUT_ADMISSION_BUDGET_PER_TICK + 1; index++) void queue.hold('a', () => {});
