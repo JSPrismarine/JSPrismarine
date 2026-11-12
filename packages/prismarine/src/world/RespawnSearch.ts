@@ -13,6 +13,7 @@ import { Vector3 } from '@jsprismarine/math';
 
 import type { ChunkCoordinate } from './ChunkTickets';
 import { dimensionByName } from './DimensionType';
+import { GenerationStopped } from './Generator';
 import { resolveRespawn } from './RespawnPoint';
 import type { StoredSpawnPoint } from './RespawnPoint';
 import { clearRespawnFeet, respawnPoint } from './SpawnPlacement';
@@ -143,6 +144,8 @@ export class RespawnSearch {
     private readonly ticketed = new Map<string, Map<World, Map<string, ChunkCoordinate>>>();
     /** Builds an attempt started, by stem, with how each ended once it has. */
     private readonly building = new Map<string, { failed?: unknown }>();
+    /** World spawn searches an attempt started, by world, with how each ended once it has. */
+    private readonly spawning = new Map<World, { failed?: unknown }>();
 
     public constructor(private readonly worlds: RespawnWorlds) {}
 
@@ -154,11 +157,21 @@ export class RespawnSearch {
      * the tick. Asking again once it has arrived answers. Writes nothing to the world: a spawn
      * point that stopped holding is reported in the answer, not cleared.
      * @param request - Who is asking, their spawn point and their body.
-     * @throws When a world the attempt started building failed to build.
+     * @throws When a world the attempt started building failed to build, when a world spawn it
+     *   started searching for could not be found, or when the search itself threw. The player's
+     *   tickets are given up first.
      */
     public attempt(request: RespawnRequest): RespawnAttempt {
         const lacks = new Lacks();
-        const answer = this.search(request, lacks);
+        let answer: RespawnAnswer | undefined;
+        try {
+            answer = this.search(request, lacks);
+        } catch (error: unknown) {
+            // Such as a block with no declared type next to the bed: the request is dropped, and
+            // its tickets with it.
+            this.release(request.player);
+            throw error;
+        }
         if (answer !== undefined && !lacks.any) {
             this.release(request.player);
             return { kind: 'answer', answer };
@@ -166,6 +179,7 @@ export class RespawnSearch {
 
         try {
             for (const stemId of lacks.worlds) this.build(stemId);
+            for (const world of lacks.spawns) this.findSpawn(world);
         } catch (error: unknown) {
             this.release(request.player);
             throw error;
@@ -184,11 +198,6 @@ export class RespawnSearch {
             held.set(world, asked);
             this.ticketed.set(request.player, held);
             world.chunkTickets().request(owner, asked.values());
-        }
-        for (const world of lacks.spawns) {
-            outsideTick(() => {
-                world.getSpawnPosition().catch(() => undefined);
-            });
         }
         return { kind: 'waiting' };
     }
@@ -223,6 +232,40 @@ export class RespawnSearch {
                     if (this.building.get(stemId) === entry) this.building.delete(stemId);
                 },
                 (error: unknown) => {
+                    entry.failed = error;
+                }
+            );
+        });
+    }
+
+    /**
+     * Starts a world's spawn search outside the tick, once, and remembers how it ended, as
+     * {@link build} does for a world. A failed search is thrown at the next attempt that lacks the
+     * spawn, rather than left to keep the respawn waiting with nothing logged; a search the
+     * shutdown stopped is not a failure, and the next attempt starts it again.
+     */
+    private findSpawn(world: World): void {
+        const known = this.spawning.get(world);
+        if (known !== undefined) {
+            if ('failed' in known) {
+                this.spawning.delete(world);
+                throw known.failed;
+            }
+            return;
+        }
+
+        const entry: { failed?: unknown } = {};
+        this.spawning.set(world, entry);
+        outsideTick(() => {
+            world.getSpawnPosition().then(
+                () => {
+                    if (this.spawning.get(world) === entry) this.spawning.delete(world);
+                },
+                (error: unknown) => {
+                    if (error instanceof GenerationStopped) {
+                        if (this.spawning.get(world) === entry) this.spawning.delete(world);
+                        return;
+                    }
                     entry.failed = error;
                 }
             );
