@@ -44,6 +44,7 @@ import { World } from '../World';
 import { NULL_WORLD_CHANGE_SINK } from '../WorldChangeSink';
 import { WorldSystems } from '../WorldSystems';
 import type WorldManager from '../WorldManager';
+import { parseWorldPersistenceData } from '../WorldPersistence';
 import type { DragonFightState } from '../WorldPersistence';
 import BaseProvider from '../providers/BaseProvider';
 import type { ChunkAdmissionRecord } from '../ChunkAdmissions';
@@ -458,6 +459,47 @@ describe('the dragon fight over a live End world', () => {
             expect(dragons()).toHaveLength(0);
             const events = bossEvents(sent).map((event) => event.eventType);
             expect(events.at(-1)).toBe(BossEventUpdateType.Remove);
+        });
+
+        it('takes back a death whose unit was undone, and keeps fighting the dragon it added back', async () => {
+            enterArena(players, 0, 70, 0);
+            const fight = freshFight();
+            await run(fight, 1);
+            const dragon = dragons()[0]!;
+
+            world.beginChangeTick();
+            const outcome = live.runtime.store.unit(() => {
+                live.runtime.remove(dragon.id, 'death');
+                throw new Error('planned');
+            });
+            world.sealChangeTick();
+            expect(outcome.failed).toBe(true);
+            await run(fight, 40);
+
+            expect(dragons().map((entity) => entity.persistentIdentity)).toEqual([dragon.persistentIdentity]);
+            expect(fight.state().dragonKilled).toBe(false);
+            expect(fight.state().previouslyKilled).toBe(false);
+            expect(fight.state().dragonUniqueId).toBe(dragon.persistentIdentity);
+            expect(fight.state().gateways).toHaveLength(20);
+        });
+
+        it('keeps a death that a save took before the death ran, and runs it after the load', async () => {
+            enterArena(players, 0, 70, 0);
+            const fight = freshFight();
+            await run(fight, 1);
+            const dragon = dragons()[0]!;
+
+            live.runtime.remove(dragon.id, 'death');
+            const saved = parseWorldPersistenceData(JSON.stringify({ dragonFight: fight.state() })).dragonFight;
+            expect(saved?.dragonDeathPosition).toEqual(dragon.position);
+            expect(saved?.dragonKilled).toBe(false);
+
+            const loaded = freshFight(saved);
+            await run(loaded, 1);
+            expect(loaded.state().dragonKilled).toBe(true);
+            expect(loaded.state().dragonDeathPosition).toBeUndefined();
+            expect(loaded.state().gateways).toHaveLength(19);
+            expect(blockNameAt(world, 0, FLOOR_Y + 4, 0)).toBe('minecraft:dragon_egg');
         });
 
         it('heals one point per ten ticks while a crystal is within 32 blocks', async () => {
