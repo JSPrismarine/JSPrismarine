@@ -320,22 +320,27 @@ export class LevelSave {
     private async commit({ pass, levelDat, players, requireSuccess }: PendingPass): Promise<void> {
         const logger = this.options.logger();
         try {
-            await pass.commit({ sync: true });
+            try {
+                await pass.commit({ sync: true });
+            } catch (error) {
+                pass.abandon();
+                logger.error(`Failed to save level ${this.options.name}; its chunks stay dirty for the next pass`);
+                logger.error(error);
+                if (requireSuccess) throw error;
+                return;
+            }
             this.options.onCommitted?.(pass.stats);
             const { keys, bytes } = pass.stats;
             logger.verbose(`Saved level ${this.options.name}: ${keys} keys, ${bytes} bytes`);
-        } catch (error) {
-            pass.abandon();
-            logger.error(`Failed to save level ${this.options.name}; its chunks stay dirty for the next pass`);
-            logger.error(error);
-            if (requireSuccess) throw error;
-            return;
+
+            // Queued before the commit counts as settled: a record saved after the cut waits for
+            // that, so it lands after the cut's older one rather than under it.
+            if (players.size > 0) await this.options.savePlayers?.(players, requireSuccess);
         } finally {
             this.committing = null;
             this.settleCommitting();
         }
 
-        if (players.size > 0) await this.options.savePlayers?.(players, requireSuccess);
         if (levelDat === undefined) return;
         try {
             this.options.provider().saveLevelData(levelDat);
