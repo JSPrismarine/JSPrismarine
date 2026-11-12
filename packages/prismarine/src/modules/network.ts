@@ -40,7 +40,8 @@ import type { ConnectionId, ConnectionIds } from '../network/transport/Connectio
 import MultiTransport from '../network/transport/MultiTransport';
 import NetherNetTransport from '../network/transport/NetherNetTransport';
 import RakNetTransport from '../network/transport/RakNetTransport';
-import type { Transport, TransportConnection } from '../network/transport/Transport';
+import type { Transport, TransportConnection, TransportName } from '../network/transport/Transport';
+import { TransportNames } from '../network/transport/Transport';
 import { about } from '../about';
 import { softwareLabel } from '../version';
 import type Server from '../Server';
@@ -136,6 +137,8 @@ export class ServerNetworking implements Networking {
     private querySocket: QuerySocket | undefined;
     /** The ports RakNet shares with NetherNet, which the native library owns; see ADR 0008. */
     private sharedPorts: SharedPort[] = [];
+    /** The transports {@link ServerNetworking.start} started from the config, in start order. */
+    private startedTransports: TransportName[] = [];
     /** Every connection the transports have announced and not yet withdrawn. */
     private readonly liveConnections = new Set<ConnectionId>();
 
@@ -224,6 +227,10 @@ export class ServerNetworking implements Networking {
                 if (transports.length === 0) {
                     throw new PrismarineServerErrors.NoTransportEnabled();
                 }
+                this.startedTransports = [
+                    ...(rakNet.length > 0 ? [TransportNames.raknet] : []),
+                    ...(driver !== undefined ? [TransportNames.nethernet] : [])
+                ];
                 return transports;
             });
 
@@ -300,6 +307,17 @@ export class ServerNetworking implements Networking {
         this.querySocket?.close();
         this.querySocket = undefined;
         this.transport?.close();
+        this.startedTransports = [];
+    }
+
+    /**
+     * The transports the config made the server start, such as `RakNet` and `NetherNet`. Empty
+     * before {@link ServerNetworking.start}, after {@link ServerNetworking.kill}, and for a
+     * server given its own transport, which binds none of them.
+     * @returns The transport names, in start order.
+     */
+    public getStartedTransports(): readonly TransportName[] {
+        return this.startedTransports;
     }
 
     /** The RakNet listener, or undefined before {@link ServerNetworking.start} or with RakNet off. */

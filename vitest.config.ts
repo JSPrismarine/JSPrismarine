@@ -150,7 +150,7 @@ export default defineConfig({
         coverage: {
             all: true,
             // Test helpers are test code that tests import, not source the tests are meant to cover.
-            exclude: [...exclude, '**/*.test.helper.ts'],
+            exclude: [...exclude, '**/*.test.helper.ts', '**/*.test-utils.ts'],
             provider: 'v8',
             // LCOV for Codecov, with paths relative to the repository like the client e2e report's,
             // so the two merge file by file; JSON for the GitHub coverage comment. `lcovonly`
