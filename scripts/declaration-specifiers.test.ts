@@ -72,6 +72,32 @@ describe('withJsExtensions', () => {
         );
     });
 
+    it('ends a line comment at any line terminator', () => {
+        declare('logger.d.ts');
+
+        for (const terminator of ['\r', '\r\n', '\u2028', '\u2029']) {
+            const source = `// from './logger'${terminator}export * from './logger';`;
+
+            expect(withJsExtensions(source, path.join(dist, 'index.d.ts'))).toBe(
+                `// from './logger'${terminator}export * from './logger.js';`
+            );
+        }
+    });
+
+    it('finds the keyword across any amount of whitespace', () => {
+        declare('logger.d.ts', 'Server.d.ts');
+        const gap = ' '.repeat(200);
+        const source = [
+            `export * from${gap}'./logger';`,
+            `type S = import${gap}(${gap}'./Server').default;`,
+            `declare${gap}module${gap}'./Server' {}`
+        ].join('\n');
+
+        expect(withJsExtensions(source, path.join(dist, 'index.d.ts'))).toBe(
+            source.replace("'./logger'", "'./logger.js'").replaceAll("'./Server'", "'./Server.js'")
+        );
+    });
+
     it('leaves package imports, .js specifiers and unresolved paths alone', () => {
         const source =
             "import { Logger } from '@jsprismarine/logger';\nexport * from './done.js';\nexport * from './missing';";
