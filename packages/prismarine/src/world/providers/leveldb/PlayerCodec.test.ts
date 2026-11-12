@@ -2,7 +2,7 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import type { WorldPlayerData } from '../../../config/JsonConfigTypes';
-import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from '../../Dimension';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from '../../DimensionType';
 import { VANILLA_DIMENSION_TYPES } from '../../vanillaDimensionTypes';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
 

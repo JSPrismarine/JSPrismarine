@@ -16,7 +16,7 @@ import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import ChunkSender from '../src/network/ChunkSender';
 import ChunkScheduler from '../src/world/ChunkScheduler';
-import { Dimensions } from '../src/world/Dimension';
+import { Dimensions } from '../src/world/DimensionType';
 import Chunk from '../src/world/chunk/Chunk';
 import { ChunkCompletionQueue, DEFAULT_CHUNK_COMPLETION_BUDGET_MS } from '../src/world/ChunkCompletionQueue';
 import type { ChunkCompletionScheduler } from '../src/world/ChunkCompletionQueue';

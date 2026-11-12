@@ -5,7 +5,7 @@ import type { ServerContent } from '../../../content/ServerContent';
 import type { GeneratorLogger } from '../../BaseGenerator';
 import Chunk from '../../chunk/Chunk';
 import { maxSubChunk, maxY, minSubChunk } from '../../Dimension';
-import type { DimensionType } from '../../Dimension';
+import type { DimensionType } from '../../DimensionType';
 import type { Generator, SurfaceProbe } from '../../Generator';
 import type { GeneratorFactory } from '../../GeneratorFactories';
 import { bedrockBiomeIdOf } from '../datadriven/javaTranslation';

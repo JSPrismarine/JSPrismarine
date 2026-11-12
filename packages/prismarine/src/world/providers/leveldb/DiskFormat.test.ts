@@ -25,7 +25,7 @@ import { HEIGHTMAP_BYTES, decodeData3D, encodeData3D, uniformBiomes, uniformData
 import { decodeLevelDat, encodeLevelDat, LEVEL_DAT_STORAGE_VERSION } from './LevelDat';
 import { decodePersistentStorage, encodePersistentStorage } from './PersistentBlockStorage';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
-import { Dimensions } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
 
 const id = (name: string) => BlockRuntimeIds.getByName(name);
 

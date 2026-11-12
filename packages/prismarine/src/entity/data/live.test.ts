@@ -47,7 +47,7 @@ import type { Level } from '../../world/Level';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import LevelDB from '../../world/providers/leveldb/LevelDB';
-import { Dimensions } from '../../world/Dimension';
+import { Dimensions } from '../../world/DimensionType';
 import { GameRules } from '../../world/GameRuleManager';
 import { createEngineWorld } from '../../world/EngineWorld';
 import BlockPhysics from '../../world/physics/BlockPhysics';

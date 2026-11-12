@@ -13,8 +13,9 @@ import { encodeSubChunk } from '../providers/leveldb/SubChunkCodec';
 import Chunk from './Chunk';
 import SubChunk from './SubChunk';
 import { ChunkBiomes } from './ChunkBiomes';
-import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf, minSubChunk, subChunkCount } from '../Dimension';
-import type { DimensionType } from '../Dimension';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from '../DimensionType';
+import { minSubChunk, subChunkCount } from '../Dimension';
+import type { DimensionType } from '../DimensionType';
 import { VANILLA_DIMENSION_TYPES } from '../vanillaDimensionTypes';
 
 const stone = () => BlockRuntimeIds.getByName('minecraft:stone');

@@ -7,7 +7,7 @@ import { testEntityServer } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { moveStorePlayer } from '../entity/data/storePlayers';
 import { enteredStorePlayer } from '../testing/storePlayer.test.helper';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 

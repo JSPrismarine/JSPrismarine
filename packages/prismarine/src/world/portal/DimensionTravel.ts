@@ -33,7 +33,7 @@ import PlayerChangeDimensionEvent from '../../events/player/PlayerChangeDimensio
 import type PlayerSession from '../../network/PlayerSession';
 import type { Arrival } from '../../network/PlayerSession';
 import type Server from '../../Server';
-import { Dimensions } from '../Dimension';
+import { Dimensions } from '../DimensionType';
 import { requestedSpawnPosition } from '../SpawnPlacement';
 import type { Level } from '../Level';
 import { outsideTick } from '../TickContext';

@@ -16,7 +16,7 @@ import { TEST_OVERWORLD_STEM, fakeLevel } from '@jsprismarine/prismarine/testing
 import { STEVE } from '@jsprismarine/prismarine/testing/sessionIdentity.test.helper';
 import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
-import { Dimensions } from '@jsprismarine/prismarine/world/Dimension';
+import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 import type { Generator } from '@jsprismarine/prismarine/world/Generator';
 import type BaseProvider from '@jsprismarine/prismarine/world/providers/BaseProvider';
 import BlockPosition from '@jsprismarine/prismarine/world/BlockPosition';

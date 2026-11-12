@@ -29,7 +29,7 @@ import type HumanInventory from '../../inventory/HumanInventory';
 import type PlayerSession from '../../network/PlayerSession';
 import type { StoredSpawnPoint } from '../../world/RespawnPoint';
 import type { StoreActor } from '../../entity/data/storeActors';
-import { dimensionByName } from '../../world/Dimension';
+import { dimensionByName } from '../../world/DimensionType';
 import type { World } from '../../world/World';
 import { deferCommandWork } from '../deferred';
 

@@ -3,7 +3,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import type { BiomeSection } from '../../chunk/ChunkBiomes';
 import { subChunkCount } from '../../Dimension';
-import type { DimensionType } from '../../Dimension';
+import type { DimensionType } from '../../DimensionType';
 
 /**
  * The `Data3D` record: a heightmap, then one biome palette per sub chunk.

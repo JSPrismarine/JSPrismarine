@@ -13,7 +13,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
-import { Dimensions, dimensionByName } from '../world/Dimension';
+import { Dimensions, dimensionByName } from '../world/DimensionType';
 import type { Level } from '../world/Level';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { World } from '../world/World';

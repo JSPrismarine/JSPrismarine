@@ -1,7 +1,7 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import { EntitySerializer } from './EntitySerializer';
 import { storeWorld } from '../testing/storeWorld.test.helper';
 import BinaryStream from '@jsprismarine/binaryutils';

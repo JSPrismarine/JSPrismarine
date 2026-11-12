@@ -22,7 +22,7 @@ import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import type { WorldContentFacts } from './contentAdapter';
 import { worldContentGroups } from './contentAdapter';
-import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionByName, dimensionTypeOf } from './Dimension';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionByName, dimensionTypeOf } from './DimensionType';
 import { VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
 import GameRuleManager, { GameRules } from './GameRuleManager';
 import { DataDrivenGenerator } from './generators/datadriven/DataDrivenGenerator';

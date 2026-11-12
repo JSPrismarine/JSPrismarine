@@ -17,7 +17,7 @@ import Zlib from 'zlib';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import BlockUpdateScheduler from '../src/world/BlockUpdateScheduler';
 import Chunk from '../src/world/chunk/Chunk';
-import { Dimensions } from '../src/world/Dimension';
+import { Dimensions } from '../src/world/DimensionType';
 import { createEngineWorld } from '../src/world/EngineWorld';
 import type { SystemBlock } from '../src/world/WorldSystems';
 import { WorldSystems } from '../src/world/WorldSystems';

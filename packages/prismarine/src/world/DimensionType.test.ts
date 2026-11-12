@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { FIRST_CUSTOM_DIMENSION_ID, dimensionByName, dimensionTypeOf } from './DimensionType';
-import { Dimensions, maxSubChunk, maxY, minSubChunk, subChunkCount } from './Dimension';
+import { Dimensions } from './DimensionType';
+import { maxSubChunk, maxY, minSubChunk, subChunkCount } from './Dimension';
 import { VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
 
 describe('Dimensions', () => {

@@ -5,7 +5,7 @@ import type Server from '../../Server';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import { stub } from '../../testing/stub.test.helper';
 import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
-import { Dimensions } from '../../world/Dimension';
+import { Dimensions } from '../../world/DimensionType';
 import type { Level } from '../../world/Level';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';

@@ -4,8 +4,8 @@ import type { FlatGeneratorSettings } from '@jsprismarine/worldgen';
 
 import { testContent } from '../../../testing/entityServer';
 import { stub } from '../../../testing/stub.test.helper';
-import { Dimensions } from '../../Dimension';
-import type { DimensionType } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
+import type { DimensionType } from '../../DimensionType';
 import type { GeneratorBuildContext } from '../../GeneratorFactories';
 import { GeneratorFactories } from '../../GeneratorFactories';
 import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';

@@ -17,7 +17,7 @@ import { dataEntityRecordIn } from '../../entity/data/persistence';
 import { EntityRuntimes } from '../../entity/data/live';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
-import { Dimensions } from '../../world/Dimension';
+import { Dimensions } from '../../world/DimensionType';
 import { createEngineWorld } from '../../world/EngineWorld';
 import { World } from '../../world/World';
 import { WorldSystems } from '../../world/WorldSystems';

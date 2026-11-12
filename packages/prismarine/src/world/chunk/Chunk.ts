@@ -10,8 +10,9 @@ import SubChunkHeightmapData, { HeightMapDataType } from '@jsprismarine/protocol
 import type { Block } from '../../block/Block';
 import type { BlockEntity } from '../../blockentity/BlockEntity';
 import { Furnace, MobSpawner } from '../../blockentity/BlockEntities';
-import { Dimensions, maxSubChunk, maxY, minSubChunk, subChunkCount } from '../Dimension';
-import type { DimensionType } from '../Dimension';
+import { Dimensions } from '../DimensionType';
+import { maxSubChunk, maxY, minSubChunk, subChunkCount } from '../Dimension';
+import type { DimensionType } from '../DimensionType';
 import type { EntitySpawn } from '../EntitySpawn';
 import { ChunkBiomes } from './ChunkBiomes';
 import BlockStorage from './BlockStorage';

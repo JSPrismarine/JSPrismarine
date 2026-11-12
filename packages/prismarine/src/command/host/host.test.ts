@@ -38,7 +38,7 @@ import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { RemoveObjectivePacket, SetDisplayObjectivePacket, SetScorePacket } from '@jsprismarine/protocol';
-import { Dimensions } from '../../world/Dimension';
+import { Dimensions } from '../../world/DimensionType';
 import type GameRuleManager from '../../world/GameRuleManager';
 import type { Level } from '../../world/Level';
 import type { GameRuleEntry } from '../../world/GameRuleManager';

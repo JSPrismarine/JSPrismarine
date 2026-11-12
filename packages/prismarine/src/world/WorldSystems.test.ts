@@ -7,7 +7,8 @@ import { createTestWorld } from '@jsprismarine/engine-systems';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import Chunk from './chunk/Chunk';
-import { Dimensions, maxY } from './Dimension';
+import { Dimensions } from './DimensionType';
+import { maxY } from './Dimension';
 import type { SystemBlock, WorldSystemsAccess, WorldSystemsOptions, WorldSystemsView } from './WorldSystems';
 import { LIGHT_BUDGET_PER_TICK, SCHEDULED_TICK_BUDGET_PER_TICK, WorldSystems } from './WorldSystems';
 

@@ -74,8 +74,9 @@ import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import BlockStorage from '../../chunk/BlockStorage';
 import Chunk from '../../chunk/Chunk';
 import SubChunk from '../../chunk/SubChunk';
-import { Dimensions, minSubChunk, subChunkCount } from '../../Dimension';
-import type { DimensionType } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
+import { minSubChunk, subChunkCount } from '../../Dimension';
+import type { DimensionType } from '../../DimensionType';
 import type { WorldConfig } from '../../World';
 import { GenerationStopped } from '../../Generator';
 import type {

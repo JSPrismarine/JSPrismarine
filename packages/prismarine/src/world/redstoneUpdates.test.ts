@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ServerContent, ServerContentBlocks } from '../content/ServerContent';
 import { stub } from '../testing/stub.test.helper';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
 import type { World } from './World';
 

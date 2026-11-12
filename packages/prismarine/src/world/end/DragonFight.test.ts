@@ -35,7 +35,7 @@ import LevelDB from '../providers/leveldb/LevelDB';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import BlockUpdateScheduler from '../BlockUpdateScheduler';
 import Chunk from '../chunk/Chunk';
-import { Dimensions } from '../Dimension';
+import { Dimensions } from '../DimensionType';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { portalRuleOf } from '../portal/rules';
 import { createEngineWorld } from '../EngineWorld';

@@ -24,7 +24,7 @@ import { isLiquid } from '@jsprismarine/block-behaviors';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 
 import { maxY, minSubChunk, subChunkCount } from './Dimension';
-import type { DimensionType } from './Dimension';
+import type { DimensionType } from './DimensionType';
 import type { ContentRedstoneUpdateHandlers } from './redstoneUpdates';
 
 /** A block as the systems read one: the identifier and its Bedrock state values. */

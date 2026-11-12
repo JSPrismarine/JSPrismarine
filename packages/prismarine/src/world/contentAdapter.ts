@@ -40,8 +40,9 @@ import type { BlockStateValue } from '../block/state/BlockState';
 import { destroyBlock } from './blockDestroy';
 import { takeBlockEntity } from './blockMove';
 import { timeOfDay } from './DayCycle';
-import { Dimensions, dimensionByName, maxY } from './Dimension';
-import type { DimensionType } from './Dimension';
+import { Dimensions, dimensionByName } from './DimensionType';
+import { maxY } from './Dimension';
+import type { DimensionType } from './DimensionType';
 import type { World } from './World';
 
 /** The six members of `ContentBlockAccess` the world subsystem implements. */

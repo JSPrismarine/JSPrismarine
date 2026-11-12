@@ -16,7 +16,7 @@ import { testLevel } from '../src/testing/level';
 import { savedActorNbt } from '../src/testing/savedActor.test.helper';
 import { ChunkCompletionQueue } from '../src/world/ChunkCompletionQueue';
 import { DimensionTravel } from '../src/world/portal/DimensionTravel';
-import { Dimensions } from '../src/world/Dimension';
+import { Dimensions } from '../src/world/DimensionType';
 import type { Generator } from '../src/world/Generator';
 import Chunk from '../src/world/chunk/Chunk';
 import LevelDB from '../src/world/providers/leveldb/LevelDB';

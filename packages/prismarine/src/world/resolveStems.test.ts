@@ -8,7 +8,7 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { normalizeWorldData } from '../config/normalizeWorldData';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { DEFAULT_FLAT_SETTINGS, flatStem } from './generators/factories/flat';
 import { OVERWORLD_NOISE_STEM } from './generators/factories/noise';
 import { BUILT_IN_WORLD_PRESETS, dimensionTypesOf, loadOf, resolveStems } from './resolveStems';

@@ -3,7 +3,7 @@ import { PORTAL_BLOCK_NAMES } from '@jsprismarine/blocks';
 import { describe, expect, it } from 'vitest';
 
 import { PORTAL_TRANSITION_TICKS } from '../../entity/PortalContact';
-import { Dimensions } from '../Dimension';
+import { Dimensions } from '../DimensionType';
 import { DIMENSION_TRAVEL, PORTALS, PORTAL_SEARCH_RADIUS, portalRuleOf, travelRuleOf } from './rules';
 
 describe('DIMENSION_TRAVEL', () => {

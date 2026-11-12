@@ -9,7 +9,7 @@ import type Server from '../Server';
 import type { ChangeEntry, OccurrenceEntry } from '../world/changelog/ChangeEntry';
 import type { SealedTick } from '../world/changelog/ChangeLog';
 import BlockUpdateScheduler from '../world/BlockUpdateScheduler';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import { World } from '../world/World';
 import type { WorldChangeSink } from '../world/WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';

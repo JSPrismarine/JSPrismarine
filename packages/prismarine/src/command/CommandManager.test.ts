@@ -17,7 +17,7 @@ import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { GameRuleEntry } from '../world/GameRuleManager';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import { Position } from '../world/Position';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';

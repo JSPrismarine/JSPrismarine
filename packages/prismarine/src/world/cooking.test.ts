@@ -19,7 +19,7 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { stub } from '../testing/stub.test.helper';
 import { fakeLevel } from '../testing/level';
 import { Position } from './Position';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { tickFurnace } from './cooking';

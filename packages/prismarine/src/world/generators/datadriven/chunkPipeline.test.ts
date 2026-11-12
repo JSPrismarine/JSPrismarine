@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { Dimensions } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
 import type { ChunkPipelineSetup, ChunkTaskInput } from './chunkPipeline';
 import { createGenerationPipeline } from './chunkPipeline';
 import { defaultChunkPipeline, isPipelineKey, pipelineDimensionOf } from './DataDrivenGenerator';

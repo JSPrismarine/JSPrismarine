@@ -12,7 +12,7 @@ import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import { liveTestEntities } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import type { Generator } from './Generator';
 import LevelDB from './providers/leveldb/LevelDB';
 import { World } from './World';

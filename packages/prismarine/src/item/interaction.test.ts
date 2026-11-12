@@ -27,7 +27,7 @@ import { useItemInAir, useItemOnBlock } from './interaction';
 import { createBlockEntity } from '../world/generators/datadriven/javaGeneratedContent';
 import BlockUpdateScheduler from '../world/BlockUpdateScheduler';
 import Chunk from '../world/chunk/Chunk';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import { createEngineWorld } from '../world/EngineWorld';
 import { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
