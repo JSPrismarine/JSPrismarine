@@ -97,7 +97,8 @@ const COMMENTS = {
     'query-port':
         'The UDP port the query protocol answers on. Unset, or the same as server-port, query shares the RakNet socket with the game.',
     'enable-process-title': 'Whether to show the tick rate in the process title. Some terminals redraw slowly.',
-    'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
+    'enable-ticking':
+        'Whether the world ticks. Off is only for tests, which step the ticks by hand with Server.advanceTick. Until one does, nothing a tick runs happens: no chunks go out, so a joining client never spawns.',
     'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
     'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.'
 } as const satisfies Record<Exclude<keyof ConfigFile, ContentConfigKey>, string>;
