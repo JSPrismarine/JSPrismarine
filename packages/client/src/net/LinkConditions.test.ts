@@ -52,13 +52,28 @@ describe('conditionLink', () => {
         const sender = dgram.createSocket('udp4');
         open.push(socket, sender);
         const picks = [0.9, 0.1, 0.9, 0.1, 0.9];
-        link = conditionLink({ loss: 0.5, random: () => picks.shift() ?? 1 });
+        // Only the sender: another test's socket in this process must not draw a pick or a count.
+        link = conditionLink({ loss: 0.5, random: () => picks.shift() ?? 1, sockets: (socket) => socket === sender });
 
         for (const word of ['a', 'b', 'c', 'd', 'e']) sender.send(word, port, '127.0.0.1');
 
         // UDP keeps no order, and a socket's first send binds it, so compare what arrived.
         await vi.waitFor(() => expect(received.toSorted()).toStrictEqual(['a', 'c', 'e']));
         expect([link.sent, link.dropped]).toStrictEqual([5, 2]);
+    });
+
+    it('leaves a socket outside its filter alone, and does not count it', async () => {
+        const { socket, received, port } = await receiver();
+        const sender = dgram.createSocket('udp4');
+        const other = dgram.createSocket('udp4');
+        open.push(socket, sender, other);
+        link = conditionLink({ loss: 1, sockets: (candidate) => candidate === sender });
+
+        sender.send('dropped', port, '127.0.0.1');
+        other.send('direct', port, '127.0.0.1');
+
+        await vi.waitFor(() => expect(received).toStrictEqual(['direct']));
+        expect([link.sent, link.dropped]).toStrictEqual([1, 1]);
     });
 
     it('tells the sender a dropped datagram went, as UDP would', async () => {

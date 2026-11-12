@@ -8,11 +8,16 @@ export interface LinkConditions {
     readonly loss?: number;
     /** Picks the datagrams to drop. A seeded one makes a run repeatable; `Math.random` by default. */
     readonly random?: () => number;
+    /**
+     * Which sockets the link conditions; every socket by default. The others send directly and
+     * are not counted, so a test can watch its own sockets while others in the process send.
+     */
+    readonly sockets?: (socket: dgram.Socket) => boolean;
 }
 
 /** A conditioned path, with what it did so far. */
 export interface ConditionedLink {
-    /** Datagrams the process sent, dropped ones included. */
+    /** Datagrams the conditioned sockets sent, dropped ones included. */
     readonly sent: number;
     /** Datagrams dropped. */
     readonly dropped: number;
@@ -47,7 +52,12 @@ const isBound = (socket: dgram.Socket): boolean => {
  * @throws {RangeError} When the latency is negative or the loss is outside 0 to 1.
  * @throws {Error} When the process is already conditioned.
  */
-export const conditionLink = ({ latencyMs = 0, loss = 0, random = Math.random }: LinkConditions): ConditionedLink => {
+export const conditionLink = ({
+    latencyMs = 0,
+    loss = 0,
+    random = Math.random,
+    sockets = () => true
+}: LinkConditions): ConditionedLink => {
     if (!(latencyMs >= 0)) throw new RangeError(`Link latency must be at least 0 ms, got ${latencyMs}`);
     if (!(loss >= 0 && loss <= 1)) throw new RangeError(`Link loss must be from 0 to 1, got ${loss}`);
     if (active !== undefined) throw new Error('This process is already sending over a conditioned link');
@@ -60,7 +70,7 @@ export const conditionLink = ({ latencyMs = 0, loss = 0, random = Math.random }:
     const conditioned = function (this: dgram.Socket, ...args: unknown[]): void {
         // A socket's first send binds it and then calls `send` again; condition that second
         // call only, or the datagram would wait twice and risk being dropped twice.
-        if (!isBound(this)) {
+        if (!isBound(this) || !sockets(this)) {
             Reflect.apply(send, this, args);
             return;
         }
