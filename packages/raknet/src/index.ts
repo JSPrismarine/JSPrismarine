@@ -25,8 +25,15 @@ export {
 };
 
 export * from './ClientSocket';
-export * from './DatagramSource';
-export * from './RingDatagramSource';
+export { UdpDatagramSource } from './DatagramSource';
+export type { DatagramListener, DatagramSource } from './DatagramSource';
+export {
+    DEFAULT_DATAGRAM_RING_CAPACITY,
+    RING_DATAGRAM_HEADER_BYTES,
+    RingDatagramSource,
+    allocateDatagramRings
+} from './RingDatagramSource';
+export type { AttachRings, DatagramRings, WorkerSharedPort } from './RingDatagramSource';
 export * from './Constants';
 export * from './LoopbackSocket';
 export * from './WorkerServerSocket';
