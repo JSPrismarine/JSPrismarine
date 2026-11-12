@@ -15,7 +15,8 @@
  * throws, the store reverts
  * the unit's span: it writes the inverse of each entry the unit appended, newest first, through
  * the writers the runtime registers, and ignores the reports those writes
- * cause. When an inverse throws, the store can no longer be trusted, so it records the failure
+ * cause. Then it runs, newest first, the undos the unit registered through
+ * {@link EntityStore.undoWith} for runtime state the log does not carry. When an inverse throws, the store can no longer be trusted, so it records the failure
  * in {@link EntityStore.broken} and the world stops ticking
  * ([ADR 0015](../../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
  *
@@ -296,6 +297,20 @@ export class EntityStore {
         }
     }
 
+    /**
+     * Registers how to put back a write the log does not carry, such as a grace period or a death
+     * in progress, for the open unit to run if it throws. A unit that finishes hands its undos to
+     * the unit around it. Outside a unit, or during an undo, this does nothing.
+     *
+     * The undos run after the unit's inverse entries, so an undo that puts back a removed
+     * entity's state finds the entity the undone removal added back, by its runtime id.
+     * @param undo - Puts the state back as it was when this was called.
+     */
+    public undoWith(undo: () => void): void {
+        if (this.reverting) return;
+        this.units.at(-1)?.undos.push(undo);
+    }
+
     /** Registers a writer for inverse entries; the first one that knows the entity writes it. */
     public addInverseWriter(writer: InverseWriter): void {
         this.writers.push(writer);
@@ -411,7 +426,7 @@ export class EntityStore {
     }
 
     private startUnit(): OpenUnit {
-        const unit: OpenUnit = { span: this.log.startSpan(), pinned: false };
+        const unit: OpenUnit = { span: this.log.startSpan(), pinned: false, undos: [] };
         this.units.push(unit);
         return unit;
     }
@@ -419,12 +434,12 @@ export class EntityStore {
     private endUnit(unit: OpenUnit, threw: boolean): void {
         const depth = this.units.lastIndexOf(unit);
         if (depth !== -1) this.units.length = depth;
-        if (threw && !unit.pinned) this.revert(unit.span);
+        if (threw && !unit.pinned) this.revert(unit);
         else {
             if (threw) {
                 this.kept += 1;
                 this.report('A unit that threw keeps its writes: a chunk entered inside it, and that cannot be undone');
-            }
+            } else this.units.at(-1)?.undos.push(...unit.undos);
             this.log.closeSpan(unit.span);
         }
     }
@@ -453,18 +468,21 @@ export class EntityStore {
         this.log.append(entry);
     }
 
-    private revert(span: Span): void {
+    private revert(unit: OpenUnit): void {
         this.reverting = true;
         this.reverted += 1;
         let removed: readonly ChangeEntry[];
+        let failing = 'An inverse entry failed to write';
         try {
-            removed = this.log.revertSpan(span, (inverse) => {
+            removed = this.log.revertSpan(unit.span, (inverse) => {
                 if (!this.writers.some((write) => write(inverse)))
                     throw new Error(`No writer knows ${addressed(inverse)}`);
             });
+            failing = 'An undo failed';
+            for (let index = unit.undos.length - 1; index >= 0; index -= 1) unit.undos[index]?.();
         } catch (error: unknown) {
             this.failure ??= error;
-            this.report(`An inverse entry failed to write, so the store stops: ${String(error)}`);
+            this.report(`${failing}, so the store stops: ${String(error)}`);
             return;
         } finally {
             this.reverting = false;
@@ -480,6 +498,8 @@ type OpenUnit = {
     readonly span: Span;
     /** Set once a chunk entered inside the unit, which keeps its writes if it throws. */
     pinned: boolean;
+    /** How to put back the runtime state the unit wrote that the log does not carry, oldest first. */
+    readonly undos: (() => void)[];
 };
 
 /**

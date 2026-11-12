@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { coalesceTick } from '../../world/changelog/coalesceTick';
 import type { PlainRecord } from '../../world/changelog/PlainData';
-import type { EntityWorldFacts } from './host';
+import type { EntityHostFacts, EntityWorldFacts } from './host';
 import type { DataEntity } from './DataEntity';
 import { ENTITY_FAILURE_LIMIT, EntityStore } from './EntityStore';
 import type { EntityRuntime } from './EntityRuntime';
@@ -132,6 +132,25 @@ const WRITES: readonly {
 
 /** Thrown by a unit a test wants reverted. */
 class Planned extends Error {}
+
+/** A world whose block reads throw where `failing` says so. */
+class FaultyWorld extends TestEntityWorld {
+    public failing: (at: { readonly x: number }) => boolean = () => false;
+
+    public override get world(): EntityWorldFacts {
+        const facts = super.world;
+        return {
+            ...facts,
+            blocks: {
+                ...facts.blocks,
+                get: (at) => {
+                    if (this.failing(at)) throw new Error('the block read failed');
+                    return facts.blocks.get(at);
+                }
+            }
+        };
+    }
+}
 
 describe('the entity store', () => {
     it('logs one entering entry, carrying the saved form, for a spawn and the writes that built it', () => {
@@ -389,25 +408,6 @@ describe('the entity store', () => {
     });
 
     describe('failure containment', () => {
-        /** A world whose block reads around one column throw while `failing` says so. */
-        class FaultyWorld extends TestEntityWorld {
-            public failing: (at: { readonly x: number }) => boolean = () => false;
-
-            public override get world(): EntityWorldFacts {
-                const facts = super.world;
-                return {
-                    ...facts,
-                    blocks: {
-                        ...facts.blocks,
-                        get: (at) => {
-                            if (this.failing(at)) throw new Error('the block read failed');
-                            return facts.blocks.get(at);
-                        }
-                    }
-                };
-            }
-        }
-
         it('undoes the update of an entity that throws, skips it, and removes it after the fixed count', () => {
             const world = new FaultyWorld({ random: [0.95, 0.5, 0.5, 0.1] });
             const { runtime, reports } = entityFixture(world, {}, EXTRA);
@@ -513,6 +513,198 @@ describe('the entity store', () => {
             expect(runtime.store.broken).toBeInstanceOf(Error);
             expect(reports.some((line) => line.includes('no writer for not-a-field'))).toBe(true);
             expect(entity.body.loveTicks).toBe(1000);
+        });
+    });
+
+    describe('runtime state an undo puts back', () => {
+        const GRACED = { route: 'melee', graced: true } as const;
+
+        /** A world whose `drop` throws while `failing` says so, as a death's loot can. */
+        class FailingDropWorld extends TestEntityWorld {
+            public failing = false;
+
+            public override get host(): EntityHostFacts {
+                const host = super.host;
+                return {
+                    ...host,
+                    drop: (position, item) => {
+                        if (this.failing) throw new Planned();
+                        host.drop(position, item);
+                    }
+                };
+            }
+        }
+
+        it('runs the undos a unit registered newest first, and only for the unit that threw', () => {
+            const store = new EntityStore();
+            const undone: string[] = [];
+            store.beginTick();
+
+            store.unit(() => store.undoWith(() => undone.push('finished')));
+            store.unit(() => {
+                store.undoWith(() => undone.push('outer first'));
+                store.unit(() => store.undoWith(() => undone.push('inner finished')));
+                store.unit(() => {
+                    store.undoWith(() => undone.push('inner threw'));
+                    throw new Planned();
+                });
+                store.undoWith(() => undone.push('outer last'));
+                throw new Planned();
+            });
+
+            // An inner unit that finished hands its undos to the unit around it.
+            expect(undone).toEqual(['inner threw', 'outer last', 'inner finished', 'outer first']);
+        });
+
+        it('lets a mob die again after the unit in which its death threw was undone', () => {
+            const world = new FailingDropWorld();
+            const { runtime } = entityFixture(world, {}, EXTRA);
+            const entity = spawnLogged(runtime);
+            entity.body.setContainerSlot(1, { identifier: 'minecraft:saddle', count: 1 });
+            const lethal = {
+                target: entity.id,
+                cause: 'entity_attack',
+                amount: 20,
+                source: { route: 'command' }
+            } as const;
+            beginMeasuredTick(runtime.store);
+
+            world.failing = true;
+            const outcome = runtime.store.unit(() => void runtime.damage(lethal));
+            expect(outcome.failed).toBe(true);
+            expect(entity.instance.attributes.get('health')?.current).toBe(10);
+            expect(runtime.store.has(entity.id)).toBe(true);
+
+            world.failing = false;
+            expect(runtime.damage(lethal)).toMatchObject({ committed: true, died: true });
+            expect(runtime.store.has(entity.id)).toBe(false);
+        });
+
+        it('lets a graced blow land again after the unit it landed in was undone', () => {
+            const { runtime } = fixture();
+            const entity = spawnLogged(runtime);
+            const blow = { target: entity.id, cause: 'entity_attack', amount: 3, source: GRACED } as const;
+            beginMeasuredTick(runtime.store);
+
+            runtime.store.unit(() => {
+                expect(runtime.damage(blow)).toMatchObject({ committed: true, taken: 3 });
+                throw new Planned();
+            });
+            expect(entity.instance.attributes.get('health')?.current).toBe(10);
+
+            expect(runtime.damage(blow)).toMatchObject({ committed: true, taken: 3 });
+        });
+
+        it('keeps the grace an undone update counted down', () => {
+            const world = new FaultyWorld();
+            const { runtime } = entityFixture(world, {}, EXTRA);
+            const entity = spawnLogged(runtime);
+            const blow = { target: entity.id, cause: 'entity_attack', amount: 3, source: GRACED } as const;
+            runtime.damage(blow);
+
+            // Every other update throws once it has counted the grace down. Ten updates in all
+            // would run a grace out, but only the five that finished count.
+            for (let tick = 1; tick <= 10; tick += 1) {
+                world.failing = () => tick % 2 === 0;
+                beginMeasuredTick(runtime.store);
+                runtime.tick(tick);
+                runtime.store.sealTick();
+            }
+            world.failing = () => false;
+
+            expect(runtime.store.has(entity.id)).toBe(true);
+            expect(runtime.damage(blow)).toMatchObject({ committed: false, rejectedBy: 'hit_grace' });
+        });
+
+        it('keeps the grace of a mob whose removal was undone', () => {
+            const { runtime } = fixture();
+            const entity = spawnLogged(runtime);
+            const blow = { target: entity.id, cause: 'entity_attack', amount: 3, source: GRACED } as const;
+            runtime.damage(blow);
+            beginMeasuredTick(runtime.store);
+
+            runtime.store.unit(() => {
+                runtime.remove(entity.id, 'test');
+                throw new Planned();
+            });
+
+            expect(runtime.damage(blow)).toMatchObject({
+                committed: false,
+                rejectedBy: 'hit_grace'
+            });
+        });
+
+        it('forgets who dealt a blow that was undone', () => {
+            const { runtime } = fixture();
+            const entity = spawnLogged(runtime);
+            const attacker = spawnLogged(runtime, { x: 2.5, y: FLOOR_Y + 1, z: 0.5 });
+            runtime.damage({ target: entity.id, cause: 'fall', amount: 1, source: { route: 'component' } });
+            const before = entity.body.damage.records();
+            beginMeasuredTick(runtime.store);
+
+            runtime.store.unit(() => {
+                runtime.damage({
+                    target: entity.id,
+                    attacker: attacker.id,
+                    cause: 'entity_attack',
+                    amount: 2,
+                    source: { route: 'mob_attack' }
+                });
+                runtime.damage({ target: entity.id, cause: 'fall', amount: 1, source: { route: 'component' } });
+                throw new Planned();
+            });
+
+            expect(entity.body.damage.records()).toEqual(before);
+        });
+
+        it('starts a fuse again whose first count an undone update made', () => {
+            const { runtime } = entityFixture(
+                undefined,
+                {},
+                {
+                    ...EXTRA,
+                    'jsprismarine:fused': {
+                        components: {
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:rideable': { seat_count: 1 }
+                        },
+                        component_groups: {
+                            lit: { 'minecraft:explode': { fuse_lit: true, fuse_length: 1.5, power: 0 } }
+                        },
+                        events: { ignite: { add: { component_groups: ['lit'] } } }
+                    }
+                }
+            );
+            const fused = runtime.spawn('jsprismarine:fused', GROUND);
+            if (fused === undefined) throw new Error('the fixture declares no jsprismarine:fused');
+            const rider = spawnLogged(runtime, { x: 4.5, y: FLOOR_Y + 1, z: 4.5 });
+            const vehicle = runtime.mobById(fused.id);
+            if (vehicle === undefined) throw new Error('the vehicle is not in the store');
+            runtime.mount(rider.body, vehicle);
+            fused.instance.raise('ignite', 'self', 'test');
+            fused.instance.applyQueuedEvents();
+            expect(fused.body.fuseTicks).toBeUndefined();
+
+            // Carrying the rider comes after the fuse in the vehicle's update, so the update has
+            // started the fuse when this throws.
+            let failing = true;
+            const stopMoving = rider.body.stopMoving.bind(rider.body);
+            rider.body.stopMoving = () => {
+                if (failing) throw new Planned();
+                stopMoving();
+            };
+            beginMeasuredTick(runtime.store);
+            runtime.tick(1);
+            runtime.store.sealTick();
+            expect(fused.body.fuseTicks).toBeUndefined();
+
+            failing = false;
+            beginMeasuredTick(runtime.store);
+            runtime.tick(2);
+            runtime.store.sealTick();
+
+            expect(fused.body.fuseTicks).toBe(29);
         });
     });
 

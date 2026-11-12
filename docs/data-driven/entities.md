@@ -683,9 +683,11 @@ are its `merchant` field, written after a draw, a trade and a restock.
 Each mob's update in the entity pass is one unit of the log. When an update throws, the store
 writes back the before-value of everything that update logged, newest first, through setters that
 do not log, reports the mob's type and id, and skips it for the rest of the tick. A mob that fails
-`ENTITY_FAILURE_LIMIT` updates in a row is removed. Only what a save or a digest reads is undone,
-so a goal's progress or a pending death the update cleared stays as the throw left it. If an undo
-itself throws, the store can no longer be trusted, so its world stops ticking and logs that once.
+`ENTITY_FAILURE_LIMIT` updates in a row is removed. The undo also puts back the state the log
+does not carry but a later blow or update decides by: a death in progress, the grace period after a
+hit, the damage record that says who hurt the mob, and whether its fuse has started. Anything else
+outside the log, such as a goal's progress, stays as the throw left it. If an undo itself throws,
+the store can no longer be trusted, so its world stops ticking and logs that once.
 
 A default build registers all 129 of those definitions and recognizes every non-goal component
 name they use. BDS keeps chemistry, the editor, and four experimental packs in the same
