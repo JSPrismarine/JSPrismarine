@@ -514,12 +514,15 @@ describe('the server command host', () => {
 
             // The world change carries the position, so the player does not land at the
             // Nether's spawn first, and `setPlayerPosition` is not run in the world being left.
-            expect(player.changeWorld).toHaveBeenCalledWith({
-                world: fixture.nether,
-                position: new Vector3(10, 70, 10),
-                yaw: 0,
-                pitch: 0
-            });
+            expect(player.changeWorld).toHaveBeenCalledWith(
+                {
+                    world: fixture.nether,
+                    position: new Vector3(10, 70, 10),
+                    yaw: 0,
+                    pitch: 0
+                },
+                { then: expect.any(Function) }
+            );
             expect(player.setPlayerPosition).not.toHaveBeenCalled();
         });
 
@@ -530,7 +533,8 @@ describe('the server command host', () => {
             fixture.travel.admit();
 
             expect(player.changeWorld).toHaveBeenCalledWith(
-                expect.objectContaining({ world: fixture.nether, position: new Vector3(10, 70, 10) })
+                expect.objectContaining({ world: fixture.nether, position: new Vector3(10, 70, 10) }),
+                { then: expect.any(Function) }
             );
         });
 

@@ -190,10 +190,14 @@ export const spawnTarget = (world: World, facing: Pick<Arrival, 'yaw' | 'pitch'>
 interface WorldMove {
     readonly session: PlayerSession;
     readonly target: MoveTarget;
-    /** What follows the change, in the same input step. */
+    /** What follows the change, once it is carried out. */
     readonly then: () => void;
     /** The preparation of the target running for this move, if one is. */
     preparing: Promise<void> | undefined;
+    /** Set once a preparation finished and left the target not ready, which drops the move. */
+    failed: boolean;
+    /** Answers {@link DimensionTravel.moveTo}'s promise. */
+    readonly settle: (landed: boolean) => void;
 }
 
 /** Every chunk within `radius` blocks of a position on x and z, as chunk coordinates. */
@@ -456,7 +460,7 @@ export class DimensionTravel {
      * @param then - What follows the change, such as the respawn exchange after the credits.
      */
     public move(session: PlayerSession, arrival: Arrival, then: () => void = () => {}): void {
-        this.moveTo(session, arrivalTarget(arrival), then);
+        void this.moveTo(session, arrivalTarget(arrival), then);
     }
 
     /**
@@ -464,11 +468,24 @@ export class DimensionTravel {
      * has entered. The target is prepared outside every tick, and the move waits for the input
      * step at which it is ready. A player's later moves wait behind an earlier one, so they land
      * in the order they were filed.
+     *
+     * A preparation that finishes without making the target ready, such as a world whose build
+     * failed, drops the move at the next input step rather than asking again each step, and the
+     * player's later moves go on without it.
+     *
+     * @returns Settles with true once the move is handed to the player's world change, which
+     *   holds it behind a change still pending, and with false when it was dropped: its target
+     *   could not be prepared, the change threw, or the player disconnected first. It never rejects.
      */
-    public moveTo(session: PlayerSession, target: MoveTarget, then: () => void = () => {}): void {
-        const move: WorldMove = { session, target, then, preparing: undefined };
+    public moveTo(session: PlayerSession, target: MoveTarget, then: () => void = () => {}): Promise<boolean> {
+        let settle: (landed: boolean) => void = () => {};
+        const landed = new Promise<boolean>((resolve) => {
+            settle = resolve;
+        });
+        const move: WorldMove = { session, target, then, preparing: undefined, failed: false, settle };
         this.moves.push(move);
         this.prepareMove(move);
+        return landed;
     }
 
     /** How many trips and moves wait for an input step to land them. */
@@ -554,7 +571,17 @@ export class DimensionTravel {
         let moved = 0;
         for (const move of due) {
             const { session, target, then } = move;
-            if (!session.isConnected()) continue;
+            if (!session.isConnected()) {
+                move.settle(false);
+                continue;
+            }
+            if (move.failed) {
+                this.server
+                    .getLogger()
+                    .error(`Dropped the move of ${session.identity.name}: its destination could not be prepared`);
+                move.settle(false);
+                continue;
+            }
 
             const arrival = waiting.has(session) ? undefined : target.ready();
             if (arrival === undefined) {
@@ -565,12 +592,15 @@ export class DimensionTravel {
             }
 
             try {
-                session.released(session.changeWorld(arrival));
-                then();
+                // `then` goes with the change: a change the session holds behind a pending one runs
+                // it when it is carried out, not now.
+                session.released(session.changeWorld(arrival, { then }));
                 moved += 1;
+                move.settle(true);
             } catch (error: unknown) {
                 this.server.getLogger().error(`Moving ${session.identity.name} to ${arrival.world.getName()} failed`);
                 this.server.getLogger().error(error);
+                move.settle(false);
             }
         }
         return moved;
@@ -587,6 +617,9 @@ export class DimensionTravel {
             })
             .finally(() => {
                 move.preparing = undefined;
+                // A target a finished preparation left unready would be prepared again at every
+                // step, and would hold the player's later moves behind it for good.
+                if (move.target.ready() === undefined) move.failed = true;
                 this.preparing.delete(preparing);
             });
         move.preparing = preparing;

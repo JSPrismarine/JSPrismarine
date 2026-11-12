@@ -319,7 +319,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             if (target !== undefined && dimensionIdOf(target.player.getWorld()) !== javaDimensionIdOf(dimension)) {
                 const stem = server.getWorldManager().stemFor(dimension);
                 if (stem === undefined) refuse(`This level has no ${dimension} dimension`);
-                server.getDimensionTravel().moveTo(
+                const landed = server.getDimensionTravel().moveTo(
                     target.session,
                     stemTarget(stem.level, stem.stemId, {
                         position: vectorOf(position),
@@ -327,6 +327,12 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
                         pitch: rotation.pitch
                     })
                 );
+                // The command waits for nothing, so the player hears of a move that was dropped,
+                // such as one into a world that could not be built.
+                void landed.then((moved) => {
+                    if (moved || !target.session.isConnected()) return;
+                    target.session.released(target.session.sendMessage(`§cCould not move you to ${dimension}`));
+                });
                 return true;
             }
 

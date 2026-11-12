@@ -53,7 +53,7 @@ import { Level } from '../Level';
 import LevelDB from '../providers/leveldb/LevelDB';
 import type { World } from '../World';
 import type WorldManager from '../WorldManager';
-import { DimensionTravel, END_ARRIVAL_YAW, stemTarget } from './DimensionTravel';
+import { arrivalTarget, DimensionTravel, END_ARRIVAL_YAW, stemTarget } from './DimensionTravel';
 import { WorldMessages } from '../WorldMessages';
 import type { PortalArrival, PortalBlockRef } from './DimensionTravel';
 import { ChunkCompletionQueue } from '../ChunkCompletionQueue';
@@ -1492,6 +1492,67 @@ describe('DimensionTravel as messages', () => {
 
         await settle(scene.travel);
         expect(seen).toEqual([Dimensions.Nether.id, Dimensions.TheEnd.id]);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it("drops a move whose destination could not be prepared, and lands the player's next move", async () => {
+        const scene = await buildLevel();
+        const overworld = await scene.level.world(OVERWORLD_STEM_ID);
+        const end = await scene.level.world(END_STEM_ID);
+        const bot = playerAt(scene.server, overworld, new Vector3(0.5, 64, 0.5));
+        overworld.addPlayer(bot);
+        // What a world whose build fails leaves: a preparation that settles, and no arrival.
+        let preparations = 0;
+        const unbuildable = {
+            ready: () => undefined,
+            prepare: async () => {
+                preparations += 1;
+                throw new Error('the world failed to build');
+            }
+        };
+
+        const failed = scene.travel.moveTo(bot, unbuildable);
+        const next = scene.travel.moveTo(
+            bot,
+            arrivalTarget({ world: end, position: new Vector3(0, 70, 0), yaw: 0, pitch: 0 })
+        );
+        await settle(scene.travel);
+
+        // Prepared once, not again at each step, and the move behind it went on.
+        expect(preparations).toBe(1);
+        await expect(failed).resolves.toBe(false);
+        await expect(next).resolves.toBe(true);
+        expect(bot.getWorld()).toBe(end);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('runs what follows a move once a change the session held it behind is carried out', async () => {
+        const scene = await buildLevel();
+        const overworld = await scene.level.world(OVERWORLD_STEM_ID);
+        const nether = await scene.level.world(NETHER_STEM_ID);
+        const end = await scene.level.world(END_STEM_ID);
+        const bot = playerAt(scene.server, overworld, new Vector3(0.5, 64, 0.5));
+        overworld.addPlayer(bot);
+        const followed: string[] = [];
+
+        // A change the client has not closed the loading screen of yet.
+        scene.travel.move(bot, { world: nether, position: new Vector3(0, 70, 0), yaw: 0, pitch: 0 });
+        expect(scene.travel.admit()).toBe(1);
+        const pending = bot.pendingDimensionChange();
+        if (pending === undefined) throw new Error('the change to the Nether is not pending');
+
+        // A move after it, as the credits' finish files, is held behind it, and so is what follows.
+        scene.travel.move(bot, { world: end, position: new Vector3(0, 70, 0), yaw: 0, pitch: 0 }, () =>
+            followed.push(bot.getWorld().getDimension().id)
+        );
+        expect(scene.travel.admit()).toBe(1);
+        expect(followed).toEqual([]);
+
+        bot.completeDimensionChange(pending.loadingScreenId);
+        expect(scene.travel.admit()).toBe(1);
+        expect(followed).toEqual([Dimensions.TheEnd.id]);
 
         await scene.level.disable();
     }, 60_000);
