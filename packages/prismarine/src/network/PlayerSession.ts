@@ -3577,6 +3577,15 @@ export default class PlayerSession {
         return attempt.kind === 'answer' ? this.destinationOf(attempt.answer) : undefined;
     }
 
+    /**
+     * Gives up the chunk tickets {@link attemptRespawnPoint} took, for a caller that stops asking
+     * before it has the answer, such as a trip out of the End that was dropped. A respawn request
+     * of the same player that still waits takes its ticket again at its next attempt.
+     */
+    public abandonRespawnPoint(): void {
+        this.world.getLevel().getRespawnSearch().release(playerKeyOf(this.identity));
+    }
+
     /** Clears a spawn point the answer says was lost, and names the world the answer is in. */
     private destinationOf(answer: RespawnAnswer): RespawnDestination {
         const level = this.world.getLevel();

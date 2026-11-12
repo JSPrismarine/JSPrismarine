@@ -1277,6 +1277,71 @@ describe('DimensionTravel as messages', () => {
         await scene.level.disable();
     }, 60_000);
 
+    it('takes no ticket for a trip dropped while its destination is still being built', async () => {
+        const scene = await buildLevel();
+        const overworld = await scene.level.world(OVERWORLD_STEM_ID);
+        const mob = mobAt(overworld, new Vector3(80.5, 64, 0.5));
+
+        const departed = scene.travel.depart(mob, {
+            world: overworld,
+            position: new Vector3(80, 64, 0),
+            block: 'minecraft:portal'
+        });
+        expect(departed).toBe(true);
+        expect(scene.level.readyWorld(NETHER_STEM_ID)).toBeUndefined();
+
+        // The traveler leaves before the Nether is built, and the next input step drops the trip.
+        overworld.dataEntities().runtime.remove(mob.entity.id, 'body removed');
+        expect(scene.travel.admit()).toBe(0);
+        expect(scene.travel.pending).toBe(0);
+
+        // The build the trip started finishes after the drop.
+        await scene.travel.prepared();
+        const nether = scene.level.readyWorld(NETHER_STEM_ID);
+        if (nether === undefined) throw new Error('the Nether was not built');
+        expect(nether.chunkTickets().count).toBe(0);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('gives up the respawn ticket of a trip out of the End that is dropped while the search waits', async () => {
+        const scene = await buildScene();
+        const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5));
+        scene.end.addPlayer(player);
+        player.getPlayer().setSeenCredits(true);
+        // A bed far out in the Overworld, in a chunk nothing has loaded.
+        player.getPlayer().setSpawnPoint({ x: 4000, y: 64, z: 4000, dimension: 'minecraft:overworld' });
+        scene.completions.activate();
+
+        const departed = scene.travel.depart(player.getActor()!, {
+            world: scene.end,
+            position: new Vector3(0, 60, 0),
+            block: 'minecraft:end_portal'
+        });
+        expect(departed).toBe(true);
+
+        // The first step asks the search, which takes a ticket on the bed's chunk and waits.
+        const tickets = scene.overworld.chunkTickets();
+        await runInTick(async () => {
+            scene.travel.admit();
+        });
+        expect(scene.travel.pending).toBe(1);
+        expect(tickets.count).toBe(1);
+        expect(tickets.holds(250, 250)).toBe(true);
+
+        // The player leaves the End before the chunk is in, and the next step drops the trip.
+        scene.end.removePlayer(player);
+        await runInTick(async () => {
+            scene.travel.admit();
+        });
+        expect(scene.travel.pending).toBe(0);
+        expect(tickets.count).toBe(0);
+        expect(tickets.holds(250, 250)).toBe(false);
+
+        scene.completions.deactivate();
+        await scene.level.disable();
+    }, 60_000);
+
     it('builds a destination nobody entered outside the tick that starts the trip, and lands the trip once it is ready', async () => {
         const scene = await buildLevel();
         const overworld = await scene.level.world(OVERWORLD_STEM_ID);
