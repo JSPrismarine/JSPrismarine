@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Difficulty, Gametype, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import pkg from '../../package.json' with { type: 'json' };
 import { Config, toPacketCompressionLevel, toPacketCompressionThreshold } from './Config';
+import { parseConfigDocument } from './ConfigDocument';
 import { normalizeWorldData, worldDataOf } from './normalizeWorldData';
 import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
 
@@ -430,6 +431,260 @@ describe('config', () => {
             config.setMotd('Welcome to my server!');
             expect(config.getMotd()).toBe('Welcome to my server!');
         });
+    });
+
+    describe('server-uuid and stats.bstats', () => {
+        let configDirectory: string;
+        const file = () => path.join(configDirectory, 'config.json');
+        const read = () => readFileSync(file(), 'utf8');
+        const boot = async (): Promise<Config> => {
+            const config = new Config();
+            await config.enable();
+            return config;
+        };
+        const UUID_V4 = /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/;
+
+        beforeEach(() => {
+            configDirectory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-config-stats-test-'));
+            vi.stubEnv('JSP_DIR', configDirectory);
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+            rmSync(configDirectory, { recursive: true, force: true });
+        });
+
+        it('writes a version 4 server-uuid and the bStats section, with their comments, on first start', async () => {
+            const config = await boot();
+
+            expect(config.getServerUuid()).toMatch(UUID_V4);
+            expect(read()).toContain(
+                `    // Identifies this server. Generated on first start.\n    "server-uuid": "${config.getServerUuid()}"`
+            );
+            expect(read()).toContain(
+                [
+                    '    "stats": {',
+                    '        // bStats (https://bStats.org) collects some basic information for the JSPrismarine developers,',
+                    '        // such as how many servers run JSPrismarine and how many players they have. The data sent to',
+                    '        // bStats is anonymous. To opt out, set enabled to false.',
+                    '        // Learn more here: https://bstats.org/docs/server-owners',
+                    '        "bstats": {',
+                    '            "enabled": true,',
+                    '            "log-errors": false,',
+                    '            "log-sent-data": false,',
+                    '            "log-response-status-text": false',
+                    '        }',
+                    '    }'
+                ].join('\n')
+            );
+            expect(config.getBStatsSettings()).toStrictEqual({
+                enabled: true,
+                'log-errors': false,
+                'log-sent-data': false,
+                'log-response-status-text': false
+            });
+        });
+
+        it('reads the same server-uuid back on a second start', async () => {
+            const first = await boot();
+            const second = await boot();
+
+            expect(second.getServerUuid()).toBe(first.getServerUuid());
+        });
+
+        it('says the section was created on the start that wrote it, and not on the next', async () => {
+            expect((await boot()).wasBStatsSectionCreated()).toBe(true);
+            expect((await boot()).wasBStatsSectionCreated()).toBe(false);
+        });
+
+        it('keeps a hand-edited enabled: false across later starts', async () => {
+            await boot();
+            writeFileSync(file(), read().replace('"enabled": true', '"enabled": false'));
+
+            const edited = await boot();
+            const later = await boot();
+
+            expect(edited.getBStatsSettings().enabled).toBe(false);
+            expect(later.getBStatsSettings().enabled).toBe(false);
+            expect(read()).toContain('"enabled": false');
+        });
+
+        it('reads the logging switches from the file, and fills in a switch the file lacks', async () => {
+            writeFileSync(file(), JSON.stringify({ stats: { bstats: { enabled: true, 'log-sent-data': true } } }));
+
+            const config = await boot();
+
+            expect(config.wasBStatsSectionCreated()).toBe(false);
+            expect(config.getBStatsSettings()).toStrictEqual({
+                enabled: true,
+                'log-errors': false,
+                'log-sent-data': true,
+                'log-response-status-text': false
+            });
+            expect(read()).toContain('"log-errors": false');
+        });
+
+        describe('a stats section that is not well formed', () => {
+            /** The logging switches a section lacks, which the server writes in. */
+            const switches = { 'log-errors': false, 'log-sent-data': false, 'log-response-status-text': false };
+            const notASection = 'a section';
+            const notABoolean = 'true or false';
+
+            it.each([
+                { stats: false, key: 'stats', value: 'false', expected: notASection, kept: false },
+                { stats: null, key: 'stats', value: 'null', expected: notASection, kept: null },
+                {
+                    stats: { bstats: false },
+                    key: 'stats.bstats',
+                    value: 'false',
+                    expected: notASection,
+                    kept: { bstats: false }
+                },
+                {
+                    stats: { bstats: null },
+                    key: 'stats.bstats',
+                    value: 'null',
+                    expected: notASection,
+                    kept: { bstats: null }
+                },
+                ...[
+                    { enabled: 'false', value: '"false"' },
+                    { enabled: 0, value: '0' },
+                    { enabled: null, value: 'null' }
+                ].map(({ enabled, value }) => ({
+                    stats: { bstats: { enabled } },
+                    key: 'stats.bstats.enabled',
+                    value,
+                    expected: notABoolean,
+                    kept: { bstats: { enabled, ...switches } }
+                })),
+                {
+                    stats: { bstats: { enabeld: true } },
+                    key: 'stats.bstats.enabled',
+                    value: 'missing',
+                    expected: notABoolean,
+                    kept: { bstats: { enabeld: true, ...switches } }
+                }
+            ])(
+                'turns bStats off for stats: $stats and keeps the value',
+                async ({ stats, key, value, expected, kept }) => {
+                    writeFileSync(file(), `${JSON.stringify({ stats }, null, 4)}\n`);
+
+                    const config = await boot();
+                    const settings = config.getBStatsSettings();
+
+                    expect(settings.enabled).toBe(false);
+                    expect(settings.problem).toBe(
+                        `${key} in config.json is ${value}, not ${expected}, so bStats is off. Set stats.bstats.enabled to true or false.`
+                    );
+                    expect(config.wasBStatsSectionCreated()).toBe(false);
+                    expect(parseConfigDocument(read()).get(['stats'])).toStrictEqual(kept);
+                    expect((await boot()).getBStatsSettings().enabled).toBe(false);
+                }
+            );
+
+            it('creates the section with bStats on when the file has none at all', async () => {
+                writeFileSync(file(), '{}\n');
+
+                const config = await boot();
+
+                expect(config.getBStatsSettings()).toStrictEqual({
+                    enabled: true,
+                    'log-errors': false,
+                    'log-sent-data': false,
+                    'log-response-status-text': false
+                });
+                expect(config.wasBStatsSectionCreated()).toBe(true);
+            });
+
+            it('turns bStats off for a top-level key spelled stats.bstats and keeps it', async () => {
+                writeFileSync(file(), `${JSON.stringify({ 'stats.bstats': { enabled: false } }, null, 4)}\n`);
+
+                const config = await boot();
+
+                expect(config.getBStatsSettings()).toMatchObject({
+                    enabled: false,
+                    problem:
+                        '"stats.bstats" in config.json is a top-level key, not a section inside stats, so bStats is off. Move it into the stats section.'
+                });
+                expect(config.wasBStatsSectionCreated()).toBe(false);
+                expect(parseConfigDocument(read()).get(['stats.bstats'])).toStrictEqual({ enabled: false });
+                expect((await boot()).getBStatsSettings().enabled).toBe(false);
+            });
+
+            it('creates stats.bstats inside an empty stats section', async () => {
+                writeFileSync(file(), JSON.stringify({ stats: {} }));
+
+                const config = await boot();
+
+                expect(config.getBStatsSettings().enabled).toBe(true);
+                expect(config.wasBStatsSectionCreated()).toBe(true);
+                expect(parseConfigDocument(read()).get(['stats', 'bstats', 'enabled'])).toBe(true);
+            });
+        });
+
+        it.each([['"not-a-uuid"'], ['12345'], ['""'], ['null']])(
+            'replaces a malformed server-uuid (%s) with a fresh one',
+            async (stored) => {
+                writeFileSync(file(), `{\n    // Mine.\n    "server-uuid": ${stored}\n}\n`);
+
+                const config = await boot();
+
+                expect(config.getServerUuid()).toMatch(UUID_V4);
+                expect(read()).toContain(`    // Mine.\n    "server-uuid": "${config.getServerUuid()}"`);
+                expect((await boot()).getServerUuid()).toBe(config.getServerUuid());
+            }
+        );
+
+        it('keeps a stored UUID of another version as the file spells it', async () => {
+            writeFileSync(file(), JSON.stringify({ 'server-uuid': 'FBF8646C-652C-38C4-96FF-A29D86CB5943' }));
+
+            expect((await boot()).getServerUuid()).toBe('FBF8646C-652C-38C4-96FF-A29D86CB5943');
+        });
+
+        // Root ignores file modes, so the write this test expects to be refused would succeed.
+        it.skipIf(process.getuid?.() === 0)(
+            'starts on a read-only file that lacks both, with no server UUID and bStats off',
+            async () => {
+                await boot();
+                const text = read()
+                    .replace(/ {4}\/\/ Identifies this server[^\n]*\n {4}"server-uuid": "[^"]+",\n/, '')
+                    .replace(/,\n {4}\/\/ The services the server reports[\s\S]*\n {4}}\n}\n$/, '\n}\n');
+                expect(text).not.toContain('server-uuid');
+                expect(text).not.toContain('"stats"');
+                writeFileSync(file(), text);
+                chmodSync(file(), 0o444);
+
+                const config = await boot();
+
+                expect(read()).toBe(text);
+                expect(config.getServerUuid()).toBeUndefined();
+                expect(config.wasBStatsSectionCreated()).toBe(false);
+                expect(config.getBStatsSettings().enabled).toBe(false);
+            }
+        );
+
+        it.skipIf(process.getuid?.() === 0)(
+            'turns bStats off on a read-only file that has a server UUID and no stats section',
+            async () => {
+                const first = await boot();
+                const text = read().replace(/,\n {4}\/\/ The services the server reports[\s\S]*\n {4}}\n}\n$/, '\n}\n');
+                expect(text).toContain('server-uuid');
+                expect(text).not.toContain('"stats"');
+                writeFileSync(file(), text);
+                chmodSync(file(), 0o444);
+
+                const config = await boot();
+
+                expect(read()).toBe(text);
+                expect(config.getServerUuid()).toBe(first.getServerUuid());
+                expect(config.wasBStatsSectionCreated()).toBe(false);
+                expect(config.getBStatsSettings()).toMatchObject({
+                    enabled: false,
+                    problem: 'config.json could not be written to add stats, so bStats is off.'
+                });
+            }
+        );
     });
 
     /**

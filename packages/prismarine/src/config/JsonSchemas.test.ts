@@ -5,6 +5,7 @@ import Ajv from 'ajv';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import pkg from '../../package.json' with { type: 'json' };
+import { UUID_PATTERN } from '../utils/isUuid';
 
 const schemaFiles = [
     'config.schema.json',
@@ -40,6 +41,7 @@ describe('JSON schemas', () => {
         {
             file: 'config.schema.json',
             valid: {
+                'server-uuid': 'fbf8646c-652c-48c4-96ff-a29d86cb5943',
                 'log-level': 'info',
                 'server-port': 19132,
                 'server-ip': '0.0.0.0',
@@ -85,7 +87,8 @@ describe('JSON schemas', () => {
                 'enable-process-title': true,
                 'enable-ticking': true,
                 'log-excluded-packets': ['SetTimePacket'],
-                'crafting-recipe-limit': -1
+                'crafting-recipe-limit': -1,
+                stats: { bstats: { enabled: false, 'log-errors': true } }
             },
             invalid: { port: '19132' }
         },
@@ -123,6 +126,25 @@ describe('JSON schemas', () => {
 
         expect(validate(valid)).toBe(true);
         expect(validate(invalid)).toBe(false);
+    });
+
+    describe('config.schema.json server-uuid and stats', () => {
+        const validate = (config: unknown) => ajv.compile(readSchema('config.schema.json'))(config);
+
+        it('uses the same UUID pattern as isUuid', () => {
+            expect(readSchema('config.schema.json').properties['server-uuid'].pattern).toBe(UUID_PATTERN);
+        });
+
+        it('takes a UUID as server-uuid and refuses anything else', () => {
+            expect(validate({ 'server-uuid': 'fbf8646c-652c-48c4-96ff-a29d86cb5943' })).toBe(true);
+            expect(validate({ 'server-uuid': 'not-a-uuid' })).toBe(false);
+        });
+
+        it('limits stats.bstats to its four switches', () => {
+            expect(validate({ stats: { bstats: { 'log-sent-data': true } } })).toBe(true);
+            expect(validate({ stats: { bstats: { enabled: 'no' } } })).toBe(false);
+            expect(validate({ stats: { bstats: { 'submit-every': 1 } } })).toBe(false);
+        });
     });
 
     describe('config.schema.json worlds', () => {

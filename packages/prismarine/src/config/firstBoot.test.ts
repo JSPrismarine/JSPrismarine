@@ -36,6 +36,7 @@ describe('the config file a boot generates', () => {
     /** How the keys are defined in code: `Config` first, then the content settings. */
     const DEFINITION_ORDER = [
         '$schema',
+        'server-uuid',
         'log-level',
         'server-port',
         'server-portv6',
@@ -71,6 +72,7 @@ describe('the config file a boot generates', () => {
         'enable-ticking',
         'log-excluded-packets',
         'crafting-recipe-limit',
+        'stats',
         'content-strict',
         'content-world-packs',
         'content-datapacks'
