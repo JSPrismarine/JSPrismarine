@@ -25,6 +25,7 @@ import type { AudienceOptions, World } from '../world/World';
 import type { WorldChangeSink } from '../world/WorldChangeSink';
 import type { EntityId } from '../world/changelog/ChangeEntry';
 import type { OccurrenceEntry, OccurrenceKinds } from '../world/changelog/ChangeEntry';
+import { MERCHANT_FIELD } from '../entity/data/trading';
 import type { SealedTick } from '../world/changelog/ChangeLog';
 import type { EntityView } from '../entity/data/actorView';
 import type { BlockPositionKey } from '../world/positionKeys';
@@ -195,6 +196,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     private readonly entities: EntityReplica;
     /** The occurrences read from the change log since the last flush, in log order. */
     private readonly pendingOccurrences: OccurrenceEntry[] = [];
+    /** The slots shown to their owners again since the last owner flush, in log order. */
+    private readonly pendingOwnSlots: OccurrenceKinds['slot-shown'][] = [];
+    /** The traders whose offers changed since the last owner flush, by entity id. */
+    private readonly pendingTraders = new Set<EntityId>();
 
     /** Last pose for each actor that moved since the world's previous movement flush. */
     private readonly pendingMoves = new Map<number, MoveActorAbsolutePacket>();
@@ -280,7 +285,44 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         for (const [key, at] of blockEntities) this.pendingBlockEntities.set(key, at);
         // Read, not sent yet: `StoreActors.sync` still sends the entities until D4c moves it here.
         this.entities.read(sealed);
-        for (const entry of sealed.entries) if (entry.kind === 'occurrence') this.pendingOccurrences.push(entry);
+        for (const entry of sealed.entries) {
+            if (entry.kind === 'occurrence') {
+                if (entry.occurrence === 'slot-shown') this.pendingOwnSlots.push(entry.data);
+                else this.pendingOccurrences.push(entry);
+            } else if (entry.kind === 'field' && entry.field === 'entity' && entry.address.field === MERCHANT_FIELD)
+                this.pendingTraders.add(entry.address.entity);
+        }
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * A trader's offers go to every player with a trade screen open on it, whose prices the
+     * trade screen works out for that player, and a slot goes to the player that carries it.
+     */
+    public async flushOwnerViews(): Promise<void> {
+        const sends: Promise<void>[] = [];
+        for (const { entity, container, slot } of this.pendingOwnSlots.splice(0))
+            sends.push(this.world.viewerOf(entity)?.sendOwnSlot(container, slot) ?? Promise.resolve());
+
+        if (this.pendingTraders.size > 0) {
+            for (const session of this.world.getViewers()) {
+                const trader = session.getOpenBlockContainer()?.trade?.trader;
+                if (trader !== undefined && this.pendingTraders.has(trader.getRuntimeId()))
+                    sends.push(session.sendTradeOffers());
+            }
+            this.pendingTraders.clear();
+        }
+
+        await Promise.all(
+            sends.map(async (send) => {
+                try {
+                    await send;
+                } catch (error: unknown) {
+                    this.server.getLogger().error(error);
+                }
+            })
+        );
     }
 
     /**

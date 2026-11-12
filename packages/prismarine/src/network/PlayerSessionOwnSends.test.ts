@@ -2,6 +2,10 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { describe, expect, it } from 'vitest';
 
+import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
+import ContainerEntry from '../inventory/ContainerEntry';
+import { WindowIds } from '../inventory/WindowIds';
+import { Item } from '../item/Item';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 
 /** The names of the packets a fake player's client was sent, in order. */
@@ -83,5 +87,51 @@ describe("PlayerSession's sends to its own client", () => {
 
         await sends;
         expect(names(sent)).toEqual(queued);
+    });
+
+    it('shows a slot whose write was undone under the new network id of the stack written back', () => {
+        const { session, player, live, sent } = fakePlayer();
+        const inventory = player.getInventory();
+        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:bread' }), count: 3 }));
+        void session.sendInventory();
+        const first = inventory.getEntry(0)?.toItemStack().stackNetworkId;
+        const store = live.runtime.store;
+        store.beginTick();
+
+        store.unit(() => {
+            inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 1 }));
+            throw new Error('planned');
+        });
+        const sealed = store.sealTick();
+        sent.length = 0;
+
+        // The log names the slot, and sending it gives the restored stack an id of its own.
+        expect(sealed?.entries).toEqual([
+            {
+                kind: 'occurrence',
+                occurrence: 'slot-shown',
+                data: { entity: player.getRuntimeId(), container: 'inventory', slot: 0 }
+            }
+        ]);
+        void session.sendOwnSlot('inventory', 0);
+
+        expect(sent).toHaveLength(1);
+        const packet = sent[0];
+        if (!(packet instanceof InventorySlotPacket)) throw new Error('expected InventorySlotPacket');
+        expect(packet.windowId).toBe(WindowIds.INVENTORY);
+        expect(packet.inventorySlot).toBe(0);
+        expect(packet.item?.stackSize).toBe(3);
+        expect(packet.item?.stackNetId).toBeGreaterThan(0);
+        expect(packet.item?.stackNetId).not.toBe(first);
+    });
+
+    it('sends nothing for a container the client has no window for', () => {
+        const { session, sent } = fakePlayer();
+
+        void session.sendOwnSlot('crafting', 1);
+        void session.sendOwnSlot('ender_chest', 0);
+        void session.sendOwnSlot('inventory', 999);
+
+        expect(sent).toHaveLength(0);
     });
 });

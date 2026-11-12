@@ -1244,6 +1244,14 @@ export class World implements Service {
             endOccurrencesProfile?.();
         }
 
+        // Next, so a trade's new offers follow the trade as closely as a send after the seal can.
+        const endOwnerViewsProfile = startProfile?.(`World.ownerViews:${this.name}`);
+        try {
+            await this.changes.flushOwnerViews();
+        } finally {
+            endOwnerViewsProfile?.();
+        }
+
         // After physics and after the entities, both of which change blocks, so a tick's block
         // changes leave as one batch per player rather than one packet each - see
         // `flushBlockChanges`. Before the movement, so a mob is not reported walking on ground the

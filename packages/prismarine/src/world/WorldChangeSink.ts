@@ -189,6 +189,17 @@ export interface WorldChangeSink {
     flushOccurrences(): Promise<void>;
 
     /**
+     * Tick phase: send each player's client what the ticks read since the last flush changed in
+     * its own view and that nothing else sends it: the offers of a trader it trades with, after
+     * a `merchant` entry, and each slot a `slot-shown` occurrence names.
+     *
+     * Runs after {@link WorldChangeSink.flushOccurrences}, as close to the input that made the
+     * change as a send after the seal can be.
+     * @returns {Promise<void>} Resolves once they are on their way.
+     */
+    flushOwnerViews(): Promise<void>;
+
+    /**
      * Tick phase: send the block changes this tick produced, as one batch each.
      * @returns {Promise<void>} Resolves once the batches are framed.
      */
@@ -233,6 +244,7 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     gameRuleChanged: async () => {},
     reconcile: async () => {},
     flushOccurrences: async () => {},
+    flushOwnerViews: async () => {},
     flushBlockChanges: async () => {},
     flushBlockEntities: async () => {},
     flushMovement: async () => {}

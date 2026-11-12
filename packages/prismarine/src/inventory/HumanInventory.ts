@@ -222,6 +222,23 @@ export default class HumanInventory extends Inventory {
         return true;
     }
 
+    /**
+     * What a slot holds, as the client is sent it: the stack with its count, or null for an
+     * empty slot.
+     * @param container - The container an `inventory-slot` entry names. The crafting grid is not
+     *   this inventory's.
+     * @param slot - The slot.
+     * @returns The stack, null for an empty slot, or undefined when this inventory has no such slot.
+     */
+    public slotItem(container: PlayerContainer, slot: number): Item | null | undefined {
+        if (container === 'cursor') return slot === 0 ? this.cursor : undefined;
+        const target = this.containerNamed(container);
+        if (target === undefined || !Number.isInteger(slot) || slot < 0 || slot >= target.getSlotCount())
+            return undefined;
+        const entry = target.getEntry(slot);
+        return entry === null ? null : entry.toItemStack().withCount(entry.getCount());
+    }
+
     private containerNamed(container: PlayerContainer): Inventory | undefined {
         switch (container) {
             case 'inventory':

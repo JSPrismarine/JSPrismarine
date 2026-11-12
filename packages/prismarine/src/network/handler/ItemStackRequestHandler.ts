@@ -791,10 +791,9 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
                                         return deny(`payment slot ${slot} holds fewer than ${amount}`);
                                 }
                             }
-                            commits.push(() => {
-                                trade.commit();
-                                context.after.push(() => context.session.sendTradeOffers(open));
-                            });
+                            // The trade writes the trader's offers, and replication sends the
+                            // screen the new ones from that `merchant` entry.
+                            commits.push(() => trade.commit());
                             break;
                         }
 

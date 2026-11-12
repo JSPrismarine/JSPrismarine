@@ -74,6 +74,7 @@ const worldTicking = ({
         gameRuleChanged: record('gameRuleChanged'),
         reconcile: record('reconcile'),
         flushOccurrences: record('flushOccurrences'),
+        flushOwnerViews: record('flushOwnerViews'),
         flushBlockChanges: record('flushBlockChanges'),
         flushBlockEntities: record('flushBlockEntities'),
         flushMovement: record('flushMovement')
@@ -192,6 +193,7 @@ describe('world', () => {
                 'reconcile',
                 'tickSealed',
                 'flushOccurrences',
+                'flushOwnerViews',
                 'flushBlockChanges',
                 'flushBlockEntities',
                 'flushMovement',
