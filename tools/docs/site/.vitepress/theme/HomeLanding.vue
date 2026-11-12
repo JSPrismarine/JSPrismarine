@@ -37,7 +37,8 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
         <header class="landing__hero">
             <p class="landing__eyebrow">
                 <!-- The label is set in caps, but a version keeps its own case. -->
-                <i></i><span class="landing__as-is">v{{ project.version }}</span> ·
+                <i></i><span class="landing__as-is">v{{ project.version }}</span
+                ><span class="landing__sep"> · </span>
                 <!-- The range wraps as one piece, so no version is left alone on a line. -->
                 <span class="landing__nowrap">Minecraft {{ minecraftRange(project) }}</span>
             </p>
@@ -237,6 +238,17 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 
 .landing__nowrap {
     white-space: nowrap;
+}
+
+/* Too narrow for one line, the range takes its own line, so no separator dangles at a line end. */
+@media (max-width: 480px) {
+    .landing__sep {
+        display: none;
+    }
+
+    .landing__eyebrow .landing__nowrap {
+        display: block;
+    }
 }
 
 .landing__eyebrow i {

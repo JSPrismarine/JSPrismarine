@@ -199,15 +199,41 @@ function toggle(key: string) {
     border-left: 3px solid var(--jsp-signal);
 }
 
-/* Every breaking note opens on the same label, whatever word its text starts with. */
-.release__text :deep(.release__breaking)::before {
-    display: block;
-    margin-bottom: 4px;
+/* Every breaking note folds behind the same label, whatever word its text starts with. */
+.release__text :deep(.release__breaking > summary) {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-height: 28px;
+    margin: 0;
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-1);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    content: 'Breaking';
+    cursor: pointer;
+    list-style: none;
+}
+
+.release__text :deep(.release__breaking > summary::-webkit-details-marker) {
+    display: none;
+}
+
+.release__text :deep(.release__breaking > summary)::after {
+    width: 0;
+    height: 0;
+    content: '';
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid var(--jsp-accent);
+    transition: transform 0.15s;
+}
+
+.release__text :deep(.release__breaking[open] > summary)::after {
+    transform: rotate(90deg);
+}
+
+.release__text :deep(.release__breaking > p) {
+    margin: 4px 0 0;
 }
 
 .release__summary {

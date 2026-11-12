@@ -4,6 +4,8 @@ description: Where to start, whether you play on, host, extend or work on a JSPr
 aside: false
 pageClass: is-wide
 lastUpdated: false
+# The cards are the way on; a lone Next link under them would only repeat the first.
+next: false
 ---
 
 # Guides

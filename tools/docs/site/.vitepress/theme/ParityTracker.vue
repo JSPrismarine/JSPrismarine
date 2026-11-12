@@ -908,9 +908,12 @@ progress::-moz-progress-bar {
 
 .family-progress {
     display: grid;
-    gap: 6px;
+    /* The bar sits beside the counts, so the row's two halves share one line. */
+    grid-template-columns: minmax(0, 1fr) 96px;
+    gap: 6px 12px;
+    align-items: center;
     /* One width for every row, so the scores and bars line up down the list. */
-    width: 38ch;
+    width: 48ch;
     font: var(--jsp-label-size) var(--vp-font-family-mono);
     font-variant-numeric: tabular-nums;
     color: var(--tracker-muted);
@@ -1119,6 +1122,7 @@ progress::-moz-progress-bar {
     }
 
     .family-progress {
+        grid-template-columns: minmax(0, 1fr);
         width: 100%;
         justify-items: start;
     }

@@ -225,9 +225,16 @@ const shownAreas = computed(() => {
 
 /* On a phone each link reaches the full touch target. */
 @media (max-width: 640px) {
+    /* Tighter cards on a phone, so a screen shows more than a handful of packages. */
+    .package-card {
+        gap: 2px;
+        padding: 12px 14px 0;
+    }
+
     .package-card nav {
         flex-wrap: wrap;
         gap: 0 20px;
+        padding-top: 0;
         border-top: 0;
     }
 

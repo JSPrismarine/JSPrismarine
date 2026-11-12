@@ -147,16 +147,19 @@ scrolling off the screen edge, and a two-column table stacks each row as its nam
   headings (`vp-raw`) draw the same pair themselves, as the parity tracker's do.
   Overview pages whose sections are lists of links set those sections as cards (`sectionCards.ts`),
   on a grid that reads left to right in the page's order, at full width with no outline, since the
-  cards are the outline.
+  cards are the outline. A card overview has no Next link at its foot: its cards are the way on.
 - Release notes lead each change with its first sentence in bold. Inline code in them is mono in the
-  body color, without a chip, so accent still means a link.
+  body color, without a chip, so accent still means a link. A breaking note folds behind one label,
+  "Breaking: what to update", on its signal rule, so the changes read as a list and upgraders open
+  the details they need.
 - Inline code is never a green on the dark page; it is cream on its forest chip, so green still means
   a link.
 - The parity tracker's rows and group tiles mark anything under
   half passing with a signal square. Its status chips differ by shape as well as color, and only
   defects and failures are filled signal. Group tiles count the behavior checks when a group has
   them and its data-table rows otherwise, and say which with a unit word, so each tile agrees with
-  the behavior score the home page shows. On phones the group tiles become one-line rows, so the cases
+  the behavior score the home page shows. A case row sets its score, counts and bar on one line
+  beside the family name, so the two share a baseline. On phones the group tiles become one-line rows, so the cases
   follow within a screen.
 - The package directory, the API reference index and its sidebar group packages by the areas in
   `packageAreas.ts`; the docs build fails when a published package has no area. The directory is

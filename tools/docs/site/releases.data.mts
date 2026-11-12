@@ -152,7 +152,8 @@ export { data };
 
 /**
  * Marks up a rendered change for scanning: its opening sentence becomes a lead-in, when that sentence
- * is plain text, and the paragraphs that break or remove something get a class the notes set apart.
+ * is plain text, and the paragraphs that break or remove something fold into a labeled disclosure the
+ * notes set apart.
  */
 function markChange(html: string) {
     return (
@@ -161,6 +162,11 @@ function markChange(html: string) {
             .replace(/<p>(?=(?:Breaking|Removed)\b)/g, '<p class="release__breaking">')
             // The notes label these paragraphs, so a leading "Breaking:" would say it twice.
             .replace(/<p class="release__breaking">Breaking:\s*/g, '<p class="release__breaking">')
+            // A breaking note lists removed names, which only upgraders need, so it folds behind its label.
+            .replace(
+                /<p class="release__breaking">([\s\S]*?)<\/p>/g,
+                '<details class="release__breaking"><summary>Breaking: what to update</summary><p>$1</p></details>'
+            )
     );
 }
 
