@@ -872,7 +872,7 @@ export class Level {
             try {
                 world.update(tick);
             } catch (error: unknown) {
-                this.server.getLogger().error(`World ${world.getName()} of ${this.name} failed tick ${tick}`);
+                this.server.getLogger().error(`World ${world.getFormattedName()} failed tick ${tick}`);
                 this.server.getLogger().error(error);
             }
         }
@@ -907,7 +907,7 @@ export class Level {
             try {
                 world.closeTick(tick);
             } catch (error: unknown) {
-                this.server.getLogger().error(`World ${world.getName()} of ${this.name} failed to close tick ${tick}`);
+                this.server.getLogger().error(`World ${world.getFormattedName()} failed to close tick ${tick}`);
                 this.server.getLogger().error(error);
             }
         }
