@@ -27,7 +27,7 @@ const v = PROTOCOL_VERSION;
 /** A server double exposing what the remote console reads, with spies on what it drives. */
 const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; players?: number } = {}) => {
     const dispatchCommand = vi.fn(overrides.dispatchCommand ?? (async () => true));
-    const shutdown = vi.fn(async () => {});
+    const shutdown = vi.fn(async () => true);
     const info = vi.fn();
     const sender = stub<ConsoleSender>({ getName: () => 'CONSOLE' });
     const commands = stub<CommandRegistry<CommandSource>>({

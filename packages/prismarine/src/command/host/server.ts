@@ -149,7 +149,11 @@ export const serverSideCommandHost = (
         // Kept alive on purpose: the process exiting from inside a command
         // would take the dispatch's own feedback with it.
         stop: () => {
-            const shutdown = server.shutdown({ stayAlive: true });
+            // A failed shutdown fails the command, so the sender is told and the process entry
+            // exits with a code that says so.
+            const shutdown = server.shutdown({ stayAlive: true }).then((stopped) => {
+                if (!stopped) throw new Error('The server did not shut down cleanly');
+            });
             onStopRequested(shutdown);
             return carryOut(shutdown, undefined);
         },
