@@ -6,13 +6,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type { StoreActor } from './storeActors';
 import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../../testing/stub.test.helper';
-import {
-    actorMetadataInputs,
-    actorMetadataProjection,
-    applyActorMetadataProjection,
-    sameActorMetadataInputs,
-    sameActorMetadataProjection
-} from './actorMetadata';
+import { actorMetadataProjection, applyActorMetadataProjection, sameActorMetadataProjection } from './actorMetadata';
 import { referenceActorMetadataProjection } from './actorMetadata.reference.test.helper';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
 
@@ -284,38 +278,6 @@ describe('actor metadata from entity components', () => {
                     );
                 }
             }
-        });
-
-        it('reports the inputs as changed exactly when a projected value can have changed', () => {
-            const { fixture, actor } = spawn();
-            const before = actorMetadataInputs(actor);
-
-            // A read with nothing different is the same, which is what lets a tick skip the projection.
-            expect(sameActorMetadataInputs(before, actorMetadataInputs(actor))).toBe(true);
-
-            const changes: Array<[string, () => void]> = [
-                ['fire', () => (actor.body.fireTicks = 5)],
-                ['fuse', () => (actor.body.fuseTicks = 5)],
-                ['name', () => (actor.body.nameTag = 'Bessie')],
-                ['color', () => (actor.body.color = 3)],
-                ['base plate', () => (actor.body.showBottom = false)],
-                ['beam', () => (actor.body.beamTarget = { x: 1, y: 2, z: 3 })]
-            ];
-            for (const [name, change] of changes) {
-                const reference = actorMetadataInputs(actor);
-                change();
-                expect(sameActorMetadataInputs(reference, actorMetadataInputs(actor)), name).toBe(false);
-            }
-
-            expect(sameActorMetadataInputs(actorMetadataInputs(actor, undefined), actorMetadataInputs(actor, 4))).toBe(
-                false
-            );
-
-            // A new component set invalidates the cached facts and the inputs together.
-            const marked = actorMetadataInputs(actor);
-            fixture.runtime.trigger(actor.body, 'charge', 'self');
-            fixture.runtime.tick(1);
-            expect(sameActorMetadataInputs(marked, actorMetadataInputs(actor))).toBe(false);
         });
     });
 });

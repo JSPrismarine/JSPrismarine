@@ -65,7 +65,6 @@
         "bench:full-flush-fragments": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/fullFlushFragments.bench.ts",
         "bench:entity-ai": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAi.bench.ts",
         "bench:entity-ai:dist": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAi.bench.ts",
-        "bench:actor-metadata": "node benchmarks/run.mjs benchmarks/actorMetadata.bench.ts",
         "bench:entity-ai-digest": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAiDigest.bench.ts",
         "bench:entity-ai-digest:dist": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAiDigest.bench.ts",
         "bench:chunk-delivery": "node benchmarks/run.mjs benchmarks/playerChunkDelivery.ts --cached",

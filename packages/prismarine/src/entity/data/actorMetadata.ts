@@ -215,14 +215,6 @@ export interface ActorMetadataState {
 }
 
 /**
- * Everything besides the component set that a projection reads, as plain values.
- *
- * Compared before a projection is built: while these and the component set are unchanged, the
- * projection cannot differ from the last one.
- */
-export type ActorMetadataInputs = ActorMetadataState & { readonly componentSet: object };
-
-/**
  * Reads the state half of an entity's metadata projection off the live entity.
  * @param leashHolderId - Runtime id of the entity holding this entity's leash, when one is loaded.
  */
@@ -244,29 +236,6 @@ export const actorMetadataStateOf = (entity: DataEntity, leashHolderId?: number)
         spawnBlock: entity.spawnData?.['block']
     };
 };
-
-/** Reads the per-tick inputs of an entity's metadata projection. */
-export const actorMetadataInputs = (entity: DataEntity, leashHolderId?: number): ActorMetadataInputs => ({
-    componentSet: componentMetadataFacts(entity.instance).componentSet,
-    ...actorMetadataStateOf(entity, leashHolderId)
-});
-
-/** Whether two reads of the per-tick inputs are the same, so the last projection still stands. */
-export const sameActorMetadataInputs = (left: ActorMetadataInputs | undefined, right: ActorMetadataInputs): boolean =>
-    left !== undefined &&
-    left.componentSet === right.componentSet &&
-    left.onFire === right.onFire &&
-    left.inWater === right.inWater &&
-    left.fuseTicks === right.fuseTicks &&
-    left.owned === right.owned &&
-    left.leashHolderId === right.leashHolderId &&
-    left.nameTag === right.nameTag &&
-    left.color === right.color &&
-    left.beamX === right.beamX &&
-    left.beamY === right.beamY &&
-    left.beamZ === right.beamZ &&
-    left.showBottom === right.showBottom &&
-    left.spawnBlock === right.spawnBlock;
 
 /**
  * Projects the active entity definition and runtime state into client-facing metadata.
