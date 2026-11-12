@@ -282,10 +282,10 @@
         border-radius: var(--jsp-radius-control);
     }
 
-    /* Only the first line shares a row with the copy button and label, so only it keeps clear of them. */
-    .vp-doc div[class*='language-'] pre code .line:first-child {
-        display: inline-block;
-        padding-right: 112px;
+    /* The copy button and label sit in a strip above the code, so no line of code shares their row
+       and a comment keeps the full width. */
+    .vp-doc div[class*='language-'] pre {
+        padding-top: 60px;
     }
 
     /* A table's first column keeps room for its label, and code in cells wraps so the table fits the screen. */
@@ -346,6 +346,17 @@
     line-height: 1.4;
     text-overflow: clip;
     white-space: normal;
+}
+
+/* A doc page ends on its edit link and date, then the footer: no tall empty band between them. */
+@media (min-width: 768px) {
+    .Layout .VPContent .VPDoc {
+        padding-bottom: 48px;
+    }
+
+    .Layout .VPDoc .content {
+        padding-bottom: 0;
+    }
 }
 
 /* Pages with `pageClass: is-wide` use the full content width for their grids. */

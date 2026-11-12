@@ -131,7 +131,7 @@ looks like the console it runs in. `codeTheme.ts` builds the syntax theme from `
 in the terminal's muted mint, keywords in accent, strings in mint, numbers and constants in signal,
 names in cream. Every token color keeps AA against ink. The copy button shows at rest, beside the
 language label, and at full strength where there is no hover. On phones, code wraps instead of
-scrolling off the screen edge, and a two-column table stacks each row as its name over its value.
+scrolling off the screen edge, under a strip that holds the label and the copy button, and a two-column table stacks each row as its name over its value.
 
 ## Doc pages
 
