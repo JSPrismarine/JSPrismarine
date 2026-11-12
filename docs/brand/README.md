@@ -269,8 +269,9 @@ whose card stands in for `image: false`.
   the blind shows the land and starts it passing. On the right, a boarding pass that prints when the
   band scrolls into view: the address, the port, the Minecraft releases that can join, a "Join in
   Minecraft" link and a Copy button. Its tear-off stub is the host's coupon and thanks, so the credit
-  is part of the object and not a footnote. On a phone the pass comes down over the lower half of the
-  window and the blind stays lowered, so the land shows in the strip under the blind.
+  is part of the object and not a footnote. On a phone the two stack: the whole window, its blind
+  and the Raise tab in view, and under it the slot the pass prints from. Nothing of the pass covers
+  the window.
 - Each audience tab is a card that names the audience with its tagline, so all four read before any
   click; one panel shows at a time, headed by what that audience gets.
 - The solid accent and signal figure tiles stay: they carry the page's character. Each shows a figure
