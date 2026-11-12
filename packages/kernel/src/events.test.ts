@@ -106,6 +106,44 @@ describe('KernelEventBus', () => {
         ]);
     });
 
+    it('reports the rejection of a thenable that is not a native promise', async () => {
+        const failures: unknown[] = [];
+        const bus = new KernelEventBus<TestEvents>({ onListenerError: (error) => failures.push(error) });
+        const rejected = new Error('rejected elsewhere');
+        // What a promise from another realm or library looks like to the bus: a `then` alone.
+        const foreign: PromiseLike<never> = {
+            then: (_resolve, reject) => {
+                reject?.(rejected);
+                return foreign;
+            }
+        };
+        bus.on('tick', () => foreign);
+
+        expect(bus.post('tick', 1)).toBe(1);
+        await vi.waitFor(() => expect(failures).toStrictEqual([rejected]));
+    });
+
+    it('keeps calling listeners when the error handler throws', async () => {
+        const bus = new KernelEventBus<TestEvents>({
+            onListenerError: () => {
+                throw new Error('the reporter failed');
+            }
+        });
+        const calls: string[] = [];
+        bus.on('tick', () => {
+            calls.push('throws');
+            throw new Error('the listener failed');
+        });
+        bus.on('tick', () => {
+            calls.push('last');
+        });
+
+        expect(bus.post('tick', 1)).toBe(2);
+        expect(calls).toStrictEqual(['throws', 'last']);
+        await expect(bus.emit('tick', 2)).resolves.toBeUndefined();
+        expect(calls).toStrictEqual(['throws', 'last', 'throws', 'last']);
+    });
+
     it('lets a listener cancel what raised the event, and the later listeners see the cancel', () => {
         const bus = new KernelEventBus<{ move: [event: { canceled: boolean }] }>();
         const seen: boolean[] = [];

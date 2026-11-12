@@ -412,6 +412,26 @@ describe('Kernel module context', () => {
         expect(lines[0]).toContain('A "chat" listener failed: Error: broken listener');
     });
 
+    it('logs a listener that throws a value which cannot be turned into a string', () => {
+        const lines: string[] = [];
+        const received: string[] = [];
+        const kernel = new Kernel<{ chat: [message: string] }>({ logger: recordingLogger(lines) });
+        kernel.events.on('chat', () => {
+            throw {
+                toString: () => {
+                    throw new Error('no string for this');
+                }
+            };
+        });
+        kernel.events.on('chat', (message) => {
+            received.push(message);
+        });
+        kernel.events.post('chat', 'hi');
+
+        expect(received).toStrictEqual(['hi']);
+        expect(lines).toStrictEqual(['A "chat" listener failed: [object Object]']);
+    });
+
     it("detaches a module's event listeners when it stops", async () => {
         const received: string[] = [];
         const kernel = new Kernel<{ chat: [message: string] }>();

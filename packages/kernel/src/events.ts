@@ -78,6 +78,12 @@ export interface KernelEventBusOptions {
     readonly onListenerError?: ListenerErrorHandler;
 }
 
+/** Whether a listener returned something `await` would wait for. */
+const isThenable = (value: unknown): value is PromiseLike<unknown> =>
+    (typeof value === 'object' || typeof value === 'function') &&
+    value !== null &&
+    typeof Reflect.get(value, 'then') === 'function';
+
 interface Subscription {
     readonly listener: EventListener<readonly unknown[]>;
     readonly scope: string | undefined;
@@ -127,7 +133,9 @@ export class KernelEventBus<Events extends EventMap = EventMap> implements Event
         const subscriptions = this.listenersOf(event);
         for (const subscription of subscriptions) {
             const result = this.call(event, subscription, args);
-            if (result instanceof Promise) result.catch((error: unknown) => this.onListenerError(error, event));
+            // Any thenable, not only a native promise: one from another realm, or a library's
+            // own, is not `instanceof Promise`, and its rejection would go unreported.
+            if (isThenable(result)) Promise.resolve(result).catch((error: unknown) => this.report(error, event));
         }
         return subscriptions.length;
     }
@@ -138,7 +146,7 @@ export class KernelEventBus<Events extends EventMap = EventMap> implements Event
             try {
                 await this.call(event, subscription, args);
             } catch (error) {
-                this.onListenerError(error, event);
+                this.report(error, event);
             }
         }
     }
@@ -181,8 +189,20 @@ export class KernelEventBus<Events extends EventMap = EventMap> implements Event
         try {
             return subscription.listener(...args);
         } catch (error) {
-            this.onListenerError(error, event);
+            this.report(error, event);
             return undefined;
+        }
+    }
+
+    /**
+     * Hands a listener's failure to the error handler. A handler that throws in turn is dropped
+     * here, so it stops neither the listeners after the failed one nor what raised the event.
+     */
+    private report(error: unknown, event: string): void {
+        try {
+            this.onListenerError(error, event);
+        } catch {
+            // Nothing is left to report a failing reporter to.
         }
     }
 
