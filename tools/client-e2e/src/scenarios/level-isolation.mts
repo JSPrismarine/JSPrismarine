@@ -53,6 +53,8 @@ export const levelIsolation: Scenario = {
         const observer = await createClient('jsp-e2e-observer');
         await observer.waitFor({ chunks_loaded: { radius: 2 } }, 30_000);
         await waitUntil(() => shows(observer, playerName), 30_000, 'the observer never saw the player');
+        // Before anyone is in the second level, so none of its mobs can be in the count yet.
+        const observerBefore = await mobCount(observer);
 
         // The change is carried out by the player's next input step and finishes when the client
         // closes the loading screen it opened for it.
@@ -65,7 +67,6 @@ export const levelIsolation: Scenario = {
             'the observer still saw the player after it moved to the second level'
         );
 
-        const observerBefore = await mobCount(observer);
         await waitUntil(
             async () => (await mobCount(client)) > 0,
             60_000,

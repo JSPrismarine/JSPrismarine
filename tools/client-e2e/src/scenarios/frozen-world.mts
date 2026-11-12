@@ -12,8 +12,10 @@ export const frozenWorld: Scenario = {
 
         const frozen = server.waitForLine(/The game is frozen/, 10_000);
         server.command('tick freeze');
-        await frozen;
+        // Inside the cleanup: a freeze that took but whose line never came still has to be undone,
+        // or every later scenario of the suite runs in a frozen world.
         try {
+            await frozen;
             const frozenAt = await gameTime(server);
 
             const before = vec3(await client.state(), 'feet');
