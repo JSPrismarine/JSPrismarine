@@ -14,8 +14,11 @@ const MAX_OFFER_BYTES = 64 * 1024;
 /** How long an offer may wait for its answer; go-nethernet's handler allows the same. */
 const DEFAULT_ANSWER_TIMEOUT_MS = 15_000;
 
-/** The largest NetherNet network ID, an unsigned 64-bit integer. */
-const MAX_NETWORK_ID = (1n << 64n) - 1n;
+/**
+ * The longest network ID accepted. Today's is an unsigned 64-bit integer in decimal, 20 digits
+ * at most, and Mojang's guide says the format may change, to a GUID for one.
+ */
+const MAX_NETWORK_ID_LENGTH = 128;
 
 /** The part of {@link NetherNetServer} that turns an offer into an answer. */
 export interface NetherNetOfferAnswerer {
@@ -70,7 +73,8 @@ class RefusedRequest extends Error {
  *
  * The offer goes to the same {@link NetherNetServer} LAN signaling feeds, so a peer negotiated
  * here reaches the server through `NetherNetTransport` like any other. HTTP carries no
- * connection ID, so this picks one for each offer, unused by any live peer.
+ * connection ID, so this picks one for each offer, unused by any live peer. The network ID in
+ * the path is the client's and opaque: it names the client in the log and nothing reads it.
  */
 export class HttpSignaling {
     private readonly server: http.Server;
@@ -141,7 +145,7 @@ export class HttpSignaling {
         logger.info(`NetherNet join from ${from}, offering ${describeCandidates(offer).join(', ') || 'no candidates'}`);
 
         const started = Date.now();
-        const result = await this.negotiate(networkId, offer);
+        const result = await this.negotiate(offer);
         if ('answer' in result) {
             const answer = await this.options.sign(result.answer);
             logger.info(
@@ -160,7 +164,7 @@ export class HttpSignaling {
     }
 
     /** Hands the offer to the answerer under a fresh connection ID and waits for its answer. */
-    private negotiate(networkId: bigint, offer: string): Promise<Negotiation> {
+    private negotiate(offer: string): Promise<Negotiation> {
         const { answerer } = this.options;
         let connectionId = randomUint64();
         while (answerer.connections.has(connectionId)) connectionId = randomUint64();
@@ -188,12 +192,7 @@ export class HttpSignaling {
                     settle({ answer: signal.data, connectionId });
                 } else if (signal.type === SignalType.ConnectError) settle({ error: signal.data });
             };
-            const request = new SignalStructure(
-                SignalType.ConnectRequest,
-                connectionId,
-                withoutIdentity(offer),
-                networkId
-            );
+            const request = new SignalStructure(SignalType.ConnectRequest, connectionId, withoutIdentity(offer));
             answerer.handleOffer(request, respond).catch((error: unknown) => {
                 this.options.logger.error(error);
                 settle({ error: 'An error occurred while answering' });
@@ -211,14 +210,22 @@ const text = (response: ServerResponse, status: number, body: string): void => {
 };
 
 /**
- * The client's network ID from the path: an unsigned 64-bit integer in decimal.
- * @throws {RefusedRequest} When it is anything else.
+ * The client's network ID from the path, for the log. Mojang's guide makes it an opaque string
+ * whose format may change, so any text is taken; one that is not plain printable ASCII is quoted
+ * and escaped, so it cannot forge a log line.
+ * @throws {RefusedRequest} When it is empty or longer than an ID can be.
  */
-const parseNetworkId = (text: string): bigint => {
-    if (!/^\d{1,20}$/.test(text) || BigInt(text) > MAX_NETWORK_ID) {
+const parseNetworkId = (segment: string): string => {
+    let text = segment;
+    try {
+        text = decodeURIComponent(segment);
+    } catch {
+        // Not percent-encoding; the segment is the ID as it stands.
+    }
+    if (text === '' || text.length > MAX_NETWORK_ID_LENGTH) {
         throw new RefusedRequest(400, 'Expected /v1/join/{networkId}');
     }
-    return BigInt(text);
+    return /^[\x21-\x7e]+$/.test(text) ? text : JSON.stringify(text);
 };
 
 /**
