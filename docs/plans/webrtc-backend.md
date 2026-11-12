@@ -592,6 +592,12 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
       NetherNet suite with `pnpm run e2e:client -- --transport nethernet` four ways: the default
       shared port, a separate single port, a range, and a range that contains `server-port`. This
       needs the NetherNet cinnabar build, which is not cached on the dev host.
+    - Found 2026-11-12, from CI's NetherNet run: with RakNet off, as that run has it, query took
+      the server port for a socket of its own, since an unset `query-port` follows `server-port`,
+      and NetherNet's UDP is there by default. Peers bind their port only when an offer arrives,
+      so the start passed and every join failed with error 13. The server port is now opened as a
+      shared port whenever NetherNet's UDP covers it, so a taken port stops the start, and query
+      answers through its rings when RakNet is off.
     - Add a kick scenario that asserts the client shows the kick's reason.
     - Join with a retail client from outside the local network, with a mapping and
       `server-public-ip`.
