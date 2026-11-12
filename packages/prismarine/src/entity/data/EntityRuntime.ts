@@ -1593,24 +1593,39 @@ export class EntityRuntime implements EntityScene {
                 continue;
             if (entity.removed !== undefined || this.store.isSkipped(entity.id)) continue;
             if (this.store.broken !== undefined) break;
-            // One unit per update (ADR 0015): a throw undoes what this update wrote, skips the
-            // entity for the rest of the tick and counts against it, and the pass goes on.
-            const outcome = this.store.unit(() => this.updateEntity(entity, tick));
-            if (!outcome.failed) {
+            // This pass is an entity's last update of the tick, so it alone clears the entity's
+            // run of failures: an actor update that finished must not hide an entity pass that
+            // throws every tick, or the entity would never reach the limit.
+            if (this.runUpdate(entity, 'update', () => this.updateEntity(entity, tick)))
                 this.store.succeeded(entity.id);
-                continue;
-            }
-            this.report(
-                `${entity.identifier} ${entity.id} threw in its update, which was undone: ${String(outcome.error)}`
-            );
-            if (!this.store.failed(entity.id) || this.store.broken !== undefined) continue;
-            if (clientOwnsMovement(entity.identifier) && this.onPlayerFailed !== undefined)
-                this.onPlayerFailed(entity, outcome.error);
-            else this.remove(entity.id, 'update_failed');
         }
         if (this.store.broken !== undefined) return;
         this.runSpawnCycle(tick);
         this.runDespawnCycle(shouldTick);
+    }
+
+    /**
+     * Runs one update of an entity as a unit (ADR 0015): a throw undoes what the update wrote,
+     * skips the entity for the rest of the tick and counts against it, and the caller's pass goes
+     * on. At `ENTITY_FAILURE_LIMIT` (`EntityStore.ts`) failures in a row the entity is removed,
+     * and a player is handed to {@link EntityRuntime.onPlayerFailed} instead.
+     *
+     * @param entity - The entity the update belongs to.
+     * @param name - What the update is called in the report of a throw.
+     * @param update - The update.
+     * @returns Whether the update finished. Clearing the entity's run of failures is the caller's.
+     */
+    public runUpdate(entity: DataEntity, name: string, update: () => void): boolean {
+        const outcome = this.store.unit(update);
+        if (!outcome.failed) return true;
+        this.report(
+            `${entity.identifier} ${entity.id} threw in its ${name}, which was undone: ${String(outcome.error)}`
+        );
+        if (!this.store.failed(entity.id) || this.store.broken !== undefined) return false;
+        if (clientOwnsMovement(entity.identifier) && this.onPlayerFailed !== undefined)
+            this.onPlayerFailed(entity, outcome.error);
+        else this.remove(entity.id, 'update_failed');
+        return false;
     }
 
     /** One entity's update in the entity pass, which {@link EntityRuntime.tickEntities} runs as a unit. */

@@ -1213,8 +1213,16 @@ export class World implements Service {
         const endEntityUpdatesProfile = startProfile?.(`World.entityUpdates:${this.name}`);
         try {
             // Java completes each entity's tick callback before visiting the next ID, and so does
-            // this loop: each update runs to its end before the next one starts.
-            for (const entity of tickingEntities) entity.update(tick);
+            // this loop: each update runs to its end before the next one starts. Each runs as a
+            // unit, as the entity pass runs its half, so an actor that throws costs only its own
+            // writes, and the other actors, the entity pass and replication still run this tick.
+            // A failure here skips the entity in the entity pass below and counts toward its
+            // removal, but a finished update leaves the count alone: see `EntityRuntime.runUpdate`.
+            // A store that could not undo a unit is no longer trusted, so nothing more runs in it.
+            for (const actor of tickingEntities) {
+                if (live.runtime.store.broken !== undefined) break;
+                live.runtime.runUpdate(actor.entity, 'actor update', () => actor.update(tick));
+            }
         } finally {
             endEntityUpdatesProfile?.();
         }
