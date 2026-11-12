@@ -217,8 +217,9 @@ describe('a villager trade screen', () => {
         expect(merchant.offers()[0]?.uses).toBe(1);
         expect(merchant.experience).toBe(5);
         expect(log).toEqual(['traded true']);
-        // The screen is redrawn with the stock as it now stands, after the answer went out.
-        expect(redraws).toEqual([1]);
+        // Not redrawn here: the trade writes the trader's offers, and replication sends the
+        // screen the new ones from that entry after the tick seals.
+        expect(redraws).toEqual([]);
     });
 
     it('pays the player the offer’s experience', async () => {

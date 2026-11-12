@@ -67,6 +67,8 @@ import type HumanInventory from '../inventory/HumanInventory';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { blockSlotName } from '../inventory/containerSlots';
 import { WindowIds } from '../inventory/WindowIds';
+import type { PlayerContainer } from '../inventory/slotLog';
+import { playerContainerNamed } from '../inventory/slotLog';
 import { WindowTypes } from '../inventory/WindowTypes';
 import { Item } from '../item/Item';
 import BlockPosition from '../world/BlockPosition';
@@ -323,6 +325,19 @@ export type RespawnDestination = ReturnType<typeof respawnPoint> & { readonly wo
 
 /** How often the two per-player triggers are checked, which is Java's one second. */
 const ADVANCEMENT_CHECK_TICKS = 20;
+
+/**
+ * The window and the container name a client numbers each of its player's own slots by, for the
+ * containers it always has open. The ender chest is sent when one is opened, and the crafting
+ * grid is emptied when its screen closes, so neither is here.
+ */
+const OWN_SLOT_WINDOWS: Partial<Record<PlayerContainer, { readonly windowId: number; readonly containerId: number }>> =
+    {
+        inventory: { windowId: WindowIds.INVENTORY, containerId: ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY },
+        armor: { windowId: WindowIds.ARMOR, containerId: ContainerUiId.ARMOR_CONTAINER },
+        offhand: { windowId: WindowIds.OFFHAND, containerId: ContainerUiId.OFFHAND },
+        cursor: { windowId: WindowIds.PLAYER_ONLY_UI, containerId: ContainerUiId.CURSOR }
+    };
 
 /**
  * Waits for sends that were all queued before this was called, in the order they were made.
@@ -1549,6 +1564,36 @@ export default class PlayerSession {
             ) ?? null;
 
         await this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * Tells this client what one of its player's own slots holds now, under the stack network id
+     * the client is to name it by. Replication sends it for a `slot-shown` occurrence: a slot
+     * whose write was undone holds a stack with a new id.
+     * @param container - The container, as an `inventory-slot` entry names it.
+     * @param slot - The slot within that container.
+     * @returns The send, or a settled promise for a container the client has no window for.
+     */
+    public sendOwnSlot(container: string, slot: number): Promise<void> {
+        const named = playerContainerNamed(container);
+        const window = named === undefined ? undefined : OWN_SLOT_WINDOWS[named];
+        if (named === undefined || window === undefined) return allSent([]);
+
+        const inventory = this.own().getInventory();
+        inventory.assignStackNetworkIds();
+        const item = inventory.slotItem(named, slot);
+        if (item === undefined) return allSent([]);
+
+        const packet = new InventorySlotPacket();
+        packet.windowId = window.windowId;
+        packet.containerId = window.containerId;
+        packet.inventorySlot = slot;
+        packet.item =
+            item?.toStackDescriptor(
+                this.connection.codec.context,
+                item.stackNetworkId > 0 ? item.stackNetworkId : null
+            ) ?? null;
+        return this.connection.sendDataPacket(packet);
     }
 
     /**
