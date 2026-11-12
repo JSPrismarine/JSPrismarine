@@ -49,6 +49,8 @@ const OUTBOUND_QUEUE_BYTE_LIMIT = 64 * 1024;
 interface QueuedPacket {
     readonly packet: NetworkPacket<unknown>;
     readonly buffer: Buffer;
+    /** The tick it counts toward when recorded; see {@link MinecraftSession.queueTick}. */
+    readonly tick: number | undefined;
     readonly options: PacketBatchOptions;
     readonly direct: boolean;
     readonly resolve: () => void;
@@ -194,6 +196,7 @@ export default class MinecraftSession {
     ): void {
         if (this.dropsPackets(packets)) return;
 
+        const tick = this.queueTick();
         const options = this.withCompressionOptions({
             compressionAlgorithm: this.compressionAlgorithm,
             compressionThreshold: this.compressionThreshold,
@@ -214,7 +217,7 @@ export default class MinecraftSession {
             void this.chain(async () => {
                 try {
                     const encoded = await batch;
-                    this.frameAndRecord(encoded.content, encoded.packets, direct, encoded.packetBuffers);
+                    this.frameAndRecord(encoded.content, encoded.packets, direct, tick, encoded.packetBuffers);
                 } catch (error: unknown) {
                     this.logger.error(error);
                 }
@@ -224,7 +227,7 @@ export default class MinecraftSession {
             return;
         }
 
-        void this.ordered(() => this.frameAndRecord(batch.content, batch.packets, direct, batch.packetBuffers));
+        void this.ordered(() => this.frameAndRecord(batch.content, batch.packets, direct, tick, batch.packetBuffers));
     }
 
     /**
@@ -241,6 +244,7 @@ export default class MinecraftSession {
     ): Promise<void> {
         if (this.dropsPackets(packets)) return;
 
+        const tick = this.queueTick();
         void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
 
         this.pendingAsyncSends++;
@@ -251,7 +255,7 @@ export default class MinecraftSession {
                     compressionAlgorithm: this.compressionAlgorithm,
                     compressionThreshold: this.compressionThreshold
                 });
-                this.frameAndRecord(batch.content, batch.packets, direct, batch.packetBuffers);
+                this.frameAndRecord(batch.content, batch.packets, direct, tick, batch.packetBuffers);
 
                 // One line per packet, as `sendDataPacket` writes, so a join trace shows the
                 // chunks between the publisher updates instead of a gap where they went out.
@@ -290,8 +294,9 @@ export default class MinecraftSession {
         direct = false,
         packetBuffers?: readonly Buffer[]
     ): Promise<void> {
+        const tick = this.queueTick();
         void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
-        await this.ordered(() => this.frameSharedBatch(content, packets, direct, packetBuffers));
+        await this.ordered(() => this.frameSharedBatch(content, packets, direct, tick, packetBuffers));
     }
 
     /**
@@ -305,6 +310,7 @@ export default class MinecraftSession {
         batchPromise: Promise<ReturnType<typeof encodePacketBatch>>,
         failedPacket: NetworkPacket<unknown>
     ): Promise<void> {
+        const tick = this.queueTick();
         void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
         this.pendingAsyncSends++;
         await this.chain(async () => {
@@ -315,7 +321,7 @@ export default class MinecraftSession {
                 this.logPacketEncodeFailure(failedPacket, error);
                 return;
             }
-            this.frameSharedBatch(batch.content, batch.packets, false, batch.packetBuffers);
+            this.frameSharedBatch(batch.content, batch.packets, false, tick, batch.packetBuffers);
         }).finally(() => this.pendingAsyncSends--);
     }
 
@@ -337,6 +343,7 @@ export default class MinecraftSession {
         direct = false,
         packetBuffers?: readonly Buffer[]
     ): Promise<void> {
+        const tick = this.queueTick();
         void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
         this.pendingAsyncSends++;
         try {
@@ -344,7 +351,7 @@ export default class MinecraftSession {
                 const representative = packets[0];
                 if (representative !== undefined) this.dump(representative, packetBuffers?.[0]);
                 if (this.dropsPackets(packets)) return;
-                this.frameAndRecord(content, packets, direct, packetBuffers);
+                this.frameAndRecord(content, packets, direct, tick, packetBuffers);
                 for (const packet of packets) {
                     const name = packet.getName();
                     if (this.logFilter.shouldLogName(name)) this.logger.silly(`Sent §b${name}§r packet`);
@@ -359,13 +366,14 @@ export default class MinecraftSession {
         content: Buffer,
         packets: readonly NetworkPacket<unknown>[],
         direct: boolean,
+        tick: number | undefined,
         packetBuffers?: readonly Buffer[]
     ): void {
         const representative = packets[0];
         if (representative !== undefined) this.dump(representative, packetBuffers?.[0]);
         if (this.dropsPackets(packets)) return;
 
-        this.frameAndRecord(content, packets, direct, packetBuffers);
+        this.frameAndRecord(content, packets, direct, tick, packetBuffers);
         if (
             representative !== undefined &&
             this.logger.isEnabled('silly') &&
@@ -421,29 +429,44 @@ export default class MinecraftSession {
         return this.encryption?.decrypt(frame) ?? frame;
     }
 
-    /** Reads the tick after queued work finishes, at the same boundary where the frame is sent. */
+    /**
+     * The tick a packet queued now counts toward, read when it is queued and not when it is
+     * framed: the tick whose work is running, which for replication is the sealed tick it read
+     * ([ADR 0006](../../../../docs/adr/0006-replay-determinism-contract.md)). A frame can leave
+     * after the tick that queued it has ended. Undefined while nothing records.
+     */
+    private queueTick(): number | undefined {
+        return this.outboundPacketRecorder === undefined ? undefined : this.outboundTick?.();
+    }
+
+    /**
+     * Frames a batch and records its packets.
+     * @param ticks - The tick each packet counts toward, or one tick for them all.
+     */
     private frameAndRecord(
         content: Buffer,
         packets: readonly NetworkPacket<unknown>[],
         direct: boolean,
+        ticks: number | undefined | readonly (number | undefined)[],
         packetBuffers?: readonly Buffer[]
     ): void {
-        const tick = this.outboundPacketRecorder === undefined ? undefined : this.outboundTick?.();
         this.frame(content, direct);
-        this.recordOutbound(packets, tick, packetBuffers);
+        this.recordOutbound(packets, ticks, packetBuffers);
     }
 
     /** Records encoded packet bytes after their batch reaches the transport queue. */
     private recordOutbound(
         packets: readonly NetworkPacket<unknown>[],
-        tick: number | undefined,
+        ticks: number | undefined | readonly (number | undefined)[],
         packetBuffers?: readonly Buffer[]
     ): void {
         const recorder = this.outboundPacketRecorder;
         const connectionId = this.outboundConnectionId;
-        if (recorder === undefined || connectionId === undefined || tick === undefined) return;
+        if (recorder === undefined || connectionId === undefined) return;
 
         for (const [index, packet] of packets.entries()) {
+            const tick = typeof ticks === 'object' ? ticks[index] : ticks;
+            if (tick === undefined) continue;
             const sequence = this.nextOutboundSequence;
             this.nextOutboundSequence += 1;
             try {
@@ -568,6 +591,7 @@ export default class MinecraftSession {
                     content,
                     packets,
                     queued.some(({ direct }) => direct),
+                    queued.map(({ tick }) => tick),
                     buffers
                 );
                 if (this.logger.isEnabled('silly')) {
@@ -645,7 +669,7 @@ export default class MinecraftSession {
             resolve = finish;
             reject = fail;
         });
-        const queued: QueuedPacket = { packet, buffer, options, direct, resolve, reject, done };
+        const queued: QueuedPacket = { packet, buffer, options, direct, tick: this.queueTick(), resolve, reject, done };
         this.queuedPackets.push(queued);
         this.queuedPacketBytes += buffer.byteLength;
         this.queuedBatchOptions = options;
@@ -732,7 +756,7 @@ export default class MinecraftSession {
         this.dump(encodedPacket, batch.packetBuffers[0]);
         if (this.drops(encodedPacket.getName())) return;
 
-        this.frameAndRecord(batch.content, batch.packets, direct, batch.packetBuffers);
+        this.frameAndRecord(batch.content, batch.packets, direct, this.queueTick(), batch.packetBuffers);
         if (this.logger.isEnabled('silly') && this.logFilter.shouldLog(encodedPacket)) {
             this.logger.silly(`Sent §b${encodedPacket.getName()}§r packet`);
         }
