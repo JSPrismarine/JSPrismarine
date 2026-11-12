@@ -3196,7 +3196,7 @@ export class World implements Service {
      * nothing for the tool used can say so plainly.
      */
     public async dropContents(position: Vector3, contents: Array<Block | Item | null>): Promise<void> {
-        await this.spill(position, contents, () => ({ position }));
+        this.spill(position, contents, () => ({ position }));
     }
 
     /**
@@ -3213,7 +3213,7 @@ export class World implements Service {
         const random = randomOf(this.server);
         const center = new Vector3(block.x + 0.5, block.y + 0.5, block.z + 0.5);
 
-        await this.spill(center, contents, () => popOut(block, random));
+        this.spill(center, contents, () => popOut(block, random));
     }
 
     /**
@@ -3236,7 +3236,7 @@ export class World implements Service {
         const horizontal = Math.cos(pitch) * 0.3;
         const reported = new Vector3(eyes.getX(), eyes.getY() - 0.3, eyes.getZ());
 
-        await this.spill(eyes, contents, () => {
+        this.spill(eyes, contents, () => {
             const angle = random() * Math.PI * 2;
             const spread = random() * 0.02;
             const motion = new Vector3(
@@ -3256,11 +3256,7 @@ export class World implements Service {
      * @param {Array} contents - what to drop.
      * @param {Function} start - where one stack starts and how fast, asked once per stack.
      */
-    private async spill(
-        position: Vector3,
-        contents: Array<Block | Item | null>,
-        start: () => DropStart
-    ): Promise<void> {
+    private spill(position: Vector3, contents: Array<Block | Item | null>, start: () => DropStart): void {
         // A break running its block's `onBreak` takes what the family drops, so a container's
         // contents can be told from the family's stand-in for the loot table rather than
         // landing beside the roll; see {@link import('./blockBreak')}.
@@ -3298,11 +3294,7 @@ export class World implements Service {
 
         // Asked after the limit and the break's own collection, so a stack that never reaches the
         // ground costs no roll.
-        await Promise.all(
-            wanted.slice(0, room).map(async (drop) => {
-                this.dropItem(drop, start());
-            })
-        );
+        for (const drop of wanted.slice(0, room)) this.dropItem(drop, start());
     }
 
     /**
