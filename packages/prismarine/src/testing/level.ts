@@ -100,6 +100,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
     const respawnSearch = new RespawnSearch({
         hasStem: (stemId) => stems.has(stemId),
         world,
+        built: (dimensionId) => worlds().find((each) => each.getDimension().id === dimensionId),
         worldSpawn: () => server.getWorldManager().getDefaultWorld()
     });
 

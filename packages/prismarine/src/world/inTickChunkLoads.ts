@@ -24,12 +24,12 @@ export interface InTickChunkLoad {
  */
 export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
     {
-        // A death files the search and the next input step awaits its answer
-        // (`world/RespawnRequests.ts`), and the `Respawn` handler and the respawn action hand
-        // their searches to the input step with `step.defer`.
-        path: 'player respawn search, awaited by the input step that answers a death',
+        // A death and a respawn file requests whose searches read loaded chunks only and wait
+        // with a ticket (`world/RespawnRequests.ts`). Portal travel out of the End still awaits
+        // the search, which then loads what it lacks; E2's travel as messages removes it.
+        path: 'respawn search awaited by portal travel out of the End',
         file: 'world/RespawnSearch.ts',
-        call: 'isObstructed: async (x, y, z) => (await world.getBlock(x, y, z)).isSolid()',
+        call: 'loads.push(world.getChunk(x, z))',
         slice: 9
     },
     {

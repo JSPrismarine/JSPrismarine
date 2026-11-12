@@ -217,6 +217,11 @@ export class Level {
         this.respawnSearch = new RespawnSearch({
             hasStem: (stemId) => this.stems.has(stemId),
             world: async (stemId) => this.world(stemId),
+            // Ready worlds only: an answer in a world still enabling would wait on its start region.
+            built: (stemId) => {
+                const world = this.loadedWorld(stemId);
+                return world !== undefined && [...this.worlds()].includes(world) ? world : undefined;
+            },
             worldSpawn: () => this.server.getWorldManager().getDefaultWorld()
         });
         this.seed = options.seed;

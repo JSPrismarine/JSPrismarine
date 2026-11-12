@@ -37,14 +37,17 @@ export interface StoredSpawnPoint {
     readonly forced?: boolean;
 }
 
-/** What resolving a spawn point needs to know about the world it names. */
+/**
+ * What resolving a spawn point needs to know about the world it names, read synchronously from
+ * the chunks the world has loaded.
+ */
 export interface RespawnTerrain {
     readonly minY: number;
     readonly maxY: number;
     /** Whether a player's body cannot occupy the block. */
-    isObstructed(x: number, y: number, z: number): Promise<boolean>;
+    isObstructed(x: number, y: number, z: number): boolean;
     /** The block's state name, such as `minecraft:red_bed`. */
-    getBlockName(x: number, y: number, z: number): Promise<string>;
+    getBlockName(x: number, y: number, z: number): string;
 }
 
 /** What a stored spawn point resolved to. */
@@ -124,9 +127,9 @@ export const respawnBlockWorksIn = (identifier: string, attributes: ReadonlyMap<
 };
 
 /** Whether a player's feet and head both fit in a column. */
-const fits = async (terrain: RespawnTerrain, x: number, y: number, z: number): Promise<boolean> => {
+const fits = (terrain: RespawnTerrain, x: number, y: number, z: number): boolean => {
     if (y < terrain.minY || y + 1 >= terrain.maxY) return false;
-    return !(await terrain.isObstructed(x, y, z)) && !(await terrain.isObstructed(x, y + 1, z));
+    return !terrain.isObstructed(x, y, z) && !terrain.isObstructed(x, y + 1, z);
 };
 
 /**
@@ -135,17 +138,17 @@ const fits = async (terrain: RespawnTerrain, x: number, y: number, z: number): P
  * @param spawn - The point the player record carries.
  * @param terrain - The world the point names, which the caller has already resolved.
  */
-export const resolveRespawn = async (spawn: StoredSpawnPoint, terrain: RespawnTerrain): Promise<ResolvedSpawn> => {
+export const resolveRespawn = (spawn: StoredSpawnPoint, terrain: RespawnTerrain): ResolvedSpawn => {
     const { x, y, z } = { x: Math.floor(spawn.x), y: Math.floor(spawn.y), z: Math.floor(spawn.z) };
 
     // A point the command set, used as it stands. Java's forced spawn does not check the block,
     // which is what makes `/spawnpoint` able to name a spot in mid-air or inside a wall.
     if (spawn.forced === true) return { kind: 'honored', position: new Vector3(x, y, z) };
 
-    if (!isRespawnBlock(await terrain.getBlockName(x, y, z))) return { kind: 'destroyed' };
+    if (!isRespawnBlock(terrain.getBlockName(x, y, z))) return { kind: 'destroyed' };
 
     for (const [dx, dz] of AROUND) {
-        if (await fits(terrain, x + dx, y, z + dz)) {
+        if (fits(terrain, x + dx, y, z + dz)) {
             return { kind: 'honored', position: new Vector3(x + dx, y, z + dz) };
         }
     }

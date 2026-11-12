@@ -106,23 +106,23 @@ export interface BodyBox {
  * @param terrain - what to ask about the blocks around it.
  * @param box - the body that has to fit, from the player's own entity.
  */
-export const clearRespawnFeet = async (
+export const clearRespawnFeet = (
     spawn: Vector3,
-    terrain: Pick<SpawnTerrain, 'maxY' | 'isObstructed'>,
+    terrain: { readonly maxY: number; isObstructed(x: number, y: number, z: number): boolean },
     box: BodyBox
-): Promise<number> => {
+): number => {
     const x = Math.floor(spawn.getX());
     const z = Math.floor(spawn.getZ());
     const half = Math.max(box.width / 2 - BODY_SHRINK, 0);
     const [minX, maxX] = [Math.floor(x - half), Math.floor(x + half)];
     const [minZ, maxZ] = [Math.floor(z - half), Math.floor(z + half)];
 
-    const blocked = async (feet: number): Promise<boolean> => {
+    const blocked = (feet: number): boolean => {
         const top = Math.floor(feet + Math.max(box.height - BODY_SHRINK, BODY_SHRINK));
         for (let y = feet; y <= top; y++) {
             for (let cx = minX; cx <= maxX; cx++) {
                 for (let cz = minZ; cz <= maxZ; cz++) {
-                    if (await terrain.isObstructed(cx, y, cz)) return true;
+                    if (terrain.isObstructed(cx, y, cz)) return true;
                 }
             }
         }
@@ -130,7 +130,7 @@ export const clearRespawnFeet = async (
     };
 
     let feet = Math.floor(spawn.getY());
-    while (feet < terrain.maxY && (await blocked(feet))) feet++;
+    while (feet < terrain.maxY && blocked(feet)) feet++;
     return feet;
 };
 

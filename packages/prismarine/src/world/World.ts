@@ -1441,6 +1441,24 @@ export class World implements Service {
         return true;
     }
 
+    /**
+     * {@link getBlock} for a chunk that is already in memory: the block at a position, or
+     * undefined when its chunk is not loaded. Nothing is loaded or generated.
+     * @throws When no registry names the block the chunk holds, as {@link getBlock} does.
+     */
+    public loadedBlock(x: number, y: number, z: number, layer = 0): Block | undefined {
+        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+        if (chunk === null) return undefined;
+
+        const state = chunk.getBlock(x, y, z, layer);
+        const block = blockFromContent(state.name, this.server.getContent(), state.properties);
+        if (!block) {
+            throw new Error(`No block named ${state.name}, held at ${x} ${y} ${z} in world ${this.getName()}`);
+        }
+
+        return block;
+    }
+
     /** The latest block-write version, unique across world instances and monotonic per world. */
     public getBlockWriteVersion(): number {
         return this.blockWriteVersion;

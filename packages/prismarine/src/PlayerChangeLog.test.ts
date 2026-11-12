@@ -148,7 +148,8 @@ describe("a player's death keeps the entity", () => {
 
         const respawn = await tick(2, async () => {
             await respawnRequests.admit();
-            await session.respawn();
+            session.requestRespawn();
+            await respawnRequests.admit();
         });
         expect(fieldsOf(respawn)).toContain('entity:attribute:health');
         expect(fieldsOf(respawn)).not.toContain('membership');

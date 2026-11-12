@@ -568,7 +568,9 @@ describe('PlayerSession.changeWorld', () => {
         await session.getActor()?.setHealth(0);
         await session.changeWorld(arrivalIn(nether));
 
-        await session.respawn();
+        session.requestRespawn();
+
+        await session.getServer().getRespawnRequests().admit();
         // The respawn files the held change for the next input step.
         expect(sent.filter((packet) => packet instanceof ChangeDimensionPacket)).toHaveLength(0);
         expect(await travel.admit()).toBe(1);
