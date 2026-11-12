@@ -461,8 +461,12 @@ export const angry: ComponentFactory<EntityHooks, AngryParams> = {
                 }
                 if (state === undefined || state.remaining === null) return;
                 const remaining = state.remaining - 1;
-                entity.componentState.set(ANGRY_STATE, { ...state, remaining: remaining > 0 ? remaining : null });
-                if (remaining > 0) return;
+                if (remaining > 0) {
+                    entity.componentState.set(ANGRY_STATE, { ...state, remaining });
+                    return;
+                }
+                // Calm, so the angry sound stops too: a calm event need not remove the component.
+                entity.componentState.set(ANGRY_STATE, { ...state, remaining: null, sound: null });
                 if (params.calm?.event !== undefined)
                     entity.raise(params.calm.event, params.calm.target, 'minecraft:angry');
             }
