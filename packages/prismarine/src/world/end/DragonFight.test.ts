@@ -48,7 +48,12 @@ import type BaseProvider from '../providers/BaseProvider';
 import type { ChunkAdmissionRecord } from '../ChunkAdmissions';
 import { ChunkCompletionQueue } from '../ChunkCompletionQueue';
 import { ServerTicker } from '../../modules/ticker';
+import { chunksOfBlockBox } from '../ChunkTickets';
 import { DragonFight } from './DragonFight';
+
+/** Java's 100 ticks before the pillars move, and the 40 each pillar takes. */
+const RESPAWN_PREPARE_TICKS = 100;
+const RESPAWN_PILLAR_TICKS = 40;
 
 /**
  * The fight over a live End world: real chunks, a real `World` on the prototype, the real
@@ -327,6 +332,16 @@ describe('the dragon fight over a live End world', () => {
             .entities()
             .toArray()
             .filter((entity) => entity.identifier === 'minecraft:ender_dragon');
+
+    /** A state no save has seen yet, as the fight starts one. */
+    const freshFightState = (): DragonFightState => ({
+        dragonKilled: false,
+        previouslyKilled: false,
+        needsStateScanning: true,
+        gateways: [],
+        respawnTime: 0,
+        respawnCrystalIds: []
+    });
 
     /** A state the way a save after a first kill holds it. */
     const killedState = (): DragonFightState => ({
@@ -748,6 +763,56 @@ describe('the dragon fight over a live End world', () => {
             ).toBe(true);
         });
 
+        it('holds the pillar clock while the pillar it resets is not loaded', async () => {
+            const spike = endSpikesForSeed(1234n)[0];
+            if (spike === undefined) throw new Error('the End spike list was empty');
+            const spikeChunks = chunksOfBlockBox(
+                spike.centerX - 10,
+                spike.centerZ - 10,
+                spike.centerX + 10,
+                spike.centerZ + 10
+            );
+            const reads: (() => void)[] = [];
+            open({
+                unloaded: spikeChunks.map(({ x, z }) => [x, z] as const),
+                readChunk: async (_dimension, x, z) => {
+                    await new Promise<void>((resolve) => reads.push(resolve));
+                    return endChunk(x, z);
+                }
+            });
+            enterArena(players, 0, 70, 0);
+            const fight = freshFight(killedState());
+            addFourRespawnCrystals();
+            expect(fight.tryRespawn()).toBe(true);
+
+            // Start, the 100 prepare ticks, then the first pillar up to its reset.
+            await run(fight, 1 + RESPAWN_PREPARE_TICKS + RESPAWN_PILLAR_TICKS - 1);
+            expect(fight.state().respawnStage).toBe('summoning_pillars');
+            expect(fight.state().respawnTime).toBe(RESPAWN_PILLAR_TICKS - 1);
+            // The pillar's chunks were asked for when its beam started, once each.
+            expect(world.chunkTickets().loadsStarted).toBe(spikeChunks.length);
+
+            await run(fight, 5);
+            expect(fight.state().respawnTime).toBe(RESPAWN_PILLAR_TICKS - 1);
+            expect(world.chunkTickets().loadsStarted).toBe(spikeChunks.length);
+
+            for (const read of reads) read();
+            await new Promise<void>((resolve) => setImmediate(resolve));
+            await run(fight, 1);
+            expect(fight.state().respawnTime).toBe(RESPAWN_PILLAR_TICKS);
+            expect(world.chunkTickets().holds(spikeChunks[0]!.x, spikeChunks[0]!.z)).toBe(false);
+            const pillarCrystal = live.runtime
+                .entities()
+                .toArray()
+                .find(
+                    (entity) =>
+                        entity.identifier === 'minecraft:ender_crystal' &&
+                        Math.floor(entity.position.x) === spike.centerX &&
+                        Math.floor(entity.position.z) === spike.centerZ
+                );
+            expect(pillarCrystal?.body.invulnerable).toBe(true);
+        });
+
         it('aborts when one of the four driving crystals dies and restores the active podium', async () => {
             enterArena(players, 0, 70, 0);
             const fight = freshFight(killedState());
@@ -785,34 +850,41 @@ describe('the dragon fight over a live End world', () => {
         });
     });
 
-    describe('a death between ticks, under the ticker', () => {
+    describe('waiting for chunks, under the ticker', () => {
         /** The chunk under seed 1234's first gateway, (-78, 75, 56), which nothing else loads. */
         const GATEWAY_CHUNK = GATEWAY_CHUNKS[0];
 
-        let release: () => void;
+        /** Gateway index 0 stands at (96, 75, 0), and its feature spans these four chunks. */
+        const SPLIT_GATEWAY_CHUNKS = [
+            [5, -1],
+            [5, 0],
+            [6, -1],
+            [6, 0]
+        ] as const;
+
+        /** Releases a chunk's read, by its packed position, once the read has started. */
+        let gates: Map<number, () => void>;
         let queue: ChunkCompletionQueue;
         let ticker: ServerTicker;
         let fight: DragonFight;
         const records: ChunkAdmissionRecord[] = [];
 
-        beforeEach(() => {
-            const gate = new Promise<void>((resolve) => {
-                release = resolve;
-            });
+        const setUp = (state?: DragonFightState): void => {
+            gates = new Map();
             records.length = 0;
             queue = new ChunkCompletionQueue(undefined, { tick: () => ticker.getTick() });
             queue.admissions.setRecorder({ record: (record) => void records.push(record) });
             queue.activate();
             open({
                 unloaded: [GATEWAY_CHUNK],
-                // Generation finishes on its own schedule, which the test decides.
+                // Each read finishes when the test releases it.
                 readChunk: async (_dimension, x, z) => {
-                    await gate;
+                    await new Promise<void>((resolve) => gates.set(Chunk.packXZ(x, z), resolve));
                     return endChunk(x, z);
                 },
                 completionQueue: queue
             });
-            fight = freshFight();
+            fight = freshFight(state);
             ticker = new ServerTicker({
                 emitTick: async () => {},
                 admitInputs: () => queue.admissions.admit(ticker.getTick()),
@@ -829,7 +901,7 @@ describe('the dragon fight over a live End world', () => {
                 getProfileOwner: () => ({}),
                 getLogger: () => ({ warn: () => {}, verbose: () => {}, error: () => {} })
             });
-        });
+        };
 
         /** Whether `work` settles within a few turns of the event loop. */
         const settles = async (work: Promise<unknown>): Promise<boolean> => {
@@ -843,29 +915,101 @@ describe('the dragon fight over a live End world', () => {
             return settled;
         };
 
-        it('keeps ticking and opens the portal when the dragon dies outside a tick', async () => {
-            enterArena(players, 0, 70, 0);
-            await ticker.advance();
-            const dragon = dragons()[0]!;
-
-            // A console `/kill` runs on arrival, between two ticks.
-            live.runtime.remove(dragon.id, 'death');
-            const next = ticker.advance();
-            // The gateway chunk finishes generating while the next tick runs.
+        /** Finishes the read of one chunk, which then waits for the next input step. */
+        const finishRead = async (x: number, z: number): Promise<void> => {
+            const gate = gates.get(Chunk.packXZ(x, z));
+            if (gate === undefined) throw new Error(`nothing is reading chunk ${x},${z}`);
+            gate();
             await settles(Promise.resolve());
-            release();
+        };
 
-            expect(await settles(next)).toBe(true);
-            for (let tick = 0; tick < 3; tick += 1) expect(await settles(ticker.advance())).toBe(true);
+        /** Spawns the dragon on a first tick and kills it between ticks, as a console `/kill` does. */
+        const killBetweenTicks = async (): Promise<void> => {
+            enterArena(players, 0, 70, 0);
+            expect(await settles(ticker.advance())).toBe(true);
+            const dragon = dragons()[0];
+            if (dragon === undefined) throw new Error('the first tick spawned no dragon');
+            live.runtime.remove(dragon.id, 'death');
+        };
 
+        it('asks for a missing chunk without waiting, and runs the death in the tick that admits it', async () => {
+            setUp();
+            await killBetweenTicks();
+
+            // Each tick asks again and returns: nothing waits for the read, and nothing is written.
+            for (let tick = 0; tick < 3; tick += 1) {
+                expect(await settles(ticker.advance())).toBe(true);
+                expect(fight.state().dragonKilled).toBe(false);
+                expect(blockNameAt(world, 1, FLOOR_Y, 0)).not.toBe('minecraft:end_portal');
+            }
+            // One load, however many ticks asked.
+            expect(world.chunkTickets().loadsStarted).toBe(1);
+
+            // The read finishes between ticks, and the chunk waits for the next input step.
+            await finishRead(GATEWAY_CHUNK[0], GATEWAY_CHUNK[1]);
+            expect(queue.admissions.pending).toBe(1);
+            expect(world.getLoadedChunk(GATEWAY_CHUNK[0], GATEWAY_CHUNK[1])).toBeNull();
+            expect(fight.state().dragonKilled).toBe(false);
+
+            // The ticker numbers a tick before it runs it.
+            const admittingTick = ticker.getTick();
+            expect(await settles(ticker.advance())).toBe(true);
             expect(fight.state().dragonKilled).toBe(true);
             expect(blockNameAt(world, 1, FLOOR_Y, 0)).toBe('minecraft:end_portal');
             expect(blockNameAt(world, -78, 75, 56)).toBe('minecraft:end_gateway');
-            // The fight waited for the gateway chunk inside a tick, so it entered there and then.
             expect(records).toEqual([
-                expect.objectContaining({ x: GATEWAY_CHUNK[0], z: GATEWAY_CHUNK[1], change: 'enter', step: 'inline' })
+                expect.objectContaining({
+                    x: GATEWAY_CHUNK[0],
+                    z: GATEWAY_CHUNK[1],
+                    change: 'enter',
+                    step: 'input',
+                    tick: admittingTick
+                })
             ]);
-            expect(queue.admissions.pending).toBe(0);
+            expect(queue.admissions.snapshot().admittedInTick).toBe(0);
+            // The ticket went with the wait, so the chunk may unload again.
+            expect(world.chunkTickets().holds(GATEWAY_CHUNK[0], GATEWAY_CHUNK[1])).toBe(false);
+        });
+
+        it('advances the same way whatever order the chunks of a death arrive in', async () => {
+            /** The fight as each tick leaves it, while the four chunks arrive one a tick in `order`. */
+            const trace = async (order: readonly (readonly [number, number])[]) => {
+                setUp({ ...freshFightState(), gateways: [0] });
+                await killBetweenTicks();
+                const ticks: unknown[] = [];
+                for (const [x, z] of order) {
+                    expect(await settles(ticker.advance())).toBe(true);
+                    await finishRead(x, z);
+                    ticks.push({
+                        tick: ticker.getTick(),
+                        killed: fight.state().dragonKilled,
+                        portal: blockNameAt(world, 1, FLOOR_Y, 0),
+                        gateway: blockNameAt(world, 96, 75, 0) === 'minecraft:end_gateway'
+                    });
+                }
+                expect(await settles(ticker.advance())).toBe(true);
+                ticks.push({
+                    tick: ticker.getTick(),
+                    killed: fight.state().dragonKilled,
+                    portal: blockNameAt(world, 1, FLOOR_Y, 0),
+                    gateway: blockNameAt(world, 96, 75, 0) === 'minecraft:end_gateway'
+                });
+                expect(world.chunkTickets().loadsStarted).toBe(SPLIT_GATEWAY_CHUNKS.length);
+                expect(records.every((record) => record.step === 'input')).toBe(true);
+                return ticks;
+            };
+
+            const forward = await trace(SPLIT_GATEWAY_CHUNKS);
+            const backward = await trace([...SPLIT_GATEWAY_CHUNKS].reverse());
+
+            expect(backward).toEqual(forward);
+            // Nothing happens until the tick that admits the last of the four.
+            expect(forward.slice(0, -1).every((tick) => (tick as { killed: boolean }).killed === false)).toBe(true);
+            expect(forward.at(-1)).toMatchObject({
+                killed: true,
+                portal: 'minecraft:end_portal',
+                gateway: true
+            });
         });
     });
 });

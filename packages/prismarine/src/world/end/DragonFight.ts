@@ -17,6 +17,8 @@ import type { DataEntity } from '../../entity/data/DataEntity';
 import { explode } from '../../entity/Explosion';
 import { addExperiencePoints } from '../../entity/Experience';
 import { BossBar } from '../../network/BossBar';
+import { chunksOfBlockBox } from '../ChunkTickets';
+import type { ChunkCoordinate } from '../ChunkTickets';
 import type { World } from '../World';
 import type { DragonFightState, DragonRespawnStage } from '../WorldPersistence';
 import { fightFeatureWorld } from './worldFeatureAdapter';
@@ -78,6 +80,20 @@ const DRAGON_IDENTIFIER = 'minecraft:ender_dragon';
 const CRYSTAL_IDENTIFIER = 'minecraft:ender_crystal';
 const XP_ORB_IDENTIFIER = 'minecraft:xp_orb';
 
+/** The chunks a pillar reset clears and rebuilds, ten blocks around the pillar's center. */
+const spikeChunks = (spike: EndSpike): ChunkCoordinate[] =>
+    chunksOfBlockBox(spike.centerX - 10, spike.centerZ - 10, spike.centerX + 10, spike.centerZ + 10);
+
+/** The four chunks the podium search and placement span, around (0, 0). */
+const ARENA_CHUNKS: readonly ChunkCoordinate[] = chunksOfBlockBox(-8, -8, 8, 8);
+
+/** The ticket the fight takes on {@link ARENA_CHUNKS} while it waits to scan or resume a respawn. */
+const ARENA_TICKET = 'dragon-fight:arena';
+/** The ticket on the chunks a dead dragon's consequences write: the podium, the egg and the gateway. */
+const DEATH_TICKET = 'dragon-fight:death';
+/** The ticket on the chunks of the pillar the respawn sequence resets next. */
+const PILLAR_TICKET = 'dragon-fight:pillar';
+
 /** A fight no save has seen yet: everything at Java's codec defaults, waiting for the scan. */
 const freshState = (): DragonFightState => ({
     dragonKilled: false,
@@ -91,10 +107,15 @@ const freshState = (): DragonFightState => ({
 /**
  * The persistent dragon fight of one End world.
  *
- * Java keeps the arena loaded through a chunk ticket while the boss bar has players; this
- * server has no ticket system, so the whole fight runs only while a player is within
- * {@link ARENA_RADIUS} of the dragon's spawn point, which also keeps the arena's chunks
- * loaded through that player. An empty arena freezes the fight where it stands.
+ * The whole fight runs only while a player is within {@link ARENA_RADIUS} of the dragon's spawn
+ * point, which also keeps the arena's chunks loaded through that player. An empty arena freezes
+ * the fight where it stands.
+ *
+ * The fight never waits for a chunk inside a tick. Work that needs chunks it lacks takes a chunk
+ * ticket on them and goes into a waiting state, and a later tick, once an input step has admitted
+ * them, does the work: the scan and a saved respawn wait for the arena, a dead dragon's
+ * consequences wait for the podium's and the gateway's chunks, and a pillar reset waits for the
+ * pillar's.
  */
 export class DragonFight {
     private readonly world: World;
@@ -111,15 +132,14 @@ export class DragonFight {
     private lastBarPercent: number | undefined;
     /** Whether the missing dragon type has been reported, so the log says it once. */
     private reportedMissingDragonType = false;
-    /** A saved respawn first loads its portal chunks before checking the crystal identities. */
+    /** A saved respawn first waits for its portal chunks before checking the crystal identities. */
     private respawnChunksLoaded: boolean;
     /**
-     * A dragon that died since the last fight tick, whose world consequences the next tick runs.
+     * A dragon that died, whose world consequences the first fight tick with their chunks loaded
+     * runs. The fight does nothing else until then.
      *
-     * The removal listener can fire between ticks, from a console `/kill`, and a chunk the
-     * consequences load there would wait for the next input step while the tick waited for the
-     * consequences, so the tick would never end. Run from the tick, the chunks they wait for are
-     * admitted inside it.
+     * The removal listener can fire between ticks, from a console `/kill`, so the consequences
+     * always run from a tick.
      */
     private died: DataEntity | undefined;
 
@@ -150,10 +170,17 @@ export class DragonFight {
      * the podium or place it inactive, and find the dragon or decide one is owed. After that,
      * a missing dragon is re-sought - and spawned when the fight holds no reference or has
      * waited 1200 ticks - the crystals heal it, and its health drives the bar.
+     *
+     * A tick that lacks a chunk it needs asks for it with a ticket and returns, and the fight
+     * stays where it is until a later tick finds the chunk loaded.
      */
     public async tick(): Promise<void> {
         const died = this.died;
         if (died !== undefined) {
+            const tickets = this.world.chunkTickets();
+            if (!tickets.request(DEATH_TICKET, this.deathChunks())) return;
+
+            tickets.release(DEATH_TICKET);
             this.died = undefined;
             await this.setDragonKilled(died).catch((error: unknown) => this.report(String(error)));
         }
@@ -162,7 +189,10 @@ export class DragonFight {
         if ((this.ticks - 1) % PLAYER_SCAN_INTERVAL === 0) await this.updatePlayers();
         if (!this.playerNear) return;
 
-        if (this.fight.needsStateScanning) await this.scanState();
+        if (this.fight.needsStateScanning) {
+            if (!this.arenaLoaded()) return;
+            await this.scanState();
+        }
         if (this.fight.respawnStage !== undefined) {
             await this.tickRespawn();
             return;
@@ -196,7 +226,7 @@ export class DragonFight {
         for (const session of this.bar.players()) await this.bar.removePlayer(session);
 
         this.placeExitPortal(true);
-        await this.spawnNewGateway();
+        this.spawnNewGateway();
         if (firstKill) this.placeDragonEgg();
         this.awardExperience(dragon, firstKill);
 
@@ -264,7 +294,7 @@ export class DragonFight {
         if (stage === undefined) return;
 
         if (!this.respawnChunksLoaded) {
-            await this.loadArenaCenter();
+            if (!this.arenaLoaded()) return;
             this.respawnChunksLoaded = true;
         }
         if (!this.respawnCrystalIdsAreLive()) {
@@ -290,10 +320,18 @@ export class DragonFight {
                     return;
                 }
 
+                // The pillar's chunks are asked for as its beam starts, so they are in by the time
+                // it resets. A reset whose chunks are still missing waits, and the clock with it.
+                const tickets = this.world.chunkTickets();
+                const pillarLoaded = tickets.request(PILLAR_TICKET, spikeChunks(spike));
                 if (time % RESPAWN_PILLAR_TICKS === 0) {
                     this.setRespawnCrystalBeam({ x: spike.centerX, y: spike.height + 1, z: spike.centerZ });
                 }
-                if (time % RESPAWN_PILLAR_TICKS === RESPAWN_PILLAR_TICKS - 1) await this.resetSpike(spike);
+                if (time % RESPAWN_PILLAR_TICKS === RESPAWN_PILLAR_TICKS - 1) {
+                    if (!pillarLoaded) return;
+                    tickets.release(PILLAR_TICKET);
+                    await this.resetSpike(spike);
+                }
 
                 this.fight.respawnTime += 1;
                 if (this.fight.respawnTime >= spikes.length * RESPAWN_PILLAR_TICKS) {
@@ -363,27 +401,20 @@ export class DragonFight {
         this.fight.respawnTime = 0;
         this.fight.respawnCrystalIds = [];
         this.respawnChunksLoaded = false;
+        this.world.chunkTickets().release(PILLAR_TICKET);
         this.resetPillarCrystalOptions();
         this.placeExitPortal(true);
     }
 
-    /** Clears one pillar, emits its power-five blast, and rebuilds it with a protected crystal. */
+    /**
+     * Clears one pillar, emits its power-five blast, and rebuilds it with a protected crystal.
+     * The caller has checked that the pillar's chunks are loaded.
+     */
     private async resetSpike(spike: EndSpike): Promise<void> {
         const minX = spike.centerX - 10;
         const maxX = spike.centerX + 10;
         const minZ = spike.centerZ - 10;
         const maxZ = spike.centerZ + 10;
-        const minChunkX = minX >> 4;
-        const maxChunkX = maxX >> 4;
-        const minChunkZ = minZ >> 4;
-        const maxChunkZ = maxZ >> 4;
-        const chunks = [];
-        for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX += 1) {
-            for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += 1) {
-                chunks.push(this.world.getChunkAt(chunkX * 16, chunkZ * 16));
-            }
-        }
-        await Promise.all(chunks);
 
         const runtime = this.world.dataEntities().runtime;
         // Removed as the walk goes, which the walk allows: a removed entity is not visited again.
@@ -479,8 +510,6 @@ export class DragonFight {
      * first dragon is owed, so `dragonKilled` stays false and the tick spawns one.
      */
     private async scanState(): Promise<void> {
-        await this.loadArenaCenter();
-
         const found = this.findExitPortal();
         if (found !== undefined) {
             this.fight.exitPortalLocation = found.origin;
@@ -502,9 +531,23 @@ export class DragonFight {
         this.fight.needsStateScanning = false;
     }
 
-    /** Loads the four chunks the podium search and placement span, around (0, 0). */
-    private async loadArenaCenter(): Promise<void> {
-        for (const x of [-8, 8]) for (const z of [-8, 8]) await this.world.getChunkAt(x, z);
+    /**
+     * Whether the four chunks the podium search and placement span are loaded. While they are
+     * not, the fight holds a ticket on them; once they are, it lets the ticket go, because the
+     * players in the arena keep them.
+     */
+    private arenaLoaded(): boolean {
+        const tickets = this.world.chunkTickets();
+        if (!tickets.request(ARENA_TICKET, ARENA_CHUNKS)) return false;
+        tickets.release(ARENA_TICKET);
+        return true;
+    }
+
+    /** The chunks a dragon's death writes into: the podium and the egg, and the next gateway. */
+    private deathChunks(): ChunkCoordinate[] {
+        const gateway = this.nextGatewayOrigin();
+        if (gateway === undefined) return [...ARENA_CHUNKS];
+        return [...ARENA_CHUNKS, ...chunksOfBlockBox(gateway.x - 1, gateway.z - 1, gateway.x + 1, gateway.z + 1)];
     }
 
     /**
@@ -543,27 +586,32 @@ export class DragonFight {
      * `end_gateway` feature at that spot of the 20-position ring 96 blocks out, at y 75.
      *
      * The gateway carries no exit, so its block entity records no destination: the teleport is
-     * a later slice, and the blocks are what this kill owes the world. The chunks the feature
-     * spans are loaded first, because nothing else ever loads the ring.
+     * a later slice, and the blocks are what this kill owes the world. The death waits for the
+     * chunks the feature spans ({@link deathChunks}), because nothing else ever loads the ring.
      */
-    private async spawnNewGateway(): Promise<void> {
-        const index = this.fight.gateways.pop();
-        if (index === undefined) return;
+    private spawnNewGateway(): void {
+        const origin = this.nextGatewayOrigin();
+        if (origin === undefined) return;
 
-        const angle = 2 * (-Math.PI + GATEWAY_ANGLE_STEP * index);
-        const origin = {
-            x: Math.floor(GATEWAY_DISTANCE * Math.cos(angle)),
-            y: GATEWAY_Y,
-            z: Math.floor(GATEWAY_DISTANCE * Math.sin(angle))
-        };
-        for (const x of [origin.x - 1, origin.x + 1]) {
-            for (const z of [origin.z - 1, origin.z + 1]) await this.world.getChunkAt(x, z);
-        }
+        this.fight.gateways.pop();
         endGateway(undefined, false).place(
             fightFeatureWorld(this.world),
             new LegacyRandomSource(this.world.getSeed()),
             origin
         );
+    }
+
+    /** Where the next gateway stands: the last index of the shuffled list, on the ring. */
+    private nextGatewayOrigin(): { x: number; y: number; z: number } | undefined {
+        const index = this.fight.gateways.at(-1);
+        if (index === undefined) return undefined;
+
+        const angle = 2 * (-Math.PI + GATEWAY_ANGLE_STEP * index);
+        return {
+            x: Math.floor(GATEWAY_DISTANCE * Math.cos(angle)),
+            y: GATEWAY_Y,
+            z: Math.floor(GATEWAY_DISTANCE * Math.sin(angle))
+        };
     }
 
     /** Java's first-kill egg: the dragon egg at the MOTION_BLOCKING heightmap position above (0, 0). */
