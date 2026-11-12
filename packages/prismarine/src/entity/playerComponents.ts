@@ -15,11 +15,12 @@
  *
  * The game mode is `abilities.gamemode`, which the store player reads and writes.
  */
-import { Gametype, getGametypeId } from '@jsprismarine/minecraft';
+import { Gametype } from '@jsprismarine/minecraft';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 
+import { isGametype } from '../isGametype';
 import type { ExperienceHolder } from './Experience';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { PlainData, PlainRecord } from '../world/changelog/PlainData';
@@ -209,7 +210,13 @@ const spawnPointIn = (value: PlainData): StoredSpawnPoint | null => {
     throw new TypeError(`respawn.spawnPoint cannot hold ${JSON.stringify(value)}`);
 };
 
-const gamemodeIn = (value: PlainData): Gametype => getGametypeId(numberField('abilities.gamemode')(value));
+// Taken as written, not through `getGametypeId`: that reads command input, where 3 means spectator
+// and the viewer modes throw, and a logged value is a `Gametype` already.
+const gamemodeIn = (value: PlainData): Gametype => {
+    const mode = numberField('abilities.gamemode')(value);
+    if (isGametype(mode)) return mode;
+    throw new TypeError(`abilities.gamemode cannot hold ${JSON.stringify(value)}`);
+};
 
 const startedAtIn = (value: PlainData): number | null => optionalNumberField('itemUse.startedAt')(value) ?? null;
 

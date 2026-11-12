@@ -480,6 +480,25 @@ describe('a store player', () => {
             expect(components.get('abilities.gamemode')).toBe(Gametype.CREATIVE);
         });
 
+        it.each([Gametype.SURVIVAL_VIEWER, Gametype.CREATIVE_VIEWER])(
+            'undoes a change away from viewer mode %i to it',
+            (viewer) => {
+                const fixture = storePlayerFixture();
+                const { components } = standingPlayer(fixture);
+                logged(fixture.runtime, () => components.set('abilities.gamemode', viewer));
+
+                fixture.runtime.store.beginTick();
+                fixture.runtime.store.unit(() => {
+                    components.set('abilities.gamemode', Gametype.SURVIVAL);
+                    throw new Error('undo it');
+                });
+                fixture.runtime.store.sealTick();
+
+                expect(fixture.runtime.store.broken).toBeUndefined();
+                expect(components.get('abilities.gamemode')).toBe(viewer);
+            }
+        );
+
         it('turns blows aside in creative but the void and /kill, and every blow in spectator', () => {
             const fixture = storePlayerFixture();
             const { player, components } = standingPlayer(fixture);
