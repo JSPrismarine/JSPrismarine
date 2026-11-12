@@ -20,7 +20,7 @@ import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { ConnectionId } from './transport/ConnectionId';
 import type { Transport, TransportConnection } from './transport/Transport';
 
-/** A decoded packet the phase gate has paired with the handler it will run. */
+/** A packet the phase gate has paired with the handler it will run, decoded once past the gate. */
 interface GatedPacket {
     readonly packet: NetworkPacket<unknown>;
     readonly handler: RegisteredHandler;
@@ -166,14 +166,19 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
     /**
      * The inbound pipeline, assembled once and run per frame with the connection the frame
-     * arrived on as the context: split the batch, decode each packet through the connection's
-     * codec, log what the filter admits, gate on the connection's phase, and dispatch.
+     * arrived on as the context: split the batch, build each packet through the connection's
+     * codec, gate on its handler and the connection's phase, decode what the gate admits, log
+     * what the filter admits, and dispatch.
+     *
+     * The gate runs before the decode, so a packet nothing handles in the current phase, such as
+     * a clientbound one a peer sends back, is dropped without its body being parsed.
      */
     private readonly inbound: Pipeline<Buffer, never, ClientConnection> = Pipeline.start<Buffer, ClientConnection>()
         .pipe((frame, connection) => this.splitBatch(frame, connection))
-        .pipe((buffer, connection) => this.decodePacket(buffer, connection))
-        .pipe((packet) => this.logInbound(packet))
+        .pipe((buffer, connection) => this.buildPacket(buffer, connection))
         .pipe((packet, connection) => this.gatePhase(packet, connection))
+        .pipe((gated, connection) => this.decodePacket(gated, connection))
+        .pipe((gated) => this.logInbound(gated))
         .pipe((gated, connection) => this.dispatch(gated, connection));
 
     private enqueueFrame(payload: Buffer, id: ConnectionId): Promise<void> {
@@ -236,10 +241,10 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /**
-     * Builds and decodes one packet, or yields nothing for an id the connection's codec does
-     * not know or a payload that does not decode as the packet it claims to be.
+     * Builds one packet over its bytes without decoding it, or yields nothing for an id the
+     * connection's codec does not know.
      */
-    private decodePacket(buffer: Buffer, connection: ClientConnection): readonly NetworkPacket<unknown>[] {
+    private buildPacket(buffer: Buffer, connection: ClientConnection): readonly NetworkPacket<unknown>[] {
         const pid = readPacketId(buffer);
 
         // Resolved through the codec this connection negotiated, so each session decodes
@@ -250,16 +255,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             return [];
         }
 
-        try {
-            packet.decode(connection.codec.context);
-        } catch (error: unknown) {
-            this.logger.error(error);
-            this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${error}`);
-            return [];
-        }
-
-        // Keep the packet-local wire bytes only while the decoded object is in this pipeline.
-        // The recorder copies them after the phase gate and immediately before handler dispatch.
+        // Keep the packet-local wire bytes only while the packet is in this pipeline. The
+        // recorder copies them after the phase gate and immediately before handler dispatch.
         if (this.packetPayloads !== undefined) {
             const tick = this.frameTicks?.get(connection);
             if (tick !== undefined) this.packetPayloads.set(packet, { payload: buffer, tick });
@@ -268,12 +265,27 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         return [packet];
     }
 
+    /** Decodes a packet the gate admitted, or yields nothing for a payload that does not decode. */
+    private decodePacket(gated: GatedPacket, connection: ClientConnection): readonly GatedPacket[] {
+        const { packet } = gated;
+        try {
+            packet.decode(connection.codec.context);
+        } catch (error: unknown) {
+            this.logger.error(error);
+            this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${error}`);
+            return [];
+        }
+
+        return [gated];
+    }
+
     /** Logs the packets the traffic-log filter admits; drops nothing. */
-    private logInbound(packet: NetworkPacket<unknown>): readonly NetworkPacket<unknown>[] {
+    private logInbound(gated: GatedPacket): readonly GatedPacket[] {
+        const { packet } = gated;
         if (this.logger.isEnabled('silly') && this.logFilter.shouldLog(packet)) {
             this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
         }
-        return [packet];
+        return [gated];
     }
 
     /**
@@ -416,20 +428,22 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 throw new Error(`Replay frame for ${record.packetName} contained ${packetPayloads.length} packets`);
             }
 
-            const packets = this.decodePacket(packetPayloads[0]!, connection);
-            const packet = packets[0];
-            if (packets.length !== 1 || packet === undefined || packet.getName() !== record.packetName) {
+            const packet = this.buildPacket(packetPayloads[0]!, connection)[0];
+            if (packet === undefined || packet.getName() !== record.packetName) {
                 throw new Error(`Replay bytes did not decode as ${record.packetName}`);
             }
 
-            const gated = this.gatePhase(packet, connection);
-            if (gated.length !== 1) {
+            const gated = this.gatePhase(packet, connection)[0];
+            if (gated === undefined) {
                 throw new Error(`Replay packet ${record.packetName} was rejected in the ${connection.phase} phase`);
             }
 
-            this.logInbound(packet);
+            const decoded = this.decodePacket(gated, connection)[0];
+            if (decoded === undefined) throw new Error(`Replay bytes did not decode as ${record.packetName}`);
+
+            this.logInbound(decoded);
             // This input is already in the source trace; playback must not append it a second time.
-            await this.dispatch(gated[0]!, connection, false);
+            await this.dispatch(decoded, connection, false);
             this.replaySequences.set(record.connectionId, expectedSequence + 1);
             this.nextReplayOrder = expectedOrder + 1;
         });
