@@ -11,7 +11,8 @@ const answerFor = (player: string): RespawnAnswer => ({
     announced: { x: 0.5, y: 64, z: 0.5 },
     block: { x: 0, y: 64, z: 0 },
     eyes: { x: 0.5, y: 65.62, z: 0.5 },
-    spawnPointLost: false
+    spawnPointLost: false,
+    spawnPoint: undefined
 });
 
 const requestOf = (player: string): RespawnRequest => ({
