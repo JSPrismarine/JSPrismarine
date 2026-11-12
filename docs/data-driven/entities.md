@@ -629,7 +629,9 @@ Clients are shown a mob, the eye and every other entity from the world's change 
 ([ADR 0016](../adr/0016-replication-reads-the-change-log.md)). After each tick seals,
 `network/replica/EntityReplication.ts` reads it into the entity replica, shows an entity that
 entered to the clients in range as it entered, takes one that left off every client, and sends
-the equipment, metadata, health and moves of the entities the tick wrote, and of no others. The
+the equipment, metadata, health and moves of the entities the tick wrote, and of no others. A
+status effect that is added, changed or taken off is a `status-effect` occurrence in the same log,
+sent to the players tracking the entity and to its own client. The
 rest of the server reaches an entity through a `StoreActor` from `entity/data/storeActors.ts`,
 which answers from store state: commands and selectors, blasts and a player's swing, item
 interactions and trades, saves and the replay digest, portal travel and spawner caps.
@@ -675,8 +677,8 @@ once, with the form it had. Every change in between to a field a save or the rep
 one field entry with the value before and after it: position, rotation and velocity, the other body
 fields a save holds, attributes, properties, component groups, component state, equipment, carried
 items, container slots, tags, status effects, and leash and riding links. A write made while a mob
-is being built belongs to the form it enters with and is not logged on its own. A merchant's offers
-are saved but not yet logged; a trade changes them in place.
+is being built belongs to the form it enters with and is not logged on its own. A trader's offers
+are its `merchant` field, written after a draw, a trade and a restock.
 
 Each mob's update in the entity pass is one unit of the log. When an update throws, the store
 writes back the before-value of everything that update logged, newest first, through setters that

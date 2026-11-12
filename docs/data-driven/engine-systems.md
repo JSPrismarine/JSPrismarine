@@ -75,11 +75,23 @@ one sealed tick. Each input-lane handler runs as a unit of the world its sender 
 throws, what it wrote to that world's entities is undone before the error is logged. A chunk that
 enters or leaves is named in the log and its content is not carried, because the content arrived as
 an input. A chunk admitted inline, inside a unit, makes that unit impossible to undo, so such a unit
-keeps its writes if it throws and the store reports it. Nothing reads a sealed tick yet except the
-tests and the replay scenario, which reports its entries and bytes per tick. Data-driven entities
-are logged in full, dropped stacks and the eye of ender among them. Players are logged only for
-position, health and game mode until they move into the store, and a player's inventory is covered
-by the replay digest's snapshot alone.
+keeps its writes if it throws and the store reports it. Every entity is logged in full, players,
+their inventories, dropped stacks and the eye of ender among them, and so is every block and block
+entity write.
+
+The pending work of the systems below is logged too. A position queued for a block update is a
+`block-update` entry with the tick it comes due, and a scheduled block or fluid tick is a
+`scheduled-tick` entry with its trigger tick, priority and order, each written when the work is
+queued and again when it is taken off. Undoing a unit therefore also takes back the updates and
+the ticks its writes queued. What moves every tick whether or not anything was written, the level
+clock, the weather, the game rules, the random tick generator, the depth of the light queue and the
+chunk loads in flight, is not an entry: each sealed tick carries it as its header. A snapshot of a
+world plus the sealed ticks after it reaches the replay digest of any of those ticks without running
+them, and `SessionReplay.test.ts` checks that for every tick of its scripted session.
+
+Replication reads each sealed tick after the world's update ends
+([ADR 0016](../adr/0016-replication-reads-the-change-log.md)), and a packet it sends counts toward
+that tick in the replay's outbound digest, whenever the transport frames it.
 
 `World.update` runs each system in Java's order, and `WorldSystems.tick` is the part that owns
 them. Scheduled block ticks run first, then scheduled fluid ticks, then the chunk tick that draws
