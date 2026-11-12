@@ -15,7 +15,9 @@ type OtherFieldKind = Exclude<FieldKind, 'entity'>;
 
 /**
  * One tick's changes as a reader needs them: the final value of every changed field, and the
- * entries that are not field writes in the order they happened.
+ * entries that are not field writes, each kind in the order its entries happened. The order
+ * between two kinds is not kept, such as an animation before the removal of its entity, so a
+ * reader that needs it reads the sealed tick's entries, as the replicas do.
  *
  * Coalescing is a reader's concern. The log keeps every write, so a span can be inverted, and
  * this view keeps only the last write to each field. It does not reconcile fields with
