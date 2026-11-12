@@ -201,23 +201,31 @@ export class CommandManager implements Service {
     }
 
     /**
-     * Runs `#minecraft:tick` and whatever `/schedule` put on this tick.
+     * Runs `#minecraft:tick` and whatever `/schedule` put on this tick, as one input of the world
+     * the functions run in, the default world: the input step calls this after the messages, and
+     * a function that throws undoes what it wrote there.
      *
-     * Called once per server tick from the tick loop. Nothing here is awaited
-     * by a sender, so the work the lines park is collected and awaited here
-     * instead.
+     * Nothing waits. What the lines park, which is sends and other work outside the simulation,
+     * finishes outside the tick, and a failure there is logged. A command that acts in another
+     * world writes it in the same input step, when no world is ticking.
      *
-     * @returns {Promise<number>} How many command lines ran.
+     * @returns {number} How many command lines ran.
      */
-    public async tickFunctions(): Promise<number> {
+    public tickFunctions(): number {
         const runtime = this.getFunctionRuntime();
         if (runtime.queued === 0 && !runtime.has(`#${TICK_FUNCTION_TAG}`)) return 0;
 
         let commands = 0;
-        const started = collectAsyncCommands(() => {
-            commands = runtime.tick(this.internalSource());
-        });
-        await Promise.all(started);
+        let started: Promise<unknown>[] = [];
+        this.server
+            .getWorldManager()
+            .getDefaultWorld()
+            .runInputNow(() => {
+                started = collectAsyncCommands(() => {
+                    commands = runtime.tick(this.internalSource());
+                });
+            });
+        for (const work of started) void work.catch((error: unknown) => this.server.getLogger().error(error));
         return commands;
     }
 

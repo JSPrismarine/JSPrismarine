@@ -161,8 +161,8 @@ export interface TickerWorld {
  *   event moves there.
  */
 export interface TickerServer {
-    /** Emits the typed server `tick` event and awaits every handler, inside the tick. */
-    emitTick(event: TickEvent): Promise<void>;
+    /** Calls every handler of the typed server `tick` event inside the tick, waiting for none. */
+    emitTick(event: TickEvent): void;
     /**
      * The input step: applies the inputs held since the last tick, in arrival order, up to a
      * count, then the chunk completions it admits. The ticker awaits it before anything else in
@@ -173,8 +173,8 @@ export interface TickerServer {
     pollNetwork(): number;
     /** The worlds to update this tick, in the order the ticker updates them, one after another. */
     getWorlds(): TickerWorld[];
-    /** Runs `#minecraft:tick` and whatever `/schedule` put on this tick. */
-    tickFunctions(): Promise<unknown>;
+    /** Runs `#minecraft:tick` and whatever `/schedule` put on this tick, as the input step's last input. */
+    tickFunctions(): unknown;
     /** The server-wide chunk scheduler the tick hands a time slice to. */
     getChunkScheduler(): {
         setBudget(budgetMs: number): void;
@@ -560,8 +560,8 @@ export class ServerTicker implements Ticker, TickControl {
     }
 
     /**
-     * One tick's work: the input step, chunk completions, the tick event, the worlds, the
-     * functions, the chunk sends and the network poll, in that order. Shared by the loop and
+     * One tick's work: the input step with the functions last in it, chunk completions, the tick
+     * event, the worlds, the chunk sends and the network poll, in that order. Shared by the loop and
      * {@link advance}.
      *
      * @returns How long each phase took, for the recorder and the lag profile.
@@ -606,9 +606,23 @@ export class ServerTicker implements Ticker, TickControl {
                 for (const world of ticked) world.beginChangeTick?.();
                 const endInputsProfile = startProfile?.('Server.inputs');
                 try {
-                    await server.admitInputs();
+                    server.admitInputs();
                 } finally {
                     endInputsProfile?.();
+                }
+
+                // A frozen world holds still, but a step lets some ticks through.
+                const advancing = !this.frozen || this.stepsLeft > 0;
+                if (this.frozen && this.stepsLeft > 0) this.stepsLeft--;
+
+                // `#minecraft:tick` and whatever `/schedule` put on this tick, as the last input of
+                // the step, before the worlds, as Java's `tickChildren` runs its functions before
+                // its levels. A function sees the inputs of this step applied.
+                const endFunctionsProfile = startProfile?.('Server.tickFunctions');
+                try {
+                    if (advancing) server.tickFunctions();
+                } finally {
+                    endFunctionsProfile?.();
                 }
                 const endCompletionProfile = startProfile?.('Server.chunkCompletions');
                 phaseStartedAt = now();
@@ -620,22 +634,17 @@ export class ServerTicker implements Ticker, TickControl {
                 }
                 const event = new TickEvent(this.getTick());
 
-                // Awaited, so a plugin's tick handler runs *inside* this tick like every
-                // other piece of tick work. Discarding the promise let its continuation
-                // land in the middle of some later tick, and its rejection could not
-                // reach the catch below - it surfaced as an unhandled rejection instead.
+                // Each tick handler is called inside this tick and runs to its first wait; what an
+                // asynchronous one does after that lands outside the tick, and the server reports
+                // its rejection.
                 phaseStartedAt = now();
                 const endTickHandlersProfile = startProfile?.('Server.tickHandlers');
                 try {
-                    await server.emitTick(event);
+                    server.emitTick(event);
                 } finally {
                     tickHandlersMs = now() - phaseStartedAt;
                     endTickHandlersProfile?.();
                 }
-
-                // A frozen world holds still, but a step lets some ticks through.
-                const advancing = !this.frozen || this.stepsLeft > 0;
-                if (this.frozen && this.stepsLeft > 0) this.stepsLeft--;
 
                 // One world after another, in the order `getWorlds` gives, never interleaved: a
                 // world's tick must not run between the awaits of another's. A world that throws
@@ -667,15 +676,6 @@ export class ServerTicker implements Ticker, TickControl {
                 // A world opened above and not updated, because the server is frozen or the world
                 // list changed, closes its tick here.
                 for (const world of ticked) world.sealChangeTick?.();
-
-                // `#minecraft:tick` and whatever `/schedule` put on this tick. After the
-                // worlds, as Java runs it, so a function sees the world the tick left.
-                const endFunctionsProfile = startProfile?.('Server.tickFunctions');
-                try {
-                    if (advancing) await server.tickFunctions();
-                } finally {
-                    endFunctionsProfile?.();
-                }
             }).finally(stopWatching);
 
             // Whatever fits in this tick's slice; the rest waits for the next one.

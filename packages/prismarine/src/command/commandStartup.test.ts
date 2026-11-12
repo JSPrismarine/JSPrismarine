@@ -491,19 +491,30 @@ describe('the command layer on a booted server', () => {
         it('runs #minecraft:tick once a tick', async () => {
             expect(world.loadedBlockAt(11, 70, 11)?.name).not.toBe('minecraft:emerald_block');
 
-            await server.getCommandManager().tickFunctions();
+            server.getCommandManager().tickFunctions();
 
             expect(world.loadedBlockAt(11, 70, 11)?.name).toBe('minecraft:emerald_block');
+        });
+
+        it('runs the tick functions in one call, as one input of the default world', () => {
+            const runInputNow = vi.spyOn(world, 'runInputNow');
+            try {
+                // Synchronous: the block is written before the call returns, with nothing awaited.
+                expect(server.getCommandManager().tickFunctions()).toBeGreaterThan(0);
+                expect(runInputNow).toHaveBeenCalledOnce();
+            } finally {
+                runInputNow.mockRestore();
+            }
         });
 
         it('runs what /schedule queued on the tick it comes due', async () => {
             await run('/setblock 10 71 10 minecraft:air');
             await expect(run('/schedule function fixture:build 2')).resolves.toBe(true);
 
-            await server.getCommandManager().tickFunctions();
+            server.getCommandManager().tickFunctions();
             expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:air');
 
-            await server.getCommandManager().tickFunctions();
+            server.getCommandManager().tickFunctions();
             expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:cobblestone');
         });
 
@@ -511,10 +522,10 @@ describe('the command layer on a booted server', () => {
             await run('/setblock 10 71 10 minecraft:air');
             await expect(run('/schedule function fixture:build 5s')).resolves.toBe(true);
 
-            for (let tick = 0; tick < 99; tick += 1) await server.getCommandManager().tickFunctions();
+            for (let tick = 0; tick < 99; tick += 1) server.getCommandManager().tickFunctions();
             expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:air');
 
-            await server.getCommandManager().tickFunctions();
+            server.getCommandManager().tickFunctions();
             expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:cobblestone');
         });
 
