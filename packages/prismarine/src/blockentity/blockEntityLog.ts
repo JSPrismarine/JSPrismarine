@@ -17,8 +17,9 @@
  * An `Items` list whose stacks do not each name a distinct slot is not split. It stays whole in
  * `data`, which is still exact, only coarser.
  */
-import BinaryStream from '@jsprismarine/binaryutils';
-import { ByteOrder, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
+
+import { nbtBytesOf, nbtOfBytes } from '../nbtBytes';
 
 /** The field that holds everything of a block entity but its stacks. */
 export const BLOCK_ENTITY_DATA = 'data';
@@ -51,18 +52,6 @@ export type BlockEntityFieldChange = {
     readonly after: BlockEntityValue;
 };
 
-const encode = (tags: NBTTagCompound): Uint8Array => {
-    const stream = new BinaryStream();
-    const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
-    writer.setUseVarint(true);
-    writer.writeCompound(tags);
-    // A copy, not the stream's `Buffer`: plain data compares typed arrays by their constructor.
-    return new Uint8Array(stream.getBuffer());
-};
-
-const decode = (bytes: Uint8Array): NBTTagCompound =>
-    NBTTagCompound.readFromStream(new BinaryStream(Buffer.from(bytes)), ByteOrder.LITTLE_ENDIAN, true);
-
 /** The stacks of a list by the slot each names, or undefined when they do not each name a distinct one. */
 const slotsOf = (list: unknown): Map<number, NBTTagCompound> | undefined => {
     if (!(list instanceof Set)) return undefined;
@@ -88,9 +77,9 @@ const fieldsOf = (tags: NBTTagCompound | null): Map<string, Uint8Array> => {
         if (key === ITEMS) slots = slotsOf(value);
         data.children.set(key, slots !== undefined && key === ITEMS ? new Set() : value);
     }
-    fields.set(BLOCK_ENTITY_DATA, encode(data));
+    fields.set(BLOCK_ENTITY_DATA, nbtBytesOf(data));
     for (const slot of [...(slots?.keys() ?? [])].sort((left, right) => left - right))
-        fields.set(slotField(slot), encode(slots!.get(slot)!));
+        fields.set(slotField(slot), nbtBytesOf(slots!.get(slot)!));
     return fields;
 };
 
@@ -153,7 +142,7 @@ export const withBlockEntityField = (
     if (slot === undefined) {
         if (field !== BLOCK_ENTITY_DATA) throw new TypeError(`A block entity has no field ${field}`);
         if (value === null) return null;
-        const tags = decode(value);
+        const tags = nbtOfBytes(value);
         // The stacks are fields of their own, so `data` takes whatever stands in the slots now.
         const standing = slotsOf(current?.getList(ITEMS, false));
         const placeholder = tags.getList(ITEMS, false);
@@ -168,7 +157,7 @@ export const withBlockEntityField = (
     if (current === null) throw new TypeError(`No block entity at ${at.x}, ${at.y}, ${at.z} holds slot ${slot}`);
     const slots = slotsOf(current.getList(ITEMS, false)) ?? new Map<number, NBTTagCompound>();
     if (value === null) slots.delete(slot);
-    else slots.set(slot, decode(value));
+    else slots.set(slot, nbtOfBytes(value));
     const tags = new NBTTagCompound(current.getName() ?? '');
     for (const [key, tag] of current.entries()) tags.children.set(key, tag);
     // In place where the list stood, its stacks in slot order, which is how every writer here keeps them.
