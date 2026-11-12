@@ -5,13 +5,15 @@ import type { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
+import type { Block } from '../../block/Block';
+import type { StatusEffect } from '../../entity/StatusEffect';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import { PlayerComponents } from '../../entity/playerComponents';
 import type { BlockMining } from '../../world/BlockMining';
-import { blockMiningOf } from '../../world/BlockMining';
+import { blockMiningOf, MINING_LATENCY_TICKS } from '../../world/BlockMining';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -36,7 +38,10 @@ const PICKAXE = new Item({ name: 'minecraft:iron_pickaxe' });
  * as a call that was made rather than as terrain that appeared. Every log line is kept too,
  * so an action the handler should have taken quietly shows up as a line.
  */
-const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, chunksLoaded = true } = {}) => {
+const fakeSession = (
+    gamemode: Gametype,
+    { serverAuthoritativeBreaking = false, chunksLoaded = true, breakSeconds = 1 } = {}
+) => {
     const broken: BlockPosition[] = [];
     const hit: BlockPosition[] = [];
     /** Whom each hit named as its striker, who is left out of the sound. */
@@ -58,6 +63,11 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
             return blockMiningOf(held);
         }
     };
+    /** The server's tick, which a test moves on to stand in for time spent mining. */
+    const clock = { tick: 0 };
+    /** The runtime id of what stands at every position; mining records 1. */
+    const standing = { runtimeId: 1 };
+    const effects: StatusEffect[] = [];
     const at = (where: Vector3) => `${where.getX()},${where.getY()},${where.getZ()}`;
 
     const world = stub<World>({
@@ -74,13 +84,19 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
         // block in it is stone.
         getLoadedChunk: () => (chunksLoaded ? stub<Chunk>({}) : null),
         loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
+        loadedBlockRuntimeIdAt: () => standing.runtimeId,
+        loadedBlock: () => stub<Block>({ getBreakTime: () => breakSeconds }),
         sendWorldEvent: (where: Vector3 | null) => {
             if (where) cracking.push(`event ${at(where)}`);
         },
         startBlockCracking: (where: Vector3, face: number, tool: Item | null, previous: BlockMining | null) => {
             cracking.push(`start ${at(where)} (${previous === null ? 'none' : at(previous.position)})`);
             tools.push(tool);
-            return { position: where, face, runtimeId: 1, progressPerTick: 5461 };
+            const breakTicks = Math.ceil(breakSeconds * 20);
+            // As the world does: mining continued on the same block keeps the tick it began on.
+            const continued = previous !== null && previous.position.equals(where);
+            const startedAt = continued ? previous.startedAt : clock.tick;
+            return { position: where, face, runtimeId: 1, progressPerTick: 5461, breakTicks, startedAt };
         },
         stopBlockCracking: (where: Vector3) => {
             cracking.push(`stop ${at(where)}`);
@@ -91,7 +107,8 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
         gamemode,
         getPosition: () => new Position(0, 0, 0, world),
         getInventory: () => stub<HumanInventory>({ getItemInHand: () => PICKAXE }),
-        getComponents: () => components
+        getComponents: () => components,
+        getStatusEffects: () => effects
     });
     // The runtime's answer for a player in no store: each input lands on the components.
     const inputs = stub<EntityRuntime>({
@@ -117,6 +134,9 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
         cracking,
         tools,
         state,
+        clock,
+        standing,
+        effects,
         player,
         log: logger,
         config: { getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking },
@@ -141,8 +161,8 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
 type Scene = ReturnType<typeof fakeSession>;
 
 /** Applies one action as the input step does: the handler, then what it sent. */
-const act = async ({ session, log, config }: Scene, action: number, position: BlockPosition, face: number) => {
-    const { context, settled } = inputContext(session, { log, config });
+const act = async ({ session, log, config, clock }: Scene, action: number, position: BlockPosition, face: number) => {
+    const { context, settled } = inputContext(session, { log, config, tick: clock.tick });
     new PlayerActionHandler().handleAction(action, position, face, context);
     await settled();
 };
@@ -357,14 +377,125 @@ describe('PlayerActionHandler', () => {
 
         it('breaks the block a survival player predicts gave way', async () => {
             const scene = serverTimed();
-            const { broken, state } = scene;
+            const { broken, state, clock } = scene;
 
             await act(scene, PlayerActionType.ContinueDestroyBlock, near(2), 5);
+            clock.tick += 20;
             await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
 
             expect(broken).toEqual([near(2)]);
             // Nothing is being mined any more, so the cracks stop being animated.
             expect(state.mining).toBeNull();
+        });
+
+        it('breaks a block mined long enough when the prediction rides with a continuation', async () => {
+            const scene = serverTimed();
+            const { broken, clock } = scene;
+
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 5);
+            clock.tick += 20;
+            // The same input restarts the cracks on the block and predicts it gave way.
+            await act(scene, PlayerActionType.ContinueDestroyBlock, near(2), 5);
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(broken).toEqual([near(2)]);
+        });
+
+        it('allows a predicted break a few ticks early, for network jitter', async () => {
+            const scene = serverTimed();
+            const { broken, clock } = scene;
+
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 5);
+            clock.tick += 20 - MINING_LATENCY_TICKS;
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(broken).toEqual([near(2)]);
+        });
+
+        it('refuses a predicted break that came before the block could give way', async () => {
+            const scene = serverTimed();
+            const { broken, resent, cracking, clock, state } = scene;
+
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 5);
+            clock.tick += 20 - MINING_LATENCY_TICKS - 1;
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(broken).toEqual([]);
+            expect(resent).toEqual([near(2)]);
+            expect(cracking.at(-1)).toBe('stop 2,1,0');
+            expect(state.mining).toBeNull();
+        });
+
+        it('accepts a break sped up by haste', async () => {
+            const scene = serverTimed();
+            const { broken, clock, effects } = scene;
+            effects.push(stub<StatusEffect>({ id: 'minecraft:haste', amplifier: 1 }));
+
+            // Haste II mines 1.4 times as fast: 20 ticks become 14.
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 5);
+            clock.tick += 14 - MINING_LATENCY_TICKS;
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(broken).toEqual([near(2)]);
+        });
+
+        it('refuses a predicted break of a block nobody started mining', async () => {
+            const scene = serverTimed();
+            const { broken, resent, clock } = scene;
+            clock.tick = 1_000;
+
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(broken).toEqual([]);
+            expect(resent).toEqual([near(2)]);
+        });
+
+        it('refuses a predicted break of a block other than the one being mined', async () => {
+            const scene = serverTimed();
+            const { broken, resent, clock } = scene;
+
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 5);
+            clock.tick += 100;
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(3), 5);
+
+            expect(broken).toEqual([]);
+            expect(resent).toEqual([near(3)]);
+        });
+
+        it('refuses a predicted break once another block stands where the mined one was', async () => {
+            const scene = serverTimed();
+            const { broken, resent, clock, standing } = scene;
+
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 5);
+            clock.tick += 100;
+            // Someone put an unbreakable block down in its place before the prediction came.
+            standing.runtimeId = 2;
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(broken).toEqual([]);
+            expect(resent).toEqual([near(2)]);
+        });
+
+        it('refuses a predicted break of a block that never breaks', async () => {
+            const scene = fakeSession(Gametype.SURVIVAL, {
+                serverAuthoritativeBreaking: true,
+                breakSeconds: Number.POSITIVE_INFINITY
+            });
+            const { broken, clock } = scene;
+
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 5);
+            clock.tick += 1_000_000;
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(broken).toEqual([]);
+        });
+
+        it('breaks a block that gives way at once, which has no mining to time', async () => {
+            const scene = fakeSession(Gametype.SURVIVAL, { serverAuthoritativeBreaking: true, breakSeconds: 0 });
+
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(scene.broken).toEqual([near(2)]);
         });
 
         it('breaks nothing for an adventure player, and puts the block back on their screen', async () => {

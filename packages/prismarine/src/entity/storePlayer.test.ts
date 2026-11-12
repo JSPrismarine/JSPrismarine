@@ -176,7 +176,16 @@ describe('a store player', () => {
     });
 
     describe("through the runtime's player inputs", () => {
-        const mining = { x: 1, y: FLOOR_Y, z: 0, face: 1, runtimeId: 7, progressPerTick: 0.1 };
+        const mining = {
+            x: 1,
+            y: FLOOR_Y,
+            z: 0,
+            face: 1,
+            runtimeId: 7,
+            progressPerTick: 0.1,
+            breakTicks: 30,
+            startedAt: 4
+        };
 
         it('logs each input in the store it is in, as one entry for its field', () => {
             const fixture = storePlayerFixture();

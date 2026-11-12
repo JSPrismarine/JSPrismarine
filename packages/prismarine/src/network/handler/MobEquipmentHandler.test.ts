@@ -1,7 +1,11 @@
 import { WindowIds } from '@jsprismarine/minecraft';
+import { Vector3 } from '@jsprismarine/math';
+import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { EntityRuntime } from '../../entity/data/EntityRuntime';
+import { PlayerComponents } from '../../entity/playerComponents';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
@@ -9,6 +13,8 @@ import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import type { BlockMining } from '../../world/BlockMining';
+import { blockMiningOf, playerMiningOf } from '../../world/BlockMining';
 import type { World } from '../../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolContext } from '@jsprismarine/protocol';
@@ -31,7 +37,16 @@ const fakeWorld = () => {
     const toWatcher: NetworkPacket[] = [];
     const toBystander: NetworkPacket[] = [];
     const players: PlayerSession[] = [];
-    const world = stub<World>({ getViewers: () => players });
+    /** Every crack restart the world was asked for. */
+    const cracking: string[] = [];
+    const world = stub<World>({
+        getViewers: () => players,
+        stopBlockCracking: () => void cracking.push('stop'),
+        startBlockCracking: (position, face, tool, previous) => {
+            cracking.push(`start ${tool?.getName() ?? 'hand'} (${previous === null ? 'fresh' : 'continued'})`);
+            return { position, face, runtimeId: 1, progressPerTick: 100, breakTicks: 600, startedAt: 50 };
+        }
+    });
 
     const inventory = new HumanInventory();
     inventory.setItem(
@@ -40,7 +55,13 @@ const fakeWorld = () => {
     );
 
     const connection = stub<ClientConnection>({ codec: protocolCodec });
-    const sender = stubPlayerPort({ getInventory: () => inventory });
+    /** What the sender is mining, which the store player keeps. */
+    const components = new PlayerComponents(new Attributes(Attributes.getPlayerDefaults()), () => {});
+    const sender = stubPlayerPort({ getInventory: () => inventory, getComponents: () => components });
+    // The runtime's answer for a player in no store: the mining lands on the components.
+    const inputs = stub<EntityRuntime>({
+        setPlayerMining: (_player, mining) => components.set('mining.block', mining)
+    });
     const senderSession = stub<PlayerSession>({
         runtimeId: 7n,
         identity: identityNamed('runner'),
@@ -48,7 +69,8 @@ const fakeWorld = () => {
         send: async (packet) => void toSender.push(packet),
         getPlayer: () => sender,
         getWorld: () => world,
-        getConnection: () => connection
+        getConnection: () => connection,
+        inputs: () => inputs
     });
     const watcher = stub<PlayerSession>({
         runtimeId: 8n,
@@ -67,7 +89,16 @@ const fakeWorld = () => {
     const debug = vi.fn();
     const { context, outputs } = inputContext(senderSession, { log: stub<Logger>({ debug }) });
 
-    return { context, outputs, inventory, debug, toSender, toWatcher, toBystander };
+    const state = {
+        get mining(): BlockMining | null {
+            return blockMiningOf(components.get('mining.block'));
+        },
+        set mining(mining: BlockMining | null) {
+            components.set('mining.block', playerMiningOf(mining));
+        }
+    };
+
+    return { context, outputs, inventory, debug, toSender, toWatcher, toBystander, state, cracking };
 };
 
 /** What a client sends when it selects a hotbar slot: both slot fields name it, container 0. */
@@ -82,6 +113,36 @@ const selected = (slot: number, overrides: Partial<MobEquipmentPayload> = {}): M
     });
 
 describe('MobEquipmentHandler', () => {
+    /** Mining that began with whatever was in hand: 20 ticks, started at tick 10. */
+    const mining = (): BlockMining => ({
+        position: new Vector3(1, 64, 1),
+        face: 1,
+        runtimeId: 1,
+        progressPerTick: 3276,
+        breakTicks: 20,
+        startedAt: 10
+    });
+
+    it('starts the mining over for the tool a switch puts in hand', () => {
+        const { context, state, cracking } = fakeWorld();
+        state.mining = mining();
+
+        new MobEquipmentHandler().handle(selected(3), context);
+
+        expect(cracking).toEqual(['stop', 'start minecraft:diamond_sword (fresh)']);
+        expect(state.mining).toMatchObject({ breakTicks: 600, startedAt: 50 });
+    });
+
+    it('leaves the mining alone when the slot already held is reported again', () => {
+        const { context, state, cracking } = fakeWorld();
+        state.mining = mining();
+
+        new MobEquipmentHandler().handle(selected(0), context);
+
+        expect(cracking).toEqual([]);
+        expect(state.mining).toMatchObject({ breakTicks: 20, startedAt: 10 });
+    });
+
     it('moves the hand to the selected hotbar slot', () => {
         const { context, inventory } = fakeWorld();
 

@@ -1,6 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 
 import type { PlayerMining } from '../entity/playerComponents';
+import type { StatusEffect } from '../entity/StatusEffect';
 
 /**
  * A block a player is mining, and what its crack animation needs each tick.
@@ -43,8 +44,17 @@ export function playerMiningOf(mining: BlockMining | null): PlayerMining | null;
  */
 export function playerMiningOf(mining: BlockMining | null): PlayerMining | null {
     if (mining === null) return null;
-    const { position, face, runtimeId, progressPerTick } = mining;
-    return { x: position.getX(), y: position.getY(), z: position.getZ(), face, runtimeId, progressPerTick };
+    const { position, face, runtimeId, progressPerTick, breakTicks, startedAt } = mining;
+    return {
+        x: position.getX(),
+        y: position.getY(),
+        z: position.getZ(),
+        face,
+        runtimeId,
+        progressPerTick,
+        breakTicks,
+        startedAt
+    };
 }
 
 /**
@@ -66,8 +76,8 @@ export function blockMiningOf(mining: PlayerMining | null): BlockMining | null;
  */
 export function blockMiningOf(mining: PlayerMining | null): BlockMining | null {
     if (mining === null) return null;
-    const { x, y, z, face, runtimeId, progressPerTick } = mining;
-    return { position: new Vector3(x, y, z), face, runtimeId, progressPerTick };
+    const { x, y, z, face, runtimeId, progressPerTick, breakTicks, startedAt } = mining;
+    return { position: new Vector3(x, y, z), face, runtimeId, progressPerTick, breakTicks, startedAt };
 }
 
 /**
@@ -78,7 +88,7 @@ export function blockMiningOf(mining: PlayerMining | null): BlockMining | null {
 export const MINING_LATENCY_TICKS = 5;
 
 /** The effects that speed mining up, each by a fifth per level. Conduit power counts as haste. */
-const HASTE_EFFECTS = ['minecraft:haste', 'minecraft:conduit_power'] as const;
+const HASTE_EFFECTS: ReadonlySet<string> = new Set(['minecraft:haste', 'minecraft:conduit_power']);
 
 /**
  * The fewest ticks a break may have taken before the server accepts a client's prediction
@@ -90,15 +100,18 @@ const HASTE_EFFECTS = ['minecraft:haste', 'minecraft:conduit_power'] as const;
  * and are left out. {@link MINING_LATENCY_TICKS} come off the result as slack.
  *
  * @param mining - What the player is mining.
- * @param miner - Whose effects to read.
+ * @param effects - The miner's status effects.
  * @returns The minimum ticks; infinite for a block that never breaks.
  */
 export const minimumBreakTicks = (
     mining: Pick<BlockMining, 'breakTicks'>,
-    miner: { getStatusEffect(identifier: string): { readonly amplifier: number } | undefined }
+    effects: readonly Pick<StatusEffect, 'id' | 'amplifier'>[]
 ): number => {
     if (!Number.isFinite(mining.breakTicks)) return Number.POSITIVE_INFINITY;
 
-    const hasteLevel = Math.max(0, ...HASTE_EFFECTS.map((id) => (miner.getStatusEffect(id)?.amplifier ?? -1) + 1));
+    const hasteLevel = Math.max(
+        0,
+        ...effects.filter(({ id }) => HASTE_EFFECTS.has(id)).map(({ amplifier }) => amplifier + 1)
+    );
     return Math.max(0, Math.floor(mining.breakTicks / (1 + 0.2 * hasteLevel)) - MINING_LATENCY_TICKS);
 };

@@ -220,12 +220,17 @@ const PLAYER_COMPONENT_WRITES: readonly {
     {
         field: 'mining.block',
         write: (player) =>
-            player
-                .inputs()
-                .setPlayerMining(
-                    player.getPlayer(),
-                    playerMiningOf({ position: new Vector3(1, 64, 2), face: 1, runtimeId: 7, progressPerTick: 900 })
-                ),
+            player.inputs().setPlayerMining(
+                player.getPlayer(),
+                playerMiningOf({
+                    position: new Vector3(1, 64, 2),
+                    face: 1,
+                    runtimeId: 7,
+                    progressPerTick: 900,
+                    breakTicks: 73,
+                    startedAt: 0
+                })
+            ),
         read: (player) => blockMiningOf(player.getPlayer().getComponents().get('mining.block'))
     },
     ...(
