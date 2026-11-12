@@ -353,7 +353,7 @@ describe('network', () => {
             expect(reads).toEqual(['1,2']);
         });
 
-        it('uses confirmed subchunk blobs on repeat requests and serves cache misses', async () => {
+        it('answers a cached sub chunk with its hash and block entity payload, and its terrain on a miss', async () => {
             const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
             const world = stub<World>({
                 getDimension: () => Dimensions.Overworld,
@@ -371,17 +371,32 @@ describe('network', () => {
             request.dimensionType = 0;
             request.centerPos = { x: 1, y: -3, z: 2 };
             request.offsets = [{ x: 0, y: 0, z: 0 }];
+            const entryOf = async () => {
+                await cacheSession.handleSubChunkRequest(request);
+                const response = sentPackets.at(-1);
+                if (!(response instanceof SubChunkPacket)) throw new Error('SubChunkPacket response was not sent');
+                const entry = response.getPacketData()?.entries[0];
+                if (entry === undefined) throw new Error('SubChunkPacket carried no entry');
+                return entry;
+            };
 
-            await cacheSession.handleSubChunkRequest(request);
-            const initial = sentPackets.at(-1);
-            if (!(initial instanceof SubChunkPacket)) throw new Error('Initial SubChunkPacket response was not sent');
-            const initialData = initial.getPacketData();
-            if (initialData === null) throw new Error('Initial SubChunkPacket data is unavailable');
-            const initialEntry = initialData.entries[0];
-            expect(initialEntry?.result).toBe(SubChunkRequestResult.SUCCESS_ALL_AIR);
-            expect(initialEntry?.serializedSubChunk).toBeUndefined();
-            const blobId = initialEntry?.blobId;
-            if (blobId === undefined) throw new Error('Cached all-air response did not include a blob id');
+            // An all-air section is its result alone, as a vanilla server answers: a client
+            // caches nothing for it and reads no payload.
+            const air = await entryOf();
+            expect(air.result).toBe(SubChunkRequestResult.SUCCESS_ALL_AIR);
+            expect(air.serializedSubChunk).toBeUndefined();
+            expect(air.blobId).toBeUndefined();
+
+            chunk.setBlockRuntimeId(1, -64, 2, BlockRuntimeIds.getByName('minecraft:stone'));
+            request.centerPos = { x: 1, y: -4, z: 2 };
+            const terrain = await entryOf();
+            const { terrain: terrainBytes, blockEntities } = chunk.networkSerializeRequestSubChunkParts(-4);
+            expect(terrain.result).toBe(SubChunkRequestResult.SUCCESS);
+            // The payload is present and holds the block entities, none here; the terrain is not in it.
+            expect(terrain.serializedSubChunk).toEqual(blockEntities);
+            expect(terrain.serializedSubChunk).toHaveLength(0);
+            const blobId = terrain.blobId;
+            if (blobId === undefined) throw new Error('Cached terrain response did not include a blob id');
 
             const missing = new ClientCacheBlobStatusPacket();
             missing.missingIds = [blobId];
@@ -390,42 +405,15 @@ describe('network', () => {
             if (!(missResponse instanceof ClientCacheMissResponsePacket)) {
                 throw new Error('ClientCacheMissResponsePacket was not sent');
             }
-            expect(missResponse.blobs).toEqual([{ blobId, blobData: Buffer.from([8, 0]) }]);
+            expect(missResponse.blobs).toEqual([{ blobId, blobData: terrainBytes }]);
 
+            // A client that confirmed the blob is answered the same way: the payload stays.
             const found = new ClientCacheBlobStatusPacket();
             found.foundIds = [blobId];
             await cacheSession.handleClientCacheBlobStatus(found);
-            await cacheSession.handleSubChunkRequest(request);
-            const repeated = sentPackets.at(-1);
-            if (!(repeated instanceof SubChunkPacket)) throw new Error('Repeated SubChunkPacket response was not sent');
-            const repeatedData = repeated.getPacketData();
-            if (repeatedData === null) throw new Error('Repeated SubChunkPacket data is unavailable');
-            expect(repeatedData.entries[0]).toMatchObject({ blobId });
-            expect(repeatedData.entries[0]?.serializedSubChunk).toBeUndefined();
-
-            chunk.setBlockRuntimeId(1, -64, 2, BlockRuntimeIds.getByName('minecraft:stone'));
-            request.centerPos = { x: 1, y: -4, z: 2 };
-            await cacheSession.handleSubChunkRequest(request);
-            const initialTerrain = sentPackets.at(-1);
-            if (!(initialTerrain instanceof SubChunkPacket)) throw new Error('Initial terrain response was not sent');
-            const initialTerrainData = initialTerrain.getPacketData();
-            if (initialTerrainData === null) throw new Error('Initial terrain response data is unavailable');
-            const terrainEntry = initialTerrainData.entries[0];
-            expect(terrainEntry?.result).toBe(SubChunkRequestResult.SUCCESS);
-            expect(terrainEntry?.serializedSubChunk).toEqual(chunk.networkSerializeRequestSubChunk(-4));
-            const terrainBlobId = terrainEntry?.blobId;
-            if (terrainBlobId === undefined) throw new Error('Cached terrain response did not include a blob id');
-
-            const terrainFound = new ClientCacheBlobStatusPacket();
-            terrainFound.foundIds = [terrainBlobId];
-            await cacheSession.handleClientCacheBlobStatus(terrainFound);
-            await cacheSession.handleSubChunkRequest(request);
-            const repeatedTerrain = sentPackets.at(-1);
-            if (!(repeatedTerrain instanceof SubChunkPacket)) throw new Error('Repeated terrain response was not sent');
-            const repeatedTerrainData = repeatedTerrain.getPacketData();
-            if (repeatedTerrainData === null) throw new Error('Repeated terrain response data is unavailable');
-            expect(repeatedTerrainData.entries[0]).toMatchObject({ blobId: terrainBlobId });
-            expect(repeatedTerrainData.entries[0]?.serializedSubChunk).toBeUndefined();
+            const repeated = await entryOf();
+            expect(repeated.blobId).toBe(blobId);
+            expect(repeated.serializedSubChunk).toHaveLength(0);
         });
     });
 });

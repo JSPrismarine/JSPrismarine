@@ -560,25 +560,31 @@ export default class PlayerSession {
                 continue;
             }
 
-            const blob = cacheEnabled ? this.clientBlobCache.prepareRequestSubChunk(chunk, y) : undefined;
-            const data = blob?.data ?? chunk.networkSerializeRequestSubChunk(y);
+            const data = chunk.networkSerializeRequestSubChunk(y);
             const allAir = data.byteLength === 2 && data[0] === 8 && data[1] === 0;
             entry.result = allAir ? SubChunkRequestResult.SUCCESS_ALL_AIR : SubChunkRequestResult.SUCCESS;
             entry.heightMaps = chunk.networkSubChunkHeightmaps(y);
 
-            if (blob !== undefined) {
-                this.clientBlobCache.track([blob]);
-                Object.assign(entry, { blobId: blob.id });
-
-                // The client can reuse a confirmed blob. An all-air section also carries only
-                // its hash when caching is enabled; a miss is answered through the cache packet.
-                if (allAir || this.clientBlobCache.hasClientBlob(blob.id)) {
-                    entries.push(entry);
-                    continue;
-                }
+            if (!cacheEnabled) {
+                Object.assign(entry, { serializedSubChunk: data });
+                entries.push(entry);
+                continue;
+            }
+            // Mojang's packet documentation: the payload is "absent when cache enabled and result
+            // is SuccessAllAir", and such a section queues no blob either.
+            if (allAir) {
+                entries.push(entry);
+                continue;
             }
 
-            Object.assign(entry, { serializedSubChunk: data });
+            // With the blob cache on, the terrain never travels in this packet. The entry names
+            // its hash, the client answers which hashes it lacks, and those go out in a
+            // ClientCacheMissResponse. The payload is still there and holds the section's block
+            // entities, empty when it has none: a game client reads a successful entry's payload
+            // whether or not it is cached, and leaves with a bad packet error when it is absent.
+            const blob = this.clientBlobCache.prepareRequestSubChunk(chunk, y);
+            this.clientBlobCache.track([blob]);
+            Object.assign(entry, { blobId: blob.id, serializedSubChunk: blob.blockEntities });
             entries.push(entry);
         }
 
