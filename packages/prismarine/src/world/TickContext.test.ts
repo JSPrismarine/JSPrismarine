@@ -1,73 +1,48 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-    currentTickScope,
-    currentTickWaitTracker,
-    insideTick,
-    outsideTick,
-    runInTick,
-    trackTickWaits
-} from './TickContext';
+import { insideTick, outsideTick, runInTick } from './TickContext';
+import { currentTickWaitTracker, trackTickWaits } from './TickWaits';
 
 describe('TickContext', () => {
-    it('is inside a tick for the work the tick awaits, and outside once the tick has finished', async () => {
-        let release: () => void = () => {};
-        const later = new Promise<void>((resolve) => {
-            release = resolve;
-        });
+    it('is inside a tick while the tick runs, and outside for what the tick left behind', async () => {
         const seen: boolean[] = [];
         let leftBehind: Promise<void> = Promise.resolve();
 
         expect(insideTick()).toBe(false);
-        await runInTick(async () => {
+        runInTick(() => {
             seen.push(insideTick());
-            await Promise.resolve();
-            seen.push(insideTick());
-            // Started by the tick and not awaited by it.
-            leftBehind = later.then(() => void seen.push(insideTick()));
+            // Started by the tick and not waited for: it runs once the tick has returned.
+            leftBehind = Promise.resolve().then(() => void seen.push(insideTick()));
         });
-        release();
+        expect(insideTick()).toBe(false);
         await leftBehind;
 
-        expect(seen).toEqual([true, true, false]);
-        expect(insideTick()).toBe(false);
+        expect(seen).toEqual([true, false]);
     });
 
-    it('keeps a scope that reads as closed after its tick', async () => {
-        let scope: { readonly open: boolean } | undefined;
-        await runInTick(async () => {
-            scope = currentTickScope();
-            expect(scope?.open).toBe(true);
-        });
-
-        expect(scope?.open).toBe(false);
-        expect(currentTickScope()).toBeUndefined();
-    });
-
-    it('starts work outside the tick it is called from, across the awaits of that work', async () => {
+    it('clears the flag for work started outside the tick, and sets it again for the rest of the tick', () => {
         const seen: boolean[] = [];
-        let started: Promise<void> = Promise.resolve();
-        await runInTick(async () => {
-            started = outsideTick(async () => {
-                seen.push(insideTick());
-                await Promise.resolve();
-                seen.push(insideTick());
-            });
+        runInTick(() => {
+            outsideTick(() => void seen.push(insideTick()));
             seen.push(insideTick());
-            await started;
         });
 
-        expect(seen).toEqual([false, true, false]);
+        expect(seen).toEqual([false, true]);
     });
 
-    it('hands the tracker to the work it runs, across awaits', async () => {
+    it('starts work outside every tracker', async () => {
         const tracker = { park: () => {}, unpark: () => {} };
-        const found = await trackTickWaits(tracker, async () => {
-            await Promise.resolve();
-            return currentTickWaitTracker();
-        });
+        const found = await trackTickWaits(tracker, () => outsideTick(async () => currentTickWaitTracker()));
 
-        expect(found).toBe(tracker);
-        expect(currentTickWaitTracker()).toBeUndefined();
+        expect(found).toBeUndefined();
+    });
+
+    it('clears the flag when the tick throws', () => {
+        expect(() =>
+            runInTick(() => {
+                throw new Error('the tick failed');
+            })
+        ).toThrow('the tick failed');
+        expect(insideTick()).toBe(false);
     });
 });

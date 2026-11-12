@@ -1,5 +1,5 @@
-import type { TickWaitTracker } from './TickContext';
-import { trackTickWaits } from './TickContext';
+import type { TickWaitTracker } from './TickWaits';
+import { trackTickWaits } from './TickWaits';
 import { chunkWorkerCount } from './generators/chunkConcurrency';
 
 /** A queue the scheduler can drain: one player's outstanding chunks. */

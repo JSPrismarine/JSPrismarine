@@ -42,7 +42,7 @@ describe('ChunkAdmissions', () => {
 
         expect(applied).toEqual(['1']);
         expect(records).toMatchObject([{ order: 0, tick: 7, x: 1, step: 'inline' }]);
-        expect(queue.snapshot()).toMatchObject({ admittedIdle: 1, admitted: 0, admittedInTick: 0 });
+        expect(queue.snapshot()).toMatchObject({ admittedIdle: 1, admitted: 0 });
     });
 
     it('holds a completion until the input step and records the tick that admitted it', async () => {
@@ -117,22 +117,6 @@ describe('ChunkAdmissions', () => {
         await queue.admit(1);
 
         expect(applied).toEqual(['0', '1', '100', '2', '200']);
-    });
-
-    it('applies a held completion at once for a tick that waits for it, and counts it', async () => {
-        const queue = new ChunkAdmissions(() => 4);
-        const records = recording(queue);
-        const applied: string[] = [];
-        queue.activate();
-        const held = queue.hold(completion(applied, 3, 'idle'));
-
-        expect(queue.admitNow({ world: WORLD, change: 'enter', x: 3, z: 0 })).toBe(true);
-        await held;
-
-        expect(applied).toEqual(['3']);
-        expect(records).toMatchObject([{ tick: 4, step: 'inline' }]);
-        expect(queue.snapshot()).toMatchObject({ pending: 0, admittedInTick: 1 });
-        expect(queue.admitNow({ world: WORLD, change: 'enter', x: 3, z: 0 })).toBe(false);
     });
 
     it('applies every held completion when it stops', async () => {

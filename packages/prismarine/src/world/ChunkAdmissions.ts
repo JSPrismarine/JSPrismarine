@@ -25,9 +25,8 @@ export type ChunkAdmission = Omit<ChunkEntry, 'kind'> & {
 };
 
 /**
- * Where a completion was admitted. `input` is the input step, the only place the rule allows.
- * `inline` is everywhere else: no tick loop runs, or code inside a tick waits for the chunk and
- * cannot let the tick end without it, which is a path that still breaks the rule.
+ * Where a completion was admitted. `input` is the input step, the only place the rule allows
+ * while the ticker runs. `inline` is a completion applied while no tick loop runs.
  */
 export type ChunkAdmissionStep = 'input' | 'inline';
 
@@ -79,16 +78,12 @@ export interface ChunkAdmissionScheduler {
     readonly isActive: boolean;
 
     /**
-     * Holds a completion for the next input step, or applies it now.
+     * Holds a completion for the next input step, or applies it now when no tick loop runs.
      *
      * @param completion - The completion.
-     * @param now - Apply it now, because code inside the running tick waits for it.
      * @returns Settles once the completion has been applied, with what its `apply` returned.
      */
-    hold(completion: ChunkCompletion, now?: boolean): Promise<boolean>;
-
-    /** Applies a held completion now, for code inside the running tick that waits for it. */
-    admitNow(admission: ChunkAdmission): boolean;
+    hold(completion: ChunkCompletion): Promise<boolean>;
 
     /** Moves a held completion to a more urgent lane. */
     promote(admission: ChunkAdmission, priority: GenerationPriority): boolean;
@@ -100,8 +95,6 @@ export interface ChunkAdmissionSnapshot {
     readonly pending: number;
     /** Completions applied by an input step. */
     readonly admitted: number;
-    /** Completions applied while a tick ran, because code inside it waited for them. */
-    readonly admittedInTick: number;
     /** Completions applied while no tick loop ran. */
     readonly admittedIdle: number;
     /** Where a replay could not admit what its trace recorded, in the order found. */
@@ -166,7 +159,6 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
     private laneCursor = 0;
     private nextOrder = 0;
     private admitted = 0;
-    private admittedInTick = 0;
     private admittedIdle = 0;
     private recorder: ChunkAdmissionRecorder | undefined;
     private trace:
@@ -230,17 +222,15 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
     }
 
     /**
-     * Holds a completion for the next input step, or applies it now when no tick loop runs or
-     * `now` says the running tick waits for it. A second completion for the same chunk and
-     * direction replaces the first, which rejects.
+     * Holds a completion for the next input step, or applies it now when no tick loop runs. A
+     * second completion for the same chunk and direction replaces the first, which rejects.
      *
      * @param completion - The completion.
-     * @param now - Apply it now, because code inside the running tick waits for it.
-     * @returns Settles as the completion's `apply` settles, once it has been applied.
+     * @returns Settles with what the completion's `apply` returned, once it has been applied.
      */
-    public hold(completion: ChunkCompletion, now = false): Promise<boolean> {
+    public hold(completion: ChunkCompletion): Promise<boolean> {
         const key = keyOf(completion);
-        if (!this.active || now) {
+        if (!this.active) {
             return new Promise<boolean>((resolve, reject) => {
                 this.apply({ completion, key, priority: completion.priority, resolve, reject }, this.tick(), 'inline');
             });
@@ -258,39 +248,6 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
             this.waiting.get(held.priority)!.push(held);
             this.keyed.set(key, held);
         });
-    }
-
-    /**
-     * Applies a held completion now, for code inside the running tick that waits for it. The
-     * admission is recorded as `inline` and counted in {@link ChunkAdmissionSnapshot.admittedInTick}.
-     *
-     * @returns Whether a completion was held for that chunk and direction.
-     */
-    public admitNow(admission: ChunkAdmission): boolean {
-        const held = this.keyed.get(keyOf(admission));
-        if (held === undefined) return false;
-
-        this.remove(held);
-        this.apply(held, this.tick(), 'inline');
-        return true;
-    }
-
-    /**
-     * Applies every held completion now, for a tick that has stalled with them held: something
-     * the tick awaits may wait for one of them, and the next input step cannot come until the
-     * tick ends. Each is recorded as `inline` and counted in
-     * {@link ChunkAdmissionSnapshot.admittedInTick}.
-     *
-     * @returns What was held, in the order it was applied.
-     */
-    public admitParked(): readonly ChunkAdmission[] {
-        const parked: ChunkAdmission[] = [];
-        for (let held = this.takeNext(); held !== undefined; held = this.takeNext()) {
-            const { world, change, x, z } = held.completion;
-            parked.push({ world, change, x, z });
-            this.apply(held, this.tick(), 'inline');
-        }
-        return parked;
     }
 
     /**
@@ -335,7 +292,6 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         return {
             pending: this.keyed.size,
             admitted: this.admitted,
-            admittedInTick: this.admittedInTick,
             admittedIdle: this.admittedIdle,
             divergences: [...this.divergences]
         };
@@ -381,7 +337,6 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         }
 
         if (step === 'input') this.admitted++;
-        else if (this.active) this.admittedInTick++;
         else this.admittedIdle++;
 
         const { world, change, x, z } = completion;

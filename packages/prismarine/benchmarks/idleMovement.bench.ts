@@ -123,10 +123,7 @@ const context: MovementContext = {
     services: { events: { post: () => 0, emit: async () => {} } },
     step: {
         tick: 0,
-        output: (send) => void outputs.push(send),
-        defer: () => {
-            throw new Error('a movement defers nothing');
-        }
+        output: (send) => void outputs.push(send)
     }
 };
 const movement = {

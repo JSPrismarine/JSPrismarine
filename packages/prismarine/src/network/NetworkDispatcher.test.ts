@@ -931,7 +931,7 @@ describe('network', () => {
             return new ServerTicker(deps);
         };
 
-        it('never runs an input-lane handler inside a world update, and a read-lane one on arrival', async () => {
+        it('runs no handler inside a world update: a read-lane one after the tick, an input-lane one at the next input step', async () => {
             const order: string[] = [];
             let tick = 0;
             const { transport, dispatcher } = makeSessionDispatcher({
@@ -950,29 +950,29 @@ describe('network', () => {
             const ticker = tickerOver(dispatcher, [
                 {
                     getName: () => 'world',
-                    update: async (at) => {
+                    update: (at) => {
                         order.push(`world:${at}:start`);
+                        // Both arrive in the middle of the update, which runs to its end first.
                         if (at === 0) {
-                            // Both arrive in the middle of the update, between its awaits.
                             arrivals.push(transport.emitFrame(frameOf(message('move')), 1));
                             arrivals.push(transport.emitFrame(frameOf(cacheStatus()), 2));
-                            await turn();
-                            await turn();
                         }
                         order.push(`world:${at}:end`);
                     }
                 }
             ]);
 
-            await ticker.advance();
+            ticker.advance();
+            await turn();
+            await turn();
             tick = 1;
-            await ticker.advance();
+            ticker.advance();
             await Promise.all(arrivals);
 
             expect(order).toEqual([
                 'world:0:start',
-                'read',
                 'world:0:end',
+                'read',
                 // Held until the input step of the next tick, ahead of that tick's update.
                 'input:move',
                 'world:1:start',

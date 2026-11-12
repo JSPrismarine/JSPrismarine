@@ -237,6 +237,8 @@ export default class Server extends EventEmitter {
      *   recorded trace, not the budget, decides what a replay admits.
      * @param options.onStopCommandComplete - Called after a successful `/stop` dispatch sends
      *   its feedback.
+     * @param [options.tickClock] - The clock the tick loop schedules and times its phases by,
+     *   `performance.now` by default. Nothing a tick simulates reads it.
      * @returns {Server} The server instance.
      */
     public constructor({
@@ -248,7 +250,8 @@ export default class Server extends EventEmitter {
         outboundPacketRecorder,
         transport,
         chunkAdmissionBudget,
-        onStopCommandComplete
+        onStopCommandComplete,
+        tickClock
     }: {
         logger: Logger;
         config: Config;
@@ -259,6 +262,7 @@ export default class Server extends EventEmitter {
         transport?: Transport;
         chunkAdmissionBudget?: number;
         onStopCommandComplete?: () => void;
+        tickClock?: () => number;
     }) {
         super();
 
@@ -289,32 +293,35 @@ export default class Server extends EventEmitter {
         this.consoleSender = new ConsoleSender(this);
         if (!this.headless) this.console = new Console(this);
         this.commandManager = new CommandManager(this, onStopCommandComplete);
-        this.ticker = new ServerTicker({
-            emitTick: (event) => void this.post(['tick', event], (error) => this.logger.error(error)),
-            // Packets first, then the chunks that became ready since the last step, so every world
-            // sees them from its first update. A chunk an input-lane handler waits for enters at
-            // once, because the step cannot finish without it. Portal trips come after the chunks, so
-            // a trip whose arrival chunks this step admitted lands in it.
-            admitInputs: () =>
-                this.networking.admitInputs() +
-                this.chunkCompletionQueue.admissions.admit(this.getTick()) +
-                this.respawnRequests.admit() +
-                this.dimensionTravel.admit() +
-                this.worldMessages.admit(),
-            pollNetwork: () => this.networking.pollInbound(),
-            // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
-            getWorlds: () => this.worldManager.getLevels(),
-            tickFunctions: () => this.commandManager.tickFunctions(),
-            getChunkScheduler: () => this.chunkScheduler,
-            getChunkCompletionQueue: () => this.chunkCompletionQueue,
-            getChunkSendBudgetMs: () => this.config.getChunkSendBudgetMs(),
-            isTickingEnabled: () => this.config.getEnableTicking(),
-            isProcessTitleEnabled: () => this.config.getEnableProcessTitle(),
-            isHeadless: () => this.headless,
-            isStopping: () => this.lifecycle.isStopping(),
-            getProfileOwner: () => this,
-            getLogger: () => this.logger
-        });
+        this.ticker = new ServerTicker(
+            {
+                emitTick: (event) => void this.post(['tick', event], (error) => this.logger.error(error)),
+                // Packets first, then the chunks that became ready since the last step, so every world
+                // sees them from its first update. A chunk an input-lane handler waits for enters at
+                // once, because the step cannot finish without it. Portal trips come after the chunks, so
+                // a trip whose arrival chunks this step admitted lands in it.
+                admitInputs: () =>
+                    this.networking.admitInputs() +
+                    this.chunkCompletionQueue.admissions.admit(this.getTick()) +
+                    this.respawnRequests.admit() +
+                    this.dimensionTravel.admit() +
+                    this.worldMessages.admit(),
+                pollNetwork: () => this.networking.pollInbound(),
+                // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
+                getWorlds: () => this.worldManager.getLevels(),
+                tickFunctions: () => this.commandManager.tickFunctions(),
+                getChunkScheduler: () => this.chunkScheduler,
+                getChunkCompletionQueue: () => this.chunkCompletionQueue,
+                getChunkSendBudgetMs: () => this.config.getChunkSendBudgetMs(),
+                isTickingEnabled: () => this.config.getEnableTicking(),
+                isProcessTitleEnabled: () => this.config.getEnableProcessTitle(),
+                isHeadless: () => this.headless,
+                isStopping: () => this.lifecycle.isStopping(),
+                getProfileOwner: () => this,
+                getLogger: () => this.logger
+            },
+            tickClock
+        );
         if (config.getChunkHost() === 'process' && config.getChunkWorkers() > 0) {
             this.generationGovernor = new GenerationGovernorDriver({
                 recorder: this.ticker.recorder,
@@ -1054,12 +1061,12 @@ export default class Server extends EventEmitter {
     /**
      * Runs one tick now, for a harness that drives a server started with ticking disabled.
      *
-     * Each call is exactly one tick and resolves when its work has settled, so a replay takes
-     * the same steps on any host. See {@link ServerTicker.advance}.
+     * Each call is exactly one tick, run to its end before this returns, so a replay takes the
+     * same steps on any host. See {@link ServerTicker.advance}.
      * @throws {Error} When the tick loop is running.
      */
-    public advanceTick(): Promise<void> {
-        return this.ticker.advance();
+    public advanceTick(): void {
+        this.ticker.advance();
     }
 
     /** The handle `/tick` uses to change the tick rate, freeze the world, step it and sprint. */

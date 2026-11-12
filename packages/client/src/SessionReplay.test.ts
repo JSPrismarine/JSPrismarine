@@ -1040,11 +1040,13 @@ const replayLogOnSnapshot = async (
                         continue;
                     }
                     const chunk = live.world.getChunk(entry.x, entry.z, { urgency: 'idle' });
-                    for (let turns = 0; queue.admitParked().length === 0; turns += 1) {
+                    for (let turns = 0; queue.admissions.pending === 0; turns += 1) {
                         if (turns > 1000) throw new Error(`Chunk ${entry.x},${entry.z} never became ready`);
                         queue.drain(Number.MAX_SAFE_INTEGER);
                         await nextTurn();
                     }
+                    // The input step that takes the chunk in, as the replay's entry did.
+                    queue.admissions.admit(live.server.getTick());
                     await chunk;
                     chunksEntered += 1;
                 } else if (entry.kind === 'field' || entry.kind === 'membership') {

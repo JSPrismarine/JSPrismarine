@@ -136,10 +136,10 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         world,
         getRespawnSearch: () => respawnSearch,
         customDimensionDefinitions: () => [...(options.customDimensionDefinitions ?? [])],
-        update: async (tick) => {
+        update: (tick) => {
             ticks++;
             weather.tick(ticks);
-            for (const world of worlds()) await world.update(tick);
+            for (const world of worlds()) world.update(tick);
         },
         save: async () => {},
         saveLevelData: async () => {},

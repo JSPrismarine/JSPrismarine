@@ -7,10 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startTestModule } from '@jsprismarine/kernel/testing';
 import type { TickEvent } from '../events/Events';
 import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
-import { ServerTicker, TICK_STALL_MS, TickStalledError, tickerModule } from './ticker';
+import { ServerTicker, tickerModule } from './ticker';
 import type { TickerServer } from './ticker';
 import { tickerToken } from './tokens';
-import type { ChunkAdmissionRecord } from '../world/ChunkAdmissions';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { insideTick } from '../world/TickContext';
 
@@ -221,7 +220,7 @@ describe('modules/ticker', () => {
         let polled = 0;
         const harness = buildHarness({
             isTickingEnabled: () => false,
-            emitTick: async () => {
+            emitTick: () => {
                 throw new Error('a tick listener failed');
             },
             pollNetwork: () => ++polled
@@ -251,14 +250,13 @@ describe('modules/ticker', () => {
         }
     });
 
-    it('activates and drains background chunk completions before world updates', async () => {
+    it('activates the chunk completions, and drains their preparation after the world updates, outside the tick', async () => {
         const order: string[] = [];
         const queue = {
             activate: () => order.push('activate'),
             deactivate: () => order.push('deactivate'),
-            admitParked: () => [],
             drain: () => {
-                order.push('completion');
+                order.push(insideTick() ? 'completion inside the tick' : 'completion');
                 return 1;
             }
         };
@@ -277,7 +275,7 @@ describe('modules/ticker', () => {
 
         try {
             await vi.advanceTimersByTimeAsync(0);
-            expect(order.slice(0, 3)).toEqual(['activate', 'completion', 'world']);
+            expect(order.slice(0, 3)).toEqual(['activate', 'world', 'completion']);
         } finally {
             await handle.stop();
         }
@@ -285,16 +283,16 @@ describe('modules/ticker', () => {
         expect(order.at(-1)).toBe('deactivate');
     });
 
-    it('updates the worlds one after another in order, past one that throws, before the next tick', async () => {
+    it('updates the worlds one after another in order, past one that throws, each to its end', async () => {
         const events: string[] = [];
         const errors: unknown[] = [];
         const failure = new Error('the overworld broke');
-        const world = (name: string, work: () => Promise<void>) => ({
+        const world = (name: string, work: () => void) => ({
             getName: () => name,
-            update: async (tick: number) => {
+            update: (tick: number) => {
                 events.push(`start ${name} ${tick}`);
                 try {
-                    await work();
+                    work();
                 } finally {
                     events.push(`end ${name} ${tick}`);
                 }
@@ -302,13 +300,11 @@ describe('modules/ticker', () => {
         });
         const harness = buildHarness({
             getWorlds: () => [
-                world('overworld', async () => {
+                world('overworld', () => {
                     throw failure;
                 }),
-                // Longer than a tick's period: a loop that does not wait for it starts the next
-                // tick while this one is still running.
-                world('nether', () => new Promise((resolve) => setTimeout(resolve, TICK_MS * 2))),
-                world('the_end', async () => {})
+                world('nether', () => {}),
+                world('the_end', () => {})
             ],
             getLogger: () => ({
                 warn: () => {},
@@ -318,7 +314,6 @@ describe('modules/ticker', () => {
         });
         const handle = await startTestModule(tickerModule(harness.ticker));
         try {
-            // Room for the first two ticks, each held for two periods by the Nether.
             await vi.advanceTimersByTimeAsync(TICK_MS * 8);
         } finally {
             await handle.stop();
@@ -502,88 +497,6 @@ describe('modules/ticker', () => {
         }
     });
 
-    describe('a tick stalled on a chunk held for the next input step', () => {
-        it('names what was held, admits it inline and lets the tick end', async () => {
-            const queue = new ChunkCompletionQueue(undefined, { tick: () => 7 });
-            const records: ChunkAdmissionRecord[] = [];
-            queue.admissions.setRecorder({ record: (record) => void records.push(record) });
-            queue.activate();
-            const errors: unknown[] = [];
-            // Started between ticks, as a console command's work is: the chunk waits for an input
-            // step, and the tick below waits for the chunk.
-            const between = queue.admissions.hold({
-                world: 'level/minecraft:the_end',
-                change: 'enter',
-                x: -5,
-                z: 3,
-                priority: 'immediate',
-                apply: () => true
-            });
-            let waited = false;
-            const harness = buildHarness({
-                isTickingEnabled: () => false,
-                getChunkCompletionQueue: () => queue,
-                getWorlds: () => [
-                    {
-                        getName: () => 'the_end',
-                        update: async () => {
-                            // The input step has run, so the chunk is parked behind the next one.
-                            await between;
-                            waited = true;
-                        }
-                    }
-                ],
-                getLogger: () => ({ warn: () => {}, verbose: () => {}, error: (error) => void errors.push(error) })
-            });
-            // Parks the completion behind the next step, as a completion that is ready after the
-            // input step began would be.
-            const tick = harness.ticker.advance();
-            await vi.advanceTimersByTimeAsync(TICK_STALL_MS - 1);
-            expect(waited).toBe(false);
-
-            await vi.advanceTimersByTimeAsync(1);
-            await tick;
-
-            expect(waited).toBe(true);
-            expect(errors).toHaveLength(1);
-            const [error] = errors;
-            expect(error).toBeInstanceOf(TickStalledError);
-            expect(error).toMatchObject({
-                tick: 0,
-                waitedMs: TICK_STALL_MS,
-                parked: [{ world: 'level/minecraft:the_end', change: 'enter', x: -5, z: 3 }]
-            });
-            expect(String(error)).toContain('enter level/minecraft:the_end -5,3');
-            expect(records).toEqual([expect.objectContaining({ tick: 7, x: -5, z: 3, step: 'inline' })]);
-            expect(queue.admissions.snapshot()).toMatchObject({ pending: 0, admittedInTick: 1 });
-        });
-
-        it('leaves a held chunk for the input step when the tick does not stall', async () => {
-            const queue = new ChunkCompletionQueue();
-            queue.activate();
-            const errors: unknown[] = [];
-            const harness = buildHarness({
-                isTickingEnabled: () => false,
-                getChunkCompletionQueue: () => queue,
-                getLogger: () => ({ warn: () => {}, verbose: () => {}, error: (error) => void errors.push(error) })
-            });
-            await harness.ticker.advance();
-            void queue.admissions.hold({
-                world: 'level/minecraft:overworld',
-                change: 'enter',
-                x: 0,
-                z: 0,
-                priority: 'idle',
-                apply: () => true
-            });
-
-            await vi.advanceTimersByTimeAsync(TICK_STALL_MS * 2);
-
-            expect(errors).toEqual([]);
-            expect(queue.admissions.pending).toBe(1);
-        });
-    });
-
     describe('advance', () => {
         it('runs exactly one tick per call when ticking is disabled, and schedules nothing', async () => {
             const updated: number[] = [];
@@ -610,13 +523,8 @@ describe('modules/ticker', () => {
                 expect(harness.tickEvents.map((event) => event.getTick())).toEqual([0, 1, 2]);
                 expect(updated).toEqual([0, 1, 2]);
                 expect(harness.ticker.recorder.between(0).map((sample) => sample.tick)).toEqual([0, 1, 2]);
-                // Nothing waits on a timer, so the same calls take the same steps on any host. The
-                // only timer is each tick's stall watch, which ends with the tick.
-                expect(timeout.mock.calls.map(([, delay]) => delay)).toEqual([
-                    TICK_STALL_MS,
-                    TICK_STALL_MS,
-                    TICK_STALL_MS
-                ]);
+                // Nothing waits on a timer, so the same calls take the same steps on any host.
+                expect(timeout).not.toHaveBeenCalled();
                 expect(vi.getTimerCount()).toBe(0);
                 expect(immediate).not.toHaveBeenCalled();
             } finally {
@@ -626,25 +534,26 @@ describe('modules/ticker', () => {
             }
         });
 
-        it('refuses to run beside the loop or beside another manual tick', async () => {
-            let release = (): void => {};
+        it('refuses to run beside the loop or from inside the tick it is running', async () => {
+            const refused: unknown[] = [];
             const harness = buildHarness({
                 isTickingEnabled: () => false,
-                emitTick: () =>
-                    new Promise<void>((resolve) => {
-                        release = resolve;
-                    })
+                emitTick: () => {
+                    try {
+                        harness.ticker.advance();
+                    } catch (error: unknown) {
+                        refused.push(error);
+                    }
+                }
             });
-            const first = harness.ticker.advance();
-            await expect(harness.ticker.advance()).rejects.toThrow('manual tick is in flight');
-            release();
-            await first;
+            harness.ticker.advance();
+            expect(refused).toEqual([new Error('Cannot advance the ticker while a manual tick is in flight')]);
             expect(harness.ticker.getTick()).toBe(1);
 
             const running = buildHarness();
             const handle = await startTestModule(tickerModule(running.ticker));
             try {
-                await expect(running.ticker.advance()).rejects.toThrow('while its loop runs');
+                expect(() => running.ticker.advance()).toThrow('while its loop runs');
             } finally {
                 await handle.stop();
             }

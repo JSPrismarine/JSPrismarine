@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import ChunkSender from '../network/ChunkSender';
 import ChunkScheduler from './ChunkScheduler';
 import type { ChunkRecipient } from './ChunkScheduler';
-import { currentTickWaitTracker } from './TickContext';
+import { currentTickWaitTracker } from './TickWaits';
 
 /** A player stand-in: a real queue, and a record of what was delivered. */
 const fakeRecipient = (chunks: Array<[number, number]>, costMs = 0, clock?: { now: number }) => {

@@ -25,11 +25,6 @@ const listen = (socket: DatagramSocket): Promise<void> =>
 
 const close = (socket: DatagramSocket): Promise<void> => new Promise((resolve) => socket.close(() => resolve()));
 
-const wait = (durationMs: number): Promise<void> =>
-    new Promise((resolve) => {
-        setTimeout(resolve, durationMs);
-    });
-
 const recoverDebt = async (debtMs: number) => {
     const receiver = createSocket('udp4');
     const sender = createSocket('udp4');
@@ -55,19 +50,17 @@ const recoverDebt = async (debtMs: number) => {
     let startedAt = 0;
 
     const server: TickerServer = {
-        emitTick: async (event) => {
+        emitTick: (event) => {
             activeTick = event.getTick();
             tickIds.push(activeTick);
+            // A tick runs in one call, so a slow one holds the thread for its whole length.
             if (activeTick === 0) {
-                await wait(debtMs);
+                const until = performance.now() + debtMs;
+                while (performance.now() < until) {
+                    // The debt: nothing else runs while the tick does.
+                }
             }
             completedTick = activeTick;
-        },
-        admitInputs: async () => 0,
-        pollNetwork: () => 0,
-        getWorlds: () => [],
-        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
-        tickFunctions: async () => {
             if (activeTick < recoveryTick) {
                 for (let index = 0; index < 32; index += 1) {
                     sender.send(Buffer.from([activeTick & 0xff, index]), address.port, '127.0.0.1');
@@ -78,6 +71,11 @@ const recoverDebt = async (debtMs: number) => {
                 finish({ elapsedMs: performance.now() - startedAt, tickCount: tickIds.length });
             }
         },
+        admitInputs: () => 0,
+        pollNetwork: () => 0,
+        getWorlds: () => [],
+        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
+        tickFunctions: () => 0,
         getChunkScheduler: () => ({ setBudget: () => {}, tick: async () => {} }),
         getChunkSendBudgetMs: () => 0,
         isTickingEnabled: () => true,

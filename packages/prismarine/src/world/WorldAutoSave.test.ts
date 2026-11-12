@@ -310,21 +310,16 @@ describe('the autosave a tick starts', () => {
         if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
 
         level.setTicks(1);
-        const update = world.update(1);
+        // The tick returns at once; the unload it started writes outside it.
+        expect(world.update(1)).toBeUndefined();
         await provider.parked;
-        const updateFinished = await Promise.race([
-            update.then(() => true),
-            new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 100))
-        ]);
 
         expect(world.getLoadedChunk(11, 0)).toBe(chunk);
         provider.openGate();
-        await update;
         const unloading = Reflect.get(world, 'unloading');
         if (!(unloading instanceof Promise)) throw new Error('World unload task is unavailable');
         await unloading;
 
-        expect(updateFinished).toBe(true);
         expect(world.getLoadedChunk(11, 0)).toBeNull();
 
         const restored = await provider.readChunk(Dimensions.Overworld, 11, 0, 1234n, generator);
