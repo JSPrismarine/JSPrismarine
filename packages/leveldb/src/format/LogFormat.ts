@@ -27,57 +27,84 @@ export const LogRecordType = {
 /** One of the values of {@link LogRecordType}. */
 export type LogRecordType = (typeof LogRecordType)[keyof typeof LogRecordType];
 
+/** One framed log record: the buffers to append, in order, and their total length. */
+export interface FramedLogRecord {
+    /**
+     * Fragment headers, block padding and the record's payload. Each payload part is a view of
+     * the record, so framing copies none of its bytes.
+     */
+    readonly parts: Buffer[];
+    /** The bytes the parts add to the log. */
+    readonly length: number;
+}
+
+/**
+ * Frames one record for a log whose current length is `startOffset`.
+ *
+ * The parts are what a vectored write appends. A record bigger than a block is split into `First`,
+ * `Middle` and `Last` fragments, and a block tail too short for a header is padded with zeroes.
+ */
+export const frameLogRecord = (record: Buffer, startOffset: number): FramedLogRecord => {
+    const parts: Buffer[] = [];
+    let blockOffset = startOffset % LOG_BLOCK_SIZE;
+    let length = 0;
+    let at = 0;
+    let first = true;
+
+    do {
+        const available = LOG_BLOCK_SIZE - blockOffset;
+        if (available < LOG_HEADER_SIZE) {
+            // Not even a header fits: pad the tail so the next record starts a fresh block.
+            if (available > 0) {
+                parts.push(Buffer.alloc(available));
+                length += available;
+            }
+            blockOffset = 0;
+        }
+
+        const capacity = LOG_BLOCK_SIZE - blockOffset - LOG_HEADER_SIZE;
+        const size = Math.min(record.byteLength - at, capacity);
+        const last = at + size === record.byteLength;
+        const type = first
+            ? last
+                ? LogRecordType.Full
+                : LogRecordType.First
+            : last
+              ? LogRecordType.Last
+              : LogRecordType.Middle;
+        const payload = record.subarray(at, at + size);
+
+        const header = Buffer.allocUnsafe(LOG_HEADER_SIZE);
+        header.writeUInt32LE(mask(crc32cUpdate(payload, crc32cUpdate(Buffer.from([type])))), 0);
+        header.writeUInt16LE(payload.byteLength, 4);
+        header.writeUInt8(type, 6);
+        parts.push(header);
+        if (payload.byteLength > 0) parts.push(payload);
+
+        blockOffset += LOG_HEADER_SIZE + payload.byteLength;
+        length += LOG_HEADER_SIZE + payload.byteLength;
+        at += size;
+        first = false;
+        // A zero-length record still needs one fragment, hence the do/while.
+    } while (at < record.byteLength);
+
+    return { parts, length };
+};
+
 /** Frames records into blocks. Emits the whole file; callers append the result. */
 export class LogWriter {
     private readonly writer = new ByteWriter(LOG_BLOCK_SIZE);
-    private blockOffset: number;
+    private offset: number;
 
     /** `startOffset` is the length of the file being appended to, so blocks stay aligned. */
     public constructor(startOffset = 0) {
-        this.blockOffset = startOffset % LOG_BLOCK_SIZE;
+        this.offset = startOffset;
     }
 
     public append(record: Buffer): void {
-        let at = 0;
-        let first = true;
-
-        do {
-            const available = LOG_BLOCK_SIZE - this.blockOffset;
-            if (available < LOG_HEADER_SIZE) {
-                // Not even a header fits: pad the tail so the next record starts a fresh block.
-                if (available > 0) this.writer.bytes(Buffer.alloc(available));
-                this.blockOffset = 0;
-            }
-
-            const capacity = LOG_BLOCK_SIZE - this.blockOffset - LOG_HEADER_SIZE;
-            const length = Math.min(record.byteLength - at, capacity);
-            const last = at + length === record.byteLength;
-
-            this.emit(
-                first
-                    ? last
-                        ? LogRecordType.Full
-                        : LogRecordType.First
-                    : last
-                      ? LogRecordType.Last
-                      : LogRecordType.Middle,
-                record.subarray(at, at + length)
-            );
-
-            at += length;
-            first = false;
-            // A zero-length record still needs one fragment, hence the do/while.
-        } while (at < record.byteLength);
-    }
-
-    private emit(type: LogRecordType, payload: Buffer): void {
-        this.writer
-            .u32(mask(crc32cUpdate(payload, crc32cUpdate(Buffer.from([type])))))
-            .u16(payload.byteLength)
-            .u8(type)
-            .bytes(payload);
-
-        this.blockOffset += LOG_HEADER_SIZE + payload.byteLength;
+        const framed = frameLogRecord(record, this.offset);
+        for (const part of framed.parts) this.writer.bytes(part);
+        this.offset += framed.length;
     }
 
     public finish(): Buffer {

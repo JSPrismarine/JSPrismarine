@@ -15,7 +15,7 @@ import {
     tableFileName
 } from './util/FileNames';
 import { DirectoryLock } from './db/DirectoryLock';
-import { LogWriter, readLogRecords } from './format/LogFormat';
+import { LogWriter, frameLogRecord, readLogRecords } from './format/LogFormat';
 import { MemTable } from './db/MemTable';
 import { MAX_LEVELS, VersionSet } from './db/VersionSet';
 import { TableReader } from './format/TableReader';
@@ -31,7 +31,7 @@ import {
 import { WriteBatch } from './format/WriteBatch';
 import { decodeVersionEdit, encodeVersionEdit } from './db/VersionEdit';
 import { resolveOptions } from './DatabaseOptions';
-import type { DatabaseOptions, ResolvedOptions } from './DatabaseOptions';
+import type { DatabaseOptions, ResolvedOptions, WriteOptions } from './DatabaseOptions';
 import type { FileMetaData, VersionEdit } from './db/VersionEdit';
 import type { BlockCacheStats } from './format/BlockCache';
 import type {
@@ -92,7 +92,11 @@ export class Database {
     private memtable = new MemTable();
     private immutableMemtable: MemTable | null = null;
     private log: AppendFile | null = null;
-    private logWriter: LogWriter | null = null;
+    /**
+     * Why a commit's log append failed. The memtable holds that batch and the log does not, so
+     * nothing written after it could be trusted to replay, and every later write is refused.
+     */
+    private commitFailure: Error | null = null;
     private tableWorker: Worker | null = null;
     private tableWorkerRequest: {
         resolve: (result: TableWorkerResult) => void;
@@ -223,7 +227,6 @@ export class Database {
     private openLog(): void {
         const file = path.join(this.directory, logFileName(this.versions.logNumber));
         this.log = new AppendFile(file);
-        this.logWriter = new LogWriter(this.log.length);
     }
 
     public async close(): Promise<void> {
@@ -232,6 +235,7 @@ export class Database {
         // Flushed before the door shuts, not after: `flush` refuses to run on a closed database.
         if (!this.options.readOnly) {
             await this.flush();
+            await this.settleCommits();
             this.log?.sync();
         }
 
@@ -467,31 +471,104 @@ export class Database {
         this.write(new WriteBatch().del(key));
     }
 
-    public write(batch: WriteBatch): void {
+    /**
+     * Appends a batch to the log and applies it before returning.
+     *
+     * @param options - `sync` to fsync the log before returning.
+     * @throws {Error} When a {@link Database.commit} is still appending, which this would overtake,
+     *   or when an earlier commit failed.
+     */
+    public write(batch: WriteBatch, options: WriteOptions = {}): void {
+        this.assertCanWrite();
+        if (batch.count === 0) return;
+        if (this.log!.busy) throw new Error('A commit is still appending; queue this write behind it with commit');
+
+        // The log first, always. A batch that reached memory but not the log is a batch a crash
+        // loses silently, and callers have no way to know which writes made it.
+        const sequence = this.versions.lastSequence + 1n;
+        const framed = frameLogRecord(batch.encode(sequence), this.log!.length);
+        this.log!.append(framed.parts);
+        this.bytesWritten += framed.length;
+        if (options.sync ?? this.options.sync) this.log!.sync();
+
+        this.apply(sequence, batch);
+    }
+
+    /**
+     * Applies a batch now and appends it to the log on libuv's thread pool, so the server thread
+     * does not wait for the disk.
+     *
+     * Reads see the batch as soon as this returns, before it is on disk, which is what they saw
+     * when every write blocked. Commits append in the order they were made, one after another.
+     * The log record is the batch's encoding framed as fragment headers over slices of it, so the
+     * only copy of the values is the encoding itself. A record cut short by a crash replays as
+     * nothing, so a commit is all of its keys or none of them.
+     *
+     * @param options - `sync` to fsync the log once the record is in it.
+     * @returns Settles once the record is in the log, and synced when asked.
+     * @throws {Error} When the append or the sync fails. The database then refuses every later
+     *   write, because the memtable holds a batch the log may not.
+     */
+    public async commit(batch: WriteBatch, options: WriteOptions = {}): Promise<void> {
+        this.assertCanWrite();
+        if (batch.count === 0) return;
+
+        const log = this.log!;
+        const sequence = this.versions.lastSequence + 1n;
+        const framed = frameLogRecord(batch.encode(sequence), log.length);
+        const appended = log.appendLater(framed.parts);
+        const synced = (options.sync ?? this.options.sync) ? log.syncLater() : undefined;
+        this.bytesWritten += framed.length;
+        this.apply(sequence, batch);
+
+        try {
+            await appended;
+            await synced;
+        } catch (error) {
+            this.commitFailure ??= error instanceof Error ? error : new Error(String(error));
+            throw error;
+        }
+    }
+
+    /**
+     * Whether a {@link Database.commit} is still appending, which a {@link Database.write} would
+     * overtake and so refuses.
+     */
+    public get appending(): boolean {
+        return this.log?.busy ?? false;
+    }
+
+    private assertCanWrite(): void {
         this.assertWritable();
+        if (this.commitFailure !== null) {
+            throw new Error('A commit failed to reach the log, so the database refuses further writes', {
+                cause: this.commitFailure
+            });
+        }
         if (this.backgroundFlushError !== null) {
             const error = this.backgroundFlushError;
             this.backgroundFlushError = null;
             throw error;
         }
-        if (batch.count === 0) return;
+    }
 
-        // The log first, always. A batch that reached memory but not the log is a batch a crash
-        // loses silently, and callers have no way to know which writes made it.
-        const sequence = this.versions.lastSequence + 1n;
-        this.logWriter!.append(batch.encode(sequence));
-        const logRecord = this.logWriter!.finish();
-        this.log!.append(logRecord);
-        this.bytesWritten += logRecord.byteLength;
-        this.logWriter = new LogWriter(this.log!.length);
-        if (this.options.sync) this.log!.sync();
-
+    /** Puts an appended batch into the memtable and schedules a flush once the memtable is full. */
+    private apply(sequence: bigint, batch: WriteBatch): void {
         this.applyBatch({ sequence, batch });
         this.versions.lastSequence = sequence + BigInt(batch.count) - 1n;
 
         if (this.memtable.size >= this.options.writeBufferSize) {
             this.scheduleBackgroundFlush();
         }
+    }
+
+    /**
+     * Settles once no commit is appending. Checked again after each wait, because a commit made
+     * while one was waiting queues behind it, and the caller syncs or closes the log in the same
+     * turn this returns.
+     */
+    private async settleCommits(): Promise<void> {
+        while (this.log?.busy) await this.log.drain();
     }
 
     /** Turns the memtable into a table off-thread, then compacts any level over its size budget. */
@@ -563,6 +640,9 @@ export class Database {
             if (result.kind !== 'built') throw new Error('Table worker returned a compaction result for a flush');
             this.bytesWritten += result.file.size;
 
+            // A commit made since the memtable froze appends to this log. It has to land before
+            // the log is synced and closed, and before the memtable is asked whether it is empty.
+            await this.settleCommits();
             const previousLog = this.versions.logNumber;
             const nextLog = this.versions.allocateFileNumber();
             const keepPreviousLog = this.memtable.empty ? 0 : previousLog;

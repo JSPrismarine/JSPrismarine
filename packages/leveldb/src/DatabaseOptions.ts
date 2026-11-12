@@ -22,7 +22,20 @@ export interface DatabaseOptions {
     compressionLevel?: number;
     /** How many level 0 files may pile up before they are merged into level 1. */
     l0CompactionTrigger?: number;
-    /** fsync after every batch. Slow, and unnecessary given the log is replayed on open. */
+    /**
+     * fsync after every batch. Slow, and unnecessary given the log is replayed on open. A write or
+     * commit can ask for its own with {@link WriteOptions.sync}.
+     */
+    sync?: boolean;
+}
+
+/** How one {@link Database.write} or {@link Database.commit} reaches the disk. */
+export interface WriteOptions {
+    /**
+     * fsync the log once this batch is in it, so an operating system crash or a power loss keeps
+     * it. Without it a process crash still keeps it, since the bytes are in the page cache. Defaults
+     * to the database's {@link DatabaseOptions.sync}.
+     */
     sync?: boolean;
 }
 

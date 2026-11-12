@@ -10,6 +10,7 @@ import { CompressionType } from './compression/Compression';
 import { Database } from './Database';
 import { DatabaseLockedError } from './Errors';
 import { WriteBatch } from './format/WriteBatch';
+import { readLogRecords } from './format/LogFormat';
 import { VersionSet } from './db/VersionSet';
 
 /**
@@ -222,6 +223,129 @@ describe('leveldb', () => {
                 const reopened = await Database.open(copy, { readOnly: true });
                 expect(reopened.get(key('before'))).toEqual(key('kept'));
                 for (const k of keys) expect(reopened.get(k)).toBeNull();
+                await reopened.close();
+                await crashed.close();
+            });
+
+            it('syncs one write when asked, and none by default', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                const log = Reflect.get(db, 'log');
+                let syncs = 0;
+                const sync = log.sync.bind(log);
+                log.sync = () => {
+                    syncs++;
+                    sync();
+                };
+
+                db.write(new WriteBatch().put(key('a'), key('1')));
+                db.write(new WriteBatch().put(key('b'), key('2')), { sync: true });
+                db.write(new WriteBatch().put(key('c'), key('3')));
+                expect(syncs).toBe(1);
+                await db.close();
+            });
+
+            it('commits a batch as one log record, readable before it lands', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                const before = db.stats.bytesWritten;
+                const batch = new WriteBatch();
+                for (const k of chunkKeys(64)) batch.put(k, Buffer.alloc(4096, 3));
+
+                const committed = db.commit(batch, { sync: true });
+                // Applied at once: a read made while the append runs sees the batch.
+                expect(db.get(chunkKeys(64)[63]!)).toEqual(Buffer.alloc(4096, 3));
+                await committed;
+
+                const log = fs.readdirSync(directory).find((name) => name.endsWith('.log'))!;
+                const records = [...readLogRecords(fs.readFileSync(path.join(directory, log)))];
+                expect(records).toHaveLength(1);
+                // The log grew by the encoded batch and its framing: 9 fragment headers over 8 blocks.
+                const encoded = batch.encode(1n).byteLength;
+                const fragments = Math.ceil(encoded / (32768 - 7));
+                expect(db.stats.bytesWritten - before).toBe(encoded + fragments * 7);
+                await db.close();
+            });
+
+            it('appends commits in the order they were made, and refuses a write that would overtake one', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                const first = db.commit(new WriteBatch().put(key('k'), key('first')));
+                const second = db.commit(new WriteBatch().put(key('k'), key('second')));
+                expect(db.appending).toBe(true);
+                expect(() => db.put(key('other'), key('v'))).toThrow(/commit is still appending/);
+                await Promise.all([first, second]);
+                expect(db.appending).toBe(false);
+                db.put(key('other'), key('v'));
+                await db.close();
+
+                const reopened = await Database.open(directory, { readOnly: true });
+                expect(reopened.get(key('k'))).toEqual(key('second'));
+                expect(reopened.get(key('other'))).toEqual(key('v'));
+                await reopened.close();
+            });
+
+            it('waits for a commit before it closes', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                void db.commit(new WriteBatch().put(key('k'), Buffer.alloc(64 * 1024, 9)));
+                await db.close();
+
+                const reopened = await Database.open(directory, { readOnly: true });
+                expect(reopened.get(key('k'))).toEqual(Buffer.alloc(64 * 1024, 9));
+                await reopened.close();
+            });
+
+            it('lands a commit made while the memtable flushes before the log rotates', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory, { writeBufferSize: 1024 });
+                const keys = chunkKeys(32);
+                const commits = keys.map((k) => db.commit(new WriteBatch().put(k, Buffer.alloc(512, 1))));
+                await Promise.all(commits);
+                await db.flush();
+                await db.close();
+
+                const reopened = await Database.open(directory, { readOnly: true });
+                for (const k of keys) expect(reopened.get(k)).toEqual(Buffer.alloc(512, 1));
+                await reopened.close();
+            });
+
+            it('refuses every write after a commit failed to reach the log', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                const log = Reflect.get(db, 'log');
+                log.appendLater = () => Promise.reject(new Error('disk gone'));
+
+                await expect(db.commit(new WriteBatch().put(key('k'), key('v')))).rejects.toThrow('disk gone');
+                expect(() => db.put(key('later'), key('v'))).toThrow(/refuses further writes/);
+                await expect(db.commit(new WriteBatch().put(key('later'), key('v')))).rejects.toThrow(
+                    /refuses further writes/
+                );
+                await db.close();
+            });
+
+            it('applies none of a torn commit after a reopen, and keeps the commit before it', async () => {
+                // A crash in the middle of a save pass's commit. The record spans many 32 KiB
+                // blocks, and the copy keeps only its first part.
+                const directory = scratch();
+                const crashed = await Database.open(directory);
+                await crashed.commit(new WriteBatch().put(key('before'), key('kept')));
+                const batch = new WriteBatch();
+                const keys = chunkKeys(128);
+                for (const k of keys) batch.put(k, Buffer.alloc(8 * 1024, 7));
+                await crashed.commit(batch);
+
+                const copy = scratch();
+                for (const name of fs.readdirSync(directory)) {
+                    if (name !== 'LOCK') fs.copyFileSync(path.join(directory, name), path.join(copy, name));
+                }
+                const log = fs.readdirSync(copy).find((name) => name.endsWith('.log'))!;
+                const bytes = fs.readFileSync(path.join(copy, log));
+                fs.writeFileSync(path.join(copy, log), bytes.subarray(0, Math.floor(bytes.byteLength / 2)));
+
+                const reopened = await Database.open(copy, { readOnly: true });
+                expect(reopened.get(key('before'))).toEqual(key('kept'));
+                expect(keys.filter((k) => reopened.get(k) !== null)).toEqual([]);
                 await reopened.close();
                 await crashed.close();
             });

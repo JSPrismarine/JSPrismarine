@@ -34,6 +34,18 @@ await db.close();
 Reads are synchronous, backed by a cached file descriptor. `open`, `flush` and `close` are async
 because they fsync.
 
+`write` appends to the log before it returns. `commit` applies the batch at once and appends it on
+libuv's thread pool, so a large batch does not hold the calling thread while it reaches the disk:
+
+```ts
+db.write(batch, { sync: true }); // fsync before returning
+
+await db.commit(batch, { sync: true }); // readable at once, on disk when this settles
+```
+
+Commits append in the order they were made, and `write` refuses to run while one is still
+appending. A batch is one log record either way, so a crash keeps all of it or none of it.
+
 ## Compatibility
 
 Reads compression types 0, 1, 2 and 4; writes 4, which is what the game itself writes. Databases
