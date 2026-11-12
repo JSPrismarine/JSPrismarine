@@ -317,7 +317,7 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3, al
     return { actor, kill, damage, remove, teleportTo };
 };
 
-const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3): PlayerSession => {
+const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3, alive = true): PlayerSession => {
     const inventory = new HumanInventory();
     const tags = new Set<string>();
     const player = sessionOnPrototype(
@@ -348,7 +348,7 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
                 getPosition: () => Position.fromVector3(position, fixture.world),
                 getFeetY: () => position.getY(),
                 getWorld: () => fixture.world,
-                isAlive: () => true,
+                isAlive: () => alive,
                 getTags: () => [...tags],
                 addTag: (tag: string) => !tags.has(tag) && tags.add(tag).has(tag),
                 removeTag: (tag: string) => tags.delete(tag),
@@ -446,6 +446,22 @@ describe('the server command host', () => {
             await expect(fixture.run('kill @e')).resolves.toBe(1);
             expect(item.remove).toHaveBeenCalledWith(7, 'body removed');
             expect(item.kill).not.toHaveBeenCalled();
+        });
+
+        it('leaves a dead player in the store for their respawn', async () => {
+            const remove = vi.fn<EntityRuntime['remove']>(() => true);
+            const kill = vi.fn<LiveEntityRuntime['killEntity']>(() => true);
+            const dataEntities = vi
+                .spyOn(fixture.world, 'dataEntities')
+                .mockReturnValue(
+                    stub<LiveEntityRuntime>({ killEntity: kill, runtime: stub<EntityRuntime>({ remove }) })
+                );
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0), false);
+
+            await expect(fixture.run('kill @a')).resolves.toBe(0);
+            expect(remove).not.toHaveBeenCalled();
+            expect(kill).not.toHaveBeenCalled();
+            dataEntities.mockRestore();
         });
 
         it('stands a player with their feet at the position a same-world `/tp` names', async () => {
