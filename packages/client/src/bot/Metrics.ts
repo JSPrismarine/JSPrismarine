@@ -1,4 +1,4 @@
-import { terminalText } from '../terminalText';
+import { terminalText } from '@jsprismarine/logger';
 
 /**
  * A stream of measurements, kept in full so percentiles are exact.
