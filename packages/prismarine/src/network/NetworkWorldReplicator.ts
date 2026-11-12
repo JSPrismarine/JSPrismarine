@@ -336,6 +336,11 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 return this.sendToTrackedEntity({ getRuntimeId: () => entry.data.entity }, () => [
                     animatePacketOf(entry.data)
                 ]);
+            case 'impulse':
+                // To the client that owns the body's movement, which moves it and says where it went.
+                return this.world
+                    .viewerOf(entry.data.entity)
+                    ?.sendMotion(new Vector3(entry.data.x, entry.data.y, entry.data.z));
             case 'relayed-sound':
                 this.sendRelayedSound(entry.data);
                 return undefined;

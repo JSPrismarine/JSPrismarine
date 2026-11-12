@@ -1358,12 +1358,13 @@ export class EntityRuntime implements EntityScene {
         body.onWrite = (field, before, after) => this.store.written(entity, field, before, after);
         if (clientOwnsMovement(entity.identifier))
             body.onImpulse = ({ x, y, z }) => {
+                // The client owns a player's movement (ADR 0008), so the store moves nothing, and
+                // replication asks the client to take the impulse once the tick seals.
                 this.store.occurred({
                     kind: 'occurrence',
                     occurrence: 'impulse',
                     data: { entity: BigInt(id), x, y, z }
                 });
-                this.host.playerImpulse?.(id, { x, y, z });
             };
         this.store.admit(entity);
         this.admissionOf.set(entity, this.admissions++);

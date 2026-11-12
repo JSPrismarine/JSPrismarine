@@ -1,4 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
+import { Vector3 } from '@jsprismarine/math';
 import { ActorEvent, LevelEvent, LevelSoundEvent, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import { BatchCodec } from '@jsprismarine/protocol';
@@ -62,7 +63,9 @@ const viewer = (
 ) => {
     const sent: NetworkPacket[] = [];
     const frames: Buffer[] = [];
+    const motions: Vector3[] = [];
     const session = stub<PlayerSession>({
+        sendMotion: async (motion: Vector3) => void motions.push(motion),
         runtimeId,
         isConnected: () => true,
         getViewPosition: () => new Position(0, 64, 0, stub<World>()),
@@ -78,7 +81,7 @@ const viewer = (
         send: async (packet: NetworkPacket) => void sent.push(packet),
         tracks: (id: bigint) => tracked.includes(id)
     });
-    return { session, sent, frames };
+    return { session, sent, frames, motions };
 };
 
 const replicatorOver = (viewers: PlayerSession[]) => {
@@ -237,6 +240,26 @@ describe('network', () => {
                 expect(own.frames).toHaveLength(0);
                 expect(own.sent).toHaveLength(0);
                 expect(elsewhere.frames).toHaveLength(0);
+            });
+        });
+
+        describe('impulse', () => {
+            it("asks the client that owns the body's movement to take it, and nobody else", async () => {
+                const owner = viewer(1n, { tracked: [1n] });
+                const tracking = viewer(2n, { tracked: [1n] });
+                const replicator = replicatorOver([owner.session, tracking.session]);
+
+                sealOccurrences(replicator, {
+                    kind: 'occurrence',
+                    occurrence: 'impulse',
+                    data: { entity: 1n, x: 0.4, y: 0.36, z: -0.2 }
+                });
+                expect(owner.motions).toHaveLength(0);
+                await replicator.flushOccurrences();
+
+                expect(owner.motions).toStrictEqual([new Vector3(0.4, 0.36, -0.2)]);
+                expect(tracking.motions).toHaveLength(0);
+                expect(tracking.frames).toHaveLength(0);
             });
         });
 

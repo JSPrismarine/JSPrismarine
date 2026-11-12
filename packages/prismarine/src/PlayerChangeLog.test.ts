@@ -15,6 +15,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { DamageCause } from './entity/DamageCause';
 
+import { NetworkWorldReplicator } from './network/NetworkWorldReplicator';
 import { fakePlayer } from './testing/fakePlayer.test.helper';
 import type { ChangeEntry } from './world/changelog/ChangeEntry';
 
@@ -87,8 +88,9 @@ describe("a player's change log", () => {
 });
 
 describe("a player's movement belongs to its client", () => {
-    it('logs a shove as one impulse occurrence and asks the client to take it', async () => {
-        const { session, player, sent, tick } = await loggedPlayer();
+    it('logs a shove as one impulse occurrence, which replication asks the client to take', async () => {
+        const { session, player, sent, tick, world, server } = await loggedPlayer();
+        const motions = () => sent.filter((packet) => packet instanceof SetActorMotionPacket);
 
         const entries = await tick(1, async () => session.getActor()?.applyKnockback(1, 0, 0.4));
 
@@ -97,8 +99,15 @@ describe("a player's movement belongs to its client", () => {
             occurrence: 'impulse',
             data: { entity: player.getRuntimeId(), x: 0.4, z: 0 }
         });
-        expect(sent.filter((packet) => packet instanceof SetActorMotionPacket)).toHaveLength(1);
         expect(player.getPosition().getX()).toBe(0);
+        // Nothing is sent while the tick runs: the impulse goes out once the tick has sealed.
+        expect(motions()).toHaveLength(0);
+
+        const replicator = new NetworkWorldReplicator(world, server);
+        replicator.tickSealed({ tick: 1, entries });
+        await replicator.flushOccurrences();
+
+        expect(motions()).toHaveLength(1);
     });
 
     it("moves a player the server moves as a teleport, and drops the client's stale reports", async () => {
