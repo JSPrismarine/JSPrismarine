@@ -245,9 +245,7 @@ describe('network/handler/Lane', () => {
             return existsSync(file) && writes.test(readFileSync(file, 'utf8'));
         });
 
-        expect(movers).toEqual(
-            expect.arrayContaining(['MovePlayerHandler', 'PlayerAuthInputHandler', 'RespawnHandler'])
-        );
+        expect(movers).toEqual(expect.arrayContaining(['PlayerAuthInputHandler', 'RespawnHandler']));
         for (const mover of movers) expect(lanes.get(mover), mover).toBe('input');
     });
 

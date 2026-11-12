@@ -349,6 +349,9 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
             // most) wait on that state existing. `ChangeDimensionAck` is the client echoing
             // the one the server sent in `PlayerSession.changeWorld`; the change itself ends
             // on the `EndLoadingScreen` that follows it. `DenyDestroyBlock` is EDU only.
+            // `HandledTeleport` was how a client that moved with `MovePlayer` acknowledged a
+            // teleport. That movement mode is gone (protocol 818), and a client now says so
+            // with the input flag of the same name, which `holdsMovementForTeleport` reads.
             case PlayerActionType.ChangeDimensionAck:
             case PlayerActionType.StartSwimming:
             case PlayerActionType.StopSwimming:
