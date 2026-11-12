@@ -24,7 +24,10 @@ export type ListenerErrorHandler = (error: unknown, event: string) => void;
  * Listeners run in subscription order. A listener that throws or rejects is
  * reported to the bus's {@link ListenerErrorHandler} and stops nothing: the
  * listeners after it still run, and neither `post` nor `emit` throws. Subscribing
- * the same function to the same event twice through one handle subscribes it once.
+ * the same function to the same event twice through one handle subscribes it once,
+ * at the position of the first subscription. That one subscription is one-shot only
+ * while every subscribe of it was `once`: an `on` makes it permanent, before or after
+ * the `once`, and a single `off` removes it.
  */
 export interface EventBus<Events extends EventMap = EventMap> {
     /**
@@ -35,7 +38,8 @@ export interface EventBus<Events extends EventMap = EventMap> {
     on<K extends keyof Events & string>(event: K, listener: EventListener<Events[K]>): () => void;
     /**
      * Subscribes to the next occurrence of an event only. The subscription is
-     * removed before the listener is called.
+     * removed before the listener is called. A function this handle already
+     * subscribed with `on` stays subscribed for every occurrence.
      *
      * @returns A function that removes this subscription.
      */
@@ -77,7 +81,7 @@ export interface KernelEventBusOptions {
 interface Subscription {
     readonly listener: EventListener<readonly unknown[]>;
     readonly scope: string | undefined;
-    readonly once: boolean;
+    once: boolean;
 }
 
 /**
@@ -194,6 +198,10 @@ export class KernelEventBus<Events extends EventMap = EventMap> implements Event
             this.subscriptions.set(event, subscriptions);
         }
         const existing = [...subscriptions].find((entry) => entry.listener === listener && entry.scope === scope);
+        // A function has one subscription per scope, so an `on` after a `once` has to make that
+        // subscription permanent rather than be dropped, and a `once` after an `on` must not make
+        // it one-shot. Either order then calls the function on every post.
+        if (existing && !once) existing.once = false;
         // Storage erases the per-event tuple type; the dispatchers are the only callers and pass
         // the matching event's arguments.
         const subscription: Subscription = existing ?? {

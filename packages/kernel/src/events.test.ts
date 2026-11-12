@@ -153,6 +153,43 @@ describe('KernelEventBus', () => {
         expect(calls).toBe(1);
     });
 
+    it.each([
+        ['once then on', 'once', 'on'],
+        ['on then once', 'on', 'once']
+    ] as const)('keeps the function subscribed after %s', (_order, first, second) => {
+        const bus = new KernelEventBus<TestEvents>();
+        let calls = 0;
+        const listener = (): void => {
+            calls++;
+        };
+        bus[first]('tick', listener);
+        bus[second]('tick', listener);
+
+        expect(bus.post('tick', 1)).toBe(1);
+        expect(bus.post('tick', 2)).toBe(1);
+        expect(calls).toBe(2);
+        expect(bus.hasListeners('tick')).toBe(true);
+    });
+
+    it.each([
+        ['once then on', 'once', 'on'],
+        ['on then once', 'on', 'once']
+    ] as const)('removes the function with one off after %s', (_order, first, second) => {
+        const bus = new KernelEventBus<TestEvents>();
+        let calls = 0;
+        const listener = (): void => {
+            calls++;
+        };
+        bus[first]('tick', listener);
+        bus[second]('tick', listener);
+        bus.off('tick', listener);
+
+        expect(bus.hasListeners('tick')).toBe(false);
+        expect(bus.post('tick', 1)).toBe(0);
+        expect(bus.post('tick', 2)).toBe(0);
+        expect(calls).toBe(0);
+    });
+
     it('removes all of one handle and keeps the others', () => {
         const bus = new KernelEventBus<TestEvents>();
         const received: string[] = [];
