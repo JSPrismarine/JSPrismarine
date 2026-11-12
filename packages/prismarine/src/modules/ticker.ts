@@ -595,75 +595,79 @@ export class ServerTicker implements Ticker, TickControl {
                 // in the tick that applied it, and each world seals its tick when it closes.
                 const ticked = server.getWorlds();
                 for (const world of ticked) world.beginChangeTick?.();
-                const endInputsProfile = startProfile?.('Server.inputs');
                 try {
-                    server.admitInputs();
-                } finally {
-                    endInputsProfile?.();
-                }
+                    const endInputsProfile = startProfile?.('Server.inputs');
+                    try {
+                        server.admitInputs();
+                    } finally {
+                        endInputsProfile?.();
+                    }
 
-                // A frozen world holds still, but a step lets some ticks through.
-                const advancing = !this.frozen || this.stepsLeft > 0;
-                if (this.frozen && this.stepsLeft > 0) this.stepsLeft--;
+                    // A frozen world holds still, but a step lets some ticks through.
+                    const advancing = !this.frozen || this.stepsLeft > 0;
+                    if (this.frozen && this.stepsLeft > 0) this.stepsLeft--;
 
-                // `#minecraft:tick` and whatever `/schedule` put on this tick, as the last input of
-                // the step, before the worlds, as Java's `tickChildren` runs its functions before
-                // its levels. A function sees the inputs of this step applied.
-                const endFunctionsProfile = startProfile?.('Server.tickFunctions');
-                try {
-                    if (advancing) server.tickFunctions();
-                } finally {
-                    endFunctionsProfile?.();
-                }
-                const event = new TickEvent(this.getTick());
+                    // `#minecraft:tick` and whatever `/schedule` put on this tick, as the last input of
+                    // the step, before the worlds, as Java's `tickChildren` runs its functions before
+                    // its levels. A function sees the inputs of this step applied.
+                    const endFunctionsProfile = startProfile?.('Server.tickFunctions');
+                    try {
+                        if (advancing) server.tickFunctions();
+                    } finally {
+                        endFunctionsProfile?.();
+                    }
+                    const event = new TickEvent(this.getTick());
 
-                // Each tick listener is called inside this tick and runs to its first wait; what an
-                // asynchronous one does after that lands outside the tick. The bus reports a
-                // listener that throws or rejects, and the tick goes on.
-                phaseStartedAt = now();
-                const endTickHandlersProfile = startProfile?.('Server.tickHandlers');
-                try {
-                    server.events.post('tick', event);
-                } finally {
-                    tickHandlersMs = now() - phaseStartedAt;
-                    endTickHandlersProfile?.();
-                }
+                    // Each tick listener is called inside this tick and runs to its first wait; what an
+                    // asynchronous one does after that lands outside the tick. The bus reports a
+                    // listener that throws or rejects, and the tick goes on.
+                    phaseStartedAt = now();
+                    const endTickHandlersProfile = startProfile?.('Server.tickHandlers');
+                    try {
+                        server.events.post('tick', event);
+                    } finally {
+                        tickHandlersMs = now() - phaseStartedAt;
+                        endTickHandlersProfile?.();
+                    }
 
-                // One world after another, in the order `getWorlds` gives, each to its end before the
-                // next. A world that throws is logged and costs only its own tick.
-                phaseStartedAt = now();
-                try {
-                    for (const world of advancing ? server.getWorlds() : []) {
-                        const worldStartedAt = now();
-                        const endWorldProfile = startProfile?.(`World.update:${world.getName()}`);
-                        try {
-                            world.update(event.getTick());
-                        } catch (error: unknown) {
-                            logger.error(`World ${world.getName()} failed tick ${event.getTick()}`);
-                            logger.error(error);
-                        } finally {
-                            endWorldProfile?.();
-                            const elapsedMs = now() - worldStartedAt;
-                            if (elapsedMs > slowestWorldMs) {
-                                slowestWorldMs = elapsedMs;
-                                slowestWorldName = world.getName();
+                    // One world after another, in the order `getWorlds` gives, each to its end before the
+                    // next. A world that throws is logged and costs only its own tick.
+                    phaseStartedAt = now();
+                    try {
+                        for (const world of advancing ? server.getWorlds() : []) {
+                            const worldStartedAt = now();
+                            const endWorldProfile = startProfile?.(`World.update:${world.getName()}`);
+                            try {
+                                world.update(event.getTick());
+                            } catch (error: unknown) {
+                                logger.error(`World ${world.getName()} failed tick ${event.getTick()}`);
+                                logger.error(error);
+                            } finally {
+                                endWorldProfile?.();
+                                const elapsedMs = now() - worldStartedAt;
+                                if (elapsedMs > slowestWorldMs) {
+                                    slowestWorldMs = elapsedMs;
+                                    slowestWorldName = world.getName();
+                                }
                             }
                         }
+                    } finally {
+                        worldUpdatesMs = now() - phaseStartedAt;
                     }
                 } finally {
-                    worldUpdatesMs = now() - phaseStartedAt;
-                }
-
-                // A world opened above and not updated, because the server is frozen or the world
-                // list changed, closes its tick here. Closing replicates as well as seals: a frozen
-                // world's players still act, and their inputs have to reach the other clients in
-                // the tick that applied them rather than all at once on the unfreeze.
-                for (const world of ticked) {
-                    try {
-                        world.closeTick?.(this.getTick());
-                    } catch (error: unknown) {
-                        logger.error(`World ${world.getName()} failed to close tick ${this.getTick()}`);
-                        logger.error(error);
+                    // A world opened above and not updated, because the server is frozen, the world
+                    // list changed or an earlier phase threw, closes its tick here. Closing
+                    // replicates as well as seals: a frozen world's players still act, and their
+                    // inputs have to reach the other clients in the tick that applied them rather
+                    // than all at once on the unfreeze. A tick left open would take the next tick's
+                    // entries under its own number, since a tick that is open does not open again.
+                    for (const world of ticked) {
+                        try {
+                            world.closeTick?.(this.getTick());
+                        } catch (error: unknown) {
+                            logger.error(`World ${world.getName()} failed to close tick ${this.getTick()}`);
+                            logger.error(error);
+                        }
                     }
                 }
             });
