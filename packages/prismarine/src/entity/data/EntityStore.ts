@@ -311,6 +311,27 @@ export class EntityStore {
         this.units.at(-1)?.undos.push(undo);
     }
 
+    /**
+     * Runs work once the open unit, and every unit around it, has ended, and tells it whether the
+     * writes made so far still stand: false when one of those units threw and was undone. This is
+     * for what cannot be put back and so cannot wait in {@link EntityStore.undoWith}: a packet, a
+     * chat line, a player's leave once its goodbye is queued. Work that only stands with the
+     * unit's writes waits for `true`; work that happens either way ignores the flag. It runs once
+     * the undo has finished, so its writes are logged like any others.
+     *
+     * Work registered in a unit runs after every unit around it closed, in the order registered.
+     * A throw from it is reported and does not stop the rest, since the unit's outcome is settled
+     * by then. With no unit open, the work runs now and is told `true`, and a throw passes
+     * through, as it would have from the caller.
+     *
+     * @param work - What to run, told whether the writes made before this call were kept.
+     */
+    public afterUnit(work: (kept: boolean) => void): void {
+        const unit = this.units.at(-1);
+        if (unit === undefined) work(true);
+        else unit.after.push({ work, kept: true });
+    }
+
     /** Registers a writer for inverse entries; the first one that knows the entity writes it. */
     public addInverseWriter(writer: InverseWriter): void {
         this.writers.push(writer);
@@ -426,7 +447,7 @@ export class EntityStore {
     }
 
     private startUnit(): OpenUnit {
-        const unit: OpenUnit = { span: this.log.startSpan(), pinned: false, undos: [] };
+        const unit: OpenUnit = { span: this.log.startSpan(), pinned: false, undos: [], after: [] };
         this.units.push(unit);
         return unit;
     }
@@ -434,13 +455,28 @@ export class EntityStore {
     private endUnit(unit: OpenUnit, threw: boolean): void {
         const depth = this.units.lastIndexOf(unit);
         if (depth !== -1) this.units.length = depth;
-        if (threw && !unit.pinned) this.revert(unit);
-        else {
+        if (threw && !unit.pinned) {
+            this.revert(unit);
+            for (const after of unit.after) after.kept = false;
+        } else {
             if (threw) {
                 this.kept += 1;
                 this.report('A unit that threw keeps its writes: a chunk entered inside it, and that cannot be undone');
             } else this.units.at(-1)?.undos.push(...unit.undos);
             this.log.closeSpan(unit.span);
+        }
+        // A unit around this one can still undo what this one kept, so its work waits for that.
+        const outer = this.units.at(-1);
+        if (outer !== undefined) {
+            outer.after.push(...unit.after);
+            return;
+        }
+        for (const { work, kept } of unit.after) {
+            try {
+                work(kept);
+            } catch (error: unknown) {
+                this.report(`Work after a unit failed: ${String(error)}`);
+            }
         }
     }
 
@@ -500,6 +536,15 @@ type OpenUnit = {
     pinned: boolean;
     /** How to put back the runtime state the unit wrote that the log does not carry, oldest first. */
     readonly undos: (() => void)[];
+    /** What {@link EntityStore.afterUnit} was handed inside this unit and the units it held. */
+    readonly after: AfterUnit[];
+};
+
+/** Work waiting for the units around it to end. */
+type AfterUnit = {
+    readonly work: (kept: boolean) => void;
+    /** Cleared when a unit it was registered in is undone. */
+    kept: boolean;
 };
 
 /**

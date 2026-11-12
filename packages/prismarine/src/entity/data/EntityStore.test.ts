@@ -782,4 +782,77 @@ describe('the entity store', () => {
             expect(sealed?.entries.map((entry) => entry.kind)).toEqual(['field']);
         });
     });
+
+    describe('work after a unit', () => {
+        const fail = () => {
+            throw new Error('planned');
+        };
+
+        it('runs once the unit has ended, told whether its writes were kept', () => {
+            const store = new EntityStore();
+            const heard: string[] = [];
+            store.beginTick();
+
+            store.unit(() => {
+                store.afterUnit((kept) => void heard.push(`first ${kept}`));
+                heard.push('inside');
+            });
+            store.unit(() => {
+                store.afterUnit((kept) => void heard.push(`second ${kept}`));
+                fail();
+            });
+            store.sealTick();
+
+            expect(heard).toEqual(['inside', 'first true', 'second false']);
+        });
+
+        it('waits for the outermost unit, which can still undo what an inner one kept', () => {
+            const store = new EntityStore();
+            const heard: string[] = [];
+            store.beginTick();
+
+            store.unit(() => {
+                store.unit(() => store.afterUnit((kept) => void heard.push(`kept inner ${kept}`)));
+                store.unit(() => {
+                    store.afterUnit((kept) => void heard.push(`undone inner ${kept}`));
+                    fail();
+                });
+                store.afterUnit((kept) => void heard.push(`outer ${kept}`));
+                heard.push('outer done');
+            });
+            store.unit(() => {
+                store.unit(() => store.afterUnit((kept) => void heard.push(`under an undo ${kept}`)));
+                fail();
+            });
+            store.sealTick();
+
+            expect(heard).toEqual([
+                'outer done',
+                'kept inner true',
+                'undone inner false',
+                'outer true',
+                'under an undo false'
+            ]);
+        });
+
+        it('runs at once with no unit open, and reports a throw from inside a unit without stopping the rest', () => {
+            const reported: string[] = [];
+            const store = new EntityStore((message) => void reported.push(message));
+            const heard: boolean[] = [];
+
+            store.afterUnit((kept) => void heard.push(kept));
+            expect(heard).toEqual([true]);
+            expect(() => store.afterUnit(fail)).toThrow('planned');
+
+            store.beginTick();
+            store.unit(() => {
+                store.afterUnit(fail);
+                store.afterUnit((kept) => void heard.push(kept));
+            });
+            store.sealTick();
+
+            expect(heard).toEqual([true, true]);
+            expect(reported).toEqual(['Work after a unit failed: Error: planned']);
+        });
+    });
 });
