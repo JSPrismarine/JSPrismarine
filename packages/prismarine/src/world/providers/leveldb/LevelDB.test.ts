@@ -273,6 +273,23 @@ describe('world', () => {
             expect(level.root.getNumber('SpawnX', 0)).toBe(1);
         });
 
+        it('replaces level.dat whole, through a rename, and keeps the one before as level.dat_old', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath, 'MyWorld', 1234n);
+            await provider.enable();
+            const before = fs.readFileSync(path.join(worldPath, 'level.dat'));
+            const inode = fs.statSync(path.join(worldPath, 'level.dat')).ino;
+            provider.saveLevelData({ spawn: { x: 7, y: 8, z: 9 } });
+            await provider.disable();
+
+            // A rename puts a new file at the name; writing in place would keep the old inode.
+            expect(fs.statSync(path.join(worldPath, 'level.dat')).ino).not.toBe(inode);
+            expect(fs.readFileSync(path.join(worldPath, 'level.dat_old')).equals(before)).toBe(true);
+            expect(fs.readdirSync(worldPath).filter((name) => name.endsWith('.dbtmp'))).toEqual([]);
+            const level = decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat')));
+            expect(level.root.getNumber('SpawnX', 0)).toBe(7);
+        });
+
         it('stores player data in a player_server NBT record', async () => {
             const worldPath = scratch();
             const { provider } = harness(worldPath);
