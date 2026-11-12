@@ -196,6 +196,18 @@ describe('config', () => {
             expect(fromFile.getServerPublicIp()).toBe('203.0.113.7');
         });
 
+        it('looks up a public address by default, and reads the switch from config.json', async () => {
+            expect(config.getEnableServerPublicIpLookup()).toBe(true);
+
+            writeFileSync(
+                path.join(configDirectory, 'config.json'),
+                JSON.stringify({ 'enable-server-public-ip-lookup': false })
+            );
+            const fromFile = new Config();
+            await fromFile.enable();
+            expect(fromFile.getEnableServerPublicIpLookup()).toBe(false);
+        });
+
         it('reads the transport and LAN visibility switches from config.json', async () => {
             writeFileSync(
                 path.join(configDirectory, 'config.json'),

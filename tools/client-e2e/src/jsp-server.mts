@@ -423,6 +423,9 @@ export const startServer = async (
         'server-portv6': port,
         ...(udpPorts === undefined ? {} : { 'server-udp-ports': udpPorts }),
         ...(options.publicIp === undefined ? {} : { 'server-public-ip': options.publicIp }),
+        // The client joins from this machine, so a public address would only cost each run
+        // requests to the lookup services.
+        'enable-server-public-ip-lookup': false,
         'online-mode': false,
         // Debug, so the transactions and moves the server drops on purpose, and which loading
         // screens the client opened and closed, show in the evidence log.

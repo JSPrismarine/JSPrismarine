@@ -1,4 +1,4 @@
-import { isIPv4, isIPv6 } from 'node:net';
+import { BlockList, isIPv4, isIPv6 } from 'node:net';
 
 import type { Module } from '@jsprismarine/kernel';
 import { NativeNetwork, SharedPort } from '@jsprismarine/native-network';
@@ -15,13 +15,13 @@ import {
     HttpSignaling,
     joinStatusJson,
     loadNativeDriver,
+    lookupPublicIp,
     NETHERNET_LAN_PORT,
     NetherNetIdentity,
     NetherNetServer,
     parseUdpPorts,
     PortAllocator,
-    withDialedCandidates,
-    withMappedCandidates
+    withAdvertisedCandidates
 } from '@jsprismarine/nethernet';
 import type { PortRange, UdpPorts, WebRtcDriver } from '@jsprismarine/nethernet';
 
@@ -113,6 +113,8 @@ export class ServerNetworking implements Networking {
     private stopLanAdvertisement: (() => void) | undefined;
     /** NetherNet's HTTP signaling on the game port's TCP side; set while NetherNet is on. */
     private signaling: HttpSignaling | undefined;
+    /** Stops the public address lookup; set while NetherNet looks one up. */
+    private publicIpLookup: AbortController | undefined;
     /** The query protocol's own socket; set while query answers on a port RakNet does not hold. */
     private querySocket: QuerySocket | undefined;
     /** The ports RakNet shares with NetherNet, which the native library owns; see ADR 0008. */
@@ -246,6 +248,8 @@ export class ServerNetworking implements Networking {
         this.sharedPorts = [];
         this.stopLanAdvertisement?.();
         this.stopLanAdvertisement = undefined;
+        this.publicIpLookup?.abort();
+        this.publicIpLookup = undefined;
         this.signaling?.close();
         this.signaling = undefined;
         this.querySocket?.close();
@@ -490,6 +494,8 @@ export class ServerNetworking implements Networking {
             );
         }
 
+        const lookedUp = this.lookUpPublicIp(udpPorts, address);
+
         // Kept in the server directory: a client joining over plain HTTP remembers the key and
         // asks the player again if it ever changes.
         const identity = NetherNetIdentity.loadOrCreate(withCwd(NETHERNET_IDENTITY_FILE));
@@ -497,15 +503,9 @@ export class ServerNetworking implements Networking {
             answerer: nethernet,
             status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot())),
             // After the configured addresses, the one this client dialed: behind NAT or in a
-            // container it reaches the server where the interface addresses do not.
-            sign: (answer, dialed) =>
-                identity.sign(
-                    withDialedCandidates(
-                        withMappedCandidates(answer, udpPorts.mappings, udpPorts.publicIp),
-                        dialed,
-                        udpPorts.mappings
-                    )
-                ),
+            // container it reaches the server where the interface addresses do not. The looked-up
+            // address only goes into an answer that would otherwise reach nobody outside.
+            sign: (answer, dialed) => identity.sign(withAdvertisedCandidates(answer, udpPorts, dialed, lookedUp())),
             logger
         });
         listening.push(
@@ -537,6 +537,37 @@ export class ServerNetworking implements Networking {
     }
 
     /**
+     * Starts looking up the server's public address when `server-public-ip` names none and
+     * `enable-server-public-ip-lookup` is on, logging what it finds and warning when it finds
+     * nothing. A server bound to loopback looks up nothing: no player outside reaches it.
+     * @returns The address once found, else undefined.
+     */
+    private lookUpPublicIp(udpPorts: UdpPorts, address: string): () => string | undefined {
+        const config = this.server.getConfig();
+        if (udpPorts.publicIp !== undefined || isLoopback(address) || !config.getEnableServerPublicIpLookup()) {
+            return () => undefined;
+        }
+        const logger = this.server.getLogger();
+        const stop = new AbortController();
+        this.publicIpLookup = stop;
+        let found: string | undefined;
+        void lookupPublicIp({ signal: stop.signal }).then((result) => {
+            if (stop.signal.aborted) return;
+            if ('address' in result) {
+                found = result.address;
+                logger.info(
+                    `NetherNet offers ${found}, the public address ${result.service} reported, to players whose join would carry no public address. Set server-public-ip to choose the address.`
+                );
+                return;
+            }
+            logger.warn(
+                `NetherNet could not look up this server's public address (${result.failures.join('; ')}). Set server-public-ip to the address players reach this server at, or enable-server-public-ip-lookup to false to stop looking it up.`
+            );
+        });
+        return () => found;
+    }
+
+    /**
      * Loads the WebRTC stack NetherNet runs on.
      * @throws {Error} When it cannot load, naming the platform, the cause, and `enable-nethernet`.
      */
@@ -562,6 +593,16 @@ export class ServerNetworking implements Networking {
         serverName.setOnlinePlayerCount(this.liveConnections.size);
     }
 }
+
+/** The addresses only this machine reaches, with IPv4's spelled as IPv4-mapped IPv6 too. */
+const LOOPBACK = new BlockList();
+LOOPBACK.addSubnet('127.0.0.0', 8, 'ipv4');
+LOOPBACK.addAddress('::1', 'ipv6');
+LOOPBACK.addSubnet('::ffff:7f00:0', 104, 'ipv6');
+
+/** Whether the server binds an address only this machine reaches, however it is spelled. */
+const isLoopback = (address: string): boolean =>
+    isIPv4(address) ? LOOPBACK.check(address, 'ipv4') : isIPv6(address) && LOOPBACK.check(address, 'ipv6');
 
 /** The message of a thrown value, which is not always an `Error`. */
 const errorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));

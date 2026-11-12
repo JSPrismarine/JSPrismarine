@@ -368,7 +368,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->37<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->38<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
@@ -398,6 +398,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `enable-raknet`                       | Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.                                                                                                                                                                                                                                                             |
 | `use-raknet-worker`                   | Whether RakNet networking runs in a worker thread.                                                                                                                                                                                                                                                                                                  |
 | `enable-nethernet`                    | Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.                                                                                                                                                                                                                                                |
+| `enable-server-public-ip-lookup`      | Whether NetherNet looks up the public address when server-public-ip is empty, by asking a few free web services at startup, and offers it to a player whose join would otherwise carry no public address. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.                                   |
 | `enable-lan-visibility`               | Whether players on the local network see the server among their LAN games.                                                                                                                                                                                                                                                                          |
 | `packet-compression-level`            | The zlib level for outgoing batches, from -1 (zlib's default) to 9.                                                                                                                                                                                                                                                                                 |
 | `packet-compression-algorithm`        | The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.                                                                                                                                                                                                       |
@@ -473,6 +474,12 @@ defaults, the same public port for both. The server takes the address from the r
 header and resolves a hostname through DNS. Set `server-public-ip` when players reach signaling
 through a proxy on another address, and when the log warns that a join was offered no public
 address.
+
+With `server-public-ip` empty, the server looks up its public address when NetherNet starts, by
+asking a few free web services in turn, and logs the address it found. A join whose answer would
+otherwise carry no public address gets that one. When every service fails, the log warns and joins
+are answered as before. Set `enable-server-public-ip-lookup` to `false` to stop the lookup. A server
+bound to a loopback address skips it.
 
 NetherNet runs on a native library that the server's package downloads when it is installed. Where
 it cannot load, the server does not start with NetherNet on, and its error says how to fix it;

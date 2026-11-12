@@ -84,6 +84,8 @@ const COMMENTS = {
         "The UDP ports NetherNet players use, as Bedrock Dedicated Server's server-udp-ports. A single port, such as 19489, puts every player on it. A range, such as 19400-19500, spreads players over its ports and reuses a port once every port has a player. Either can be a public:local mapping for a server behind NAT or port forwarding, such as 29489:19489 or 21200-21300:19400-19500, with the same number of ports on each side. Commas join entries whose local ports form one continuous range. Unset or empty, it is server-port, shared with RakNet. A port that is also server-port or server-portv6 is shared with RakNet. Ignored when enable-nethernet is off.",
     'server-public-ip':
         "The address NetherNet advertises to players, as Bedrock Dedicated Server's server-public-ip: set it when the server is behind NAT, a firewall or port forwarding. A raw IPv4 or a raw or [bracketed] IPv6, with no port or hostname. Empty advertises the host's own addresses and, to a player joining by address, the address that player typed. Ignored when enable-nethernet is off.",
+    'enable-server-public-ip-lookup':
+        'Whether NetherNet looks up the public address when server-public-ip is empty, by asking a few free web services at startup, and offers it to a player whose join would otherwise carry no public address. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.',
     'enable-lan-visibility': 'Whether players on the local network see the server among their LAN games.',
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':
@@ -164,6 +166,7 @@ const DEFAULTS = {
     'enable-nethernet': true,
     'server-udp-ports': '',
     'server-public-ip': '',
+    'enable-server-public-ip-lookup': true,
     'enable-lan-visibility': true,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
@@ -262,6 +265,7 @@ export class Config {
     private enableNetherNet: boolean = DEFAULTS['enable-nethernet'];
     private serverUdpPorts: string = DEFAULTS['server-udp-ports'];
     private serverPublicIp: string = DEFAULTS['server-public-ip'];
+    private enableServerPublicIpLookup: boolean = DEFAULTS['enable-server-public-ip-lookup'];
     private enableLanVisibility: boolean = DEFAULTS['enable-lan-visibility'];
     private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
     private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
@@ -388,6 +392,10 @@ export class Config {
         // server-udp-ports does; reading them writes nothing.
         this.serverUdpPorts = readUnwritten('server-udp-ports', DEFAULTS['server-udp-ports']);
         this.serverPublicIp = readUnwritten('server-public-ip', DEFAULTS['server-public-ip']);
+        this.enableServerPublicIpLookup = read(
+            'enable-server-public-ip-lookup',
+            DEFAULTS['enable-server-public-ip-lookup']
+        );
         this.enableLanVisibility = read('enable-lan-visibility', DEFAULTS['enable-lan-visibility']);
         this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
         this.packetCompressionAlgorithm = read(
@@ -710,6 +718,14 @@ export class Config {
     /** The address NetherNet advertises, unparsed: a raw IPv4, a raw or bracketed IPv6, or empty. */
     public getServerPublicIp(): string {
         return this.serverPublicIp;
+    }
+
+    /**
+     * Whether NetherNet looks up the server's public address when `server-public-ip` is empty, and
+     * offers it to a player joining by address whose answer would otherwise carry no public address.
+     */
+    public getEnableServerPublicIpLookup(): boolean {
+        return this.enableServerPublicIpLookup;
     }
 
     /** Whether the server answers clients looking for games on the local network. */
