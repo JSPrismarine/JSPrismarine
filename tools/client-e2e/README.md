@@ -68,8 +68,9 @@ but the verdicts are the same.
 `pnpm run e2e:client:dist` selects the built `Server.js` entry and the workspace's
 `jsprismarine:dist` exports. Build it first with `pnpm run server:build`.
 
-The runner prints the artifacts directory (screenshots, recordings, a combined server log, and a
-server log per suite) and exits non-zero when any scenario fails. The root `pnpm run e2e:client`
+The runner prints the artifacts directory (screenshots, recordings, a combined server log, a
+server and client log per suite, and the log of each additional client a scenario started, in that
+scenario's directory) and exits non-zero when any scenario fails. The root `pnpm run e2e:client`
 command also collects V8 coverage from the server processes and writes an LCOV report to
 `coverage/client-e2e/lcov.info`. Each server writes a coverage file every <!-- fact:e2e.coverageIntervalSeconds -->10<!-- /fact --> seconds, and each
 file repeats the server's whole source map cache, so a full run leaves about a hundred files of

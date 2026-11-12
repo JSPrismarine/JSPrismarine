@@ -529,6 +529,9 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                     const recording = await client.recordStop().catch(() => undefined);
                     if (recording) console.log(`${scenario.name}: recording ${String(recording.path)}`);
                 }
+                for (const [clientIndex, additional] of scenarioClients.entries()) {
+                    additional.keepLog(path.join(scenarioArtifacts, `additional-${clientIndex + 1}.client.log`));
+                }
                 for (const additional of scenarioClients.reverse()) {
                     await additional.close().catch((error: unknown) => {
                         console.warn(`${scenario.name}: additional client cleanup failed: ${String(error)}`);
