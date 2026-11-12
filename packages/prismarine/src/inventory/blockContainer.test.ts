@@ -1,3 +1,4 @@
+import { testKernel } from '../testing/kernel.test.helper';
 import { KernelEventBus } from '@jsprismarine/kernel';
 import type { ServerEvents } from '../events/ServerEvents';
 /**
@@ -190,7 +191,7 @@ const buildScene = async (name: string) => {
         getSessionManager: () => sessions,
         getChatManager: () => chat,
         on: () => server,
-        post: () => 0,
+        getKernel: () => testKernel(),
         emit: async () => {},
         getTick: () => 0,
         getRandom: () => () => 0.5,

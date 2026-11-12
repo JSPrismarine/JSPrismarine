@@ -360,7 +360,7 @@ const liveHost = (
         // The order the legacy pipeline raised them in: the death, then the blow.
         const source = legacySourceOfIntent(world, commit.intent);
         if (commit.died) {
-            world.getServer().post('entityDeath', new EntityDeathEvent(victim, source));
+            world.getServer().getKernel().events.post('entityDeath', new EntityDeathEvent(victim, source));
             advancementKill(victim, source);
         }
         advancementDamage(victim, source, commit.dealt, commit.taken, false);
@@ -631,7 +631,7 @@ export class LiveEntityRuntime {
             if (world === undefined || victim === undefined || victim instanceof ItemActor) return PASS;
 
             const event = new EntityDamageEvent(victim, intent.amount, legacySourceOfIntent(world, intent));
-            world.getServer().post('entityDamage', event);
+            world.getServer().getKernel().events.post('entityDamage', event);
             if (event.isCanceled()) return VETO;
             return event.getAmount() === intent.amount ? PASS : replaceAmount(event.getAmount());
         });

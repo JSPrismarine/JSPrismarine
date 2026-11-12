@@ -1,3 +1,4 @@
+import { testKernel } from '../../testing/kernel.test.helper';
 import fs, { readFileSync } from 'node:fs';
 import os from 'node:os';
 import { join } from 'node:path';
@@ -194,7 +195,7 @@ const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorl
     const runtimes = new EntityRuntimes();
     const server: Server = Object.assign(
         stub<Server>({
-            post: () => 0,
+            getKernel: () => testKernel(),
             getTick: () => 0,
             getRandom: () => () => 0.5,
             getLogger: () =>
