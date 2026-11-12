@@ -43,6 +43,13 @@ export interface PlayerPersistenceOptions {
  * and hands the batch to {@link PlayerPersistence.saveAll}.
  */
 export class PlayerPersistence {
+    /**
+     * The last write started for each key, until it settles. A tick hands a record's save off and
+     * does not wait for it, so a read and a later write of the same key wait for it here: a
+     * player who leaves and joins again reads the record they left with.
+     */
+    private readonly writing = new Map<string, Promise<void>>();
+
     public constructor(private readonly options: PlayerPersistenceOptions) {}
 
     /**
@@ -53,6 +60,7 @@ export class PlayerPersistence {
      *   is logged and falls through to the file.
      */
     public async load(key: string): Promise<Partial<WorldPlayerData> | null> {
+        await this.writing.get(key);
         try {
             const data = await this.options.provider.readPlayerData?.(key);
             if (data) return data;
@@ -82,7 +90,21 @@ export class PlayerPersistence {
      * @param requireSuccess - Propagate a persistence error, for a replay checkpoint. Otherwise a
      *   failed write is logged and the next save tries again.
      */
-    public async save(key: string, record: WorldPlayerData, requireSuccess = false): Promise<void> {
+    public save(key: string, record: WorldPlayerData, requireSuccess = false): Promise<void> {
+        // After the key's last write, so the writes of one player land in the order they started.
+        const write = (this.writing.get(key) ?? Promise.resolve()).then(() => this.write(key, record, requireSuccess));
+        const settled = write.then(
+            () => undefined,
+            () => undefined
+        );
+        this.writing.set(key, settled);
+        void settled.then(() => {
+            if (this.writing.get(key) === settled) this.writing.delete(key);
+        });
+        return write;
+    }
+
+    private async write(key: string, record: WorldPlayerData, requireSuccess: boolean): Promise<void> {
         if (this.options.isClosed()) {
             if (requireSuccess) {
                 throw new Error(
