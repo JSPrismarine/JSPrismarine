@@ -74,9 +74,9 @@ published build only while the native sources still match the manifest's `build`
 
 ## Publishing builds
 
-The Native network workflow builds every platform on each change, checks each build's
-dependencies, loads it under Node.js and Bun, and installs the packed package with npm, pnpm and
-Bun. Run by hand with `publish`, it attaches the builds to a release named
+The Native network workflow builds every platform on each change and checks each build's
+dependencies. It tests the Linux x64 build under Node.js, and installs the packed package with
+npm. Run by hand with `publish`, it attaches the builds to a release named
 `native-network-build-<hash>` for the native sources' hash, and commits the manifest that points
 at them. The release workflow refuses to publish the package while the manifest does not match
 the sources.

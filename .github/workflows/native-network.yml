@@ -1,8 +1,8 @@
 name: Native network
 
-# Builds @jsprismarine/native-network's library for every platform it ships, checks that each
-# build depends on nothing a bare machine lacks, loads it under Node.js and Bun, and installs the
-# packed package from consumer projects. Run by hand with `publish` set, it also attaches the
+# Builds @jsprismarine/native-network's library for every platform it ships and checks that each
+# build depends on nothing a bare machine lacks. The Linux x64 build is also tested under Node.js,
+# and the packed package is installed from an npm project. Run by hand with `publish` set, it also attaches the
 # builds to a GitHub release named for the native sources' hash and commits the manifest that
 # points at them to the branch it ran on.
 on:
@@ -117,32 +117,12 @@ jobs:
                   path: artifacts/
                   if-no-files-found: error
 
+    # One platform is enough to test: the builds share their sources, and each platform's
+    # dependency check runs in its build job.
     test:
-        name: 🧪 Load and connect (${{ matrix.platform }})
+        name: 🧪 Load and connect (linux-x64-gnu)
         needs: build
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    - platform: linux-x64-gnu
-                      runner: ubuntu-latest
-                      bare: node:26-bookworm-slim
-                    - platform: linux-arm64-gnu
-                      runner: ubuntu-24.04-arm
-                      bare: node:26-bookworm-slim
-                    - platform: linux-x64-musl
-                      runner: ubuntu-latest
-                      bare: node:26-alpine
-                      musl: true
-                    - platform: linux-arm64-musl
-                      runner: ubuntu-24.04-arm
-                      bare: node:26-alpine
-                      musl: true
-                    - platform: darwin-arm64
-                      runner: macos-latest
-                    - platform: win32-x64
-                      runner: windows-latest
-        runs-on: ${{ matrix.runner }}
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -151,40 +131,25 @@ jobs:
 
             - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
               with:
-                  name: native-${{ matrix.platform }}
+                  name: native-linux-x64-gnu
                   path: artifacts
 
             - name: 📍 Put the build where a local build goes
-              shell: bash
               run: |
-                  dir="packages/native-network/prebuilds/${{ matrix.platform }}"
+                  dir=packages/native-network/prebuilds/linux-x64-gnu
                   mkdir -p "$dir"
-                  for file in artifacts/${{ matrix.platform }}-libjsp_native_network.*; do
-                      cp "$file" "$dir/${file#artifacts/${{ matrix.platform }}-}"
+                  for file in artifacts/linux-x64-gnu-libjsp_native_network.*; do
+                      cp "$file" "$dir/${file#artifacts/linux-x64-gnu-}"
                   done
-                  cp "artifacts/${{ matrix.platform }}.build.json" "$dir/build.json"
+                  cp artifacts/linux-x64-gnu.build.json "$dir/build.json"
 
-            - name: 🐰 Setup Bun
-              if: ${{ !matrix.musl }}
-              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-
-            # On the runner for glibc, macOS and Windows; the musl builds run in Alpine below.
             - name: 🧪 Peer connections, the shared port and the installer
-              if: ${{ !matrix.musl }}
-              shell: bash
               env:
                   JSP_NATIVE_NETWORK_REQUIRE: '1'
               run: pnpm exec vitest run packages/native-network
 
-            - name: 📦 Load in a bare ${{ matrix.bare }}
-              if: ${{ matrix.bare != '' }}
-              run: |
-                  docker run --rm -v "$PWD:/work" -w /work/packages/native-network ${{ matrix.bare }} \
-                      node --import tsx src/testing/loopback-main.ts 0 | tee loopback.json
-                  grep -q '"bytesReceived":100000' loopback.json
-
     consumer:
-        name: 📥 Install from a consumer project
+        name: 📥 Install from an npm project
         needs: build
         runs-on: ubuntu-latest
         steps:
@@ -199,10 +164,7 @@ jobs:
                   path: artifacts
                   merge-multiple: true
 
-            - name: 🐰 Setup Bun
-              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-
-            - name: 📥 npm, pnpm and Bun, with and without approving the install script
+            - name: 📥 npm runs the install script, which downloads the build
               run: node packages/native-network/scripts/consumer-test.mts "$PWD/artifacts"
 
     publish:

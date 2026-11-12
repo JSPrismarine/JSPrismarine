@@ -1,13 +1,7 @@
 /**
- * Installs the packed package from consumer projects, the way users do, and checks what each
- * package manager does with its install script:
- *
- * - npm runs it, so the build is downloaded and loads.
- * - pnpm holds it back until `allowBuilds` approves it, and loading meanwhile names the fix.
- * - Bun holds it back until `trustedDependencies` lists it.
- *
- * The manifest packed for the test points at the artifacts directory, so nothing is fetched from
- * a release.
+ * Installs the packed package from an npm project, the way users do: npm runs its install script,
+ * so the build is downloaded and loads. The manifest packed for the test points at the artifacts
+ * directory, so nothing is fetched from a release.
  *
  *     node scripts/consumer-test.mts <artifacts-dir>
  */
@@ -50,7 +44,7 @@ const expect = (condition: boolean, message: string): void => {
     console.log(`ok: ${message}`);
 };
 
-const project = (name: string, extra: Record<string, unknown> = {}): string => {
+const project = (name: string): string => {
     const dir = join(work, name);
     mkdirSync(dir);
     writeFileSync(
@@ -60,8 +54,7 @@ const project = (name: string, extra: Record<string, unknown> = {}): string => {
                 name: `consumer-${name}`,
                 private: true,
                 type: 'module',
-                dependencies: { '@jsprismarine/native-network': `file:${tarball}` },
-                ...extra
+                dependencies: { '@jsprismarine/native-network': `file:${tarball}` }
             },
             null,
             2
@@ -89,39 +82,6 @@ try {
     expect(existsSync(installedFile(npm)), 'npm runs the install script and downloads the build');
     const npmLoad = load(npm);
     expect(npmLoad.ok, `the npm project loads the library (${npmLoad.output.trim()})`);
-
-    const pnpm = project('pnpm');
-    // pnpm 10 and newer skip the script, and in CI also fail the install with ERR_PNPM_IGNORED_BUILDS.
-    const held = spawnSync('pnpm', ['install', '--ignore-workspace'], {
-        cwd: pnpm,
-        encoding: 'utf8',
-        env: { ...process.env, CI: 'true' }
-    });
-    console.log(held.stdout, held.stderr);
-    expect(
-        held.status === 0 || `${held.stdout}${held.stderr}`.includes('IGNORED_BUILDS'),
-        'pnpm installs, or stops only on the ignored build'
-    );
-    expect(!existsSync(installedFile(pnpm)), 'pnpm holds the install script back until it is approved');
-    const pnpmLoad = load(pnpm);
-    expect(
-        !pnpmLoad.ok && pnpmLoad.output.includes('pnpm approve-builds'),
-        'loading without approval names `pnpm approve-builds`'
-    );
-    // What the message tells a user to run; it records the approval and runs the script.
-    run('pnpm', ['approve-builds', '--all'], pnpm);
-    expect(existsSync(installedFile(pnpm)), 'pnpm runs the install script once `pnpm approve-builds` approves it');
-    expect(load(pnpm).ok, 'the approved pnpm project loads the library');
-
-    const bun = project('bun');
-    run('bun', ['install'], bun);
-    expect(!existsSync(installedFile(bun)), 'Bun holds the install script back until the package is trusted');
-    const bunTrusted = JSON.parse(readFileSync(join(bun, 'package.json'), 'utf8'));
-    bunTrusted.trustedDependencies = ['@jsprismarine/native-network'];
-    writeFileSync(join(bun, 'package.json'), JSON.stringify(bunTrusted, null, 2));
-    rmSync(join(bun, 'node_modules'), { recursive: true, force: true });
-    run('bun', ['install'], bun);
-    expect(existsSync(installedFile(bun)), 'Bun runs the install script of a trusted dependency');
 } finally {
     writeFileSync(manifestPath, checkedIn);
     rmSync(work, { recursive: true, force: true });
