@@ -6,7 +6,8 @@ import type PlayerSession from '../network/PlayerSession';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
 import { stub } from '../testing/stub.test.helper';
-import { World } from './World';
+import { occurrenceWorld } from '../testing/occurrences.test.helper';
+import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 
 /**
  * The sound of digging.
@@ -17,16 +18,21 @@ import { World } from './World';
  */
 const fakeWorld = (state: BlockState) => {
     const sounds: Array<{ sound: LevelSoundEvent; data: number; except?: PlayerSession }> = [];
-    const effects: Array<{ event: LevelEvent; data: number }> = [];
 
-    const world: World = Object.assign(Object.create(World.prototype), {
+    const { world, occurrences } = occurrenceWorld({
         getBlockState: async () => state,
         changes: {
+            ...NULL_WORLD_CHANGE_SINK,
             blockSound: (_position: Vector3, sound: LevelSoundEvent, data: number, except?: PlayerSession) =>
-                sounds.push({ sound, data, except }),
-            worldEffect: (_position: Vector3 | null, event: LevelEvent, data: number) => effects.push({ event, data })
+                sounds.push({ sound, data, except })
         }
     });
+
+    /** The world effects logged since the last call. */
+    const effects = () =>
+        occurrences().flatMap((entry) =>
+            entry.occurrence === 'world-effect' ? [{ event: entry.data.effect, data: entry.data.data }] : []
+        );
 
     return { world, sounds, effects };
 };
@@ -61,7 +67,7 @@ describe('world', () => {
 
             for (const face of [0, 1, 2, 3, 4, 5]) await world.hitBlock(new Vector3(10, 64, -20), face);
 
-            expect(effects.map((effect) => effect.event)).toEqual([
+            expect(effects().map((effect) => effect.event)).toEqual([
                 LevelEvent.PARTICLES_CRACK_BLOCK_DOWN,
                 LevelEvent.PARTICLES_CRACK_BLOCK_UP,
                 LevelEvent.PARTICLES_CRACK_BLOCK_NORTH,
@@ -78,7 +84,7 @@ describe('world', () => {
 
             // The hit still lands - the swing happened - but there is no side to chip.
             expect(sounds).toHaveLength(1);
-            expect(effects).toHaveLength(0);
+            expect(effects()).toHaveLength(0);
         });
 
         it('is silent for air, which is what a swing at nothing hits', async () => {
@@ -87,7 +93,7 @@ describe('world', () => {
             await world.hitBlock(new Vector3(10, 64, -20), 1);
 
             expect(sounds).toHaveLength(0);
-            expect(effects).toHaveLength(0);
+            expect(effects()).toHaveLength(0);
         });
     });
 });

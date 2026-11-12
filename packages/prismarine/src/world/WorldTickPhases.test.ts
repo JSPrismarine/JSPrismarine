@@ -68,7 +68,6 @@ const worldTicking = ({
         namedSound: () => calls.push('namedSound'),
         namedParticle: () => calls.push('namedParticle'),
         actorSound: () => calls.push('actorSound'),
-        worldEffect: () => calls.push('worldEffect'),
         entityMoved: () => calls.push('entityMoved'),
         entityAttributesChanged: entityAttributesChanged ?? record('entityAttributesChanged'),
         entityMetadataChanged: record('entityMetadataChanged'),
@@ -79,6 +78,7 @@ const worldTicking = ({
         timeChanged: record('timeChanged'),
         gameRuleChanged: record('gameRuleChanged'),
         reconcile: record('reconcile'),
+        flushOccurrences: record('flushOccurrences'),
         flushBlockChanges: record('flushBlockChanges'),
         flushBlockEntities: record('flushBlockEntities'),
         flushMovement: record('flushMovement')
@@ -196,6 +196,7 @@ describe('world', () => {
                 'systems',
                 'reconcile',
                 'tickSealed',
+                'flushOccurrences',
                 'flushBlockChanges',
                 'flushBlockEntities',
                 'flushMovement',
@@ -419,6 +420,18 @@ describe('world', () => {
 
             expect(calls.indexOf('tickSealed')).toBeGreaterThan(-1);
             expect(calls.indexOf('tickSealed')).toBeLessThan(calls.indexOf('flushBlockChanges'));
+        });
+
+        it("sends the tick's occurrences after the seal and ahead of the block changes", async () => {
+            // An occurrence made in a unit that throws leaves the log with it, so only a sealed
+            // tick says which ones happened. A block's break particles went out the moment the
+            // block broke, ahead of the batched block change, and still do.
+            const { world, calls } = worldTicking();
+
+            await world.update(1);
+
+            expect(calls.indexOf('tickSealed')).toBeLessThan(calls.indexOf('flushOccurrences'));
+            expect(calls.indexOf('flushOccurrences')).toBeLessThan(calls.indexOf('flushBlockChanges'));
         });
 
         it("sends the tick's block changes before the block entities standing in them", async () => {

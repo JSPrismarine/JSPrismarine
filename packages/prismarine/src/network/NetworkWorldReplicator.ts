@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
-import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import type { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { LevelSoundEvent as SoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type Server from '../Server';
@@ -24,6 +24,7 @@ import {
 import type { AudienceOptions, World } from '../world/World';
 import type { NamedSoundOptions, WorldChangeSink } from '../world/WorldChangeSink';
 import type { EntityId } from '../world/changelog/ChangeEntry';
+import type { OccurrenceEntry, OccurrenceKinds } from '../world/changelog/ChangeEntry';
 import type { SealedTick } from '../world/changelog/ChangeLog';
 import type { EntityView } from '../entity/data/actorView';
 import type { BlockPositionKey } from '../world/positionKeys';
@@ -162,6 +163,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
     /** The world's entities as the change log has them, which D4c sends from. */
     private readonly entities: EntityReplica;
+    /** The occurrences read from the change log since the last flush, in log order. */
+    private readonly pendingOccurrences: OccurrenceEntry[] = [];
 
     /** Last pose for each actor that moved since the world's previous movement flush. */
     private readonly pendingMoves = new Map<number, MoveActorAbsolutePacket>();
@@ -247,6 +250,48 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         for (const [key, at] of blockEntities) this.pendingBlockEntities.set(key, at);
         // Read, not sent yet: `StoreActors.sync` still sends the entities until D4c moves it here.
         this.entities.read(sealed);
+        for (const entry of sealed.entries) if (entry.kind === 'occurrence') this.pendingOccurrences.push(entry);
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * Each occurrence is encoded once for each codec and compression group of its audience, as
+     * {@link sendToAll} does, and the audience is worked out once, here, rather than by the code
+     * that made the occurrence.
+     */
+    public async flushOccurrences(): Promise<void> {
+        if (this.pendingOccurrences.length === 0) return;
+        const occurrences = this.pendingOccurrences.splice(0);
+        const sends: Promise<void>[] = [];
+        for (const occurrence of occurrences) {
+            const send = this.sendOccurrence(occurrence);
+            if (send !== undefined) sends.push(send);
+        }
+        await Promise.all(
+            sends.map(async (send) => {
+                try {
+                    await send;
+                } catch (error: unknown) {
+                    this.server.getLogger().error(error);
+                }
+            })
+        );
+    }
+
+    /**
+     * Sends one occurrence to its audience.
+     * @returns The send, for the occurrences whose sends are awaited.
+     */
+    private sendOccurrence(entry: OccurrenceEntry): Promise<void> | undefined {
+        switch (entry.occurrence) {
+            case 'world-effect':
+                this.sendWorldEffect(entry.data);
+                return undefined;
+            default:
+                // A shown block goes out with the block changes, and a vetoed action is a record.
+                return undefined;
+        }
     }
 
     /** @inheritdoc */
@@ -621,9 +666,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         this.sendAround(position, packet, { radius: SOUND_RADIUS });
     }
 
-    /** @inheritdoc */
-    public worldEffect(position: Vector3 | null, effect: LevelEvent, data: number): void {
-        const protocolPosition = position === null ? null : new Vec3(position.getX(), position.getY(), position.getZ());
+    /** A numbered level event, at a point or to the whole world. */
+    private sendWorldEffect({ position, effect, data }: OccurrenceKinds['world-effect']): void {
+        const protocolPosition = position === null ? null : new Vec3(position.x, position.y, position.z);
         // Without this every event played at the world origin: the sound arrived with no
         // direction to it and the particles were nowhere near the block.
         const packet = new LevelEventPacket({ eventId: effect, position: protocolPosition, data });
@@ -633,7 +678,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return;
         }
 
-        this.sendAround(position, packet, { radius: WORLD_EVENT_RADIUS });
+        this.sendAround(new Vector3(position.x, position.y, position.z), packet, { radius: WORLD_EVENT_RADIUS });
     }
 
     /** @inheritdoc */
