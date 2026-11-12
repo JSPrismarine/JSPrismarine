@@ -154,6 +154,7 @@ into the favicon, the touch icons and the web app manifest, which are not checke
 - Text in a field is `--jsp-input-size` (16px), so Safari on iOS does not zoom in when the field
   takes focus. The page sets `touch-action: manipulation`, so two quick taps on a control do not
   zoom either; pinching still does. A placeholder fits its field at that size on a 390px screen.
+- Every command a page shows can be copied, each with its own copy button.
 - Motion is short and mechanical. Honor `prefers-reduced-motion` by stopping tickers and cursors.
   Anything that moves on its own also stops on hover and has a Pause button, for readers who have not
   set reduced motion. With a mouse, the button shows on hover, on keyboard focus and while paused;

@@ -160,7 +160,10 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                         <a :href="withBase('/packages')">All {{ project.packages.length }}</a>
                     </li>
                 </ul>
-                <code class="landing__install">pnpm add {{ installExample.name }}</code>
+                <div class="landing__install">
+                    <code>pnpm add {{ installExample.name }}</code>
+                    <CopyButton :text="`pnpm add ${installExample.name}`" />
+                </div>
             </BentoTile>
             <BentoTile :span="4">
                 <p class="bento-caption">
@@ -441,8 +444,13 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     content: '↓' / '';
 }
 
+/* Every command on the page can be copied, this one included. */
 .landing__install {
-    padding: 10px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 6px 6px 12px;
     font: 13px var(--vp-font-family-mono);
     color: var(--jsp-term-text);
     background: var(--jsp-ink);
