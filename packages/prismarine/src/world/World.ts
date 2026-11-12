@@ -3402,10 +3402,11 @@ export class World implements Service {
      * world the player, through the player's actor.
      *
      * The one way a player enters a world, on its join and on its arrival from another. Until it
-     * runs, nothing in the world can target or see the player.
+     * runs, nothing in the world can target or see the player. Synchronous, so the entry is part
+     * of the caller's unit.
      * @param session - The player's session.
      */
-    public async addPlayer(session: PlayerSession): Promise<void> {
+    public addPlayer(session: PlayerSession): void {
         this.players.set(Number(session.runtimeId), session);
         if (enterStore(this.dataEntities().runtime, this.server.getStorePlayers(), session.getPlayer()) === undefined)
             this.server.getLogger().warn(`The content declares no player, so ${session.identity.name} has no entity`);

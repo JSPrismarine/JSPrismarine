@@ -1483,7 +1483,7 @@ export default class PlayerSession {
      * into a container it does not know. Every drag was refused on the client's side, before
      * an `ItemStackRequest` was ever sent.
      */
-    public async sendInventory(windowId: number = WindowIds.INVENTORY): Promise<void> {
+    public sendInventory(windowId: number = WindowIds.INVENTORY): Promise<void> {
         const player = this.own();
         const inventory = player.getInventory();
         const context = this.connection.codec.context;
@@ -1496,12 +1496,12 @@ export default class PlayerSession {
             return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
         });
         pk.windowId = windowId;
-        await this.connection.sendDataPacket(pk);
+        const sends = [this.connection.sendDataPacket(pk)];
 
         // Through the entry rather than `getItemInHand`, which hands back an empty slot's air
         // as though it were an item and cannot be written out.
         const hand = inventory.getEntry(inventory.getHandSlotIndex());
-        if (hand) await this.sendHandItem(hand.toItemStack());
+        if (hand) sends.push(this.sendHandItem(hand.toItemStack()));
 
         // The armor container is a window of its own, so the main inventory's contents say
         // nothing about it and a player would open their screen to four empty slots. Its
@@ -1517,9 +1517,8 @@ export default class PlayerSession {
             });
         armor.windowId = WindowIds.ARMOR;
         armor.containerId = ContainerUiId.ARMOR_CONTAINER;
-        await this.connection.sendDataPacket(armor);
-
-        await this.sendArmorFor(this.shown());
+        sends.push(this.connection.sendDataPacket(armor), this.sendArmorFor(this.shown()));
+        return allSent(sends);
     }
 
     /**
@@ -2157,18 +2156,15 @@ export default class PlayerSession {
      * an unrelated meaning - one is "put me into the world", the other is "show me to
      * somebody". Adding a player to a world therefore ran this by accident.
      */
-    public async completeSpawn(): Promise<void> {
+    public completeSpawn(): Promise<void> {
         const actor = this.getActor();
-        if (actor !== undefined) await this.world.broadcastMove(actor);
-        await this.setGamemode();
-        await this.sendInventory();
-        await this.announceSettings();
+        const sends = actor === undefined ? [] : [this.world.broadcastMove(actor)];
+        sends.push(this.setGamemode(), this.sendInventory(), this.announceSettings());
 
         // Sent again here, not only during the join sequence: the client throws away the
         // local player it had while it is spawning, taking health, hunger and breath with it.
-        await this.sendAttributes();
-        await this.sendMetadata();
-        await this.sendStatusEffects(this.shown());
+        sends.push(this.sendAttributes(), this.sendMetadata(), this.sendStatusEffects(this.shown()));
+        return allSent(sends);
     }
 
     /**
@@ -2244,9 +2240,10 @@ export default class PlayerSession {
      * is why the hunger bar sat empty however correct the values were here.
      * @param {Attributes} [attributes] - The attributes to send, the player's own by default.
      */
-    public async sendAttributes(attributes: Attributes = this.own().attributes): Promise<void> {
-        await this.sendAttributeList(attributes.getAttributes());
+    public sendAttributes(attributes: Attributes = this.own().attributes): Promise<void> {
+        const sent = this.sendAttributeList(attributes.getAttributes());
         attributes.clearDirty();
+        return sent;
     }
 
     /**
@@ -2422,7 +2419,7 @@ export default class PlayerSession {
             },
             false
         );
-        await world.addPlayer(this);
+        world.addPlayer(this);
 
         if (left.bedrockId === target.bedrockId) await this.detourFrom(target.bedrockId, eyes);
 
@@ -2957,8 +2954,8 @@ export default class PlayerSession {
      * Sends every active effect after the actor that owns them has spawned.
      * @param {ShownActor} entity - The spawned actor.
      */
-    public async sendStatusEffects(entity: ShownActor): Promise<void> {
-        for (const effect of entity.getStatusEffects()) await this.sendStatusEffect(entity, effect, 'add');
+    public sendStatusEffects(entity: ShownActor): Promise<void> {
+        return allSent(entity.getStatusEffects().map((effect) => this.sendStatusEffect(entity, effect, 'add')));
     }
 
     /**
@@ -2998,31 +2995,33 @@ export default class PlayerSession {
      * Read from the wearer's equipment, which for a player is its inventory.
      * @param {ShownActor} wearer - Whose armor it is.
      */
-    public async sendArmorFor(wearer: ShownActor): Promise<void> {
+    public sendArmorFor(wearer: ShownActor): Promise<void> {
         const worn = wearer.getEquipment();
 
         const context = this.connection.codec.context;
-        await this.send(
-            new MobArmorEquipmentPacket({
-                runtimeEntityId: wearer.getRuntimeId(),
-                head: (worn.head ?? Item.air()).toStackDescriptor(context),
-                chest: (worn.chest ?? Item.air()).toStackDescriptor(context),
-                legs: (worn.legs ?? Item.air()).toStackDescriptor(context),
-                feet: (worn.feet ?? Item.air()).toStackDescriptor(context),
-                body: Item.air().toStackDescriptor(context)
-            })
-        );
+        return allSent([
+            this.send(
+                new MobArmorEquipmentPacket({
+                    runtimeEntityId: wearer.getRuntimeId(),
+                    head: (worn.head ?? Item.air()).toStackDescriptor(context),
+                    chest: (worn.chest ?? Item.air()).toStackDescriptor(context),
+                    legs: (worn.legs ?? Item.air()).toStackDescriptor(context),
+                    feet: (worn.feet ?? Item.air()).toStackDescriptor(context),
+                    body: Item.air().toStackDescriptor(context)
+                })
+            ),
 
-        // The offhand container has a single slot, so both slot fields are zero.
-        await this.send(
-            new MobEquipmentPacket({
-                runtimeEntityId: wearer.getRuntimeId(),
-                item: (worn.offhand ?? Item.air()).toStackDescriptor(context),
-                inventorySlot: 0,
-                hotbarSlot: 0,
-                windowId: WindowIds.OFFHAND
-            })
-        );
+            // The offhand container has a single slot, so both slot fields are zero.
+            this.send(
+                new MobEquipmentPacket({
+                    runtimeEntityId: wearer.getRuntimeId(),
+                    item: (worn.offhand ?? Item.air()).toStackDescriptor(context),
+                    inventorySlot: 0,
+                    hotbarSlot: 0,
+                    windowId: WindowIds.OFFHAND
+                })
+            )
+        ]);
     }
 
     /**
