@@ -368,6 +368,30 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         await reopened.disable();
     });
 
+    it('keeps what a held write needs when the pass it was compared with is abandoned', async () => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        leveldb.holdOutsideWrites();
+        const chunk = twoSectionChunk(0, 0);
+
+        // A pass cuts a chunk the save has never held, a write of the chunk outside it is held,
+        // and then the pass is abandoned, as one whose commit failed is.
+        const pass = leveldb.beginSavePass();
+        pass.cutChunk(chunk, context());
+        await leveldb.writeChunk(chunk, context());
+        pass.abandon();
+
+        await leveldb.beginSavePass().commit({ sync: true });
+        await leveldb.disable();
+
+        // Read back as saved, not generated again for a missing version key.
+        const reopened = provider(worldPath);
+        await reopened.enable();
+        expect((await readBack(reopened, 0, 0)).getBlockRuntimeId(0, 16, 0)).toBe(stone);
+        await reopened.disable();
+    });
+
     it('hands the held writes of an abandoned pass to the next one', async () => {
         const leveldb = provider(scratch());
         await leveldb.enable();

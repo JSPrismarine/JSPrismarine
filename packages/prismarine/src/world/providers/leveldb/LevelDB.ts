@@ -305,6 +305,45 @@ export default class LevelDB extends BaseProvider {
         return this.requireDatabase().get(key);
     }
 
+    /**
+     * Whether the save holds this value for a key whatever becomes of the passes still between
+     * their cut and their commit: a read sees it now, and so does a read with those passes left
+     * out. A write is skipped only then, since a pass can be abandoned, and a held write skipped
+     * because that pass's batch held the value would be lost with it, such as a chunk's `Version`
+     * key, without which the chunk is generated again.
+     */
+    private holds(key: Buffer, value: Buffer): boolean {
+        const held = this.held.lookup(key);
+        if (held !== undefined) return held?.equals(value) === true;
+        const unapplied = this.unappliedLookup(key);
+        if (unapplied !== undefined && unapplied?.equals(value) !== true) return false;
+        return this.requireDatabase().get(key)?.equals(value) === true;
+    }
+
+    /**
+     * Whether a key may hold a value once the passes in flight land or are abandoned, so a write
+     * that removes it has to delete it.
+     */
+    private mayHold(key: Buffer): boolean {
+        const held = this.held.lookup(key);
+        if (held !== undefined) return held !== null;
+        const unapplied = this.unappliedLookup(key);
+        if (unapplied !== undefined && unapplied !== null) return true;
+        return this.requireDatabase().get(key) !== null;
+    }
+
+    /**
+     * What the newest pass still committing holds for a key: a value, `null` for a deletion, or
+     * `undefined` when none of them touches it.
+     */
+    private unappliedLookup(key: Buffer): Buffer | null | undefined {
+        for (let index = this.unapplied.length - 1; index >= 0; index--) {
+            const value = this.unapplied[index]!.lookup(key);
+            if (value !== undefined) return value;
+        }
+        return undefined;
+    }
+
     /** Every write that has not reached the database, oldest first, as one batch. */
     private pendingWrites(): OverlayBatch {
         const pending = new OverlayBatch();
@@ -770,12 +809,12 @@ export default class LevelDB extends BaseProvider {
             putPlayer: (key, record) => {
                 const playerKey = encodePlayerServerKey(key);
                 const value = this.writeActorNbt(playerDataToNbt(record, this.knownDimensions()));
-                if (!this.read(playerKey)?.equals(value)) batch.put(playerKey, value);
+                if (!this.holds(playerKey, value)) batch.put(playerKey, value);
                 return true;
             },
             putLevelRecord: (data) => {
                 const value = this.levelRecordOf({ ...this.readWorldDataNow(), ...data });
-                if (!this.read(WORLD_DATA_KEY)?.equals(value)) batch.put(WORLD_DATA_KEY, value);
+                if (!this.holds(WORLD_DATA_KEY, value)) batch.put(WORLD_DATA_KEY, value);
             },
             get pendingEncodes() {
                 return pending;
@@ -839,7 +878,7 @@ export default class LevelDB extends BaseProvider {
         for (const { index, subChunk, stored } of changes.subChunks) {
             if (!stored || subChunk === null) {
                 // Only loaded or previously written keys need tombstones; absent air slices have no value to remove.
-                if (this.read(key(ChunkTag.SubChunkPrefix, index)) !== null) {
+                if (this.mayHold(key(ChunkTag.SubChunkPrefix, index))) {
                     batch.del(key(ChunkTag.SubChunkPrefix, index));
                 }
                 continue;
@@ -856,7 +895,7 @@ export default class LevelDB extends BaseProvider {
         for (const earlier of this.unsettled.get(chunk) ?? []) {
             for (const index of earlier.subChunkPuts) {
                 const subChunkKey = key(ChunkTag.SubChunkPrefix, index);
-                if (state.subChunkKeys.has(index) || this.read(subChunkKey) === null) continue;
+                if (state.subChunkKeys.has(index) || !this.mayHold(subChunkKey)) continue;
                 batch.del(subChunkKey);
                 emptied = true;
             }
@@ -864,20 +903,20 @@ export default class LevelDB extends BaseProvider {
 
         const versionKey = key(ChunkTag.Version);
         const version = Buffer.from([CHUNK_VERSION]);
-        if (!this.read(versionKey)?.equals(version)) batch.put(versionKey, version);
+        if (!this.holds(versionKey, version)) batch.put(versionKey, version);
 
         const finalized = Buffer.allocUnsafe(4);
         finalized.writeInt32LE(FINALIZED_DONE);
         const finalizedKey = key(ChunkTag.FinalizedState);
-        if (!this.read(finalizedKey)?.equals(finalized)) batch.put(finalizedKey, finalized);
+        if (!this.holds(finalizedKey, finalized)) batch.put(finalizedKey, finalized);
         const pendingEntitiesKey = encodePendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
-        if (this.read(pendingEntitiesKey) !== null) batch.del(pendingEntitiesKey);
+        if (this.mayHold(pendingEntitiesKey)) batch.del(pendingEntitiesKey);
 
         if (changes.blockEntities) {
             const blockEntities = this.writeBlockEntities(chunk.getBlockEntities());
             const blockEntitiesKey = key(ChunkTag.BlockEntity);
             if (blockEntities === null) {
-                if (this.read(blockEntitiesKey) !== null) batch.del(blockEntitiesKey);
+                if (this.mayHold(blockEntitiesKey)) batch.del(blockEntitiesKey);
             } else {
                 batch.put(blockEntitiesKey, blockEntities);
             }
@@ -1232,7 +1271,7 @@ export default class LevelDB extends BaseProvider {
             actorIds.push(actorId);
             const actorKey = encodeActorKey(actorId);
             const actorValue = this.writeActorNbt(nbt);
-            if (!this.read(actorKey)?.equals(actorValue)) batch.put(actorKey, actorValue);
+            if (!this.holds(actorKey, actorValue)) batch.put(actorKey, actorValue);
         }
 
         for (const actorId of previousActorIds) {
@@ -1240,20 +1279,20 @@ export default class LevelDB extends BaseProvider {
             if (actorIdsInChunk.has(uniqueId) || usedActorIds.has(uniqueId)) continue;
 
             const actorKey = encodeActorKey(actorId);
-            if (this.read(actorKey) !== null) batch.del(actorKey);
+            if (this.mayHold(actorKey)) batch.del(actorKey);
         }
 
         const legacyEntityKey = key(ChunkTag.Entity);
-        if (this.read(legacyEntityKey) !== null) batch.del(legacyEntityKey);
+        if (this.mayHold(legacyEntityKey)) batch.del(legacyEntityKey);
         const actorDigestVersionKey = key(ChunkTag.ActorDigestVersion);
         if (actorIds.length === 0) {
-            if (existingDigest !== null) batch.del(digestKey);
-            if (this.read(actorDigestVersionKey) !== null) batch.del(actorDigestVersionKey);
+            if (this.mayHold(digestKey)) batch.del(digestKey);
+            if (this.mayHold(actorDigestVersionKey)) batch.del(actorDigestVersionKey);
         } else {
             const digest = encodeDigest(actorIds);
-            if (!existingDigest?.equals(digest)) batch.put(digestKey, digest);
+            if (!this.holds(digestKey, digest)) batch.put(digestKey, digest);
             const digestVersion = Buffer.from([0]);
-            if (!this.read(actorDigestVersionKey)?.equals(digestVersion)) {
+            if (!this.holds(actorDigestVersionKey, digestVersion)) {
                 batch.put(actorDigestVersionKey, digestVersion);
             }
         }
@@ -1270,7 +1309,7 @@ export default class LevelDB extends BaseProvider {
         for (let attempt = 0; attempt < 32; attempt++) {
             const uniqueId = randomBytes(8).readBigInt64LE(0);
             const actorId = actorIdBytes(uniqueId);
-            if (usedActorIds.has(uniqueId) || this.read(encodeActorKey(actorId)) !== null) continue;
+            if (usedActorIds.has(uniqueId) || this.mayHold(encodeActorKey(actorId))) continue;
 
             usedActorIds.add(uniqueId);
             return uniqueId;
