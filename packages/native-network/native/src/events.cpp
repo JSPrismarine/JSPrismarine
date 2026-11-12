@@ -31,6 +31,10 @@ std::mutex &queuesMutex = *new std::mutex;
 std::map<int32_t, std::shared_ptr<Queue>> &queues = *new std::map<int32_t, std::shared_ptr<Queue>>;
 int32_t nextQueue = 1;
 int32_t logQueue = 0;
+// The queue the calling thread opened, if any. A line logged during a call goes to the queue of
+// the thread that made it, so a failed call can read what it logged; lines from libdatachannel's
+// own threads go to logQueue.
+thread_local int32_t threadQueue = 0;
 
 std::shared_ptr<Queue> findQueue(int32_t handle) {
 	std::lock_guard<std::mutex> lock(queuesMutex);
@@ -83,7 +87,7 @@ void pushLog(int32_t level, const char *line, size_t size) {
 	int32_t handle;
 	{
 		std::lock_guard<std::mutex> lock(queuesMutex);
-		handle = logQueue;
+		handle = threadQueue != 0 && queues.count(threadQueue) != 0 ? threadQueue : logQueue;
 	}
 	if (handle != 0) pushEvent(handle, JSP_EVENT_LOG, 0, level, line, size);
 }
@@ -97,6 +101,7 @@ int32_t openQueue(uint16_t port, bool wantsLogs) {
 	const int32_t handle = nextQueue++;
 	queues.emplace(handle, queue);
 	if (wantsLogs) logQueue = handle;
+	threadQueue = handle;
 	return handle;
 }
 

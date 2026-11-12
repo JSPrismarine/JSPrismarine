@@ -36,6 +36,9 @@ export interface NativeEventRecord {
 /** What receives the events of one peer connection or data channel. */
 export type NativeEventHandler = (event: NativeEventRecord) => void;
 
+/** libdatachannel's warning level, from `rtc.h`: the log level a load asks for unless told otherwise. */
+const LOG_WARNING = 3;
+
 const EVENT_HEADER_BYTES = 16;
 const INITIAL_READ_BYTES = 256 * 1024;
 
@@ -65,6 +68,8 @@ export class NativeNetwork {
     private readonly handlers = new Map<number, NativeEventHandler>();
     private readBuffer = Buffer.allocUnsafe(INITIAL_READ_BYTES);
     private logHandler: ((level: number, line: string) => void) | undefined;
+    /** Events {@link NativeNetwork.flushLog} read but held back, in order, for the next drain. */
+    private deferred: NativeEventRecord[] = [];
     /** Things that keep the process alive while they are open, such as a connection being made. */
     private holds = 0;
 
@@ -83,7 +88,8 @@ export class NativeNetwork {
 
     /**
      * Loads the library and opens this thread's event queue, the first time it is called on a thread.
-     * @param options - The library file and log level; the defaults find the installed build.
+     * @param options - The library file and log level; the defaults find the installed build and
+     *   log warnings and worse. libdatachannel takes the level once per process, from the first load.
      * @returns The loaded library.
      * @throws {NativeLibraryError} When the library cannot be found, loaded, or speaks another interface.
      */
@@ -117,7 +123,7 @@ export class NativeNetwork {
                 resolve();
             });
         });
-        const opened = library.symbols.jsp_events_open(socket.address().port, options.logLevel ?? 0);
+        const opened = library.symbols.jsp_events_open(socket.address().port, options.logLevel ?? LOG_WARNING);
         if (opened < 0) {
             socket.close();
             library.close();
@@ -183,6 +189,26 @@ export class NativeNetwork {
 
     /** Reads every queued event and dispatches it; a read that finds the queue empty rearms the wake. */
     public drain(): void {
+        for (const event of this.deferred.splice(0)) this.dispatch(event);
+        this.read((event) => this.dispatch(event));
+    }
+
+    /**
+     * Hands every queued log line to the log handler now, and keeps the other events, in order,
+     * for the next turn of the event loop. A call that failed reads the lines it logged this way
+     * without running another handler in the middle of its own failure.
+     */
+    public flushLog(): void {
+        const waiting = this.deferred.length > 0;
+        this.read((event) => {
+            if (event.kind === NativeEvent.log) this.dispatch(event);
+            else this.deferred.push(event);
+        });
+        if (!waiting && this.deferred.length > 0) setImmediate(() => this.drain());
+    }
+
+    /** Reads the queue until it is empty, which rearms the wake, passing each event on. */
+    private read(receive: (event: NativeEventRecord) => void): void {
         for (;;) {
             const written = this.symbols.jsp_events_read(this.queue, this.readBuffer, this.readBuffer.byteLength);
             if (written === 0) return;
@@ -200,7 +226,7 @@ export class NativeNetwork {
                     payload: Buffer.from(this.readBuffer.subarray(offset + EVENT_HEADER_BYTES, offset + length))
                 };
                 offset += length;
-                this.dispatch(event);
+                receive(event);
             }
         }
     }
@@ -212,6 +238,7 @@ export class NativeNetwork {
     public close(): void {
         this.symbols.jsp_events_close(this.queue);
         this.handlers.clear();
+        this.deferred = [];
         this.wakeSocket.close();
         NativeNetwork.instance = undefined;
     }
