@@ -134,8 +134,8 @@ export type RespawnAttempt = { readonly kind: 'answer'; readonly answer: Respawn
  * `server.overworld()`, raised out of whatever their body overlaps there.
  */
 export class RespawnSearch {
-    /** The worlds each player's waiting attempts hold chunk tickets in. */
-    private readonly ticketed = new Map<string, Set<World>>();
+    /** The chunks each player's waiting attempts have ticketed so far, by world and `x,z` key. */
+    private readonly ticketed = new Map<string, Map<World, Map<string, ChunkCoordinate>>>();
     /** Builds an attempt started, by stem, with how each ended once it has. */
     private readonly building = new Map<string, { failed?: unknown }>();
 
@@ -167,10 +167,18 @@ export class RespawnSearch {
         }
         const owner = `respawn:${request.player}`;
         for (const [world, chunks] of lacks.chunks) {
-            world.chunkTickets().request(owner, chunks.values());
-            const worlds = this.ticketed.get(request.player) ?? new Set<World>();
-            worlds.add(world);
-            this.ticketed.set(request.player, worlds);
+            // Every chunk the search has asked for in this world, not only the ones this attempt
+            // lacked: a request replaces the owner's ticket, and an attempt that reads further
+            // than the last one would otherwise let go of the chunks it already read. A chunk let
+            // go of can unload before the next attempt, which then lacks it again, and a bed on a
+            // chunk border alternates between its two chunks without ever answering. The set
+            // only grows by chunks the search reads, so it stays as small as the search.
+            const held = this.ticketed.get(request.player) ?? new Map<World, Map<string, ChunkCoordinate>>();
+            const asked = held.get(world) ?? new Map<string, ChunkCoordinate>();
+            for (const [key, chunk] of chunks) asked.set(key, chunk);
+            held.set(world, asked);
+            this.ticketed.set(request.player, held);
+            world.chunkTickets().request(owner, asked.values());
         }
         for (const world of lacks.spawns) {
             outsideTick(() => {
@@ -180,9 +188,14 @@ export class RespawnSearch {
         return { kind: 'waiting' };
     }
 
-    /** Gives up the chunk tickets a player's waiting attempts took. */
-    private release(player: string): void {
-        for (const world of this.ticketed.get(player) ?? []) world.chunkTickets().release(`respawn:${player}`);
+    /**
+     * Gives up the chunk tickets a player's waiting attempts took, in every world. An answer does
+     * this itself; a caller that stops asking before the answer, such as a trip that is dropped,
+     * calls it. Releasing a player with no waiting search does nothing.
+     * @param player - The key the requests named.
+     */
+    public release(player: string): void {
+        for (const world of this.ticketed.get(player)?.keys() ?? []) world.chunkTickets().release(`respawn:${player}`);
         this.ticketed.delete(player);
     }
 
