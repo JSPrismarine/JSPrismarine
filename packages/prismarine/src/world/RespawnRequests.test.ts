@@ -104,6 +104,55 @@ describe('respawn requests', () => {
         expect(requests.size).toBe(0);
     });
 
+    it('reports what a waiting attempt says failed once, and keeps the request', async () => {
+        const reported: unknown[] = [];
+        const requests = new RespawnRequests((error) => reported.push(error));
+        const failure = new Error('the spawn chunk failed to generate');
+        const attempts: RespawnAttempt[] = [{ kind: 'waiting', failed: [failure] }, { kind: 'waiting' }];
+        const search = stub<RespawnSearch>({
+            attempt: ({ player }): RespawnAttempt => attempts.shift() ?? { kind: 'answer', answer: answerFor(player) }
+        });
+        const applied: string[] = [];
+        requests.request(search, requestOf('steve'), (answer) => void applied.push(answer.player));
+
+        expect(requests.admit()).toBe(0);
+        expect(reported).toEqual([failure]);
+        expect(requests.size).toBe(1);
+
+        expect(requests.admit()).toBe(0);
+        expect(requests.admit()).toBe(1);
+        expect(reported).toHaveLength(1);
+        expect(applied).toEqual(['steve']);
+    });
+
+    it('reports an answer that fails to apply, and does not ask for the world spawn in its place', async () => {
+        const reported: unknown[] = [];
+        const requests = new RespawnRequests((error) => reported.push(error));
+        const asked: (string | undefined)[] = [];
+        const search = stub<RespawnSearch>({
+            attempt: ({ player, spawnPoint }): RespawnAttempt => {
+                asked.push(spawnPoint?.dimension);
+                return { kind: 'answer', answer: answerFor(player) };
+            }
+        });
+        const applied: string[] = [];
+        const bed = { x: 1, y: 64, z: 1, dimension: 'minecraft:nether' };
+        requests.request(search, { ...requestOf('steve'), spawnPoint: bed }, () => {
+            applied.push('death');
+            throw new Error('the death screen failed to send');
+        });
+        requests.request(search, requestOf('steve'), () => void applied.push('respawn'));
+
+        expect(requests.admit()).toBe(1);
+        expect(reported).toHaveLength(1);
+        expect(requests.size).toBe(0);
+        expect(requests.admit()).toBe(0);
+
+        // The bed's answer was applied once, and no second answer was asked for in its place.
+        expect(asked).toEqual(['minecraft:nether', undefined]);
+        expect(applied).toEqual(['death', 'respawn']);
+    });
+
     it('answers the world spawn for a player whose own spawn point the search failed on', async () => {
         const reported: unknown[] = [];
         const requests = new RespawnRequests((error) => reported.push(error));

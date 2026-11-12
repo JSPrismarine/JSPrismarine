@@ -128,8 +128,14 @@ class Lacks {
     }
 }
 
-/** What an attempt says: the answer, or that it waits for something it has asked for. */
-export type RespawnAttempt = { readonly kind: 'answer'; readonly answer: RespawnAnswer } | { readonly kind: 'waiting' };
+/**
+ * What an attempt says: the answer, or that it waits for something it has asked for. A waiting
+ * attempt carries what went wrong with work an earlier attempt started for it, which this one
+ * started again, for the caller to report.
+ */
+export type RespawnAttempt =
+    | { readonly kind: 'answer'; readonly answer: RespawnAnswer }
+    | { readonly kind: 'waiting'; readonly failed?: readonly unknown[] };
 
 /**
  * One level's respawn search.
@@ -146,6 +152,8 @@ export class RespawnSearch {
     private readonly building = new Map<string, { failed?: unknown }>();
     /** World spawn searches an attempt started, by world, with how each ended once it has. */
     private readonly spawning = new Map<World, { failed?: unknown }>();
+    /** The failure last handed over for a world's spawn search, until a search of it works. */
+    private readonly spawnFailures = new Map<World, string>();
 
     public constructor(private readonly worlds: RespawnWorlds) {}
 
@@ -157,9 +165,9 @@ export class RespawnSearch {
      * the tick. Asking again once it has arrived answers. Writes nothing to the world: a spawn
      * point that stopped holding is reported in the answer, not cleared.
      * @param request - Who is asking, their spawn point and their body.
-     * @throws When a world the attempt started building failed to build, when a world spawn it
-     *   started searching for could not be found, or when the search itself threw. The player's
-     *   tickets are given up first.
+     * @throws When a world the attempt started building failed to build, or when the search
+     *   itself threw. The player's tickets are given up first. A world spawn search that failed
+     *   does not throw: see {@link RespawnSearch.findSpawn}.
      */
     public attempt(request: RespawnRequest): RespawnAttempt {
         const lacks = new Lacks();
@@ -177,9 +185,13 @@ export class RespawnSearch {
             return { kind: 'answer', answer };
         }
 
+        const failed: unknown[] = [];
         try {
             for (const stemId of lacks.worlds) this.build(stemId);
-            for (const world of lacks.spawns) this.findSpawn(world);
+            for (const world of lacks.spawns) {
+                const failure = this.findSpawn(world);
+                if (failure !== undefined) failed.push(failure.error);
+            }
         } catch (error: unknown) {
             this.release(request.player);
             throw error;
@@ -199,7 +211,7 @@ export class RespawnSearch {
             this.ticketed.set(request.player, held);
             world.chunkTickets().request(owner, asked.values());
         }
-        return { kind: 'waiting' };
+        return failed.length === 0 ? { kind: 'waiting' } : { kind: 'waiting', failed };
     }
 
     /**
@@ -240,25 +252,27 @@ export class RespawnSearch {
 
     /**
      * Starts a world's spawn search outside the tick, once, and remembers how it ended, as
-     * {@link build} does for a world. A failed search is thrown at the next attempt that lacks the
-     * spawn, rather than left to keep the respawn waiting with nothing logged; a search the
-     * shutdown stopped is not a failure, and the next attempt starts it again.
+     * {@link build} does for a world. A search the shutdown stopped is not a failure, and the next
+     * attempt starts it again.
+     *
+     * A failed search is started again too, and the request keeps waiting. The respawn has
+     * nowhere else to go, a client that gets no answer cannot leave the death screen, and a
+     * search that failed for a passing reason answers once it works. What failed is handed back
+     * for the caller to report, once per failure and not once per attempt, so a search that
+     * cannot work does not fill the log at the rate the input step asks.
+     *
+     * @returns The failure of the search an earlier attempt started, when it is a new one.
      */
-    private findSpawn(world: World): void {
+    private findSpawn(world: World): { readonly error: unknown } | undefined {
         const known = this.spawning.get(world);
-        if (known !== undefined) {
-            if ('failed' in known) {
-                this.spawning.delete(world);
-                throw known.failed;
-            }
-            return;
-        }
+        if (known !== undefined && !('failed' in known)) return undefined;
 
         const entry: { failed?: unknown } = {};
         this.spawning.set(world, entry);
         outsideTick(() => {
             world.getSpawnPosition().then(
                 () => {
+                    this.spawnFailures.delete(world);
                     if (this.spawning.get(world) === entry) this.spawning.delete(world);
                 },
                 (error: unknown) => {
@@ -270,6 +284,12 @@ export class RespawnSearch {
                 }
             );
         });
+
+        if (known === undefined) return undefined;
+        const failure = String(known.failed);
+        if (this.spawnFailures.get(world) === failure) return undefined;
+        this.spawnFailures.set(world, failure);
+        return { error: known.failed };
     }
 
     /**

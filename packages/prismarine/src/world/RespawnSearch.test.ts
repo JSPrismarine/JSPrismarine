@@ -16,7 +16,7 @@ import { ChunkTickets } from './ChunkTickets';
 import { Position } from './Position';
 import BaseProvider from './providers/BaseProvider';
 import { RespawnSearch } from './RespawnSearch';
-import type { RespawnRequest } from './RespawnSearch';
+import type { RespawnAttempt, RespawnRequest } from './RespawnSearch';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 
@@ -368,7 +368,7 @@ describe('RespawnSearch', () => {
             expect(tickets.holds(2, 2)).toBe(false);
         });
 
-        it('throws a world spawn search that failed at the next attempt, and searches again after', async () => {
+        it('hands a failed world spawn search to the next attempt once, and searches again', async () => {
             const overworld = worldOf(Dimensions.Overworld);
             let searches = 0;
             Object.assign(overworld, {
@@ -379,14 +379,43 @@ describe('RespawnSearch', () => {
                 }
             });
             const { search } = searchOver({ overworld });
+            const failuresOf = (attempt: RespawnAttempt): string[] | undefined =>
+                attempt.kind === 'waiting' ? attempt.failed?.map(String) : undefined;
 
             expect(search.attempt(request())).toEqual({ kind: 'waiting' });
             expect(search.attempt(request())).toEqual({ kind: 'waiting' });
+            expect(searches).toBe(1);
             await new Promise<void>((resolve) => setImmediate(resolve));
 
-            expect(() => search.attempt(request())).toThrow('the spawn chunk failed to generate');
-            expect(searches).toBe(1);
+            // The request is not dropped: the attempt says what failed and has searched again.
+            expect(failuresOf(search.attempt(request()))).toEqual(['Error: the spawn chunk failed to generate']);
+            expect(searches).toBe(2);
+            await new Promise<void>((resolve) => setImmediate(resolve));
+
+            // The same failure a second time is not handed over again.
             expect(search.attempt(request())).toEqual({ kind: 'waiting' });
+            expect(searches).toBe(3);
+        });
+
+        it('answers once a world spawn search that failed works', async () => {
+            const overworld = worldOf(Dimensions.Overworld);
+            let known: Vector3 | null = null;
+            let searches = 0;
+            Object.assign(overworld, {
+                getKnownSpawnPosition: () => known,
+                getSpawnPosition: async () => {
+                    searches += 1;
+                    if (searches === 1) throw new Error('the spawn chunk failed to generate');
+                    known = new Vector3(0, 64, 0);
+                    return known;
+                }
+            });
+            const { search } = searchOver({ overworld });
+
+            const answer = await answerOf(search, request());
+
+            expect(answer.spawn).toBe('world');
+            expect(answer.block).toEqual({ x: 0, y: 64, z: 0 });
             expect(searches).toBe(2);
         });
 
