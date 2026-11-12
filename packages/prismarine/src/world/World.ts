@@ -96,7 +96,8 @@ import type { ChunkSaveContext } from './providers/ChunkSaveContext';
 import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
 import type { EntityStore } from '../entity/data/EntityStore';
-import type { StateEntry } from './changelog/ChangeEntry';
+import type { OccurrenceEntry, StateEntry } from './changelog/ChangeEntry';
+import { Position } from './Position';
 import type { SealedTick } from './changelog/ChangeLog';
 import type { ChangeLogCost } from './changelog/changeLogCost';
 import { changeLogCost } from './changelog/changeLogCost';
@@ -1234,6 +1235,15 @@ export class World implements Service {
 
         const startProfile = profileSpanStarter(this.server);
 
+        // First, so what was said while the tick ran still reaches a client ahead of the block
+        // changes and the movement, as it did when each was sent the moment it happened.
+        const endOccurrencesProfile = startProfile?.(`World.occurrences:${this.name}`);
+        try {
+            await this.changes.flushOccurrences();
+        } finally {
+            endOccurrencesProfile?.();
+        }
+
         // After physics and after the entities, both of which change blocks, so a tick's block
         // changes leave as one batch per player rather than one packet each - see
         // `flushBlockChanges`. Before the movement, so a mob is not reported walking on ground the
@@ -1826,13 +1836,24 @@ export class World implements Service {
     }
 
     /**
-     * Sends a world event packet to all the viewers in the position chunk.
-     * @param {Vector3} position - world position.
-     * @param {number} event - event identifier.
-     * @param {number} data - event data.
+     * Something cosmetic happened: particles, a splash, a block's cracks. It is a `world-effect`
+     * occurrence in the change log, which replication sends to the players near it, or to every
+     * player in the world when there is no position.
+     * @param {Vector3 | null} position - Where, or null for the world as a whole.
+     * @param {LevelEvent} event - Which effect.
+     * @param {number} data - Extra detail, for the effects that carry any.
      */
     public async sendWorldEvent(position: Vector3 | null, event: LevelEvent, data: number): Promise<void> {
-        this.changes.worldEffect(position, event, data);
+        if (position !== null && !this.isHere(position)) return;
+        this.occurred({
+            kind: 'occurrence',
+            occurrence: 'world-effect',
+            data: {
+                position: position === null ? null : { x: position.getX(), y: position.getY(), z: position.getZ() },
+                effect: event,
+                data
+            }
+        });
     }
 
     /**
@@ -2599,6 +2620,30 @@ export class World implements Service {
         );
 
         return next;
+    }
+
+    /**
+     * Logs an occurrence, which replication sends after the tick seals. An occurrence made inside
+     * a unit that throws leaves the log with the unit, so it is never sent, and one made between
+     * ticks is sent with the next tick.
+     * @param {OccurrenceEntry} entry - The occurrence.
+     */
+    private occurred(entry: OccurrenceEntry): void {
+        this.blockLog()?.occurred(entry);
+    }
+
+    /**
+     * Whether a position is in this world. A {@link Position} carries the world it belongs to,
+     * and one from another world names a place this world's players are not in, so its
+     * occurrence is refused and said so. Guards against the class of bug where block placement
+     * fanned out across every world on the server.
+     * @param {Vector3} position - The position.
+     * @returns {boolean} False for a position of another world.
+     */
+    private isHere(position: Vector3): boolean {
+        if (!(position instanceof Position) || position.getWorld() === this) return true;
+        this.server.getLogger().verbose(`Refusing to broadcast into §b${this.name}§r for a position in another world`);
+        return false;
     }
 
     /**

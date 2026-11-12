@@ -1,5 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
-import type { ActorEvent, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import type { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
@@ -115,14 +115,6 @@ export interface WorldChangeSink {
      * @param {string} name - The effect's identifier, such as `minecraft:crop_growth_emitter`.
      */
     namedParticle(position: Vector3, name: string): void;
-
-    /**
-     * Something cosmetic happened: particles, a splash, a break animation.
-     * @param {Vector3 | null} position - Where, or null for the world as a whole.
-     * @param {LevelEvent} effect - Which effect.
-     * @param {number} data - Extra detail, for the effects that carry any.
-     */
-    worldEffect(position: Vector3 | null, effect: LevelEvent, data: number): void;
 
     /**
      * Something happened to one entity: it was hurt, it died, it swung an arm.
@@ -248,6 +240,16 @@ export interface WorldChangeSink {
     reconcile(entities: readonly ShownActor[]): Promise<void>;
 
     /**
+     * Tick phase: send the occurrences of the ticks read since the last flush, such as sounds,
+     * particles and actor events, in the order the log holds them.
+     *
+     * Runs first, so a block's break particles still reach a client ahead of the block change,
+     * as they did when they were sent the moment they happened.
+     * @returns {Promise<void>} Resolves once they are on their way.
+     */
+    flushOccurrences(): Promise<void>;
+
+    /**
      * Tick phase: send the block changes this tick produced, as one batch each.
      * @returns {Promise<void>} Resolves once the batches are framed.
      */
@@ -284,7 +286,6 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     blockSound: () => {},
     namedSound: () => {},
     namedParticle: () => {},
-    worldEffect: () => {},
     actorEffect: async () => {},
     actorSound: () => {},
     entityAttributesChanged: async () => {},
@@ -297,6 +298,7 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     timeChanged: async () => {},
     gameRuleChanged: async () => {},
     reconcile: async () => {},
+    flushOccurrences: async () => {},
     flushBlockChanges: async () => {},
     flushBlockEntities: async () => {},
     flushMovement: async () => {}

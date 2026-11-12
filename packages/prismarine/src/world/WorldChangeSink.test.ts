@@ -3,7 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 import type { Logger } from '@jsprismarine/logger';
-import { Difficulty } from '@jsprismarine/minecraft';
+import { Difficulty, LevelEvent } from '@jsprismarine/minecraft';
+import { Vector3 } from '@jsprismarine/math';
 import BinaryStream from '@jsprismarine/binaryutils';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
@@ -20,6 +21,7 @@ import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
+import { Position } from './Position';
 import { World } from './World';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
@@ -207,6 +209,57 @@ describe('world', () => {
                     data: { x: 4, y: GROUND, z: 4, block: runtimeIdOf('minecraft:stone') }
                 }
             ]);
+        });
+
+        it('hands the sink an occurrence in the sealed tick that made it, and none for a unit that threw', async () => {
+            // A sound or a particle for an action that was undone is not played.
+            const { world, sealed } = await flatWorld();
+
+            world.beginChangeTick();
+            await world.sendWorldEvent(new Vector3(1, GROUND, 1), LevelEvent.PARTICLES_CRIT, 0);
+            const outcome = world.getEntityStore().unit(() => {
+                void world.sendWorldEvent(new Vector3(2, GROUND, 2), LevelEvent.PARTICLES_CRIT, 0);
+                throw new Error('planned');
+            });
+            world.sealChangeTick();
+
+            expect(outcome.failed).toBe(true);
+            expect(sealed.at(-1)?.entries.filter((entry) => entry.kind === 'occurrence')).toEqual([
+                {
+                    kind: 'occurrence',
+                    occurrence: 'world-effect',
+                    data: { position: { x: 1, y: GROUND, z: 1 }, effect: LevelEvent.PARTICLES_CRIT, data: 0 }
+                }
+            ]);
+        });
+
+        it('hands the sink an occurrence made between ticks with the next tick', async () => {
+            const { world, sealed } = await flatWorld();
+            world.beginChangeTick();
+            world.sealChangeTick();
+
+            await world.sendWorldEvent(null, LevelEvent.START_RAINING, 100);
+            world.beginChangeTick();
+            world.sealChangeTick();
+
+            expect(sealed.at(-1)?.entries).toEqual([
+                {
+                    kind: 'occurrence',
+                    occurrence: 'world-effect',
+                    data: { position: null, effect: LevelEvent.START_RAINING, data: 100 }
+                }
+            ]);
+        });
+
+        it('refuses an occurrence at a position of another world', async () => {
+            const { world, sealed } = await flatWorld();
+            const { world: elsewhere } = await flatWorld();
+
+            world.beginChangeTick();
+            await world.sendWorldEvent(new Position(1, GROUND, 1, elsewhere), LevelEvent.PARTICLES_CRIT, 0);
+            world.sealChangeTick();
+
+            expect(sealed.at(-1)?.entries).toEqual([]);
         });
 
         it('hands the sink the block entities of a chunk as it enters', async () => {
