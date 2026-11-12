@@ -2382,6 +2382,10 @@ export default class PlayerSession {
      * Whether an input's position must be ignored because the client has not yet handled a
      * teleport the server sent it.
      *
+     * Mojang's packet documentation, on `HandledTeleport`: "The server should ignore any client
+     * predicted positions from the moment a MovePlayerPacket was sent until receipt of this
+     * action." That covers every teleport, the one that ends a dimension change included.
+     *
      * The client goes on sending inputs from where it was until it applies the `MovePlayer`, and
      * the first input from the new place carries `HandledTeleport`. A retail client was captured
      * doing exactly that, with one stale input arriving after the teleport about one time in
