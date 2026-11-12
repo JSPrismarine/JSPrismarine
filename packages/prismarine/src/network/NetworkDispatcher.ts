@@ -1,5 +1,5 @@
-import type { TickWaitTracker } from '../world/TickContext';
-import { trackTickWaits } from '../world/TickContext';
+import type { TickWaitTracker } from '../world/TickWaits';
+import { trackTickWaits } from '../world/TickWaits';
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
 import type { EventEmitter } from '../events/EventEmitter';

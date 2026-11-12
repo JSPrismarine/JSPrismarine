@@ -83,8 +83,9 @@ import { PortalIndex } from './portal/PortalIndex';
 import type { ChunkAdmission, ChunkAdmissionScheduler } from './ChunkAdmissions';
 import { chunkAdmissionWorld } from './ChunkAdmissions';
 import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
-import type { TickWaitTracker } from './TickContext';
-import { currentTickScope, currentTickWaitTracker, insideTick, outsideTick } from './TickContext';
+import type { TickWaitTracker } from './TickWaits';
+import { outsideTick } from './TickContext';
+import { currentTickWaitTracker } from './TickWaits';
 import { ChunkTickets } from './ChunkTickets';
 import { isPortalBlock } from './portal/rules';
 import { furnaceScreenData, tickFurnace } from './cooking';
@@ -216,8 +217,6 @@ interface ChunkLoadState {
     parked: boolean;
     /** The trackers of the callers waiting, told when the load parks and when it moves on. */
     readonly waiters: TickWaitTracker[];
-    /** The tick that waits for the chunk, if one does. */
-    wantedBy: { readonly open: boolean } | undefined;
 }
 
 /** One chunk load in flight. */
@@ -1014,7 +1013,7 @@ export class World implements Service {
      *
      * @param tick - The server tick.
      */
-    public async update(tick: number): Promise<void> {
+    public update(tick: number): void {
         const store = this.getEntityStore();
         if (store.broken !== undefined) {
             if (!this.stopReported) {
@@ -1583,14 +1582,6 @@ export class World implements Service {
                 this.generator.raiseUrgency?.(x, z, urgency);
                 this.admissions?.promote(this.chunkAdmission('enter', x, z), urgency);
             }
-            // Code inside the tick that waits for a chunk the tick cannot run without. Holding it
-            // for the next input step would leave the tick unable to finish, so it is admitted the
-            // moment it is ready. A path that still breaks the admission rule, and the queue
-            // counts it; see `inTickChunkLoads.ts`.
-            if (insideTick()) {
-                running.wantedBy = currentTickScope();
-                if (running.parked) this.admissions?.admitNow(this.chunkAdmission('enter', x, z));
-            }
             return this.awaitLoad(running);
         }
 
@@ -1599,8 +1590,7 @@ export class World implements Service {
         const state: ChunkLoadState = {
             urgency: { value: options?.urgency ?? 'immediate' },
             parked: false,
-            waiters: [],
-            wantedBy: currentTickScope()
+            waiters: []
         };
         const load: ChunkLoad = Object.assign(state, { chunk: this.readChunkInto(index, x, z, options, state) });
         this.loading.set(index, load);
@@ -1688,20 +1678,16 @@ export class World implements Service {
             enter();
         } else {
             // The chunk is ready, and it enters the world only when the input step admits it
-            // (ADR 0009), so no tick sees the loaded set change in its middle. A tick that waits
-            // for it cannot end before it enters, so that one is admitted now.
-            const now = insideTick() || load.wantedBy?.open === true;
-            this.parkLoad(load, admissions.isActive && !now);
+            // (ADR 0009), so no tick sees the loaded set change in its middle. No tick waits for
+            // a chunk: a tick runs in one call, so this runs between ticks.
+            this.parkLoad(load, admissions.isActive);
             try {
-                await admissions.hold(
-                    {
-                        ...this.chunkAdmission('enter', x, z),
-                        priority: load.urgency.value,
-                        content: () => chunk.networkSerialize(),
-                        apply: enter
-                    },
-                    now
-                );
+                await admissions.hold({
+                    ...this.chunkAdmission('enter', x, z),
+                    priority: load.urgency.value,
+                    content: () => chunk.networkSerialize(),
+                    apply: enter
+                });
             } finally {
                 this.parkLoad(load, false);
             }

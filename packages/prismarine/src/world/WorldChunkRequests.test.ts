@@ -21,7 +21,8 @@ import type { Generator } from './Generator';
 import type { ChunkAdmissionRecord } from './ChunkAdmissions';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
-import { runInTick, trackTickWaits } from './TickContext';
+import { runInTick } from './TickContext';
+import { trackTickWaits } from './TickWaits';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
@@ -238,7 +239,7 @@ describe('world chunk requests', () => {
         ]);
     });
 
-    it('admits at once a chunk that code inside a tick waits for, and counts it', async () => {
+    it('holds a chunk a tick asks for until an input step admits it, since no tick waits for one', async () => {
         const queue = new ChunkCompletionQueue();
         queue.activate();
         vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation(() => {});
@@ -248,30 +249,14 @@ describe('world chunk requests', () => {
             queue
         );
 
-        const chunk = await runInTick(() => world.getChunk(1, 1));
-
-        expect(world.getLoadedChunk(1, 1)).toBe(chunk);
-        expect(queue.admissions.snapshot()).toMatchObject({ pending: 0, admitted: 0, admittedInTick: 1 });
-    });
-
-    it('admits a held chunk at once when code inside a tick joins its load', async () => {
-        const queue = new ChunkCompletionQueue();
-        queue.activate();
-        vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation(() => {});
-        const world = testWorld(
-            async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld),
-            stub<Generator>({}),
-            queue
-        );
-
-        const between = world.getChunk(2, 3, { urgency: 'idle' });
+        const asked = runInTick(() => world.getChunk(1, 1));
         await turns();
+        expect(world.getLoadedChunk(1, 1)).toBeNull();
         expect(queue.admissions.pending).toBe(1);
 
-        const inTick = await runInTick(() => world.getChunk(2, 3));
-
-        expect(await between).toBe(inTick);
-        expect(queue.admissions.snapshot()).toMatchObject({ pending: 0, admittedInTick: 1 });
+        expect(queue.admissions.admit(1)).toBe(1);
+        expect(world.getLoadedChunk(1, 1)).toBe(await asked);
+        expect(queue.admissions.snapshot()).toMatchObject({ pending: 0, admitted: 1, admittedIdle: 0 });
     });
 
     it('tells the waiting work that it is parked on a tick until the chunk is admitted', async () => {

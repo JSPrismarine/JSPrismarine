@@ -341,15 +341,15 @@ describe('Level', () => {
 
             const ticked: string[] = [];
             const failure = new Error('the overworld broke');
-            vi.spyOn(overworld, 'update').mockImplementation(async () => {
+            vi.spyOn(overworld, 'update').mockImplementation(() => {
                 ticked.push(overworld.getName());
                 throw failure;
             });
             for (const world of [nether, sky]) {
-                vi.spyOn(world, 'update').mockImplementation(async () => void ticked.push(world.getName()));
+                vi.spyOn(world, 'update').mockImplementation(() => void ticked.push(world.getName()));
             }
 
-            await level.update(1);
+            level.update(1);
 
             expect(ticked).toEqual([overworld.getName(), nether.getName(), sky.getName()]);
             expect(errors).toContain(failure);

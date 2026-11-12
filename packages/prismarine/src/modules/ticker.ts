@@ -3,7 +3,6 @@ import type { Module } from '@jsprismarine/kernel';
 import { TickEvent } from '../events/Events';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import { TickRecorder } from '../profiling/TickRecorder';
-import type { ChunkAdmission } from '../world/ChunkAdmissions';
 import type { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { DEFAULT_CHUNK_COMPLETION_BUDGET_MS } from '../world/ChunkCompletionQueue';
 import { runInTick } from '../world/TickContext';
@@ -58,40 +57,6 @@ const MINECRAFT_TICK_TIME_MS = 1000 / DEFAULT_TICK_RATE;
  */
 const MAX_CATCH_UP_MS = 2000;
 
-/**
- * How long a tick's simulation phases may run while chunk completions wait for the next input
- * step before the ticker calls the tick stalled on them. Far above any tick that loads its
- * chunks inline, so it fires on a tick that waits for work only the next input step can finish,
- * which never comes while the tick runs.
- */
-export const TICK_STALL_MS = 30_000;
-
-/**
- * A tick that stalled with chunk completions held for the next input step. Something the tick
- * awaits was started outside it, such as from an event or a command between ticks, and loads a
- * chunk that waits for an input step. The ticker logs this and admits the held completions
- * inline, so the tick can end.
- */
-export class TickStalledError extends Error {
-    public override readonly name = 'TickStalledError';
-
-    /**
-     * @param tick - The tick that stalled.
-     * @param waitedMs - How long it had run when the ticker found it stalled.
-     * @param parked - The completions held for the next input step, which the ticker admitted.
-     */
-    public constructor(
-        public readonly tick: number,
-        public readonly waitedMs: number,
-        public readonly parked: readonly ChunkAdmission[]
-    ) {
-        const listed = parked.map(({ world, change, x, z }) => `${change} ${world} ${x},${z}`).join(', ');
-        super(
-            `Tick ${tick} ran ${waitedMs} ms with chunk completions held for the next input step, so it may be waiting for one; admitted them inline: ${listed}`
-        );
-    }
-}
-
 /** Weight of the newest tick in the tick-duration average: the last ten or so ticks carry most of it. */
 const TICK_MS_SMOOTHING = 0.2;
 
@@ -137,10 +102,10 @@ const summarizeLateTicks = (profiles: readonly LateTickProfile[]): string => {
     return `Lag profile over ${profiles.length} late tick(s): avg work ${average(totals.elapsedMs)}/tick (tick handlers ${average(totals.tickHandlersMs)}, world updates ${average(totals.worldUpdatesMs)}, chunk completions ${average(totals.chunkCompletionsMs)}, chunk scheduler ${average(totals.chunkSchedulerMs)}, other ${average(totals.otherMs)}); timer callback delays ${totals.timerDelayMs.toFixed(0)} ms total${slowestWorldDetail}`;
 };
 
-/** One world as the tick loop sees it: a name for the lag profile, and an update to await. */
+/** One world as the tick loop sees it: a name for the lag profile, and an update that runs to its end. */
 export interface TickerWorld {
     getName(): string;
-    update(tick: number): Promise<unknown>;
+    update(tick: number): unknown;
     /** Opens the world's change log tick before the input step, so the inputs land in it. */
     beginChangeTick?(): void;
     /** Seals the world's change log tick when the world did not update, such as a frozen one. */
@@ -165,7 +130,7 @@ export interface TickerServer {
     emitTick(event: TickEvent): void;
     /**
      * The input step: applies the inputs held since the last tick, in arrival order, up to a
-     * count, then the chunk completions it admits. The ticker awaits it before anything else in
+     * count, then the chunk completions it admits. The ticker runs it before anything else in
      * the tick, and before any world updates.
      */
     admitInputs(): number;
@@ -178,10 +143,11 @@ export interface TickerServer {
     /** The server-wide chunk scheduler the tick hands a time slice to. */
     getChunkScheduler(): {
         setBudget(budgetMs: number): void;
-        tick(): Promise<unknown>;
+        /** Starts the deliveries that fit in this tick's slice; the tick does not wait for them. */
+        tick(): unknown;
     };
     /** Deferred worker translations and background lighting, budgeted separately from packet sends. */
-    getChunkCompletionQueue(): Pick<ChunkCompletionQueue, 'activate' | 'deactivate' | 'drain' | 'admitParked'>;
+    getChunkCompletionQueue(): Pick<ChunkCompletionQueue, 'activate' | 'deactivate' | 'drain'>;
     /** This tick's chunk-send budget, read fresh each tick so config reloads apply. */
     getChunkSendBudgetMs(): number;
     /** Whether the loop should run at all. Read once per `start()`. */
@@ -205,7 +171,7 @@ export interface TickerServer {
 /**
  * What the `prismarine:ticker` token resolves to: the running tick counters.
  * Tick work itself is observed through the server's typed `tick` event, which
- * the loop emits and awaits at the top of every tick.
+ * the loop emits in every tick, after the input step.
  */
 export interface Ticker {
     /** The current tick number. */
@@ -271,8 +237,19 @@ export class ServerTicker implements Ticker, TickControl {
     /** The most recent ticks' duration, lateness and phases, for profiles and benchmarks. */
     public readonly recorder = new TickRecorder();
 
-    public constructor(server: TickerServer) {
+    /** The clock the loop's schedule and the phase timings read; nothing in a tick's simulation reads it. */
+    private readonly now: () => number;
+
+    /**
+     * @param server - What the loop drives.
+     * @param now - A monotonic clock in milliseconds. Monotonic, not wall clock: `Date.now()`
+     *   follows the system time, and an NTP correction or a VM resume moves it under the
+     *   scheduler. A forward step used to read as accumulated lateness and trigger a catch-up
+     *   burst; a backward one as time to kill, stalling the server for the size of the step.
+     */
+    public constructor(server: TickerServer, now: () => number = () => performance.now()) {
         this.server = server;
+        this.now = now;
     }
 
     /** The current tick number. */
@@ -370,12 +347,7 @@ export class ServerTicker implements Ticker, TickControl {
 
         const server = this.server;
         const logger = server.getLogger();
-
-        // Monotonic, not wall clock: `Date.now()` follows the system time, and an NTP
-        // correction or a VM resume moves it under the scheduler. A forward step used to
-        // read as accumulated lateness and trigger a catch-up burst; a backward one as
-        // time to kill, stalling the server for the size of the step.
-        const now = () => performance.now();
+        const { now } = this;
 
         // Every tick's deadline is derived from one fixed origin, so a tick that runs
         // long is absorbed rather than shifting every deadline behind it.
@@ -396,14 +368,14 @@ export class ServerTicker implements Ticker, TickControl {
         const recentTicks: number[] = [];
         const lateTickProfiles: LateTickProfile[] = [];
         const maxProfileCount = Math.ceil(MAX_CATCH_UP_MS / MINECRAFT_TICK_TIME_MS);
-        const tick = async () => {
+        const tick = () => {
             if (server.isStopping() || !this.running) return;
             const tickStartedAt = now();
             const dueAt = epoch + (Number(this.currentTick - epochTick) * 1000) / this.tickRate;
             const timerDelayMs = Math.max(0, tickStartedAt - nextTickExpectedStartAt);
             let phases = EMPTY_PHASES;
             try {
-                phases = await this.runTick();
+                phases = this.runTick();
             } finally {
                 const {
                     tickHandlersMs,
@@ -523,31 +495,31 @@ export class ServerTicker implements Ticker, TickControl {
         };
 
         // Start ticking
-        void tick();
+        tick();
     }
 
     /**
-     * Runs one tick by hand, outside the loop's schedule, and returns once its work has settled.
+     * Runs one tick by hand, outside the loop's schedule, to its end in one call.
      *
      * For a harness that drives a server with ticking disabled, such as a replay: each call is
      * exactly one tick, whatever the host's speed, so two runs of the same input take the same
      * steps. It runs the same work, in the same order, as a tick of the loop.
      *
-     * @throws {Error} While the loop runs, or while another `advance` is still in flight.
+     * @throws {Error} While the loop runs, or when called from inside the tick it is running.
      */
-    public async advance(): Promise<void> {
+    public advance(): void {
         if (this.running) throw new Error('Cannot advance the ticker by hand while its loop runs');
         if (this.advancing) throw new Error('Cannot advance the ticker while a manual tick is in flight');
         if (this.server.isStopping()) return;
 
         this.advancing = true;
-        const startedAt = performance.now();
+        const startedAt = this.now();
         try {
-            const { tickHandlersMs, worldUpdatesMs, chunkCompletionsMs, chunkSchedulerMs } = await this.runTick();
+            const { tickHandlersMs, worldUpdatesMs, chunkCompletionsMs, chunkSchedulerMs } = this.runTick();
             this.recorder.record({
                 tick: Number(this.currentTick),
                 latenessMs: 0,
-                elapsedMs: performance.now() - startedAt,
+                elapsedMs: this.now() - startedAt,
                 tickHandlersMs,
                 worldUpdatesMs,
                 chunkCompletionsMs,
@@ -560,17 +532,21 @@ export class ServerTicker implements Ticker, TickControl {
     }
 
     /**
-     * One tick's work: the input step with the functions last in it, chunk completions, the tick
-     * event, the worlds, the chunk sends and the network poll, in that order. Shared by the loop and
+     * One tick's work: the input step with the functions last in it, the tick event and the
+     * worlds, which are the simulation, then the chunk preparations, the chunk sends and the
+     * network poll, in that order. Shared by the loop and
      * {@link advance}.
+     *
+     * Synchronous: no phase awaits, so the tick ends when this returns, and nothing it started
+     * and did not wait for, such as a send or a chunk load, runs before then.
      *
      * @returns How long each phase took, for the recorder and the lag profile.
      */
-    private async runTick(): Promise<TickPhases> {
+    private runTick(): TickPhases {
         const server = this.server;
         const logger = server.getLogger();
         const startProfile = profileSpanStarter(server.getProfileOwner());
-        const now = () => performance.now();
+        const { now } = this;
         let tickHandlersMs = 0;
         let worldUpdatesMs = 0;
         let chunkCompletionsMs = 0;
@@ -588,17 +564,13 @@ export class ServerTicker implements Ticker, TickControl {
         // stood still. A tick that fails is worth a log line; it is not worth the
         // server.
         try {
-            // The simulation phases run inside the tick's scope, so a chunk that code inside them
-            // waits for is told apart from one a chunk delivery or a read-lane handler waits for,
-            // which waits for the next input step instead (ADR 0009). Chunk delivery is outside.
-            const stopWatching = this.watchForStall(this.getTick());
-            await runInTick(async () => {
+            // The simulation phases run inside the tick's scope, which code they call reads to know
+            // it runs inside the tick (ADR 0015). Chunk delivery is outside.
+            runInTick(() => {
                 // The input step comes first (ADR 0015): the input-lane packets and player removals
                 // held since the last tick, applied in arrival order before any world updates, then
-                // the chunk completions the step admits, so no input lands between the awaits of a
-                // world's tick and no chunk enters or leaves in the middle of one. Handlers are still asynchronous,
-                // so the step can yield, but nothing else in the tick runs until it has finished.
-                // The levels tick one after another, so this one step is the input step of every
+                // the chunk completions the step admits, so no chunk enters or leaves in the middle
+                // of a world's tick. The levels tick one after another, so this one step is the input step of every
                 // world; when they tick apart, each world drains the inputs of its own players.
                 // Every world's change log tick opens first, so what the step applies is logged
                 // in the tick that applied it, and each world seals its tick when it closes.
@@ -624,14 +596,6 @@ export class ServerTicker implements Ticker, TickControl {
                 } finally {
                     endFunctionsProfile?.();
                 }
-                const endCompletionProfile = startProfile?.('Server.chunkCompletions');
-                phaseStartedAt = now();
-                try {
-                    server.getChunkCompletionQueue().drain(DEFAULT_CHUNK_COMPLETION_BUDGET_MS);
-                } finally {
-                    chunkCompletionsMs = now() - phaseStartedAt;
-                    endCompletionProfile?.();
-                }
                 const event = new TickEvent(this.getTick());
 
                 // Each tick handler is called inside this tick and runs to its first wait; what an
@@ -646,17 +610,15 @@ export class ServerTicker implements Ticker, TickControl {
                     endTickHandlersProfile?.();
                 }
 
-                // One world after another, in the order `getWorlds` gives, never interleaved: a
-                // world's tick must not run between the awaits of another's. A world that throws
-                // is logged and costs only its own tick, and every update of this tick has
-                // settled before the next tick is scheduled.
+                // One world after another, in the order `getWorlds` gives, each to its end before the
+                // next. A world that throws is logged and costs only its own tick.
                 phaseStartedAt = now();
                 try {
                     for (const world of advancing ? server.getWorlds() : []) {
                         const worldStartedAt = now();
                         const endWorldProfile = startProfile?.(`World.update:${world.getName()}`);
                         try {
-                            await world.update(event.getTick());
+                            world.update(event.getTick());
                         } catch (error: unknown) {
                             logger.error(`World ${world.getName()} failed tick ${event.getTick()}`);
                             logger.error(error);
@@ -676,15 +638,28 @@ export class ServerTicker implements Ticker, TickControl {
                 // A world opened above and not updated, because the server is frozen or the world
                 // list changed, closes its tick here.
                 for (const world of ticked) world.sealChangeTick?.();
-            }).finally(stopWatching);
+            });
 
-            // Whatever fits in this tick's slice; the rest waits for the next one.
+            // The preparation of chunks, such as translating a worker's result, up to a slice of
+            // wall time. Outside the simulation: what it prepares waits for the next input step,
+            // which admits by count, so the clock decides only how soon a chunk is ready.
+            const endCompletionProfile = startProfile?.('Server.chunkCompletions');
+            phaseStartedAt = now();
+            try {
+                server.getChunkCompletionQueue().drain(DEFAULT_CHUNK_COMPLETION_BUDGET_MS);
+            } finally {
+                chunkCompletionsMs = now() - phaseStartedAt;
+                endCompletionProfile?.();
+            }
+
+            // Whatever fits in this tick's slice; the rest waits for the next one. The deliveries
+            // it starts run outside the tick and are not waited for.
             phaseStartedAt = now();
             const endChunkSchedulerProfile = startProfile?.('Server.chunkScheduler');
             try {
                 const chunkScheduler = server.getChunkScheduler();
                 chunkScheduler.setBudget(server.getChunkSendBudgetMs());
-                await chunkScheduler.tick();
+                chunkScheduler.tick();
             } finally {
                 chunkSchedulerMs = now() - phaseStartedAt;
                 endChunkSchedulerProfile?.();
@@ -722,35 +697,6 @@ export class ServerTicker implements Ticker, TickControl {
             slowestWorldName,
             slowestWorldMs
         };
-    }
-
-    /**
-     * Watches a tick's simulation phases for a stall on chunk completions held for the next input
-     * step ({@link TickStalledError}). Every {@link TICK_STALL_MS} the tick runs, held completions
-     * are admitted inline and the stall is logged.
-     *
-     * The wall clock decides only when the completions are admitted, which ADR 0009 allows, and
-     * each is recorded with its tick.
-     *
-     * @param tick - The tick being watched.
-     * @returns Stops watching.
-     */
-    private watchForStall(tick: number): () => void {
-        const queue = this.server.getChunkCompletionQueue();
-        let waitedMs = 0;
-        let timer: ReturnType<typeof setTimeout>;
-        const watch = () => {
-            timer = setTimeout(check, TICK_STALL_MS);
-            timer.unref();
-        };
-        const check = () => {
-            waitedMs += TICK_STALL_MS;
-            const parked = queue.admitParked();
-            if (parked.length > 0) this.server.getLogger().error(new TickStalledError(tick, waitedMs, parked));
-            watch();
-        };
-        watch();
-        return () => clearTimeout(timer);
     }
 
     /** Stops the loop: clears the pending timer and stops a tick in flight from rescheduling. */

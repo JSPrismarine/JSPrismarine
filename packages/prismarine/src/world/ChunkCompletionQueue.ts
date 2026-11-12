@@ -1,6 +1,6 @@
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { profileCounterRecorder } from '../profiling/ServerProfiler';
-import type { ChunkAdmission, ChunkAdmissionScheduler } from './ChunkAdmissions';
+import type { ChunkAdmissionScheduler } from './ChunkAdmissions';
 import { ChunkAdmissions } from './ChunkAdmissions';
 
 /** A deferred chunk completion, with the work class used for fair service. */
@@ -213,11 +213,6 @@ export class ChunkCompletionQueue implements ChunkCompletionScheduler {
         this.active = false;
         while (this.pendingCount > 0) this.runNext();
         this.admissions.deactivate();
-    }
-
-    /** Applies every chunk admission held for the input step now; see {@link ChunkAdmissions.admitParked}. */
-    public admitParked(): readonly ChunkAdmission[] {
-        return this.admissions.admitParked();
     }
 
     /**

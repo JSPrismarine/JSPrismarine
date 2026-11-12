@@ -1,50 +1,50 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
-
-/** One running tick's simulation phases, closed once they have finished. */
-interface TickScope {
-    open: boolean;
-}
-
-/** Work that is waiting until a tick lets it continue, counted by whoever runs that work. */
-export interface TickWaitTracker {
-    /** The work now waits for a tick and nothing else. */
-    park(): void;
-    /** The tick let the work continue, or it stopped waiting. */
-    unpark(): void;
-}
-
-const tickScopes = new AsyncLocalStorage<TickScope>();
-const waitTrackers = new AsyncLocalStorage<TickWaitTracker>();
+import { untrackedTickWaits } from './TickWaits';
 
 /**
- * Runs a tick's simulation phases, so code they call, and code those calls await, can tell
- * that it runs inside the tick.
+ * Whether a tick's simulation phases are running, which the ticker sets around them.
  *
- * The scope closes when `work` settles. A promise the tick started and did not wait for keeps
- * the scope, and once the tick has finished it reads as outside every tick.
+ * A plain flag: the phases run in one synchronous call and await nothing, so nothing that runs
+ * outside them can run while it is set, and work they start and do not wait for runs after they
+ * have cleared it.
+ */
+let ticking = false;
+
+/**
+ * Runs a tick's simulation phases, so code they call can tell that it runs inside the tick.
  *
- * @param work - The input step and the phases after it, up to the end of the simulation.
+ * @param work - The input step and the phases after it, up to the end of the simulation, in one
+ *   synchronous call.
  * @returns What `work` returns.
  */
-export const runInTick = async <T>(work: () => Promise<T>): Promise<T> => {
-    const scope: TickScope = { open: true };
+export const runInTick = <T>(work: () => T): T => {
+    const outer = ticking;
+    ticking = true;
     try {
-        return await tickScopes.run(scope, work);
+        return work();
     } finally {
-        scope.open = false;
+        ticking = outer;
     }
 };
 
 /**
- * Runs work as though no tick were running, so nothing it starts, and nothing those starts
- * await, reads as inside a tick or reports a wait to a tracker. A chunk load a ticket starts runs
- * this way, so the chunk waits for an input step even while the tick that asked is still open,
- * and so does work a tick starts and must not wait for, such as building the world a trip goes to.
+ * Runs work as though no tick were running, so nothing it does before its first wait reads as
+ * inside a tick, and nothing it starts reports a wait to a tracker. A chunk load a ticket starts
+ * runs this way, so the chunk waits for an input step even while the tick that asked is still
+ * open, and so does work a tick starts and must not wait for, such as building the world a trip
+ * goes to. What the work does after its first wait runs once the tick has ended.
  *
  * @param work - The work to start.
  * @returns What `work` returns.
  */
-export const outsideTick = <T>(work: () => T): T => tickScopes.exit(() => waitTrackers.exit(work));
+export const outsideTick = <T>(work: () => T): T => {
+    const outer = ticking;
+    ticking = false;
+    try {
+        return untrackedTickWaits(work);
+    } finally {
+        ticking = outer;
+    }
+};
 
 /**
  * Whether the caller runs inside a tick's simulation phases ({@link runInTick}).
@@ -53,24 +53,4 @@ export const outsideTick = <T>(work: () => T): T => tickScopes.exit(() => waitTr
  * packet handlers of the connection and read lanes, and anything else that runs between ticks
  * are outside.
  */
-export const insideTick = (): boolean => tickScopes.getStore()?.open === true;
-
-/**
- * The tick the caller runs inside, which reads as closed once that tick has finished, or
- * undefined outside every tick. Kept by work that has to know later whether the tick that asked
- * for it is still waiting.
- */
-export const currentTickScope = (): { readonly open: boolean } | undefined => tickScopes.getStore();
-
-/**
- * Runs work under a tracker, so a wait that only a tick can end, such as a chunk held for the
- * next input step, is reported to whoever runs that work.
- *
- * @param tracker - Told when the work parks on a tick and when it continues.
- * @param work - The work to run.
- * @returns What `work` returns.
- */
-export const trackTickWaits = <T>(tracker: TickWaitTracker, work: () => T): T => waitTrackers.run(tracker, work);
-
-/** The tracker the caller's work runs under ({@link trackTickWaits}), if any. */
-export const currentTickWaitTracker = (): TickWaitTracker | undefined => waitTrackers.getStore();
+export const insideTick = (): boolean => ticking;

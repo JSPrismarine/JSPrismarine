@@ -268,10 +268,9 @@ export class EntityStore {
     /**
      * Appends a chunk entry, which names a chunk that entered or left the world.
      *
-     * A chunk admitted at the input step enters outside every unit. One that code inside a unit
-     * loaded inline (`IN_TICK_CHUNK_LOADS`) enters inside it, and a chunk entry has no inverse,
-     * so every open unit is pinned: if it throws, its writes stay and the failure is reported,
-     * as before the store existed. Slices 3 to 9 remove the inline loads.
+     * A chunk admitted at the input step enters outside every unit. Only a chunk applied while
+     * no tick loop runs, as in a test, can enter inside one, and a chunk entry has no inverse,
+     * so every open unit is pinned: if it throws, its writes stay and the failure is reported.
      */
     public chunk(change: 'enter' | 'leave', x: number, z: number): void {
         for (const unit of this.units) unit.pinned = true;

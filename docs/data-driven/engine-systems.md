@@ -46,6 +46,13 @@ runs for a class-based entity and for a data-driven one over two different seams
 
 ## The tick
 
+A tick runs in one synchronous call and reads no clock
+([ADR 0015](../adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)). Nothing it calls
+waits: a send queues its packets and the transport frames them after the tick, a save is written
+off the tick, and anything that needs a chunk or a world that is not ready asks for it and tries
+again at a later input step. A plugin's `tick` listener is called inside the tick and runs to its
+first wait; what it does after that lands outside the tick.
+
 A tick starts with its input step, before any world updates. A packet whose handler declares the
 `input` lane does not run when it arrives: it waits, and the input step applies every input held
 since the last tick in the order they arrived, at most
@@ -64,9 +71,14 @@ chunks a player is waiting for to one each of background and idle ones. Admittin
 in the world, lights it, gives the fluid that borders air its ticks and creates its entities, so
 no tick sees a chunk appear or vanish in its middle. Each admission is recorded with its tick and
 a digest of the chunk's content, and a replay admits the recorded chunks at the recorded ticks,
-whatever its own budget or clock would choose. A chunk that code inside the tick waits for, such
-as the dragon fight's arena, is still admitted the moment it is ready, because the tick could not
-finish without it; `IN_TICK_CHUNK_LOADS` lists those paths until later work removes them.
+whatever its own budget or clock would choose. Code inside the tick that needs a chunk, such as
+the dragon fight's arena, takes a chunk ticket, which loads it outside the tick and keeps it
+loaded, and waits until an input step has admitted it.
+
+The tick functions, `#minecraft:tick` and whatever `/schedule` put on the tick, run last in the
+input step, before the worlds update, as Java runs its functions before its levels. They run as one
+input of the default world, and a command in one that acts in another world writes there in the
+same step, when no world is in the middle of its update.
 
 Each world's tick is one tick of its change log ([ADR 0012](../adr/0012-the-change-log-is-the-history.md)).
 The ticker opens it for every world before the input step and the world seals it when its update
@@ -74,8 +86,7 @@ ends, so the inputs, the chunks admitted, the entity updates and the spawn cycle
 one sealed tick. Each input-lane handler runs as a unit of the world its sender is in: when it
 throws, what it wrote to that world's entities is undone before the error is logged. A chunk that
 enters or leaves is named in the log and its content is not carried, because the content arrived as
-an input. A chunk admitted inline, inside a unit, makes that unit impossible to undo, so such a unit
-keeps its writes if it throws and the store reports it. Every entity is logged in full, players,
+an input. Every entity is logged in full, players,
 their inventories, dropped stacks and the eye of ender among them, and so is every block and block
 entity write.
 

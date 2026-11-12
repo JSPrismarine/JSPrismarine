@@ -1232,7 +1232,6 @@ describe('DimensionTravel as messages', () => {
         expect(cowsIn(scene.end)).toHaveLength(1);
         expect(tickets.loadsStarted).toBe(loads);
         expect(tickets.holds(6, 0)).toBe(false);
-        expect(scene.completions.admissions.snapshot().admittedInTick).toBe(0);
 
         scene.completions.deactivate();
         await scene.level.disable();
@@ -1269,7 +1268,6 @@ describe('DimensionTravel as messages', () => {
         expect(scene.travel.pending).toBe(0);
         expect(waited).toBeGreaterThan(0);
         expect(scene.overworld.getLoadedChunk(250, 250)).not.toBeNull();
-        expect(scene.completions.admissions.snapshot().admittedInTick).toBe(0);
         // The bed is not there, so the trip lands at the world spawn and the point is cleared.
         expect(player.getWorld()).toBe(scene.overworld);
         expect(player.getPlayer().getSpawnPoint()).toBeUndefined();

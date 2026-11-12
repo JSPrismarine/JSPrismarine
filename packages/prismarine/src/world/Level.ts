@@ -850,14 +850,14 @@ export class Level {
      *
      * @param tick - The server's tick counter, which the worlds pace their own work by.
      */
-    public async update(tick: number): Promise<void> {
+    public update(tick: number): void {
         if (this.closing) return;
 
         this.currentTick++;
         this.weather.tick(this.currentTick);
         for (const world of this.worldsInStemOrder()) {
             try {
-                await world.update(tick);
+                world.update(tick);
             } catch (error: unknown) {
                 this.server.getLogger().error(`World ${world.getName()} of ${this.name} failed tick ${tick}`);
                 this.server.getLogger().error(error);

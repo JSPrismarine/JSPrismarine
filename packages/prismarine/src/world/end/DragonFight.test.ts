@@ -926,7 +926,7 @@ describe('the dragon fight over a live End world', () => {
         /** Spawns the dragon on a first tick and kills it between ticks, as a console `/kill` does. */
         const killBetweenTicks = async (): Promise<void> => {
             enterArena(players, 0, 70, 0);
-            expect(await settles(ticker.advance())).toBe(true);
+            ticker.advance();
             const dragon = dragons()[0];
             if (dragon === undefined) throw new Error('the first tick spawned no dragon');
             live.runtime.remove(dragon.id, 'death');
@@ -938,7 +938,7 @@ describe('the dragon fight over a live End world', () => {
 
             // Each tick asks again and returns: nothing waits for the read, and nothing is written.
             for (let tick = 0; tick < 3; tick += 1) {
-                expect(await settles(ticker.advance())).toBe(true);
+                ticker.advance();
                 expect(fight.state().dragonKilled).toBe(false);
                 expect(blockNameAt(world, 1, FLOOR_Y, 0)).not.toBe('minecraft:end_portal');
             }
@@ -953,7 +953,7 @@ describe('the dragon fight over a live End world', () => {
 
             // The ticker numbers a tick before it runs it.
             const admittingTick = ticker.getTick();
-            expect(await settles(ticker.advance())).toBe(true);
+            ticker.advance();
             expect(fight.state().dragonKilled).toBe(true);
             expect(blockNameAt(world, 1, FLOOR_Y, 0)).toBe('minecraft:end_portal');
             expect(blockNameAt(world, -78, 75, 56)).toBe('minecraft:end_gateway');
@@ -966,7 +966,6 @@ describe('the dragon fight over a live End world', () => {
                     tick: admittingTick
                 })
             ]);
-            expect(queue.admissions.snapshot().admittedInTick).toBe(0);
             // The ticket went with the wait, so the chunk may unload again.
             expect(world.chunkTickets().holds(GATEWAY_CHUNK[0], GATEWAY_CHUNK[1])).toBe(false);
         });
@@ -978,7 +977,7 @@ describe('the dragon fight over a live End world', () => {
                 await killBetweenTicks();
                 const ticks: unknown[] = [];
                 for (const [x, z] of order) {
-                    expect(await settles(ticker.advance())).toBe(true);
+                    ticker.advance();
                     await finishRead(x, z);
                     ticks.push({
                         tick: ticker.getTick(),
@@ -987,7 +986,7 @@ describe('the dragon fight over a live End world', () => {
                         gateway: blockNameAt(world, 96, 75, 0) === 'minecraft:end_gateway'
                     });
                 }
-                expect(await settles(ticker.advance())).toBe(true);
+                ticker.advance();
                 ticks.push({
                     tick: ticker.getTick(),
                     killed: fight.state().dragonKilled,
