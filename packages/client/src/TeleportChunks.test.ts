@@ -16,6 +16,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Client from './Client';
+import { playerAuthInput } from './playerAuthInput';
 import { LoopbackNetwork } from './testing/loopback.test.helper';
 
 const VIEW_DISTANCE = 2;
@@ -158,24 +159,26 @@ describe('a server teleport of a client that keeps reporting its old position', 
         if (player === undefined) throw new Error('The player did not join');
 
         let reported = { x: startGame.position.x, y: startGame.position.y, z: startGame.position.z };
+        let adopted = false;
         let inputTick = 0n;
-        // The client's position every tick: the old one until it has read the teleport.
+        // The client's input every tick: from the old position until it has read the teleport,
+        // then from the target, the first of those saying it handled the teleport.
         const report = async (stale = false): Promise<void> => {
-            if (!stale && teleportedTo !== undefined) reported = { ...teleportedTo };
+            let handledTeleport = false;
+            if (!stale && !adopted && teleportedTo !== undefined) {
+                reported = { ...teleportedTo };
+                adopted = true;
+                handledTeleport = true;
+            }
             inputTick += 1n;
-            await client.getSession().send(
-                new MovePlayerPacket({
-                    runtimeEntityId: startGame.runtimeEntityId,
-                    position: reported,
-                    pitch: 0,
-                    yaw: 0,
-                    headYaw: 0,
-                    mode: PositionMode.Normal,
-                    onGround: false,
-                    ridingEntityRuntimeId: 0n,
-                    tick: inputTick
-                })
-            );
+            await client
+                .getSession()
+                .send(
+                    playerAuthInput(
+                        { position: reported, pitch: 0, yaw: 0, headYaw: 0 },
+                        { tick: inputTick, handledTeleport }
+                    )
+                );
         };
 
         for (let index = 0; index < 4; index++) {
