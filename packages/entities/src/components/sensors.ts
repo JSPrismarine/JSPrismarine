@@ -432,6 +432,8 @@ export const insideBlockNotifier: ComponentFactory<EntityHooks, InsideBlockNotif
                 }
             }
 
+            // A set, so a long `block_list` costs one lookup per entry rather than a scan of the last matches.
+            const wasInsideOf = new Set(previous);
             const next: number[] = [];
             for (const [index, entry] of params.blockList.entries()) {
                 const matches = blocks.some(
@@ -440,7 +442,7 @@ export const insideBlockNotifier: ComponentFactory<EntityHooks, InsideBlockNotif
                         block.identifier === entry.blockName &&
                         Object.entries(entry.states).every(([name, expected]) => block.states[name] === expected)
                 );
-                const wasInside = previous.includes(index);
+                const wasInside = wasInsideOf.has(index);
                 if (matches) {
                     next.push(index);
                     if (!wasInside && entry.enteredBlockEvent?.event !== undefined)
