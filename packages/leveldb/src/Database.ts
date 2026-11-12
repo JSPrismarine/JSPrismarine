@@ -522,8 +522,9 @@ export class Database {
         this.apply(sequence, batch);
 
         try {
-            await appended;
-            await synced;
+            // Both observed before either failure is thrown: a sync queued behind a failed
+            // append rejects too, and left unobserved it would be an unhandled rejection.
+            await Promise.all(synced === undefined ? [appended] : [appended, synced]);
         } catch (error) {
             this.commitFailure ??= error instanceof Error ? error : new Error(String(error));
             throw error;

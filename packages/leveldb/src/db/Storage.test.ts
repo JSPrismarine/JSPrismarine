@@ -99,21 +99,27 @@ describe('storage', () => {
         expect(fs.readFileSync(log, 'utf8')).toBe('abcdef');
     });
 
-    it('lets the appends behind a failed one run, and reports the failure to its caller only', async () => {
+    it('writes nothing behind a failed append, whose offset the records after it were framed past', async () => {
         const log = path.join(directory, '000003.log');
         const file = new AppendFile(log);
         // An invalid descriptor rather than a closed one: a closed number can be reused by another
-        // file the process opens, and the append would land there.
+        // file the process opens, and the append would land there. It stays invalid, so an append
+        // behind the failed one that tried to write would fail for its own reason, not this one.
         const descriptor: unknown = Reflect.get(file, 'descriptor');
         Reflect.set(file, 'descriptor', -1);
         const failing = file.appendLater([Buffer.from('lost')]);
+        const behind = file.appendLater([Buffer.from('framed past it')]);
+        const synced = file.syncLater();
+
         await expect(failing).rejects.toThrow();
+        await expect(behind).rejects.toThrow('An earlier append to this log failed');
+        await expect(synced).rejects.toThrow('An earlier append to this log failed');
+        await expect(file.appendLater([Buffer.from('later')])).rejects.toThrow('An earlier append to this log failed');
 
         Reflect.set(file, 'descriptor', descriptor);
-        await file.appendLater([Buffer.from('kept')]);
         await file.drain();
         expect(file.busy).toBe(false);
         file.close();
-        expect(fs.readFileSync(log, 'utf8')).toBe('kept');
+        expect(fs.readFileSync(log, 'utf8')).toBe('');
     });
 });
