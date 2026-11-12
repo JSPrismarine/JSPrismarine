@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { OfflineAuthProvider, TOKEN_ISSUER, XboxAuthProvider } from '@jsprismarine/auth';
+import { identityProofOf, provesKey } from '@jsprismarine/nethernet';
 import { netherNetIdentityOf } from './netherNetIdentityOf';
 
 const DESCRIPTION = [
@@ -35,11 +36,18 @@ describe('netherNetIdentityOf', () => {
 
         const identity = await netherNetIdentityOf(auth);
 
-        expect(identity).toBeDefined();
-        expect(identityIn(await identity!.sign(DESCRIPTION))).toStrictEqual({ domain: TOKEN_ISSUER, token });
+        expect(identityIn(await identity.sign(DESCRIPTION))).toStrictEqual({ domain: TOKEN_ISSUER, token });
     });
 
-    it('leaves a provider nobody vouches for to a self-signed identity', async () => {
-        expect(await netherNetIdentityOf(new OfflineAuthProvider({ displayName: 'Steve' }))).toBeUndefined();
+    it("signs an offline provider's offer with its login key, which a server checks the login against", async () => {
+        const auth = new OfflineAuthProvider({ displayName: 'Steve' });
+
+        const signed = await (await netherNetIdentityOf(auth)).sign(DESCRIPTION);
+
+        // Bedrock Dedicated Server 1.26.60 refuses a login whose key did not sign the offer.
+        const proof = identityProofOf(signed);
+        expect(proof).toBeDefined();
+        expect(await provesKey(proof!, await auth.getIdentityPublicKey())).toBe(true);
+        expect(identityIn(signed).domain).toBe('self');
     });
 });
