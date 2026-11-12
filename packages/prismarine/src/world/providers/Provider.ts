@@ -1,5 +1,5 @@
 import type { WorldConfig, WorldPlayerData } from '../World';
-import type { Service } from '../../utils';
+import type { Service } from '../../utils/Service';
 import type { ChunkRequestOptions, Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
 import type { DimensionType } from '../DimensionType';
