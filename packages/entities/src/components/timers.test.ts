@@ -356,6 +356,29 @@ describe('minecraft:angry', () => {
         tick(entity, 1);
         expect(played).toEqual(['mob.angry', 'mob.angry']);
     });
+
+    it('stops the angry sound when the anger runs out without a calm event', () => {
+        const { played, effects } = sounds();
+        const entity = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:angry_sound' },
+                    components: {
+                        'minecraft:angry': { duration: 2, angry_sound: 'mob.angry', sound_interval: [1, 1] }
+                    }
+                }
+            },
+            'test:angry_sound',
+            { effects }
+        );
+
+        // At the start and once a second while angry, up to the tick the anger runs out.
+        tick(entity, 40);
+        expect(played).toHaveLength(3);
+        tick(entity, 100);
+        expect(played).toHaveLength(3);
+    });
 });
 
 describe('minecraft:angry state', () => {
@@ -411,7 +434,7 @@ describe('minecraft:angry state', () => {
         const entity = spawn(grumpy, 'test:grumpy', observing(writes, { effects, broadcastAnger: () => undefined }));
         const run = tickThenUndo(entity, writes, 45);
 
-        expect(run.ticked).toEqual({ 'minecraft:angry': { remaining: null, sound: 15, pendingBroadcast: false } });
+        expect(run.ticked).toEqual({ 'minecraft:angry': { remaining: null, sound: null, pendingBroadcast: false } });
         expect(run.undone).toEqual(run.before);
     });
 });
