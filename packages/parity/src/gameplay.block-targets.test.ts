@@ -14,11 +14,11 @@ import { inertEntityRuntime } from '@jsprismarine/prismarine/testing/entityServe
 import { sessionContext } from '@jsprismarine/prismarine/testing/handlerContext.test.helper';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '@jsprismarine/prismarine/testing/level';
 import { STEVE } from '@jsprismarine/prismarine/testing/sessionIdentity.test.helper';
-import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
+import { stub, stubOf } from '@jsprismarine/prismarine/testing/stub.test.helper';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 import type { Generator } from '@jsprismarine/prismarine/world/Generator';
-import type BaseProvider from '@jsprismarine/prismarine/world/providers/BaseProvider';
+import BaseProvider from '@jsprismarine/prismarine/world/providers/BaseProvider';
 import BlockPosition from '@jsprismarine/prismarine/world/BlockPosition';
 import { Position } from '@jsprismarine/prismarine/world/Position';
 import { World } from '@jsprismarine/prismarine/world/World';
@@ -227,7 +227,7 @@ const worldWithOneChunk = async () => {
         getContent: () => serverContent(),
         getEntityRuntime: () => inertEntityRuntime()
     });
-    const provider = stub<BaseProvider>({
+    const provider = stubOf(BaseProvider, {
         readChunk: async (_dimension, x, z) => {
             reads.push(`${x},${z}`);
             const chunk = new Chunk(x, z, new Map(), Dimensions.Overworld);

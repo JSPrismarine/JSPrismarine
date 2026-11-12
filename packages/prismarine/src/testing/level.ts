@@ -156,7 +156,6 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         },
         save: async () => saves?.save(worlds()),
         saveWorlds: async (saved) => saves?.save(saved),
-        enqueueSave: async (write) => (saves === undefined ? write() : saves.enqueue(write)),
         saveLevelData: async () => {},
         getPlayerData: async (key) => options.playerData?.get(key) ?? null,
         savePlayerData: async (key, data) => {

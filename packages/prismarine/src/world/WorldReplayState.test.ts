@@ -2,14 +2,14 @@ import type { Logger } from '@jsprismarine/logger';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import { inertEntityRuntime, liveTestEntities, testContent } from '../testing/entityServer';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 import type Server from '../Server';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import type { Generator } from './Generator';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import { DATA_ENTITY_TAG } from '../entity/data/persistence';
@@ -29,7 +29,7 @@ const createWorld = (entityRuntime: LiveEntityRuntime = inertEntityRuntime()) =>
         getContent: () => testContent(),
         getEntityRuntime: () => entityRuntime
     });
-    const provider = stub<BaseProvider>({
+    const provider = stubOf(BaseProvider, {
         readChunk: async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
     });
 

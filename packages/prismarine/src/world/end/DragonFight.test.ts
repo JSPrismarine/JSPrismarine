@@ -27,7 +27,7 @@ import { Difficulty } from '@jsprismarine/minecraft';
 import { testEntityServer } from '../../testing/entityServer';
 import { fakePlayer } from '../../testing/fakePlayer.test.helper';
 import { TEST_GENERATOR_KIND, TEST_OVERWORLD_STEM, fakeLevel } from '../../testing/level';
-import { stub } from '../../testing/stub.test.helper';
+import { stub, stubOf } from '../../testing/stub.test.helper';
 import { GeneratorFactories } from '../GeneratorFactories';
 import { Level } from '../Level';
 import type { DimensionTravel } from '../portal/DimensionTravel';
@@ -45,7 +45,7 @@ import { NULL_WORLD_CHANGE_SINK } from '../WorldChangeSink';
 import { WorldSystems } from '../WorldSystems';
 import type WorldManager from '../WorldManager';
 import type { DragonFightState } from '../WorldPersistence';
-import type BaseProvider from '../providers/BaseProvider';
+import BaseProvider from '../providers/BaseProvider';
 import type { ChunkAdmissionRecord } from '../ChunkAdmissions';
 import { ChunkCompletionQueue } from '../ChunkCompletionQueue';
 import { ServerTicker } from '../../modules/ticker';
@@ -227,7 +227,7 @@ const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorl
             server,
             seed: 1234n,
             spawn: new Vector3(0, FLOOR_Y + 1, 0),
-            ...(readChunk === undefined ? {} : { provider: stub<BaseProvider>({ readChunk }) })
+            ...(readChunk === undefined ? {} : { provider: stubOf(BaseProvider, { readChunk }) })
         }),
         completionQueue,
         dimension: END,

@@ -20,12 +20,12 @@ import type { Config } from '../config/Config';
 import type ClientConnection from '../network/ClientConnection';
 import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { worldBlockEntities } from './contentAdapter';
 import { createEngineWorld } from './EngineWorld';
 import type { Generator } from './Generator';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { Position } from './Position';
 import { DimensionTravel } from './portal/DimensionTravel';
@@ -149,7 +149,7 @@ const flatWorld = async (
         server,
         level: fakeLevel({
             server,
-            provider: stub<BaseProvider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) })
+            provider: stubOf(BaseProvider, { readChunk: async (_dimension, x, z) => flatChunk(x, z) })
         }),
         stem: TEST_OVERWORLD_STEM,
         generator: stub<Generator>({}),

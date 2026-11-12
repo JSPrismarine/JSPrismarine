@@ -21,8 +21,9 @@ export interface PlayerPersistenceOptions {
     /** Whether the level has closed, after which nothing is written. */
     readonly isClosed: () => boolean;
     /**
-     * Settles once a save pass whose cut is taken has committed. A record saved while one is
-     * pending is written after it, so the older record in the pass never lands on top of it.
+     * Settles once a save pass whose cut is taken has committed. A record written to the
+     * fallback JSON while one is pending is written after it, so the older record the pass hands
+     * over once it commits never lands on top of it.
      */
     readonly pendingCommit?: () => Promise<void>;
 }
@@ -46,7 +47,9 @@ export interface PlayerPersistenceOptions {
  *
  * A save pass under ADR 0018 builds every player's record at its cut and writes it with the
  * pass, not through this. A provider without player storage gets them here once the pass has
- * committed.
+ * committed. A record saved here outside a pass, on a disconnect or a dimension change, goes to
+ * a provider that holds it for the next pass's commit and answers a read of it at once; see
+ * `LevelDB.holdOutsideWrites`.
  */
 export class PlayerPersistence {
     /**
@@ -99,7 +102,11 @@ export class PlayerPersistence {
     public save(key: string, record: WorldPlayerData, requireSuccess = false): Promise<void> {
         // Taken now, not when the write runs: a record built before a cut is older than the one
         // the cut holds and may land first, while one built after it has to land after (ADR 0018).
-        const behind = this.options.pendingCommit?.() ?? Promise.resolve();
+        // A provider that stores records orders them itself, holding one made after a cut for
+        // the commit after that cut's, so only the fallback JSON waits.
+        const behind = this.options.provider.writePlayerData
+            ? undefined
+            : (this.options.pendingCommit?.() ?? Promise.resolve());
         // After the key's last write, so the writes of one player land in the order they started.
         const write = Promise.all([this.writing.get(key), behind]).then(() => this.write(key, record, requireSuccess));
         const settled = write.then(

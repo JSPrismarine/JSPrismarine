@@ -941,24 +941,24 @@ export class Level {
     }
 
     /**
-     * Runs a write to the save behind every other, such as a chunk the unload pass writes; see
-     * {@link LevelSave.enqueue}.
+     * Settles once the pass whose cut is taken has committed, or at once when none is pending;
+     * see {@link LevelSave.pendingCommit}.
      */
-    public async enqueueSave(write: () => Promise<void>): Promise<void> {
-        await this.saves.enqueue(write);
+    public async pendingSave(): Promise<void> {
+        await this.saves.pendingCommit();
     }
 
     /**
      * Writes the level's own state through the provider: the spawn, rules, weather and stems
      * into the provider's record, and the spawn, clock, generator and Nether scale into
-     * `level.dat`. Queued behind the level's other writes to the save.
+     * `level.dat`. Queued behind a pass that is running; see {@link LevelSave.saveLevelData}.
      *
      * A level whose spawn is still unknown writes everything else and leaves the stored spawn
      * where it is. Overwriting a real spawn point with a guess would be worse than the gap.
      */
     public async saveLevelData(): Promise<void> {
         try {
-            await this.saves.enqueue(async () => this.writeLevelData());
+            await this.saves.saveLevelData();
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save level data for ${this.name}`);
             this.server.getLogger().error(error);
@@ -997,14 +997,6 @@ export class Level {
                 netherScale: this.netherScale()
             }
         };
-    }
-
-    /** Writes provider and level.dat state now, outside a pass. */
-    private async writeLevelData(): Promise<void> {
-        const { record, levelDat } = this.levelDataNow();
-        const stored = (await this.provider.readWorldData()) ?? {};
-        await this.provider.writeWorldData({ ...stored, ...record });
-        this.provider.saveLevelData(levelDat);
     }
 
     /** The raids the save held, which the Overworld's raid manager starts from. */

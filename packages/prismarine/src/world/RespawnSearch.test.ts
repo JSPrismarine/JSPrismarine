@@ -8,13 +8,13 @@ import { EntityStore } from '../entity/data/EntityStore';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import type PlayerSession from '../network/PlayerSession';
 import { fakeLevel } from '../testing/level';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import { Dimensions } from './DimensionType';
 import type { DimensionType } from './DimensionType';
 import Chunk from './chunk/Chunk';
 import { ChunkTickets } from './ChunkTickets';
 import { Position } from './Position';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { RespawnSearch } from './RespawnSearch';
 import type { RespawnRequest } from './RespawnSearch';
 import { World } from './World';
@@ -101,10 +101,12 @@ const unloadingWorld = (blocks: Record<string, string>) => {
         players,
         loading: new Map(),
         level: fakeLevel({
-            provider: stub<BaseProvider>({ supportsChunkUnload: true, writeChunk: async (chunk) => chunk.markSaved() })
+            provider: stubOf(BaseProvider, {
+                supportsChunkUnload: true,
+                writeChunk: async (chunk) => chunk.markSaved()
+            })
         }),
         getPlayers: () => Array.from(players.values()),
-        enqueueSave: async (write: () => Promise<void>) => write(),
         getEntities: () => [],
         actors: () => [].values(),
         dataEntities: () => ({

@@ -16,11 +16,11 @@ import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { chestTags, replicaSink } from '../testing/sealedBlocks.test.helper';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import type { Generator } from './Generator';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { Position } from './Position';
 import { World } from './World';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
@@ -77,7 +77,7 @@ const flatWorld = async () => {
         server,
         level: fakeLevel({
             server,
-            provider: stub<BaseProvider>({
+            provider: stubOf(BaseProvider, {
                 readChunk: async (_dimension, x, z) => {
                     const chunk = flatChunk(x, z);
                     if (x === 1 && z === 0)

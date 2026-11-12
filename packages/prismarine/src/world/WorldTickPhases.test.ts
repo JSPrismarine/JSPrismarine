@@ -21,7 +21,7 @@ import { inertEntityRuntime } from '../testing/entityServer';
 import { fakeLevel } from '../testing/level';
 import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
 import type GameRuleManager from './GameRuleManager';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
 
 /**
@@ -106,7 +106,7 @@ const worldTicking = ({
         level: fakeLevel({
             ticks: currentTick,
             gameRules: stub<GameRuleManager>({ getGameRule: () => [true, true] as const }),
-            provider: stub<BaseProvider>({ supportsChunkUnload: false })
+            provider: stubOf(BaseProvider, { supportsChunkUnload: false })
         }),
         dimension: Dimensions.Overworld,
         loadedBlockAt: blockAt,
