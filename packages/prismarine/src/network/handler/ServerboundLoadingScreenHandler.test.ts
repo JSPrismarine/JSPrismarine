@@ -70,16 +70,18 @@ describe('ServerboundLoadingScreenHandler', () => {
     });
 
     it('finishes the pending dimension change when its screen closes', async () => {
-        const { logged, completed, context, deferred, settled } = fakeSession({ open: [3], pending: 3 });
+        const { logged, completed, context, deferred, outputs, settled } = fakeSession({ open: [3], pending: 3 });
         const packet = new ServerboundLoadingScreenPacket({
             loadingScreenType: ServerboundLoadingScreenPacketType.EndLoadingScreen,
             loadingScreenId: 3
         });
 
         new ServerboundLoadingScreenHandler().handle(packet, context);
-        // The change still waits, so the step finishes it after the handler's unit.
-        expect(deferred).toHaveLength(1);
-        expect(completed).toEqual([]);
+        // Finished in the handler, whose unit holds the end of the pending change; its sends go
+        // to the step, and nothing waits behind the handler.
+        expect(deferred).toHaveLength(0);
+        expect(outputs).toHaveLength(1);
+        expect(completed).toEqual([3]);
         await settled();
 
         expect(completed).toEqual([3]);

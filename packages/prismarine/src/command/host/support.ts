@@ -97,16 +97,6 @@ export const worldOf = (server: Server, dimension: string): World =>
     server.getWorldManager().startWorld(dimension) ?? server.getWorldManager().getDefaultWorld();
 
 /**
- * The world a dimension id names, built if the default level has its stem but nobody has
- * entered it yet. What `/teleport` into another dimension goes through, since a lazy Nether
- * has no world until the first arrival.
- *
- * @throws When no stem of the default level has that dimension.
- */
-export const worldFor = async (server: Server, dimension: string): Promise<World> =>
-    server.getWorldManager().worldFor(dimension);
-
-/**
  * Every dimension a command may name: the dimension type of each stem of the default level,
  * whether or not its world is built yet.
  */
@@ -212,7 +202,7 @@ export interface CommandPlayer {
         yaw?: number;
         headYaw?: number;
     }): Promise<void>;
-    setWorld(world: World): Promise<void>;
+    setWorld(world: World): void;
 }
 
 /** A player target a command changes and then tells: the session and the player behind it. */

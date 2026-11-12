@@ -25,6 +25,7 @@ import { eyePositionAt } from '../../entity/playerEyes';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
+import { stemTarget } from '../../world/portal/DimensionTravel';
 import type { World } from '../../world/World';
 import type { Scoreboard } from './scoreboard';
 import { scoreFactOf } from './scoreboard';
@@ -40,7 +41,6 @@ import {
     resolveTarget,
     unsupported,
     vectorOf,
-    worldFor,
     worldOf
 } from './support';
 
@@ -307,24 +307,23 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
 
             // Only a player can change world here; any other entity's move keeps
             // the world it is in, which is why `/tp` across dimensions is a
-            // player-only move on this server. The destination is built if the
-            // level has its stem and nobody has entered it yet, and the player
-            // arrives at the requested position in one move rather than at the
-            // world's spawn and then at the position.
+            // player-only move on this server. The move is a message the next input
+            // step carries out, so the command waits for nothing: the destination is
+            // built outside every tick if the level has its stem and nobody has entered
+            // it yet, and the player arrives at the requested position in one move
+            // rather than at the world's spawn and then at the position.
             if (target !== undefined && dimensionIdOf(target.player.getWorld()) !== javaDimensionIdOf(dimension)) {
-                return carryOut(
-                    worldFor(server, dimension).then(async (destination) =>
-                        target.player.getWorld() === destination
-                            ? move()
-                            : target.session.changeWorld({
-                                  world: destination,
-                                  position: vectorOf(position),
-                                  yaw: rotation.yaw,
-                                  pitch: rotation.pitch
-                              })
-                    ),
-                    true
+                const stem = server.getWorldManager().stemFor(dimension);
+                if (stem === undefined) refuse(`This level has no ${dimension} dimension`);
+                server.getDimensionTravel().moveTo(
+                    target.session,
+                    stemTarget(stem.level, stem.stemId, {
+                        position: vectorOf(position),
+                        yaw: rotation.yaw,
+                        pitch: rotation.pitch
+                    })
                 );
+                return true;
             }
 
             return carryOut(move(), true);

@@ -35,7 +35,7 @@ import Timer from '../utils/Timer';
 import { lastPlayerRecord } from '../world/PlayerRecords';
 import { applyPlayerRecord, recordedPosition } from '../world/playerRecord';
 import type { RespawnAnswer, RespawnRequest } from '../world/RespawnSearch';
-import { requestedSpawnPosition } from '../world/SpawnPlacement';
+import { spawnTarget } from '../world/portal/DimensionTravel';
 import type { respawnPoint } from '../world/SpawnPlacement';
 import type Server from '../Server';
 import { commandPermissionOf } from '../command/CommandManager';
@@ -2464,15 +2464,24 @@ export default class PlayerSession {
     }
 
     /**
-     * Carries out the change {@link PlayerSession.changeWorld} held while the player was dead.
-     * Called by {@link PlayerSession.respawn} once the client is told its player is alive. A change still
-     * pending, the respawn's own included, carries the held one out when it closes instead.
+     * Files the change {@link PlayerSession.changeWorld} held while the player was dead, for the
+     * next input step. Called by {@link PlayerSession.respawn} once the client is told its player
+     * is alive. A change still pending, the respawn's own included, files the held one when it
+     * closes instead.
      */
-    public async releaseChangeHeldOverDeath(): Promise<void> {
+    public releaseChangeHeldOverDeath(): void {
         if (this.pendingChange !== undefined) return;
+        this.fileQueuedChange();
+    }
+
+    /**
+     * Files the change {@link PlayerSession.changeWorld} held, as a message the next input step
+     * carries out through `DimensionTravel.move`, so whoever releases it waits for nothing.
+     */
+    private fileQueuedChange(): void {
         const queued = this.queuedChange;
         this.queuedChange = undefined;
-        if (queued !== undefined) await this.changeWorld(queued);
+        if (queued !== undefined) this.server.getDimensionTravel().move(this, queued);
     }
 
     /**
@@ -2592,7 +2601,9 @@ export default class PlayerSession {
      * Teleports the client to the exact arrival position, re-sends the attributes and the
      * inventory, which a dimension change is not known to keep, tells the client where its
      * spawn point is from the new dimension, and raises the changed dimension advancement
-     * hook. Called by `ServerboundLoadingScreenHandler`.
+     * hook, in that order. A change held while this one was pending is filed last, as a message
+     * the next input step carries out. Called by `ServerboundLoadingScreenHandler`, which hands
+     * the sends to its step's outputs: the change stops being pending before the first wait.
      * @param loadingScreenId - The id the client's `EndLoadingScreen` carried.
      * @returns Whether a change was pending under that id. Any other id changes nothing.
      */
@@ -2610,9 +2621,7 @@ export default class PlayerSession {
         await this.send(playerSpawnPositionPacket(this.getPlayer(), world, await overworldSpawnOf(world)));
         advancementChangedDimension(this, pending.left, world.getDimension().name);
 
-        const queued = this.queuedChange;
-        this.queuedChange = undefined;
-        if (queued !== undefined) await this.changeWorld(queued);
+        this.fileQueuedChange();
         return true;
     }
 
@@ -3424,20 +3433,16 @@ export default class PlayerSession {
      * Moves the player to another world, arriving at that world's spawn.
      *
      * The stored spawn is the block under a joining player's feet, so the feet go one block
-     * above it, centered, as {@link requestedSpawnPosition} says before the terrain is
-     * consulted. The sequence is {@link PlayerSession.changeWorld}; this is the entry point for
-     * callers that have a world and no arrival of their own, such as a teleport between worlds,
-     * which moves the player again once the change completes.
+     * above it, centered, as `requestedSpawnPosition` says before the terrain is
+     * consulted. The move is a message: `DimensionTravel.moveTo` files it, a world that has not
+     * found its spawn searches for it outside every tick, and the next input step at which the
+     * spawn is known carries out {@link PlayerSession.changeWorld}. This is the entry point for
+     * callers that have a world and no arrival of their own, such as the `changeWorld` command.
      * @param world - The new world.
      */
-    public async setWorld(world: World): Promise<void> {
+    public setWorld(world: World): void {
         const player = this.getPlayer();
-        return this.changeWorld({
-            world,
-            position: requestedSpawnPosition(await world.getSpawnPosition()),
-            yaw: player.yaw,
-            pitch: player.pitch
-        });
+        this.server.getDimensionTravel().moveTo(this, spawnTarget(world, { yaw: player.yaw, pitch: player.pitch }));
     }
 
     /**
@@ -3579,7 +3584,7 @@ export default class PlayerSession {
         }
 
         await this.sendRespawned();
-        await this.releaseChangeHeldOverDeath();
+        this.releaseChangeHeldOverDeath();
     }
 
     /**

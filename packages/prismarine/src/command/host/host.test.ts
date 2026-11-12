@@ -43,6 +43,7 @@ import type GameRuleManager from '../../world/GameRuleManager';
 import type { Level } from '../../world/Level';
 import type { GameRuleEntry } from '../../world/GameRuleManager';
 import { Position } from '../../world/Position';
+import { DimensionTravel } from '../../world/portal/DimensionTravel';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import { inertEntityRuntime, testContent } from '../../testing/entityServer';
@@ -62,8 +63,10 @@ const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 interface Fixture {
     readonly server: Server;
     readonly world: World;
-    /** The Nether world `worldFor` answers, where a cross-dimension `/tp` lands. */
+    /** The Nether world, built for this fixture, where a cross-dimension `/tp` lands. */
     readonly nether: World;
+    /** The travel service a cross-dimension `/tp` files its move with. */
+    readonly travel: DimensionTravel;
     readonly blocks: BlockTable;
     readonly rules: Map<string, GameRuleEntry>;
     readonly entities: StoreActor[];
@@ -163,8 +166,8 @@ const buildFixture = (): Fixture => {
     });
     let ticks = 0;
 
-    // Two stems, so `/execute in the_nether` parses; the Nether's world is built by `worldFor`
-    // alone, as a lazy dimension's is, so only the Overworld is among the loaded worlds.
+    // Two stems, so `/execute in the_nether` parses; the Nether's world is ready for a move but,
+    // as a lazy dimension's is, not among the loaded worlds.
     const level = stub<Level>({
         getStems: () =>
             new Map<string, LevelStem>([
@@ -173,7 +176,9 @@ const buildFixture = (): Fixture => {
             ]),
         worlds: function* () {
             yield world;
-        }
+        },
+        readyWorld: (stemId) => (stemId === Dimensions.Nether.id ? nether : undefined),
+        prepareWorld: async () => {}
     });
 
     const server: Server = stub<Server>({
@@ -185,10 +190,8 @@ const buildFixture = (): Fixture => {
                 getLevels: () => [level],
                 getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
                 startWorld: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
-                worldFor: async (dimension) => {
-                    if (dimension !== Dimensions.Nether.id) throw new Error(`no ${dimension} here`);
-                    return nether;
-                }
+                stemFor: (dimension) =>
+                    dimension === Dimensions.Nether.id ? { level, stemId: Dimensions.Nether.id } : undefined
             }),
         getSessionManager: () => stub({ getSessions: () => players }),
         getPermissionManager: () =>
@@ -198,6 +201,7 @@ const buildFixture = (): Fixture => {
                 can: () => ({ execute: () => true, not: () => ({ execute: () => false }) })
             }),
         getRandom: () => () => 0.5,
+        getDimensionTravel: () => travel,
         getWorldReplicators: () =>
             stub({
                 for: () =>
@@ -220,6 +224,7 @@ const buildFixture = (): Fixture => {
     });
 
     let content: ServerContent | undefined;
+    const travel = new DimensionTravel(server);
 
     // Include these names in the command parser so the host can refuse them when its
     // data-driven runtime does not declare them.
@@ -253,6 +258,7 @@ const buildFixture = (): Fixture => {
         server,
         world,
         nether,
+        travel,
         blocks,
         rules,
         entities,
@@ -331,6 +337,7 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
             sendMessage: vi.fn().mockResolvedValue(undefined),
             kick: vi.fn().mockResolvedValue(undefined),
             changeWorld: vi.fn().mockResolvedValue(undefined),
+            isConnected: () => true,
             getPosition: () => Position.fromVector3(position, fixture.world)
         },
         {
@@ -483,6 +490,12 @@ describe('the server command host', () => {
 
             await expect(fixture.run('execute in the_nether run tp @a 10 70 10')).resolves.toBe(1);
 
+            // A message: the command filed the move and changed nothing, and the next input step
+            // carries it out.
+            expect(player.changeWorld).not.toHaveBeenCalled();
+            expect(fixture.travel.pending).toBe(1);
+            expect(await fixture.travel.admit()).toBe(1);
+
             // The world change carries the position, so the player does not land at the
             // Nether's spawn first, and `setPlayerPosition` is not run in the world being left.
             expect(player.changeWorld).toHaveBeenCalledWith({
@@ -498,6 +511,7 @@ describe('the server command host', () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
             await expect(fixture.run('execute in minecraft:the_nether run tp @a 10 70 10')).resolves.toBe(1);
+            await fixture.travel.admit();
 
             expect(player.changeWorld).toHaveBeenCalledWith(
                 expect.objectContaining({ world: fixture.nether, position: new Vector3(10, 70, 10) })
