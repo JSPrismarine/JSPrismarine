@@ -205,6 +205,26 @@ describe('a store player', () => {
             expect(player.getCraftingInput().get(1)?.getName()).toBe('minecraft:stick');
         });
 
+        it('keeps the spawn point it logged when the caller changes its own object', () => {
+            const fixture = storePlayerFixture();
+            const { player } = enteredStorePlayer(fixture);
+            const point = { x: 1, y: FLOOR_Y + 1, z: 1, dimension: 'minecraft:overworld' };
+
+            const entries = logged(fixture.runtime, () => player.setSpawnPoint(point));
+            point.x = 9;
+
+            expect(fieldsOf(entries, 'respawn.spawnPoint')).toHaveLength(1);
+            expect(player.getSpawnPoint()).toEqual({ x: 1, y: FLOOR_Y + 1, z: 1, dimension: 'minecraft:overworld' });
+            expect(Object.isFrozen(player.getSpawnPoint())).toBe(true);
+            // The same point again is no change, whichever object carries it.
+            expect(
+                fieldsOf(
+                    logged(fixture.runtime, () => player.setSpawnPoint({ ...point, x: 1 })),
+                    'respawn.spawnPoint'
+                )
+            ).toEqual([]);
+        });
+
         it('stops logging once it left the store', () => {
             const fixture = storePlayerFixture();
             const { player } = enteredStorePlayer(fixture);

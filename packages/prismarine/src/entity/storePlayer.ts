@@ -462,9 +462,12 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         return this.components.get('respawn.spawnPoint') ?? undefined;
     }
 
-    /** Moves the player's own spawn point, or clears it back to the world spawn. */
+    /**
+     * Moves the player's own spawn point, or clears it back to the world spawn. A frozen copy is
+     * stored, so the caller's object cannot move the point later without a logged write.
+     */
     public setSpawnPoint(spawn: StoredSpawnPoint | undefined): void {
-        this.components.set('respawn.spawnPoint', spawn ?? null);
+        this.components.set('respawn.spawnPoint', spawn === undefined ? null : Object.freeze({ ...spawn }));
     }
 
     /** Whether the player has watched the end credits. */
