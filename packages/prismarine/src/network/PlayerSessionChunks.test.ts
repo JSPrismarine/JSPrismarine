@@ -228,6 +228,20 @@ describe('network', () => {
             expect(walker.sender.has(0, 0)).toBe(true);
         });
 
+        it('asks for no chunks for a radius answered after the player left', async () => {
+            // A removal applied in the same input step as the request, such as a replacing login,
+            // takes the player off while the answer is on its way.
+            let leaving: PlayerSession | undefined;
+            const connection = stub<ClientConnection>({
+                sendDataPacket: async () => leaving?.disable()
+            });
+            leaving = sessionFor(server, connection, player.player, { joined: true });
+
+            await expect(leaving.setViewDistance(2)).resolves.toBeUndefined();
+
+            expect(leaving.sender.isEmpty()).toBe(true);
+        });
+
         it('does not requeue a chunk it is already sending', async () => {
             await session.needNewChunks();
             const size = session.sender.size;

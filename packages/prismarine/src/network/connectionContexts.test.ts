@@ -6,6 +6,9 @@ import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import { ConnectionContexts } from './connectionContexts';
+import { InputQueue } from './InputQueue';
+import type { TickWaitTracker } from '../world/TickWaits';
+import { trackTickWaits } from '../world/TickWaits';
 import { takesConnection } from './handler/ConnectionContext';
 
 describe('network/connectionContexts', () => {
@@ -39,6 +42,29 @@ describe('network/connectionContexts', () => {
         expect(context.log).toBe(logger);
         expect(context.config).toBe(config);
         expect(reads).toStrictEqual(['logger', 'config']);
+    });
+
+    it('parks a replacement on the tick until the input step applies it', async () => {
+        const inputs = new InputQueue();
+        const parks: string[] = [];
+        const tracker: TickWaitTracker = { park: () => parks.push('park'), unpark: () => parks.push('unpark') };
+        const { login } = ConnectionContexts.of(stub<Server>()).contextOf(stub<ClientConnection>(), inputs);
+        const replaced = stub<ClientConnection>();
+        let removedAt: number | undefined;
+
+        const removal = trackTickWaits(tracker, () =>
+            login.removeAsInput(replaced, async () => {
+                removedAt = parks.length;
+            })
+        );
+        await Promise.resolve();
+        expect(parks).toEqual(['park']);
+        expect(removedAt).toBeUndefined();
+
+        expect(inputs.admit()).toBe(1);
+        await removal;
+        expect(removedAt).toBe(1);
+        expect(parks).toEqual(['park', 'unpark']);
     });
 
     it('builds one set of contexts for each server', () => {
