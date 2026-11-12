@@ -17,6 +17,13 @@ const health = async (client: Context['client']): Promise<number> => {
     return current;
 };
 
+/** Where the feet stand on the scenario's floor, which is at y 63. */
+const FLOOR = 64;
+
+/** Whether the client's `server_position` is the eyes of a teleport to feet height `y`. */
+const teleportedTo = (state: Record<string, unknown>, y: number): boolean =>
+    Math.abs(vec3(state, 'server_position')[1] - EYE_HEIGHT - y) < 0.6;
+
 /**
  * Drops the player from `height` and waits until they stand on the floor again.
  *
@@ -24,16 +31,31 @@ const health = async (client: Context['client']): Promise<number> => {
  * the server sent, at the eyes, so it reaching the drop height says the teleport arrived; only then does the
  * floor mean a landing. Watching the feet for the airborne moment instead missed a three block
  * drop, which is in the air for under half a second, whenever a poll took longer than that.
+ *
+ * `server_position` keeps the last teleport, though, so after a drop from the same height it
+ * reads as arrived before this teleport is even sent, and the player still stands on the floor.
+ * The hay drop followed the eleven block one that way and returned at once: the stone went back
+ * under a player who had not fallen yet, and on a slow runner they landed on it. A teleport to
+ * the floor first makes this drop's own teleport the one that moves `server_position`.
  */
-const dropFrom = async ({ client, server, playerName }: Context, height: number): Promise<void> => {
+export const dropFrom = async (
+    context: Pick<Context, 'playerName'> & {
+        readonly client: Pick<Context['client'], 'state'>;
+        readonly server: Pick<Context['server'], 'command'>;
+    },
+    height: number
+): Promise<void> => {
+    const { client, server, playerName } = context;
+    if (height !== FLOOR && teleportedTo(await client.state(), height)) await dropFrom(context, FLOOR);
+
     server.command(`teleport ${playerName} 0.5 ${height} 0.5`);
     const deadline = Date.now() + 20_000;
     let teleported = false;
     for (;;) {
         const state = await client.state();
-        if (!teleported && Math.abs(vec3(state, 'server_position')[1] - EYE_HEIGHT - height) < 0.6) teleported = true;
+        if (!teleported && teleportedTo(state, height)) teleported = true;
         const feet = vec3(state, 'feet')[1];
-        if (teleported && Math.abs(feet - 64) < 0.1) return;
+        if (teleported && Math.abs(feet - FLOOR) < 0.1) return;
         assert.ok(
             Date.now() < deadline,
             teleported
