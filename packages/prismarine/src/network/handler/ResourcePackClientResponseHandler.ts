@@ -9,7 +9,6 @@ import type { PlayerSession } from '../../';
 import { eyePositionAt } from '../../entity/playerEyes';
 import { syncActorPropertyPacket } from '../actorProperties';
 import type { Level } from '../../world/Level';
-import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefinitionListPacket';
@@ -416,18 +415,19 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
             sends.push(connection.sendDataPacket(respawn));
         }
 
-        const chatSpawnEvent = new ChatEvent(
-            new Chat({
-                sender: services.console,
-                // The bare translation key: a color code in front of the `%` stops the
-                // client resolving it, and it renders the unresolved string instead.
-                message: `%multiplayer.player.joined`,
-                parameters: [identity.name],
-                needsTranslation: true,
-                type: ChatType.TRANSLATION
-            })
+        sends.push(
+            services.chat.send(
+                new Chat({
+                    sender: services.console,
+                    // The bare translation key: a color code in front of the `%` stops the
+                    // client resolving it, and it renders the unresolved string instead.
+                    message: `%multiplayer.player.joined`,
+                    parameters: [identity.name],
+                    needsTranslation: true,
+                    type: ChatType.TRANSLATION
+                })
+            )
         );
-        sends.push(services.events.emit('chat', chatSpawnEvent));
         return allSent(sends);
     }
 }

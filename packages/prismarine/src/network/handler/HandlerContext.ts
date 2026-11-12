@@ -86,7 +86,7 @@ export interface HandlerServices {
     /** The console, as the sender of a server-issued line. */
     readonly console: ConsoleSender;
     /** The plugin events a handler raises. */
-    readonly events: Pick<ServerEventBus, 'post' | 'emit'>;
+    readonly events: Pick<ServerEventBus, 'post'>;
     /**
      * The server's default game mode, which `SetDefaultGameType` changes. It changes in memory
      * at once, and the config file is written off the tick.
