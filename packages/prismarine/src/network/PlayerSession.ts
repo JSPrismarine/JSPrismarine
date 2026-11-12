@@ -499,8 +499,11 @@ export default class PlayerSession {
               arrivalReleased?: boolean;
           })
         | undefined;
-    /** The move a caller asked for while {@link pendingChange} was open, run once it closes. */
-    private queuedChange: Arrival | undefined;
+    /**
+     * The move a caller asked for while {@link pendingChange} was open, run once it closes, with
+     * what follows it.
+     */
+    private queuedChange: { readonly arrival: Arrival; readonly then: (() => void) | undefined } | undefined;
 
     /**
      * The arrival held back while the end credits roll on the client, or undefined when no
@@ -2375,10 +2378,15 @@ export default class PlayerSession {
      * Every write is made and every packet queued before this returns, so the input step that
      * runs it waits for nothing. The record's save is handed to work outside the tick.
      * @param arrival - The world, feet position and rotation the player lands at.
-     * @param options - What to do with this arrival when a change is already pending.
+     * @param options - What to do with this arrival when a change is already pending, and what
+     *   follows the change: `then` runs once the change is carried out, so a held change takes it
+     *   along and a dropped one drops it.
      * @returns Settles once the transport has framed the packets.
      */
-    public changeWorld(arrival: Arrival, options: { readonly whenPending?: 'queue' | 'drop' } = {}): Promise<void> {
+    public changeWorld(
+        arrival: Arrival,
+        options: { readonly whenPending?: 'queue' | 'drop'; readonly then?: () => void } = {}
+    ): Promise<void> {
         const player = this.getPlayer();
         const { world } = arrival;
         const target = world.getDimension();
@@ -2386,7 +2394,7 @@ export default class PlayerSession {
         const pending = this.pendingChange;
         if (pending !== undefined) {
             const queue = (options.whenPending ?? 'queue') === 'queue';
-            if (queue) this.queuedChange = arrival;
+            if (queue) this.queuedChange = { arrival, then: options.then };
             this.server
                 .getLogger()
                 .debug(
@@ -2401,7 +2409,7 @@ export default class PlayerSession {
         // The respawn's own change runs while the player is still dead, and is not held.
         if (player.getHealth() <= 0 && arrival.closesLoadingScreen !== false) {
             const queue = (options.whenPending ?? 'queue') === 'queue';
-            if (queue) this.queuedChange = arrival;
+            if (queue) this.queuedChange = { arrival, then: options.then };
             this.server
                 .getLogger()
                 .debug(
@@ -2493,6 +2501,7 @@ export default class PlayerSession {
 
         sends.push(this.sendInitialSpawnChunks());
         sends.push(this.sendPlayStatus(PlayStatus.PlayerSpawn));
+        options.then?.();
         return allSent(sends);
     }
 
@@ -2541,7 +2550,7 @@ export default class PlayerSession {
     private fileQueuedChange(): void {
         const queued = this.queuedChange;
         this.queuedChange = undefined;
-        if (queued !== undefined) this.server.getDimensionTravel().move(this, queued);
+        if (queued !== undefined) this.server.getDimensionTravel().move(this, queued.arrival, queued.then);
     }
 
     /**
