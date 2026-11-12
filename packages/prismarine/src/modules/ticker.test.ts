@@ -1,3 +1,5 @@
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../events/ServerEvents';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -16,15 +18,23 @@ import { insideTick } from '../world/TickContext';
 /** One tick period of the loop under test, in milliseconds. */
 const TICK_MS = 50;
 
+/** A bus with one `tick` listener, for a test that listens in its own way. */
+const tickBus = (listener: (event: TickEvent) => unknown) => {
+    const events = new KernelEventBus<ServerEvents>();
+    events.on('tick', listener);
+    return events;
+};
+
 const buildHarness = (overrides: Partial<TickerServer> = {}) => {
     const tickEvents: TickEvent[] = [];
     const warnings: string[] = [];
     const completionQueue = new ChunkCompletionQueue();
     let stopping = false;
+    // A real bus, so a test adds tick listeners to it as a plugin would.
+    const events = new KernelEventBus<ServerEvents>();
+    events.on('tick', (event) => void tickEvents.push(event));
     const deps: TickerServer = {
-        emitTick: async (event) => {
-            tickEvents.push(event);
-        },
+        events,
         admitInputs: () => 0,
         pollNetwork: () => 0,
         getWorlds: () => [],
@@ -52,6 +62,7 @@ const buildHarness = (overrides: Partial<TickerServer> = {}) => {
     return {
         ticker: new ServerTicker(deps),
         tickEvents,
+        events,
         warnings,
         deps,
         setStopping(value: boolean) {
@@ -122,9 +133,9 @@ describe('modules/ticker', () => {
                 order.push('network');
                 return 1;
             },
-            emitTick: async () => {
+            events: tickBus(() => {
                 order.push('tick');
-            },
+            }),
             getWorlds: () => [
                 {
                     getName: () => 'world',
@@ -178,9 +189,9 @@ describe('modules/ticker', () => {
                 inside.inputs = insideTick();
                 return 0;
             },
-            emitTick: async () => {
+            events: tickBus(() => {
                 inside.tick = insideTick();
-            },
+            }),
             getWorlds: () => [
                 {
                     getName: () => 'world',
@@ -216,12 +227,42 @@ describe('modules/ticker', () => {
         });
     });
 
+    it('posts the tick event in the tick, and a tick listener that fails stops nothing', async () => {
+        const failures: unknown[] = [];
+        const events = new KernelEventBus<ServerEvents>({ onListenerError: (error) => failures.push(error) });
+        const order: string[] = [];
+        events.on('tick', () => {
+            order.push('throws');
+            throw new Error('a tick listener failed');
+        });
+        events.on('tick', async () => {
+            order.push('rejects');
+            throw new Error('a tick listener rejected');
+        });
+        events.on('tick', () => void order.push('last'));
+        const harness = buildHarness({
+            events,
+            isTickingEnabled: () => false,
+            pollNetwork: () => {
+                order.push('network');
+                return 0;
+            }
+        });
+
+        harness.ticker.advance();
+        await vi.waitFor(() => expect(failures).toHaveLength(2));
+
+        expect(order.slice(0, 3)).toEqual(['throws', 'rejects', 'last']);
+        expect(order).toContain('network');
+        expect(harness.ticker.getTick()).toBe(1);
+    });
+
     it('polls the network even when the work of the tick throws', async () => {
         let polled = 0;
         const harness = buildHarness({
             isTickingEnabled: () => false,
-            emitTick: () => {
-                throw new Error('a tick listener failed');
+            tickFunctions: () => {
+                throw new Error('a tick function failed');
             },
             pollNetwork: () => ++polled
         });
@@ -332,13 +373,13 @@ describe('modules/ticker', () => {
     it('records how late each tick started against its due time and how long its work took', async () => {
         let blockMs = 0;
         const harness = buildHarness({
-            emitTick: () => {
+            events: tickBus(() => {
                 // A tick handler is not waited for, so the stall is one that holds the thread: the
                 // fake clock moves while the handler runs, as a slow synchronous handler's would.
                 const stall = blockMs;
                 blockMs = 0;
                 if (stall > 0) vi.advanceTimersByTime(stall);
-            }
+            })
         });
         const handle = await startTestModule(tickerModule(harness.ticker));
         try {
@@ -401,10 +442,9 @@ describe('modules/ticker', () => {
         const harness = buildHarness();
         let stalled = false;
         const eventLoopOrder: string[] = [];
-        harness.deps.emitTick = async (event) => {
-            harness.tickEvents.push(event);
+        harness.events.on('tick', (event) => {
             eventLoopOrder.push(`tick:${event.getTick()}`);
-        };
+        });
         harness.deps.tickFunctions = async () => {
             if (!stalled) {
                 stalled = true;
@@ -538,13 +578,13 @@ describe('modules/ticker', () => {
             const refused: unknown[] = [];
             const harness = buildHarness({
                 isTickingEnabled: () => false,
-                emitTick: () => {
+                events: tickBus(() => {
                     try {
                         harness.ticker.advance();
                     } catch (error: unknown) {
                         refused.push(error);
                     }
-                }
+                })
             });
             harness.ticker.advance();
             expect(refused).toEqual([new Error('Cannot advance the ticker while a manual tick is in flight')]);

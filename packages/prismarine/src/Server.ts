@@ -296,7 +296,7 @@ export default class Server {
         this.commandManager = new CommandManager(this, onStopCommandComplete);
         this.ticker = new ServerTicker(
             {
-                emitTick: (event) => void this.post('tick', event),
+                events: this.kernel.events,
                 // Packets first, then the chunks that became ready since the last step, so every world
                 // sees them from its first update. A chunk an input-lane handler waits for enters at
                 // once, because the step cannot finish without it. Portal trips come after the chunks, so

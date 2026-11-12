@@ -1,6 +1,7 @@
 import type { Module } from '@jsprismarine/kernel';
 
 import { TickEvent } from '../events/Events';
+import type { ServerEventBus } from '../events/ServerEvents';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import { TickRecorder } from '../profiling/TickRecorder';
 import type { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
@@ -122,12 +123,13 @@ export interface TickerWorld {
  * - `getChunkScheduler` belongs to a future chunk-scheduler token.
  * - `getChunkSendBudgetMs`, `isTickingEnabled`, and `isProcessTitleEnabled`
  *   belong to a future config token (or the ticker module's config slice).
- * - `emitTick` belongs to the kernel event bus once the typed server `tick`
- *   event moves there.
  */
 export interface TickerServer {
-    /** Calls every handler of the typed server `tick` event inside the tick, waiting for none. */
-    emitTick(event: TickEvent): void;
+    /**
+     * The kernel's event bus, which the ticker posts the server `tick` event on inside the tick,
+     * waiting for no listener.
+     */
+    readonly events: Pick<ServerEventBus, 'post'>;
     /**
      * The input step: applies the inputs held since the last tick, in arrival order, up to a
      * count, then the chunk completions it admits. The ticker runs it before anything else in
@@ -598,13 +600,13 @@ export class ServerTicker implements Ticker, TickControl {
                 }
                 const event = new TickEvent(this.getTick());
 
-                // Each tick handler is called inside this tick and runs to its first wait; what an
-                // asynchronous one does after that lands outside the tick, and the server reports
-                // its rejection.
+                // Each tick listener is called inside this tick and runs to its first wait; what an
+                // asynchronous one does after that lands outside the tick. The bus reports a
+                // listener that throws or rejects, and the tick goes on.
                 phaseStartedAt = now();
                 const endTickHandlersProfile = startProfile?.('Server.tickHandlers');
                 try {
-                    server.emitTick(event);
+                    server.events.post('tick', event);
                 } finally {
                     tickHandlersMs = now() - phaseStartedAt;
                     endTickHandlersProfile?.();
