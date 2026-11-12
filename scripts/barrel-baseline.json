@@ -281,9 +281,6 @@
     "packages/prismarine/src/world/Dimension.ts": {
         "noBarrelFile": 1
     },
-    "packages/prismarine/src/world/generators/datadriven/index.ts": {
-        "noBarrelFile": 1
-    },
     "packages/prismarine/src/world/generators/datadriven/javaWorldgenData.ts": {
         "noBarrelFile": 1
     },
