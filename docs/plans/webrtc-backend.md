@@ -456,6 +456,10 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
      `pnpm approve-builds`, and with Bun before and after `trustedDependencies`.
    - Checks: the built package from a consumer project on each platform CI runs, an Alpine
      container among them, and the packaged executable opening a NetherNet peer connection on each.
+   - Changed 2026-11-12, at the user's call: CI builds every platform and checks its
+     dependencies, but tests only the Linux x64 build, on `ubuntu-latest`, and installs the packed
+     package with npm alone. The per-platform tests, the bare-container load and the pnpm and Bun
+     installs are gone.
 6. [x] **Our own NetherNet protocol on the native driver, for the server and the client.**
    - Done 2026-11-11. Our bots joined and spawned on Bedrock Dedicated Server 1.26.51 over
      NetherNet, 3 of 3. Waiting for the listeners let the world tick before they bound, which
