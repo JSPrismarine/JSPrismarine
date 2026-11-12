@@ -227,10 +227,6 @@
         "noBarrelFile": 1,
         "noReExportAll": 2
     },
-    "packages/prismarine/src/network/index.ts": {
-        "noBarrelFile": 1,
-        "noReExportAll": 1
-    },
     "packages/protocol/src/index.ts": {
         "noBarrelFile": 1,
         "noReExportAll": 112

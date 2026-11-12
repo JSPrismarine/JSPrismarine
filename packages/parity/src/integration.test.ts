@@ -28,7 +28,7 @@ import { resolveTransform } from '@jsprismarine/prismarine/item/blockTransformer
 import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import { brainMobOf } from '@jsprismarine/prismarine/entity/data/brainWorld';
 import { spawnDeclared } from '@jsprismarine/prismarine/entity/data/testing';
-import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/index';
+import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/contentPayloads';
 import { worldContentGroups } from '@jsprismarine/prismarine/world/contentAdapter';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';

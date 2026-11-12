@@ -320,6 +320,11 @@
                 "import": "./dist/network/connectionContexts.js",
                 "module": "./dist/network/connectionContexts.js"
             },
+            "./network/contentPayloads": {
+                "types": "./dist/network/contentPayloads.d.ts",
+                "import": "./dist/network/contentPayloads.js",
+                "module": "./dist/network/contentPayloads.js"
+            },
             "./network/handler/AnvilDamageHandler": {
                 "types": "./dist/network/handler/AnvilDamageHandler.d.ts",
                 "import": "./dist/network/handler/AnvilDamageHandler.js",
@@ -369,11 +374,6 @@
                 "types": "./dist/network/InboundPacketTrace.d.ts",
                 "import": "./dist/network/InboundPacketTrace.js",
                 "module": "./dist/network/InboundPacketTrace.js"
-            },
-            "./network/index": {
-                "types": "./dist/network/index.d.ts",
-                "import": "./dist/network/index.js",
-                "module": "./dist/network/index.js"
             },
             "./network/OutboundPacketTrace": {
                 "types": "./dist/network/OutboundPacketTrace.d.ts",
@@ -833,6 +833,10 @@
             "jsprismarine:dist": "./dist/network/connectionContexts.js",
             "default": "./src/network/connectionContexts.ts"
         },
+        "./network/contentPayloads": {
+            "jsprismarine:dist": "./dist/network/contentPayloads.js",
+            "default": "./src/network/contentPayloads.ts"
+        },
         "./network/handler/AnvilDamageHandler": {
             "jsprismarine:dist": "./dist/network/handler/AnvilDamageHandler.js",
             "default": "./src/network/handler/AnvilDamageHandler.ts"
@@ -872,10 +876,6 @@
         "./network/InboundPacketTrace": {
             "jsprismarine:dist": "./dist/network/InboundPacketTrace.js",
             "default": "./src/network/InboundPacketTrace.ts"
-        },
-        "./network/index": {
-            "jsprismarine:dist": "./dist/network/index.js",
-            "default": "./src/network/index.ts"
         },
         "./network/OutboundPacketTrace": {
             "jsprismarine:dist": "./dist/network/OutboundPacketTrace.js",
