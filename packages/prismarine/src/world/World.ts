@@ -1709,7 +1709,8 @@ export class World implements Service {
      * @param {Vector3} position - The block being mined.
      * @param {number} face - The face being mined, which decides where the particles fly.
      * @param {Item | null} tool - What the player holds, or null for a bare hand.
-     * @param {BlockMining | null} previous - What the player was mining until now.
+     * @param {BlockMining | null} previous - What the player was mining until now. When it is
+     * this same block, the mining carries on from when it began rather than starting over.
      * @returns {Promise<BlockMining | null>} What the player is mining now, or null for air and
      * for a block that breaks at once, which have nothing to animate.
      */
@@ -1731,12 +1732,18 @@ export class World implements Service {
         // client would be handed is not a number this event can carry.
         if (breakTicks <= 0) return null;
 
+        const runtimeId = BlockRuntimeIds.get(state);
+        // A client restarts the cracks on the block it is already mining, sometimes in the
+        // same input as the prediction that it broke, and that must not reset the time it took.
+        const sameBlock = previous !== null && previous.position.equals(position) && previous.runtimeId === runtimeId;
         const mining: BlockMining = {
             position,
             face,
-            runtimeId: BlockRuntimeIds.get(state),
+            runtimeId,
             // The client is told how much progress a tick is worth, not how long the block takes.
-            progressPerTick: Math.floor(65535 / breakTicks)
+            progressPerTick: Math.floor(65535 / breakTicks),
+            breakTicks,
+            startedAt: sameBlock ? previous.startedAt : this.server.getTick()
         };
 
         await this.sendWorldEvent(position, LevelEvent.START_BLOCK_CRACKING, mining.progressPerTick);

@@ -684,7 +684,14 @@ describe('Player', () => {
     });
 
     describe('mining', () => {
-        const mining: BlockMining = { position: new Vector3(2, 57, 16), face: 5, runtimeId: 1, progressPerTick: 5461 };
+        const mining: BlockMining = {
+            position: new Vector3(2, 57, 16),
+            face: 5,
+            runtimeId: 1,
+            progressPerTick: 5461,
+            breakTicks: 12,
+            startedAt: 0
+        };
         const elsewhere = () =>
             stub<World>({
                 getName: () => 'other',

@@ -5,6 +5,8 @@ import type Server from '../../Server';
 import BlockPosition from '../../world/BlockPosition';
 import { PlayerActionType } from '@jsprismarine/protocol';
 import type PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
+import { minimumBreakTicks } from '../../world/BlockMining';
+import type { BlockMining } from '../../world/BlockMining';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
@@ -202,17 +204,33 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // yields; `breakBlock` leaves that out for creative. With the client timing breaks
             // the transaction is what breaks a block, and this is not sent.
             //
-            // Known gap: BDS checks that the mining took long enough, and this does not. The
-            // haste, efficiency, underwater and off-ground modifiers would need measuring
-            // against BDS first, or the check would refuse breaks a real client times right.
+            // The prediction is the client's word, so it is checked before anything breaks: the
+            // block has to be the one the server is timing, breakable, and mined for long enough
+            // (see `minimumBreakTicks`). A block that breaks at once has no mining to time and
+            // only has to be one that breaks at once. A refused prediction puts the block back
+            // on the client's screen.
             case PlayerActionType.PredictDestroyBlock: {
                 if (!server.getConfig().getServerAuthoritativeBlockBreaking()) return;
 
+                const mining = player.getMining();
                 player.setMining(null);
 
                 // Adventure mode breaks nothing, but the client has already taken the block
                 // off its screen, so it is told what is still there.
                 if (player.gamemode === Gametype.ADVENTURE) {
+                    world.resendBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
+                    return;
+                }
+
+                const refusal = await this.refusePrediction(blockPosition, mining, server, session);
+                if (refusal !== null) {
+                    server
+                        .getLogger()
+                        .verbose(
+                            `Refused a predicted break from ${player.getName()} at ${blockPosition}: ${refusal}`,
+                            'PlayerActionHandler/handleAction'
+                        );
+                    if (mining !== null) await world.stopBlockCracking(mining.position);
                     world.resendBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
                     return;
                 }
@@ -342,5 +360,44 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 break;
             }
         }
+    }
+
+    /**
+     * Why a survival player's prediction that a block broke is not to be believed, or null when
+     * it is.
+     * @param blockPosition - The block the client says gave way.
+     * @param mining - What the server was timing the player mining, before the prediction.
+     * @param server - The server.
+     * @param session - Who sent it.
+     */
+    private async refusePrediction(
+        blockPosition: BlockPosition,
+        mining: BlockMining | null,
+        server: Server,
+        session: PlayerSession
+    ): Promise<string | null> {
+        const player = session.getPlayer();
+        const world = player.getWorld();
+
+        if (mining !== null && mining.position.equals(blockPosition)) {
+            // The time was measured for the block mining started on. Something else standing
+            // there now, put down since, has not been mined at all.
+            const standing = world.loadedBlockRuntimeIdAt(
+                blockPosition.getX(),
+                blockPosition.getY(),
+                blockPosition.getZ()
+            );
+            if (standing !== mining.runtimeId) return 'the block changed since mining began';
+
+            const needed = minimumBreakTicks(mining, player);
+            const took = server.getTick() - mining.startedAt;
+            if (!Number.isFinite(needed)) return 'the block cannot be broken';
+            return took >= needed ? null : `it was mined for ${took} of the ${needed} ticks it needs`;
+        }
+
+        // No mining to time, which is right only for a block that gives way at once.
+        const block = await world.getBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
+        const breakTicks = Math.ceil(block.getBreakTime(player.getInventory().getItemInHand(), server) * 20);
+        return breakTicks <= 0 ? null : 'it is not the block being mined';
     }
 }

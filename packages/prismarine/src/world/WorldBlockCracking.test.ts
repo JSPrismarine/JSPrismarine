@@ -6,6 +6,7 @@ import type { Block } from '../block/Block';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
 import { Item } from '../item/Item';
+import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import { World } from './World';
 
@@ -20,10 +21,12 @@ import { World } from './World';
 const fakeWorld = (initial: BlockState, breakSeconds: number) => {
     const effects: Array<{ position: Vector3 | null; event: LevelEvent; data: number }> = [];
     const at = { state: initial };
+    const clock = { tick: 40 };
 
     const world: World = Object.assign(Object.create(World.prototype), {
         getBlockState: async () => at.state,
         loadedBlockRuntimeIdAt: () => BlockRuntimeIds.get(at.state),
+        server: stub<Server>({ getTick: () => clock.tick }),
         getBlock: async () =>
             stub<Block>({
                 getBreakTime: (tool) => (tool?.getName() === 'minecraft:iron_pickaxe' ? breakSeconds : breakSeconds * 5)
@@ -34,7 +37,7 @@ const fakeWorld = (initial: BlockState, breakSeconds: number) => {
         }
     });
 
-    return { world, effects, at };
+    return { world, effects, at, clock };
 };
 
 const STONE = new BlockState('minecraft:stone');
@@ -53,7 +56,9 @@ describe('world', () => {
                 position: BLOCK,
                 face: 5,
                 runtimeId: BlockRuntimeIds.get(STONE),
-                progressPerTick: 5461
+                progressPerTick: 5461,
+                breakTicks: 12,
+                startedAt: 40
             });
             expect(effects).toEqual([{ position: BLOCK, event: LevelEvent.START_BLOCK_CRACKING, data: 5461 }]);
         });
@@ -122,6 +127,18 @@ describe('world', () => {
 
             expect(await world.startBlockCracking(BLOCK, 1, PICKAXE, null)).toBeNull();
             expect(effects).toEqual([]);
+        });
+
+        it('keeps the time mining began when the cracks restart on the same block', async () => {
+            const { world, clock } = fakeWorld(STONE, 0.6);
+            const first = await world.startBlockCracking(BLOCK, 5, PICKAXE, null);
+            clock.tick += 7;
+
+            const again = await world.startBlockCracking(BLOCK, 5, PICKAXE, first);
+            const next = await world.startBlockCracking(new Vector3(3, 57, 16), 5, PICKAXE, again);
+
+            expect(again?.startedAt).toBe(40);
+            expect(next?.startedAt).toBe(47);
         });
 
         it('stops the cracks where it is told', async () => {
