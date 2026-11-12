@@ -5,6 +5,7 @@ import type { Scenario } from '../scenario.mts';
 import { readHealth, screenContaining, sleep, vec3, waitTicks } from '../scenario.mts';
 
 const NETHER = [1, 'minecraft:the_nether', 'Nether'];
+const OVERWORLD = [0, 'minecraft:overworld', 'Overworld'];
 /** On the flat Nether's floor, which tops out at y 3. */
 const POINT = { x: 4, y: 4, z: 4 };
 /** Where the Overworld half of the dimensions scenario left its stone pad. */
@@ -56,7 +57,12 @@ export const spawnpointRespawn: Scenario = {
         server.command(`execute in minecraft:overworld run spawnpoint ${playerName} ${PAD.x} ${PAD.y} ${PAD.z}`);
         server.command(`execute in minecraft:overworld run teleport ${playerName} ${PAD.x} ${PAD.y} ${PAD.z}`);
         const homeBy = Date.now() + 30_000;
-        while ((await client.state()).dimension !== 0 && Date.now() < homeBy) await sleep(250);
+        for (;;) {
+            const { dimension } = await client.state();
+            if (OVERWORLD.some((value) => value === dimension)) break;
+            assert.ok(Date.now() < homeBy, `the player never returned to the Overworld: ${JSON.stringify(dimension)}`);
+            await sleep(250);
+        }
         await client.waitForScreenAbsent('Loading', 30_000);
     }
 };
