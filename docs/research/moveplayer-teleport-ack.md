@@ -24,8 +24,9 @@ Edition drop reports and resend the teleport every 20 inputs or ticks. None of t
 on a timer.
 
 The server takes no movement from a client's `MovePlayer`: `MovePlayerHandler` drops the packet,
-and the teleport hold keeps its one rule, the `HandledTeleport` input flag at the target or the
-timeout. The bot harness moves with `PlayerAuthInput` and adopts the teleports it is sent (#3041).
+and the teleport hold keeps its one rule, the `HandledTeleport` input flag within 4 blocks of the
+target on x and z, or the timeout. The bot harness moves with `PlayerAuthInput` and adopts the
+teleports it is sent (#3041).
 This was decided after the research, on 2026-11-12; see [Recommendation](#recommendation). The
 research first proposed releasing the hold on a `MovePlayer` within one block of the target, or on
 a `PlayerAction` `HandledTeleport`; that rule is kept below as the first of the options weighed.
