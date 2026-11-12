@@ -62,6 +62,41 @@ export interface ChunkPersistenceChanges {
     readonly entities: boolean;
 }
 
+/**
+ * What a chunk's last save wrote, which {@link Chunk.getPersistenceChanges} compares against.
+ *
+ * A value rather than fields set by the write, because a save that cuts at one tick and commits
+ * at a later one has to mark the chunk saved as it was at the cut (ADR 0018).
+ */
+export interface ChunkPersistedState {
+    /** Each sub chunk's revision. */
+    readonly subChunkRevisions: ReadonlyMap<number, number>;
+    /** The sub chunk keys the save holds. */
+    readonly subChunkKeys: ReadonlySet<number>;
+    readonly biomeEpoch: number;
+    readonly biomeRevision: number;
+    readonly blockEntityRevision: number;
+    readonly entityRevision: number;
+    /** Whether the save holds a block entity record. */
+    readonly blockEntitiesPresent: boolean;
+    /** How many changes the chunk had seen, so a change after the state was taken keeps it dirty. */
+    readonly changes: number;
+}
+
+/**
+ * What a save cut asks of a chunk whose content it holds but has not encoded yet (ADR 0018).
+ *
+ * The cut encodes the chunk's changed sub chunks over later ticks. A write that is about to
+ * reach one of them, or the heightmap they are encoded with, runs the hook first, so the cut
+ * encodes the content it saw.
+ */
+export interface ChunkSaveCutHook {
+    /** Runs before a write reaches the sub chunk at `index`, which may also move the heightmap. */
+    beforeSubChunkWrite(index: number): void;
+    /** Runs before the biomes are replaced. */
+    beforeBiomeWrite(): void;
+}
+
 /** The serialized bytes and source revision for one chunk blob. */
 export interface ChunkNetworkBlobPart {
     /** The sub chunk whose network revision identifies these bytes. */
@@ -94,6 +129,10 @@ export default class Chunk {
     private x: number;
     private z: number;
     private hasChanged: boolean;
+    /** Counts every change that makes the chunk dirty; see {@link ChunkPersistedState.changes}. */
+    private changes = 0;
+    /** The save cut that still has to encode some of this chunk, or null. */
+    private saveCut: ChunkSaveCutHook | null = null;
     private readonly dimension: DimensionType;
     private readonly minSubChunkY: number;
     private readonly subChunks: Array<SubChunk | undefined>;
@@ -222,6 +261,7 @@ export default class Chunk {
      * palette with another instance at the same revision.
      */
     public setBiomes(biomes: ChunkBiomes): void {
+        this.saveCut?.beforeBiomeWrite();
         this.biomes = biomes;
         this.biomesEpoch++;
         this.invalidateNetworkSerialization();
@@ -406,7 +446,14 @@ export default class Chunk {
      * disk would be written straight back out.
      */
     public markSaved(): void {
-        this.hasChanged = false;
+        this.markSavedAs(this.persistedStateNow());
+    }
+
+    /**
+     * What a save of this chunk as it is now writes, for {@link Chunk.markSavedAs} once the
+     * save is on disk.
+     */
+    public persistedStateNow(): ChunkPersistedState {
         const subChunkKeys = new Set<number>();
         for (const index of this.subChunkOrder) {
             const subChunk = this.subChunkAtIndex(index);
@@ -422,24 +469,42 @@ export default class Chunk {
         const blockEntitiesPresent =
             this.blockEntities.size > 0 ||
             (this.persistedBlockEntitiesPresent && this.persistedBlockEntityRevision === this.blockEntityRevision);
-        this.recordPersistedState(subChunkKeys, blockEntitiesPresent);
+        return this.stateWith(subChunkKeys, blockEntitiesPresent);
+    }
+
+    /**
+     * Records that the save holds this chunk as it was when `state` was taken. The chunk stays
+     * dirty if it changed since, so the next save writes the change.
+     */
+    public markSavedAs(state: ChunkPersistedState): void {
+        this.recordPersistedState(state);
+        this.hasChanged = this.changes !== state.changes;
     }
 
     /** Marks this chunk dirty when a non-block change needs to be written. */
     public markChanged(): void {
         this.hasChanged = true;
+        this.changes++;
     }
 
     /** Marks an actor-only edit, without marking block, biome, or block-entity data dirty. */
     public markEntitiesChanged(): void {
-        this.hasChanged = true;
+        this.markChanged();
         this.entityRevision++;
     }
 
     /** Records the exact sub chunk keys found when a provider loads this chunk. */
     public markLoadedFromDisk(subChunkKeys: Iterable<number>, blockEntitiesPresent: boolean): void {
-        this.recordPersistedState(subChunkKeys, blockEntitiesPresent);
+        this.recordPersistedState(this.stateWith(new Set(subChunkKeys), blockEntitiesPresent));
         this.hasChanged = false;
+    }
+
+    /**
+     * Hands the chunk to a save cut that has not finished encoding it, or takes it back with
+     * null. See {@link ChunkSaveCutHook}.
+     */
+    public setSaveCut(hook: ChunkSaveCutHook | null): void {
+        this.saveCut = hook;
     }
 
     /** The provider's section-level write plan, derived from the last successful save. */
@@ -471,20 +536,31 @@ export default class Chunk {
         return { initial, subChunks, data3D: data3D || subChunks.length > 0, blockEntities, entities };
     }
 
-    private recordPersistedState(
-        subChunkKeys: Iterable<number>,
-        blockEntitiesPresent = this.blockEntities.size > 0
-    ): void {
+    /** This chunk's revisions now, with the keys and block entity record a save holds. */
+    private stateWith(subChunkKeys: ReadonlySet<number>, blockEntitiesPresent: boolean): ChunkPersistedState {
+        return {
+            subChunkRevisions: new Map(
+                this.subChunkOrder.map((index) => [index, this.subChunkAtIndex(index)?.getRevision() ?? -1])
+            ),
+            subChunkKeys,
+            biomeEpoch: this.biomesEpoch,
+            biomeRevision: this.biomes.getRevision(),
+            blockEntityRevision: this.blockEntityRevision,
+            entityRevision: this.entityRevision,
+            blockEntitiesPresent,
+            changes: this.changes
+        };
+    }
+
+    private recordPersistedState(state: ChunkPersistedState): void {
         this.persistenceInitialized = true;
-        this.persistedSubChunkRevisions = new Map(
-            this.subChunkOrder.map((index) => [index, this.subChunkAtIndex(index)?.getRevision() ?? -1])
-        );
-        this.persistedSubChunkKeys = new Set(subChunkKeys);
-        this.persistedBiomeEpoch = this.biomesEpoch;
-        this.persistedBiomeRevision = this.biomes.getRevision();
-        this.persistedBlockEntityRevision = this.blockEntityRevision;
-        this.persistedEntityRevision = this.entityRevision;
-        this.persistedBlockEntitiesPresent = blockEntitiesPresent;
+        this.persistedSubChunkRevisions = new Map(state.subChunkRevisions);
+        this.persistedSubChunkKeys = new Set(state.subChunkKeys);
+        this.persistedBiomeEpoch = state.biomeEpoch;
+        this.persistedBiomeRevision = state.biomeRevision;
+        this.persistedBlockEntityRevision = state.blockEntityRevision;
+        this.persistedEntityRevision = state.entityRevision;
+        this.persistedBlockEntitiesPresent = state.blockEntitiesPresent;
     }
 
     /** Holds an actor read from disk until the world can create it. */
@@ -585,6 +661,7 @@ export default class Chunk {
     }
 
     public getOrCreateSubChunk(y: number): SubChunk {
+        this.saveCut?.beforeSubChunkWrite(y);
         const subChunk = new SubChunk();
         this.setSubChunk(y, subChunk);
         return subChunk;
@@ -696,7 +773,7 @@ export default class Chunk {
         else if (blockEntity instanceof MobSpawner)
             this.insertIndexedBlockEntity(this.mobSpawners, { index, order, entity: blockEntity });
 
-        this.hasChanged = true;
+        this.markChanged();
         this.blockEntityRevision++;
         this.invalidateNetworkSerialization();
     }
@@ -740,7 +817,7 @@ export default class Chunk {
                 this.removeIndexedBlockEntity(this.mobSpawners, index);
                 this.cachedMobSpawners = undefined;
             }
-            this.hasChanged = true;
+            this.markChanged();
             this.blockEntityRevision++;
             this.invalidateNetworkSerialization();
         }
@@ -903,7 +980,9 @@ export default class Chunk {
     public setBlockRuntimeId(x: number, y: number, z: number, runtimeId: number, layer = 0): void {
         // Strict on the way in: a write outside the dimension is a caller bug, and silently
         // dropping it would show up much later as a hole in the terrain.
-        const subChunk = this.subChunkAt(y) ?? this.getOrCreateSubChunk(this.requireSubChunkIndex(y));
+        const index = this.requireSubChunkIndex(y);
+        this.saveCut?.beforeSubChunkWrite(index);
+        const subChunk = this.subChunkAtIndex(index) ?? this.getOrCreateSubChunk(index);
         subChunk.setBlock(x, y & 0xf, z, runtimeId, layer);
 
         // Whatever block entity stood here belonged to the block that just went away. Leaving it
@@ -911,7 +990,7 @@ export default class Chunk {
         // is no longer anything to own it.
         if (layer === 0 && this.blockEntities.size > 0) this.removeBlockEntity(x, y, z);
 
-        this.hasChanged = true;
+        this.markChanged();
         this.invalidateNetworkSerialization();
     }
 
@@ -922,9 +1001,11 @@ export default class Chunk {
      * of its own, and the undo puts it back itself.
      */
     public restoreBlockRuntimeId(x: number, y: number, z: number, runtimeId: number, layer = 0): void {
-        const subChunk = this.subChunkAt(y) ?? this.getOrCreateSubChunk(this.requireSubChunkIndex(y));
+        const index = this.requireSubChunkIndex(y);
+        this.saveCut?.beforeSubChunkWrite(index);
+        const subChunk = this.subChunkAtIndex(index) ?? this.getOrCreateSubChunk(index);
         subChunk.setBlock(x, y & 0xf, z, runtimeId, layer);
-        this.hasChanged = true;
+        this.markChanged();
         this.invalidateNetworkSerialization();
     }
 
@@ -950,6 +1031,7 @@ export default class Chunk {
 
         for (let y = fromY; y <= toY;) {
             const index = this.requireSubChunkIndex(y);
+            this.saveCut?.beforeSubChunkWrite(index);
             const subChunk = this.subChunkAtIndex(index) ?? this.getOrCreateSubChunk(index);
 
             // Stop at whichever comes first: the end of the run, or the sub chunk boundary.
@@ -959,7 +1041,7 @@ export default class Chunk {
             }
         }
 
-        this.hasChanged = true;
+        this.markChanged();
         this.invalidateNetworkSerialization();
     }
 
