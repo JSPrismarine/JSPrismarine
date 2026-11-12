@@ -107,7 +107,12 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
             : new LevelSave({
                   name: options.name ?? 'test',
                   provider: () => provider,
-                  logger: () => server.getLogger()
+                  logger: () => server.getLogger(),
+                  // A provider that keeps no players hands the cut's records here, as a real level
+                  // writes them to its fallback files.
+                  savePlayers: async (records) => {
+                      for (const [key, record] of records) options.playerData?.set(key, record);
+                  }
               });
     const respawnSearch = new RespawnSearch({
         hasStem: (stemId) => stems.has(stemId),
