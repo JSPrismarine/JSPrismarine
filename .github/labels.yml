@@ -103,7 +103,7 @@
 
 - name: "Slop"
   color: "ff0000"
-  description: "Low-effort AI-generated content, applied by CodeRabbit's slop detection"
+  description: "Flagged as spam or low-effort by CodeRabbit's slop detection"
   ai_apply_when: "Managed by slop detection; do not suggest from style or wording alone."
 
 - name: "Stale"
