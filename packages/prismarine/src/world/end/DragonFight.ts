@@ -134,7 +134,8 @@ const deathOf = (dragon: DataEntity): DragonDeath => ({
  */
 export class DragonFight {
     private readonly world: World;
-    private readonly fight: DragonFightState;
+    /** Replaced whole when a death's consequences are taken back; see {@link DragonFight.takeDeath}. */
+    private fight: DragonFightState;
     private readonly bar: BossBar;
     /** The live dragon, resolved from {@link DragonFightState.dragonUniqueId} leniently. */
     private dragon: DataEntity | undefined;
@@ -158,6 +159,8 @@ export class DragonFight {
      * taken meanwhile keeps the death; the killer is a runtime id and does not outlive the run.
      */
     private died: DragonDeath | undefined;
+    /** The failure of a waiting death's consequences that was last reported, so it is reported once. */
+    private deathFailure: string | undefined;
 
     /**
      * Restores a fight from its saved state, or starts a fresh one that scans the world on its
@@ -207,13 +210,7 @@ export class DragonFight {
             if (!tickets.request(DEATH_TICKET, this.deathChunks())) return;
 
             tickets.release(DEATH_TICKET);
-            this.died = undefined;
-            delete this.fight.dragonDeathPosition;
-            try {
-                this.killDragon(died);
-            } catch (error: unknown) {
-                this.report(String(error));
-            }
+            if (!this.takeDeath(died)) return;
         }
 
         this.ticks += 1;
@@ -248,6 +245,45 @@ export class DragonFight {
      */
     public setDragonKilled(dragon: DataEntity): void {
         this.killDragon(deathOf(dragon));
+    }
+
+    /**
+     * Runs a waiting death's consequences as one unit of the change log, and lets go of the death
+     * only once they are done.
+     *
+     * A consequence that throws takes its writes back with it, the portal blocks and the orbs
+     * among them, and the fight's own record is put back as it was before the attempt. The death
+     * then still waits, here and in a save, and the next tick takes it again from the start, so
+     * a gateway index is not spent twice. Letting go of the death first left a fight with no
+     * dragon and no kill, which spawned a second dragon over a portal that was half placed.
+     *
+     * @returns Whether the death was taken. The fight does nothing else in a tick it was not.
+     */
+    private takeDeath(died: DragonDeath): boolean {
+        const before = structuredClone(this.fight);
+        let failure: { readonly error: unknown } | undefined;
+        try {
+            const outcome = this.world.getEntityStore().unit(() => {
+                delete this.fight.dragonDeathPosition;
+                this.killDragon(died);
+            });
+            if (outcome.failed) failure = { error: outcome.error };
+        } catch (error: unknown) {
+            // With no log tick open the unit runs its work as it is, and a throw arrives here.
+            failure = { error };
+        }
+        if (failure === undefined) {
+            this.died = undefined;
+            this.deathFailure = undefined;
+            return true;
+        }
+
+        this.fight = before;
+        // Once per failure, not once per tick: the death is tried again every tick until it is taken.
+        const message = String(failure.error);
+        if (message !== this.deathFailure) this.report(`the dragon's death was not taken and waits: ${message}`);
+        this.deathFailure = message;
+        return false;
     }
 
     private killDragon(dragon: DragonDeath): void {

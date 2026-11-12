@@ -502,6 +502,53 @@ describe('the dragon fight over a live End world', () => {
             expect(blockNameAt(world, 0, FLOOR_Y + 4, 0)).toBe('minecraft:dragon_egg');
         });
 
+        it('keeps a death whose consequences throw, and takes it whole once they work', async () => {
+            // As on a running server, where the world logs its block writes, so a unit that
+            // throws takes its blocks back. The fixture's server has no entity runtime to say so.
+            Object.assign(world.getServer(), { hasEntityRuntime: () => true });
+            enterArena(players, 0, 70, 0);
+            const fight = freshFight();
+            await run(fight, 1);
+            const dragon = dragons()[0];
+            if (dragon === undefined) throw new Error('no dragon stands in the arena');
+            live.runtime.remove(dragon.id, 'death');
+
+            // The orbs are the last consequence, after the portal, the gateway and the egg.
+            const spawn = live.runtime.spawn.bind(live.runtime);
+            let failing = true;
+            Object.assign(live.runtime, {
+                spawn: (...spawned: Parameters<typeof spawn>) => {
+                    if (failing && spawned[0] === 'minecraft:xp_orb') throw new Error('the orbs failed');
+                    return spawn(...spawned);
+                }
+            });
+            const tick = async (): Promise<void> => {
+                world.beginChangeTick();
+                await run(fight, 1);
+                world.sealChangeTick();
+            };
+
+            await tick();
+
+            // The death still waits, here and in a save, and nothing of the attempt is left.
+            expect(fight.state().dragonKilled).toBe(false);
+            expect(fight.state().dragonDeathPosition).toEqual(dragon.position);
+            expect(fight.state().dragonUniqueId).toBe(dragon.persistentIdentity);
+            expect(fight.state().gateways).toHaveLength(20);
+            expect(blockNameAt(world, 0, FLOOR_Y + 4, 0)).not.toBe('minecraft:dragon_egg');
+            expect(blockNameAt(world, -78, 75, 56)).not.toBe('minecraft:end_gateway');
+            expect(dragons()).toHaveLength(0);
+
+            failing = false;
+            await tick();
+
+            expect(fight.state().dragonKilled).toBe(true);
+            expect(fight.state().dragonDeathPosition).toBeUndefined();
+            expect(fight.state().gateways).toHaveLength(19);
+            expect(blockNameAt(world, 0, FLOOR_Y + 4, 0)).toBe('minecraft:dragon_egg');
+            expect(blockNameAt(world, -78, 75, 56)).toBe('minecraft:end_gateway');
+        });
+
         it('heals one point per ten ticks while a crystal is within 32 blocks', async () => {
             enterArena(players, 0, 70, 0);
             const fight = freshFight();
