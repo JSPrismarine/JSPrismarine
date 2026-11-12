@@ -51,6 +51,7 @@ import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import { allSent } from './allSent';
 
 /**
  * The actor type a sound is attributed to, where vanilla sends something other than nothing.
@@ -312,7 +313,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * A trader's offers go to every player with a trade screen open on it, whose prices the
      * trade screen works out for that player, and a slot goes to the player that carries it.
      */
-    public async flushOwnerViews(): Promise<void> {
+    public flushOwnerViews(): void {
         const sends: Promise<void>[] = [];
         for (const { entity, container, slot } of this.pendingOwnSlots.splice(0))
             sends.push(this.world.viewerOf(entity)?.sendOwnSlot(container, slot) ?? Promise.resolve());
@@ -326,15 +327,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             this.pendingTraders.clear();
         }
 
-        await Promise.all(
-            sends.map(async (send) => {
-                try {
-                    await send;
-                } catch (error: unknown) {
-                    this.server.getLogger().error(error);
-                }
-            })
-        );
+        this.released(sends);
     }
 
     /**
@@ -344,7 +337,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * {@link sendToAll} does, and the audience is worked out once, here, rather than by the code
      * that made the occurrence.
      */
-    public async flushOccurrences(): Promise<void> {
+    public flushOccurrences(): void {
         if (this.pendingOccurrences.length === 0) return;
         const occurrences = this.pendingOccurrences.splice(0);
         const sends: Promise<void>[] = [];
@@ -352,20 +345,12 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             const send = this.sendOccurrence(occurrence);
             if (send !== undefined) sends.push(send);
         }
-        await Promise.all(
-            sends.map(async (send) => {
-                try {
-                    await send;
-                } catch (error: unknown) {
-                    this.server.getLogger().error(error);
-                }
-            })
-        );
+        this.released(sends);
     }
 
     /**
      * Sends one occurrence to its audience.
-     * @returns The send, for the occurrences whose sends are awaited.
+     * @returns The send, which the flush lets go without waiting, or undefined when there is none.
      */
     private sendOccurrence(entry: OccurrenceEntry): Promise<void> | undefined {
         switch (entry.occurrence) {
@@ -448,7 +433,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * synchronous zlib pass on the tick thread - which is most of what the tick was doing.
      * Twenty bytes of block update also compress far better in company than alone.
      */
-    public async flushBlockChanges(): Promise<void> {
+    public flushBlockChanges(): void {
         if (this.pendingBlocks.size === 0) return;
 
         const changes = [...this.pendingBlocks.values()];
@@ -464,7 +449,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         // With proximity off every client is told about everything, so the bytes are identical and
         // one compression per protocol version serves every client who speaks it.
         if (!this.server.getConfig().getProximityBroadcast()) {
-            await broadcastSharedBatches(
+            const broadcast = broadcastSharedBatches(
                 viewers.map((session) => session.getConnection()),
                 this.blockPackets(changes).map(({ packet }) => packet),
                 this.server.getConfig().getPacketCompressionLevel(),
@@ -473,6 +458,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 undefined,
                 { fullFlushFragments, fragmentCache }
             );
+            this.released([broadcast]);
             return;
         }
 
@@ -604,15 +590,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             }
         }
 
-        await Promise.all(
-            sends.map(async (send) => {
-                try {
-                    await send;
-                } catch (error: unknown) {
-                    this.server.getLogger().error(error);
-                }
-            })
-        );
+        this.released(sends);
     }
 
     /**
@@ -689,7 +667,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * to replace and drops the packet, and the chunk it gets later carries the new compound in
      * its own payload, so neither order loses the change.
      */
-    public async flushBlockEntities(): Promise<void> {
+    public flushBlockEntities(): void {
         if (this.pendingBlockEntities.size === 0) return;
 
         const changes = [...this.pendingBlockEntities.values()];
@@ -817,8 +795,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * A status effect change of one entity, to the players tracking it, which share one encode
      * for each group, and to its own client, whose packet carries the tick of its last input.
      */
-    private async sendStatusEffect({ entity, change, effect }: OccurrenceKinds['status-effect']): Promise<void> {
-        if (bedrockMobEffectId(effect.id) === undefined) return;
+    private sendStatusEffect({ entity, change, effect }: OccurrenceKinds['status-effect']): Promise<void> {
+        if (bedrockMobEffectId(effect.id) === undefined) return allSent([]);
         const sends = [
             this.sendToTrackedEntity(entity, () => {
                 const packet = statusEffectPacket(entity, effect, change, 0n);
@@ -827,11 +805,11 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         ];
         const own = this.world.viewerOf(entity);
         if (own !== undefined) sends.push(own.sendStatusEffect({ getRuntimeId: () => entity }, effect, change));
-        await Promise.all(sends);
+        return allSent(sends);
     }
 
     /** Something that happened to one entity, to the players tracking it and to its own client. */
-    private async sendActorEvent({ entity, event, data }: OccurrenceKinds['actor-event']): Promise<void> {
+    private sendActorEvent({ entity, event, data }: OccurrenceKinds['actor-event']): Promise<void> {
         const packetForViewer = (): ActorEventPacket => {
             const packet = new ActorEventPacket();
             packet.runtimeEntityId = entity;
@@ -842,7 +820,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const sends = [this.sendToTrackedEntity(entity, () => [packetForViewer()])];
         const own = this.world.viewerOf(entity);
         if (own !== undefined) sends.push(own.send(packetForViewer()));
-        await Promise.all(sends);
+        return allSent(sends);
     }
 
     /** @inheritdoc */
@@ -865,31 +843,30 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public async timeChanged(ticks: number): Promise<void> {
-        // Try to send it at the same time to all
-        await Promise.all(this.world.getViewers().map((session) => session.sendTime(ticks)));
+    public timeChanged(ticks: number): void {
+        this.released(this.world.getViewers().map((session) => session.sendTime(ticks)));
     }
 
     /** @inheritdoc */
-    public async gameRuleChanged(name: string, value: boolean | number, editable: boolean): Promise<void> {
+    public gameRuleChanged(name: string, value: boolean | number, editable: boolean): void {
         const rule = toNetworkGameRule(name, value, editable);
-        await Promise.all(this.world.getViewers().map(async (session) => session.sendGameRules([rule])));
+        this.released(this.world.getViewers().map((session) => session.sendGameRules([rule])));
     }
 
     /** @inheritdoc */
-    public async flushEntities(): Promise<void> {
-        await this.entities.flush();
+    public flushEntities(): void {
+        this.released([this.entities.flush()]);
     }
 
     /** @inheritdoc */
-    public async flushDepartures(): Promise<void> {
-        await this.entities.flushDepartures();
+    public flushDepartures(): void {
+        this.released([this.entities.flushDepartures()]);
     }
 
     /** @inheritdoc */
-    public async reconcile(): Promise<void> {
+    public reconcile(): void {
         const entities = this.entities.shownEntities();
-        await Promise.all(this.world.getViewers().map(async (session) => session.reconcileTrackedEntities(entities)));
+        this.released(this.world.getViewers().map((session) => session.reconcileTrackedEntities(entities)));
     }
 
     /** @inheritdoc */
@@ -904,7 +881,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * @param runtimeId - The runtime id of the entity whose state changed.
      * @param packetsForCodec - Builds the packet values with the selected codec's context.
      */
-    private async sendToTrackedEntity(
+    private sendToTrackedEntity(
         runtimeId: bigint,
         packetsForCodec: (codec: ProtocolCodec) => readonly NetworkPacket<unknown>[]
     ): Promise<void> {
@@ -921,17 +898,26 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         }
 
         const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
-        await Promise.all(
-            [...playersByCodec].map(async ([codec, connections]) => {
-                await broadcastSharedBatches(connections, packetsForCodec(codec), compressionLevel, (error) =>
+        return allSent(
+            [...playersByCodec].map(([codec, connections]) =>
+                broadcastSharedBatches(connections, packetsForCodec(codec), compressionLevel, (error) =>
                     this.server.getLogger().error(error)
-                );
-            })
+                )
+            )
         );
     }
 
+    /**
+     * Lets sends that are already queued go without waiting for the transport, and logs each one
+     * that fails. The flushes queue every packet before they return, in the order the tick
+     * calls them.
+     */
+    private released(sends: readonly Promise<void>[]): void {
+        for (const send of sends) void send.catch((error: unknown) => this.server.getLogger().error(error));
+    }
+
     /** @inheritdoc */
-    public async flushMovement(): Promise<void> {
+    public flushMovement(): void {
         if (this.pendingMoves.size === 0) return;
 
         const pendingMoves = [...this.pendingMoves.entries()];
@@ -1055,7 +1041,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             }
         }
 
-        await Promise.all(sends);
+        this.released(sends);
     }
 
     /**

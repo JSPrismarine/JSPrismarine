@@ -1034,7 +1034,7 @@ export class World implements Service {
         } finally {
             store.sealTick(this.tickHeader());
         }
-        await this.replicateTick(tick);
+        this.replicateTick(tick);
     }
 
     /**
@@ -1225,7 +1225,7 @@ export class World implements Service {
      * tick's change log, so the block changes come from the sealed tick
      * ([ADR 0016](../../../../docs/adr/0016-replication-reads-the-change-log.md)).
      */
-    private async replicateTick(tick: number): Promise<void> {
+    private replicateTick(tick: number): void {
         if (this.closing) return;
 
         const startProfile = profileSpanStarter(this.server);
@@ -1234,7 +1234,7 @@ export class World implements Service {
         // to it, and its equipment, metadata and health go out ahead of the movement.
         const endEntitiesProfile = startProfile?.(`World.entities:${this.name}`);
         try {
-            await this.changes.flushEntities();
+            this.changes.flushEntities();
         } finally {
             endEntitiesProfile?.();
         }
@@ -1243,7 +1243,7 @@ export class World implements Service {
         // changes and the movement, as it did when each was sent the moment it happened.
         const endOccurrencesProfile = startProfile?.(`World.occurrences:${this.name}`);
         try {
-            await this.changes.flushOccurrences();
+            this.changes.flushOccurrences();
         } finally {
             endOccurrencesProfile?.();
         }
@@ -1252,7 +1252,7 @@ export class World implements Service {
         // hurt flash, reaches the clients tracking it before it is taken away.
         const endDeparturesProfile = startProfile?.(`World.departures:${this.name}`);
         try {
-            await this.changes.flushDepartures();
+            this.changes.flushDepartures();
         } finally {
             endDeparturesProfile?.();
         }
@@ -1260,7 +1260,7 @@ export class World implements Service {
         // Next, so a trade's new offers follow the trade as closely as a send after the seal can.
         const endOwnerViewsProfile = startProfile?.(`World.ownerViews:${this.name}`);
         try {
-            await this.changes.flushOwnerViews();
+            this.changes.flushOwnerViews();
         } finally {
             endOwnerViewsProfile?.();
         }
@@ -1270,7 +1270,7 @@ export class World implements Service {
         // before the first packet that says it moved.
         const endTrackingProfile = startProfile?.(`World.entityTracking:${this.name}`);
         try {
-            await this.updateTracking(tick);
+            this.updateTracking(tick);
         } finally {
             endTrackingProfile?.();
         }
@@ -1281,7 +1281,7 @@ export class World implements Service {
         // client has not been told about yet.
         const endBlockChangesProfile = startProfile?.(`World.blockChanges:${this.name}`);
         try {
-            await this.changes.flushBlockChanges();
+            this.changes.flushBlockChanges();
         } finally {
             endBlockChangesProfile?.();
         }
@@ -1292,7 +1292,7 @@ export class World implements Service {
         // filled in one tick has to be announced as a block first.
         const endBlockEntitiesProfile = startProfile?.(`World.blockEntities:${this.name}`);
         try {
-            await this.changes.flushBlockEntities();
+            this.changes.flushBlockEntities();
         } finally {
             endBlockEntitiesProfile?.();
         }
@@ -1301,14 +1301,14 @@ export class World implements Service {
         // than one per mob - see `flushMovement`.
         const endMovementProfile = startProfile?.(`World.movement:${this.name}`);
         try {
-            await this.flushMovement();
+            this.flushMovement();
         } finally {
             endMovementProfile?.();
         }
 
         const endTimeProfile = startProfile?.(`World.time:${this.name}`);
         try {
-            await this.sendTime();
+            this.sendTime();
         } finally {
             endTimeProfile?.();
         }
@@ -1321,8 +1321,14 @@ export class World implements Service {
         }
 
         // Drain the per-session fallback queues once all tick-driven traffic, including
-        // movement and time, has had a chance to join the same outbound batch.
-        await Promise.all(this.getViewers().map((session) => session.getConnection().flushOutboundPackets()));
+        // movement and time, has had a chance to join the same outbound batch. Each flush takes
+        // its queue at once; the tick does not wait for the transport to frame it.
+        for (const session of this.getViewers()) {
+            void session
+                .getConnection()
+                .flushOutboundPackets()
+                .catch((error: unknown) => this.server.getLogger().error(error));
+        }
     }
 
     /**
@@ -3467,10 +3473,10 @@ export class World implements Service {
      * `SetTimePacket` is in the default `log-excluded-packets` purely because of the noise
      * this made.
      */
-    public async sendTime(): Promise<void> {
+    public sendTime(): void {
         if (this.getTicks() % World.TIME_SYNC_INTERVAL_TICKS !== 0) return;
 
-        await this.changes.timeChanged(this.getTicks());
+        this.changes.timeChanged(this.getTicks());
     }
 
     /**
@@ -3767,10 +3773,10 @@ export class World implements Service {
      * this interval only really governs entities moving towards a player standing still.
      * @param {number} tick - The current server tick.
      */
-    private async updateTracking(tick: number): Promise<void> {
+    private updateTracking(tick: number): void {
         if (tick % this.server.getConfig().getEntityTrackingInterval() !== 0) return;
 
-        await this.changes.reconcile();
+        this.changes.reconcile();
     }
 
     /**
@@ -3801,8 +3807,8 @@ export class World implements Service {
     }
 
     /** Sends every player the movement that happened this tick, as one batch each. */
-    private async flushMovement(): Promise<void> {
-        await this.changes.flushMovement();
+    private flushMovement(): void {
+        this.changes.flushMovement();
     }
 
     /**
@@ -4275,8 +4281,8 @@ export class World implements Service {
      * Tells everyone in this world that a game rule changed. Called by the level, whose rules
      * these are, for each of its worlds.
      */
-    public async announceGameRule(name: string, value: boolean | number, editable: boolean): Promise<void> {
-        await this.changes.gameRuleChanged(name, value, editable);
+    public announceGameRule(name: string, value: boolean | number, editable: boolean): void {
+        this.changes.gameRuleChanged(name, value, editable);
     }
 
     // This is used for example in start game packet

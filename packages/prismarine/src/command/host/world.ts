@@ -278,13 +278,13 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         setTime: (ticks) => {
             const world = defaultWorld();
             world.setTicks(ticks);
-            carryOut(world.sendTime(), undefined);
+            world.sendTime();
         },
         addTime: (ticks) => {
             const world = defaultWorld();
             const next = world.getTicks() + ticks;
             world.setTicks(next);
-            carryOut(world.sendTime(), undefined);
+            world.sendTime();
             return next;
         },
 

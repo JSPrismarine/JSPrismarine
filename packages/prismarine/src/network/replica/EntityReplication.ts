@@ -53,6 +53,7 @@ import type { EntityRef, HeldEntity, MembershipChange, PlayerIdOf, ShownKind } f
 import type { EntityReplica } from './EntityReplica';
 import { equipmentPackets, firstSightPackets } from './firstSight';
 import type { FirstSight, SightIdentity } from './firstSight';
+import { allSent } from '../allSent';
 
 /** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
 const MOVEMENT_EPSILON = 1e-4;
@@ -158,9 +159,9 @@ export class EntityReplication {
      * holds them, then their health. Moves are queued for the movement flush, and the entities
      * that left for {@link EntityReplication.flushDepartures}.
      */
-    public async flush(): Promise<void> {
+    public flush(): Promise<void> {
         // Departures a failed tick never sent go first, ahead of anything that enters again.
-        await this.flushDepartures();
+        const sends = [this.flushDepartures()];
         const memberships = this.memberships;
         const fields = this.fields;
         const slots = this.slots;
@@ -180,7 +181,7 @@ export class EntityReplication {
             if (membership.change === 'leave' && !entersAgain) {
                 this.shown.delete(membership.entity);
                 this.departures.push(membership.entity);
-            } else await this.showMembership(membership);
+            } else sends.push(this.showMembership(membership));
         }
         this.sights.clear();
 
@@ -193,7 +194,6 @@ export class EntityReplication {
         });
         visits.sort((left, right) => left.held.order - right.held.order);
 
-        const sends: Promise<void>[] = [];
         const health: (() => Promise<void>)[] = [];
         for (const { entity, held } of visits) {
             this.visited++;
@@ -209,7 +209,7 @@ export class EntityReplication {
         // After the equipment and the metadata of every entity, as the attributes always went.
         for (const send of health) sends.push(send());
         this.sights.clear();
-        await Promise.all(sends);
+        return allSent(sends);
     }
 
     /**
@@ -217,8 +217,8 @@ export class EntityReplication {
      * them, shown or not, because a stale id left behind would block one from ever being tracked
      * again.
      */
-    public async flushDepartures(): Promise<void> {
-        for (const entity of this.departures.splice(0)) await this.drop(entity);
+    public flushDepartures(): Promise<void> {
+        return allSent(this.departures.splice(0).map((entity) => this.drop(entity)));
     }
 
     /**
@@ -240,35 +240,30 @@ export class EntityReplication {
         return session === undefined ? undefined : Number(session.runtimeId);
     };
 
-    private async showMembership(membership: MembershipChange): Promise<void> {
+    private showMembership(membership: MembershipChange): Promise<void> {
         const { entity } = membership;
         const runtimeId = entity;
         if (membership.change === 'leave') {
             this.shown.delete(entity);
-            await this.drop(entity);
-            return;
+            return this.drop(entity);
         }
 
         const shown = this.firstShown(membership.entering);
-        if (shown === undefined) return;
+        if (shown === undefined) return allSent([]);
         this.shown.set(entity, shown);
         // Everything already here, shown to an arriving player, which the tracker leaves itself out of.
-        await this.ports.viewerOf(runtimeId)?.reconcileTrackedEntities(this.shownEntities());
+        const sends = [this.ports.viewerOf(runtimeId)?.reconcileTrackedEntities(this.shownEntities()) ?? allSent([])];
         // And the arrival offered to everyone already here, as it entered.
         const sight = this.sightOf(entity, membership.entering, shown);
-        await Promise.all(
-            this.ports
-                .viewers()
-                .filter((session) => session.runtimeId !== runtimeId)
-                .map(async (session) => session.considerEntity(sight))
-        );
+        for (const session of this.ports.viewers()) {
+            if (session.runtimeId !== runtimeId) sends.push(session.considerEntity(sight));
+        }
+        return allSent(sends);
     }
 
     /** Has every client forget an entity, whether or not it was shown it. */
-    private async drop(entity: EntityId): Promise<void> {
-        await Promise.all(
-            this.ports.viewers().map(async (session) => session.dropEntity({ getRuntimeId: () => entity }))
-        );
+    private drop(entity: EntityId): Promise<void> {
+        return allSent(this.ports.viewers().map((session) => session.dropEntity({ getRuntimeId: () => entity })));
     }
 
     /**
@@ -357,7 +352,7 @@ export class EntityReplication {
         return changed;
     }
 
-    private async sendMetadata(entity: EntityId, shown: Shown): Promise<void> {
+    private sendMetadata(entity: EntityId, shown: Shown): Promise<void> {
         const { metadata, properties } = shown;
         const sends = [
             this.ports.sendToTracked(entity, () => {
@@ -374,7 +369,7 @@ export class EntityReplication {
             sends.push(
                 own.sendMetadataFor({ getRuntimeId: () => entity, metadata, getSyncedProperties: () => properties })
             );
-        await Promise.all(sends);
+        return allSent(sends);
     }
 
     /** Queues a move when the entity stands or faces anywhere new since the last one sent. */

@@ -248,9 +248,7 @@ export class Level {
         // a world built later hears it too.
         this.gameRuleManager = new GameRuleManager(this.server, (name, value, editable) => {
             for (const world of this.worlds()) {
-                world.announceGameRule(name, value, editable).catch((error: unknown) => {
-                    this.server.getLogger().error(`Failed to send game rule ${name}: ${error}`);
-                });
+                world.announceGameRule(name, value, editable);
             }
         });
         this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);
