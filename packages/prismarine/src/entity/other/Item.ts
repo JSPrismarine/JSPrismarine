@@ -1,6 +1,6 @@
 import type Player from '../../Player';
 import { Vector3 } from '@jsprismarine/math';
-import { ActorEvent } from '@jsprismarine/minecraft';
+import { ActorEvent, Gametype } from '@jsprismarine/minecraft';
 import { advancementPickedUpItem } from '../../advancement/triggers';
 import type ContainerEntry from '../../inventory/ContainerEntry';
 import type PlayerSession from '../../network/PlayerSession';
@@ -324,7 +324,7 @@ export class Item extends Entity {
 
         const taker = this.getWorld()
             .getPlayers()
-            .find((player) => this.reaches(player));
+            .find((player) => player.gamemode !== Gametype.SPECTATOR && this.reaches(player));
         if (!taker) return;
 
         // Claimed before the first await, so that a second tick cannot hand the same stack to

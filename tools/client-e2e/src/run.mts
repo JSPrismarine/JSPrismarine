@@ -25,6 +25,7 @@ import { mergeRetries, retrySuites } from './retry.mts';
 import { sleep, standAt } from './scenario.mts';
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
+import { spectatorPickup } from './scenarios/spectator-pickup.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
 import { farmland } from './scenarios/farmland.mts';
 import { furnace } from './scenarios/furnace.mts';
@@ -92,6 +93,7 @@ const suites: ScenarioSuite[] = [
             movementRotation,
             chat,
             miningDrops,
+            spectatorPickup,
             edgeChunkBlockChange,
             subChunkBlockChanges,
             teleport,
