@@ -364,6 +364,21 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
         }
 
         this.enumConstraints = [];
+        // Each constrained enum's value to its first offset, built once on the enum's first
+        // constraint. Searching the enum's values per constraint made a packet with many
+        // values and many constraints cost their product.
+        const offsets = new Map<CommandEnum, Map<string, number>>();
+        const offsetOf = (constrained: CommandEnum, value: string): number => {
+            let offsetsOf = offsets.get(constrained);
+            if (offsetsOf === undefined) {
+                offsetsOf = new Map();
+                for (const [offset, member] of constrained.values.entries()) {
+                    if (!offsetsOf.has(member)) offsetsOf.set(member, offset);
+                }
+                offsets.set(constrained, offsetsOf);
+            }
+            return offsetsOf.get(value) ?? -1;
+        };
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
             const valueIndex = this.readUnsignedIntLE(); // Enum Value Symbol.
             const enumIndex = this.readUnsignedIntLE(); // Enum Symbol.
@@ -379,7 +394,7 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                 throw new Error(`A constraint points at missing enum ${enumIndex} or value ${valueIndex}`);
             }
             this.enumConstraints.push(
-                new CommandEnumConstraint(constrained, constrained.values.indexOf(value), constraints)
+                new CommandEnumConstraint(constrained, offsetOf(constrained, value), constraints)
             );
         }
 
