@@ -19,6 +19,9 @@ export interface DamageRecord {
     readonly total: number;
 }
 
+/** The key one source's total is kept under. */
+const keyOf = (sourceId: number | undefined, cause: string): string => `${sourceId ?? 'none'}:${cause}`;
+
 /** The damage one entity has taken, oldest source first. */
 export class DamageLog {
     /** One entry per source, keyed so a second hit from the same source adds to its total. */
@@ -41,10 +44,16 @@ export class DamageLog {
      * order is oldest source first and the last entry is the most recent hit.
      */
     public record(sourceId: number | undefined, cause: string, amount: number): void {
-        const key = `${sourceId ?? 'none'}:${cause}`;
+        const key = keyOf(sourceId, cause);
         const total = (this.totals.get(key)?.total ?? 0) + Math.max(0, amount);
         this.totals.delete(key);
         this.totals.set(key, { sourceId, cause, total });
+    }
+
+    /** Puts back the records {@link DamageLog.records} read, oldest source first. */
+    public restore(records: readonly DamageRecord[]): void {
+        this.totals.clear();
+        for (const record of records) this.totals.set(keyOf(record.sourceId, record.cause), record);
     }
 
     /** Forgets everything, which is what healing to full does in Java. */

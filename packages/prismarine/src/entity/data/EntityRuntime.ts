@@ -461,9 +461,15 @@ export class EntityRuntime implements EntityScene {
      * of their state. See {@link EntityStore}.
      */
     public readonly store: EntityStore;
-    /** Entities whose death is running, which refuse every further blow until it ends. */
+    /**
+     * Entities whose death is running, which refuse every further blow until it ends. Written
+     * through {@link EntityRuntime.setDying}, so an undone unit puts it back.
+     */
     private readonly dying = new Set<number>();
-    /** The grace period after a hit, by entity, for the blows that keep one. */
+    /**
+     * The grace period after a hit, by entity, for the blows that keep one. Written through
+     * {@link EntityRuntime.setHitGrace}, so an undone unit puts it back.
+     */
     private readonly hitGraces = new Map<number, HitGrace>();
     /** The sensing of the damage run in progress, which the sensor guard and modifier share. */
     private readonly damageSensing: DamageSensingSlot;
@@ -536,7 +542,10 @@ export class EntityRuntime implements EntityScene {
     >();
     /** Flight age and impacts already passed through for each active projectile. */
     private readonly projectiles = new Map<number, ProjectileState>();
-    /** The active explode component instance behind each body's ticking fuse. */
+    /**
+     * The active explode component instance behind each body's ticking fuse. Written through
+     * {@link EntityRuntime.setFuse}, so an undone unit puts it back.
+     */
     private readonly fuses = new Map<number, FuseState>();
     /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
     private readonly merchants = new Map<number, Merchant>();
@@ -1460,8 +1469,9 @@ export class EntityRuntime implements EntityScene {
                 this.unloadedIdentities.delete(entity.persistentIdentity);
             }
         }
-        this.dying.delete(id);
-        this.hitGraces.delete(id);
+        // Kept for an undo of the removal: the saved form the entity is added back from has neither.
+        this.setDying(id, false);
+        this.setHitGrace(id, undefined);
         this.byInstance.delete(entity.instance);
         entity.body.onEquipmentChanged = undefined;
         this.index.remove(entity);
@@ -1477,6 +1487,7 @@ export class EntityRuntime implements EntityScene {
         this.merchantSnapshots.delete(id);
         this.fallingBlocks.delete(id);
         this.projectiles.delete(id);
+        // Not through `setFuse`: an undo adds the entity back through `restore`, which starts its fuse again.
         this.fuses.delete(id);
         this.rides.remove(id);
         this.leashHolders.delete(id);
@@ -2366,7 +2377,7 @@ export class EntityRuntime implements EntityScene {
         if (source.graced === true) {
             const grace = this.hitGraces.get(entity.id);
             fresh = grace === undefined || grace.ticks <= 0 || source.bypassesGrace === true;
-            this.hitGraces.set(entity.id, {
+            this.setHitGrace(entity.id, {
                 ticks: fresh || grace === undefined ? INVULNERABILITY_TICKS : grace.ticks,
                 last: intent.amount
             });
@@ -2386,12 +2397,13 @@ export class EntityRuntime implements EntityScene {
             sensing?.events ?? []
         );
         if (result.amount > 0 && source.remembered !== false) {
+            this.keepDamageRecord(entity);
             entity.body.damage.record(intent.attacker, intent.cause, result.amount);
             this.lastDamagedAt.set(entity, this.world.level.gameTime());
             this.disablePiglinAdmirationAfterDamage(entity);
         }
         if (result.died) {
-            this.dying.add(entity.id);
+            this.setDying(entity.id, true);
             if (clientOwnsMovement(entity.identifier)) this.playerSystems.died(entity);
             if (damager !== undefined) this.notifyAttackTargetKilled(entity, damager);
         }
@@ -2459,8 +2471,8 @@ export class EntityRuntime implements EntityScene {
         if (entity === undefined || health === undefined || !clientOwnsMovement(entity.identifier)) return false;
         if (!this.dying.has(id) && health.current > 0) return false;
 
-        this.dying.delete(id);
-        this.hitGraces.delete(id);
+        this.setDying(id, false);
+        this.setHitGrace(id, undefined);
         entity.instance.attributes.set('health', health.max);
         this.playerSystems.revived(entity);
         return true;
@@ -2642,7 +2654,7 @@ export class EntityRuntime implements EntityScene {
             if (entity.removed !== undefined) return;
             if (entity.instance.hasComponent('minecraft:behavior.dragondeath')) {
                 // The killing hit added the death-hold goal; the dragon stays until it ends.
-                this.dying.delete(entity.id);
+                this.setDying(entity.id, false);
                 this.host.startDeathAnimation?.(entity.id);
                 return;
             }
@@ -2655,8 +2667,65 @@ export class EntityRuntime implements EntityScene {
     private tickHitGrace(id: number): void {
         const grace = this.hitGraces.get(id);
         if (grace === undefined) return;
-        if (grace.ticks <= 1) this.hitGraces.delete(id);
-        else this.hitGraces.set(id, { ticks: grace.ticks - 1, last: grace.last });
+        this.setHitGrace(id, grace.ticks <= 1 ? undefined : { ticks: grace.ticks - 1, last: grace.last });
+    }
+
+    /**
+     * Marks an entity's death as running or ended. The log does not carry this, so the write
+     * registers its undo with the open unit (`EntityStore.undoWith`): a death an undone unit left
+     * running would refuse every later blow, and the entity could never die.
+     */
+    private setDying(id: number, dying: boolean): void {
+        if (this.dying.has(id) === dying) return;
+        if (dying) this.dying.add(id);
+        else this.dying.delete(id);
+        this.store.undoWith(() => {
+            if (dying) this.dying.delete(id);
+            else this.dying.add(id);
+        });
+    }
+
+    /**
+     * Sets or clears an entity's grace period, with an undo as {@link EntityRuntime.setDying}
+     * has: a grace an undone blow left would refuse that blow when it comes again.
+     */
+    private setHitGrace(id: number, grace: HitGrace | undefined): void {
+        const before = this.hitGraces.get(id);
+        if (before === grace) return;
+        if (grace === undefined) this.hitGraces.delete(id);
+        else this.hitGraces.set(id, grace);
+        this.store.undoWith(() => {
+            if (before === undefined) this.hitGraces.delete(id);
+            else this.hitGraces.set(id, before);
+        });
+    }
+
+    /**
+     * Sets or clears the explode component instance behind an entity's fuse. Without the undo, a
+     * unit that started a fuse and threw would leave it marked started with its count undone, and
+     * the fuse would never count.
+     */
+    private setFuse(entity: DataEntity, fuse: FuseState | undefined): void {
+        const before = this.fuses.get(entity.id);
+        if (before === fuse) return;
+        if (fuse === undefined) this.fuses.delete(entity.id);
+        else this.fuses.set(entity.id, fuse);
+        this.store.undoWith(() => {
+            // An entity the undo added back is a new one, and its restore started its own fuse.
+            if (this.store.get(entity.id) !== entity) return;
+            if (before === undefined) this.fuses.delete(entity.id);
+            else this.fuses.set(entity.id, before);
+        });
+    }
+
+    /**
+     * Registers how to put an entity's damage record back as it is now, so `hurt_by_target` and
+     * the others that read it do not answer a blow that was undone.
+     */
+    private keepDamageRecord(entity: DataEntity): void {
+        const records = entity.body.damage.records();
+        // By id: an undone removal adds the entity back with a new, empty record.
+        this.store.undoWith(() => this.store.get(entity.id)?.body.damage.restore(records));
     }
 
     /**
@@ -4454,7 +4523,7 @@ export class EntityRuntime implements EntityScene {
         const params = entity.instance.componentParams('minecraft:explode');
         if (!isRecord(params) || params.fuse_lit !== true) {
             entity.body.fuseTicks = undefined;
-            this.fuses.delete(entity.id);
+            this.setFuse(entity, undefined);
             return false;
         }
 
@@ -4527,13 +4596,13 @@ export class EntityRuntime implements EntityScene {
         const params = entity.instance.componentParams('minecraft:explode');
         if (!isRecord(params) || params.fuse_lit !== true) {
             entity.body.fuseTicks = undefined;
-            this.fuses.delete(entity.id);
+            this.setFuse(entity, undefined);
             return;
         }
 
         const previous = this.fuses.get(entity.id);
         if (previous?.params === params) return;
-        this.fuses.set(entity.id, { params });
+        this.setFuse(entity, { params });
         const starting = previous === undefined && entity.body.fuseTicks === undefined;
 
         if (starting && entity.instance.families().includes('tnt')) {
