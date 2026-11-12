@@ -1,3 +1,5 @@
+import { terminalText } from '../terminalText';
+
 /**
  * A stream of measurements, kept in full so percentiles are exact.
  *
@@ -117,7 +119,8 @@ export const formatReport = (report: FleetReport): string => {
     }
 
     for (const failure of report.failures) {
-        lines.push(`failure    ${failure.count}x ${failure.reason}`);
+        // A reason can carry a server's disconnect message.
+        lines.push(`failure    ${failure.count}x ${terminalText(failure.reason)}`);
     }
 
     return lines.join('\n');
