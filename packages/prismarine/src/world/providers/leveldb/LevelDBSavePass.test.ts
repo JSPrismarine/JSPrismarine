@@ -5,10 +5,13 @@ import path from 'node:path';
 import { Database } from '@jsprismarine/leveldb';
 import type { WriteBatch } from '@jsprismarine/leveldb';
 import type { Logger } from '@jsprismarine/logger';
+import { Vector3 } from '@jsprismarine/math';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Block } from '../../../block/Block';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
+import { GenericBlockEntity } from '../../../blockentity/GenericBlockEntity';
 import type Server from '../../../Server';
 import { stub } from '../../../testing/stub.test.helper';
 import Chunk from '../../chunk/Chunk';
@@ -263,6 +266,34 @@ describe('a LevelDB save pass', () => {
 
         expect(pass.stats.bypassedWrites).toBe(1);
         expect(errors).toHaveLength(1);
+        await leveldb.disable();
+    });
+
+    it('puts nothing of a chunk into the batch when its cut throws partway', async () => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        const chunk = twoSectionChunk(0, 0);
+        const first = leveldb.beginSavePass();
+        first.cutChunk(chunk, context());
+        await first.commit({ sync: true });
+
+        // The upper section emptied, which the next cut deletes, and a block entity the cut
+        // cannot write, which it reaches after that deletion.
+        chunk.setBlockRuntimeId(0, 16, 0, air);
+        chunk.setBlockEntity(
+            Object.assign(new GenericBlockEntity('Sign', new Vector3(0, 1, 0), new NBTTagCompound()), {
+                toNBT: () => {
+                    throw new Error('this block entity cannot be written');
+                }
+            })
+        );
+        const pass = leveldb.beginSavePass();
+        expect(() => pass.cutChunk(chunk, context())).toThrow('cannot be written');
+        expect(pass.stats.keys).toBe(0);
+
+        await pass.commit({ sync: true });
+        expect((await readBack(leveldb, 0, 0)).getBlockRuntimeId(0, 16, 0)).toBe(stone);
         await leveldb.disable();
     });
 

@@ -857,7 +857,14 @@ export default class LevelDB extends BaseProvider {
         };
     }
 
-    /** Encodes what a chunk's cut writes at once into the batch, and holds back its sub chunks. */
+    /**
+     * Encodes what a chunk's cut writes at once into the batch, and holds back its sub chunks.
+     *
+     * What it writes at once goes into a batch of its own first, and into the pass's only once the
+     * whole cut has been encoded: a cut that throws partway, such as on a block entity that cannot
+     * be serialized, leaves the pass's batch without half a chunk, the deletions of its sections
+     * among them, and the chunk is cut whole by the next pass.
+     */
     private cutChunk(
         batch: OverlayBatch,
         chunk: Chunk,
@@ -874,12 +881,13 @@ export default class LevelDB extends BaseProvider {
         const state = chunk.persistedStateNow();
         const changes = chunk.getPersistenceChanges();
         const held = new Map<number, { subChunk: ReadonlySubChunk; revision: number }>();
+        const staged = new OverlayBatch();
 
         for (const { index, subChunk, stored } of changes.subChunks) {
             if (!stored || subChunk === null) {
                 // Only loaded or previously written keys need tombstones; absent air slices have no value to remove.
                 if (this.mayHold(key(ChunkTag.SubChunkPrefix, index))) {
-                    batch.del(key(ChunkTag.SubChunkPrefix, index));
+                    staged.del(key(ChunkTag.SubChunkPrefix, index));
                 }
                 continue;
             }
@@ -896,36 +904,37 @@ export default class LevelDB extends BaseProvider {
             for (const index of earlier.subChunkPuts) {
                 const subChunkKey = key(ChunkTag.SubChunkPrefix, index);
                 if (state.subChunkKeys.has(index) || !this.mayHold(subChunkKey)) continue;
-                batch.del(subChunkKey);
+                staged.del(subChunkKey);
                 emptied = true;
             }
         }
 
         const versionKey = key(ChunkTag.Version);
         const version = Buffer.from([CHUNK_VERSION]);
-        if (!this.holds(versionKey, version)) batch.put(versionKey, version);
+        if (!this.holds(versionKey, version)) staged.put(versionKey, version);
 
         const finalized = Buffer.allocUnsafe(4);
         finalized.writeInt32LE(FINALIZED_DONE);
         const finalizedKey = key(ChunkTag.FinalizedState);
-        if (!this.holds(finalizedKey, finalized)) batch.put(finalizedKey, finalized);
+        if (!this.holds(finalizedKey, finalized)) staged.put(finalizedKey, finalized);
         const pendingEntitiesKey = encodePendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
-        if (this.mayHold(pendingEntitiesKey)) batch.del(pendingEntitiesKey);
+        if (this.mayHold(pendingEntitiesKey)) staged.del(pendingEntitiesKey);
 
         if (changes.blockEntities) {
             const blockEntities = this.writeBlockEntities(chunk.getBlockEntities());
             const blockEntitiesKey = key(ChunkTag.BlockEntity);
             if (blockEntities === null) {
-                if (this.mayHold(blockEntitiesKey)) batch.del(blockEntitiesKey);
+                if (this.mayHold(blockEntitiesKey)) staged.del(blockEntitiesKey);
             } else {
-                batch.put(blockEntitiesKey, blockEntities);
+                staged.put(blockEntitiesKey, blockEntities);
             }
         }
 
-        this.writeEntities(batch, chunk, key, context);
+        this.writeEntities(staged, chunk, key, context);
 
         // An emptied section moves the heightmap `Data3D` carries.
         const data3D = changes.data3D || emptied;
+        batch.append(staged);
         const cut = new LevelDBChunkCut(chunk, state, held, data3D, report, {
             subChunk: (index, subChunk) =>
                 batch.put(
