@@ -24,6 +24,7 @@ import type HumanInventory from '../inventory/HumanInventory';
 import { restoreInventory, storedInventory } from '../inventory/persistence';
 import { mayFlyIn } from '../entity/playerComponents';
 import type { KeyedPlayer } from '../keyedPlayer';
+import { isRecord } from '../utils/isRecord';
 import type { DimensionType } from './DimensionType';
 import type { StoredSpawnPoint } from './RespawnPoint';
 
@@ -192,6 +193,9 @@ export const applyPlayerRecord = (
 
     if (data.attributes !== undefined) {
         for (const [name, attribute] of Object.entries(data.attributes)) {
+            // The fallback JSON is read without a schema, and one broken entry must not keep the
+            // player from joining.
+            if (!isRecord(attribute)) continue;
             player.attributes.setAttribute(
                 new Attribute({
                     name,
@@ -202,8 +206,9 @@ export const applyPlayerRecord = (
                 })
             );
         }
-        // A player whose health is not in the table, such as a store player, takes it from there.
-        const health = data.attributes[AttributeIds.Health]?.current;
+        // A player whose health is not in the table, such as a store player, takes it from there,
+        // and a table without health falls back to the record's own figure.
+        const health = data.attributes[AttributeIds.Health]?.current ?? data.health;
         if (health !== undefined && player.getHealth() !== health) player.restoreHealth(health);
     } else {
         if (data.health !== undefined) player.restoreHealth(data.health);
