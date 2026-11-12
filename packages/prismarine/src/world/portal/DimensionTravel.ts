@@ -127,6 +127,16 @@ interface PortalTrip {
     preparing: Promise<void> | undefined;
     /** Who holds the chunk ticket on the arrival chunks until the trip lands or is dropped. */
     readonly ticket: string;
+    /**
+     * Whether the trip landed or was dropped. A preparation still running then takes no ticket:
+     * the trip that would release it is gone.
+     */
+    released: boolean;
+    /**
+     * The player whose respawn search a trip out of the End waits for, which holds a ticket in
+     * the player's name until it answers.
+     */
+    respawnFor: PlayerSession | undefined;
 }
 
 /** What a ready trip's arrival says while the arrival still waits, such as for a respawn search. */
@@ -412,7 +422,9 @@ export class DimensionTravel {
             entity: entity.getRuntimeId(),
             route,
             preparing: undefined,
-            ticket: `travel:${this.nextTicket++}`
+            ticket: `travel:${this.nextTicket++}`,
+            released: false,
+            respawnFor: undefined
         };
         this.trips.push(trip);
         this.prepare(trip);
@@ -509,9 +521,17 @@ export class DimensionTravel {
         return landed;
     }
 
-    /** Gives up the chunk ticket a trip holds on its arrival chunks. */
+    /**
+     * Gives up the tickets a trip that landed or was dropped holds: its own on the arrival chunks,
+     * and the respawn search's for a trip out of the End.
+     */
     private release(trip: PortalTrip): void {
+        // While the destination is still being built there is no ticket to give up here, so the
+        // flag stops the preparation from taking one once the build finishes.
+        trip.released = true;
         trip.from.getLevel().readyWorld(trip.route.to)?.chunkTickets().release(trip.ticket);
+        // The search gives up its ticket when it answers, which a dropped trip never asks again for.
+        trip.respawnFor?.abandonRespawnPoint();
     }
 
     /**
@@ -630,7 +650,7 @@ export class DimensionTravel {
         const preparing: Promise<void> = outsideTick(async () => {
             await level.prepareWorld(route.to);
             const to = level.readyWorld(route.to);
-            if (to === undefined) return;
+            if (to === undefined || trip.released) return;
             if (route.kind === 'nether' && this.exitPortalIn(to, route) !== undefined) return;
             to.chunkTickets().request(trip.ticket, chunksOf(route));
         })
@@ -668,7 +688,7 @@ export class DimensionTravel {
         const { route } = trip;
         if (route.kind === 'nether') return this.throughNetherPortal(route, to);
         if (route.kind === 'enter-end') return this.enterEnd(route, to);
-        return this.leaveEnd(traveler, route, to);
+        return this.leaveEnd(trip, traveler, to);
     }
 
     /** `NetherPortalBlock.getPortalDestination` and `getExitPortal`, with Bedrock's player-only creation. */
@@ -731,10 +751,16 @@ export class DimensionTravel {
      * it lacks, and a world that has not found its spawn searches outside the tick; the trip
      * asks again at the next input step.
      */
-    private leaveEnd(traveler: StoreActor, route: TripRoute, to: World): PortalArrival | typeof WAITING {
+    private leaveEnd(trip: PortalTrip, traveler: StoreActor, to: World): PortalArrival | typeof WAITING {
+        const { route } = trip;
         const session = sessionOf(traveler);
         if (session !== undefined) {
             const respawn = session.attemptRespawnPoint();
+            // Kept while the search waits, so a trip dropped then can give up the search's
+            // ticket: by that time the session can no longer be found from the source world.
+            // An answer has given it up already, and releasing it again would take the ticket
+            // of another request of the same player that still waits.
+            trip.respawnFor = respawn === undefined ? session : undefined;
             if (respawn === undefined) return WAITING;
             return {
                 world: respawn.world,

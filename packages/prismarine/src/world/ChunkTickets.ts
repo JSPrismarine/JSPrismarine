@@ -93,6 +93,11 @@ export class ChunkTickets {
         return this.held.has(Chunk.packXZ(x, z));
     }
 
+    /** How many owners hold a ticket, for a test that counts them. */
+    public get count(): number {
+        return this.tickets.size;
+    }
+
     /** Whether the owner holds a ticket. */
     public has(owner: string): boolean {
         return this.tickets.has(owner);
