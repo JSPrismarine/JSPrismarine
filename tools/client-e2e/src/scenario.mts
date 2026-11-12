@@ -148,6 +148,38 @@ export const untilTicks = async (
     }
 };
 
+/** How many players the server counts as online, from the `list` command. */
+export const onlineCount = async (server: Pick<JspServer, 'command' | 'waitForLine'>): Promise<number> => {
+    const reply = server.waitForLine(/There are \d+ players online/, 10_000);
+    server.command('list');
+    return Number(/There are (\d+) players online/.exec(await reply)?.[1]);
+};
+
+/**
+ * Asks the server once a second until it counts `count` players online.
+ *
+ * A cinnabar client that quits sends no disconnect, so the server keeps the player of an extra
+ * client a scenario closed until its RakNet session times out, ten seconds later. The budget is
+ * wall-clock time because that timeout is.
+ *
+ * @param server - The server to ask.
+ * @param count - How many players it should count.
+ * @param timeoutMs - How long to keep asking.
+ */
+export const untilPlayersOnline = async (
+    server: Pick<JspServer, 'command' | 'waitForLine'>,
+    count: number,
+    timeoutMs = 30_000
+): Promise<void> => {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+        const online = await onlineCount(server);
+        if (online === count) return;
+        if (Date.now() >= deadline) throw new Error(`the server still counts ${online} players online, not ${count}`);
+        await sleep(1_000);
+    }
+};
+
 /**
  * Teleports the player and waits until the client stands at the spot for a full second.
  *

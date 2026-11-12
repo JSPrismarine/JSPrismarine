@@ -22,7 +22,7 @@ import { CinnabarClient } from './client.mts';
 import { startServer, UDP_PORTS_LAYOUTS } from './jsp-server.mts';
 import type { ScenarioResult } from './retry.mts';
 import { mergeRetries, retrySuites } from './retry.mts';
-import { sleep, standAt } from './scenario.mts';
+import { sleep, standAt, untilPlayersOnline } from './scenario.mts';
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
 import { spectatorPickup } from './scenarios/spectator-pickup.mts';
@@ -287,6 +287,10 @@ const resetBetweenScenarios = async (
     server.command(`execute in minecraft:overworld run teleport ${playerName} 0.5 64 0.5`);
     server.command(`say ${reset}`);
     await resetComplete;
+    // A scenario starts with the suite's player alone on the server. The extra clients the last
+    // one started are closed, but the server keeps their players until their sessions time out,
+    // and duplicate-login counted the observer movement-fanout had left as one of its own.
+    await untilPlayersOnline(server, 1);
     // A scenario starts with the first hotbar slot selected and no control held, whatever the
     // one before it left behind.
     await client.input({ release_all: true });
