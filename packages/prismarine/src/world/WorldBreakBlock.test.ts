@@ -97,8 +97,8 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {}, updateAround: () => {} },
-        getChunkAt: async () => chunk,
-        getBlock: async () => broken,
+        getLoadedChunk: () => chunk,
+        loadedBlock: () => broken,
         // Standing where these tests break their block, so the break is well inside both the
         // view distance and the tighter radius a sound carries. A position and a view distance
         // are needed at all now that block updates and sounds are addressed to whoever is near

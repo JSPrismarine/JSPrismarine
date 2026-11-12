@@ -31,11 +31,5 @@ export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
         file: 'world/RespawnSearch.ts',
         call: 'loads.push(world.getChunk(x, z))',
         slice: 9
-    },
-    {
-        path: '`World.setBlockRuntimeId` on a chunk that is not loaded',
-        file: 'world/World.ts',
-        call: '?? (await this.getChunkAt(x, z))',
-        slice: 9
     }
 ];

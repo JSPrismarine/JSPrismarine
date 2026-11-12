@@ -2551,14 +2551,18 @@ export class World implements Service {
      * the work already done. That is what keeps the break from sounding twice.
      * @param {Vector3} position - the block to destroy.
      * @param {BlockBreaker} [player] - who broke it, when a player did. Decides what it drops.
+     *
+     * Reads and writes the loaded chunk only, and runs to the end before it returns, so a handler
+     * calls it inside its unit. A block in a chunk that is not loaded is left alone.
      * @returns {boolean} `true` if a block was there and is now gone.
      */
-    public async breakBlock(position: Vector3, player?: BlockBreaker): Promise<boolean> {
+    public breakBlock(position: Vector3, player?: BlockBreaker): boolean {
         const x = position.getX();
         const y = position.getY();
         const z = position.getZ();
 
-        const chunk = await this.getChunkAt(x, z);
+        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+        if (chunk === null) return false;
         const state = chunk.getBlock(x, y, z);
         if (state.name === 'minecraft:air') return false;
 
@@ -2568,7 +2572,7 @@ export class World implements Service {
 
         // Read before the block goes, and through `getBlock` so that a state nobody
         // registered a behavior for costs the drops rather than the whole break.
-        const broken = await this.getBlock(x, y, z);
+        const broken = this.loadedBlock(x, y, z)!;
 
         // The content path's share of the break, before the block goes: the block's behavior
         // family gets `onBreak`, which is what spills a chest, and Java's loot table for the
@@ -2588,13 +2592,13 @@ export class World implements Service {
         // Through `setBlockByName` rather than straight into the chunk, so that everything the
         // block was holding up - a flower on it, sand above it, water beside it - is given its
         // chance to react. That is the whole of what makes breaking a block have consequences.
-        await this.setBlockByName(x, y, z, 'minecraft:air');
+        this.setBlockByName(x, y, z, 'minecraft:air');
 
         // One event at the block's center for the particles and the sound together, which the
         // client resolves from the runtime id. This is what a Bedrock Dedicated Server 1.26.52
         // sends for a break. It used to be a `LevelSoundEvent` plus the silent variant of this
         // event, which the client renders the same way and a packet comparison with BDS does not.
-        await this.sendWorldEvent(
+        this.sendWorldEvent(
             new Vector3(x + 0.5, y + 0.5, z + 0.5),
             LevelEvent.PARTICLES_DESTROY_BLOCK,
             brokenRuntimeId
@@ -2622,7 +2626,7 @@ export class World implements Service {
                 });
             }
 
-            await this.dropFromBlock({ x, y, z }, contentDrops ?? broken.getDrops(itemInHand, this.server));
+            this.spillFromBlock({ x, y, z }, contentDrops ?? broken.getDrops(itemInHand, this.server));
         }
 
         return true;
@@ -2641,29 +2645,28 @@ export class World implements Service {
      * @param {number} runtimeId - The block state to put there.
      * @param {number} [now] - The tick to schedule the resulting updates from.
      * @param {number} [delay=1] - Ticks before the neighbors are looked at.
-     * @returns {Promise<boolean>} `false` if nothing changed - the position is outside the world,
-     * its chunk is not loaded, or that block is already there.
+     * @returns {boolean} `false` if nothing changed - the position is outside the world, its
+     * chunk is not loaded, or that block is already there. A chunk that is not loaded is never
+     * loaded for a write: a caller inside a tick cannot wait for it.
      */
-    public async setBlockRuntimeId(
+    public setBlockRuntimeId(
         x: number,
         y: number,
         z: number,
         runtimeId: number,
         now: number = this.getTicks(),
         delay = 1
-    ): Promise<boolean> {
-        const chunk = this.getLoadedChunk(x >> 4, z >> 4) ?? (await this.getChunkAt(x, z));
-
-        return this.writeBlockRuntimeId(chunk, x, y, z, runtimeId, now, delay, true);
+    ): boolean {
+        return this.setLoadedBlockRuntimeId(x, y, z, runtimeId, now, delay);
     }
 
     /**
      * The same write, for a chunk that is already in memory.
      *
-     * {@link World.setBlockRuntimeId} is this method with a chunk load in front of it. The
-     * split exists because the content behaviors write blocks from inside the tick and cannot
-     * await: a door has to see its own other half the moment it writes it, and generating
-     * terrain because a behavior looked at a position would be worse than declining to write.
+     * {@link World.setBlockRuntimeId} is this method with the neighbor updates always on. The
+     * content behaviors write blocks from inside the tick: a door has to see its own other half
+     * the moment it writes it, and generating terrain because a behavior looked at a position
+     * would be worse than declining to write.
      * @param {number} x - World x.
      * @param {number} y - World y.
      * @param {number} z - World z.
@@ -2892,16 +2895,17 @@ export class World implements Service {
      * @param {string} name - The block's namespace id.
      * @param {number} [now] - The tick to schedule the resulting updates from.
      * @param {number} [delay=1] - Ticks before the neighbors are looked at.
-     * @returns {Promise<boolean>} `false` if nothing changed, or this server has no such block.
+     * @returns {boolean} `false` if nothing changed, its chunk is not loaded, or this server has
+     * no such block.
      */
-    public async setBlockByName(
+    public setBlockByName(
         x: number,
         y: number,
         z: number,
         name: string,
         now: number = this.getTicks(),
         delay = 1
-    ): Promise<boolean> {
+    ): boolean {
         const runtimeId = BlockRuntimeIds.tryGetByName(name);
         if (runtimeId === null) return false;
 
@@ -3294,6 +3298,11 @@ export class World implements Service {
      * @param {Array} contents - what to drop, as for {@link World.dropContents}.
      */
     public async dropFromBlock(block: ContentPosition, contents: Array<Block | Item | null>): Promise<void> {
+        this.spillFromBlock(block, contents);
+    }
+
+    /** {@link World.dropFromBlock} for a caller that cannot wait, which writes before it returns. */
+    private spillFromBlock(block: ContentPosition, contents: Array<Block | Item | null>): void {
         const random = randomOf(this.server);
         const center = new Vector3(block.x + 0.5, block.y + 0.5, block.z + 0.5);
 

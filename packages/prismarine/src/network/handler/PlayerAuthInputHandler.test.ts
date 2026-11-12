@@ -59,7 +59,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
             calls.push(`crack ${position.getX()},${position.getY()},${position.getZ()} face ${face}`);
             return null;
         },
-        breakBlock: async (position) => {
+        breakBlock: (position) => {
             calls.push(`break ${position.getX()},${position.getY()},${position.getZ()}`);
             return true;
         }
@@ -247,7 +247,7 @@ describe('PlayerAuthInputHandler', () => {
         expect(deferred).toHaveLength(0);
     });
 
-    it('keeps an item use behind the break before it, though the break is deferred', async () => {
+    it('applies an item use after the break before it, both in the handler', () => {
         // A client that breaks a block and places one in the same tick reports both in one
         // input. Applied at once, the placement would land before the break it came after.
         const scene = fake({ serverAuthoritativeBreaking: true });
@@ -257,7 +257,7 @@ describe('PlayerAuthInputHandler', () => {
         });
 
         try {
-            const { context, deferred, settled } = contextOf(scene);
+            const { context, deferred } = contextOf(scene);
             new PlayerAuthInputHandler().handle(
                 input((packet) => {
                     packet.inputData.add(PlayerAuthInputData.PERFORM_BLOCK_ACTIONS);
@@ -270,11 +270,8 @@ describe('PlayerAuthInputHandler', () => {
                 context
             );
 
-            expect(scene.calls).toEqual(['move 3,70,-4']);
-            // The break, then the use waiting behind it.
-            expect(deferred).toHaveLength(2);
-
-            await settled();
+            // The break, then the use, in the order the client gave them.
+            expect(deferred).toHaveLength(0);
             expect(scene.calls).toEqual(['move 3,70,-4', 'break 1,63,2', 'use']);
         } finally {
             use.mockRestore();

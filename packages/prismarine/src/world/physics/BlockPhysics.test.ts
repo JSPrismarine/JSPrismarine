@@ -108,14 +108,7 @@ class TestWorld {
         return this.chunks.get(`${cx},${cz}`) ?? null;
     }
 
-    public async setBlockRuntimeId(
-        x: number,
-        y: number,
-        z: number,
-        runtimeId: number,
-        now = 0,
-        delay = 1
-    ): Promise<boolean> {
+    public setBlockRuntimeId(x: number, y: number, z: number, runtimeId: number, now = 0, delay = 1): boolean {
         const chunk = this.getLoadedChunk(x >> 4, z >> 4);
         if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) return false;
         if (chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf) === runtimeId) return false;
@@ -126,7 +119,7 @@ class TestWorld {
         return true;
     }
 
-    public async setBlockByName(x: number, y: number, z: number, name: string, now = 0, delay = 1): Promise<boolean> {
+    public setBlockByName(x: number, y: number, z: number, name: string, now = 0, delay = 1): boolean {
         const runtimeId = BlockRuntimeIds.tryGetByName(name);
         if (runtimeId === null) return false;
 

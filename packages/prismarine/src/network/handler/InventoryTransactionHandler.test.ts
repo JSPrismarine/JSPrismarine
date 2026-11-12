@@ -98,7 +98,7 @@ const fake = (
 
     let zombie: StoreActor;
     const world = stub<World>({
-        breakBlock: async (position) => {
+        breakBlock: (position) => {
             broken.push(BlockPosition.fromVector3(position));
             return true;
         },

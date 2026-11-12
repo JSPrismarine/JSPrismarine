@@ -139,8 +139,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
      * One block write, honoring the placement mode.
      *
      * `destroy` breaks what is there first, so the block yields its drops and
-     * the client gets the break particles, and only then writes - which is why
-     * it is the one mode whose answer is a promise rather than a boolean.
+     * the client gets the break particles, and only then writes.
      */
     const writeBlock = (world: World, at: Vector3, block: BlockRef, mode: BlockPlacementMode): boolean => {
         const [x, y, z] = [at.getX(), at.getY(), at.getZ()];
@@ -149,12 +148,9 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         if (mode === 'keep' && existing.identifier !== 'minecraft:air') return false;
 
         if (mode === 'destroy') {
-            return carryOut(
-                world.breakBlock(new Vector3(x, y, z)).then(() => {
-                    world.setLoadedBlockState(x, y, z, { name: block.identifier, states: block.states }, true);
-                }),
-                existing.identifier !== 'minecraft:air' || !sameBlock(existing, block)
-            );
+            world.breakBlock(new Vector3(x, y, z));
+            world.setLoadedBlockState(x, y, z, { name: block.identifier, states: block.states }, true);
+            return existing.identifier !== 'minecraft:air' || !sameBlock(existing, block);
         }
 
         return world.setLoadedBlockState(x, y, z, { name: block.identifier, states: block.states }, true);

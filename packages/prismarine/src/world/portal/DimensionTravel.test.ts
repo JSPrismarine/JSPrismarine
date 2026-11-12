@@ -97,7 +97,9 @@ const lightPortal = async (world: World, minCorner: Vector3, axis: 'x' | 'z'): P
         for (let dy = 0; dy < 3; dy += 1) {
             const x = axis === 'x' ? minCorner.getX() + a : minCorner.getX();
             const z = axis === 'z' ? minCorner.getZ() + a : minCorner.getZ();
-            await world.setBlockRuntimeId(x, minCorner.getY() + dy, z, portal);
+            // A write never loads its chunk, so the setup loads it first.
+            await world.getChunk(x >> 4, z >> 4);
+            world.setBlockRuntimeId(x, minCorner.getY() + dy, z, portal);
         }
     }
 };
