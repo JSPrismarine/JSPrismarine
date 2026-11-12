@@ -5,8 +5,12 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
+import SessionManager from './SessionManager';
 import { Config } from './config/Config';
 import type { Transport } from './network/transport/Transport';
+import { statsToken } from './modules/tokens';
+import { serverMetrics } from './stats/serverMetrics';
+import type { StatsProvider } from './stats/StatsProvider';
 import { stubRakNetListener } from './testing/rakNetListener.test.helper';
 
 stubRakNetListener();
@@ -127,15 +131,37 @@ describe('Server', () => {
         expect(banner.match(/advertised in the MOTD/g)).toHaveLength(1);
     });
 
-    it('starts and stops without crashing', async () => {
+    it('starts and stops without crashing, starting and stopping an embedder stats provider', async () => {
         const logger = new Logger();
+        const calls: string[] = [];
+        const provider: StatsProvider = {
+            id: 'embedder',
+            start: ({ registry }) => void calls.push(`start with ${registry.snapshot().metrics.size} metrics`),
+            stop: () => void calls.push('stop')
+        };
         const prismarine = new Server({
             logger,
-            config: debugConfig('test-world')
+            config: debugConfig('test-world'),
+            statsProviders: [provider]
         });
 
         await prismarine.bootstrap('127.0.0.1', 0);
+        expect(calls).toEqual([
+            `start with ${serverMetrics({ config: new Config(), sessions: new SessionManager() }).length} metrics`
+        ]);
         await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBeUndefined();
+        expect(calls.at(-1)).toBe('stop');
+    });
+
+    it('registers every server metric in the registry its kernel provides', async () => {
+        const config = debugConfig('test-world-stats');
+        const prismarine = new Server({ logger: new Logger('error'), config });
+        await prismarine.getKernel().registerAll();
+        const registry = prismarine.getKernel().get(statsToken);
+
+        const names = serverMetrics({ config, sessions: new SessionManager() }).map(({ name }) => name);
+        expect([...registry.snapshot().metrics.keys()]).toEqual(names);
+        for (const name of names) expect(registry.read(name), name).toBeDefined();
     });
 
     it('measures how long its ticks take once it is ticking', { tags: ['performance'] }, async () => {
