@@ -3,7 +3,7 @@ import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import type PlayerSession from '../PlayerSession';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
-import type { HandlerConfig, InputContext } from './HandlerContext';
+import type { HandlerConfig, HandlerServices, InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 
 /**
@@ -19,6 +19,35 @@ const nameOfDefault = (gamemode: Gametype): GametypeName | null => {
     } catch {
         return null;
     }
+};
+
+/**
+ * Moves one player onto the default the config holds now, and tells their client its mode and
+ * then the default. Both queue their packets as they are called, so the mode goes out first.
+ */
+const applyDefault = (config: Pick<HandlerConfig, 'getGamemode'>, target: PlayerSession): Promise<void> =>
+    Promise.all([target.setGamemode(getGametypeId(config.getGamemode())), sendDefault(config, target)]).then(
+        () => undefined
+    );
+
+/**
+ * Files {@link applyDefault} for the input step of the world a player stands in.
+ *
+ * The default is read when the message is applied rather than when it is filed, so of two
+ * requests from two worlds in one step the later one is what every player ends up on, whichever
+ * world's message is applied first. A player who changed world before it is applied gets it in
+ * the world they are in now.
+ */
+const fileDefault = (
+    messages: HandlerServices['messages'],
+    config: Pick<HandlerConfig, 'getGamemode'>,
+    target: PlayerSession
+): void => {
+    const world = target.getWorld();
+    messages.send(world, () => {
+        if (target.getWorld() !== world) fileDefault(messages, config, target);
+        else target.released(applyDefault(config, target));
+    });
 };
 
 /** Tells one client the default the server holds. */
@@ -70,10 +99,8 @@ export default class SetDefaultGameTypeHandler implements InputLaneHandler<SetDe
         // its own input step applies. Each client hears its new mode and then the default.
         const world = session.getWorld();
         for (const target of services.sessions.getSessions()) {
-            // Both queue their packets as they are called, so the mode goes out ahead of the default.
-            const change = () => Promise.all([target.setGamemode(packet.gamemode), sendDefault(config, target)]);
-            if (target.getWorld() === world) step.output(change().then(() => undefined));
-            else services.messages.send(target.getWorld(), () => target.released(change().then(() => undefined)));
+            if (target.getWorld() === world) step.output(applyDefault(config, target));
+            else fileDefault(services.messages, config, target);
         }
     }
 }

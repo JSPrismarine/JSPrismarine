@@ -7,6 +7,10 @@
  * it names as a unit of that world's change log, after the inputs and the chunk completions,
  * in the order the messages were filed. A message filed during a step is applied in that step's
  * share when the share has not run yet, and in the next step's otherwise.
+ *
+ * A message is applied in the world it was filed for. One about a player checks at admission that
+ * the player is still in that world, and files itself again for the world they are in now if not:
+ * the unit it runs in can only undo writes to its own world.
  */
 import type { World } from './World';
 
@@ -14,7 +18,7 @@ import type { World } from './World';
 interface WorldMessage {
     readonly world: World;
     /** Writes in its world's unit and queues its sends, waiting for nothing. */
-    readonly apply: () => void;
+    readonly apply: () => undefined;
 }
 
 /** The changes waiting for an input step to apply them in their worlds. */
@@ -32,9 +36,11 @@ export class WorldMessages {
      * Files a change for a world.
      *
      * @param world - The world the change writes.
-     * @param apply - The change. It writes and queues its sends, and waits for nothing.
+     * @param apply - The change. It writes and queues its sends, and waits for nothing, which is
+     *   why it returns `undefined` and not `void`: an async function satisfies `void`, and the
+     *   unit would close, and count the message applied, before the writes after its first wait.
      */
-    public send(world: World, apply: () => void): void {
+    public send(world: World, apply: () => undefined): void {
         this.pending.push({ world, apply });
     }
 
