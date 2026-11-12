@@ -506,8 +506,11 @@
         grid-auto-flow: row;
     }
 
+    /* Top-aligned, so a link that wraps and a one-line link beside it start on the same line. */
     .VPFooter .message .site-footer__column a {
+        align-items: flex-start;
         min-height: var(--jsp-target);
+        padding: 12px 0 0;
     }
 
     .VPFooter .site-footer__heading {

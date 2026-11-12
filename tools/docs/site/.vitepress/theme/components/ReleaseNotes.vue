@@ -199,6 +199,24 @@ function toggle(key: string) {
     border-left: 3px solid var(--jsp-signal);
 }
 
+/* A note's folds share one row; an open fold takes the full width, so its text reads at the column's
+   measure. */
+.release__text :deep(.release__folds) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 24px;
+    align-items: flex-start;
+    margin: 0 0 8px;
+}
+
+.release__text :deep(.release__folds > details) {
+    margin: 0;
+}
+
+.release__text :deep(.release__folds > details[open]) {
+    flex-basis: 100%;
+}
+
 /* A long note's body folds behind a quiet label under its lead sentence. */
 .release__text :deep(.release__details) {
     margin: 0 0 8px;

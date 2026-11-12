@@ -63,7 +63,8 @@ const shownAreas = computed(() => {
             <ul class="package-directory__grid">
                 <li v-for="pkg in area.packages" :key="pkg.name" class="package-card">
                     <div class="package-card__head">
-                        <!-- The name opens the API reference; README and npm follow as quieter links. -->
+                        <!-- The name opens the API reference, and so does the whole card; README and npm follow as
+                             quieter links. -->
                         <h3>
                             <a :href="withBase(`/api/${pkg.name}/`)"
                                 ><span class="package-card__scope" :class="{ 'is-shared': scope }">{{
@@ -76,7 +77,6 @@ const shownAreas = computed(() => {
                     </div>
                     <p>{{ pkg.description }}</p>
                     <nav :aria-label="`${pkg.name} links`">
-                        <a :href="withBase(`/api/${pkg.name}/`)">API reference</a>
                         <a :href="`${repositoryUrl}/tree/master/packages/${pkg.directory}#readme`">README</a>
                         <a :href="`https://www.npmjs.com/package/${pkg.name}`">npm</a>
                     </nav>
@@ -205,7 +205,7 @@ const shownAreas = computed(() => {
     border-top: 1px solid var(--vp-c-divider);
 }
 
-/* The links are quiet mono text: the card's name is the main way in, and a 2px edge would mark them as
+/* The links are quiet mono text: the card is the main way in, and a 2px edge would mark them as
    controls. */
 .package-card nav a {
     display: inline-flex;
@@ -214,13 +214,30 @@ const shownAreas = computed(() => {
     font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
     color: var(--vp-c-text-2);
     white-space: nowrap;
+    text-decoration: none;
+}
+
+/* README and npm sit above the card's own link, and underline only when pointed at or focused. */
+.package-card nav a {
+    position: relative;
+    z-index: 1;
+}
+
+.package-card nav a:is(:hover, :focus-visible) {
+    color: var(--vp-c-text-1);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
 }
 
-.package-card nav a:hover {
-    color: var(--vp-c-text-1);
+/* A touch screen has no pointer to hover with, so there, and at phone width, the links are underlined at
+   rest. */
+@media (hover: none), (max-width: 640px) {
+    .package-card nav a {
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+    }
 }
 
 /* On a phone each link reaches the full touch target. */
@@ -305,9 +322,39 @@ const shownAreas = computed(() => {
     text-decoration: none;
 }
 
-.package-card h3 a:hover {
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 3px;
+/* The name's link covers the card, so the whole card opens the API reference. */
+.package-card {
+    position: relative;
+}
+
+.package-card h3 a::before {
+    position: absolute;
+    inset: 0;
+    content: '';
+    border-radius: inherit;
+}
+
+/* The arrow the API index's link cards carry, so the card reads as a link. */
+.package-card h3 a::after {
+    margin-left: 8px;
+    font-weight: 700;
+    color: var(--vp-c-text-2);
+    content: '→' / '';
+}
+
+.package-card:hover {
+    box-shadow: inset 0 0 0 1px var(--vp-c-text-1);
+}
+
+/* The focus ring goes round the card the link covers, with the site's signal ring and ink band. */
+.package-card h3 a:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.package-card:has(h3 a:focus-visible) {
+    outline: 3px solid var(--jsp-signal);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--jsp-ink);
 }
 </style>

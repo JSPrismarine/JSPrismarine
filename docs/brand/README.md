@@ -107,7 +107,9 @@ ink.
   and outline buttons have no shadow: an edge alone, filled on hover, so only the primary action
   looks like a key to press.
 - A 2px edge marks a control (a tab, a button, a filter). A link card is a soft fill with a hairline
-  and an arrow. Links inside a card are text links; only the card or its title may look clickable.
+  and an arrow. Links inside a card are text links; only the card or its title may look clickable. A package
+  card is one link to its API reference, marked by the arrow after its name; its README and npm
+  links underline when pointed at or focused, and at rest on touch screens, which cannot point, and at phone width.
 - A state bar, such as the current section under the header or the current page in the sidebar,
   needs 3:1 against the page (`--jsp-state`). Accent on the light page falls short, so the bar is
   forest there and accent in dark mode.
@@ -152,7 +154,7 @@ scrolling off the screen edge, under a strip that holds the label and the copy b
   body color, without a chip, so accent still means a link. A breaking note folds behind one label,
   "Breaking: what to update", on its signal rule, so the changes read as a list and upgraders open
   the details they need. A long note keeps its bold lead sentence in view and folds the rest behind
-  "Details", in the same control in the muted color.
+  "Details", in the same control in the muted color. A note's folds share one row.
 - Inline code is never a green on the dark page; it is cream on its forest chip, so green still means
   a link.
 - The parity tracker's rows and group tiles mark anything under

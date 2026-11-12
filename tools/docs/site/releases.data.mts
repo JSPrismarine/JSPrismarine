@@ -179,6 +179,11 @@ function markChange(html: string) {
                         ? `${lead}</p><details class="release__details"><summary>Details</summary><p>${body.trimStart()}</details>`
                         : note
             )
+            // A note's folds share one row, so a note with both costs one line, not two.
+            .replace(
+                /(?:<details class="release__(?:details|breaking)">[\s\S]*?<\/details>\s*){2,}/g,
+                (folds) => `<div class="release__folds">${folds}</div>`
+            )
     );
 }
 
