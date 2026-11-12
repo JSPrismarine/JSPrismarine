@@ -39,7 +39,7 @@ const shutdownServer = (fields: Record<string, unknown> = {}): Server =>
         logger: stub<Logger>({ info: () => {} }),
         lifecycle: new ShutdownLifecycle(),
         console: undefined,
-        networking: stub<Networking>({ admitInputs: async () => 0, kill: () => {} }),
+        networking: stub<Networking>({ admitInputs: () => 0, kill: () => {} }),
         sessionManager: stub<SessionManager>({ getSessions: () => [] }),
         ticker: stub<ServerTicker>({ stop: () => {} }),
         disable: async () => {},

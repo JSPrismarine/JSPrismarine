@@ -23,10 +23,10 @@ const fakeWorld = (initial: BlockState, breakSeconds: number) => {
     const clock = { tick: 40 };
 
     const { world, occurrences } = occurrenceWorld({
-        getBlockState: async () => at.state,
+        loadedBlockAt: () => (at.loaded ? { name: at.state.name, states: at.state.properties } : undefined),
         loadedBlockRuntimeIdAt: () => (at.loaded ? BlockRuntimeIds.get(at.state) : undefined),
         server: stub<Server>({ getTick: () => clock.tick }),
-        getBlock: async () =>
+        loadedBlock: () =>
             stub<Block>({
                 getBreakTime: (tool) => (tool?.getName() === 'minecraft:iron_pickaxe' ? breakSeconds : breakSeconds * 5)
             })

@@ -7,7 +7,7 @@ export const INPUT_ADMISSION_BUDGET_PER_TICK = 4096;
 
 /** One held input: the work that applies it, and the caller waiting for that work to finish. */
 interface HeldInput {
-    readonly apply: () => Promise<void>;
+    readonly apply: () => void;
     readonly resolve: () => void;
     readonly reject: (error: unknown) => void;
 }
@@ -36,19 +36,20 @@ export class InputQueue {
     /**
      * Holds one input for the next input step.
      *
-     * @param apply - Applies the input. It runs inside the input step, after every input held
-     *   before it has been applied.
-     * @returns Settles as `apply` does, once the input step that ran it has applied every input
-     *   it took.
+     * @param apply - Applies the input, to its end, in one call. It runs inside the input step,
+     *   after every input held before it has been applied.
+     * @returns Settles as `apply` returned or threw, once the input step that ran it has applied
+     *   every input it took.
      */
-    public hold(apply: () => Promise<void>): Promise<void> {
+    public hold(apply: () => void): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             this.held.push({ apply, resolve, reject });
         });
     }
 
     /**
-     * The input step: applies held inputs in arrival order, each awaited before the next.
+     * The input step: applies held inputs in arrival order, each to its end before the next, in
+     * one call that waits for nothing.
      *
      * The step takes the inputs held when it begins, up to `budget` of them. An input held while
      * the step runs, such as one a handler in the step holds, waits for the next step, so which step applies an input never depends on how fast
@@ -59,12 +60,12 @@ export class InputQueue {
      * @param budget - The most inputs this step applies.
      * @returns How many inputs this step applied.
      */
-    public async admit(budget = INPUT_ADMISSION_BUDGET_PER_TICK): Promise<number> {
+    public admit(budget = INPUT_ADMISSION_BUDGET_PER_TICK): number {
         const step = this.held.splice(0, Math.max(0, budget));
         const settles: (() => void)[] = [];
         for (const input of step) {
             try {
-                await input.apply();
+                input.apply();
                 settles.push(input.resolve);
             } catch (error: unknown) {
                 settles.push(() => input.reject(error));

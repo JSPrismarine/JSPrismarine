@@ -70,7 +70,7 @@ export interface ChunkCompletion extends ChunkAdmission {
      * @returns Whether the chunk entered or left. False when the world has decided otherwise
      *   meanwhile, such as a chunk a player came back for before it could leave.
      */
-    readonly apply: () => Promise<boolean>;
+    readonly apply: () => boolean;
 }
 
 /** The part of {@link ChunkAdmissions} a world uses. */
@@ -83,7 +83,7 @@ export interface ChunkAdmissionScheduler {
      *
      * @param completion - The completion.
      * @param now - Apply it now, because code inside the running tick waits for it.
-     * @returns Settles once the completion has been applied, as its `apply` settles.
+     * @returns Settles once the completion has been applied, with what its `apply` returned.
      */
     hold(completion: ChunkCompletion, now?: boolean): Promise<boolean>;
 
@@ -198,15 +198,11 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         this.active = true;
     }
 
-    /**
-     * Stops holding completions and applies every held one, in lane order, one after another.
-     *
-     * @returns Settles once they have all been applied.
-     */
-    public async deactivate(): Promise<void> {
+    /** Stops holding completions and applies every held one, in lane order, one after another. */
+    public deactivate(): void {
         this.active = false;
         for (let held = this.takeNext(); held !== undefined; held = this.takeNext()) {
-            await this.apply(held, this.tick(), 'inline');
+            this.apply(held, this.tick(), 'inline');
         }
     }
 
@@ -246,11 +242,7 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         const key = keyOf(completion);
         if (!this.active || now) {
             return new Promise<boolean>((resolve, reject) => {
-                void this.apply(
-                    { completion, key, priority: completion.priority, resolve, reject },
-                    this.tick(),
-                    'inline'
-                );
+                this.apply({ completion, key, priority: completion.priority, resolve, reject }, this.tick(), 'inline');
             });
         }
 
@@ -279,7 +271,7 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         if (held === undefined) return false;
 
         this.remove(held);
-        void this.apply(held, this.tick(), 'inline');
+        this.apply(held, this.tick(), 'inline');
         return true;
     }
 
@@ -296,7 +288,7 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         for (let held = this.takeNext(); held !== undefined; held = this.takeNext()) {
             const { world, change, x, z } = held.completion;
             parked.push({ world, change, x, z });
-            void this.apply(held, this.tick(), 'inline');
+            this.apply(held, this.tick(), 'inline');
         }
         return parked;
     }
@@ -323,7 +315,7 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
 
     /**
      * The chunk half of the input step: applies the completions this tick admits, one after
-     * another, each awaited before the next.
+     * another, each to its end before the next, in one call.
      *
      * Without a trace, the step takes up to the budget of the completions held when it begins.
      * Under a trace, it takes the recorded completions of `tick` in recorded order, and a recorded
@@ -332,9 +324,9 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
      * @param tick - The tick whose input step this is.
      * @returns How many completions the step applied.
      */
-    public async admit(tick: number): Promise<number> {
+    public admit(tick: number): number {
         const step = this.takeStep(tick);
-        for (const [held, expected] of step) await this.apply(held, tick, 'input', expected);
+        for (const [held, expected] of step) this.apply(held, tick, 'input', expected);
         return step.length;
     }
 
@@ -375,12 +367,7 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         return step;
     }
 
-    private async apply(
-        held: HeldCompletion,
-        tick: number,
-        step: ChunkAdmissionStep,
-        expected?: ChunkAdmissionRecord
-    ): Promise<void> {
+    private apply(held: HeldCompletion, tick: number, step: ChunkAdmissionStep, expected?: ChunkAdmissionRecord): void {
         const { completion } = held;
         const wantsDigest = this.recorder !== undefined || this.trace !== undefined;
         const digest =
@@ -401,7 +388,7 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
         this.recorder?.record({ order: this.nextOrder++, tick, world, change, x, z, step, digest });
 
         try {
-            held.resolve(await completion.apply());
+            held.resolve(completion.apply());
         } catch (error: unknown) {
             held.reject(error);
         }

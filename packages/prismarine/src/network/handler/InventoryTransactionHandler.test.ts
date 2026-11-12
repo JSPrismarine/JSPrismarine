@@ -268,7 +268,7 @@ const transaction = (
     hand: HandSlot.MAINHAND
 });
 
-/** Applies one transaction as the input step does: the handler, then what it deferred and sent. */
+/** Applies one transaction as the input step does: the handler, then what it sent. */
 const handle = async (transaction: ServerInventoryTransaction, world: ReturnType<typeof fake>): Promise<void> => {
     const { context, settled } = inputContext(world.session, world.parts);
     new InventoryTransactionHandler().handle(
@@ -539,7 +539,7 @@ describe('InventoryTransactionHandler', () => {
     it('swings in the input unit, since the blow and its sounds are written before it returns', () => {
         const world = fake();
         vi.mocked(meleeAttack).mockClear();
-        const { context, deferred, outputs } = inputContext(world.session, world.parts);
+        const { context, outputs } = inputContext(world.session, world.parts);
 
         new InventoryTransactionHandler().handle(
             new InventoryTransactionPacket(
@@ -550,8 +550,6 @@ describe('InventoryTransactionHandler', () => {
             ),
             context
         );
-
-        expect(deferred).toHaveLength(0);
         expect(outputs).toHaveLength(0);
         expect(vi.mocked(meleeAttack)).toHaveBeenCalledTimes(1);
         expect(world.exhaustion()).toBeCloseTo(0.1);

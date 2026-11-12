@@ -68,7 +68,7 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
     };
 };
 
-/** Applies one packet as the input step does: the handler, then what it deferred and sent. */
+/** Applies one packet as the input step does: the handler, then what it sent. */
 const handle = async (
     { session, log, requested }: Pick<ReturnType<typeof fakeSession>, 'session' | 'log' | 'requested'>,
     packet: RespawnPacket
@@ -111,12 +111,11 @@ describe('RespawnHandler', () => {
         // The search reads blocks that may not be loaded, so the handler sends nothing, defers
         // nothing and files one request.
         const fake = fakeSession({ alive: false });
-        const { context, outputs, deferred, settled } = inputContext(fake.session, { log: fake.log });
+        const { context, outputs, settled } = inputContext(fake.session, { log: fake.log });
 
         new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), context);
 
         expect(fake.done).toEqual([]);
-        expect(deferred).toHaveLength(0);
         expect(outputs).toHaveLength(0);
         expect(fake.requested).toHaveLength(1);
         await settled();

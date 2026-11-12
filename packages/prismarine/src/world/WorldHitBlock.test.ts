@@ -15,7 +15,10 @@ import type { OccurrenceEntry } from './changelog/ChangeEntry';
  * silent right up until it gave way.
  */
 const fakeWorld = (state: BlockState) => {
-    const { world, occurrences } = occurrenceWorld({ getBlockState: async () => state });
+    const { world, occurrences } = occurrenceWorld({
+        loadedBlockAt: () => ({ name: state.name, states: state.properties }),
+        loadedBlockRuntimeIdAt: () => BlockRuntimeIds.get(state)
+    });
 
     const logged: OccurrenceEntry[] = [];
     /** Everything logged so far, read off the open tick. */

@@ -20,7 +20,7 @@ const completion = (
     z: 0,
     priority,
     content: () => content,
-    apply: async () => {
+    apply: () => {
         applied.push(`${x}`);
         return true;
     }
@@ -56,7 +56,7 @@ describe('ChunkAdmissions', () => {
         expect(applied).toEqual([]);
         expect(queue.pending).toBe(1);
 
-        await expect(queue.admit(12)).resolves.toBe(1);
+        expect(queue.admit(12)).toBe(1);
         await expect(held).resolves.toBe(true);
         expect(applied).toEqual(['1']);
         expect(records).toEqual([
@@ -93,7 +93,7 @@ describe('ChunkAdmissions', () => {
         queue.activate();
         void queue.hold({
             ...completion(applied, 1),
-            apply: async () => {
+            apply: () => {
                 applied.push('1');
                 void queue.hold(completion(applied, 2));
                 return true;

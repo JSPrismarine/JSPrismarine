@@ -54,9 +54,11 @@ describe('PlayerSession', () => {
 
         it("disables itself even when the player's leave fails", async () => {
             const { session, world } = fakePlayer();
-            vi.spyOn(world, 'savePlayerData').mockRejectedValue(new Error('world unavailable'));
+            vi.spyOn(world, 'removePlayer').mockImplementation(() => {
+                throw new Error('world unavailable');
+            });
 
-            await expect(session.leave()).rejects.toThrow('world unavailable');
+            expect(() => session.leave()).toThrow('world unavailable');
 
             expect(() => session.getPlayer()).toThrow(/has left/);
         });

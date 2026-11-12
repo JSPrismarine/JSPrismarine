@@ -40,7 +40,7 @@ describe('network', () => {
                 log: logger,
                 config: stub<HandlerConfig>({}),
                 services: stub<HandlerServices>({}),
-                step: { tick: 1, output: (send) => void outputs.push(send), defer: () => undefined }
+                step: { tick: 1, output: (send) => void outputs.push(send) }
             });
             expect(outputs).toHaveLength(0);
 
@@ -74,7 +74,7 @@ describe('network', () => {
                 log: logger,
                 config: stub<HandlerConfig>({}),
                 services: stub<HandlerServices>({}),
-                step: { tick: 1, output: (send) => void outputs.push(send), defer: () => undefined }
+                step: { tick: 1, output: (send) => void outputs.push(send) }
             };
 
             const merged = registry.appendHandler(read, input);

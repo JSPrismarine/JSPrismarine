@@ -11,7 +11,8 @@
  * so it is not logged on its own.
  *
  * A unit of work, such as one entity's update or one applied input, runs through
- * {@link EntityStore.unit} or {@link EntityStore.unitAsync}. When it throws, the store reverts
+ * {@link EntityStore.unit}, which is synchronous, so nothing else writes into its span. When it
+ * throws, the store reverts
  * the unit's span: it writes the inverse of each entry the unit appended, newest first, through
  * the writers the runtime registers, and ignores the reports those writes
  * cause. When an inverse throws, the store can no longer be trusted, so it records the failure
@@ -381,29 +382,6 @@ export class EntityStore {
         const unit = this.startUnit();
         try {
             work();
-        } catch (error: unknown) {
-            this.endUnit(unit, true);
-            return { failed: true, error };
-        }
-        this.endUnit(unit, false);
-        return SUCCEEDED;
-    }
-
-    /**
-     * {@link EntityStore.unit} for asynchronous work, which an input handler still is.
-     *
-     * The span stays open across the work's awaits, so a write that something else makes while
-     * the work waits lands in it. The input step runs one input at a time, which keeps that to
-     * code the step does not run.
-     */
-    public async unitAsync(work: () => Promise<void>): Promise<UnitOutcome> {
-        if (!this.open || this.reverting) {
-            await work();
-            return SUCCEEDED;
-        }
-        const unit = this.startUnit();
-        try {
-            await work();
         } catch (error: unknown) {
             this.endUnit(unit, true);
             return { failed: true, error };

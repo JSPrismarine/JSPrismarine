@@ -33,20 +33,20 @@ const run = async (packet: CommandRequestPacket, ran: boolean) => {
         identity: identityNamed('Steve'),
         send: async (packet) => void sent.push(packet)
     });
-    const { context, outputs, deferred, settled } = inputContext(session, {
+    const { context, outputs, settled } = inputContext(session, {
         log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') }),
         services: {
             commands: stub<HandlerServices['commands']>({
-                dispatchCommand: async (sender, target, input = '') => {
+                runCommand: (sender, target, input = '') => {
                     dispatched.push({ sender, target, input });
-                    return ran;
+                    return { ran, settled: Promise.resolve() };
                 }
             })
         }
     });
 
     const returned = new CommandRequestHandler().handle(packet, context);
-    const handed = { returned, outputs: outputs.length, deferred: deferred.length, dispatched: dispatched.length };
+    const handed = { returned, outputs: outputs.length, dispatched: dispatched.length, sent: sent.length };
     await settled();
 
     return { dispatched, sent, logged, session, handed };
@@ -74,10 +74,10 @@ describe('CommandRequestHandler', () => {
         });
     });
 
-    it('defers the command and its reply to after the handler returns', async () => {
+    it('runs the command and queues its reply in the handler, handing the step what both started', async () => {
         const { handed } = await run(request('/say hi', origin(CommandOriginType.Player)), true);
 
-        expect(handed).toEqual({ returned: undefined, outputs: 0, deferred: 1, dispatched: 0 });
+        expect(handed).toEqual({ returned: undefined, outputs: 2, dispatched: 1, sent: 1 });
     });
 
     it('reports a command that did not run with a success count of zero', async () => {

@@ -240,7 +240,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         // like a packet from the same client would, and after every input that client sent
         // before it. Awaited, so a reconnect from the same address, which the transport orders
         // behind this close, never finds the old player still in its world.
-        await this.inputs.hold(async () => {
+        await this.inputs.hold(() => {
             // Read here, before the tear-down, which detaches the session and takes the player
             // out of its world. A player is only added to a world once the client reports itself
             // initialized, so a session whose player is not in one belongs to a client that gave
@@ -250,7 +250,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 playerSession !== null && playerSession.getWorld().viewerOf(playerSession.runtimeId) === playerSession;
 
             try {
-                await session.closePlayerSession();
+                session.closePlayerSession();
             } catch (error: unknown) {
                 this.logger.error(error);
             }
@@ -444,7 +444,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const run = () => this.runHandler(gated, connection, recordInbound, expectedTick);
 
         if (gated.handler.lane === 'input') {
-            const done = this.inputs.hold(run);
+            const done = this.inputs.hold(() => this.runInputHandler(gated, connection, recordInbound, expectedTick));
             inbound.heldInputs++;
             const state: HeldInputState = {
                 past: false,
@@ -482,8 +482,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /**
-     * Runs one handler, if the connection's phase accepts it, and unless it is a replay, records
-     * its packet with the tick it ran in.
+     * Whether a packet's handler may run now: the connection's phase accepts it, and a replayed
+     * record runs in its own tick.
      *
      * The phase gate runs here, when the packet's turn comes, and the packet is decoded only once
      * the gate admits it. A retail client routinely races the next step - `ClientCacheStatus`
@@ -493,19 +493,14 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      * @throws {Error} Only for a replayed record that its connection's phase does not accept, that
      *   does not decode, or whose handler runs in another tick than its own.
      */
-    private async runHandler(
-        { packet, handler }: GatedPacket,
-        connection: ClientConnection,
-        recordInbound: boolean,
-        expectedTick: number | undefined
-    ): Promise<void> {
+    private admits({ packet, handler }: GatedPacket, connection: ClientConnection, expectedTick?: number): boolean {
         const phases: readonly SessionPhase[] = handler.phases;
         if (!phases.includes(connection.phase)) {
             if (expectedTick !== undefined) {
                 throw new Error(`Replay packet ${packet.getName()} was rejected in the ${connection.phase} phase`);
             }
             this.logger.debug(`Dropped §b${packet.constructor.name}§r: not accepted in the ${connection.phase} phase`);
-            return;
+            return false;
         }
 
         if (expectedTick !== undefined) {
@@ -514,6 +509,23 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 throw new Error(`Replay packet tick ${expectedTick} does not match server tick ${currentTick}`);
             }
         }
+        return true;
+    }
+
+    /**
+     * Runs one connection-lane or read-lane handler, if {@link admits} lets it, and unless it is
+     * a replay, records its packet with the tick it ran in.
+     *
+     * @throws {Error} As {@link admits} does.
+     */
+    private async runHandler(
+        gated: GatedPacket,
+        connection: ClientConnection,
+        recordInbound: boolean,
+        expectedTick: number | undefined
+    ): Promise<void> {
+        if (!this.admits(gated, connection, expectedTick)) return;
+        const { packet, handler } = gated;
 
         if (!this.decodePacket(packet, connection)) {
             if (expectedTick !== undefined) throw new Error(`Replay bytes did not decode as ${packet.getName()}`);
@@ -532,6 +544,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                     this.recordInboundPacket(packet, connection);
                 }
                 await handler.handle(packet, ConnectionContexts.of(this.server).contextOf(connection));
+            } else if (handler.lane === 'input') {
+                this.runInputHandler(gated, connection, recordInbound, expectedTick);
             } else if (session !== null) {
                 if (recordInbound && this.inboundPacketRecorder !== undefined) {
                     this.recordInboundPacket(packet, connection);
@@ -544,13 +558,44 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /**
+     * Applies one input-lane handler in one call, inside the input step, if {@link admits} lets
+     * it, and unless it is a replay, records its packet with the tick it ran in. What the handler
+     * hands its step's outputs finishes outside the tick.
+     *
+     * @throws {Error} As {@link admits} does.
+     */
+    private runInputHandler(
+        gated: GatedPacket,
+        connection: ClientConnection,
+        recordInbound: boolean,
+        expectedTick: number | undefined
+    ): void {
+        if (!this.admits(gated, connection, expectedTick)) return;
+        const { packet, handler } = gated;
+        if (handler.lane !== 'input') throw new Error(`${packet.getName()} has no input-lane handler`);
+
+        const report = (error: unknown) => this.handlerError(packet, error);
+        try {
+            const session = connection.getPlayerSession();
+            if (session === null) {
+                this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);
+                return;
+            }
+            if (recordInbound && this.inboundPacketRecorder !== undefined) this.recordInboundPacket(packet, connection);
+            HandlerContexts.of(this.server).runInput(handler, packet, session, report);
+        } catch (error: unknown) {
+            report(error);
+        }
+    }
+
+    /**
      * The input step: applies the input-lane packets and player removals held since the last
-     * one, in arrival order, each handler awaited before the next.
+     * one, in arrival order, each handler to its end before the next, in one call.
      *
      * @param budget - The most inputs to apply; the rest wait for the next step, in order.
      * @returns How many inputs were applied.
      */
-    public admitInputs(budget?: number): Promise<number> {
+    public admitInputs(budget?: number): number {
         return this.inputs.admit(budget);
     }
 

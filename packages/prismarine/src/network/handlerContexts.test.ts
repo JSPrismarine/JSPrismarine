@@ -86,141 +86,76 @@ describe('network/handlerContexts', () => {
         ).resolves.toBeUndefined();
     });
 
-    it('reaches a service through the server it was built from', async () => {
+    it('reaches a service through the server it was built from', () => {
         const sessions = stub<SessionManager>();
         const contexts = HandlerContexts.of(
             stub<ContextSource>({ getTick: () => 0, getSessionManager: () => sessions })
         );
         const seen: unknown[] = [];
 
-        await contexts.run(
+        contexts.runInput(
             inputHandler(({ services }) => void seen.push(services.sessions)),
             'packet',
-            sessionInWorld([])
+            sessionInWorld([]),
+            () => {}
         );
 
         expect(seen).toEqual([sessions]);
     });
 
-    it('applies an input as one synchronous unit, and settles once its outputs have', async () => {
+    it('applies an input as one synchronous unit and returns without waiting for its outputs', async () => {
         const order: string[] = [];
         const send = deferred();
         const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 12 }));
 
-        const running = contexts
-            .run(
-                inputHandler(({ step }) => {
-                    order.push(`handle at ${step.tick}`);
-                    step.output(send.promise.then(() => void order.push('sent')));
-                }),
-                'packet',
-                sessionInWorld(order)
-            )
-            .then(() => void order.push('settled'));
-
-        // The handler ran inside its unit before `run` returned, and nothing waits on the send yet.
-        expect(order).toEqual(['unit:open', 'handle at 12', 'unit:close']);
-        send.resolve();
-        await running;
-
-        expect(order).toEqual(['unit:open', 'handle at 12', 'unit:close', 'sent', 'settled']);
-    });
-
-    it('runs deferred work after the unit, each piece a unit of its own, before it settles', async () => {
-        const order: string[] = [];
-        const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
-        const session = stub<PlayerSession>({
-            identity: STEVE,
-            getWorld: () =>
-                stub<World>({
-                    runInputNow: (apply) => {
-                        order.push('unit');
-                        apply();
-                    },
-                    runInput: async (apply) => {
-                        order.push('deferred unit');
-                        await apply();
-                    }
-                })
-        });
-
-        await contexts.run(
+        contexts.runInput(
             inputHandler(({ step }) => {
-                step.defer(async () => {
-                    order.push('first');
-                    step.defer(async () => void order.push('third'));
-                });
-                step.defer(async () => void order.push('second'));
-                order.push('handled');
+                order.push(`handle at ${step.tick}`);
+                step.output(send.promise.then(() => void order.push('sent')));
             }),
             'packet',
-            session
+            sessionInWorld(order),
+            () => {}
         );
 
-        expect(order).toEqual([
-            'unit',
-            'handled',
-            'deferred unit',
-            'first',
-            'deferred unit',
-            'second',
-            'deferred unit',
-            'third'
-        ]);
+        // The handler ran inside its unit before `runInput` returned, and nothing waits on the send.
+        expect(order).toEqual(['unit:open', 'handle at 12', 'unit:close']);
+        send.resolve();
+        await send.promise;
+        await Promise.resolve();
+
+        expect(order).toEqual(['unit:open', 'handle at 12', 'unit:close', 'sent']);
     });
 
-    it('stops at a deferred piece that throws, and passes its error on', async () => {
+    it('reports a failed output to the caller once it fails', async () => {
+        const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
+        const reported: unknown[] = [];
+
+        contexts.runInput(
+            inputHandler(({ step }) => step.output(Promise.reject(new Error('the send failed')))),
+            'packet',
+            sessionInWorld([]),
+            (error) => void reported.push(error)
+        );
+        await new Promise<void>((resolve) => setImmediate(resolve));
+
+        expect(reported).toEqual([new Error('the send failed')]);
+    });
+
+    it('throws the error of an input that throws, after its unit closed', () => {
         const order: string[] = [];
         const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
 
-        await expect(
-            contexts.run(
-                inputHandler(({ step }) => {
-                    step.defer(async () => {
-                        throw new Error('the world change failed');
-                    });
-                    step.defer(async () => void order.push('after'));
-                }),
-                'packet',
-                stub<PlayerSession>({ identity: STEVE })
-            )
-        ).rejects.toThrow('the world change failed');
-        expect(order).toEqual([]);
-    });
-
-    it('reports a failed output as the input failing', async () => {
-        const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
-
-        await expect(
-            contexts.run(
-                inputHandler(({ step }) => step.output(Promise.reject(new Error('the send failed')))),
-                'packet',
-                sessionInWorld([])
-            )
-        ).rejects.toThrow('the send failed');
-    });
-
-    it('waits for the outputs of an input that throws before it passes the error on', async () => {
-        const order: string[] = [];
-        const send = deferred();
-        const contexts = HandlerContexts.of(stub<ContextSource>({ getTick: () => 0 }));
-
-        const running = contexts
-            .run(
-                inputHandler(({ step }) => {
-                    step.output(send.promise.then(() => void order.push('sent')));
+        expect(() =>
+            contexts.runInput(
+                inputHandler(() => {
                     throw new Error('the handler failed');
                 }),
                 'packet',
-                sessionInWorld(order)
+                sessionInWorld(order),
+                () => {}
             )
-            .catch((error: unknown) => void order.push(error instanceof Error ? error.message : String(error)));
-
-        await Promise.resolve();
+        ).toThrow('the handler failed');
         expect(order).toEqual(['unit:open', 'unit:close']);
-        send.resolve();
-        await running;
-
-        expect(order).toEqual(['unit:open', 'unit:close', 'sent', 'the handler failed']);
     });
 });

@@ -207,12 +207,12 @@ export class ChunkCompletionQueue implements ChunkCompletionScheduler {
 
     /**
      * Stops deferring work and settles the queue before world teardown or a disabled tick loop.
-     * Held chunk admissions are applied too, one after another, after this returns.
+     * Held chunk admissions are applied too, one after another, before this returns.
      */
     public deactivate(): void {
         this.active = false;
         while (this.pendingCount > 0) this.runNext();
-        void this.admissions.deactivate();
+        this.admissions.deactivate();
     }
 
     /** Applies every chunk admission held for the input step now; see {@link ChunkAdmissions.admitParked}. */

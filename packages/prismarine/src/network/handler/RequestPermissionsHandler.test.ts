@@ -54,9 +54,9 @@ const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
 
 /** Runs one request as the input step would, and returns what the handler handed the step. */
 const handle = async (fake: ReturnType<typeof fakeSession>, packet: RequestPermissionsPacket) => {
-    const { context, outputs, deferred, settled } = inputContext(fake.session, fake);
+    const { context, outputs, settled } = inputContext(fake.session, fake);
     const returned = new RequestPermissionsHandler().handle(packet, context);
-    const handed = { returned, outputs: outputs.length, deferred: deferred.length };
+    const handed = { returned, outputs: outputs.length };
     await settled();
     return handed;
 };
@@ -81,14 +81,13 @@ describe('RequestPermissionsHandler', () => {
 
     it('changes the op list before it returns and hands the sends to the step', () => {
         const fake = fakeSession();
-        const { context, outputs, deferred } = inputContext(fake.session, fake);
+        const { context, outputs } = inputContext(fake.session, fake);
 
         const returned = new RequestPermissionsHandler().handle(request(PlayerPermissionLevel.OPERATOR), context);
 
         expect(returned).toBeUndefined();
         expect(fake.opChanges).toEqual([['Alex', true]]);
         expect(outputs).toHaveLength(1);
-        expect(deferred).toHaveLength(0);
     });
 
     it('sends nothing when a listener cancels the change', async () => {
@@ -100,7 +99,7 @@ describe('RequestPermissionsHandler', () => {
             request(PlayerPermissionLevel.OPERATOR)
         );
 
-        expect(handed).toEqual({ returned: undefined, outputs: 0, deferred: 0 });
+        expect(handed).toEqual({ returned: undefined, outputs: 0 });
     });
 
     it('removes the target from the op list for Member and Visitor', async () => {

@@ -8,7 +8,7 @@ describe('network', () => {
             const queue = new InputQueue();
             const applied: number[] = [];
             const held = [1, 2, 3].map((value) =>
-                queue.hold(async () => {
+                queue.hold(() => {
                     applied.push(value);
                 })
             );
@@ -16,7 +16,7 @@ describe('network', () => {
             expect(applied).toEqual([]);
             expect(queue.pending).toBe(3);
 
-            expect(await queue.admit()).toBe(3);
+            expect(queue.admit()).toBe(3);
             await Promise.all(held);
             expect(applied).toEqual([1, 2, 3]);
             expect(queue.pending).toBe(0);
@@ -28,13 +28,13 @@ describe('network', () => {
                 const queue = new InputQueue();
                 const applied: number[] = [];
                 for (let index = 0; index < backlog; index++) {
-                    void queue.hold(async () => {
+                    void queue.hold(() => {
                         applied.push(index);
                     });
                 }
 
                 const steps: number[] = [];
-                while (queue.pending > 0) steps.push(await queue.admit(4));
+                while (queue.pending > 0) steps.push(queue.admit(4));
 
                 // The same bound whatever the backlog, and nothing lost or reordered.
                 expect(Math.max(...steps)).toBeLessThanOrEqual(4);
@@ -47,16 +47,16 @@ describe('network', () => {
             const queue = new InputQueue();
             const applied: string[] = [];
             let later: Promise<void> | undefined;
-            void queue.hold(async () => {
+            void queue.hold(() => {
                 applied.push('first');
-                later = queue.hold(async () => {
+                later = queue.hold(() => {
                     applied.push('later');
                 });
             });
 
-            expect(await queue.admit()).toBe(1);
+            expect(queue.admit()).toBe(1);
             expect(applied).toEqual(['first']);
-            expect(await queue.admit()).toBe(1);
+            expect(queue.admit()).toBe(1);
             await later;
             expect(applied).toEqual(['first', 'later']);
         });
@@ -64,14 +64,14 @@ describe('network', () => {
         it('settles a failing input with its error and applies the inputs after it', async () => {
             const queue = new InputQueue();
             const applied: string[] = [];
-            const failing = queue.hold(async () => {
+            const failing = queue.hold(() => {
                 throw new Error('handler failed');
             });
-            const after = queue.hold(async () => {
+            const after = queue.hold(() => {
                 applied.push('after');
             });
 
-            await queue.admit();
+            queue.admit();
             await expect(failing).rejects.toThrow('handler failed');
             await after;
             expect(applied).toEqual(['after']);
@@ -79,9 +79,9 @@ describe('network', () => {
 
         it('defaults to the per-tick budget', async () => {
             const queue = new InputQueue();
-            for (let index = 0; index < INPUT_ADMISSION_BUDGET_PER_TICK + 1; index++) void queue.hold(async () => {});
+            for (let index = 0; index < INPUT_ADMISSION_BUDGET_PER_TICK + 1; index++) void queue.hold(() => {});
 
-            expect(await queue.admit()).toBe(INPUT_ADMISSION_BUDGET_PER_TICK);
+            expect(queue.admit()).toBe(INPUT_ADMISSION_BUDGET_PER_TICK);
             expect(queue.pending).toBe(1);
         });
     });

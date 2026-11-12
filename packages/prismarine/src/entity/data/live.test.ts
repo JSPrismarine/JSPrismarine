@@ -968,7 +968,9 @@ describe('the data-driven entity runtime over a live world', () => {
             )
         );
 
-        await HandlerContexts.of(server).run(new InventoryTransactionHandler(), packet, player);
+        HandlerContexts.of(server).runInput(new InventoryTransactionHandler(), packet, player, (error) => {
+            throw error;
+        });
     };
 
     it('keeps a live player out of chunk saves, chunk changes and the despawn cycle', async () => {

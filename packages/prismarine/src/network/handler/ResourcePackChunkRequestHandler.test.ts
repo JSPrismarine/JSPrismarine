@@ -17,21 +17,20 @@ describe('ResourcePackChunkRequestHandler', () => {
             identity: identityNamed('Steve'),
             kick
         });
-        const { context, deferred, settled } = inputContext(session, {
+        const { context, settled } = inputContext(session, {
             log: stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
 
-        return { logged, kick, context, deferred, settled };
+        return { logged, kick, context, settled };
     };
 
     it('logs the pack and chunk, then kicks with the resource pack reason', async () => {
-        const { logged, kick, context, deferred, settled } = harness();
+        const { logged, kick, context, settled } = harness();
         const packet = Object.assign(new ResourcePackChunkRequestPacket(), { resourceName: 'pack_1.0', chunk: 2 });
 
         new ResourcePackChunkRequestHandler().handle(packet, context);
-        // The kick tears the player down, which still waits, so the step runs it after the handler.
-        expect(deferred).toHaveLength(1);
-        expect(kick).not.toHaveBeenCalled();
+        // In the handler's unit: the kick takes the player off as it is called.
+        expect(kick).toHaveBeenCalledOnce();
         await settled();
 
         expect(logged).toEqual(['Steve requested chunk 2 of pack pack_1.0, which the server does not serve']);

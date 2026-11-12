@@ -71,7 +71,7 @@ describe('network', () => {
 
         it('lets go of the session when its leave fails', async () => {
             const session = stub<PlayerSession>({
-                leave: async () => {
+                leave: () => {
                     throw new Error('world unavailable');
                 }
             });
@@ -79,7 +79,7 @@ describe('network', () => {
             const connection = fakeConnection();
             connection.attachPlayerSession(session);
 
-            await expect(connection.closePlayerSession()).rejects.toThrow('world unavailable');
+            expect(() => connection.closePlayerSession()).toThrow('world unavailable');
             expect(connection.getPlayerSession()).toBeNull();
         });
 
@@ -143,7 +143,7 @@ describe('network', () => {
         it('does nothing for a connection that never got a player', async () => {
             const connection = fakeConnection();
 
-            await expect(connection.closePlayerSession()).resolves.toBeUndefined();
+            expect(connection.closePlayerSession()).toBeUndefined();
             expect(connection.getPlayerSession()).toBeNull();
         });
     });

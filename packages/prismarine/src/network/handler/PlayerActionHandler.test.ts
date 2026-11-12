@@ -65,7 +65,7 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
             broken.push(BlockPosition.fromVector3(where));
             return true;
         },
-        hitBlock: async (where: Vector3, _face: number, striker?: Parameters<World['hitBlock']>[2]) => {
+        hitBlock: (where: Vector3, _face: number, striker?: Parameters<World['hitBlock']>[2]) => {
             hit.push(BlockPosition.fromVector3(where));
             strikers.push(striker);
         },
@@ -77,12 +77,12 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
         sendWorldEvent: (where: Vector3 | null) => {
             if (where) cracking.push(`event ${at(where)}`);
         },
-        startBlockCracking: async (where: Vector3, face: number, tool: Item | null, previous: BlockMining | null) => {
+        startBlockCracking: (where: Vector3, face: number, tool: Item | null, previous: BlockMining | null) => {
             cracking.push(`start ${at(where)} (${previous === null ? 'none' : at(previous.position)})`);
             tools.push(tool);
             return { position: where, face, runtimeId: 1, progressPerTick: 5461 };
         },
-        stopBlockCracking: async (where: Vector3) => {
+        stopBlockCracking: (where: Vector3) => {
             cracking.push(`stop ${at(where)}`);
         }
     });
@@ -140,7 +140,7 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
 
 type Scene = ReturnType<typeof fakeSession>;
 
-/** Applies one action as the input step does: the handler, then what it deferred and sent. */
+/** Applies one action as the input step does: the handler, then what it sent. */
 const act = async ({ session, log, config }: Scene, action: number, position: BlockPosition, face: number) => {
     const { context, settled } = inputContext(session, { log, config });
     new PlayerActionHandler().handleAction(action, position, face, context);
@@ -214,9 +214,9 @@ describe('PlayerActionHandler', () => {
             expect(scene.logged).toHaveLength(3);
         });
 
-        it('breaks a block in the handler, with nothing deferred', () => {
+        it('breaks a block in the handler', () => {
             const scene = fakeSession(Gametype.CREATIVE);
-            const { context, deferred } = inputContext(scene.session, scene);
+            const { context } = inputContext(scene.session, scene);
 
             new PlayerActionHandler().handleAction(
                 PlayerActionType.CreativeDestroyBlock,
@@ -224,14 +224,12 @@ describe('PlayerActionHandler', () => {
                 0,
                 context
             );
-
-            expect(deferred).toHaveLength(0);
             expect(scene.broken).toEqual([new BlockPosition(1, 2, 0)]);
         });
 
-        it('takes a jump, a sneak and a sprint in the handler, with nothing deferred', () => {
+        it('takes a jump, a sneak and a sprint in the handler', () => {
             const scene = fakeSession(Gametype.SURVIVAL);
-            const { context, deferred } = inputContext(scene.session, scene);
+            const { context } = inputContext(scene.session, scene);
             const handler = new PlayerActionHandler();
 
             handler.handleAction(PlayerActionType.StartJump, NOWHERE, 0, context);
@@ -241,7 +239,6 @@ describe('PlayerActionHandler', () => {
             expect(scene.jumps).toEqual([1]);
             expect(scene.components.get('movement.sneaking')).toBe(true);
             expect(scene.sprinting).toEqual([true]);
-            expect(deferred).toHaveLength(0);
         });
 
         it('refuses every block action from a spectator', async () => {

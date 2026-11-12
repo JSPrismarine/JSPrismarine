@@ -12,12 +12,11 @@ import { stub } from './stub.test.helper';
  * leaves a part out fails only a handler that reads it. The services are the ones the movement,
  * action and inventory handlers read.
  *
- * @returns The context, and `settled`, which runs the deferred work and waits for the outputs as
- *   the input step does.
+ * @returns The context, and `settled`, which waits for the outputs, as the transport finishes
+ *   them after the step.
  */
 export const serverInputContext = (server: Server, session: PlayerSession) => {
     const outputs: Promise<void>[] = [];
-    const deferred: (() => Promise<void>)[] = [];
     const services = stub<HandlerServices>({
         events: { post: (pair) => server.post(pair), emit: (id, event) => server.emit(id, event) }
     });
@@ -39,13 +38,11 @@ export const serverInputContext = (server: Server, session: PlayerSession) => {
             get tick() {
                 return server.getTick();
             },
-            output: (send) => void outputs.push(send),
-            defer: (work) => void deferred.push(work)
+            output: (send) => void outputs.push(send)
         }
     };
     const settled = async () => {
-        for (const work of deferred) await work();
         await Promise.all(outputs);
     };
-    return { context, outputs, deferred, settled };
+    return { context, outputs, settled };
 };

@@ -34,19 +34,18 @@ export default class CommandRequestHandler implements InputLaneHandler<CommandRe
             return;
         }
 
-        // A command can do anything, and the command manager waits on what it does. Slice 9
-        // removes the wait, unless the command is synchronous by then.
-        step.defer(async () => {
-            const ran = await services.commands.dispatchCommand(session, session, request.commandName);
+        // The command runs in this input's unit and queues what it says before the outcome goes
+        // out; what it started and has not finished, such as a kick, is the step's to finish.
+        const { ran, settled } = services.commands.runCommand(session, session, request.commandName);
+        step.output(settled);
 
-            const output = new CommandOutputPacket({
-                originData: origin,
-                outputType: CommandOutputType.AllOutput,
-                successCount: ran ? 1 : 0,
-                outputMessages: [],
-                dataSet: null
-            });
-            await session.send(output);
+        const output = new CommandOutputPacket({
+            originData: origin,
+            outputType: CommandOutputType.AllOutput,
+            successCount: ran ? 1 : 0,
+            outputMessages: [],
+            dataSet: null
         });
+        step.output(session.send(output));
     }
 }

@@ -82,9 +82,9 @@ const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolea
 
     /** Runs one request as the input step would, and returns what the handler handed the step. */
     const handle = async (packet: SetDefaultGameTypePacket) => {
-        const { context, outputs, deferred, settled } = inputContext(requester.session, parts);
+        const { context, outputs, settled } = inputContext(requester.session, parts);
         const returned = new SetDefaultGameTypeHandler().handle(packet, context);
-        const handed = { returned, outputs: outputs.length, deferred: deferred.length, applied: applied.length };
+        const handed = { returned, outputs: outputs.length, applied: applied.length };
         await settled();
         return handed;
     };
@@ -122,9 +122,9 @@ describe('SetDefaultGameTypeHandler', () => {
 
         const handed = await handle(request(Gametype.CREATIVE));
 
-        // Nothing deferred: Steve's world changes in the handler's unit, with the sends handed
+        // Steve's world changes in the handler's unit, with the sends handed
         // to the step, and Alex in the Nether is untouched until a message is applied there.
-        expect(handed).toEqual({ returned: undefined, outputs: 1, deferred: 0, applied: 1 });
+        expect(handed).toEqual({ returned: undefined, outputs: 1, applied: 1 });
         expect(committed).toEqual([[Gametype.CREATIVE, true]]);
         expect(applied).toEqual([['Steve', Gametype.CREATIVE]]);
         expect(sent.get('Alex')).toEqual([]);
@@ -155,7 +155,6 @@ describe('SetDefaultGameTypeHandler', () => {
         expect(await handle(request(Gametype.CREATIVE))).toEqual({
             returned: undefined,
             outputs: 1,
-            deferred: 0,
             applied: 0
         });
     });
