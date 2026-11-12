@@ -5,6 +5,7 @@ outline: deep
 ---
 
 <script setup>
+import { minecraftRange } from './.vitepress/theme/landing.ts';
 import { palette } from './.vitepress/theme/tokens.ts';
 import { data as project } from './project.data.mts';
 import { data as releases } from './releases.data.mts';
@@ -141,6 +142,68 @@ The filterable package grid on the [packages page](./packages).
 
 ```vue
 <CopyButton text="pnpm run dev" />
+```
+
+### DemoServer
+
+The landing page's full-width band for the demo server. It is made of the three components after it.
+
+<DemoServer :demo="project.demo" :versions="minecraftRange(project)" />
+
+```vue
+<DemoServer :demo="project.demo" :versions="minecraftRange(project)" />
+```
+
+### WindowBlind
+
+A cabin window with a blind. The default slot is printed on the blind, and the `sky` slot shows once the
+blind is up. Pull or press the tab. The land passes only while the blind is up.
+
+<div class="kit-tile is-ink kit-tile--wide">
+    <WindowBlind style="width: min(360px, 100%); margin-inline: auto">
+        <b>Pull the tab.</b>
+        <template #sky>The land is behind it.</template>
+    </WindowBlind>
+</div>
+
+```vue
+<WindowBlind>
+    <h2>Visit the demo.</h2>
+    <template #sky>Open to anyone.</template>
+</WindowBlind>
+```
+
+### BoardingPass
+
+An upright pass that prints out of a slot when it scrolls into view. It leans toward the pointer, and its
+stub tears off when pointed at, focused or tapped. The default slot is the body and the `stub` slot is the
+stub, which links to `stub-href`.
+
+<div class="kit-tile is-ink kit-tile--wide">
+    <BoardingPass stub-href="https://jsprismarine.dev/" style="width: 100%">
+        <b>The body of the pass.</b>
+        <span>Anything can be printed here.</span>
+        <template #stub><b>The stub.</b><span>Point at it.</span></template>
+    </BoardingPass>
+</div>
+
+```vue
+<BoardingPass stub-href="https://example.com/">
+    The body of the pass.
+    <template #stub>The stub.</template>
+</BoardingPass>
+```
+
+### PassingLand
+
+Land made of the mark's triangle, in two ranges. It moves only while `moving` is set.
+
+<div class="kit-tile is-light kit-tile--wide" style="padding: 0; overflow: hidden">
+    <PassingLand style="width: 100%; height: 160px" />
+</div>
+
+```vue
+<PassingLand :moving="lookingOut" :span="220" />
 ```
 
 ### Code

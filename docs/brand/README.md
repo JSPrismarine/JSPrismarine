@@ -59,7 +59,8 @@ Rules:
   `--jsp-deep` and its cards are forest, so page, panel and card are three distinct levels.
 - Signal orange marks small things: a prompt, a cursor, the core of the mark, a focus ring, the rule
   beside a change that breaks or removes something, and the square beside a parity group under half
-  passing. A page may also use it for one solid block. It is never a link color and never a body text
+  passing. A section may also use it for one solid block, such as a figure tile
+  or the stub of a pass. It is never a link color and never a body text
   color.
 - Text on `--jsp-accent` is `--jsp-deep`, through `--jsp-on-accent`. Forest on accent misses AA for
   body text, so forest stays on accent only in display type such as the hero's highlighted word. Text
@@ -117,6 +118,9 @@ ink.
   from the accent figure tiles on the light page and from the ink surfaces on the dark one. A
   selectable tile, such as a parity group, is a figure tile and stays accent when selected.
 - Grids are tight: `10px` gaps (`--jsp-gap`) between solid blocks.
+- A page's blocks sit in one centered column. A page may break out of it once, with a full-width band:
+  a deep surface from one edge of the window to the other, square-cornered, with its content centered.
+  Keep it for the one thing the page most wants tried. On the landing page that is the demo server.
 - Every control shows a signal-orange focus ring when reached by keyboard, with an ink band between
   the control and the ring. Signal alone is too faint on the light page; with the band the ring reads
   on cream, forest, ink and signal surfaces alike. `brand.css` sets it once for every element.
@@ -125,6 +129,13 @@ ink.
   Anything that moves on its own also stops on hover and has a Pause button, for readers who have not
   set reduced motion. With a mouse, the button shows on hover, on keyboard focus and while paused;
   touch screens always show it.
+- An object the reader handles may spring (`--jsp-spring`): it overshoots a little and settles, the
+  way a blind or a slip of paper does. Keep the spring for motion that answers the reader, such as a
+  drag, a press or the pointer, and for one arrival when a section scrolls into view. Prefer motion
+  the reader starts over motion that runs on its own: the land in `WindowBlind` passes only while the
+  blind is up, so the tab that raised it is also what stops it.
+- Keep playful objects flat. A pass, a window or a blind is drawn in the palette's solid colors with
+  hard shadows; none of them imitates a material with texture, gloss or blur.
 
 ## Code
 
@@ -179,6 +190,13 @@ scrolling off the screen edge, under a strip that holds the label and the copy b
 - The hero says what JSPrismarine is in plain words beside the headline, shows facts the repository
   records (builds, protocol versions, default port, license), and offers one link per audience into
   the tabs below it (`#start-play`, `#start-host` and so on); phones get one line to the tabs.
+- The demo server sits straight under the hero, before the tabs, as the page's one full-width band.
+  It is a seat on the way there. On the left, a cabin window whose blind carries the pitch; raising
+  the blind shows the land and starts it passing. On the right, a boarding pass that prints when the
+  band scrolls into view: the address, the port, the Minecraft releases that can join, a "Join in
+  Minecraft" link and a Copy button. Its tear-off stub is the host's coupon and thanks, so the credit
+  is part of the object and not a footnote. On a phone the pass comes down over the lower half of the
+  window and the blind stays lowered, so the land shows in the strip under the blind.
 - Each audience tab is a card that names the audience with its tagline, so all four read before any
   click; one panel shows at a time, headed by what that audience gets.
 - The solid accent and signal figure tiles stay: they carry the page's character. Each shows a figure
@@ -233,6 +251,10 @@ pages such as `tools/docs/site/index.md` and `tools/docs/site/brand-kit.md`.
 | `BentoGrid`, `BentoTile` | Solid color tiles for short claims or figures.                    |
 | `ParityBars`             | The behavior parity score and bars, counted as the tracker counts. |
 | `CopyButton`             | Copies a command to the clipboard.                                |
+| `DemoServer`             | The demo server's full-width band: a `WindowBlind` with the pitch and a `BoardingPass` to join with. |
+| `WindowBlind`            | A cabin window with a blind to pull. The blind carries a heading; the land passes while it is up. |
+| `BoardingPass`           | An upright pass that prints from a slot, leans toward the pointer, and has a stub that tears off. |
+| `PassingLand`            | Land made of the mark's triangle, in two ranges, for a window or a backdrop.  |
 | `LatestRelease`          | The newest release's version, date and first changes.             |
 | `ReleaseNotes`           | Release notes from the changelog, with long groups collapsed.     |
 | `PackageDirectory`       | A filterable grid of the published packages.                      |

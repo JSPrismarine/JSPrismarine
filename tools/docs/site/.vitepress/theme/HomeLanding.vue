@@ -8,6 +8,7 @@ import BentoGrid from './components/BentoGrid.vue';
 import BentoTile from './components/BentoTile.vue';
 import BrandButton from './components/BrandButton.vue';
 import CopyButton from './components/CopyButton.vue';
+import DemoServer from './components/DemoServer.vue';
 import LatestRelease from './components/LatestRelease.vue';
 import ParityBars from './components/ParityBars.vue';
 import PrismMark from './components/PrismMark.vue';
@@ -109,6 +110,8 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
             <PrismMark class="landing__prism" size="100%" />
         </header>
 
+        <DemoServer class="landing__bleed" :demo="project.demo" :versions="minecraftRange(project)" />
+
         <section class="landing__paths" aria-labelledby="paths">
             <!-- The hero's audience links land here, on the section's top, and the tabs select from the fragment. -->
             <span
@@ -178,7 +181,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                     <BrandButton href="/guide/running" variant="outline">Read the guide</BrandButton>
                 </div>
                 <p class="landing__also">
-                    Here to play? <a :href="withBase('/guide/joining')">Join a server</a>. Here to change it?
+                    Here to play? <a href="#demo">Join the demo server</a>. Here to change it?
                     <a :href="withBase('/contributing')">Contribute</a>.
                 </p>
             </div>
@@ -193,13 +196,24 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
 <style scoped>
 .landing {
     display: grid;
-    /* minmax(0, 1fr) stops the ticker's unbroken line from widening the page on phones. */
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--jsp-gap);
-    max-width: 1200px;
-    padding: 10px 16px 24px;
-    margin: 0 auto;
+    /*
+     * Three columns: a gutter, the page's 1200px column, and a gutter. Everything sits in the middle one,
+     * and a full-width band spans all three. minmax(0, …) stops the ticker's unbroken line from widening
+     * the page on phones.
+     */
+    grid-template-columns: minmax(16px, 1fr) minmax(0, 1200px) minmax(16px, 1fr);
+    row-gap: var(--jsp-gap);
+    padding: 10px 0 24px;
     color: var(--jsp-cream);
+}
+
+.landing > * {
+    grid-column: 2;
+}
+
+/* A full-width band runs from one edge of the window to the other. */
+.landing > .landing__bleed {
+    grid-column: 1 / -1;
 }
 
 .landing__hero {
