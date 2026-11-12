@@ -109,8 +109,11 @@ export interface TickerWorld {
     update(tick: number): unknown;
     /** Opens the world's change log tick before the input step, so the inputs land in it. */
     beginChangeTick?(): void;
-    /** Seals the world's change log tick when the world did not update, such as a frozen one. */
-    sealChangeTick?(): unknown;
+    /**
+     * Closes a tick the world did not update, such as a frozen one: seals the change log tick
+     * opened before the input step and sends what the inputs did in it.
+     */
+    closeTick?(tick: number): void;
 }
 
 /**
@@ -638,8 +641,17 @@ export class ServerTicker implements Ticker, TickControl {
                 }
 
                 // A world opened above and not updated, because the server is frozen or the world
-                // list changed, closes its tick here.
-                for (const world of ticked) world.sealChangeTick?.();
+                // list changed, closes its tick here. Closing replicates as well as seals: a frozen
+                // world's players still act, and their inputs have to reach the other clients in
+                // the tick that applied them rather than all at once on the unfreeze.
+                for (const world of ticked) {
+                    try {
+                        world.closeTick?.(this.getTick());
+                    } catch (error: unknown) {
+                        logger.error(`World ${world.getName()} failed to close tick ${this.getTick()}`);
+                        logger.error(error);
+                    }
+                }
             });
 
             // The preparation of chunks, such as translating a worker's result, up to a slice of

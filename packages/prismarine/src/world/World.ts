@@ -1036,7 +1036,7 @@ export class World implements Service {
         } finally {
             store.sealTick(this.tickHeader());
         }
-        this.replicateTick(tick);
+        this.replicateTick(tick, true);
     }
 
     /**
@@ -1056,6 +1056,27 @@ export class World implements Service {
     public sealChangeTick(): SealedTick | undefined {
         const store = this.getEntityStore();
         return store.tickOpen ? store.sealTick(this.tickHeader()) : undefined;
+    }
+
+    /**
+     * Closes a tick the ticker opened and then did not update the world in, such as a frozen one:
+     * seals it and sends what the input step applied in it. The world itself holds still, as
+     * Java's tick rate manager freezes everything but the players. The players still act, and
+     * their arm swings, sounds, emotes and movement reach the other clients in the tick that
+     * applied them, as they do in a running tick, rather than piling up in the replicator and
+     * going out all at once on the unfreeze.
+     *
+     * Only a tick this call sealed replicates, so a world that updated, which sealed and
+     * replicated its own tick, sends nothing twice. A world whose entity store is broken stops
+     * replicating as it stops ticking.
+     *
+     * @param tick - The server tick.
+     */
+    public closeTick(tick: number): void {
+        // Installs the log's readers, as an update does, so the sink reads the tick this seals.
+        this.blockLog();
+        if (this.sealChangeTick() === undefined || this.getEntityStore().broken !== undefined) return;
+        this.replicateTick(tick, false);
     }
 
     /**
@@ -1214,9 +1235,13 @@ export class World implements Service {
     /**
      * The phases that send what a tick changed, which {@link World.update} runs after it sealed the
      * tick's change log, so the block changes come from the sealed tick
-     * ([ADR 0016](../../../../docs/adr/0016-replication-reads-the-change-log.md)).
+     * ([ADR 0016](../../../../docs/adr/0016-replication-reads-the-change-log.md)), and
+     * {@link World.closeTick} runs for a tick the world did not update.
+     *
+     * @param tick - The server tick.
+     * @param advanced - Whether the world updated in this tick, which moves its clock.
      */
-    private replicateTick(tick: number): void {
+    private replicateTick(tick: number, advanced: boolean): void {
         if (this.closing) return;
 
         const startProfile = profileSpanStarter(this.server);
@@ -1297,11 +1322,16 @@ export class World implements Service {
             endMovementProfile?.();
         }
 
-        const endTimeProfile = startProfile?.(`World.time:${this.name}`);
-        try {
-            this.sendTime();
-        } finally {
-            endTimeProfile?.();
+        // Not in a tick the world did not update. Its clock stood still, so there is no new time
+        // to say, and the once-a-second cadence reads that clock: frozen on a whole second, it
+        // would send the same time every tick of the freeze.
+        if (advanced) {
+            const endTimeProfile = startProfile?.(`World.time:${this.name}`);
+            try {
+                this.sendTime();
+            } finally {
+                endTimeProfile?.();
+            }
         }
 
         const endUnloadProfile = startProfile?.(`World.unloadChunks:${this.name}`);
