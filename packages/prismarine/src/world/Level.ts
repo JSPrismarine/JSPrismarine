@@ -41,6 +41,7 @@ import { WorldWeather } from './Weather';
 import { World } from './World';
 import { PlayerPersistence } from './PlayerPersistence';
 import { RespawnSearch } from './RespawnSearch';
+import { outsideTick } from './TickContext';
 import type { WorldData } from './World';
 import { byRuntimeId } from './runtimeIdOrder';
 import type { RaidRecord } from './raid/RaidManager';
@@ -413,6 +414,36 @@ export class Level {
      */
     public loadedWorld(dimensionId: string): World | undefined {
         return this.built.get(dimensionId)?.world;
+    }
+
+    /**
+     * The world of one dimension once its enabling has finished, or undefined. Nothing is built.
+     *
+     * What a tick reads when it needs another dimension: a tick never waits for a build, so it
+     * asks {@link Level.prepareWorld} for one and reads this again at a later input step.
+     */
+    public readyWorld(dimensionId: string): World | undefined {
+        const entry = this.built.get(dimensionId);
+        return entry?.isReady === true ? entry.world : undefined;
+    }
+
+    /**
+     * Starts building the world of one dimension outside every tick, so a tick that needs it does
+     * not wait, and whatever the build loads waits for an input step. A world built or building
+     * already is left alone. A failed build is logged, and the next call starts it again.
+     *
+     * @param dimensionId - The stem's key.
+     * @returns The build, which settles once the world is ready or the build failed.
+     */
+    public prepareWorld(dimensionId: string): Promise<void> {
+        return outsideTick(async () => {
+            try {
+                await this.world(dimensionId);
+            } catch (error: unknown) {
+                this.server.getLogger().error(`Failed to build the ${dimensionId} dimension of level ${this.name}`);
+                this.server.getLogger().error(error);
+            }
+        });
     }
 
     /**
