@@ -51,11 +51,17 @@ export const leverLamp: Scenario = {
          * Clicks the lever until the server reports it at `open`, then waits for the lamp to read
          * `lamp`. The lever's own state says whether a click landed, so a lost click is retried
          * and one that landed late is never clicked again, which would flip the lever back.
+         *
+         * The press lasts one frame. A client holding use on a lever uses it again every 300 ms
+         * of wall clock, and each repeat flips the lever too. A three-frame press on a software
+         * renderer, where a frame can take a second, flipped it twice and left it where it was.
+         * The controller releases a one-frame press before the next frame's use, so it is one
+         * flip however long that frame takes.
          */
         const flip = async (open: boolean, lamp: string): Promise<void> => {
             const lever = `minecraft:lever ["open_bit"=${open}]`;
             for (let click = 1; ; click++) {
-                await client.input({ press: ['MouseRight'], press_frames: 3 });
+                await client.input({ press: ['MouseRight'], press_frames: 1 });
                 await client.waitFrames(10);
                 await client.input({ release_all: true });
                 if (await untilTicks(server, CLICK_TICKS, () => found(LEVER, lever))) break;
