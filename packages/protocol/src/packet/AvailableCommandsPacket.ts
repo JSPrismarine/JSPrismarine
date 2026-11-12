@@ -1,3 +1,4 @@
+import { formatWireValue } from '../wire/formatWireValue';
 import { CommandChainedSubcommand } from '../wire/structures/CommandChainedSubcommand';
 import CommandData from '../wire/structures/CommandData';
 import { CommandEnum } from '../wire/structures/CommandEnum';
@@ -233,7 +234,8 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
             for (let j = 0, indices = this.readUnsignedVarInt(); j < indices; j++) {
                 const index = this.readUnsignedIntLE();
                 const value = enumValues[index];
-                if (value === undefined) throw new Error(`Enum ${name} points at missing enum value ${index}`);
+                if (value === undefined)
+                    throw new Error(`Enum ${formatWireValue(name)} points at missing enum value ${index}`);
                 values.push(value);
             }
             enums.push(Object.assign(new CommandEnum(), { name, values, soft: false }));
@@ -247,7 +249,8 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                 const first = this.readUnsignedVarInt();
                 this.readUnsignedVarInt(); // `second`, the same index again.
                 const value = chainedValues[first];
-                if (value === undefined) throw new Error(`Subcommand ${name} points at missing value ${first}`);
+                if (value === undefined)
+                    throw new Error(`Subcommand ${formatWireValue(name)} points at missing value ${first}`);
                 values.push(value);
             }
             chainedSubcommands.push(Object.assign(new CommandChainedSubcommand(), { name, values }));
@@ -272,7 +275,9 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                 const index = this.readUnsignedIntLE();
                 const table = chainedSubcommands[index];
                 if (table === undefined) {
-                    throw new Error(`Command ${data.commandName} points at missing subcommand table ${index}`);
+                    throw new Error(
+                        `Command ${formatWireValue(data.commandName)} points at missing subcommand table ${index}`
+                    );
                 }
                 data.chainedSubcommands.push(table);
             }
@@ -297,7 +302,9 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                         if (options & CommandParameterFlags.ENUM_AS_CHAINED_COMMAND) {
                             const table = chainedSubcommands[index];
                             if (table === undefined) {
-                                throw new Error(`Parameter ${paramName} points at missing subcommand table ${index}`);
+                                throw new Error(
+                                    `Parameter ${formatWireValue(paramName)} points at missing subcommand table ${index}`
+                                );
                             }
                             parameter.chainedSubcommand = table;
                             // The encoder re-adds the flag from `chainedSubcommand`.
@@ -305,20 +312,26 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                         } else {
                             const found = enums[index];
                             if (found === undefined) {
-                                throw new Error(`Parameter ${paramName} points at missing enum ${index}`);
+                                throw new Error(
+                                    `Parameter ${formatWireValue(paramName)} points at missing enum ${index}`
+                                );
                             }
                             parameter.enum = found;
                         }
                     } else if (type & CommandParameterTypeFlag.Postfix) {
                         const postfix = postfixes[index];
                         if (postfix === undefined) {
-                            throw new Error(`Parameter ${paramName} points at missing postfix ${index}`);
+                            throw new Error(
+                                `Parameter ${formatWireValue(paramName)} points at missing postfix ${index}`
+                            );
                         }
                         parameter.postfix = postfix;
                     } else {
                         const word = Object.values(CommandParameterType).find((value) => value === type);
                         if (word === undefined) {
-                            throw new Error(`Parameter ${paramName} carries unknown parse symbol ${type}`);
+                            throw new Error(
+                                `Parameter ${formatWireValue(paramName)} carries unknown parse symbol ${type}`
+                            );
                         }
                         parameter.paramType = word;
                     }
@@ -343,7 +356,9 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
         for (const { parameter, index } of pendingSoftEnums) {
             const found = this.softEnums[index];
             if (found === undefined) {
-                throw new Error(`Parameter ${parameter.paramName} points at missing soft enum ${index}`);
+                throw new Error(
+                    `Parameter ${formatWireValue(parameter.paramName)} points at missing soft enum ${index}`
+                );
             }
             parameter.enum = found;
         }
