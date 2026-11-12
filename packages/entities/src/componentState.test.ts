@@ -159,6 +159,17 @@ describe('ComponentStates', () => {
         expect(stateField.number(Number.NEGATIVE_INFINITY)).toBe(false);
     });
 
+    it('refuses an id a JSON record cannot keep', () => {
+        const entity = spawn();
+        start(entity);
+
+        entity.componentState.set(COUNTER, { count: 1, seen: [Number.POSITIVE_INFINITY], last: null });
+        expect(entity.componentState.get(COUNTER)?.seen).toEqual([]);
+        expect(stateField.id(Number.NaN)).toBe(false);
+        expect(stateField.id(7)).toBe(true);
+        expect(stateField.id('7')).toBe(true);
+    });
+
     it('saves active declared components, with null for one that holds no state', () => {
         const entity = spawn();
         start(entity);

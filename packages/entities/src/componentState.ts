@@ -66,17 +66,20 @@ export interface ComponentStateOptions {
     readonly saved?: boolean;
 }
 
+/**
+ * A finite number. A JSON record writes `Infinity` and `NaN` as `null`, which a guard then refuses
+ * on restore, so the state would load as the component's initial state.
+ */
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
 /** Field guards for {@link defineComponentState}. */
 export const stateField = {
-    /**
-     * A finite number. A JSON record writes `Infinity` and `NaN` as `null`, which this guard then
-     * refuses on restore, so the state would load as the component's initial state.
-     */
-    number: (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value),
+    /** A finite number; see {@link isFiniteNumber}. */
+    number: isFiniteNumber,
     /** A boolean. */
     boolean: (value: unknown): value is boolean => typeof value === 'boolean',
-    /** An entity id, as the filter views report one. */
-    id: (value: unknown): value is string | number => typeof value === 'string' || typeof value === 'number',
+    /** An entity id, as the filter views report one: a string, or a finite number. */
+    id: (value: unknown): value is string | number => typeof value === 'string' || isFiniteNumber(value),
     /** A field that may also be `null`. */
     nullable:
         <T extends ComponentStateData>(guard: ComponentStateGuard<T>): ComponentStateGuard<T | null> =>
@@ -128,8 +131,7 @@ const isStateData = (value: unknown): value is ComponentStateData => {
         case 'string':
             return true;
         case 'number':
-            // As `stateField.number`: JSON keeps no other number.
-            return Number.isFinite(value);
+            return isFiniteNumber(value);
         case 'object':
             return Array.isArray(value) ? value.every(isStateData) : isComponentStateRecord(value);
         default:
