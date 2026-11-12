@@ -46,6 +46,8 @@ import { PLAYER_IDENTIFIER } from './playerOverlay';
 import { portalCooldownOf } from './PortalContact';
 import { PlayerComponents } from './playerComponents';
 import { addFood, setSaturation } from './playerHunger';
+import { HAND_SLOT_FIELD, HEAD_YAW_FIELD, SHOWN_PLAYER_COMPONENTS, SHOWN_PLAYER_SLOTS, slotKey } from './playerShown';
+import type { PlayerShownForm } from './playerShown';
 
 /** Who a store player is, as the login named them. */
 export interface StorePlayerIdentity {
@@ -77,8 +79,6 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
      * because health is the entity's; while it is in none, the entry holds it.
      */
     public readonly attributes = new Attributes(Attributes.getPlayerDefaults());
-    /** Where the head looks, which the client reports apart from the body's yaw. */
-    public headYaw = 0;
     /** The skin the login carried, which a skin change replaces. */
     public skin: Skin | null = null;
     /** The device the login named, or null when it said nothing. */
@@ -100,6 +100,7 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     private readonly inventory = new HumanInventory();
     private readonly craftingInput = new CraftingInput();
     private portalCooldown = 0;
+    private lookingHeadYaw = 0;
     /** The last tick an actor of this player was updated in; see {@link StorePlayer.claimUpdate}. */
     private updatedTick = -1;
     private attached: DataEntity | undefined;
@@ -125,9 +126,20 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         this.metadata.setNameTag(identity.name);
         this.inventory.observeCarried({
             slot: (container, slot, before, after) => this.log?.slot(container, slot, before, after),
-            handSlot: (before, after) => this.log?.field('inventory.handSlot', before, after)
+            handSlot: (before, after) => this.log?.field(HAND_SLOT_FIELD, before, after)
         });
         this.craftingInput.observe((slot, before, after) => this.log?.slot('crafting', slot, before, after));
+    }
+
+    /** Where the head looks, which the client reports apart from the body's yaw. Logged while in a store. */
+    public get headYaw(): number {
+        return this.lookingHeadYaw;
+    }
+
+    public set headYaw(headYaw: number) {
+        const before = this.lookingHeadYaw;
+        this.lookingHeadYaw = headYaw;
+        this.log?.field(HEAD_YAW_FIELD, before, headYaw);
     }
 
     /** The `minecraft:player` entity while the player is in a store, or undefined while it is in none. */
@@ -166,6 +178,7 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         this.restoreHealth(health);
         this.log = systems?.attach(entity, {
             components: this.components,
+            shownForm: () => this.shownForm(),
             restoreField: (field, value) => this.restoreField(field, value),
             restoreSlot: (container, slot, value, content) => this.restoreSlot(container, slot, value, content)
         });
@@ -468,11 +481,28 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         this.portalCooldown = portalCooldownOf(ticks);
     }
 
-    /** Writes a logged hand slot back, the one field the player keeps beside its components. */
+    /**
+     * What clients are shown of the player beside its entity, which its entity enters the change
+     * log with (`entity/playerShown.ts`).
+     */
+    private shownForm(): PlayerShownForm {
+        const fields: Record<string, PlainData> = {
+            [HEAD_YAW_FIELD]: this.lookingHeadYaw,
+            [HAND_SLOT_FIELD]: this.inventory.getHandSlotIndex()
+        };
+        for (const field of SHOWN_PLAYER_COMPONENTS) fields[field] = this.components.get(field);
+        const slots: Record<string, PlainData> = {};
+        for (const { container, slot } of SHOWN_PLAYER_SLOTS)
+            slots[slotKey(container, slot)] = this.inventory.slotValue(container, slot);
+        return { fields, slots };
+    }
+
+    /** Writes back a logged field the player keeps beside its components: the hand slot or the head yaw. */
     private restoreField(field: string, value: PlainData): boolean {
-        if (field !== 'inventory.handSlot') return false;
+        if (field !== HAND_SLOT_FIELD && field !== HEAD_YAW_FIELD) return false;
         if (typeof value !== 'number') throw new TypeError(`${field} cannot hold ${String(value)}`);
-        this.inventory.setHandSlot(value);
+        if (field === HEAD_YAW_FIELD) this.lookingHeadYaw = value;
+        else this.inventory.setHandSlot(value);
         return true;
     }
 

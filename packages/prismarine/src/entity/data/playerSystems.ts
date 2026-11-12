@@ -31,6 +31,7 @@ import { EYE_HEIGHT } from '../playerEyes';
 import { breathe } from '../playerBreath';
 import { PlayerComponents } from '../playerComponents';
 import type { PlayerMining } from '../playerComponents';
+import type { PlayerShownForm } from '../playerShown';
 import {
     addExhaustion,
     addJumpExhaustion,
@@ -106,6 +107,8 @@ const blockOf = ({ x, y, z }: EntityPosition): ContentPosition => ({
 export interface PlayerParts {
     /** The player's components, which the systems run and log from now on. */
     readonly components: PlayerComponents;
+    /** What clients are shown of the player beside its entity, which the entity enters the log with. */
+    shownForm(): PlayerShownForm;
     /**
      * Writes a logged field the player keeps beside its components back without logging it, such
      * as `inventory.handSlot`.
@@ -352,6 +355,14 @@ export class PlayerSystems {
             );
         });
         if (damage !== undefined) this.hurt(entity, DamageCause.Fall, damage);
+    }
+
+    /**
+     * What clients are shown of a store player beside its entity (`entity/playerShown.ts`).
+     * @returns The form, or undefined for an entity no store player attached to.
+     */
+    public shownFormOf(entity: DataEntity): PlayerShownForm | undefined {
+        return this.players.get(entity)?.parts?.shownForm();
     }
 
     /**

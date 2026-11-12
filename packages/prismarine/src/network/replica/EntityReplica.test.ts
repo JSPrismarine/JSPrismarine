@@ -1,3 +1,4 @@
+import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../../../.test/reportProgress';
@@ -10,6 +11,11 @@ import type { DataEntity } from '../../entity/data/DataEntity';
 import { EntityRuntime } from '../../entity/data/EntityRuntime';
 import { entityFixture, FLOOR_Y, spawnDeclared, TestEntityWorld } from '../../entity/data/testing';
 import { EntityReplica } from './EntityReplica';
+import ContainerEntry from '../../inventory/ContainerEntry';
+import { Item } from '../../item/Item';
+import { enterStore, StorePlayers } from '../../entity/data/storePlayers';
+import { SHOWN_PLAYER_SLOTS } from '../../entity/playerShown';
+import { loggedInStorePlayer, storePlayerFixture } from '../../testing/storePlayer.test.helper';
 
 /**
  * The entity replica holds what the change log says about each entity, and nothing else. The
@@ -184,6 +190,51 @@ describe('the entity replica', () => {
 
         expect([...changes.entered]).toEqual([BigInt(entity.id)]);
         expect(replica.view(BigInt(entity.id))).toEqual(entityViewOf(entity, runtime.leashHolderIdOf(entity.id)));
+    });
+
+    it("holds a store player's shown state from its entering form and the entries after it", () => {
+        const fixture = storePlayerFixture();
+        const replica = new EntityReplica(() => fixture.content);
+        const live = () => {
+            const components = player.getComponents();
+            return {
+                headYaw: player.headYaw,
+                handSlot: player.getInventory().getHandSlotIndex(),
+                sprinting: components.get('movement.sprinting'),
+                gamemode: components.get('abilities.gamemode'),
+                air: components.get('vitals.air'),
+                breathing: components.get('vitals.breathing')
+            };
+        };
+        const slots = () =>
+            SHOWN_PLAYER_SLOTS.map(({ container, slot }) => player.getInventory().slotValue(container, slot));
+        const held = () =>
+            SHOWN_PLAYER_SLOTS.map(({ container, slot }) => replica.slot(BigInt(player.id), container, slot));
+        const sword = new ContainerEntry({ item: new Item({ name: 'minecraft:iron_sword', count: 1 }), count: 1 });
+
+        // Brought in with a sword in the second hotbar slot and a turned head, which the shown form carries.
+        const player = loggedInStorePlayer(fixture);
+        player.getInventory().setItem(1, sword);
+        player.headYaw = 35;
+        tickInto(fixture.runtime, replica, () => enterStore(fixture.runtime, new StorePlayers(), player));
+        expect(replica.player(BigInt(player.id))).toEqual(live());
+        expect(held()).toEqual(slots());
+
+        const writes: readonly (() => void)[] = [
+            () => (player.headYaw = -20),
+            () => player.getInventory().setHandSlot(1),
+            () => player.getComponents().set('movement.sprinting', true),
+            () => player.getComponents().set('abilities.gamemode', Gametype.CREATIVE),
+            () => player.getComponents().set('vitals.air', 120),
+            () => player.getComponents().set('vitals.breathing', false),
+            () => player.getInventory().getArmor().setItem(0, sword),
+            () => player.getInventory().getOffhand().setItem(0, sword)
+        ];
+        for (const write of writes) {
+            tickInto(fixture.runtime, replica, write);
+            expect(replica.player(BigInt(player.id))).toEqual(live());
+            expect(held()).toEqual(slots());
+        }
     });
 
     it('passes over an entry for an entity whose entering entry it never read', () => {

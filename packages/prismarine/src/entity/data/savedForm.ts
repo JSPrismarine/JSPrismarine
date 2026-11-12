@@ -54,8 +54,8 @@ const recordIn = (value: PlainData | undefined): PlainRecord =>
 /**
  * The logged fields a saved form holds, by the name a field entry addresses each with.
  *
- * Only what the form holds: a field the form leaves out, such as a player's own components or the
- * status effect clock, is absent until an entry writes it.
+ * Only what the form holds: a field the form leaves out, such as a player's components it does
+ * not show or the status effect clock, is absent until an entry writes it.
  * @param saved - A membership entry's saved form.
  * @returns The fields, such as `position`, `attribute:health` or `condition:in_water`.
  */
@@ -84,5 +84,20 @@ export const loggedFieldsOfSavedForm = (saved: PlainRecord): Map<string, PlainDa
         const attribute = attributes[name];
         if (attribute !== undefined) fields.set(`attribute:${name}`, attribute);
     }
+
+    // A store player's shown fields, already named as their entries address them.
+    for (const [name, value] of Object.entries(recordIn(recordIn(saved['player'])['fields']))) fields.set(name, value);
     return fields;
+};
+
+/**
+ * The container slots a saved form holds, by `container:slot`: a store player's shown slots, and
+ * none for any other entity.
+ * @param saved - A membership entry's saved form.
+ */
+export const loggedSlotsOfSavedForm = (saved: PlainRecord): Map<string, PlainRecord | null> => {
+    const slots = new Map<string, PlainRecord | null>();
+    for (const [key, value] of Object.entries(recordIn(recordIn(saved['player'])['slots'])))
+        slots.set(key, value !== null && isPlainRecord(value) ? value : null);
+    return slots;
 };
