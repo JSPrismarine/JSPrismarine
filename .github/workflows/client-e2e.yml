@@ -11,9 +11,7 @@ name: Client E2E
 #
 # tools/client-e2e/cinnabar.json pins a client per protocol and transport. A NetherNet pin runs the
 # scenarios against a server with RakNet off, since Bedrock 1.26.60 joins over NetherNet only. Its
-# pin is a cinnabar development commit whose NetherNet support is unfinished, as is the server's,
-# so its build and e2e jobs may fail without failing the run. Drop `continue-on-error` from both
-# once a NetherNet run passes.
+# pin is a cinnabar development commit, and its build and e2e jobs gate the run like any other pin's.
 #
 # The workflow runs on every push and pull request so the `✅ Client E2E` job always reports: it is
 # the one branch rules require. A change that touches no package code or dependencies (docs, the
@@ -181,8 +179,6 @@ jobs:
         name: 🔨 Build cinnabar client (${{ matrix.pin.name }})
         needs: changes
         if: ${{ needs.changes.outputs.code == 'true' && needs.changes.outputs.build != '[]' }}
-        # The NetherNet pin is a development commit of cinnabar; see the top of this file.
-        continue-on-error: ${{ matrix.pin.transport == 'nethernet' }}
         strategy:
             fail-fast: false
             matrix:
@@ -374,17 +370,14 @@ jobs:
     # cinnabar-build still runs on a push that reuses the pull request's results: a pull request's
     # cache entries are invisible to master, so this is where a new pin's build reaches master.
     client-e2e:
-        # A NetherNet entry says it may fail, which is also how pr-job-results.mjs leaves it out.
         name: >-
-            🎮 Client E2E (protocol ${{ matrix.pin.protocol }}${{ matrix.pin.transport == 'nethernet' && ', NetherNet, allowed to fail' || '' }})
+            🎮 Client E2E (protocol ${{ matrix.pin.protocol }}${{ matrix.pin.transport == 'nethernet' && ', NetherNet' || '' }})
         needs: [changes, cinnabar-build]
         # A skipped cinnabar-build means every pin was already cached.
         if: >-
             ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.code == 'true'
             && (needs.cinnabar-build.result == 'success' || needs.cinnabar-build.result == 'skipped')
             && needs.changes.outputs.reused != 'true' }}
-        # The NetherNet pin is a development commit of cinnabar; see the top of this file.
-        continue-on-error: ${{ matrix.pin.transport == 'nethernet' }}
         strategy:
             fail-fast: false
             matrix:
@@ -567,8 +560,7 @@ jobs:
                   fi
                   jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<< "$NEEDS"
                   # cinnabar-build skips when every pin is cached, and client-e2e skips on a push that
-                  # reuses the merged pull request's passing runs. A failed NetherNet entry still
-                  # reports its job as a success here: both jobs set continue-on-error for it.
+                  # reuses the merged pull request's passing runs.
                   jq -e '(.changes.outputs.reused == "true") as $reused
                       | (.changes.outputs.build == "[]") as $cached
                       | to_entries
