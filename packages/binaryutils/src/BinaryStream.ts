@@ -56,9 +56,15 @@ export class BinaryStream {
 
     /**
      * Reads a slice of buffer by the given length.
-     * @param {number} len
+     * @param {number} len - How many bytes to read: a nonnegative integer.
+     * @throws AssertionError when `len` is negative or not an integer, or runs past the end.
      */
     public read(len: number): Buffer {
+        // A negative length used to move the read index backward, so a length read off the wire
+        // could send a parser round the same bytes forever.
+        if (!Number.isInteger(len) || len < 0) {
+            assert.fail(`Cannot read ${len} byte(s): the length must be a nonnegative integer`);
+        }
         this.doReadAssertions(len);
         return this.readBuffer!.subarray(this.readIndex, (this.readIndex += len));
     }
