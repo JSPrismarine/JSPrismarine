@@ -155,7 +155,11 @@ export const withBlockEntityField = (
     }
 
     if (current === null) throw new TypeError(`No block entity at ${at.x}, ${at.y}, ${at.z} holds slot ${slot}`);
-    const slots = slotsOf(current.getList(ITEMS, false)) ?? new Map<number, NBTTagCompound>();
+    const standing = slotsOf(current.getList(ITEMS, false));
+    // A list that does not split is whole in `data`, which a change to one writes ahead of
+    // emptying the slots the list had, so a replay forward keeps it rather than emptying it.
+    if (standing === undefined && value === null) return current;
+    const slots = standing ?? new Map<number, NBTTagCompound>();
     if (value === null) slots.delete(slot);
     else slots.set(slot, nbtOfBytes(value));
     const tags = new NBTTagCompound(current.getName() ?? '');
