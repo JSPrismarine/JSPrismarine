@@ -116,13 +116,13 @@ export default class NBTStreamReader {
     }
 
     protected readByteArrayValue(): Buffer {
-        const size: number = this.readIntValue().getValue();
+        const size = this.readLength('Invalid NBT Data: Negative byte array length');
         this.expectInput(size, 'Invalid NBT Data: Expected byte array data');
         return this.input.read(size);
     }
 
     protected readIntArrayValue(): number[] {
-        const size: number = this.readIntValue().getValue();
+        const size = this.readLength('Invalid NBT Data: Negative int array length');
         this.expectInput(this.isUsingVarint() ? size : size * 4, 'Invalid NBT Data: Expected int array data');
         const result: number[] = [];
         for (let i = 0; i < size; i++) {
@@ -130,6 +130,17 @@ export default class NBTStreamReader {
         }
 
         return result;
+    }
+
+    /**
+     * Reads a signed element count and refuses a negative one. Counting backward is not a
+     * shape any NBT writer produces, and a negative size used to slip past the bounds and
+     * allocation checks below and move the stream's read index backward.
+     */
+    protected readLength(message: string): number {
+        const length = this.readIntValue().getValue();
+        if (length < 0) throw new Error(message);
+        return length;
     }
 
     protected expectInput(remaining: number, message: string, alterAllocationLimit = true): void {
