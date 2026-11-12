@@ -7,6 +7,7 @@ import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import { Position } from './Position';
+import { ChunkAdmissions } from './ChunkAdmissions';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
@@ -325,5 +326,71 @@ describe('world player chunk counts', () => {
         await world['unloadDistantChunks']();
 
         expect(world.getLoadedChunk(20, 0)).not.toBeNull();
+    });
+
+    it("logs a chunk whose leave fails while a later chunk's save waits, and unloads the rest", async () => {
+        const admissions = new ChunkAdmissions();
+        admissions.activate();
+        let secondSaving!: () => void;
+        const secondStarted = new Promise<void>((resolve) => {
+            secondSaving = resolve;
+        });
+        let finishSecond!: () => void;
+        const secondGate = new Promise<void>((resolve) => {
+            finishSecond = resolve;
+        });
+        const world = worldWith(
+            [
+                [20, 0],
+                [21, 0]
+            ],
+            true,
+            async (chunk) => {
+                if (chunk.getX() === 21) {
+                    secondSaving();
+                    await secondGate;
+                }
+                chunk.markSaved();
+            }
+        );
+        const errors: unknown[] = [];
+        const failure = new Error('the leave broke');
+        Object.assign(world, {
+            completionQueue: { admissions },
+            systems: {
+                onChunkUnloaded: (x: number) => {
+                    if (x === 20) throw failure;
+                }
+            },
+            server: {
+                invalidateEntityBlockCaches: () => {},
+                getLogger: () => ({ error: (message: unknown) => void errors.push(message) })
+            }
+        });
+        world['players'].set(1, playerAt(world, 0, 0));
+        world.getLoadedChunk(20, 0)?.markChanged();
+        world.getLoadedChunk(21, 0)?.markChanged();
+        const unhandled: unknown[] = [];
+        const listener = (reason: unknown) => void unhandled.push(reason);
+        process.on('unhandledRejection', listener);
+
+        try {
+            const unloading = world['unloadDistantChunks']();
+            await secondStarted;
+            // The input step takes the first chunk out while the second is still saving.
+            expect(admissions.admit(1)).toBe(1);
+            // A turn of the event loop, which is when Node reports a rejection nothing handles.
+            await new Promise<void>((resolve) => setImmediate(resolve));
+            finishSecond();
+            await new Promise<void>((resolve) => setImmediate(resolve));
+            expect(admissions.admit(2)).toBe(1);
+            await unloading;
+        } finally {
+            process.off('unhandledRejection', listener);
+        }
+
+        expect(unhandled).toEqual([]);
+        expect(errors).toEqual([expect.stringContaining('Failed to unload chunk 20,0'), failure]);
+        expect(world.getLoadedChunk(21, 0)).toBeNull();
     });
 });

@@ -3542,8 +3542,24 @@ export class World implements Service {
         const saveContext = this.chunkSaveContext();
         // Saved one after another, and each saved chunk then waits for the input step to take it
         // out, so a batch leaves at the next step rather than one chunk a tick.
-        const leaving: Promise<boolean>[] = [];
-        for (const chunk of candidates) leaving.push((await this.unloadChunk(chunk, saveContext)).left);
+        const leaving: Promise<void>[] = [];
+        for (const chunk of candidates) {
+            const { left } = await this.unloadChunk(chunk, saveContext);
+            // Handled now, not after the loop: an input step can reject one chunk's leave while a
+            // later chunk's save still waits, and nothing would be listening for it yet.
+            leaving.push(
+                left.then(
+                    () => {},
+                    (error: unknown) => {
+                        const logger = this.server.getLogger();
+                        logger.error(
+                            `Failed to unload chunk ${chunk.getX()},${chunk.getZ()} of ${this.getFormattedName()}`
+                        );
+                        logger.error(error);
+                    }
+                )
+            );
+        }
         await Promise.all(leaving);
     }
 
