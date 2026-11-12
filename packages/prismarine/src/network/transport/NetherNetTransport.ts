@@ -4,6 +4,7 @@ import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { ConnectionId, ConnectionIds } from './ConnectionId';
 import { KeyedTransport } from './KeyedTransport';
+import { TransportNames } from './Transport';
 import type { TransportCapabilities, TransportConnection } from './Transport';
 
 /**
@@ -71,6 +72,7 @@ export const selectedCandidateAddress: NetherNetPeerAddress = (peer) => {
  */
 export class NetherNetTransportConnection implements TransportConnection {
     public readonly capabilities = NETHERNET_CAPABILITIES;
+    public readonly transport = TransportNames.nethernet;
 
     public constructor(
         public readonly id: ConnectionId,
