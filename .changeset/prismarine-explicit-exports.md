@@ -8,7 +8,7 @@
 The root is now `Server.ts`. `import { Server } from '@jsprismarine/prismarine'` still works, and the root exports nothing else: `Config`, `ConfigBuilder`, `Console`, `Chat`, `PlayerSession`, `BaseProvider`, the managers, the `Events`, `Handlers`, `BlockEntities` and `Seed` namespaces and the contents of every directory barrel are gone from it. Import each symbol from the module that defines it:
 
 - `Config`: `@jsprismarine/prismarine/config/Config`
-- `serverVersion`: `@jsprismarine/prismarine/version`
+- `serverVersion` and `softwareLabel`: `@jsprismarine/prismarine/version`; `about`: `@jsprismarine/prismarine/about`
 - `RemoteConsole` and `RemoteLogTransport`: `@jsprismarine/prismarine/console/RemoteConsole` and `@jsprismarine/prismarine/console/RemoteLogTransport`
 - `readContentSettings` and `resolvePackStack`: `@jsprismarine/prismarine/content/settings` and `@jsprismarine/prismarine/content/packStack`
 - `ServerEvents`: `@jsprismarine/prismarine/events/ServerEvents`; `Event`: `@jsprismarine/prismarine/events/Event`; each event class is the default export of its module, such as `@jsprismarine/prismarine/events/chat/ChatEvent` or `@jsprismarine/prismarine/events/player/PlayerSpawnEvent`

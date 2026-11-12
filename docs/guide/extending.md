@@ -85,7 +85,7 @@ The server reads its game data the way the prebuilt server does: from
 
 ### Entry points
 
-The package publishes <!-- fact:prismarine.entryPoints.count -->39<!-- /fact --> entry points, and
+The package publishes <!-- fact:prismarine.entryPoints.count -->40<!-- /fact --> entry points, and
 each one is the module that defines what it exports. The root exports `Server` and nothing else.
 Import every other symbol from its own module, such as `Config` from
 `@jsprismarine/prismarine/config/Config`. Each event class and `PlayerSession` is the default
@@ -126,6 +126,7 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/network/OutboundPacketTrace
 @jsprismarine/prismarine/network/PlayerSession
 @jsprismarine/prismarine/network/ReplayManifest
+@jsprismarine/prismarine/about
 @jsprismarine/prismarine/version
 @jsprismarine/prismarine/world/GeneratorFactories
 @jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator
