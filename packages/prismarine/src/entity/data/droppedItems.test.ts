@@ -117,6 +117,19 @@ describe('dropped items in the store', () => {
             expect(lying.position.x).toBeCloseTo(0.6, 6);
         });
 
+        it('lands on a one-block platform it would cross in a single step', () => {
+            const fixture = fixtureOf();
+            fixture.world.setBlock({ x: 0, y: SURFACE + 6, z: 0 }, 'minecraft:stone');
+            // Feet at 7.5 above the floor, falling two blocks this step, would end below the
+            // platform at 6.
+            const item = drop(fixture, 0.5, SURFACE + 7.5, 0.5, { motion: { x: 0, y: -1.96, z: 0 } });
+
+            step(fixture);
+
+            expect(item.position.y).toBe(SURFACE + 7 + OFFSET);
+            expect(item.body.velocity.y).toBe(0);
+        });
+
         it('stops against a block in its way', () => {
             const fixture = fixtureOf();
             fixture.world.setBlock({ x: 1, y: SURFACE, z: 0 }, 'minecraft:stone');
