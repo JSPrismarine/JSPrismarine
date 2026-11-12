@@ -437,6 +437,30 @@ describe('PlayerSession.changeWorld', () => {
         expect(player.getPosition().getX()).toBe(3);
     });
 
+    it('drops the spawn packet a change was still searching for once the player has moved on', async () => {
+        const { session, sent, level } = fakePlayer();
+        // A level whose Overworld has not found its spawn yet, and a search the test answers.
+        let answer: (overworld: World) => void = () => {};
+        Object.assign(level, {
+            getSpawn: () => null,
+            world: () =>
+                new Promise<World>((resolve) => {
+                    answer = resolve;
+                })
+        });
+
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether, [], level)));
+        session.completeDimensionChange(session.pendingDimensionChange()!.loadingScreenId);
+        // The next change lands before the search for the first one's packet answers.
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.TheEnd, [], level)));
+        sent.length = 0;
+
+        answer(stub<World>({ getSpawnPosition: async () => new Vector3(0, 64, 0) }));
+        await new Promise((resolve) => setImmediate(resolve));
+
+        expect(sent.filter((packet) => packet instanceof SetSpawnPositionPacket)).toEqual([]);
+    });
+
     it('finishes the change with a teleport to the arrival, the attributes, the inventory and the spawn', async () => {
         const { session, sent, level } = fakePlayer();
 

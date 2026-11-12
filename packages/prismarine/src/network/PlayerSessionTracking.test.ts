@@ -21,7 +21,7 @@ import { sessionPlayerFields } from '../testing/playerSession.test.helper';
  *
  * `reconciling` seeds the flag a pass sets while it runs, for tests that start mid-pass.
  */
-const trackingSession = ({ viewDistance = 10, spawnFails = false, reconciling = false } = {}) => {
+const trackingSession = ({ viewDistance = 10, spawnFails = false, spawnRejects = false, reconciling = false } = {}) => {
     const sent: any[] = [];
     const spawned: bigint[] = [];
 
@@ -54,7 +54,8 @@ const trackingSession = ({ viewDistance = 10, spawnFails = false, reconciling = 
             spawnTo: () => {
                 if (spawnFails) throw new Error('the wire went away');
                 spawned.push(id);
-                return Promise.resolve();
+                // The transport frames a queued batch later, and rejects when that fails.
+                return spawnRejects ? Promise.reject(new Error('framing failed')) : Promise.resolve();
             }
         });
 
@@ -157,6 +158,17 @@ describe('network', () => {
                 expect(() => session.reconcileTrackedEntities([entityAt(2n, 1)])).toThrow();
 
                 expect(session.tracks(2n)).toBe(false);
+            });
+
+            it('forgets an entity whose queued spawn failed to frame, so the next pass sends it', async () => {
+                const { session, spawned, entityAt } = trackingSession({ spawnRejects: true });
+                const near = entityAt(2n, 1);
+
+                await expect(session.reconcileTrackedEntities([near])).rejects.toThrow('framing failed');
+                expect(session.tracks(2n)).toBe(false);
+
+                await expect(session.reconcileTrackedEntities([near])).rejects.toThrow('framing failed');
+                expect(spawned).toEqual([2n, 2n]);
             });
 
             it('does not run while another pass is running', async () => {

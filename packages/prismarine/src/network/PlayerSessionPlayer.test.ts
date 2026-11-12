@@ -1044,6 +1044,19 @@ describe("PlayerSession's player", () => {
             );
         });
 
+        it('sends a change again when the send of it failed', async () => {
+            const { session, player, sent } = fakePlayer();
+            await session.sendAttributes();
+            player.attributes.setValue(AttributeIds.PlayerExhaustion, 1);
+            sent.length = 0;
+
+            vi.spyOn(session.getConnection(), 'sendDataPacket').mockRejectedValueOnce(new Error('framing failed'));
+            await expect(session.syncAttributes()).rejects.toThrow('framing failed');
+            await session.syncAttributes();
+
+            expect(sent.filter((packet) => packet instanceof UpdateAttributesPacket)).toHaveLength(1);
+        });
+
         it('says nothing when nothing moved', async () => {
             const { session, sent } = fakePlayer();
             await session.sendAttributes();
