@@ -38,6 +38,7 @@ import BlockPosition from '../world/BlockPosition';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import CoordinateUtils from '../world/CoordinateUtils';
+import { chunkViewArea, offsetsIn } from '../world/ChunkViewArea';
 import { effectiveViewDistance, toChunk } from '../world/Proximity';
 import { dimensionByBedrockId, maxSubChunk, minSubChunk } from '../world/Dimension';
 import Chunk from '../world/chunk/Chunk';
@@ -997,33 +998,38 @@ export default class PlayerSession {
 
         this.chunkSender.setCenter(currentXChunk, currentZChunk);
 
-        for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
-            for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
-                if (sendXChunk * sendXChunk + sendZChunk * sendZChunk > viewDistance * viewDistance) continue; // early exit if chunk is outside of view distance
-                const x = currentXChunk + sendXChunk;
-                const z = currentZChunk + sendZChunk;
-                const hash = Chunk.packXZ(x, z);
+        // One area decides both what is sent and what is forgotten below. See ChunkViewArea
+        // for why the two must not be tested separately.
+        const area = chunkViewArea(viewDistance);
+        for (const [dx, dz] of offsetsIn(area)) {
+            const x = currentXChunk + dx;
+            const z = currentZChunk + dz;
+            const hash = Chunk.packXZ(x, z);
 
-                if (forceResend) {
-                    this.loadedChunks.delete(hash);
-                    if (!this.loadingChunks.has(hash)) this.enqueueChunkCoordinate(hash, x, z);
-                } else if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
-                    this.enqueueChunkCoordinate(hash, x, z);
-                }
+            if (forceResend) {
+                this.loadedChunks.delete(hash);
+                if (!this.loadingChunks.has(hash)) this.enqueueChunkCoordinate(hash, x, z);
+            } else if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
+                this.enqueueChunkCoordinate(hash, x, z);
             }
         }
 
         let unloaded = false;
 
+        // The client drops a chunk once it leaves the area, so the session forgets it then too.
+        // A chunk still counted as held after the client dropped it is never sent again when the
+        // player comes back: a hole in the world for as long as they stay in view of it.
+        const outOfView = (x: number, z: number): boolean => !area.contains(x - currentXChunk, z - currentZChunk);
+
         for (const [hash, { x, z }] of this.loadedChunks) {
-            if (Math.abs(x! - currentXChunk) > viewDistance || Math.abs(z! - currentZChunk) > viewDistance) {
+            if (outOfView(x!, z!)) {
                 unloaded = true;
                 this.loadedChunks.delete(hash);
             }
         }
 
         for (const [hash, { x, z }] of this.loadingChunks) {
-            if (Math.abs(x! - currentXChunk) > viewDistance || Math.abs(z! - currentZChunk) > viewDistance) {
+            if (outOfView(x!, z!)) {
                 this.loadingChunks.delete(hash);
 
                 // And out of the queue too, not only out of the bookkeeping.

@@ -102,6 +102,22 @@ describe('network', () => {
             expect(session.sender.size).toBe(queuedNear);
         });
 
+        it('forgets a chunk in the corner of the view, which the client has dropped, and sends it again', async () => {
+            // Chunk 1, 1 is inside a radius of two around 0, 0. From -1, -1 it is two chunks off
+            // on each axis: still inside a square of that size, outside the circle the client
+            // keeps. Counting it as held left a hole when the player walked back.
+            await session.needNewChunks();
+            expect(session.sender.has(1, 1)).toBe(true);
+
+            player.position = { x: -16, z: -16 };
+            await session.needNewChunks();
+            expect(session.sender.has(1, 1)).toBe(false);
+
+            player.position = { x: 0, z: 0 };
+            await session.needNewChunks();
+            expect(session.sender.has(1, 1)).toBe(true);
+        });
+
         it('does not requeue a chunk it is already sending', async () => {
             await session.needNewChunks();
             const size = session.sender.size;
