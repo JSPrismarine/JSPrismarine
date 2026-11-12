@@ -91,6 +91,26 @@ export type WorldConfig = Partial<WorldData>;
 /** A difficulty name accepted in `config.json`. */
 export type ConfigDifficulty = 'peaceful' | 'easy' | 'normal' | 'hard';
 
+/** The `stats.bstats` section: whether the server reports to bStats, and what the reports log. */
+export interface BStatsConfig {
+    /** Whether the server sends pseudonymous usage data to bStats. */
+    enabled?: boolean;
+    /** Whether a failed submit is logged. */
+    'log-errors'?: boolean;
+    /** Whether each submitted payload is logged. */
+    'log-sent-data'?: boolean;
+    /** Whether the text bStats answers a submit with is logged. */
+    'log-response-status-text'?: boolean;
+    /** The URL reports are posted to: bStats' own by default, or a bStats instance of your own. @pattern ^https?:// */
+    endpoint?: string;
+}
+
+/** The `stats` section: one entry per service the server reports usage statistics to. */
+export interface StatsConfig {
+    /** bStats, at https://bstats.org. */
+    bstats?: BStatsConfig;
+}
+
 /**
  * Settings supported by the JSON configuration file.
  * @title JSPrismarine server configuration
@@ -177,6 +197,8 @@ export interface ConfigFile {
     'log-excluded-packets'?: string[];
     /** How many recipes to send: -1 for all, 0 for none, or a cap. @asType integer @minimum -1 */
     'crafting-recipe-limit'?: number;
+    /** The services the server reports pseudonymous usage statistics to. */
+    stats?: StatsConfig;
     /** Whether a pack that reports an error stops the server instead of loading short. */
     'content-strict'?: boolean;
     /** Extra behavior pack directories this world loads, after the vanilla ones. */
@@ -244,6 +266,7 @@ export const CONFIG_KEY_ORDER = [
     'enable-ticking',
     'log-excluded-packets',
     'crafting-recipe-limit',
+    'stats',
     'content-strict',
     'content-world-packs',
     'content-datapacks'

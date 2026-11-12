@@ -15,6 +15,7 @@ ops.json
 banned-players.json
 permissions.json
 nethernet-identity.pem
+server-uuid.txt
 *.log
 /logs/
 /jsp/

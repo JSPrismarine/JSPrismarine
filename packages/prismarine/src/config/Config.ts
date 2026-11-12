@@ -1,10 +1,13 @@
 import type { LogLevel } from '@jsprismarine/logger';
+
+import { isRecord } from '../utils/isRecord';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
 import type { WorldData } from '../world/WorldManager';
 import { ConfigBuilder } from './ConfigBuilder';
 import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
-import type { ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
+import { BSTATS_ENDPOINT } from '../stats/bstats/service';
+import type { BStatsConfig, ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
 import { DEFAULT_WORLD_PRESET } from './normalizeWorldData';
 import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
 import { DEFAULT_FLUID_REPLACEMENT } from '../content/world/fluidReplacement';
@@ -105,8 +108,21 @@ const COMMENTS = {
     'enable-ticking':
         'Whether the world ticks. Off is only for tests, which step the ticks by hand with Server.advanceTick. Until one does, nothing a tick runs happens: no chunks go out, so a joining client never spawns.',
     'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
-    'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.'
+    'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.',
+    stats: 'The services the server reports pseudonymous usage statistics to, one section each.'
 } as const satisfies Record<Exclude<keyof ConfigFile, ContentConfigKey>, string>;
+
+/**
+ * Written above `stats.bstats` when the server adds the section. The wording is the one Bastian
+ * Oppermann, who runs bStats, suggested for bStats' own clients. It says pseudonymous rather than
+ * anonymous, because the server UUID ties the reports from one server together.
+ */
+const BSTATS_COMMENT = [
+    'This server sends pseudonymous usage statistics, such as the player count and operating system,',
+    'to bStats (https://bStats.org). This has no noticeable impact on performance. To turn it off,',
+    'set enabled to false. To see exactly what is sent, set log-sent-data to true.',
+    'Learn more here: https://bstats.org/docs/server-owners'
+].join('\n');
 
 /**
  * Settings a fresh config leaves out. Each is read when the file has it, and reading one writes
@@ -186,8 +202,38 @@ const DEFAULTS = {
     'enable-process-title': true,
     'enable-ticking': true,
     'log-excluded-packets': [],
-    'crafting-recipe-limit': -1
-} as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'>;
+    'crafting-recipe-limit': -1,
+    stats: {
+        bstats: {
+            enabled: true,
+            'log-errors': false,
+            'log-sent-data': false,
+            'log-response-status-text': false,
+            endpoint: BSTATS_ENDPOINT
+        }
+    }
+} as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'> & {
+    stats: { bstats: Required<BStatsConfig> };
+};
+
+/**
+ * The `stats.bstats` settings as the server reads them: the keys of {@link BStatsConfig}.
+ * `enabled` is true only when the file holds a literal `true` there or has no section.
+ */
+export interface BStatsSettings extends Readonly<Required<BStatsConfig>> {
+    /**
+     * Why `enabled` reads as false although the file does not set it to `false`: the text names
+     * the key and the value that is not a boolean, or not a section. Unset when the file is fine.
+     */
+    readonly problem?: string;
+}
+
+/** Whether a value is an absolute `http:` or `https:` URL, the only kind `stats.bstats.endpoint` takes. */
+const isHttpUrl = (value: unknown): value is string => {
+    if (typeof value !== 'string' || !URL.canParse(value)) return false;
+    const { protocol } = new URL(value);
+    return protocol === 'http:' || protocol === 'https:';
+};
 
 /**
  * The single world a server with no `worlds` key runs: the normal preset on a seed of its own.
@@ -327,6 +373,11 @@ export class Config {
      */
     private craftingRecipeLimit: number = DEFAULTS['crafting-recipe-limit'];
 
+    private bstatsSettings: BStatsSettings = DEFAULTS.stats.bstats;
+
+    /** Whether this start wrote the `stats.bstats` section into the file. */
+    private bstatsSectionCreated = false;
+
     /**
      * Creates the server configuration.
      *
@@ -422,6 +473,96 @@ export class Config {
         this.enableTicking = read('enable-ticking', this.enableTicking);
         this.logExcludedPackets = read('log-excluded-packets', this.logExcludedPackets);
         this.craftingRecipeLimit = read('crafting-recipe-limit', this.craftingRecipeLimit);
+        this.readStats(config);
+    }
+
+    /**
+     * Reads the `stats` section. A file with no `stats.bstats` section gets one, with its comment
+     * and bStats on. Anything else turns bStats on only for a literal `enabled: true`: a `stats` or
+     * `stats.bstats` that is not a section, or an `enabled` that is missing or not a boolean,
+     * or a top-level key spelled `stats.bstats`, reads as off, with {@link BStatsSettings.problem}
+     * saying why, and the file is left as it is.
+     * A logging switch the section lacks is written with its default, and one that is not a
+     * boolean reads as its default. A missing `endpoint` is written with bStats' own, and one that
+     * is not an http or https URL turns bStats off, so reports never go somewhere unintended. A file that refuses to store the section turns bStats off too:
+     * the server would otherwise report without the section, and its notice, ever being written.
+     */
+    private readStats(config: ConfigBuilder): void {
+        const defaults = DEFAULTS.stats.bstats;
+        this.bstatsSectionCreated = false;
+        this.bstatsSettings = defaults;
+        const offFor = (key: string, value: unknown, expected: string): BStatsSettings => ({
+            ...defaults,
+            enabled: false,
+            problem: `${key} in config.json is ${value === undefined ? 'missing' : JSON.stringify(value)}, not ${expected}, so bStats is off. Set stats.bstats.enabled to true or false.`
+        });
+
+        const unwritten = (key: string): BStatsSettings => ({
+            ...defaults,
+            enabled: false,
+            problem: `config.json could not be written to add ${key}, so bStats is off.`
+        });
+
+        if (!config.has('stats')) config.set('stats', {}, COMMENTS.stats);
+        const stats = config.get('stats');
+        if (stats === undefined) {
+            this.bstatsSettings = unwritten('stats');
+            return;
+        }
+        if (!isRecord(stats)) {
+            this.bstatsSettings = offFor('stats', stats, 'a section');
+            return;
+        }
+        if (!('bstats' in stats)) {
+            // With no nested section, only a top-level key spelled "stats.bstats" answers to this
+            // path, and writing the section would replace it.
+            if (config.has('stats.bstats')) {
+                this.bstatsSettings = {
+                    ...defaults,
+                    enabled: false,
+                    problem:
+                        '"stats.bstats" in config.json is a top-level key, not a section inside stats, so bStats is off. Move it into the stats section.'
+                };
+                return;
+            }
+            this.bstatsSectionCreated = config.set('stats.bstats', defaults, BSTATS_COMMENT);
+            if (!this.bstatsSectionCreated) this.bstatsSettings = unwritten('stats.bstats');
+            return;
+        }
+        const section = stats.bstats;
+        if (!isRecord(section)) {
+            this.bstatsSettings = offFor('stats.bstats', section, 'a section');
+            return;
+        }
+
+        const flag = (key: Exclude<keyof BStatsConfig, 'enabled' | 'endpoint'>): boolean => {
+            const stored = section[key];
+            if (typeof stored === 'boolean') return stored;
+            if (stored === undefined) config.set(`stats.bstats.${key}`, defaults[key]);
+            return defaults[key];
+        };
+        const flags = {
+            'log-errors': flag('log-errors'),
+            'log-sent-data': flag('log-sent-data'),
+            'log-response-status-text': flag('log-response-status-text')
+        } satisfies Omit<BStatsSettings, 'enabled' | 'endpoint' | 'problem'>;
+        const endpoint = section.endpoint;
+        if (endpoint === undefined) config.set('stats.bstats.endpoint', defaults.endpoint);
+        const enabled = section.enabled;
+        if (typeof enabled !== 'boolean') {
+            this.bstatsSettings = { ...offFor('stats.bstats.enabled', enabled, 'true or false'), ...flags };
+            return;
+        }
+        if (endpoint !== undefined && !isHttpUrl(endpoint)) {
+            this.bstatsSettings = {
+                ...defaults,
+                ...flags,
+                enabled: false,
+                problem: `stats.bstats.endpoint in config.json is ${JSON.stringify(endpoint)}, not an http or https URL, so bStats is off. Set it to a URL, or remove it to use ${defaults.endpoint}.`
+            };
+            return;
+        }
+        this.bstatsSettings = { ...flags, enabled, endpoint: endpoint ?? defaults.endpoint };
     }
 
     /**
@@ -886,5 +1027,23 @@ export class Config {
      */
     public getLogExcludedPackets(): string[] {
         return this.logExcludedPackets;
+    }
+
+    /**
+     * The `stats.bstats` settings. `enabled` is off unless the file says `true` or has no section,
+     * and a logging switch the file lacks or sets to something other than a boolean is off.
+     * `endpoint` is bStats' own unless the file names another http or https URL.
+     */
+    public getBStatsSettings(): BStatsSettings {
+        return this.bstatsSettings;
+    }
+
+    /**
+     * Whether this start wrote the `stats.bstats` section into the config file, which is how the
+     * server tells a first start with bStats from a later one. False when the file already had
+     * the section, and when the file refused the write.
+     */
+    public wasBStatsSectionCreated(): boolean {
+        return this.bstatsSectionCreated;
     }
 }

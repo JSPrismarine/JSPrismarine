@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,8 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Difficulty, Gametype, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import pkg from '../../package.json' with { type: 'json' };
 import { Config, toPacketCompressionLevel, toPacketCompressionThreshold } from './Config';
+import { parseConfigDocument } from './ConfigDocument';
 import { normalizeWorldData, worldDataOf } from './normalizeWorldData';
 import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
+import { BSTATS_ENDPOINT } from '../stats/bstats/service';
 
 describe('config', () => {
     describe('Config', () => {
@@ -447,6 +449,244 @@ describe('config', () => {
             config.setMotd('Welcome to my server!');
             expect(config.getMotd()).toBe('Welcome to my server!');
         });
+    });
+
+    describe('stats.bstats', () => {
+        let configDirectory: string;
+        const file = () => path.join(configDirectory, 'config.json');
+        const read = () => readFileSync(file(), 'utf8');
+        const boot = async (): Promise<Config> => {
+            const config = new Config();
+            await config.enable();
+            return config;
+        };
+
+        beforeEach(() => {
+            configDirectory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-config-stats-test-'));
+            vi.stubEnv('JSP_DIR', configDirectory);
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+            rmSync(configDirectory, { recursive: true, force: true });
+        });
+
+        it('writes the bStats section, with its comment, on first start', async () => {
+            const config = await boot();
+
+            expect(read()).not.toContain('uuid');
+            expect(read()).toContain(
+                [
+                    '    "stats": {',
+                    '        // This server sends pseudonymous usage statistics, such as the player count and operating system,',
+                    '        // to bStats (https://bStats.org). This has no noticeable impact on performance. To turn it off,',
+                    '        // set enabled to false. To see exactly what is sent, set log-sent-data to true.',
+                    '        // Learn more here: https://bstats.org/docs/server-owners',
+                    '        "bstats": {',
+                    '            "enabled": true,',
+                    '            "log-errors": false,',
+                    '            "log-sent-data": false,',
+                    '            "log-response-status-text": false,',
+                    `            "endpoint": "${BSTATS_ENDPOINT}"`,
+                    '        }',
+                    '    }'
+                ].join('\n')
+            );
+            expect(config.getBStatsSettings()).toStrictEqual({
+                enabled: true,
+                'log-errors': false,
+                'log-sent-data': false,
+                'log-response-status-text': false,
+                endpoint: BSTATS_ENDPOINT
+            });
+        });
+
+        it('says the section was created on the start that wrote it, and not on the next', async () => {
+            expect((await boot()).wasBStatsSectionCreated()).toBe(true);
+            expect((await boot()).wasBStatsSectionCreated()).toBe(false);
+        });
+
+        it('keeps a hand-edited enabled: false across later starts', async () => {
+            await boot();
+            writeFileSync(file(), read().replace('"enabled": true', '"enabled": false'));
+
+            const edited = await boot();
+            const later = await boot();
+
+            expect(edited.getBStatsSettings().enabled).toBe(false);
+            expect(later.getBStatsSettings().enabled).toBe(false);
+            expect(read()).toContain('"enabled": false');
+        });
+
+        it('reads the logging switches from the file, and fills in a switch the file lacks', async () => {
+            writeFileSync(file(), JSON.stringify({ stats: { bstats: { enabled: true, 'log-sent-data': true } } }));
+
+            const config = await boot();
+
+            expect(config.wasBStatsSectionCreated()).toBe(false);
+            expect(config.getBStatsSettings()).toStrictEqual({
+                enabled: true,
+                'log-errors': false,
+                'log-sent-data': true,
+                'log-response-status-text': false,
+                endpoint: BSTATS_ENDPOINT
+            });
+            expect(read()).toContain('"log-errors": false');
+            expect(read()).toContain(`"endpoint": "${BSTATS_ENDPOINT}"`);
+        });
+
+        it.each(['https://bstats.example.com/api/v2/data/server-implementation', 'http://localhost:8080/submit'])(
+            'posts to the endpoint the file names (%s)',
+            async (endpoint) => {
+                writeFileSync(file(), JSON.stringify({ stats: { bstats: { enabled: true, endpoint } } }));
+
+                expect((await boot()).getBStatsSettings()).toMatchObject({ enabled: true, endpoint });
+            }
+        );
+
+        it.each([['"bStats.org"'], ['"ftp://bstats.org/submit"'], ['""'], ['42'], ['null']])(
+            'turns bStats off for an endpoint that is not an http or https URL (%s) and keeps it',
+            async (stored) => {
+                writeFileSync(file(), `{ "stats": { "bstats": { "enabled": true, "endpoint": ${stored} } } }\n`);
+
+                const config = await boot();
+
+                expect(config.getBStatsSettings()).toMatchObject({
+                    enabled: false,
+                    endpoint: BSTATS_ENDPOINT,
+                    problem: `stats.bstats.endpoint in config.json is ${stored}, not an http or https URL, so bStats is off. Set it to a URL, or remove it to use ${BSTATS_ENDPOINT}.`
+                });
+                expect(parseConfigDocument(read()).get(['stats', 'bstats', 'endpoint'])).toStrictEqual(
+                    JSON.parse(stored)
+                );
+            }
+        );
+
+        describe('a stats section that is not well formed', () => {
+            /** The logging switches a section lacks, which the server writes in. */
+            const switches = {
+                'log-errors': false,
+                'log-sent-data': false,
+                'log-response-status-text': false,
+                endpoint: BSTATS_ENDPOINT
+            };
+            const notASection = 'a section';
+            const notABoolean = 'true or false';
+
+            it.each([
+                { stats: false, key: 'stats', value: 'false', expected: notASection, kept: false },
+                { stats: null, key: 'stats', value: 'null', expected: notASection, kept: null },
+                {
+                    stats: { bstats: false },
+                    key: 'stats.bstats',
+                    value: 'false',
+                    expected: notASection,
+                    kept: { bstats: false }
+                },
+                {
+                    stats: { bstats: null },
+                    key: 'stats.bstats',
+                    value: 'null',
+                    expected: notASection,
+                    kept: { bstats: null }
+                },
+                ...[
+                    { enabled: 'false', value: '"false"' },
+                    { enabled: 0, value: '0' },
+                    { enabled: null, value: 'null' }
+                ].map(({ enabled, value }) => ({
+                    stats: { bstats: { enabled } },
+                    key: 'stats.bstats.enabled',
+                    value,
+                    expected: notABoolean,
+                    kept: { bstats: { enabled, ...switches } }
+                })),
+                {
+                    stats: { bstats: { enabeld: true } },
+                    key: 'stats.bstats.enabled',
+                    value: 'missing',
+                    expected: notABoolean,
+                    kept: { bstats: { enabeld: true, ...switches } }
+                }
+            ])(
+                'turns bStats off for stats: $stats and keeps the value',
+                async ({ stats, key, value, expected, kept }) => {
+                    writeFileSync(file(), `${JSON.stringify({ stats }, null, 4)}\n`);
+
+                    const config = await boot();
+                    const settings = config.getBStatsSettings();
+
+                    expect(settings.enabled).toBe(false);
+                    expect(settings.problem).toBe(
+                        `${key} in config.json is ${value}, not ${expected}, so bStats is off. Set stats.bstats.enabled to true or false.`
+                    );
+                    expect(config.wasBStatsSectionCreated()).toBe(false);
+                    expect(parseConfigDocument(read()).get(['stats'])).toStrictEqual(kept);
+                    expect((await boot()).getBStatsSettings().enabled).toBe(false);
+                }
+            );
+
+            it('creates the section with bStats on when the file has none at all', async () => {
+                writeFileSync(file(), '{}\n');
+
+                const config = await boot();
+
+                expect(config.getBStatsSettings()).toStrictEqual({
+                    enabled: true,
+                    'log-errors': false,
+                    'log-sent-data': false,
+                    'log-response-status-text': false,
+                    endpoint: BSTATS_ENDPOINT
+                });
+                expect(config.wasBStatsSectionCreated()).toBe(true);
+            });
+
+            it('turns bStats off for a top-level key spelled stats.bstats and keeps it', async () => {
+                writeFileSync(file(), `${JSON.stringify({ 'stats.bstats': { enabled: false } }, null, 4)}\n`);
+
+                const config = await boot();
+
+                expect(config.getBStatsSettings()).toMatchObject({
+                    enabled: false,
+                    problem:
+                        '"stats.bstats" in config.json is a top-level key, not a section inside stats, so bStats is off. Move it into the stats section.'
+                });
+                expect(config.wasBStatsSectionCreated()).toBe(false);
+                expect(parseConfigDocument(read()).get(['stats.bstats'])).toStrictEqual({ enabled: false });
+                expect((await boot()).getBStatsSettings().enabled).toBe(false);
+            });
+
+            it('creates stats.bstats inside an empty stats section', async () => {
+                writeFileSync(file(), JSON.stringify({ stats: {} }));
+
+                const config = await boot();
+
+                expect(config.getBStatsSettings().enabled).toBe(true);
+                expect(config.wasBStatsSectionCreated()).toBe(true);
+                expect(parseConfigDocument(read()).get(['stats', 'bstats', 'enabled'])).toBe(true);
+            });
+        });
+
+        // Root ignores file modes, so the write this test expects to be refused would succeed.
+        it.skipIf(process.getuid?.() === 0)(
+            'turns bStats off on a read-only file that has no stats section',
+            async () => {
+                await boot();
+                const text = read().replace(/,\n {4}\/\/ The services the server reports[\s\S]*\n {4}}\n}\n$/, '\n}\n');
+                expect(text).not.toContain('"stats"');
+                writeFileSync(file(), text);
+                chmodSync(file(), 0o444);
+
+                const config = await boot();
+
+                expect(read()).toBe(text);
+                expect(config.wasBStatsSectionCreated()).toBe(false);
+                expect(config.getBStatsSettings()).toMatchObject({
+                    enabled: false,
+                    problem: 'config.json could not be written to add stats, so bStats is off.'
+                });
+            }
+        );
     });
 
     /**
