@@ -170,6 +170,11 @@
                 "import": "./dist/network/ReplayManifest.js",
                 "module": "./dist/network/ReplayManifest.js"
             },
+            "./about": {
+                "types": "./dist/about.d.ts",
+                "import": "./dist/about.js",
+                "module": "./dist/about.js"
+            },
             "./version": {
                 "types": "./dist/version.d.ts",
                 "import": "./dist/version.js",
@@ -559,6 +564,10 @@
         },
         "./testing/stub.test.helper": {
             "default": "./src/testing/stub.test.helper.ts"
+        },
+        "./about": {
+            "jsprismarine:dist": "./dist/about.js",
+            "default": "./src/about.ts"
         },
         "./version": {
             "jsprismarine:dist": "./dist/version.js",
