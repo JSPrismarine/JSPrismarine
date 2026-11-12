@@ -218,7 +218,12 @@ export interface DamageStages {
  * it causes has happened by then too.
  */
 export class DamagePipeline {
-    private readonly guards: DamageGuard[];
+    /**
+     * Replaced rather than changed in place, so a hook that adds or removes a hook while a run
+     * walks the list leaves that run's list as it was: removing one in place shifted the next
+     * guard into its index, and the run skipped it.
+     */
+    private guards: readonly DamageGuard[];
     private readonly modifiers: readonly DamageModifierSlot[];
     private readonly runs = new Map<DamageRoute, number>();
 
@@ -235,10 +240,9 @@ export class DamagePipeline {
      */
     public addBeforeHook(name: string, check: (intent: DamageIntent) => DamageVerdict): () => void {
         const guard: DamageGuard = { name, stage: 'before_hook', check };
-        this.guards.push(guard);
+        this.guards = [...this.guards, guard];
         return () => {
-            const index = this.guards.indexOf(guard);
-            if (index !== -1) this.guards.splice(index, 1);
+            this.guards = this.guards.filter((each) => each !== guard);
         };
     }
 
