@@ -1563,16 +1563,14 @@ export default class PlayerSession {
      * client has no reason to keep.
      * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/InventoryManager.php (onClientOpenMainInventory)
      */
-    public async openMainInventory(): Promise<void> {
+    public openMainInventory(): Promise<void> {
         const packet = new ContainerOpenPacket();
         packet.windowId = this.nextWindowId();
         packet.containerType = WindowTypes.INVENTORY;
         // No position: a container an actor carries is named by the actor, not by a block.
         packet.containerEntityId = this.runtimeId;
         this.openWindows.set(packet.windowId, packet.containerType);
-        await this.connection.sendDataPacket(packet);
-
-        await this.sendInventory(packet.windowId);
+        return allSent([this.connection.sendDataPacket(packet), this.sendInventory(packet.windowId)]);
     }
 
     /**
@@ -2587,14 +2585,13 @@ export default class PlayerSession {
      * @param loadingScreenId - The id the client's `StartLoadingScreen` carried.
      * @returns Whether this released the pending change's columns. Any other id changes nothing.
      */
-    public async releaseArrivalChunks(loadingScreenId: number): Promise<boolean> {
+    public releaseArrivalChunks(loadingScreenId: number): Promise<boolean> {
         const pending = this.pendingChange;
         if (pending === undefined || pending.loadingScreenId !== loadingScreenId || pending.arrivalReleased === true) {
-            return false;
+            return Promise.resolve(false);
         }
         pending.arrivalReleased = true;
-        await this.flush();
-        return true;
+        return this.flush().then(() => true);
     }
 
     /** Whether a pending dimension change is holding its columns back. */
@@ -3845,7 +3842,7 @@ export default class PlayerSession {
      * @param broadcast - Whether to tell this client.
      * @remarks Observers snap to a respawn or a teleport instead of interpolating to it.
      */
-    public async setPlayerPosition(
+    public setPlayerPosition(
         {
             position,
             type = PositionMode.Normal,
@@ -3894,10 +3891,12 @@ export default class PlayerSession {
         // Every move goes to the clients that see the player, a head turn included, which the
         // actor's own pose comparison leaves out.
         const actor = this.getActor();
-        if (actor !== undefined)
-            await this.world.broadcastMove(actor, type === PositionMode.Teleport || type === PositionMode.Respawn);
+        const sends =
+            actor === undefined
+                ? []
+                : [this.world.broadcastMove(actor, type === PositionMode.Teleport || type === PositionMode.Respawn)];
 
-        if (!broadcast) return;
-        await this.sendMove(this.shown(), type);
+        if (broadcast) sends.push(this.sendMove(this.shown(), type));
+        return allSent(sends);
     }
 }
