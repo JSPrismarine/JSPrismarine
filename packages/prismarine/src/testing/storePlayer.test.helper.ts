@@ -23,6 +23,9 @@ import { beginMeasuredTick } from './changeTicks.test.helper';
 /**
  * The parts of the shipped `entities/player.json` the store's player rules read: no
  * `minecraft:health`, which the overlay adds, and the shipped breath.
+ *
+ * A copy, because the unit tests run without the fetched vanilla pack. The real-data run of
+ * `vanillaEntityRuntime.test.ts` holds it to the shipped file.
  */
 export const SHIPPED_PLAYER = {
     components: {
