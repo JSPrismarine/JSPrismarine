@@ -1,4 +1,4 @@
-export type { EventBus, EventListener, EventMap } from './events';
+export type { EventBus, EventListener, EventMap, KernelEventBusOptions, ListenerErrorHandler } from './events';
 export { KernelEventBus } from './events';
 export { Kernel, KernelError } from './kernel';
 export type { KernelOptions } from './kernel';

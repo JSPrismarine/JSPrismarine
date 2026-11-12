@@ -37,8 +37,9 @@ await kernel.stop();
 ```
 
 Event listeners registered through a module's context are tagged with the module id and detached
-when that module stops. The bus is a minimal typed async emitter; prismarine's `EventEmitter` is
-adapted to it in a later phase.
+when that module stops. Listeners run in subscription order. `post` calls each one and returns
+without waiting, and `emit` waits for each listener before it calls the next. A listener that
+throws or rejects is logged through the kernel's logger, and the listeners after it still run.
 
 ## Testing a module
 

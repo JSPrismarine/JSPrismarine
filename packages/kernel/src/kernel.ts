@@ -52,7 +52,7 @@ export class Kernel<Events extends EventMap = EventMap> {
     private readonly entries: ModuleEntry<Events>[] = [];
     private readonly services = new Map<string, unknown>();
     private readonly providerOf = new Map<string, string>();
-    private readonly bus = new KernelEventBus<Events>();
+    private readonly bus: KernelEventBus<Events>;
     private readonly config: Readonly<Record<string, unknown>>;
     private readonly logger: KernelLogger;
     private phase: KernelPhase = 'created';
@@ -66,6 +66,13 @@ export class Kernel<Events extends EventMap = EventMap> {
     public constructor(options: KernelOptions = {}) {
         this.config = options.config ?? {};
         this.logger = options.logger ?? consoleLogger;
+        const logger = this.logger;
+        this.bus = new KernelEventBus<Events>({
+            onListenerError: (error, event) =>
+                logger.error(
+                    `A "${event}" listener failed: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`
+                )
+        });
     }
 
     /** The kernel-owned event bus, unscoped. Module code should use its context's scoped handle. */

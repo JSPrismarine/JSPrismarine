@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { KernelEventBus } from './events';
 
@@ -50,5 +50,124 @@ describe('KernelEventBus', () => {
         await bus.emit('tick', 1);
 
         expect(received).toStrictEqual(['b:1']);
+    });
+
+    it('posts to every listener in subscription order and waits for none', () => {
+        const bus = new KernelEventBus<TestEvents>();
+        const order: string[] = [];
+        bus.on('tick', async (count) => {
+            order.push(`first:${count}`);
+            await Promise.resolve();
+            order.push(`first after its wait:${count}`);
+        });
+        bus.on('tick', (count) => {
+            order.push(`second:${count}`);
+        });
+
+        expect(bus.post('tick', 3)).toBe(2);
+        expect(order).toStrictEqual(['first:3', 'second:3']);
+    });
+
+    it('reports a listener that throws or rejects and still calls the ones after it', async () => {
+        const failures: { error: unknown; event: string }[] = [];
+        const bus = new KernelEventBus<TestEvents>({
+            onListenerError: (error, event) => failures.push({ error, event })
+        });
+        const thrown = new Error('thrown');
+        const rejected = new Error('rejected');
+        const calls: string[] = [];
+        bus.on('tick', () => {
+            calls.push('throws');
+            throw thrown;
+        });
+        bus.on('tick', async () => {
+            calls.push('rejects');
+            throw rejected;
+        });
+        bus.on('tick', () => {
+            calls.push('last');
+        });
+
+        expect(bus.post('tick', 1)).toBe(3);
+        expect(calls).toStrictEqual(['throws', 'rejects', 'last']);
+        await vi.waitFor(() => expect(failures).toHaveLength(2));
+        expect(failures).toStrictEqual([
+            { error: thrown, event: 'tick' },
+            { error: rejected, event: 'tick' }
+        ]);
+
+        calls.length = 0;
+        failures.length = 0;
+        await expect(bus.emit('tick', 2)).resolves.toBeUndefined();
+        expect(calls).toStrictEqual(['throws', 'rejects', 'last']);
+        expect(failures).toStrictEqual([
+            { error: thrown, event: 'tick' },
+            { error: rejected, event: 'tick' }
+        ]);
+    });
+
+    it('lets a listener cancel what raised the event, and the later listeners see the cancel', () => {
+        const bus = new KernelEventBus<{ move: [event: { canceled: boolean }] }>();
+        const seen: boolean[] = [];
+        bus.on('move', (event) => {
+            event.canceled = true;
+        });
+        bus.on('move', (event) => {
+            seen.push(event.canceled);
+        });
+        const event = { canceled: false };
+        bus.post('move', event);
+
+        expect(event.canceled).toBe(true);
+        expect(seen).toStrictEqual([true]);
+    });
+
+    it('calls a once listener for the next event only', async () => {
+        const bus = new KernelEventBus<TestEvents>();
+        const received: number[] = [];
+        bus.once('tick', (count) => {
+            received.push(count);
+            // A listener that raises its own event is not called again.
+            bus.post('tick', count + 100);
+        });
+        bus.post('tick', 1);
+        await bus.emit('tick', 2);
+
+        expect(received).toStrictEqual([1]);
+        expect(bus.hasListeners('tick')).toBe(false);
+    });
+
+    it('subscribes the same function once and removes it by identity', () => {
+        const bus = new KernelEventBus<TestEvents>();
+        let calls = 0;
+        const listener = (): void => {
+            calls++;
+        };
+        bus.on('tick', listener);
+        bus.on('tick', listener);
+        expect(bus.post('tick', 1)).toBe(1);
+
+        bus.off('tick', listener);
+        expect(bus.hasListeners('tick')).toBe(false);
+        expect(bus.post('tick', 2)).toBe(0);
+        expect(calls).toBe(1);
+    });
+
+    it('removes all of one handle and keeps the others', () => {
+        const bus = new KernelEventBus<TestEvents>();
+        const received: string[] = [];
+        bus.on('tick', () => {
+            received.push('unscoped');
+        });
+        const module = bus.scoped('mod');
+        module.on('tick', () => {
+            received.push('scoped');
+        });
+        bus.removeAll();
+        bus.post('tick', 1);
+        module.removeAll('tick');
+        bus.post('tick', 2);
+
+        expect(received).toStrictEqual(['scoped']);
     });
 });

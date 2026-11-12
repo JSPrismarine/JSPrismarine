@@ -395,6 +395,23 @@ describe('Kernel module context', () => {
         expect(lines).toStrictEqual(['[noisy] hello']);
     });
 
+    it('logs a failing event listener and keeps calling the others', async () => {
+        const lines: string[] = [];
+        const received: string[] = [];
+        const kernel = new Kernel<{ chat: [message: string] }>({ logger: recordingLogger(lines) });
+        kernel.events.on('chat', () => {
+            throw new Error('broken listener');
+        });
+        kernel.events.on('chat', (message) => {
+            received.push(message);
+        });
+        kernel.events.post('chat', 'hi');
+
+        expect(received).toStrictEqual(['hi']);
+        expect(lines).toHaveLength(1);
+        expect(lines[0]).toContain('A "chat" listener failed: Error: broken listener');
+    });
+
     it("detaches a module's event listeners when it stops", async () => {
         const received: string[] = [];
         const kernel = new Kernel<{ chat: [message: string] }>();
