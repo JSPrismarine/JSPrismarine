@@ -5,7 +5,7 @@ import path from 'node:path';
 import { Database } from '@jsprismarine/leveldb';
 import type { WriteBatch } from '@jsprismarine/leveldb';
 import type { Logger } from '@jsprismarine/logger';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Block } from '../../../block/Block';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
@@ -385,6 +385,29 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         expect(next.stats.heldWrites).toBe(1);
         expect(commits).toEqual({ batches: 1, keys: 1 });
         await leveldb.disable();
+    });
+
+    it('commits the held writes once more when the first commit at close is refused', async () => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        leveldb.holdOutsideWrites();
+        await leveldb.writePlayerData('leaver', record);
+        const database: unknown = Reflect.get(leveldb, 'database');
+        if (!(database instanceof Database)) throw new Error('The provider is not enabled');
+        // What a background flush's failure does to the next write: it is refused before
+        // anything is applied, and the one after it goes through.
+        const commit = vi.spyOn(database, 'commit').mockRejectedValueOnce(new Error('the background flush failed'));
+        errors.length = 0;
+
+        await leveldb.disable();
+
+        expect(commit).toHaveBeenCalledTimes(2);
+        expect(errors).toHaveLength(2);
+        const reopened = provider(worldPath);
+        await reopened.enable();
+        expect(await reopened.readPlayerData('leaver')).not.toBeNull();
+        await reopened.disable();
     });
 
     it('commits what is still held when it closes, in one batch', async () => {
