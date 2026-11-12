@@ -3482,8 +3482,8 @@ export default class PlayerSession {
 
     /**
      * What happens when the player runs out of health, which the store's damage pipeline calls
-     * inside the blow that killed them, after the player systems ended the drowning and the
-     * mining and after the `entityDeath` event and the kill triggers.
+     * once the unit of the blow that killed them has kept its writes, after the player systems
+     * ended the drowning and the mining and after the `entityDeath` event and the kill triggers.
      *
      * The client puts up its own death screen as soon as health reaches zero, so the work here is
      * telling everyone else and waiting: the player stays dead, in the store, until they ask to

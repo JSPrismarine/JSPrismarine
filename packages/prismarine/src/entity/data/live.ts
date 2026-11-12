@@ -372,12 +372,17 @@ const liveHost = (
         advancementDamage(victim, source, commit.dealt, commit.taken, false);
 
         // A player's death is also its session's: the death message, the respawn search and the
-        // death screen. What it commits it commits before its first wait, inside this blow.
+        // death screen. None of that is in the log, so it waits for the unit this blow is in to
+        // keep its writes: an undo gives the player its health back, and a client already sent
+        // health 0, the chat line and a respawn would be showing a death that never happened.
         if (commit.died && victim instanceof StorePlayerActor)
-            void world
-                .viewerOf(victim.getRuntimeId())
-                ?.die(source)
-                .catch((error: unknown) => options.report(String(error)));
+            runtime().store.afterUnit((kept) => {
+                if (!kept) return;
+                void world
+                    .viewerOf(victim.getRuntimeId())
+                    ?.die(source)
+                    .catch((error: unknown) => options.report(String(error)));
+            });
     },
     players: () => options.entities.players(),
     playerView: (id) => {

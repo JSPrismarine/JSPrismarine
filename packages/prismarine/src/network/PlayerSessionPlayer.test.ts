@@ -616,6 +616,48 @@ describe("PlayerSession's player", () => {
             expect(player.getHealth()).toBe(7);
         });
 
+        it('tells nobody of a death whose blow was undone, and asks for no respawn', async () => {
+            // The death's sends and its respawn search are not in the log, so they wait for the
+            // unit that killed the player to keep its writes.
+            const { session, player, sent, events, live, respawnRequests } = fakePlayer();
+            const { store } = live.runtime;
+
+            store.beginTick();
+            const outcome = store.unit(() => {
+                void session.getActor()?.setHealth(0);
+                throw new Error('the rest of the unit failed');
+            });
+            store.sealTick();
+            await new Promise((resolve) => setImmediate(resolve));
+
+            expect(outcome.failed).toBe(true);
+            expect(player.getHealth()).toBe(20);
+            expect(sent).toEqual([]);
+            expect(events.filter(([name]) => name === 'chat')).toEqual([]);
+            expect(respawnRequests.size).toBe(0);
+        });
+
+        it('tells of a death once the unit that killed the player has kept its writes', async () => {
+            const { session, sent, events, live, respawnRequests } = fakePlayer();
+            const { store } = live.runtime;
+
+            let inside = -1;
+            store.beginTick();
+            const outcome = store.unit(() => {
+                void session.getActor()?.setHealth(0);
+                inside = respawnRequests.size;
+            });
+            store.sealTick();
+            await new Promise((resolve) => setImmediate(resolve));
+
+            expect(outcome.failed).toBe(false);
+            // Not inside the unit, whose rest could still have thrown.
+            expect(inside).toBe(0);
+            expect(respawnRequests.size).toBe(1);
+            expect(sent.filter((packet) => packet instanceof UpdateAttributesPacket)).toHaveLength(1);
+            expect(events.filter(([name]) => name === 'chat')).toHaveLength(1);
+        });
+
         it('says where the player will come back at the input step after the death, not inside it', async () => {
             const { session, sent } = fakePlayer();
 
