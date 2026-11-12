@@ -33,12 +33,6 @@ export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
         slice: 9
     },
     {
-        path: 'dragon fight arena, gateway and pillar chunks',
-        file: 'world/end/DragonFight.ts',
-        call: 'this.world.getChunkAt(',
-        slice: 9
-    },
-    {
         path: '`World.setBlockRuntimeId` on a chunk that is not loaded',
         file: 'world/World.ts',
         call: '?? (await this.getChunkAt(x, z))',
