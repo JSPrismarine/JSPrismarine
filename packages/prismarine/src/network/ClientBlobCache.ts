@@ -46,7 +46,18 @@ interface CachedChunkBlobs extends PreparedClientChunkBlobs {
     readonly biome: ClientBlob;
 }
 
+/** A request-mode chunk's biomes as a blob, with what its packet still carries. */
+export interface RequestBiomesBlob extends ClientBlob {
+    /** What follows the biomes in the chunk's payload: the border block count. */
+    readonly tail: Buffer;
+}
+
+interface CachedRequestBiomesBlob extends RequestBiomesBlob {
+    readonly skeleton: Buffer;
+}
+
 const cachedByChunk = new WeakMap<Chunk, CachedChunkBlobs>();
+const requestBiomesByChunk = new WeakMap<Chunk, CachedRequestBiomesBlob>();
 const requestBlobsByChunk = new WeakMap<Chunk, Map<number, CachedRequestSubChunkBlob>>();
 
 /** Keeps missed chunk blobs for one connection until the client acknowledges them. */
@@ -67,6 +78,28 @@ export class ClientBlobCache {
      */
     public hasClientBlob(blobId: bigint): boolean {
         return this.found.has(blobId);
+    }
+
+    /**
+     * Hashes the biomes of a request-mode chunk, reusing an unchanged serialization. The chunk's
+     * packet then names the biomes by this hash and carries only the border block count.
+     * @param chunk - The chunk column being announced.
+     */
+    public prepareRequestBiomes(chunk: Chunk): RequestBiomesBlob {
+        const skeleton = chunk.networkSerializeRequestSkeleton();
+        const previous = requestBiomesByChunk.get(chunk);
+        if (previous?.skeleton === skeleton) return previous;
+
+        // The skeleton is the biomes followed by one byte, the border block count.
+        const data = skeleton.subarray(0, skeleton.byteLength - 1);
+        const blob: CachedRequestBiomesBlob = {
+            id: xxHash64(data),
+            data,
+            tail: skeleton.subarray(skeleton.byteLength - 1),
+            skeleton
+        };
+        requestBiomesByChunk.set(chunk, blob);
+        return blob;
     }
 
     /**

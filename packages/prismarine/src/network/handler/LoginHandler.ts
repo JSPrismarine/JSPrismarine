@@ -102,7 +102,9 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
                 const verified = await verifyLogin(login);
                 // A verified login only says the chain is real. Without Minecraft's encryption
                 // handshake, nothing else shows this client holds the chain's key and is not
-                // sending a login it recorded from somebody else.
+                // sending a login it recorded from somebody else. Bedrock Dedicated Server
+                // 1.26.60 refuses such a login the same way (NotAuthenticated), so this is not
+                // an extra check a retail client could fail.
                 if (!(await connection.provesIdentityKey(verified.identityPublicKey))) {
                     throw new LoginRefused(
                         'You must be logged in with Xbox Live to join.',

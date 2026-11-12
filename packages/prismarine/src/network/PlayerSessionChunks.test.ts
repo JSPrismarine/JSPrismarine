@@ -21,6 +21,7 @@ import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
+import { xxHash64 } from './xxHash64';
 
 /**
  * The chunk queue's lifecycle, which is the part of `PlayerSession` a moving player exercises
@@ -219,7 +220,7 @@ describe('network', () => {
                 });
                 const cacheSession = new PlayerSession(server, connection, playerWithWorld);
                 cacheSession.setClientCacheEnabled(true);
-                const payload = requests ? chunk.networkSerializeRequestSkeleton() : chunk.networkSerialize();
+                const skeleton = chunk.networkSerializeRequestSkeleton();
                 cacheSession.tryDeliverLoaded(1, 2);
 
                 await cacheSession.flush();
@@ -228,15 +229,38 @@ describe('network', () => {
                     .flat()
                     .find((packet): packet is LevelChunkPacket => packet instanceof LevelChunkPacket);
                 const chunkData = chunkPacket?.getPacketData();
-                expect(chunkData).toMatchObject({
-                    cached: false,
-                    clientSubChunkRequestsEnabled: requests,
-                    subChunkCount: requests ? chunk.getNetworkSubChunkRequestLimit() : chunk.getNetworkSubChunkCount(),
-                    payload
-                });
                 if (chunkData === null || chunkData === undefined)
                     throw new Error('LevelChunk packet data is unavailable');
-                expect(chunkData.blobHashes).toBeUndefined();
+                if (!requests) {
+                    expect(chunkData).toMatchObject({
+                        cached: false,
+                        clientSubChunkRequestsEnabled: false,
+                        subChunkCount: chunk.getNetworkSubChunkCount(),
+                        payload: chunk.networkSerialize()
+                    });
+                    expect(chunkData.blobHashes).toBeUndefined();
+                    return;
+                }
+                // As Bedrock Dedicated Server 1.26.60 announces a chunk to a client with its blob
+                // cache on: the biomes by hash, and a payload of the border block count alone.
+                const biomes = skeleton.subarray(0, -1);
+                expect(chunkData).toMatchObject({
+                    cached: true,
+                    clientSubChunkRequestsEnabled: true,
+                    subChunkCount: chunk.getNetworkSubChunkRequestLimit(),
+                    blobHashes: [xxHash64(biomes)],
+                    payload: Buffer.from([0])
+                });
+
+                // The client asks for the biomes it lacks like any other blob.
+                const missing = new ClientCacheBlobStatusPacket();
+                missing.missingIds = [xxHash64(biomes)];
+                const sent: NetworkPacket<unknown>[] = [];
+                connection.sendDataPacket = async (packet) => void sent.push(packet);
+                await cacheSession.handleClientCacheBlobStatus(missing);
+                const response = sent.at(-1);
+                if (!(response instanceof ClientCacheMissResponsePacket)) throw new Error('No miss response was sent');
+                expect(response.blobs).toEqual([{ blobId: xxHash64(biomes), blobData: biomes }]);
             }
         );
 
@@ -408,9 +432,14 @@ describe('network', () => {
             expect(missResponse.blobs).toEqual([{ blobId, blobData: terrainBytes }]);
 
             // A client that confirmed the blob is answered the same way: the payload stays.
+            // A status that misses nothing is still answered, with no blobs: the answer is what
+            // closes the client's cache transaction.
             const found = new ClientCacheBlobStatusPacket();
             found.foundIds = [blobId];
-            await cacheSession.handleClientCacheBlobStatus(found);
+            expect(await cacheSession.handleClientCacheBlobStatus(found)).toBe(0);
+            const empty = sentPackets.at(-1);
+            if (!(empty instanceof ClientCacheMissResponsePacket)) throw new Error('No empty miss response was sent');
+            expect(empty.blobs).toEqual([]);
             const repeated = await entryOf();
             expect(repeated.blobId).toBe(blobId);
             expect(repeated.serializedSubChunk).toHaveLength(0);
