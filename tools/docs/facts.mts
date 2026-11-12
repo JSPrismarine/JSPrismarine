@@ -22,7 +22,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { palette } from './site/.vitepress/theme/tokens.ts';
-import { loadCommands, loadSettings } from './code-data.mts';
+import { loadCommands, loadOptionalSettings, loadSettings } from './code-data.mts';
 import { loadProject, repoRoot } from './project.mts';
 
 /** Pinned downloads in `packages/bedrock-data/sources.json`, as far as the docs quote them. */
@@ -86,9 +86,13 @@ async function commandFacts() {
 /** Settings facts, from the file a fresh server writes. */
 async function configFacts() {
     const rows = (await loadSettings()).map(({ key, comment }) => [`\`${key}\``, comment]);
+    const optional = (await loadOptionalSettings()).map(({ key, comment }) => [`\`${key}\``, comment]);
     return {
         'config.count': String(rows.length),
         'config.table': `\n${table(['Setting', 'What it does'], rows)}\n`,
+        // Read when present, never written: a fresh file leaves them out.
+        'config.optionalCount': String(optional.length),
+        'config.optionalTable': `\n${table(['Setting', 'What it does'], optional)}\n`,
         // The settings that add packs to the stack, for the page about extending the server.
         'config.contentTable': `\n${table(
             ['Setting', 'What it does'],

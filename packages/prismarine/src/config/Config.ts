@@ -101,6 +101,26 @@ const COMMENTS = {
 } as const satisfies Record<Exclude<keyof ConfigFile, ContentConfigKey>, string>;
 
 /**
+ * Settings a fresh config leaves out. Each is read when the file has it, and reading one writes
+ * nothing, so an unset one keeps following the setting it defaults to, such as `server-port`.
+ */
+export const OPTIONAL_SETTINGS = [
+    'server-udp-ports',
+    'server-public-ip',
+    'query-port'
+] as const satisfies readonly (keyof typeof COMMENTS)[];
+
+/** A setting a fresh config leaves out; see {@link OPTIONAL_SETTINGS}. */
+export type OptionalSetting = (typeof OPTIONAL_SETTINGS)[number];
+
+/**
+ * The settings a fresh config leaves out, each with the comment it gets once written.
+ * @returns The settings, in the order the file would list them.
+ */
+export const optionalSettings = (): readonly { key: OptionalSetting; comment: string }[] =>
+    OPTIONAL_SETTINGS.map((key) => ({ key, comment: COMMENTS[key] }));
+
+/**
  * What each key is worth when the file does not say.
  *
  * The fields below start here and {@link Config.enable} reads the same values,
@@ -318,7 +338,7 @@ export class Config {
         const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
         // For a key a fresh config leaves out: absent means its default, and reading it writes nothing.
         const readUnwritten = <T>(
-            key: keyof typeof COMMENTS,
+            key: OptionalSetting,
             defaults: T,
             kind: 'number' | 'string' = typeof defaults === 'string' ? 'string' : 'number'
         ): T => {

@@ -91,3 +91,9 @@ export async function loadSettings(): Promise<SettingData[]> {
     // are left out: some, such as `chunk-workers`, depend on the machine that wrote the file.
     return [...written.matchAll(/^ {4}\/\/ (.+)\n {4}"([^"]+)":/gm)].map(([, comment, key]) => ({ key, comment }));
 }
+
+/** The settings a fresh config leaves out, which the server still reads, with their comments. */
+export async function loadOptionalSettings(): Promise<SettingData[]> {
+    const { optionalSettings } = await import('../../packages/prismarine/src/config/Config.ts');
+    return optionalSettings().map(({ key, comment }) => ({ key, comment }));
+}
