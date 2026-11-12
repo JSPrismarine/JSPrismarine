@@ -127,6 +127,40 @@ const PLAYER_SLOT_WRITES: readonly { readonly name: string; readonly write: (pla
     { name: 'removal', write: (player) => player.getPlayer().getInventory().removeItem(0) }
 ];
 
+/**
+ * Every slot of a player's containers and the hand, as names and counts. The fixture's digest
+ * hashes no actors, so a test that undoes a slot write compares this as well.
+ */
+const slotsOf = (player: PlayerSession) => {
+    const inventory = player.getPlayer().getInventory();
+    const stacks = (items: readonly (Item | null)[]) => items.map((item) => item && [item.getName(), item.count]);
+    const crafting = player.getPlayer().getCraftingInput();
+    return {
+        inventory: stacks(inventory.getItems(true).map((each) => each.getItem())),
+        armor: stacks(
+            inventory
+                .getArmor()
+                .getItems(true)
+                .map((each) => each.getItem())
+        ),
+        offhand: stacks(
+            inventory
+                .getOffhand()
+                .getItems(true)
+                .map((each) => each.getItem())
+        ),
+        enderChest: stacks(
+            inventory
+                .getEnderChest()
+                .getItems(true)
+                .map((each) => each.getItem())
+        ),
+        cursor: stacks([inventory.getCursor()]),
+        crafting: stacks(Array.from({ length: 9 }, (_, slot) => crafting.get(slot))),
+        hand: inventory.getHandSlotIndex()
+    };
+};
+
 /** One write to each component field of a player, with what reads it back. */
 const PLAYER_COMPONENT_WRITES: readonly {
     readonly field: string;
@@ -376,6 +410,7 @@ describe('a world tick and its change log', () => {
             async ({ name, write }) => {
                 const { world, player } = await playerWithItems();
                 const before = world.replayStateDigest();
+                const slots = slotsOf(player);
                 beginMeasuredChangeTick(world);
 
                 const outcome = world.getEntityStore().unit(() => {
@@ -391,13 +426,15 @@ describe('a world tick and its change log', () => {
                 expect(left.every((each) => each.kind === 'occurrence' && each.occurrence === 'slot-shown')).toBe(true);
                 // The hand slot is a field of the player and not a slot, so nothing is shown again.
                 expect(left).toHaveLength(name === 'inventory.handSlot' ? 0 : 1);
+                expect(slotsOf(player)).toEqual(slots);
                 expect(world.replayStateDigest()).toBe(before);
 
-                // The same write in a unit that finishes is one entry.
+                // The same write in a unit that finishes is one entry, and changes a slot.
                 beginMeasuredChangeTick(world);
                 write(player);
                 world.sealChangeTick();
                 expect(world.lastChangeTick()?.entries).toHaveLength(1);
+                expect(slotsOf(player)).not.toEqual(slots);
             }
         );
 
