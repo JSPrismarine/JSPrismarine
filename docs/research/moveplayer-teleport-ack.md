@@ -23,10 +23,12 @@ of the target. Nukkit answers each stale report with a correcting `MovePlayer`. 
 Edition drop reports and resend the teleport every 20 inputs or ticks. None of them releases a hold
 on a timer.
 
-The recommended rule for `MovePlayer` on this server: release the hold on a `MovePlayer` within one
-block of the target, or on a `PlayerAction` `HandledTeleport`. Keep dropping reports in between.
-Separately, the bot harness must adopt the teleports it is sent, because no server rule can make a
-client that ignores them agree with the server.
+The server takes no movement from a client's `MovePlayer`: `MovePlayerHandler` drops the packet,
+and the teleport hold keeps its one rule, the `HandledTeleport` input flag at the target or the
+timeout. The bot harness moves with `PlayerAuthInput` and adopts the teleports it is sent (#3041).
+This was decided after the research, on 2026-11-12; see [Recommendation](#recommendation). The
+research first proposed releasing the hold on a `MovePlayer` within one block of the target, or on
+a `PlayerAction` `HandledTeleport`; that rule is kept below as the first of the options weighed.
 
 ## 1. Which clients still move with MovePlayer
 
