@@ -52,9 +52,9 @@ const DEFAULT_PACKET_COMPRESSION_THRESHOLD = 256;
 const COMMENTS = {
     'log-level': 'How much the console and the log file say: error, warn, info, verbose, debug or silly.',
     'server-port':
-        "The port the server listens on, as Bedrock Dedicated Server's server-port: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. Unless server-portv6, server-udp-ports or query-port is set, RakNet's IPv4 and IPv6 listeners, NetherNet's players and query all use this one UDP port. Bedrock clients look for 19132.",
+        "The port the server listens on, as Bedrock Dedicated Server's server-port: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. Unless server-udp-ports or query-port is set, RakNet's IPv4 listener, NetherNet's players and query all use this one UDP port; RakNet's IPv6 listener uses server-portv6. Bedrock clients look for 19132.",
     'server-portv6':
-        'The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Unset, it is server-port. It may equal server-port.',
+        'The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Bedrock clients look for 19133. It may equal server-port.',
     'server-ip': 'The address to listen on. 0.0.0.0 accepts connections on every interface.',
     'level-name': 'Which entry of `worlds` players join.',
     worlds: 'Every world the server loads, by name, with its preset, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.',
@@ -120,9 +120,8 @@ const COMMENTS = {
 const DEFAULTS = {
     'log-level': isDev ? 'verbose' : 'info',
     'server-port': 19132,
-    // Unset, server-portv6 and query-port follow the port the server binds, and a fresh config
-    // writes neither; this is that port's default, for anything that lists defaults.
-    'server-portv6': 19132,
+    // Bedrock clients look for a server's IPv6 listener on 19133.
+    'server-portv6': 19133,
     'server-ip': '0.0.0.0',
     'level-name': 'world',
     'max-players': 20,
@@ -151,6 +150,8 @@ const DEFAULTS = {
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
     'packet-full-flush-fragments': false,
     'enable-query': true,
+    // Unset, query-port follows the port the server binds, and a fresh config does not write it;
+    // this is that port's default, for anything that lists defaults.
     'query-port': 19132,
     'enable-process-title': true,
     'enable-ticking': true,
@@ -217,8 +218,7 @@ export class Config {
     private logLevel: LogLevel = DEFAULTS['log-level'];
 
     private port: number = DEFAULTS['server-port'];
-    /** `server-portv6` as the file sets it, or undefined when it follows the server port. */
-    private portV6Setting: number | undefined;
+    private portV6: number = DEFAULTS['server-portv6'];
     private serverIp: string = DEFAULTS['server-ip'];
     private levelName: string = DEFAULTS['level-name'];
     private worlds: Record<string, WorldData> = defaultWorlds();
@@ -339,9 +339,7 @@ export class Config {
         }
         const filePort = read('server-port', DEFAULTS['server-port']);
         this.port = this.serverPortOverride ?? filePort;
-        // Unset, the IPv6 listener, NetherNet's UDP and query all follow the server port, as
-        // Bedrock Dedicated Server's server-udp-ports does; reading them writes nothing.
-        this.portV6Setting = readUnwritten<number | undefined>('server-portv6', undefined);
+        this.portV6 = read('server-portv6', DEFAULTS['server-portv6']);
         this.serverIp = read('server-ip', DEFAULTS['server-ip']);
         this.levelName = read('level-name', DEFAULTS['level-name']);
         this.worlds = read<Record<string, WorldData>>('worlds', this.worlds);
@@ -366,6 +364,8 @@ export class Config {
         this.enableRakNet = read('enable-raknet', DEFAULTS['enable-raknet']);
         this.useRakNetWorker = read('use-raknet-worker', DEFAULTS['use-raknet-worker']);
         this.enableNetherNet = read('enable-nethernet', DEFAULTS['enable-nethernet']);
+        // Unset, NetherNet's UDP and query follow the server port, as Bedrock Dedicated Server's
+        // server-udp-ports does; reading them writes nothing.
         this.serverUdpPorts = readUnwritten('server-udp-ports', DEFAULTS['server-udp-ports']);
         this.serverPublicIp = readUnwritten('server-public-ip', DEFAULTS['server-public-ip']);
         this.enableLanVisibility = read('enable-lan-visibility', DEFAULTS['enable-lan-visibility']);
@@ -410,18 +410,11 @@ export class Config {
      * The UDP port RakNet listens on for IPv6 clients, as Bedrock Dedicated Server's
      * `server-portv6`. Only a server bound to the IPv4 wildcard, `0.0.0.0`, also listens on
      * IPv6: an operator who named one IPv4 interface asked for that interface alone.
-     * @returns The IPv6 port; the server port when the config does not set one.
+     * @remarks The default port is `19133`, where Bedrock clients look for it.
+     * @returns The IPv6 port.
      */
     public getServerPortV6(): number {
-        return this.portV6Setting ?? this.port;
-    }
-
-    /**
-     * `server-portv6` as the config sets it.
-     * @returns The port, or undefined when it follows the port the server binds.
-     */
-    public getServerPortV6Setting(): number | undefined {
-        return this.portV6Setting;
+        return this.portV6;
     }
 
     /**

@@ -416,9 +416,11 @@ export const startServer = async (
         }
     });
     const config = {
-        // server-portv6 and server-udp-ports follow it, so each concurrent suite's server holds
-        // its own numbers and nothing else.
+        // server-udp-ports follows it, so each concurrent suite's server holds its own numbers.
         'server-port': port,
+        // Concurrent suites each run a server, so the IPv6 listener cannot take the default
+        // 19133 for all of them; an IPv6-only socket shares the IPv4 listener's number.
+        'server-portv6': port,
         ...(udpPorts === undefined ? {} : { 'server-udp-ports': udpPorts }),
         ...(options.publicIp === undefined ? {} : { 'server-public-ip': options.publicIp }),
         'online-mode': false,

@@ -157,7 +157,7 @@ describe('modules/network', () => {
                     getEnableRakNet: () => true,
                     getEnableNetherNet: () => false,
                     getUseRakNetWorker: () => worker,
-                    getServerPortV6Setting: () => portV6
+                    getServerPortV6: () => portV6
                 }),
             getLogger: () =>
                 stub<Logger>({
@@ -491,7 +491,7 @@ describe('modules/network', () => {
     const sharedPortServer = (
         worker: boolean,
         udpPorts: string,
-        portV6: number | undefined,
+        portV6: number,
         { rakNet = true, query = false }: { rakNet?: boolean; query?: boolean } = {}
     ) =>
         stub<Server>({
@@ -509,7 +509,7 @@ describe('modules/network', () => {
                     getQueryPort: () => 19_132,
                     getServerPort: () => 19_132,
                     getEnableLanVisibility: () => false,
-                    getServerPortV6Setting: () => portV6,
+                    getServerPortV6: () => portV6,
                     getServerUdpPorts: () => udpPorts,
                     getServerPublicIp: () => '',
                     getLevelName: () => 'world'
@@ -561,25 +561,23 @@ describe('modules/network', () => {
     };
 
     it.skipIf(driver === undefined).each([
-        // The table in docs/plans/webrtc-backend.md: what is written, and where each listener goes.
-        ['server-port only, socket mode', false, false, false],
-        ['server-port only, worker mode', true, false, false],
-        ['server-port and server-udp-ports', false, true, false],
-        ['server-port and server-portv6', true, false, true],
-        ['all three', false, true, true]
-    ])('opens the ports the defaults table lists: %s', async (_row, worker, withUdpPorts, withPortV6) => {
+        // The port table in docs/guide/running.md: what is set, and where each listener goes.
+        ['server-portv6 equal to server-port, socket mode', false, false, false],
+        ['server-portv6 equal to server-port, worker mode', true, false, false],
+        ['server-portv6 equal to server-port, and server-udp-ports', false, true, false],
+        ['server-portv6 a port of its own', true, false, true],
+        ['server-portv6 a port of its own, and server-udp-ports', false, true, true]
+    ])('opens the ports the port table lists: %s', async (_row, worker, withUdpPorts, withPortV6) => {
         const port = await portFreeOnBothFamilies();
         const udpPort = withUdpPorts ? await portFreeOnBothFamilies() : port;
         const portV6 = withPortV6 ? await portFreeOnBothFamilies() : port;
-        const networking = new ServerNetworking(
-            sharedPortServer(worker, withUdpPorts ? String(udpPort) : '', withPortV6 ? portV6 : undefined)
-        );
+        const networking = new ServerNetworking(sharedPortServer(worker, withUdpPorts ? String(udpPort) : '', portV6));
         const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
         vi.stubEnv('JSP_DIR', dataDirectory);
         try {
             await networking.start('0.0.0.0', port);
 
-            // RakNet on server-port for IPv4, and on server-portv6, or server-port, for IPv6.
+            // RakNet on server-port for IPv4, and on server-portv6 for IPv6.
             expect((await pingOnce('127.0.0.1', port))[0]).toBe(0x1c);
             expect((await pingOnce('::1', portV6))[0]).toBe(0x1c);
 
@@ -595,7 +593,7 @@ describe('modules/network', () => {
 
     it.skipIf(driver === undefined)('answers query and NetherNet on the server port with RakNet off', async () => {
         const port = await portFreeOnBothFamilies();
-        const networking = new ServerNetworking(sharedPortServer(false, '', undefined, { rakNet: false, query: true }));
+        const networking = new ServerNetworking(sharedPortServer(false, '', port, { rakNet: false, query: true }));
         const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
         vi.stubEnv('JSP_DIR', dataDirectory);
         try {

@@ -30,14 +30,9 @@ describe('config', () => {
             expect(config.getServerPort()).toBe(19132);
         });
 
-        it('puts the IPv6 listener on the server port unless the file says otherwise', async () => {
-            expect(config.getServerPortV6()).toBe(19132);
-            expect(config.getServerPortV6Setting()).toBeUndefined();
-
-            writeFileSync(path.join(configDirectory, 'config.json'), '{ "server-portv6": 19133 }\n');
-            const fromFile = new Config();
-            await fromFile.enable();
-            expect(fromFile.getServerPortV6()).toBe(19133);
+        it('puts the IPv6 listener on 19133, where Bedrock clients look for it, and writes it', () => {
+            expect(config.getServerPortV6()).toBe(19133);
+            expect(readFileSync(path.join(configDirectory, 'config.json'), 'utf8')).toContain('"server-portv6": 19133');
         });
 
         it('writes server-port to a fresh file, and none of the keys that follow it, even when read again', async () => {
@@ -46,14 +41,10 @@ describe('config', () => {
             await reread.enable();
 
             expect(read()).toContain('"server-port": 19132');
-            for (const key of ['port', 'server-portv6', 'server-udp-ports', 'query-port', 'server-public-ip']) {
+            for (const key of ['port', 'server-udp-ports', 'query-port', 'server-public-ip']) {
                 expect(read()).not.toContain(`"${key}"`);
             }
-            expect([reread.getServerPortV6(), reread.getQueryPort(), reread.getServerUdpPorts()]).toStrictEqual([
-                19132,
-                19132,
-                ''
-            ]);
+            expect([reread.getQueryPort(), reread.getServerUdpPorts()]).toStrictEqual([19132, '']);
         });
 
         it("renames an older file's port to server-port, keeping its value and comments", async () => {

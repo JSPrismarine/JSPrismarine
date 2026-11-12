@@ -100,7 +100,7 @@ export interface ConfigFile {
     'log-level'?: LogLevel;
     /** The port the server listens on, as Bedrock Dedicated Server's `server-port`: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. @asType integer @minimum 0 @maximum 65535 */
     'server-port'?: number;
-    /** The UDP port RakNet listens on for IPv6 clients when `server-ip` is `0.0.0.0`; `server-port` when unset. @asType integer @minimum 0 @maximum 65535 */
+    /** The UDP port RakNet listens on for IPv6 clients when `server-ip` is `0.0.0.0`. Bedrock clients look for 19133. @asType integer @minimum 0 @maximum 65535 */
     'server-portv6'?: number;
     /** The address to listen on. `0.0.0.0` accepts connections on every interface. */
     'server-ip'?: string;

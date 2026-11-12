@@ -578,6 +578,9 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
       serves peers on every port and RakNet on that one.
     - Run it under Bun, and on macOS and Windows where we can.
 12. [x] **`server-port`, the new defaults and the written config.** As the table above has it.
+    - Changed 2026-11-12, at the user's call: `server-portv6` is written again and defaults to
+      19133, since Bedrock clients look for a server's IPv6 listener there. `server-udp-ports` and
+      `query-port` still follow `server-port`. The table above is as planned, not as shipped.
     - Done 2026-11-11. `ConfigDocument.rename` renames `port` in place, keeping its comments.
       Unset `server-portv6`, `query-port` and `server-udp-ports` follow the port the server binds,
       not only the file's, so `--port` moves them too. With port 0, as tests bind, NetherNet's UDP

@@ -163,7 +163,13 @@ export class ServerNetworking implements Networking {
                 rakNet.push(this.startRakNet(address, port, serverName, ids, listening, shared.get(port)));
                 if (address === IPV4_WILDCARD) {
                     rakNet.push(
-                        this.startRakNetV6(this.portV6(port), serverName, ids, listening, shared.get(this.portV6(port)))
+                        this.startRakNetV6(
+                            config.getServerPortV6(),
+                            serverName,
+                            ids,
+                            listening,
+                            shared.get(config.getServerPortV6())
+                        )
                     );
                 }
                 transports.push(...rakNet);
@@ -419,7 +425,7 @@ export class ServerNetworking implements Networking {
     ): Promise<Map<number, SharedPort>> {
         const network = await NativeNetwork.load();
         const wildcard = address === IPV4_WILDCARD;
-        const portV6 = wildcard && withRakNet ? this.portV6(port) : port;
+        const portV6 = wildcard && withRakNet ? this.server.getConfig().getServerPortV6() : port;
         const wanted = new Set(
             [port, ...(wildcard ? [portV6] : [])].filter(
                 (candidate) => candidate >= local.start && candidate <= local.end
@@ -515,15 +521,6 @@ export class ServerNetworking implements Networking {
         }
 
         return new NetherNetTransport(nethernet, ids, undefined, logger);
-    }
-
-    /**
-     * The IPv6 listener's port: `server-portv6` when the config sets it, else the port the server
-     * binds, as `server-port` would be.
-     * @param port - The port the server binds.
-     */
-    private portV6(port: number): number {
-        return this.server.getConfig().getServerPortV6Setting() ?? port;
     }
 
     /**

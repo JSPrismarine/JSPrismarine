@@ -38,6 +38,7 @@ describe('the config file a boot generates', () => {
         '$schema',
         'log-level',
         'server-port',
+        'server-portv6',
         'server-ip',
         'level-name',
         'worlds',
