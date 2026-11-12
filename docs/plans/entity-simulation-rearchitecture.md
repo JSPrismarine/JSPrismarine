@@ -1070,6 +1070,15 @@ Rules that keep the packages apart:
 
 E1, E2 and E3 run side by side.
 
+##### E2
+
+E2 is too large for one pass, so it splits in two. E2a goes first.
+
+| Part | Work | Main files |
+| --- | --- | --- |
+| E2a portal travel as messages | A trip through a portal leaves its world's tick as a message. The destination world is built and the arrival chunks are loaded outside every tick, and the destination admits the arrival in its input step once they are loaded. The source side leaves its world in the same input step, so a trip is one leave entry in the source world and one enter entry in the destination. Removes the portal travel entry of `IN_TICK_CHUNK_LOADS` | `world/portal/DimensionTravel.ts`, `entity/data/storeActors.ts`, `world/Level.ts`, `world/TickContext.ts`, `Server.ts` |
+| E2b the other world changes | `/tp` and `changeWorld` into another dimension, the queued change that `completeDimensionChange` starts, the credits, and `SetDefaultGameType` as messages, which removes their `step.defer` calls | `command/host/entities.ts`, `command/jsprismarineCommands.ts`, `network/PlayerSession.ts`, the handlers that defer a world change |
+
 ### Phase F: cleanup
 
 | Package | Slice | Depends on | Work                                                       |
