@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import { Dimensions } from '../Dimension';
+import { Dimensions } from '../DimensionType';
 import { logicalTop, scalePosition, teleportationScale } from './scale';
 
 const { Overworld, Nether, TheEnd } = Dimensions;

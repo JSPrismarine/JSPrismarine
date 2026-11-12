@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import Chunk from '../chunk/Chunk';
-import { Dimensions } from '../Dimension';
+import { Dimensions } from '../DimensionType';
 import { PortalIndex } from './PortalIndex';
 
 const portalId = (axis: 'x' | 'z'): number => {

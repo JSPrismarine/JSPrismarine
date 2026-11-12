@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type PlayerSession from '../network/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { Position } from './Position';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';

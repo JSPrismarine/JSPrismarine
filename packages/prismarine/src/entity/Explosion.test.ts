@@ -17,7 +17,7 @@ import { stub } from '../testing/stub.test.helper';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { Block } from '../block/Block';
 import type { Item } from '../item/Item';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import { GameRules } from '../world/GameRuleManager';
 import type { World } from '../world/World';
 import { DamageCause } from './DamageCause';

@@ -1,7 +1,8 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import { Dimensions, subChunkCount } from '../Dimension';
+import { Dimensions } from '../DimensionType';
+import { subChunkCount } from '../Dimension';
 import { ChunkBiomes, PLAINS_BIOME } from './ChunkBiomes';
 
 /** `minecraft:desert` and `minecraft:jungle` as the client numbers them. */

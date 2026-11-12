@@ -7,7 +7,7 @@ import { withCwd } from '../utils/cwd';
 import { worldSeedOf } from '../utils/Seed';
 import { GeneratorFactories } from './GeneratorFactories';
 import type { TerrainCacheSettings } from './GeneratorFactories';
-import { dimensionByName } from './Dimension';
+import { dimensionByName } from './DimensionType';
 import {
     findJavaWorldgenSources,
     loadJavaWorldgenRegistriesFrom,

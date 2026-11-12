@@ -21,8 +21,8 @@ import {
 } from './LevelDBKeys';
 import { Database } from '@jsprismarine/leveldb';
 import { decodeLevelDat } from './LevelDat';
-import type { DimensionType } from '../../Dimension';
-import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from '../../Dimension';
+import type { DimensionType } from '../../DimensionType';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from '../../DimensionType';
 import { VANILLA_DIMENSION_TYPES } from '../../vanillaDimensionTypes';
 import { fakeLevel } from '../../../testing/level';
 import type { StoredItemStack } from '../../../inventory/persistence';

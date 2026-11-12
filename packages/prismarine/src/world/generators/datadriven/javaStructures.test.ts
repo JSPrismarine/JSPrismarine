@@ -20,7 +20,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import type Chunk from '../../chunk/Chunk';
 import type { Generator } from '../../Generator';
-import { Dimensions } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
 import type { StemKey } from './DataDrivenGenerator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { findJavaTemplateSource } from './javaStructureTemplates';

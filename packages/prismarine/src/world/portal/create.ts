@@ -17,7 +17,7 @@ import type { PortalAxis, PortalCreationBounds, WorldActions } from '@jsprismari
 import type { BlockPosition } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 
-import type { DimensionType } from '../Dimension';
+import type { DimensionType } from '../DimensionType';
 import type { PortalRectangle } from './search';
 
 /** Java's `PortalForcer.createPortal` result: a 2 wide, 3 tall interior. */

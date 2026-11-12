@@ -13,7 +13,7 @@ import type PlayerSession from '../network/PlayerSession';
 import { sessionFor } from '../testing/playerSession.test.helper';
 import { liveTestEntities } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import type GameRuleManager from '../world/GameRuleManager';
 import { World } from '../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';

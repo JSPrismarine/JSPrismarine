@@ -27,7 +27,7 @@ import type Server from '../../Server';
 import { inertEntityRuntime, testContent } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
 import { stub } from '../../testing/stub.test.helper';
-import { Dimensions } from '../../world/Dimension';
+import { Dimensions } from '../../world/DimensionType';
 import type { DimensionType } from '../../world/DimensionType';
 import type { StemKey } from '../../world/generators/datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator } from '../../world/generators/datadriven/DataDrivenGenerator';

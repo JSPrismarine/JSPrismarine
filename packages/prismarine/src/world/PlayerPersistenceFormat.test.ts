@@ -53,7 +53,7 @@ import { StorePlayers } from '../entity/data/storePlayers';
 import Chunk from './chunk/Chunk';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 import type { ChunkScheduler } from './ChunkScheduler';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import type { Level } from './Level';
 import LevelDB from './providers/leveldb/LevelDB';
 import { encodePlayerServerKey } from './providers/leveldb/LevelDBKeys';

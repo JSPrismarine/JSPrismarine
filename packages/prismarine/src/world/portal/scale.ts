@@ -11,7 +11,7 @@
  */
 import { Vector3 } from '@jsprismarine/math';
 
-import type { DimensionType } from '../Dimension';
+import type { DimensionType } from '../DimensionType';
 
 /** Java's `DimensionType.getTeleportationScale`: how many destination blocks one source block is. */
 export const teleportationScale = (from: DimensionType, to: DimensionType): number =>

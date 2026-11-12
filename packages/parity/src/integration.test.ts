@@ -30,7 +30,7 @@ import { brainMobOf } from '@jsprismarine/prismarine/entity/data/brainWorld';
 import { spawnDeclared } from '@jsprismarine/prismarine/entity/data/testing';
 import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/index';
 import { worldContentGroups } from '@jsprismarine/prismarine/world/contentAdapter';
-import { Dimensions } from '@jsprismarine/prismarine/world/Dimension';
+import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 import { World } from '@jsprismarine/prismarine/world/World';
 import { SPAWN_CONSTANTS, Spawner } from '@jsprismarine/spawning';

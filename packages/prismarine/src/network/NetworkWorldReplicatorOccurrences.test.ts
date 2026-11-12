@@ -19,7 +19,7 @@ import type { OccurrenceEntry } from '../world/changelog/ChangeEntry';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import type ClientConnection from './ClientConnection';

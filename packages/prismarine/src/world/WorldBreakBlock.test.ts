@@ -12,7 +12,7 @@ import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEvent
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { liveTestEntities } from '../testing/entityServer';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { fakeLevel } from '../testing/level';

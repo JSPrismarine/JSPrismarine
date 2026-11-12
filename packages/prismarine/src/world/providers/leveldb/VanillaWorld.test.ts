@@ -10,7 +10,7 @@ import { Database, WriteBatch } from '@jsprismarine/leveldb';
 import { decodeData3D, encodeData3D } from './BiomeCodec';
 import { decodeLevelDat, encodeLevelDat } from './LevelDat';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
-import { Dimensions } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
 
 /**
  * Byte-exact round trip against a world Minecraft actually wrote.

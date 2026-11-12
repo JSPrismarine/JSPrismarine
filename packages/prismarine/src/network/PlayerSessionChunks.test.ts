@@ -12,7 +12,7 @@ import ClientCacheMissResponsePacket from '@jsprismarine/protocol/packet/ClientC
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/packet/SubChunkPacket';
 import SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import Chunk from '../world/chunk/Chunk';
 import type { World } from '../world/World';
 import type { ChunkScheduler } from '../world/ChunkScheduler';

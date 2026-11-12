@@ -17,7 +17,7 @@ import type { ServerContent } from '../content/ServerContent';
 import { serverWorldSource } from '../content/world/serverSource';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { createEngineWorld } from './EngineWorld';
 import { contentRandomTickHandlers } from './randomTicks';
 import { contentBlockTickHandlers } from './blockTicks';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { stub } from '../testing/stub.test.helper';
 import { World } from './World';
 import Chunk from './chunk/Chunk';

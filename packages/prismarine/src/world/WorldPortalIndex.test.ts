@@ -7,7 +7,7 @@ import type PlayerSession from '../network/PlayerSession';
 import { stub } from '../testing/stub.test.helper';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { Position } from './Position';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';

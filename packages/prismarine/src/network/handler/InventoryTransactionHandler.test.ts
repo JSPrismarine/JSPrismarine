@@ -20,7 +20,7 @@ import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import { Dimensions } from '../../world/Dimension';
+import { Dimensions } from '../../world/DimensionType';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type Chunk from '../../world/chunk/Chunk';

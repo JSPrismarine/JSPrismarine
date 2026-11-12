@@ -5,7 +5,7 @@ import { createTestWorld } from '@jsprismarine/engine-systems';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import type { SystemBlock, WorldSystemsView } from '../src/world/WorldSystems';
 import { WorldSystems } from '../src/world/WorldSystems';
-import { Dimensions } from '../src/world/Dimension';
+import { Dimensions } from '../src/world/DimensionType';
 
 const VIEW_DISTANCE = 32;
 const SIMULATION_DISTANCE = 10;

@@ -4,7 +4,7 @@ import type { BlockPosition } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import { Dimensions } from '../Dimension';
+import { Dimensions } from '../DimensionType';
 import { createNetherPortal, creationBounds } from './create';
 
 const TARGET: BlockPosition = { x: 40, y: 64, z: 40 };

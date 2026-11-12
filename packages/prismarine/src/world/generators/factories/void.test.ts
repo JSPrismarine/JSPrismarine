@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { testContent } from '../../../testing/entityServer';
-import { Dimensions } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
 import { voidGeneratorFactory, voidStem } from './void';
 
 describe('the jsprismarine:void factory', () => {

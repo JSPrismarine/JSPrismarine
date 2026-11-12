@@ -10,7 +10,7 @@ import type { Vector3 } from '@jsprismarine/math';
 
 import { DataDrivenGenerator, defaultChunkPipeline } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import type { Generator } from '../src/world/Generator';
-import { Dimensions } from '../src/world/Dimension';
+import { Dimensions } from '../src/world/DimensionType';
 import { World } from '../src/world/World';
 import type { Config } from '../src/config/Config';
 import type Server from '../src/Server';

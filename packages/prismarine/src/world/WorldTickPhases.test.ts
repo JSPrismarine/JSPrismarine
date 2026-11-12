@@ -13,7 +13,7 @@ import { stub, stubOf } from '../testing/stub.test.helper';
 import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
 import type { SystemBlock } from './WorldSystems';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { Position } from './Position';
 import type { WorldChangeSink } from './WorldChangeSink';
 import { World } from './World';

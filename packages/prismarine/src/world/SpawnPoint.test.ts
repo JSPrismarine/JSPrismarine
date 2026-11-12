@@ -45,7 +45,7 @@ import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { ChunkScheduler } from './ChunkScheduler';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import type { Generator } from './Generator';
 import LevelDB from './providers/leveldb/LevelDB';
 import type { World } from './World';

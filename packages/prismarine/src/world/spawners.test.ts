@@ -18,7 +18,7 @@ import { stub, stubOf } from '../testing/stub.test.helper';
 import type PlayerSession from '../network/PlayerSession';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { Position } from './Position';
 import { World } from './World';
 import { tickSpawner } from './spawners';

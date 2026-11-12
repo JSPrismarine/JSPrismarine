@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { LevelStem } from '@jsprismarine/worldgen';
 
 import { testContent } from '../testing/entityServer';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import type { Generator } from './Generator';
 import { GeneratorFactories } from './GeneratorFactories';
 import type { GeneratorBuildContext, GeneratorFactory } from './GeneratorFactories';

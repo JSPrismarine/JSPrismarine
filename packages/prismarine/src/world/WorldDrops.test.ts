@@ -12,7 +12,7 @@ import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket
 import Codec2193 from '../network/codec/Codec2193';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { liveTestEntities } from '../testing/entityServer';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';

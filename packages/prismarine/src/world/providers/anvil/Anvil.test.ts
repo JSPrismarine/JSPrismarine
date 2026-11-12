@@ -6,8 +6,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type Server from '../../../Server';
 import { stub } from '../../../testing/stub.test.helper';
-import type { DimensionType } from '../../Dimension';
-import { Dimensions } from '../../Dimension';
+import type { DimensionType } from '../../DimensionType';
+import { Dimensions } from '../../DimensionType';
 import Anvil from './Anvil';
 
 const directories: string[] = [];

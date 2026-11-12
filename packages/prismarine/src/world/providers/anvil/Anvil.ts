@@ -2,8 +2,8 @@ import type { WorldConfig } from '../../World';
 import type Server from '../../../Server';
 import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Chunk from '../../chunk/Chunk';
-import type { DimensionType } from '../../Dimension';
-import { Dimensions } from '../../Dimension';
+import type { DimensionType } from '../../DimensionType';
+import { Dimensions } from '../../DimensionType';
 import BaseProvider from '../BaseProvider';
 
 import fs from 'node:fs';

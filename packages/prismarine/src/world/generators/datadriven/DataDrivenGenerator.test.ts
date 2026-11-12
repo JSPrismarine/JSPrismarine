@@ -18,7 +18,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type Chunk from '../../chunk/Chunk';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
-import { Dimensions } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
 import { GenerationStopped } from '../../Generator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { bedrockBiomeIdOf } from './javaTranslation';

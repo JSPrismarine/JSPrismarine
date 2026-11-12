@@ -6,7 +6,7 @@ import type { Config } from '../config/Config';
 import { MERCHANT_FIELD } from '../entity/data/trading';
 import { stub } from '../testing/stub.test.helper';
 import type { ChangeEntry } from '../world/changelog/ChangeEntry';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import type { World } from '../world/World';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import type { OpenBlockContainer, OpenTrade, TradingActor } from './PlayerSession';

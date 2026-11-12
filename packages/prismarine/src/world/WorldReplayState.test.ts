@@ -7,7 +7,7 @@ import { inertEntityRuntime, liveTestEntities, testContent } from '../testing/en
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 import type Server from '../Server';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';

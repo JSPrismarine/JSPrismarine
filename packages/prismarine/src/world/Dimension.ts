@@ -1,19 +1,9 @@
 /**
  * The vertical arithmetic every chunk, codec and light engine does on a {@link DimensionType}.
  *
- * The type itself, the vanilla three and the name lookup live in `DimensionType.ts` and are
- * re-exported here, so a module that only needs a bound keeps one import.
+ * The type itself, the vanilla three and the name lookup live in `DimensionType.ts`.
  */
 import type { DimensionType } from './DimensionType';
-
-export {
-    Dimensions,
-    FIRST_CUSTOM_DIMENSION_ID,
-    dimensionByBedrockId,
-    dimensionByName,
-    dimensionTypeOf,
-    type DimensionType
-} from './DimensionType';
 
 /**
  * The two numbers the vertical arithmetic reads. A {@link DimensionType} has them, and so does

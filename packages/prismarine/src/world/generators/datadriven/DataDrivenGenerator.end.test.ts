@@ -11,7 +11,7 @@ import { endSpikesForSeed } from '@jsprismarine/features';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import type Chunk from '../../chunk/Chunk';
-import { Dimensions } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
 import type { Generator } from '../../Generator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';

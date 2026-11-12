@@ -9,7 +9,7 @@ import os from 'node:os';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import { maxY } from '../src/world/Dimension';
-import type { DimensionType } from '../src/world/Dimension';
+import type { DimensionType } from '../src/world/DimensionType';
 import Chunk from '../src/world/chunk/Chunk';
 
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');

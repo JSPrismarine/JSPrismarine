@@ -24,7 +24,7 @@ import type HumanInventory from '../inventory/HumanInventory';
 import { restoreInventory, storedInventory } from '../inventory/persistence';
 import { mayFlyIn } from '../entity/playerComponents';
 import type { KeyedPlayer } from '../keyedPlayer';
-import type { DimensionType } from './Dimension';
+import type { DimensionType } from './DimensionType';
 import type { StoredSpawnPoint } from './RespawnPoint';
 
 /** What a record reads off a player. A store player has every member. */

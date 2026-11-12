@@ -24,8 +24,8 @@ import { itemSlotsFromNbt, itemSlotsToNbt } from '../../../inventory/itemNbt';
 import type { StoredInventory, StoredItemStack } from '../../../inventory/persistence';
 import type { StoredPlayerAttribute, WorldPlayerData } from '../../World';
 import type { StoredSpawnPoint } from '../../RespawnPoint';
-import { dimensionByBedrockId, dimensionByName } from '../../Dimension';
-import type { DimensionType } from '../../Dimension';
+import { dimensionByBedrockId, dimensionByName } from '../../DimensionType';
+import type { DimensionType } from '../../DimensionType';
 
 /**
  * The dimension types the codec resolves an id or a name against before the vanilla table:

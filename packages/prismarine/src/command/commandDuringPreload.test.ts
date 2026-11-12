@@ -20,7 +20,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import Server from '../Server';
 import { Config } from '../config/Config';
 import Chunk from '../world/chunk/Chunk';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import type { CommandExecutor } from './CommandExecutor';
 import { stubRakNetListener } from '../testing/rakNetListener.test.helper';
 

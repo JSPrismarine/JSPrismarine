@@ -29,7 +29,7 @@ import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import type { ServerContent } from '../content/ServerContent';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { createEngineWorld } from './EngineWorld';
 import { World } from './World';
 import { Position } from './Position';

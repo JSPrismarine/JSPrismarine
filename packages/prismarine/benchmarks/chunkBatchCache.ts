@@ -7,7 +7,7 @@ import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import ChunkBatchCache from '../src/network/ChunkBatchCache';
 import Codec2193 from '../src/network/codec/Codec2193';
-import { Dimensions } from '../src/world/Dimension';
+import { Dimensions } from '../src/world/DimensionType';
 import Chunk from '../src/world/chunk/Chunk';
 import { encodePacketBatchAsync } from '../src/network/encodePacketBatch';
 

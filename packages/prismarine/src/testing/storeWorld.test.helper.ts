@@ -7,8 +7,8 @@
  */
 import type Server from '../Server';
 import type { LiveEntityRuntime } from '../entity/data/live';
-import { Dimensions } from '../world/Dimension';
-import type { DimensionType } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
+import type { DimensionType } from '../world/DimensionType';
 import type { World } from '../world/World';
 import { liveTestEntities, testEntityServer } from './entityServer';
 import { stub } from './stub.test.helper';

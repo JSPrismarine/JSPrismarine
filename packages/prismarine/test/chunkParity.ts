@@ -16,7 +16,7 @@
  *
  * Prints `ok` and exits 0 when every chunk matched, or the positions that differed and exits 1.
  */
-import { Dimensions } from '../src/world/Dimension';
+import { Dimensions } from '../src/world/DimensionType';
 import type { Generator } from '../src/world/Generator';
 import type { PipelineKey } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultChunkPipeline } from '../src/world/generators/datadriven/DataDrivenGenerator';

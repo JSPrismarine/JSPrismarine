@@ -23,7 +23,7 @@ import type { ServerContent } from '../content/ServerContent';
 import { Item } from '../item/Item';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { createEngineWorld } from './EngineWorld';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';

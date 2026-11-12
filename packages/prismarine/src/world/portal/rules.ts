@@ -17,8 +17,8 @@ import {
 } from '@jsprismarine/block-behaviors';
 
 import { PORTAL_TRANSITION_TICKS } from '../../entity/PortalContact';
-import { Dimensions } from '../Dimension';
-import type { DimensionType } from '../Dimension';
+import { Dimensions } from '../DimensionType';
+import type { DimensionType } from '../DimensionType';
 
 /**
  * How far from the scaled target an existing portal is looked for, in blocks.

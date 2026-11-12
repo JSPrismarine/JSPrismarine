@@ -12,7 +12,7 @@ import { performance } from 'node:perf_hooks';
 import type { GenerationResult, GenerationTask, TaskRunnerFactory } from '@jsprismarine/chunkgen';
 import { ShardedGenerationPool } from '@jsprismarine/chunkgen';
 
-import { Dimensions } from '../src/world/Dimension';
+import { Dimensions } from '../src/world/DimensionType';
 import {
     DataDrivenGenerator,
     isPipelineKey,

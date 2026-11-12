@@ -6,7 +6,7 @@ import { StorePlayerActor } from '../entity/data/storePlayers';
 import { liveTestEntities } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import { Position } from './Position';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';

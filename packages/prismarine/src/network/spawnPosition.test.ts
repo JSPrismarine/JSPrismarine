@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { fakeLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
-import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../world/Dimension';
+import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../world/DimensionType';
 import type { World } from '../world/World';
 import { overworldSpawnOf, playerSpawnPositionPacket, spawnDimensionIdOf } from './spawnPosition';
 

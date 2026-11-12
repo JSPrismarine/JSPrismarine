@@ -2,7 +2,7 @@ import type { WorldConfig, WorldPlayerData } from '../World';
 import type { Service } from '../../utils';
 import type { ChunkRequestOptions, Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
-import type { DimensionType } from '../Dimension';
+import type { DimensionType } from '../DimensionType';
 import type { WorldPersistenceData } from '../WorldPersistence';
 import type { LevelStem } from '@jsprismarine/worldgen';
 import type { ChunkSaveContext } from './ChunkSaveContext';

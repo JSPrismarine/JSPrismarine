@@ -10,7 +10,7 @@ import type { StoreActor } from '../src/entity/data/storeActors';
 import { stub } from '../src/testing/stub.test.helper';
 import type Server from '../src/Server';
 import type { World } from '../src/world/World';
-import { Dimensions } from '../src/world/Dimension';
+import { Dimensions } from '../src/world/DimensionType';
 import Chunk from '../src/world/chunk/Chunk';
 import { createChunkSaveContext } from '../src/world/providers/ChunkSaveContext';
 import LevelDB from '../src/world/providers/leveldb/LevelDB';

@@ -8,7 +8,7 @@ import type { NetworkPacket } from '@jsprismarine/protocol';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import Chunk from '../world/chunk/Chunk';
 import ChunkBatchCache from './ChunkBatchCache';
 import Codec2193 from './codec/Codec2193';

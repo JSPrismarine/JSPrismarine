@@ -16,8 +16,8 @@ import type { LevelStem, WorldPreset } from '@jsprismarine/worldgen';
 
 import { testContent } from '../../../testing/entityServer';
 import type Chunk from '../../chunk/Chunk';
-import { Dimensions } from '../../Dimension';
-import type { DimensionType } from '../../Dimension';
+import { Dimensions } from '../../DimensionType';
+import type { DimensionType } from '../../DimensionType';
 import type { Generator } from '../../Generator';
 import { GeneratorFactories } from '../../GeneratorFactories';
 import type { GeneratorBuildContext } from '../../GeneratorFactories';

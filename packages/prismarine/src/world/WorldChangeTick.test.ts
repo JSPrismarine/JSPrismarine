@@ -15,7 +15,7 @@ import { testContent } from '../testing/entityServer';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './Dimension';
+import { Dimensions } from './DimensionType';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import { World } from './World';

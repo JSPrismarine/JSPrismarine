@@ -12,7 +12,7 @@ import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import BlockUpdateScheduler from '../BlockUpdateScheduler';
 import Chunk from '../chunk/Chunk';
-import { Dimensions } from '../Dimension';
+import { Dimensions } from '../DimensionType';
 import type { World } from '../World';
 import BlockPhysics from './BlockPhysics';
 

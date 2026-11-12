@@ -30,8 +30,8 @@ import { replayInputFingerprint, serializeReplayInitialStateManifest } from '../
 import type { ReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { readJsonFile } from '../config/JsonFile';
-import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from './Dimension';
-import type { DimensionType } from './Dimension';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from './DimensionType';
+import type { DimensionType } from './DimensionType';
 import GameRuleManager, { GameRules } from './GameRuleManager';
 import type { GeneratorFactories, TerrainCacheSettings } from './GeneratorFactories';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';

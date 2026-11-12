@@ -19,8 +19,8 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import type Server from '../Server';
-import { Dimensions } from '../world/Dimension';
-import type { DimensionType } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
+import type { DimensionType } from '../world/DimensionType';
 import GameRuleManager from '../world/GameRuleManager';
 import type { Generator } from '../world/Generator';
 import { GeneratorFactories } from '../world/GeneratorFactories';

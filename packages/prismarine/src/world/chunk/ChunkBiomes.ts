@@ -1,7 +1,7 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 
 import { minSubChunk, subChunkCount } from '../Dimension';
-import type { DimensionType } from '../Dimension';
+import type { DimensionType } from '../DimensionType';
 
 /**
  * The biome of every block in one chunk column.

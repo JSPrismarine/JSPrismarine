@@ -22,7 +22,7 @@ import type { PlayerSpawn } from '../../world/SpawnPlacement';
 import type { StoredSpawnPoint } from '../../world/RespawnPoint';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
-import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../../world/Dimension';
+import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../../world/DimensionType';
 import type ClientConnection from '../ClientConnection';
 import Codec2193 from '../codec/Codec2193';
 import { registeredCodecs } from '../codec/CodecRegistry';

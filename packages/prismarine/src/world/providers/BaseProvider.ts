@@ -4,7 +4,7 @@ import type { World } from '../World';
 import type { ChunkRequestOptions } from '../Generator';
 import type Server from '../../Server';
 import type Chunk from '../chunk/Chunk';
-import type { DimensionType } from '../Dimension';
+import type { DimensionType } from '../DimensionType';
 import type { StoreActor } from '../../entity/data/storeActors';
 import type { Level } from '../Level';
 import type Provider from './Provider';

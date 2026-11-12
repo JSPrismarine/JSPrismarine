@@ -61,7 +61,7 @@ import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import Chunk from '../world/chunk/Chunk';
 import type { DimensionTravel } from '../world/portal/DimensionTravel';
-import { Dimensions } from '../world/Dimension';
+import { Dimensions } from '../world/DimensionType';
 import type { Generator } from '../world/Generator';
 import LevelDB from '../world/providers/leveldb/LevelDB';
 import type { World } from '../world/World';
