@@ -40,6 +40,7 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { decodeData3D, encodeData3D } from './BiomeCodec';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
+import { OverlayBatch } from './OverlayBatch';
 import { Dimensions } from '../../DimensionType';
 import { maxSubChunk, minSubChunk } from '../../Dimension';
 import BaseProvider from '../BaseProvider';
@@ -214,6 +215,14 @@ export default class LevelDB extends BaseProvider {
 
     private database: Database | null = null;
     private chunkWriteBatchBytes = 0;
+    /** Whether a write made outside a save pass waits for the next pass; see {@link LevelDB.holdOutsideWrites}. */
+    private holding = false;
+    /** Writes made outside a pass that no pass has taken yet. */
+    private held = new OverlayBatch();
+    /** Each pass's batch from its start until the database has applied it, oldest first. */
+    private readonly unapplied: OverlayBatch[] = [];
+    /** The cuts of each chunk whose pass has not yet marked the chunk saved. */
+    private readonly unsettled = new Map<Chunk, Set<LevelDBChunkCut>>();
 
     public constructor(folderPath: string, server: Server) {
         // Recursive, unlike the base class: a world folder's parent may not exist yet.
@@ -229,9 +238,68 @@ export default class LevelDB extends BaseProvider {
         this.ensureLevelMetadata();
     }
 
+    /**
+     * Commits whatever is still held, then closes. A level's last pass took everything held
+     * before it, so this is what was written after that pass's cut. A commit that fails is
+     * logged and the database still closes, so the folder is not left locked.
+     */
     public override async disable(): Promise<void> {
+        const held = this.held;
+        this.held = new OverlayBatch();
+        try {
+            if (this.database !== null && held.count > 0) {
+                this.chunkWriteBatchBytes += held.approximateSize;
+                await this.database.commit(held.toWriteBatch(), { sync: true });
+            }
+        } catch (error: unknown) {
+            this.getServer().getLogger().error(`Failed to commit ${held.count} held writes to ${this.getPath()}`);
+            this.getServer().getLogger().error(error);
+        }
         await this.database?.close();
         this.database = null;
+    }
+
+    /**
+     * Holds each write made outside a save pass, such as a chunk the unload pass writes or a
+     * player's record on disconnect, until the next pass commits it with its own batch
+     * (ADR 0018). A crash before that commit loses those writes and the pass's state together,
+     * and reopening gives the previous pass whole. Every read here looks at the held writes
+     * first, so a chunk or record read back before the commit is the one written.
+     *
+     * The level's save turns this on, since it is what commits the writes. A provider used on
+     * its own has no pass to join and writes each batch when it is made.
+     */
+    public override holdOutsideWrites(): void {
+        this.holding = true;
+    }
+
+    /** Bytes held for the next pass, as `WriteBatch.approximateSize` counts them. */
+    public override heldWriteBytes(): number {
+        return this.held.approximateSize;
+    }
+
+    /**
+     * The value a read sees for `key`: the held writes first, then each pass's batch that the
+     * database has not applied yet, newest first, then the database.
+     *
+     * A pass's batch is read too, although it is about to land: a write after a cut decides
+     * what to put and what to delete from what is stored, and the pass's batch lands before it.
+     */
+    private read(key: Buffer): Buffer | null {
+        const held = this.held.lookup(key);
+        if (held !== undefined) return held;
+        for (let index = this.unapplied.length - 1; index >= 0; index--) {
+            const value = this.unapplied[index]!.lookup(key);
+            if (value !== undefined) return value;
+        }
+        return this.requireDatabase().get(key);
+    }
+
+    /** Every write that has not reached the database, oldest first, as one batch. */
+    private pendingWrites(): OverlayBatch {
+        const pending = new OverlayBatch();
+        for (const batch of this.unapplied) pending.append(batch);
+        return pending.append(this.held);
     }
 
     /**
@@ -239,8 +307,7 @@ export default class LevelDB extends BaseProvider {
      * @throws {Error} When the fallback player-data directory contains unsupported entries.
      */
     public captureReplaySnapshot(): Uint8Array {
-        const database = this.requireDatabase();
-        const entries = [...database.entries()].map(
+        const entries = [...this.entriesNow()].map(
             ([key, value]) => [key.toString('base64'), value.toString('base64')] as const
         );
         const readFile = (name: (typeof REPLAY_SNAPSHOT_FILES)[number]): string | null => {
@@ -367,8 +434,9 @@ export default class LevelDB extends BaseProvider {
     }
 
     /**
-     * Writes a batch that is not a save pass's: before returning when no commit is appending,
-     * and behind the commit otherwise.
+     * Writes a batch that is not a save pass's and is not held, such as the legacy migration or
+     * any write of a provider used on its own: before returning when no commit is appending, and
+     * behind the commit otherwise.
      *
      * Not always through `commit`, although that would be simpler. A chunk the unload pass
      * writes or a player record is a few kilobytes, which the thread pool's round trip costs more
@@ -380,6 +448,39 @@ export default class LevelDB extends BaseProvider {
         const database = this.requireDatabase();
         if (database.appending) await database.commit(batch);
         else database.write(batch);
+    }
+
+    /**
+     * Writes a batch made outside a save pass: held for the next pass when the level's save
+     * holds them, and written now otherwise.
+     */
+    private async writeOutsidePass(batch: OverlayBatch): Promise<void> {
+        if (batch.count === 0) return;
+        if (this.holding) {
+            this.held.append(batch);
+            return;
+        }
+        await this.writeSmall(batch.toWriteBatch());
+    }
+
+    /**
+     * Every key and value a read sees, in key order: the database's with each pending write
+     * over it.
+     */
+    private *entriesNow(): IterableIterator<[Buffer, Buffer]> {
+        const pending = this.pendingWrites();
+        if (pending.count === 0) {
+            yield* this.requireDatabase().entries();
+            return;
+        }
+
+        const entries = new Map<string, [Buffer, Buffer]>();
+        for (const [key, value] of this.requireDatabase().entries()) entries.set(key.toString('latin1'), [key, value]);
+        for (const { key, value } of pending.entries()) {
+            if (value === null) entries.delete(key.toString('latin1'));
+            else entries.set(key.toString('latin1'), [key, value]);
+        }
+        yield* [...entries.values()].sort(([left], [right]) => Buffer.compare(left, right));
     }
 
     private requireDatabase(): Database {
@@ -400,7 +501,7 @@ export default class LevelDB extends BaseProvider {
 
     /** {@link LevelDB.readWorldData}, which reads nothing it has to wait for. */
     private readWorldDataNow(): WorldPersistenceData {
-        const value = this.requireDatabase().get(WORLD_DATA_KEY);
+        const value = this.read(WORLD_DATA_KEY);
         if (value !== null) {
             const encoded = this.readActorNbt(value).getString('Data', '');
             if (encoded.length > 0) return parseWorldPersistenceData(encoded);
@@ -430,10 +531,11 @@ export default class LevelDB extends BaseProvider {
      * Stores world metadata in the provider's LevelDB record.
      *
      * `level.dat` is {@link saveLevelData}'s: the spawn lands there too, beside the clock and
-     * the generator, when the world saves its level data.
+     * the generator, when the world saves its level data. Held for the next pass while the
+     * level's save holds writes; see {@link LevelDB.holdOutsideWrites}.
      */
     public override async writeWorldData(data: WorldPersistenceData): Promise<void> {
-        await this.writeSmall(new WriteBatch().put(WORLD_DATA_KEY, this.levelRecordOf(data)));
+        await this.writeOutsidePass(new OverlayBatch().put(WORLD_DATA_KEY, this.levelRecordOf(data)));
     }
 
     /** The provider record's value for some world metadata, of which it keeps the fields below. */
@@ -450,31 +552,40 @@ export default class LevelDB extends BaseProvider {
         return this.writeActorNbt(root);
     }
 
-    /** Moves legacy world metadata and actor snapshots into LevelDB before the sidecar is removed. */
+    /**
+     * Moves legacy world metadata and actor snapshots into LevelDB before the sidecar is removed.
+     *
+     * Written at once even while writes are held: the level removes `level.json` once this
+     * returns, so a held copy that a crash lost would be the only one. The level migrates when
+     * it opens, before anything else writes, so nothing held can land on top of it.
+     */
     public override async migrateLegacyWorldData(data: WorldPersistenceData): Promise<void> {
-        const database = this.requireDatabase();
-        const providerDataExists = database.get(WORLD_DATA_KEY) !== null;
+        const providerDataExists = this.read(WORLD_DATA_KEY) !== null;
         const stored = (await this.readWorldData()) ?? {};
 
         await this.migrateLegacyEntities(data.entities ?? []);
 
         const merged = providerDataExists ? { ...data, ...stored } : { ...stored, ...data };
-        await this.writeWorldData(merged);
+        await this.writeSmall(new WriteBatch().put(WORLD_DATA_KEY, this.levelRecordOf(merged)));
     }
 
     // --------------------------------------------------------------- player data
 
     /** Reads the stored data for a player, or null when the LevelDB has no record for them. */
     public async readPlayerData(identifier: string): Promise<Partial<WorldPlayerData> | null> {
-        const value = this.requireDatabase().get(encodePlayerServerKey(identifier));
+        const value = this.read(encodePlayerServerKey(identifier));
         return value === null ? null : this.readPlayerNbt(value);
     }
 
-    /** Writes the player's persistent state as Bedrock NBT under its server-side player key. */
+    /**
+     * Writes the player's persistent state as Bedrock NBT under its server-side player key.
+     * Held for the next pass while the level's save holds writes; see
+     * {@link LevelDB.holdOutsideWrites}.
+     */
     public async writePlayerData(identifier: string, data: WorldPlayerData): Promise<void> {
-        const batch = new WriteBatch();
+        const batch = new OverlayBatch();
         batch.put(encodePlayerServerKey(identifier), this.writeActorNbt(playerDataToNbt(data, this.knownDimensions())));
-        await this.writeSmall(batch);
+        await this.writeOutsidePass(batch);
     }
 
     private readPlayerNbt(value: Buffer): WorldPlayerData {
@@ -498,7 +609,6 @@ export default class LevelDB extends BaseProvider {
         config?: WorldConfig,
         options?: ChunkRequestOptions
     ): Promise<Chunk> {
-        const database = this.requireDatabase();
         const key = (tag: ChunkTag, subChunk?: number) =>
             encodeChunkKey({ x: cx, z: cz, dimension: dimension.bedrockId, tag, subChunk });
         const pendingEntitiesKey = encodePendingEntityKey(cx, cz, dimension.bedrockId);
@@ -506,16 +616,16 @@ export default class LevelDB extends BaseProvider {
         // No version record means the chunk was never generated. Anything else - a version we do
         // not recognize included - is a chunk that exists and must not be overwritten by a fresh
         // one, so it is read as best we can.
-        if (database.get(key(ChunkTag.Version)) === null && database.get(key(ChunkTag.LegacyVersion)) === null) {
+        if (this.read(key(ChunkTag.Version)) === null && this.read(key(ChunkTag.LegacyVersion)) === null) {
             const chunk = await generator.generateChunk(cx, cz, seed, config, options);
-            if (this.readPendingEntities(database.get(pendingEntitiesKey), chunk)) chunk.markChanged();
+            if (this.readPendingEntities(this.read(pendingEntitiesKey), chunk)) chunk.markChanged();
             return chunk;
         }
 
         const subChunks = new Map<number, ReturnType<typeof decodeSubChunk>['subChunk']>();
         const persistedSubChunkKeys = new Set<number>();
         for (let index = minSubChunk(dimension); index <= maxSubChunk(dimension); index++) {
-            const value = database.get(key(ChunkTag.SubChunkPrefix, index));
+            const value = this.read(key(ChunkTag.SubChunkPrefix, index));
             if (value === null) continue;
 
             const { subChunk } = decodeSubChunk(value);
@@ -525,25 +635,25 @@ export default class LevelDB extends BaseProvider {
 
         const chunk = new Chunk(cx, cz, subChunks, dimension);
 
-        const biomes = database.get(key(ChunkTag.Data3D));
+        const biomes = this.read(key(ChunkTag.Data3D));
         if (biomes !== null) {
             chunk.setBiomes(ChunkBiomes.fromSectionIds(decodeData3D(biomes, dimension).palettes, dimension));
         }
 
-        const blockEntityRecord = database.get(key(ChunkTag.BlockEntity));
+        const blockEntityRecord = this.read(key(ChunkTag.BlockEntity));
         for (const blockEntity of this.readBlockEntities(blockEntityRecord)) {
             chunk.setBlockEntity(blockEntity);
         }
 
         const digestKey = encodeDigestKey(cx, cz, dimension.bedrockId);
-        const digest = database.get(digestKey);
+        const digest = this.read(digestKey);
         let repairActorDigest = false;
         if (digest === null) {
-            this.readLegacyEntities(database.get(key(ChunkTag.Entity)), chunk);
+            this.readLegacyEntities(this.read(key(ChunkTag.Entity)), chunk);
         } else {
             repairActorDigest = this.readActorDigest(digest, chunk);
         }
-        const hasPendingEntities = this.readPendingEntities(database.get(pendingEntitiesKey), chunk);
+        const hasPendingEntities = this.readPendingEntities(this.read(pendingEntitiesKey), chunk);
 
         // Loaded, not changed: a chunk read from disk and never touched must not be written back.
         chunk.markLoadedFromDisk(persistedSubChunkKeys, blockEntityRecord !== null);
@@ -552,7 +662,8 @@ export default class LevelDB extends BaseProvider {
     }
 
     /**
-     * Writes one chunk as it is now, in a batch of its own.
+     * Writes one chunk as it is now, in a batch of its own, or holds it for the next pass while
+     * the level's save holds writes; see {@link LevelDB.holdOutsideWrites}.
      *
      * A save pass of one chunk, cut and committed at once; see {@link LevelDB.beginSavePass}.
      */
@@ -560,7 +671,10 @@ export default class LevelDB extends BaseProvider {
         const dimension = chunk.getDimension();
         const context =
             saveContext?.dimensionId === dimension.bedrockId ? saveContext : this.createSaveContext(dimension);
-        const pass = this.savePass(async (batch) => this.writeSmall(batch));
+        const pass = this.savePass(async (batch) => {
+            if (!this.holding) this.chunkWriteBatchBytes += batch.approximateSize;
+            await this.writeOutsidePass(batch);
+        }, new OverlayBatch());
         pass.cutChunk(chunk, context);
         await pass.commit({ sync: false });
     }
@@ -572,15 +686,37 @@ export default class LevelDB extends BaseProvider {
      * it is cut. Its changed sub chunks and its `Data3D` are encoded later, by
      * {@link ProviderSavePass.encode}, or first when a write is about to reach them, so a write
      * after the cut costs at most one sub chunk and the height and biome record.
+     *
+     * The pass takes every write held so far and commits it ahead of its own, in the same batch.
+     * A write made after this call is held for the pass after it.
      */
     public beginSavePass(): ProviderSavePass {
-        return this.savePass(async (batch, sync) => this.requireDatabase().commit(batch, { sync }));
+        const preamble = this.held;
+        this.held = new OverlayBatch();
+        return this.savePass(async (batch, sync) => {
+            this.chunkWriteBatchBytes += batch.approximateSize;
+            await this.requireDatabase().commit(batch.toWriteBatch(), { sync });
+        }, preamble);
     }
 
-    /** A save pass whose batch `write` puts into the database. */
-    private savePass(write: (batch: WriteBatch, sync: boolean) => Promise<void>): ProviderSavePass {
-        const database = this.requireDatabase();
-        const batch = new WriteBatch();
+    /**
+     * A save pass whose batch `write` puts into the database.
+     * @param preamble - The held writes the pass carries ahead of its own. They go back to the
+     *   front of the held writes if the pass is abandoned, since nothing else would write them.
+     */
+    private savePass(
+        write: (batch: OverlayBatch, sync: boolean) => Promise<void>,
+        preamble: OverlayBatch
+    ): ProviderSavePass {
+        const batch = new OverlayBatch().append(preamble);
+        const heldWrites = preamble.count;
+        this.unapplied.push(batch);
+        const applied = () => {
+            const index = this.unapplied.indexOf(batch);
+            if (index >= 0) this.unapplied.splice(index, 1);
+        };
+        let committed = false;
+        let returned = false;
         const cuts: LevelDBChunkCut[] = [];
         const counts = { subChunkEncodes: 0, forcedSubChunkEncodes: 0, bypassedWrites: 0 };
         let pending = 0;
@@ -603,23 +739,32 @@ export default class LevelDB extends BaseProvider {
             open = false;
             for (const cut of cuts) cut.chunk.setSaveCut(null);
         };
+        const settle = () => {
+            for (const cut of cuts) {
+                const cutsOfChunk = this.unsettled.get(cut.chunk);
+                cutsOfChunk?.delete(cut);
+                if (cutsOfChunk?.size === 0) this.unsettled.delete(cut.chunk);
+            }
+        };
 
         return {
             cutChunk: (chunk, context) => {
                 if (!open) throw new Error('This save pass has already committed');
-                const cut = this.cutChunk(database, batch, chunk, context, { encoded, bypassed });
+                const cut = this.cutChunk(batch, chunk, context, { encoded, bypassed });
                 pending += cut.pending;
                 cuts.push(cut);
+                const cutsOfChunk = this.unsettled.get(chunk) ?? new Set();
+                this.unsettled.set(chunk, cutsOfChunk.add(cut));
             },
             putPlayer: (key, record) => {
                 const playerKey = encodePlayerServerKey(key);
                 const value = this.writeActorNbt(playerDataToNbt(record, this.knownDimensions()));
-                if (!database.get(playerKey)?.equals(value)) batch.put(playerKey, value);
+                if (!this.read(playerKey)?.equals(value)) batch.put(playerKey, value);
                 return true;
             },
             putLevelRecord: (data) => {
                 const value = this.levelRecordOf({ ...this.readWorldDataNow(), ...data });
-                if (!database.get(WORLD_DATA_KEY)?.equals(value)) batch.put(WORLD_DATA_KEY, value);
+                if (!this.read(WORLD_DATA_KEY)?.equals(value)) batch.put(WORLD_DATA_KEY, value);
             },
             get pendingEncodes() {
                 return pending;
@@ -635,27 +780,44 @@ export default class LevelDB extends BaseProvider {
             commit: async ({ sync }) => {
                 for (const cut of cuts) cut.encodeNext(Number.POSITIVE_INFINITY);
                 letGo();
-                if (batch.count > 0) {
-                    this.chunkWriteBatchBytes += batch.approximateSize;
-                    await write(batch, sync);
-                }
+                // The database applies a commit before its first await, so a read after this
+                // finds the batch there; it leaves the reads' layers in the same turn.
+                const landed = batch.count > 0 ? write(batch, sync) : undefined;
+                applied();
+                await landed;
+                committed = true;
                 for (const cut of cuts) cut.chunk.markSavedAs(cut.state);
+                settle();
             },
-            abandon: letGo,
+            abandon: () => {
+                letGo();
+                applied();
+                settle();
+                // The held writes the pass took go back ahead of those held since, for the next
+                // pass: nothing else would write them. A commit that failed returns them too,
+                // since either the database never applied the batch or it refuses every later
+                // write anyway.
+                if (committed || returned) return;
+                returned = true;
+                this.held = preamble.append(this.held);
+            },
             get stats() {
-                return { keys: batch.count, bytes: batch.approximateSize, ...counts };
+                return { keys: batch.count, bytes: batch.approximateSize, heldWrites, ...counts };
             }
         };
     }
 
     /** Encodes what a chunk's cut writes at once into the batch, and holds back its sub chunks. */
     private cutChunk(
-        database: Database,
-        batch: WriteBatch,
+        batch: OverlayBatch,
         chunk: Chunk,
         context: ChunkSaveContext,
         report: ChunkCutReport
     ): LevelDBChunkCut {
+        // A pass still holding part of this chunk encodes it first. This cut takes the chunk's
+        // hook, after which a write would no longer tell the older pass, and it reads what the
+        // older pass's batch holds to decide what to delete.
+        chunk.finishSaveCut();
         const dimension = chunk.getDimension();
         const key = (tag: ChunkTag, subChunk?: number) =>
             encodeChunkKey({ x: chunk.getX(), z: chunk.getZ(), dimension: dimension.bedrockId, tag, subChunk });
@@ -666,7 +828,7 @@ export default class LevelDB extends BaseProvider {
         for (const { index, subChunk, stored } of changes.subChunks) {
             if (!stored || subChunk === null) {
                 // Only loaded or previously written keys need tombstones; absent air slices have no value to remove.
-                if (database.get(key(ChunkTag.SubChunkPrefix, index)) !== null) {
+                if (this.read(key(ChunkTag.SubChunkPrefix, index)) !== null) {
                     batch.del(key(ChunkTag.SubChunkPrefix, index));
                 }
                 continue;
@@ -675,30 +837,46 @@ export default class LevelDB extends BaseProvider {
             held.set(index, { subChunk, revision: subChunk.getRevision() });
         }
 
+        // A pass that cut this chunk and has not marked it saved yet may put a section the last
+        // save did not hold, and its batch lands before this one. The change list compares with
+        // the last save, so a section emptied since that pass's cut is not on it, and would
+        // otherwise outlive this write.
+        let emptied = false;
+        for (const earlier of this.unsettled.get(chunk) ?? []) {
+            for (const index of earlier.subChunkPuts) {
+                const subChunkKey = key(ChunkTag.SubChunkPrefix, index);
+                if (state.subChunkKeys.has(index) || this.read(subChunkKey) === null) continue;
+                batch.del(subChunkKey);
+                emptied = true;
+            }
+        }
+
         const versionKey = key(ChunkTag.Version);
         const version = Buffer.from([CHUNK_VERSION]);
-        if (!database.get(versionKey)?.equals(version)) batch.put(versionKey, version);
+        if (!this.read(versionKey)?.equals(version)) batch.put(versionKey, version);
 
         const finalized = Buffer.allocUnsafe(4);
         finalized.writeInt32LE(FINALIZED_DONE);
         const finalizedKey = key(ChunkTag.FinalizedState);
-        if (!database.get(finalizedKey)?.equals(finalized)) batch.put(finalizedKey, finalized);
+        if (!this.read(finalizedKey)?.equals(finalized)) batch.put(finalizedKey, finalized);
         const pendingEntitiesKey = encodePendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
-        if (database.get(pendingEntitiesKey) !== null) batch.del(pendingEntitiesKey);
+        if (this.read(pendingEntitiesKey) !== null) batch.del(pendingEntitiesKey);
 
         if (changes.blockEntities) {
             const blockEntities = this.writeBlockEntities(chunk.getBlockEntities());
             const blockEntitiesKey = key(ChunkTag.BlockEntity);
             if (blockEntities === null) {
-                if (database.get(blockEntitiesKey) !== null) batch.del(blockEntitiesKey);
+                if (this.read(blockEntitiesKey) !== null) batch.del(blockEntitiesKey);
             } else {
                 batch.put(blockEntitiesKey, blockEntities);
             }
         }
 
-        this.writeEntities(database, batch, chunk, key, context);
+        this.writeEntities(batch, chunk, key, context);
 
-        const cut = new LevelDBChunkCut(chunk, state, held, changes.data3D, report, {
+        // An emptied section moves the heightmap `Data3D` carries.
+        const data3D = changes.data3D || emptied;
+        const cut = new LevelDBChunkCut(chunk, state, held, data3D, report, {
             subChunk: (index, subChunk) =>
                 batch.put(key(ChunkTag.SubChunkPrefix, index), encodeSubChunk(subChunk, index, subChunk.sourceVersion)),
             data3D: () =>
@@ -710,7 +888,7 @@ export default class LevelDB extends BaseProvider {
                     )
                 )
         });
-        if (cut.pending > 0 || changes.data3D) chunk.setSaveCut(cut);
+        if (cut.pending > 0 || data3D) chunk.setSaveCut(cut);
         return cut;
     }
 
@@ -784,7 +962,7 @@ export default class LevelDB extends BaseProvider {
             }
             seenActorIds.add(actorIdHex);
 
-            const value = this.requireDatabase().get(encodeActorKey(actorId));
+            const value = this.read(encodeActorKey(actorId));
             if (value === null) {
                 this.getServer()
                     .getLogger()
@@ -814,7 +992,6 @@ export default class LevelDB extends BaseProvider {
     private async migrateLegacyEntities(entities: readonly LegacyWorldEntity[]): Promise<void> {
         if (entities.length === 0) return;
 
-        const database = this.requireDatabase();
         const dimension = Dimensions.Overworld;
         const chunks = new Map<
             string,
@@ -834,9 +1011,9 @@ export default class LevelDB extends BaseProvider {
             const chunkId = `${cx},${cz}`;
             let chunk = chunks.get(chunkId);
             if (chunk === undefined) {
-                const identities = this.actorIdentitiesInChunk(database, cx, cz, dimension.bedrockId);
+                const identities = this.actorIdentitiesInChunk(cx, cz, dimension.bedrockId);
                 const pending = this.readPendingEntityRecords(
-                    database.get(encodePendingEntityKey(cx, cz, dimension.bedrockId))
+                    this.read(encodePendingEntityKey(cx, cz, dimension.bedrockId))
                 );
                 for (const entity of pending) {
                     identities.add(legacyEntityIdentity(entity));
@@ -850,7 +1027,7 @@ export default class LevelDB extends BaseProvider {
             if (seen.has(identity) || chunk.identities.has(identity)) continue;
             seen.add(identity);
 
-            const uniqueId = this.generateActorId(database, usedActorIds);
+            const uniqueId = this.generateActorId(usedActorIds);
             chunk.pending.push({ ...entity, uniqueId: uniqueId.toString() });
             chunk.identities.add(identity);
         }
@@ -866,12 +1043,12 @@ export default class LevelDB extends BaseProvider {
         if (hasUpdates) await this.writeSmall(batch);
     }
 
-    private actorIdentitiesInChunk(database: Database, x: number, z: number, dimension: number): Set<string> {
+    private actorIdentitiesInChunk(x: number, z: number, dimension: number): Set<string> {
         const identities = new Set<string>();
-        const digest = database.get(encodeDigestKey(x, z, dimension));
+        const digest = this.read(encodeDigestKey(x, z, dimension));
         if (digest !== null) {
             for (const actorId of decodeDigest(digest)) {
-                const actor = database.get(encodeActorKey(actorId));
+                const actor = this.read(encodeActorKey(actorId));
                 if (actor === null) continue;
 
                 const identity = entityIdentity(this.readActorNbt(actor));
@@ -880,7 +1057,7 @@ export default class LevelDB extends BaseProvider {
             return identities;
         }
 
-        const legacy = database.get(encodeChunkKey({ x, z, dimension, tag: ChunkTag.Entity }));
+        const legacy = this.read(encodeChunkKey({ x, z, dimension, tag: ChunkTag.Entity }));
         for (const actor of this.readLegacyEntityNbt(legacy)) {
             const identity = entityIdentity(actor);
             if (identity !== undefined) identities.add(identity);
@@ -984,15 +1161,14 @@ export default class LevelDB extends BaseProvider {
      * actors currently in the world.
      */
     private writeEntities(
-        database: Database,
-        batch: WriteBatch,
+        batch: OverlayBatch,
         chunk: Chunk,
         key: (tag: ChunkTag, subChunk?: number) => Buffer,
         saveContext: ChunkSaveContext
     ): void {
         const dimension = chunk.getDimension();
         const digestKey = encodeDigestKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
-        const existingDigest = database.get(digestKey);
+        const existingDigest = this.read(digestKey);
         let previousActorIds: Buffer[] = [];
         if (existingDigest !== null) {
             try {
@@ -1015,7 +1191,7 @@ export default class LevelDB extends BaseProvider {
         for (const entity of entities) {
             const nbt = EntitySerializer.toNBT(entity);
             if (!nbt.has('UniqueID')) {
-                const uniqueId = this.generateActorId(database, usedActorIds);
+                const uniqueId = this.generateActorId(usedActorIds);
                 nbt.addValue('UniqueID', new Types.LongVal(uniqueId));
                 entity.persistentNbt = nbt;
             }
@@ -1026,7 +1202,7 @@ export default class LevelDB extends BaseProvider {
                 actorIdsInChunk.has(uniqueId)
             ) {
                 const duplicateActorIdHex = actorIdBytes(uniqueId).toString('hex');
-                uniqueId = this.generateActorId(database, usedActorIds);
+                uniqueId = this.generateActorId(usedActorIds);
                 nbt.addValue('UniqueID', new Types.LongVal(uniqueId));
                 entity.persistentNbt = nbt;
                 const newActorIdHex = actorIdBytes(uniqueId).toString('hex');
@@ -1042,7 +1218,7 @@ export default class LevelDB extends BaseProvider {
             actorIds.push(actorId);
             const actorKey = encodeActorKey(actorId);
             const actorValue = this.writeActorNbt(nbt);
-            if (!database.get(actorKey)?.equals(actorValue)) batch.put(actorKey, actorValue);
+            if (!this.read(actorKey)?.equals(actorValue)) batch.put(actorKey, actorValue);
         }
 
         for (const actorId of previousActorIds) {
@@ -1050,20 +1226,20 @@ export default class LevelDB extends BaseProvider {
             if (actorIdsInChunk.has(uniqueId) || usedActorIds.has(uniqueId)) continue;
 
             const actorKey = encodeActorKey(actorId);
-            if (database.get(actorKey) !== null) batch.del(actorKey);
+            if (this.read(actorKey) !== null) batch.del(actorKey);
         }
 
         const legacyEntityKey = key(ChunkTag.Entity);
-        if (database.get(legacyEntityKey) !== null) batch.del(legacyEntityKey);
+        if (this.read(legacyEntityKey) !== null) batch.del(legacyEntityKey);
         const actorDigestVersionKey = key(ChunkTag.ActorDigestVersion);
         if (actorIds.length === 0) {
             if (existingDigest !== null) batch.del(digestKey);
-            if (database.get(actorDigestVersionKey) !== null) batch.del(actorDigestVersionKey);
+            if (this.read(actorDigestVersionKey) !== null) batch.del(actorDigestVersionKey);
         } else {
             const digest = encodeDigest(actorIds);
             if (!existingDigest?.equals(digest)) batch.put(digestKey, digest);
             const digestVersion = Buffer.from([0]);
-            if (!database.get(actorDigestVersionKey)?.equals(digestVersion)) {
+            if (!this.read(actorDigestVersionKey)?.equals(digestVersion)) {
                 batch.put(actorDigestVersionKey, digestVersion);
             }
         }
@@ -1076,11 +1252,11 @@ export default class LevelDB extends BaseProvider {
         });
     }
 
-    private generateActorId(database: Database, usedActorIds: Set<bigint>): bigint {
+    private generateActorId(usedActorIds: Set<bigint>): bigint {
         for (let attempt = 0; attempt < 32; attempt++) {
             const uniqueId = randomBytes(8).readBigInt64LE(0);
             const actorId = actorIdBytes(uniqueId);
-            if (usedActorIds.has(uniqueId) || database.get(encodeActorKey(actorId)) !== null) continue;
+            if (usedActorIds.has(uniqueId) || this.read(encodeActorKey(actorId)) !== null) continue;
 
             usedActorIds.add(uniqueId);
             return uniqueId;
@@ -1183,7 +1359,7 @@ export default class LevelDB extends BaseProvider {
     public *listChunks(dimension: DimensionType): IterableIterator<{ x: number; z: number }> {
         const seen = new Set<string>();
 
-        for (const key of this.requireDatabase().keys()) {
+        for (const [key] of this.entriesNow()) {
             const decoded = decodePendingEntityKey(key) ?? decodeChunkKey(key);
             if (decoded === null || decoded.dimension !== dimension.bedrockId) continue;
 
@@ -1197,9 +1373,7 @@ export default class LevelDB extends BaseProvider {
 
     /** The biomes stored for a chunk, or null when it has none yet. */
     public readBiomes(dimension: DimensionType, cx: number, cz: number): ReturnType<typeof decodeData3D> | null {
-        const value = this.requireDatabase().get(
-            encodeChunkKey({ x: cx, z: cz, dimension: dimension.bedrockId, tag: ChunkTag.Data3D })
-        );
+        const value = this.read(encodeChunkKey({ x: cx, z: cz, dimension: dimension.bedrockId, tag: ChunkTag.Data3D }));
 
         return value === null ? null : decodeData3D(value, dimension);
     }
@@ -1242,6 +1416,8 @@ interface ChunkCutReport {
  */
 class LevelDBChunkCut implements ChunkSaveCutHook {
     private data3D: boolean;
+    /** The sections this cut puts, which a later cut of the chunk deletes if they are empty by then. */
+    public readonly subChunkPuts: ReadonlySet<number>;
 
     public constructor(
         public readonly chunk: Chunk,
@@ -1256,6 +1432,7 @@ class LevelDBChunkCut implements ChunkSaveCutHook {
         }
     ) {
         this.data3D = data3D;
+        this.subChunkPuts = new Set(held.keys());
     }
 
     /** How many sub chunks are still held back. */
@@ -1272,6 +1449,12 @@ class LevelDBChunkCut implements ChunkSaveCutHook {
 
     public beforeBiomeWrite(): void {
         this.encodeData3D();
+        this.releaseWhenDone();
+    }
+
+    public finish(): void {
+        this.encodeData3D();
+        for (const index of [...this.held.keys()]) this.encodeSubChunk(index, true);
         this.releaseWhenDone();
     }
 

@@ -315,3 +315,77 @@ describe('a LevelDB save pass', () => {
         await reopened.disable();
     });
 });
+
+describe('a LevelDB provider holding writes for the next pass', () => {
+    const record = { gamemode: 'Survival', position: { x: 1, y: 64, z: 2, pitch: 0, yaw: 0, headYaw: 0 } };
+
+    it('finishes a pass still holding part of a chunk before holding a write of that chunk', async () => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        leveldb.holdOutsideWrites();
+        const commits = countCommits(leveldb);
+        const chunk = twoSectionChunk(0, 0);
+
+        const pass = leveldb.beginSavePass();
+        pass.cutChunk(chunk, context());
+        // Emptying the upper section after the cut, then writing the chunk outside the pass.
+        chunk.setBlockRuntimeId(0, 16, 0, air);
+        await leveldb.writeChunk(chunk, context());
+
+        expect(pass.pendingEncodes).toBe(0);
+        expect(pass.stats.forcedSubChunkEncodes).toBe(2);
+        await pass.commit({ sync: true });
+        expect(commits.batches).toBe(1);
+        // The held write deletes the section the pass put, so it is gone once both have landed.
+        expect((await readBack(leveldb, 0, 0)).getBlockRuntimeId(0, 16, 0)).toBe(air);
+        await leveldb.disable();
+
+        expect(commits.batches).toBe(2);
+        const reopened = provider(worldPath);
+        await reopened.enable();
+        const saved = await readBack(reopened, 0, 0);
+        expect(saved.getBlockRuntimeId(0, 0, 0)).toBe(stone);
+        expect(saved.getBlockRuntimeId(0, 16, 0)).toBe(air);
+        await reopened.disable();
+    });
+
+    it('hands the held writes of an abandoned pass to the next one', async () => {
+        const leveldb = provider(scratch());
+        await leveldb.enable();
+        leveldb.holdOutsideWrites();
+        const commits = countCommits(leveldb);
+        await leveldb.writePlayerData('leaver', record);
+        const bytes = leveldb.heldWriteBytes();
+
+        leveldb.beginSavePass().abandon();
+        expect(leveldb.heldWriteBytes()).toBe(bytes);
+        expect(await leveldb.readPlayerData('leaver')).not.toBeNull();
+
+        const next = leveldb.beginSavePass();
+        await next.commit({ sync: true });
+        expect(next.stats.heldWrites).toBe(1);
+        expect(commits).toEqual({ batches: 1, keys: 1 });
+        await leveldb.disable();
+    });
+
+    it('commits what is still held when it closes, in one batch', async () => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        leveldb.holdOutsideWrites();
+        const commits = countCommits(leveldb);
+        await leveldb.writePlayerData('leaver', record);
+        await leveldb.writeChunk(twoSectionChunk(0, 0), context());
+        expect(commits.batches).toBe(0);
+
+        await leveldb.disable();
+
+        expect(commits.batches).toBe(1);
+        const reopened = provider(worldPath);
+        await reopened.enable();
+        expect((await reopened.readPlayerData('leaver'))?.position?.x).toBe(1);
+        expect((await readBack(reopened, 0, 0)).getBlockRuntimeId(0, 16, 0)).toBe(stone);
+        await reopened.disable();
+    });
+});
