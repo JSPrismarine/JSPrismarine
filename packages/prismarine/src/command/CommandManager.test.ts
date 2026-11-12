@@ -7,6 +7,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type Server from '../Server';
 import type { ChatManager } from '../chat/ChatManager';
+import type { Config } from '../config/Config';
 import type { ServerContent } from '../content/ServerContent';
 import Console from '../Console';
 import type PlayerSession from '../network/PlayerSession';
@@ -23,6 +24,7 @@ import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import { testContent } from '../testing/entityServer';
+import type { CommandExecutor } from './CommandExecutor';
 import type { ConsoleSender } from './ConsoleSender';
 import { CommandManager, commandPermissionOf } from './CommandManager';
 import { JSPRISMARINE_COMMAND_PERMISSIONS } from './jsprismarineCommands';
@@ -204,6 +206,64 @@ describe('command', () => {
 
             await expect(commandManager.dispatchCommand(console, console, '/nope')).resolves.toBe(false);
             expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('Unknown command'));
+        });
+
+        /** A manager over the test server with some of its parts replaced, and feedback on. */
+        const managerOver = (parts: Partial<Server>, onStopCommandComplete?: () => void) => {
+            const gameRules = stub<GameRuleManager>({
+                getGameRule: (name: string) => (name === 'sendCommandFeedback' ? [true, true] : null)
+            });
+            const world = stub<World>({ getGameRuleManager: () => gameRules });
+            return new CommandManager(
+                stub<Server>({
+                    ...server,
+                    getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
+                    ...parts
+                }),
+                onStopCommandComplete
+            );
+        };
+
+        it('tells the sender of a failure in the work a command started, and answers false', async () => {
+            // `/debug loadWorld` loads the level after the dispatcher has answered, so the config
+            // lookup that fails does so in the work the body parked.
+            const commandManager = managerOver({ getConfig: () => stub<Config>({ getWorlds: () => ({}) }) });
+            await commandManager.enable();
+
+            const console = new Console(server);
+            const sendMessage = vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
+
+            await expect(commandManager.dispatchCommand(console, console, '/debug loadWorld nowhere')).resolves.toBe(
+                false
+            );
+            expect(sendMessage.mock.calls.map(([message]) => message)).toEqual(['§cNo world nowhere in config']);
+        });
+
+        it('tells the process entry a /stop finished once its shutdown has, though its feedback failed', async () => {
+            const stopped = vi.fn();
+            let finishShutdown = () => {};
+            const shutdown = new Promise<void>((resolve) => {
+                finishShutdown = resolve;
+            });
+            const commandManager = managerOver({ shutdown: () => shutdown }, stopped);
+            await commandManager.enable();
+
+            // The sender is gone by the time the confirmation is sent, as a kicked player is.
+            const sender: CommandExecutor = {
+                sendMessage: async () => {
+                    throw new Error('the connection closed');
+                },
+                getName: () => 'CONSOLE',
+                getFormattedUsername: () => 'CONSOLE',
+                getServer: () => server
+            };
+            const { settled } = commandManager.runCommand(sender, sender, '/stop');
+            await Promise.resolve();
+            expect(stopped).not.toHaveBeenCalled();
+
+            finishShutdown();
+            await settled;
+            expect(stopped).toHaveBeenCalledTimes(1);
         });
 
         describe('permission config integration', () => {

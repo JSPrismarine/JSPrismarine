@@ -60,12 +60,13 @@ const dataCommandHost = (server: Server, sequences: RandomSequences): DataComman
  *
  * @param server - The live server. Held rather than snapshotted: a command
  *   runs long after the host was built and has to see the world as it is then.
- * @param onStopRequested - Called when the `stop` command reaches its server host.
+ * @param onStopRequested - Called when the `stop` command reaches its server host, with the
+ *   shutdown it started.
  * @param sequences - The command-owned random streams, shared with replay capture.
  */
 export const serverCommandHost = (
     server: Server,
-    onStopRequested: () => void = () => {},
+    onStopRequested: (shutdown: Promise<void>) => void = () => {},
     sequences: RandomSequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed())
 ): CommandHost => {
     const scoreboard = new Scoreboard();

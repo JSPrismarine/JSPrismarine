@@ -236,8 +236,8 @@ export default class Server {
      * @param [options.chunkAdmissionBudget] - The most chunk completions one input step admits,
      *   `CHUNK_ADMISSION_BUDGET_PER_TICK` by default. A replay harness changes it to show that a
      *   recorded trace, not the budget, decides what a replay admits.
-     * @param options.onStopCommandComplete - Called after a successful `/stop` dispatch sends
-     *   its feedback.
+     * @param options.onStopCommandComplete - Called once the shutdown a `/stop` started has
+     *   finished and the command's feedback has settled, delivered or not.
      * @param [options.tickClock] - The clock the tick loop schedules and times its phases by,
      *   `performance.now` by default. Nothing a tick simulates reads it.
      * @returns {Server} The server instance.
