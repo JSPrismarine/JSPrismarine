@@ -607,9 +607,11 @@ export default class Server {
             // whose connection closed during the last tick is torn down and saved like the rest,
             // rather than left in its world with nobody to remove it. Then the world messages those
             // inputs filed, such as a default game type for the players of another world, so the
-            // records the kicks save hold what the inputs did.
+            // records the kicks save hold what the inputs did. Drained, not admitted once: a
+            // message for a player who changed world in those inputs files itself again for the
+            // world they are in now, and no later step would apply it.
             this.networking.admitInputs(Number.POSITIVE_INFINITY);
-            this.worldMessages.admit();
+            this.worldMessages.drain();
 
             // Kick all online players. `kickAllPlayers` would send the `KICKED` code, and a
             // client told the server shut down shows that code instead.

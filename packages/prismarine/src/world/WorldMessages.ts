@@ -21,6 +21,14 @@ interface WorldMessage {
     readonly apply: () => undefined;
 }
 
+/**
+ * How many passes {@link WorldMessages.drain} makes. A message files another one when its player
+ * changed world, and that one applies in the next pass, so two passes are the most real messages
+ * need. The rest is room for a message that files one that files one, without letting a message
+ * that files itself for ever hold a shutdown.
+ */
+const DRAIN_PASSES = 8;
+
 /** The changes waiting for an input step to apply them in their worlds. */
 export class WorldMessages {
     private pending: WorldMessage[] = [];
@@ -62,6 +70,27 @@ export class WorldMessages {
             } catch (error: unknown) {
                 this.report(error);
             }
+        }
+        return applied;
+    }
+
+    /**
+     * Applies messages until none is left, for a caller no input step follows, such as a
+     * shutdown. {@link WorldMessages.admit} applies what was filed before it and leaves what
+     * those messages file for the next step, which never comes there: a message about a player
+     * who changed world files itself again for the world they are in now, and would be dropped.
+     *
+     * Messages still filing themselves after {@link DRAIN_PASSES} passes are reported and left.
+     *
+     * @returns How many messages were applied.
+     */
+    public drain(): number {
+        let applied = 0;
+        for (let pass = 0; pass < DRAIN_PASSES && this.pending.length > 0; pass += 1) applied += this.admit();
+        if (this.pending.length > 0) {
+            this.report(
+                new Error(`${this.pending.length} world message(s) were still being filed after ${DRAIN_PASSES} passes`)
+            );
         }
         return applied;
     }

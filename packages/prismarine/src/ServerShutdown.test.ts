@@ -145,6 +145,34 @@ describe('Server shutdown', () => {
         expect(order).toEqual(['inputs', 'message', 'kick']);
     });
 
+    it('applies a message that files itself again for another world before it kicks anyone', async () => {
+        const order: string[] = [];
+        const worldMessages = new WorldMessages(() => {});
+        const world = stub<World>({ runInputNow: (apply) => apply() });
+        const server = shutdownServer({
+            worldMessages,
+            networking: stub<Networking>({
+                // A default game type for a player who changed world in the same inputs: the
+                // message finds them gone from its world and files itself for the one they are in.
+                admitInputs: () => {
+                    worldMessages.send(world, () => {
+                        order.push('filed again');
+                        worldMessages.send(world, () => void order.push('applied'));
+                    });
+                    return 1;
+                },
+                kill: () => {}
+            }),
+            sessionManager: stub<SessionManager>({
+                getSessions: () => [stub<PlayerSession>({ kick: async () => void order.push('kick') })]
+            })
+        });
+
+        await server.shutdown({ stayAlive: true });
+
+        expect(order).toEqual(['filed again', 'applied', 'kick']);
+    });
+
     it('tells the operator that a second interrupt exits', async () => {
         const lines: string[] = [];
         const server = shutdownServer({ logger: stub<Logger>({ info: (line: string) => lines.push(line) }) });
