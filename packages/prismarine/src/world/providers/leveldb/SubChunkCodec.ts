@@ -22,6 +22,14 @@ export interface DecodedSubChunk {
     index: number | null;
 }
 
+/**
+ * The version a sub chunk is written back at: the one it was read at, unless that cannot hold it.
+ * Version 1 holds one layer, so a section read at version 1 that has gained a second, such as
+ * water put into a block, is written at version 9, which every reader of the format takes.
+ */
+export const writableSubChunkVersion = (subChunk: ReadonlySubChunk): SubChunkVersion =>
+    subChunk.sourceVersion === 1 && subChunk.getStorages().length > 1 ? 9 : subChunk.sourceVersion;
+
 export const encodeSubChunk = (subChunk: ReadonlySubChunk, index: number, version: SubChunkVersion = 9): Buffer => {
     const stream = new BinaryStream();
     const storages = subChunk.getStorages();

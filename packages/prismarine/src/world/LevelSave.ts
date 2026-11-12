@@ -94,7 +94,11 @@ export class LevelSave {
     private committing: Promise<void> | null = null;
     private settleCommitting: () => void = () => {};
     /** The autosave whose cut is taken and whose sub chunks are still encoding, or null. */
-    private encoding: { readonly pending: PendingPass; readonly start: () => void } | null = null;
+    private encoding: {
+        readonly pending: PendingPass;
+        readonly start: () => void;
+        readonly fail: (error: unknown) => void;
+    } | null = null;
 
     public constructor(private readonly options: LevelSaveOptions) {
         // This is what commits the held writes, so it is what turns holding on.
@@ -137,8 +141,10 @@ export class LevelSave {
         }
 
         let start!: () => void;
-        const encoded = new Promise<void>((resolve) => {
+        let fail!: (error: unknown) => void;
+        const encoded = new Promise<void>((resolve, reject) => {
             start = resolve;
+            fail = reject;
         });
         // The queue was idle, so this takes the slot in this call, before the next write can.
         // Nothing awaits it - the tick that started it is over by the time it finishes - so a
@@ -146,13 +152,18 @@ export class LevelSave {
         // `--unhandled-rejections=strict`. A save that fails is worth a log line and the next
         // pass; it is not worth the process.
         this.occupy(async () => {
-            await encoded;
+            try {
+                await encoded;
+            } catch (error) {
+                this.abandon(pending);
+                throw error;
+            }
             await this.commit(pending);
         }).catch((error: unknown) => {
             this.options.logger().error(`Failed to save level ${this.options.name}`);
             this.options.logger().error(error);
         });
-        this.encoding = { pending, start };
+        this.encoding = { pending, start, fail };
         this.advance(SAVE_ENCODE_BUDGET);
     }
 
@@ -275,10 +286,26 @@ export class LevelSave {
     private advance(budget: number): void {
         const encoding = this.encoding;
         if (encoding === null) return;
-        encoding.pending.pass.encode(budget);
+        try {
+            encoding.pending.pass.encode(budget);
+        } catch (error) {
+            // A sub chunk that cannot be encoded leaves the pass unable to finish. Abandoned, its
+            // chunks stay dirty for the next pass, and the queue goes on to the writes behind it
+            // instead of waiting for encodes that will never come.
+            this.encoding = null;
+            encoding.fail(error);
+            return;
+        }
         if (encoding.pending.pass.pendingEncodes > 0) return;
         this.encoding = null;
         encoding.start();
+    }
+
+    /** Gives up a pass that will not commit, and lets a record waiting for its commit go. */
+    private abandon({ pass }: PendingPass): void {
+        pass.abandon();
+        this.committing = null;
+        this.settleCommitting();
     }
 
     /** Encodes what is left of the autosave in progress at once. */

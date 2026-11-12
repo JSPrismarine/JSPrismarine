@@ -24,7 +24,7 @@ import {
 import { HEIGHTMAP_BYTES, decodeData3D, encodeData3D, uniformBiomes, uniformData3D } from './BiomeCodec';
 import { decodeLevelDat, encodeLevelDat, LEVEL_DAT_STORAGE_VERSION } from './LevelDat';
 import { decodePersistentStorage, encodePersistentStorage } from './PersistentBlockStorage';
-import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
+import { decodeSubChunk, encodeSubChunk, writableSubChunkVersion } from './SubChunkCodec';
 import { Dimensions } from '../../DimensionType';
 
 const id = (name: string) => BlockRuntimeIds.getByName(name);
@@ -412,6 +412,22 @@ describe('world', () => {
             subChunk.setBlock(0, 0, 0, id('minecraft:water'), 1);
 
             expect(() => encodeSubChunk(subChunk, 0, 1)).toThrow(/single layer/);
+        });
+
+        it('writes a version 1 section that gained a second layer back at version 9, both layers kept', () => {
+            const { subChunk } = decodeSubChunk(encodeSubChunk(filled(), 0, 1));
+            subChunk.setBlock(1, 2, 3, id('minecraft:water'), 1);
+
+            const version = writableSubChunkVersion(subChunk);
+            const restored = decodeSubChunk(encodeSubChunk(subChunk, 0, version)).subChunk;
+
+            expect(version).toBe(9);
+            expect(restored.getBlockRuntimeId(1, 2, 3, 0)).toBe(id('minecraft:stone'));
+            expect(restored.getBlockRuntimeId(1, 2, 3, 1)).toBe(id('minecraft:water'));
+        });
+
+        it('keeps a version 1 section of one layer at version 1', () => {
+            expect(writableSubChunkVersion(decodeSubChunk(encodeSubChunk(filled(), 0, 1)).subChunk)).toBe(1);
         });
 
         it('refuses a version it does not know', () => {
