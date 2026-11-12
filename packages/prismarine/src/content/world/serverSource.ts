@@ -179,6 +179,7 @@ const adapterFor = (
         world,
         entities,
         level,
+        levelName,
         ...(live === undefined
             ? {}
             : {

@@ -73,6 +73,8 @@ export interface ItemActorPortOptions {
     readonly entities: ContentEntityAccess;
     /** The clock, which is what an item cooldown is measured against. */
     readonly level: ContentLevelFacts;
+    /** The name of the level the world belongs to, or undefined for the default level. */
+    readonly levelName?: string | undefined;
     /** Starts a projectile in the live entity runtime, or is absent when that runtime is unavailable. */
     readonly launchProjectile?: (action: LaunchProjectileAction, shooter: StoreActor) => boolean;
     /** Attaches a live holder to a leashable data-driven entity. */
@@ -730,7 +732,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             try {
                 // The level beside the dimension: two levels can hold the same dimension, and the
                 // item's actions have to land in the one its block writes go to.
-                return duringItemInteraction({ dimension: level.dimension, level: world()?.getLevel().name }, body);
+                return duringItemInteraction({ dimension: level.dimension, level: options.levelName }, body);
             } finally {
                 if (previous === undefined) targets.delete(source.runtimeId);
                 else targets.set(source.runtimeId, previous);
