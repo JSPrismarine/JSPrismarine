@@ -339,23 +339,24 @@ describe('Level', () => {
             const nether = await level.world(NETHER_STEM_ID);
             const overworld = await level.world(OVERWORLD_STEM_ID);
 
+            // By dimension: every world of a level shares the level's name.
             const ticked: string[] = [];
             const failure = new Error('the overworld broke');
             vi.spyOn(overworld, 'update').mockImplementation(() => {
-                ticked.push(overworld.getName());
+                ticked.push(overworld.getDimension().id);
                 throw failure;
             });
             for (const world of [nether, sky]) {
-                vi.spyOn(world, 'update').mockImplementation(() => void ticked.push(world.getName()));
+                vi.spyOn(world, 'update').mockImplementation(() => void ticked.push(world.getDimension().id));
             }
 
             level.update(1);
 
-            expect(ticked).toEqual([overworld.getName(), nether.getName(), sky.getName()]);
+            expect(ticked).toEqual([overworld, nether, sky].map((world) => world.getDimension().id));
+            expect(new Set(ticked).size).toBe(3);
             expect(errors).toContain(failure);
-            expect(errors.some((message) => typeof message === 'string' && message.includes(overworld.getName()))).toBe(
-                true
-            );
+            const named = errors.filter((message) => typeof message === 'string' && message.includes('failed tick'));
+            expect(named).toEqual([expect.stringContaining(`/${overworld.getDimension().id}`)]);
 
             await level.disable();
         });
