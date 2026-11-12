@@ -460,6 +460,10 @@ Each slice is a commit or a few, with its tests, on `dev/webrtc-backend`.
      dependencies, but tests only the Linux x64 build, on `ubuntu-latest`, and installs the packed
      package with npm alone. The per-platform tests, the bare-container load and the pnpm and Bun
      installs are gone.
+   - Changed 2026-11-12, at the user's call: a change to the native sources no longer needs a
+     publish run before its CI passes. Every job that installs the repository builds the library
+     for its runner when the sources differ from the manifest, cached by their hash, and a push to
+     `master` that leaves the manifest behind publishes the builds and commits the manifest.
 6. [x] **Our own NetherNet protocol on the native driver, for the server and the client.**
    - Done 2026-11-11. Our bots joined and spawned on Bedrock Dedicated Server 1.26.51 over
      NetherNet, 3 of 3. Waiting for the listeners let the world tick before they bound, which
