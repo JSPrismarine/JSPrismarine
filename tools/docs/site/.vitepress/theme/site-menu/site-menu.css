@@ -499,7 +499,7 @@
 .site-search__input {
     flex: 1;
     min-width: 0;
-    font: 14px var(--vp-font-family-mono);
+    font: var(--jsp-input-size) var(--vp-font-family-mono);
     color: var(--site-menu-text);
     caret-color: var(--jsp-accent);
     background: transparent;

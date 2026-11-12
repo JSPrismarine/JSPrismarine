@@ -125,6 +125,9 @@ ink.
   the control and the ring. Signal alone is too faint on the light page; with the band the ring reads
   on cream, forest, ink and signal surfaces alike. `brand.css` sets it once for every element.
 - On phones, controls are at least `--jsp-target` tall, the WCAG touch target size.
+- Text in a field is `--jsp-input-size` (16px), so Safari on iOS does not zoom in when the field
+  takes focus. The page sets `touch-action: manipulation`, so two quick taps on a control do not
+  zoom either; pinching still does.
 - Motion is short and mechanical. Honor `prefers-reduced-motion` by stopping tickers and cursors.
   Anything that moves on its own also stops on hover and has a Pause button, for readers who have not
   set reduced motion. With a mouse, the button shows on hover, on keyboard focus and while paused;

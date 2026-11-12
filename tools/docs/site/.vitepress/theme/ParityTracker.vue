@@ -824,7 +824,7 @@ progress::-moz-progress-bar {
 .search-field input {
     width: 100%;
     padding: 10px 14px;
-    font: 15px var(--vp-font-family-base);
+    font: var(--jsp-input-size) var(--vp-font-family-base);
     color: var(--vp-c-text-1);
     background: var(--tracker-surface);
     border: 2px solid var(--tracker-border);
