@@ -67,6 +67,8 @@ export class LoopbackNetwork {
         this.ends.set(id, end);
         const connection: TransportConnection = {
             id,
+            // The pipe stands in for RakNet, the only name a connection may carry besides NetherNet.
+            transport: 'RakNet',
             address: end.address,
             capabilities: LOOPBACK_CAPABILITIES,
             sendFrame: (payload) => end.receive(payload),
