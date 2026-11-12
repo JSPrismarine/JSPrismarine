@@ -8,7 +8,7 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader, NBTWriter } from '@jsprismarine/nbt';
 import type { FlatGeneratorSettings, GeneratorDefinition } from '@jsprismarine/worldgen';
 
-import { bedrockBiomeIdOf } from '../../generators/datadriven';
+import { bedrockBiomeIdOf } from '../../generators/datadriven/javaTranslation';
 
 /**
  * `level.dat`, and the `levelname.txt` beside it.
