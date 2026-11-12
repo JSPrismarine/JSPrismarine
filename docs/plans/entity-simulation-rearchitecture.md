@@ -1177,6 +1177,37 @@ E4 landed in the six parts of its split, each its own commit or two, with one ch
 | F1      | 10    | E4         | One lifecycle event bus                                    |
 | F2      | 11    | F1         | Explicit exports for Prismarine, split by directory        |
 
+##### F1 split
+
+Written on 2026-11-12 at program head `8de27db6bc`.
+
+The server has two emitters today. No world, session or player has an emitter of its own.
+
+- Prismarine's `EventEmitter` in `events/EventEmitter.ts`. `Server` extends it, so `server.on`, `once`, `removeListener`, `removeAllListeners`, `hasListeners`, `emit` and `post` are its methods. It also holds `evtThirdParty`, a second untyped bus for events plugins define, which nothing raises or reads. Its `emit` calls every listener at once and waits for them with `Promise.all`. Its `post` calls them and returns. A listener that throws stops the listeners after it and throws into the code that raised the event.
+- The kernel's `KernelEventBus` in `packages/kernel/src/events.ts`, which each module reaches through its context as a bus scoped to the module. It is untyped in Prismarine, which builds a plain `Kernel`, and nothing in the server subscribes to it or raises an event on it.
+
+The kernel bus survives, typed by a `ServerEvents` map that lists the 18 events `EventTypes` lists now, under the same names and with the same event classes. The kernel bus gains what the server's events need: `post`, which calls each listener in subscription order and returns, `once`, `off` and `hasListeners`. A listener that throws or rejects is reported to the kernel's logger, and the listeners after it still run, on `post` and on `emit`.
+
+Each event keeps its emit site and its timing. A before-hook is posted inside its unit and its cancel is read when `post` returns: `chat`, `entityDamage`, `entityPortalEnter`, `playerChangeDimension`, `playerMove`, `playerSetGamemode`, `playerToggleFlight` and `playerToggleSprint`. The after-events are posted: `tick`, `entityDeath`, `playerSpawn` and `playerToggleOperator`. The three RakNet events stay awaited with `emit`, because they run outside the tick and `raknetConnect` reads a cancel made after a wait. `playerConnect`, `playerDisconnect` and `playerDespawn` keep their names in the map, though nothing raises them.
+
+The order of the work:
+
+1. The kernel bus gains `post`, `once`, `off`, `hasListeners` and the reported failures, with the proxy tests.
+2. `Server` builds a `Kernel<ServerEvents>` and stops extending `EventEmitter`. `on`, `once`, `removeListener`, `removeAllListeners` and `hasListeners` stay on `Server` and subscribe on the kernel bus, and `post` and `emit` forward to it until the emit sites move.
+3. `chat`: `ChatManager` posts on its module's bus and then delivers to its recipients, one pass, instead of one listener per recipient. The join message goes through `ChatManager.send`.
+4. `tick`: `emitTick` leaves `TickerServer`, and the ticker posts on the bus it is given.
+5. `entityDamage` and `entityDeath`, then the player events, then the portal events, then the RakNet events, a group per commit, each raised on the bus.
+6. `Server.post`, `Server.emit`, `EventEmitter.ts` and `evtThirdParty` are deleted.
+
+What a plugin's listener sees differently, and what a plugin author changes:
+
+1. A listener that cancels `chat` stops every player, including those who joined before the listener subscribed. Before, each player was its own listener, and a cancel stopped only the players who joined after the canceling listener. A cancel made after a wait is still too late.
+2. Every listener of an event that the server waits for with `emit` (`raknetConnect`, `raknetDisconnect`, `raknetEncapsulatedPacket`) waits for the listener before it. Before, they all started at once.
+3. A listener that throws or rejects no longer stops the listeners after it or the code that raised the event. The server logs the error. A before-hook that throws neither cancels nor changes the action.
+4. Subscribing the same function twice to one event still calls it once.
+5. `removeAllListeners('chat')` no longer takes chat away from the players, because they are no longer listeners.
+6. `server.emit`, `server.post` and `server.evtThirdParty` are gone, and `Server` is no longer an `EventEmitter`. A plugin that raised a server event, or used `evtThirdParty`, has to stop. `server.on`, `once`, `removeListener`, `removeAllListeners` and `hasListeners` take the same arguments as before.
+
 ## The gate for each slice
 
 - Typecheck, lint and tests pass.
