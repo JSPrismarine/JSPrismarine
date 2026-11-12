@@ -7,6 +7,7 @@ import Fleet from '../bot/Fleet';
 import { formatReport } from '../bot/Metrics';
 import { UsageError, parseCount, parseDuration, parseNetwork, parsePercent, parseRate } from './Cli';
 import { conditionLink } from '../net/LinkConditions';
+import { terminalText } from '../terminalText';
 
 import { isPacket } from '../net/ClientPacketRegistry';
 
@@ -91,13 +92,14 @@ const connect = async (values: Values, io: CliIo): Promise<number> => {
         if (!isPacket(packet, PacketIdentifier.TEXT)) return;
 
         const text = packet.data;
-        io.out(text.sourceName ? `<${text.sourceName}> ${text.message}` : text.message);
+        const message = terminalText(text.message);
+        io.out(text.sourceName ? `<${terminalText(text.sourceName)}> ${message}` : message);
     });
 
     const startGame = await client.connect();
     const identity = await client.getIdentity();
 
-    io.out(`Joined ${host} as ${identity.displayName} (runtime entity ${startGame.runtimeEntityId})`);
+    io.out(`Joined ${host} as ${terminalText(identity.displayName)} (runtime entity ${startGame.runtimeEntityId})`);
     io.out(
         `Spawned at ${startGame.position.x.toFixed(1)}, ${startGame.position.y.toFixed(1)}, ${startGame.position.z.toFixed(1)}`
     );
@@ -109,6 +111,25 @@ const connect = async (values: Values, io: CliIo): Promise<number> => {
     return 0;
 };
 
+/**
+ * The lines `ping` prints for a server's answer. Every field is the server's to choose, so each
+ * is made terminal-safe before it is printed.
+ * @param serverName - The pong's semicolon-separated advertisement.
+ * @param rtt - The measured round trip, in milliseconds.
+ * @returns The lines, in order.
+ */
+export const formatPong = (serverName: string, rtt: number): string[] => {
+    // Semicolon-separated, and the fields are positional: MCPE;motd;protocol;version;
+    // players;max;serverId;levelName;gamemode.
+    const [, motd, protocol, version, players, max] = serverName.split(';');
+    return [
+        terminalText(motd ?? serverName),
+        `  version   ${terminalText(version ?? '?')} (protocol ${terminalText(protocol ?? '?')})`,
+        `  players   ${terminalText(players ?? '?')}/${terminalText(max ?? '?')}`,
+        `  rtt       ${rtt.toFixed(1)} ms`
+    ];
+};
+
 /** Asks a server for its MOTD without connecting. */
 export const runPing = async (values: Values, io: CliIo): Promise<number> => {
     const host = requireString(values, 'host');
@@ -116,14 +137,7 @@ export const runPing = async (values: Values, io: CliIo): Promise<number> => {
 
     try {
         const result = await socket.ping(host, port(values));
-
-        // Semicolon-separated, and the fields are positional: MCPE;motd;protocol;version;
-        // players;max;serverId;levelName;gamemode.
-        const [, motd, protocol, version, players, max] = result.serverName.split(';');
-        io.out(`${motd ?? result.serverName}`);
-        io.out(`  version   ${version ?? '?'} (protocol ${protocol ?? '?'})`);
-        io.out(`  players   ${players ?? '?'}/${max ?? '?'}`);
-        io.out(`  rtt       ${result.rtt.toFixed(1)} ms`);
+        for (const line of formatPong(result.serverName, result.rtt)) io.out(line);
 
         return 0;
     } finally {
