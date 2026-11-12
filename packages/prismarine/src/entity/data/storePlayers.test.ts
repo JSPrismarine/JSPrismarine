@@ -258,6 +258,20 @@ describe('a store player shown to other clients', () => {
         }
     });
 
+    it('sends a move for a turn of the head alone', async () => {
+        const { viewers, spawn, tick } = fixture();
+        const { player, actor } = await spawn(identityOf('Steve'));
+        for (const viewer of viewers) viewer.sent.length = 0;
+
+        await tick(() => (player.headYaw = 30));
+        await tick();
+
+        for (const viewer of viewers) {
+            const moves = ofType(viewer.sent, MoveActorAbsolutePacket, actor.getRuntimeId());
+            expect(moves.map((move) => move.headYaw)).toEqual([30]);
+        }
+    });
+
     it('shows what it holds and wears when it comes into view, and each change after', async () => {
         const { viewers, spawn, tick } = fixture();
         const { player, actor } = await spawn(identityOf('Steve'), (spawned) => {
