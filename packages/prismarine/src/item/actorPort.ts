@@ -15,6 +15,7 @@
  * first and keeps the item. The item cooldowns are the one piece of state the port keeps, because
  * `minecraft:use_cooldown` is the only one whose state nothing else on the server holds.
  */
+import { duringItemInteraction } from './interactionContext';
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 
@@ -696,7 +697,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             else targets.set(source.runtimeId, target);
 
             try {
-                return body();
+                return duringItemInteraction(options.level.dimension, body);
             } finally {
                 if (previous === undefined) targets.delete(source.runtimeId);
                 else targets.set(source.runtimeId, previous);
