@@ -1,0 +1,51 @@
+---
+"@jsprismarine/advancements": patch
+"@jsprismarine/auth": patch
+"@jsprismarine/bedrock-data": patch
+"@jsprismarine/binaryutils": patch
+"@jsprismarine/block-behaviors": patch
+"@jsprismarine/blocks": patch
+"@jsprismarine/brigadier": patch
+"@jsprismarine/chunkgen": patch
+"@jsprismarine/client": patch
+"@jsprismarine/color-parser": patch
+"@jsprismarine/commands": patch
+"@jsprismarine/console-protocol": patch
+"@jsprismarine/console": patch
+"@jsprismarine/content": patch
+"@jsprismarine/enchantments": patch
+"@jsprismarine/engine-systems": patch
+"@jsprismarine/entities": patch
+"@jsprismarine/entity-brains": patch
+"@jsprismarine/entity-goals": patch
+"@jsprismarine/errors": patch
+"@jsprismarine/features": patch
+"@jsprismarine/item-behaviors": patch
+"@jsprismarine/items": patch
+"@jsprismarine/kernel": patch
+"@jsprismarine/leveldb": patch
+"@jsprismarine/lighting": patch
+"@jsprismarine/logger": patch
+"@jsprismarine/loot": patch
+"@jsprismarine/mapping": patch
+"@jsprismarine/math": patch
+"@jsprismarine/mcfunction": patch
+"@jsprismarine/minecraft": patch
+"@jsprismarine/molang": patch
+"@jsprismarine/native-network": patch
+"@jsprismarine/nbt": patch
+"@jsprismarine/nethernet": patch
+"@jsprismarine/packs": patch
+"@jsprismarine/predicates": patch
+"@jsprismarine/prismarine": patch
+"@jsprismarine/protocol": patch
+"@jsprismarine/raknet": patch
+"@jsprismarine/recipes": patch
+"@jsprismarine/server": patch
+"@jsprismarine/spawning": patch
+"@jsprismarine/structures": patch
+"@jsprismarine/trading": patch
+"@jsprismarine/worldgen": patch
+---
+
+chore(deps): update dependency glob to v14.0.6
