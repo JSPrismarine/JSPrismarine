@@ -38,7 +38,8 @@ export interface PlayerIdentity {
  * filed under this key since before services existed, and keeping one key for both means a
  * service and the record can never disagree about whose state they hold.
  *
- * Unique among live players because {@link sameAccount} matches on both the name and the XUID.
+ * Unique among live players because {@link sameAccount} matches on the key as well as the name and
+ * the XUID.
  * @param identity - The player's name and XUID.
  * @returns The XUID when there is one, otherwise the name.
  */
@@ -48,15 +49,17 @@ export const playerKeyOf = ({ name, xuid }: Pick<PlayerIdentity, 'name' | 'xuid'
  * Whether two identities belong to the same account, for the purpose of letting only one of them
  * be live at a time.
  *
- * Any one of the three is enough. The name and XUID cover {@link playerKeyOf}. The UUID is what
+ * Any one of the three is enough. The name and XUID cover {@link playerKeyOf} for most logins, and
+ * the key itself is compared too: an offline login named `123` with no XUID has the key of a
+ * player whose XUID is `123`, and the two would read and write one saved record. The UUID is what
  * the player list and the operator list are keyed by, so two live players sharing one would
  * collide there. An empty XUID matches nothing: every player on an offline-mode server has one.
  * @param a - One identity.
  * @param b - The other.
- * @returns True when the two share a name, a non-empty XUID or a UUID.
+ * @returns True when the two share a name, a non-empty XUID, a UUID or a {@link playerKeyOf} key.
  */
 export const sameAccount = (a: PlayerIdentity, b: PlayerIdentity): boolean =>
-    a.name === b.name || (a.xuid !== '' && a.xuid === b.xuid) || a.uuid === b.uuid;
+    a.name === b.name || (a.xuid !== '' && a.xuid === b.xuid) || a.uuid === b.uuid || playerKeyOf(a) === playerKeyOf(b);
 
 /**
  * {@link playerKeyOf} for a player object, whose `getXUID` answers null for no XUID.

@@ -99,6 +99,20 @@ describe('SessionManager', () => {
             expect(replaced).toEqual([{ connection: joined, joined: null }]);
         });
 
+        it('replaces a player whose saved record key another login would share', () => {
+            const manager = new SessionManager();
+            const joined = joinedAs(steve);
+            const login = stub<ClientConnection>({ getPlayerSession: () => null });
+            manager.add(1, joined);
+            manager.add(2, login);
+
+            // An offline login named after Steve's XUID, with none of its own, files its record
+            // under Steve's key.
+            expect(manager.claimIdentity(login, { name: steve.xuid, xuid: '', uuid: 'b' }, Promise.resolve())).toEqual([
+                { connection: joined, joined: null }
+            ]);
+        });
+
         it('replaces nobody for a connection that has no session yet', () => {
             const manager = new SessionManager();
             const other = stub<ClientConnection>({ getPlayerSession: () => null });
