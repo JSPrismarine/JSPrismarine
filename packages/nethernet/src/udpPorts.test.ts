@@ -5,6 +5,7 @@ import {
     parsePublicIp,
     parseUdpPorts,
     UdpPortsError,
+    withAdvertisedCandidates,
     withDialedCandidates,
     withMappedCandidates
 } from './udpPorts';
@@ -225,6 +226,60 @@ describe('withDialedCandidates', () => {
             ANSWER
         );
         expect(withDialedCandidates(ANSWER, undefined)).toBe(ANSWER);
+    });
+});
+
+describe('withAdvertisedCandidates', () => {
+    // As a server behind NAT answers: its private addresses only.
+    const ANSWER = [
+        'v=0',
+        'a=candidate:1 1 UDP 2122317823 fdba:17c8:6c97::e 19132 typ host',
+        'a=candidate:2 1 UDP 2122317311 172.21.0.15 19132 typ host',
+        'm=application 9 UDP/DTLS/SCTP webrtc-datachannel',
+        ''
+    ].join('\r\n');
+    const added = (answer: string) => answer.split('\r\n').filter((line) => line.includes('srflx'));
+    const unset = parseUdpPorts('');
+
+    it('offers the fallback address when the answer would carry no public address', () => {
+        const local = { addresses: ['172.21.0.15'], port: 19132, localPort: 19132 };
+
+        expect(added(withAdvertisedCandidates(ANSWER, unset, local, '203.0.113.9'))).toStrictEqual([
+            'a=candidate:2f 1 UDP 1686109695 203.0.113.9 19132 typ srflx raddr 172.21.0.15 rport 19132'
+        ]);
+        expect(
+            added(withAdvertisedCandidates(ANSWER, parseUdpPorts('29489:19132'), undefined, '203.0.113.9'))
+        ).toStrictEqual([
+            'a=candidate:1m 1 UDP 1686110207 fdba:17c8:6c97::e 29489 typ srflx raddr fdba:17c8:6c97::e rport 19132',
+            'a=candidate:2f 1 UDP 1686109695 203.0.113.9 29489 typ srflx raddr 172.21.0.15 rport 19132',
+            'a=candidate:2m 1 UDP 1686109695 172.21.0.15 29489 typ srflx raddr 172.21.0.15 rport 19132'
+        ]);
+    });
+
+    it('keeps the mapped candidates of a host whose family the fallback address is not', () => {
+        const ipv6Only = ANSWER.replace(/^a=candidate:2 .*\r\n/m, '');
+        const ports = parseUdpPorts('29489:19132');
+
+        expect(withAdvertisedCandidates(ipv6Only, ports, undefined, '203.0.113.9')).toBe(
+            withMappedCandidates(ipv6Only, ports.mappings)
+        );
+        expect(added(withMappedCandidates(ipv6Only, ports.mappings))).toHaveLength(1);
+    });
+
+    it('leaves the fallback out when the client dialed a public address or server-public-ip names one', () => {
+        const dialed = { addresses: ['198.51.100.4'], port: 19132, localPort: 19132 };
+        const configured = parseUdpPorts('', '192.0.2.1');
+
+        expect(withAdvertisedCandidates(ANSWER, unset, dialed, '203.0.113.9')).toBe(
+            withDialedCandidates(ANSWER, dialed)
+        );
+        expect(withAdvertisedCandidates(ANSWER, configured, undefined, '203.0.113.9')).toBe(
+            withMappedCandidates(ANSWER, [], '192.0.2.1')
+        );
+    });
+
+    it('answers as withMappedCandidates and withDialedCandidates do without a fallback', () => {
+        expect(withAdvertisedCandidates(ANSWER, unset)).toBe(ANSWER);
     });
 });
 

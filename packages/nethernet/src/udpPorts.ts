@@ -314,8 +314,32 @@ export const withDialedCandidates = (
     mappings: readonly PortMapping[] = []
 ): string => {
     if (dialed === undefined) return answer;
+    return withReflexiveAddresses(
+        answer,
+        dialed.addresses,
+        (host) => mappedPort(mappings, host.port) ?? (host.port === dialed.localPort ? dialed.port : host.port),
+        'd'
+    );
+};
+
+/**
+ * The answer with a server-reflexive candidate at each address it does not list yet, after each
+ * host candidate of that address's family, on the port `portOf` gives that host. Two hosts that
+ * would give one address the same port add it once.
+ * @param answer - The SDP answer, with its candidates.
+ * @param addresses - The addresses to add.
+ * @param portOf - The port a host's candidate at the address uses.
+ * @param tag - Added to the host's foundation, so the candidates differ from the host's.
+ * @returns The answer.
+ */
+const withReflexiveAddresses = (
+    answer: string,
+    addresses: readonly string[],
+    portOf: (host: HostCandidate) => number,
+    tag: string
+): string => {
     const listed = candidateAddresses(answer);
-    const missing = dialed.addresses.filter((address) => !listed.some((other) => sameAddress(address, other)));
+    const missing = addresses.filter((address) => !listed.some((other) => sameAddress(address, other)));
     if (missing.length === 0) return answer;
     const added = new Set<string>();
     const output: string[] = [];
@@ -323,12 +347,46 @@ export const withDialedCandidates = (
         output.push(line);
         const host = hostCandidateOf(line);
         if (host === undefined) continue;
-        const port = mappedPort(mappings, host.port) ?? (host.port === dialed.localPort ? dialed.port : host.port);
+        const port = portOf(host);
         for (const address of missing) {
             if (familyOf(address) !== familyOf(host.address) || added.has(`${address} ${port}`)) continue;
             added.add(`${address} ${port}`);
-            output.push(reflexiveLine(host, 'd', address, port));
+            output.push(reflexiveLine(host, tag, address, port));
         }
     }
     return output.join('\r\n');
+};
+
+/**
+ * The answer with every address the server offers: the mapped and public candidates
+ * `server-udp-ports` and `server-public-ip` give, then the address the client dialed. When that
+ * leaves no candidate a host elsewhere on the internet can send to, a fallback public address,
+ * such as one looked up at startup, is added beside them: after each host of its family, on the
+ * public port a mapping gives the host's port, else on the host's own port.
+ * @param answer - The SDP answer, with its host candidates.
+ * @param ports - What `server-udp-ports` and `server-public-ip` say.
+ * @param dialed - Where the client sent its offer, when the request said.
+ * @param fallbackPublicIp - The address to offer when the answer would carry no public one.
+ * @returns The answer.
+ */
+export const withAdvertisedCandidates = (
+    answer: string,
+    ports: Pick<UdpPorts, 'mappings' | 'publicIp'>,
+    dialed?: DialedAddress,
+    fallbackPublicIp?: string
+): string => {
+    const answered = withDialedCandidates(
+        withMappedCandidates(answer, ports.mappings, ports.publicIp),
+        dialed,
+        ports.mappings
+    );
+    if (fallbackPublicIp === undefined || hasPublicCandidate(answered)) return answered;
+    // Added to what the answer offers rather than in place of it, so a host of the other family
+    // keeps its mapped candidates.
+    return withReflexiveAddresses(
+        answered,
+        [fallbackPublicIp],
+        (host) => mappedPort(ports.mappings, host.port) ?? host.port,
+        'f'
+    );
 };
