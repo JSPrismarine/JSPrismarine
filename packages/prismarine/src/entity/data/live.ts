@@ -48,7 +48,7 @@ import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './hos
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import type { StoreActor } from './storeActors';
 import { INERT_ACTOR, InertActor, StoreActors } from './storeActors';
-import { StorePlayerActor, StorePlayers } from './storePlayers';
+import { reattachStorePlayer, StorePlayerActor, StorePlayers } from './storePlayers';
 import { storePlayerHostFacts } from './playerHostFacts';
 import { consumeHeldItem } from '../../item/interaction';
 import { clientOwnsMovement } from '../playerOverlay';
@@ -630,6 +630,7 @@ export class LiveEntityRuntime {
                 .disconnect('Internal server error', false, DisconnectReason.UNKNOWN)
                 .catch((cause: unknown) => options.report(String(cause)));
         };
+        this.runtime.onPlayerReentered = reattachStorePlayer(this.runtime, players);
         this.runtime.index.chunkChanged = (chunkX, chunkZ) =>
             options.liveWorld()?.storeEntityChunkChanged(chunkX, chunkZ);
         // The plugin `entityDamage` event is a before-hook: a listener can cancel the blow or

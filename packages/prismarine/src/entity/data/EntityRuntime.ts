@@ -501,6 +501,13 @@ export class EntityRuntime implements EntityScene {
      * it stays, and this hears each of them. Left unset, the player is removed as a mob is.
      */
     public onPlayerFailed: ((entity: DataEntity, error: unknown) => void) | undefined;
+    /**
+     * Gives a store player's entity that an undo or a replay adds back the parts a store player
+     * holds, before it enters the log, as `enterStore`'s `prepare` does at an entry. Left unset,
+     * the entity comes back without them, and the next slot or player field written back to it
+     * finds no writer.
+     */
+    public onPlayerReentered: ((entity: DataEntity) => void) | undefined;
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
     /** The order each entity entered the store in, which {@link EntityRuntime.entities} cuts a walk off by. */
@@ -1077,7 +1084,8 @@ export class EntityRuntime implements EntityScene {
         const at = bodyFieldValue('position', position ?? null);
         if (typeof id !== 'number' || restored === undefined)
             throw new LoggedFieldError('a membership entry carries no record to add the entity back from');
-        const entity = this.restore(restored, at, id);
+        const prepare = clientOwnsMovement(restored.identifier) ? this.onPlayerReentered : undefined;
+        const entity = this.restore(restored, at, id, prepare);
         if (entity === undefined) throw new LoggedFieldError(`${restored.identifier} ${id} could not be added back`);
         entity.body.restore('velocity', bodyFieldValue('velocity', velocity ?? null));
         entity.body.tags.replace(stringsIn('tags', tags ?? []));
