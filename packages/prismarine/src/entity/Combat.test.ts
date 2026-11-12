@@ -128,7 +128,7 @@ describe('melee', () => {
             const attacker = stage.spawn('minecraft:cow', 0, 0);
             const cow = stage.spawn('minecraft:cow', 2, 0);
 
-            expect(await meleeAttack(attacker, cow, { reach: SURVIVAL_REACH, damage: 4 })).toBe(true);
+            expect(meleeAttack(attacker, cow, { reach: SURVIVAL_REACH, damage: 4 })).toBe(true);
             expect(cow.getHealth()).toBe(6);
         });
 
@@ -136,7 +136,7 @@ describe('melee', () => {
             const attacker = stage.spawn('minecraft:cow', 0, 0);
             const cow = stage.spawn('minecraft:cow', 40, 0);
 
-            expect(await meleeAttack(attacker, cow, { reach: SURVIVAL_REACH, damage: 4 })).toBe(false);
+            expect(meleeAttack(attacker, cow, { reach: SURVIVAL_REACH, damage: 4 })).toBe(false);
             expect(cow.getHealth()).toBe(10);
             expect(stage.noises).toEqual([]);
         });
@@ -145,11 +145,11 @@ describe('melee', () => {
             const near = scene();
             const far = scene();
 
-            const survival = await meleeAttack(near.spawn('minecraft:cow', 0, 0), near.spawn('minecraft:cow', 4.5, 0), {
+            const survival = meleeAttack(near.spawn('minecraft:cow', 0, 0), near.spawn('minecraft:cow', 4.5, 0), {
                 reach: SURVIVAL_REACH,
                 damage: 4
             });
-            const creative = await meleeAttack(far.spawn('minecraft:cow', 0, 0), far.spawn('minecraft:cow', 4.5, 0), {
+            const creative = meleeAttack(far.spawn('minecraft:cow', 0, 0), far.spawn('minecraft:cow', 4.5, 0), {
                 reach: CREATIVE_REACH,
                 damage: 4
             });
@@ -166,7 +166,7 @@ describe('melee', () => {
             zombie.attributes.setValue(AttributeIds.AttackDamage, 3);
             const cow = stage.spawn('minecraft:cow', 1, 0);
 
-            await meleeAttack(zombie, cow);
+            meleeAttack(zombie, cow);
 
             expect(cow.getHealth()).toBe(7);
         });
@@ -175,7 +175,7 @@ describe('melee', () => {
             const attacker = stage.spawn('minecraft:cow', 0, 0);
             const cow = stage.spawn('minecraft:cow', 1, 0);
 
-            await meleeAttack(attacker, cow, { damage: 4, critical: true });
+            meleeAttack(attacker, cow, { damage: 4, critical: true });
 
             expect(cow.getHealth()).toBe(4);
             expect(stage.effects).toContain(LevelEvent.PARTICLES_CRIT);
@@ -186,7 +186,7 @@ describe('melee', () => {
             // All this has to get right is carrying it.
             const cow = stage.spawn('minecraft:cow', 1, 0);
             const blows = vi.spyOn(stage.live, 'damageEntity');
-            await meleeAttack(stage.spawn('minecraft:cow', 0, 0), cow, { damage: 1, knockbackLevels: 1 });
+            meleeAttack(stage.spawn('minecraft:cow', 0, 0), cow, { damage: 1, knockbackLevels: 1 });
 
             expect(blows.mock.calls[0]?.[2].knockbackLevels).toBe(1);
         });
@@ -195,7 +195,7 @@ describe('melee', () => {
             const attacker = stage.spawn('minecraft:cow', 0, 0);
             const cow = stage.spawn('minecraft:cow', 1, 0);
 
-            await meleeAttack(attacker, cow, { damage: 0 });
+            meleeAttack(attacker, cow, { damage: 0 });
 
             expect(swings(stage, attacker)).toEqual([LevelSoundEvent.ATTACK_NODAMAGE]);
             expect(cow.getHealth()).toBe(10);
@@ -207,8 +207,8 @@ describe('melee', () => {
 
             const softly = soft.spawn('minecraft:cow', 0, 0);
             const hardly = hard.spawn('minecraft:cow', 0, 0);
-            await meleeAttack(softly, soft.spawn('minecraft:cow', 1, 0), { damage: 4 });
-            await meleeAttack(hardly, hard.spawn('minecraft:cow', 1, 0), { damage: 4, critical: true });
+            meleeAttack(softly, soft.spawn('minecraft:cow', 1, 0), { damage: 4 });
+            meleeAttack(hardly, hard.spawn('minecraft:cow', 1, 0), { damage: 4, critical: true });
 
             expect(swings(soft, softly)).toEqual([LevelSoundEvent.ATTACK]);
             expect(swings(hard, hardly)).toEqual([LevelSoundEvent.ATTACK_STRONG]);

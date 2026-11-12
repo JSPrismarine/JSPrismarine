@@ -1738,7 +1738,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     return false;
                 });
 
-                const landed = await meleeAttack(player.getActor()!, body, { damage: 100 });
+                const landed = meleeAttack(player.getActor()!, body, { damage: 100 });
 
                 expect(landed).toBe(true);
                 expect(routes()).toMatchObject({ melee: 1 });
@@ -1758,7 +1758,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     return 0;
                 });
 
-                await meleeAttack(player.getActor()!, body, { damage: 5 });
+                meleeAttack(player.getActor()!, body, { damage: 5 });
 
                 expect(cow.instance.attributes.get('health')?.current).toBe(9);
             });
@@ -1855,7 +1855,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 if (body === undefined) throw new Error('the entity has no store actor');
                 const before = immune.instance.attributes.get('health')?.current;
 
-                await meleeAttack(player.getActor()!, body, { damage: 5 });
+                meleeAttack(player.getActor()!, body, { damage: 5 });
 
                 expect(immune.instance.attributes.get('health')?.current).toBe(before);
             });

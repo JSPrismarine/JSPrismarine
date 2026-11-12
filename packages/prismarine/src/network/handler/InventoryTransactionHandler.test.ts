@@ -56,7 +56,7 @@ import { testContent } from '../../testing/entityServer';
 // block, which `item/interaction.test.ts` places against a real world. Spies rather than
 // `vi.mock`, because test files share their worker and a module mock would outlive this file.
 beforeAll(() => {
-    vi.spyOn(combat, 'meleeAttack').mockImplementation(async () => true);
+    vi.spyOn(combat, 'meleeAttack').mockImplementation(() => true);
     vi.spyOn(archery, 'loose').mockImplementation(async () => true);
     vi.spyOn(interaction, 'useItemOnBlock').mockImplementation((): InteractionResult => 'handled');
     vi.spyOn(interaction, 'useItemInAir').mockImplementation((): InteractionResult => 'handled');
@@ -536,10 +536,10 @@ describe('InventoryTransactionHandler', () => {
         expect(world.exhaustion()).toBeCloseTo(0.1);
     });
 
-    it('defers the swing, whose landing is known only once its sounds are sent', async () => {
+    it('swings in the input unit, since the blow and its sounds are written before it returns', () => {
         const world = fake();
         vi.mocked(meleeAttack).mockClear();
-        const { context, deferred, settled } = inputContext(world.session, world.parts);
+        const { context, deferred, outputs } = inputContext(world.session, world.parts);
 
         new InventoryTransactionHandler().handle(
             new InventoryTransactionPacket(
@@ -551,9 +551,8 @@ describe('InventoryTransactionHandler', () => {
             context
         );
 
-        expect(deferred).toHaveLength(1);
-        expect(vi.mocked(meleeAttack)).not.toHaveBeenCalled();
-        await settled();
+        expect(deferred).toHaveLength(0);
+        expect(outputs).toHaveLength(0);
         expect(vi.mocked(meleeAttack)).toHaveBeenCalledTimes(1);
         expect(world.exhaustion()).toBeCloseTo(0.1);
     });
