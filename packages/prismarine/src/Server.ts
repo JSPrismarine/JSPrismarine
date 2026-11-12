@@ -61,9 +61,7 @@ import type { Config } from './config/Config';
 import type { RemoteConsole } from './console/RemoteConsole';
 
 import type { Logger } from '@jsprismarine/logger';
-import pkg from '../package.json' with { type: 'json' };
-
-declare const BUILD_VERSION: string | undefined;
+import { serverVersion } from './version';
 
 /** The active random streams held by a server at one replay boundary. */
 export interface ServerReplayRandomState {
@@ -252,7 +250,7 @@ export default class Server extends EventEmitter {
 
         const protocols = describeSupportedProtocols();
         logger.info(
-            `Starting JSPrismarine server version §ev${typeof BUILD_VERSION === 'undefined' ? pkg.version : BUILD_VERSION}§r for Minecraft: Bedrock Edition on ${protocols.length} protocol version${protocols.length === 1 ? '' : 's'}:`
+            `Starting JSPrismarine server version §ev${serverVersion()}§r for Minecraft: Bedrock Edition on ${protocols.length} protocol version${protocols.length === 1 ? '' : 's'}:`
         );
         for (const protocol of protocols) logger.info(`  ${protocol}`);
 
@@ -625,15 +623,15 @@ export default class Server extends EventEmitter {
     }
 
     /**
-     * Returns the server version.
-     * @returns {string} The server version.
+     * Returns the server version, the one the startup log prints.
+     * @returns {string} The server version, without a leading `v`.
      * @example
      * ```typescript
      * console.log(server.getVersion());
      * ```
      */
     public getVersion(): string {
-        return pkg.version;
+        return serverVersion();
     }
 
     /**

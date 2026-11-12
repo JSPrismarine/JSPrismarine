@@ -1,12 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import pkg from '../../package.json' with { type: 'json' };
+import { serverVersion } from '../version';
 import { parseConfigDocument } from './ConfigDocument';
 import type { ConfigDocument } from './ConfigDocument';
 
 declare const BUILD_TYPE: string | undefined;
-declare const BUILD_VERSION: string | undefined;
 
 const SCHEMA_FILE_BY_CONFIG = new Map([
     ['config.json', 'config.schema.json'],
@@ -18,7 +17,7 @@ const ARRAY_SCHEMA_COMMENT = /^[\t ]*\/\/ JSPrismarine schema:.*(?:\r?\n|$)/gm;
 
 const schemaVersion = (): string => {
     if (typeof BUILD_TYPE !== 'undefined' && BUILD_TYPE === 'nightly') return 'unstable';
-    return typeof BUILD_VERSION !== 'undefined' ? BUILD_VERSION : pkg.version;
+    return serverVersion();
 };
 
 const schemaUrlFor = (filePath: string): string | undefined => {

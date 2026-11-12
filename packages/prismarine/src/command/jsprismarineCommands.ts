@@ -187,7 +187,7 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
         lit('version').executes(
             command((context) => {
                 source(context).sendFeedback(
-                    `This server is running on JSPrismarine §e${server.getVersion()}§r for Minecraft: Bedrock Edition, speaking ${describeSupportedProtocols().join('; ')}`
+                    `This server is running on JSPrismarine §ev${server.getVersion()}§r for Minecraft: Bedrock Edition, speaking ${describeSupportedProtocols().join('; ')}`
                 );
                 return RAN;
             })
