@@ -22,6 +22,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
+import { brandPurposes } from './site/.vitepress/theme/brandCatalog.ts';
 import { palette } from './site/.vitepress/theme/tokens.ts';
 import { loadCommands, loadOptionalSettings, loadSettings } from './code-data.mts';
 import { loadProject, repoRoot } from './project.mts';
@@ -496,6 +497,10 @@ export async function loadFacts(): Promise<Facts> {
             'java.version': sources.javaServer.version,
             'java.size': megabytes(sources.javaServer.sizeInBytes),
             ...Object.fromEntries(Object.entries(palette).map(([name, { hex }]) => [`palette.${name}`, hex])),
+            'brand.components': `\n${table(
+                ['Component', 'Purpose'],
+                Object.entries(brandPurposes).map(([name, purpose]) => [`\`${name}\``, purpose])
+            )}\n`,
             ...(await commandFacts()),
             ...(await configFacts()),
             ...eventFacts(),

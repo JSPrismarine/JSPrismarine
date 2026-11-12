@@ -246,25 +246,31 @@ The docs theme registers these Vue components globally, so any site page can use
 import. Pages staged from `docs/` render as plain Markdown, so use the components from site-owned
 pages such as `tools/docs/site/index.md` and `tools/docs/site/brand-kit.md`.
 
-| Component                | Purpose                                                           |
-| ------------------------ | ----------------------------------------------------------------- |
-| `PrismMark`              | The mark as inline SVG, at any size.                              |
-| `BrandButton`            | Primary, outline (on dark) and secondary (on the page) buttons.   |
-| `TerminalWindow`         | A server console frame. Each `t-line` span in the slot is a line. |
-| `AudienceTabs`           | Keyboard-navigable tab cards with a pitch, a snippet and links each. `anchor` gives each panel a linkable id. |
-| `BentoGrid`, `BentoTile` | Solid color tiles for short claims or figures.                    |
-| `ParityBars`             | The behavior parity score and bars, counted as the tracker counts. |
-| `CopyButton`             | Copies a command to the clipboard.                                |
-| `DemoServer`             | The demo server's full-width band: a `WindowBlind` with the pitch and a `BoardingPass` to join with. |
-| `WindowBlind`            | A cabin window with a blind to pull. The blind carries a heading; the land passes while it is up. |
-| `BoardingPass`           | An upright pass that prints from a slot, leans toward the pointer, and has a stub that tears off. |
-| `PassingLand`            | Land made of the mark's triangle, in two ranges, for a window or a backdrop.  |
-| `RouteLine`              | Stops on a transit line with a rider, for steps in order: a guide, a release history, a roadmap. With `selectable`, the rider goes to the stop the reader points at. |
-| `ReleaseLine`            | The release history on a `RouteLine`, with the selected release's first changes under it. |
-| `LatestRelease`          | The newest release's version, date and first changes.             |
-| `ReleaseNotes`           | Release notes from the changelog, with long groups collapsed.     |
-| `PackageDirectory`       | A filterable grid of the published packages.                      |
-| `Ticker`                 | A looping banner of short phrases, with a Pause button.           |
+The table below is generated from `tools/docs/site/.vitepress/theme/brandCatalog.ts`. To add a
+component, give it a line there, register it in `theme/index.ts`, and run `pnpm run docs:facts`.
+
+<!-- fact:brand.components -->
+| Component          | Purpose                                                                                                                                                              |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PrismMark`        | The mark as inline SVG, at any size.                                                                                                                                 |
+| `BrandButton`      | Primary, outline (on dark) and secondary (on the page) buttons.                                                                                                      |
+| `TerminalWindow`   | A server console frame. Each `t-line` span in the slot is a line.                                                                                                    |
+| `AudienceTabs`     | Keyboard-navigable tab cards with a pitch, a snippet and links each. `anchor` gives each panel a linkable id.                                                        |
+| `BentoGrid`        | A grid of solid color tiles, six columns wide.                                                                                                                       |
+| `BentoTile`        | One solid color tile, for a short claim or a figure.                                                                                                                 |
+| `ParityBars`       | The behavior parity score and bars, counted as the tracker counts.                                                                                                   |
+| `CopyButton`       | Copies a command to the clipboard.                                                                                                                                   |
+| `DemoServer`       | The demo server's full-width band: a `WindowBlind` with the pitch and a `BoardingPass` to join with.                                                                 |
+| `WindowBlind`      | A cabin window with a blind to pull. The blind carries a heading; the land passes while it is up.                                                                    |
+| `BoardingPass`     | An upright pass that prints from a slot, leans toward the pointer, and has a stub that tears off.                                                                    |
+| `PassingLand`      | Land made of the mark's triangle, in two ranges, for a window or a backdrop.                                                                                         |
+| `RouteLine`        | Stops on a transit line with a rider, for steps in order: a guide, a release history, a roadmap. With `selectable`, the rider goes to the stop the reader points at. |
+| `ReleaseLine`      | The release history on a `RouteLine`, with the selected release's first changes under it.                                                                            |
+| `LatestRelease`    | The newest release's version, date and first changes.                                                                                                                |
+| `ReleaseNotes`     | Release notes from the changelog, with long groups collapsed.                                                                                                        |
+| `PackageDirectory` | A filterable grid of the published packages.                                                                                                                         |
+| `Ticker`           | A looping banner of short phrases, with a Pause button.                                                                                                              |
+<!-- /fact -->
 
 On doc pages, a hex color written as code, such as `#5ca48a`, renders with a chip of that color in
 front of it, in inline code and in highlighted code blocks alike. `.vitepress/colorSwatches.ts`
