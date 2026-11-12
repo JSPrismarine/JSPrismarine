@@ -29,9 +29,7 @@
                 "thrown_pickup_delay": 40,
                 "despawn_age": 6000,
                 "pickup_range": 1.5,
-                "merge_range": 0.5,
-                "lava_damage": 4,
-                "void_depth": 64
+                "merge_range": 0.5
             }
         }
     }
