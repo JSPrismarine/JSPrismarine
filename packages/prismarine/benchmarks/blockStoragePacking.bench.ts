@@ -11,6 +11,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import BlockStorage from '../src/world/chunk/BlockStorage';
+import type { ReadonlyBlockStorage } from '../src/world/chunk/BlockStorage';
 import Chunk from '../src/world/chunk/Chunk';
 import { DataDrivenGenerator } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
@@ -98,9 +99,9 @@ const measureChunkMutations = (chunk: Chunk, targets: readonly MutationTarget[])
         for (const [x, y, z, runtimeId] of targets) chunk.setBlockRuntimeId(x, y, z, runtimeId);
     });
 
-const currentIndexBytes = (storage: BlockStorage): number => storage.getIndexStorageByteLength();
-const retainedBytesForStorage = (storage: BlockStorage): number => storage.getRetainedIndexStorageByteLength();
-const retainedBytesForStorages = (storages: readonly BlockStorage[]): number => {
+const currentIndexBytes = (storage: ReadonlyBlockStorage): number => storage.getIndexStorageByteLength();
+const retainedBytesForStorage = (storage: ReadonlyBlockStorage): number => storage.getRetainedIndexStorageByteLength();
+const retainedBytesForStorages = (storages: readonly ReadonlyBlockStorage[]): number => {
     const buffers = new Set<ArrayBufferLike>();
     for (const storage of storages) {
         const blocks: unknown = Reflect.get(storage, 'blocks');
@@ -122,7 +123,7 @@ const retainedBytesForStorages = (storages: readonly BlockStorage[]): number => 
 
     return [...buffers].reduce((total, buffer) => total + buffer.byteLength, 0);
 };
-const storagesOf = (chunk: Chunk): BlockStorage[] =>
+const storagesOf = (chunk: Chunk): ReadonlyBlockStorage[] =>
     Array.from(chunk.getSubChunkEntries()).flatMap(([, subChunk]) => subChunk.getStorages());
 
 const measureStorageEncoder = (

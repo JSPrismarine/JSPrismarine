@@ -3,6 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type { BlockState } from '../../block/state/BlockState';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import BlockStorage from './BlockStorage';
+import type { ReadonlyBlockStorage } from './BlockStorage';
 
 /**
  * 1 is the original single-layer form, 8 adds a layer count, 9 adds the sub chunk's own index.
@@ -16,7 +17,22 @@ export type SubChunkVersion = 1 | 8 | 9;
 export const isSubChunkVersion = (version: number): version is SubChunkVersion =>
     version === 1 || version === 8 || version === 9;
 
-export default class SubChunk {
+/**
+ * A sub chunk that can be read and not written, which is what a chunk hands out.
+ *
+ * A write goes through the chunk, which tells a save cut holding this sub chunk before the write
+ * lands (ADR 0018). Its storages are read-only too, since a write to one is a write to the sub
+ * chunk.
+ */
+export interface ReadonlySubChunk extends Pick<
+    SubChunk,
+    'getRevision' | 'isEmpty' | 'getBlock' | 'getBlockRuntimeId' | 'networkSerialize'
+> {
+    readonly sourceVersion: SubChunkVersion;
+    getStorages(): readonly ReadonlyBlockStorage[];
+}
+
+export default class SubChunk implements ReadonlySubChunk {
     private storages: Array<BlockStorage | undefined> = [];
     private readonly storageOrder: number[] = [];
 

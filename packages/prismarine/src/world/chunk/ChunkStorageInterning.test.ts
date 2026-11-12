@@ -39,12 +39,12 @@ const mutationPaths = [
     {
         name: 'a storage-layer write',
         layer: 1,
-        mutate: (chunk: Chunk, block: number) => chunk.getSubChunk(0)!.getStorages()[1]!.setBlock(1, 2, 3, block)
+        mutate: (chunk: Chunk, block: number) => chunk.setBlockRuntimeId(1, 2, 3, block, 1)
     },
     {
-        name: 'mutable SubChunk access',
+        name: 'Chunk.fillColumn',
         layer: 0,
-        mutate: (chunk: Chunk, block: number) => chunk.getSubChunk(0)!.setBlock(1, 2, 3, block, 0)
+        mutate: (chunk: Chunk, block: number) => chunk.fillColumn(1, 3, 2, 2, block)
     }
 ];
 

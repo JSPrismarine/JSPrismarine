@@ -1,6 +1,7 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 
 import BlockStorage from '../../chunk/BlockStorage';
+import type { ReadonlyBlockStorage } from '../../chunk/BlockStorage';
 import { decodePaletteEntry, encodePaletteEntry } from './PersistentPalette';
 
 /**
@@ -30,7 +31,7 @@ const bitsFor = (paletteSize: number): number => {
     return VALID_BITS_PER_BLOCK.find((bits) => bits >= needed) ?? 16;
 };
 
-export const encodePersistentStorage = (storage: BlockStorage, stream: BinaryStream): void => {
+export const encodePersistentStorage = (storage: ReadonlyBlockStorage, stream: BinaryStream): void => {
     const palette = storage.getPalette();
     const bitsPerBlock = bitsFor(palette.length);
 

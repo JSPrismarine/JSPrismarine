@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 
 import BlockStorage from '../../chunk/BlockStorage';
 import SubChunk, { isSubChunkVersion } from '../../chunk/SubChunk';
-import type { SubChunkVersion } from '../../chunk/SubChunk';
+import type { ReadonlySubChunk, SubChunkVersion } from '../../chunk/SubChunk';
 import { decodePersistentStorage, encodePersistentStorage } from './PersistentBlockStorage';
 
 /**
@@ -22,7 +22,7 @@ export interface DecodedSubChunk {
     index: number | null;
 }
 
-export const encodeSubChunk = (subChunk: SubChunk, index: number, version: SubChunkVersion = 9): Buffer => {
+export const encodeSubChunk = (subChunk: ReadonlySubChunk, index: number, version: SubChunkVersion = 9): Buffer => {
     const stream = new BinaryStream();
     const storages = subChunk.getStorages();
 

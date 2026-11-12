@@ -277,6 +277,25 @@ describe('a level save pass', () => {
         await level.disable();
     });
 
+    it('sees every block the world writes during a pass before it lands', async () => {
+        const { level, overworld, nether, provider } = await harness('gameplay-writes');
+        const passes = watchPasses(provider);
+        let tick = cutAutosave(level);
+        const pass = passes[0]!;
+
+        // Through the world, as gameplay writes, with the neighbor updates the next tick runs.
+        for (let step = 0; pass.pendingEncodes > 0; step++) {
+            for (const world of [overworld, nether])
+                for (let x = 0; x < CHUNKS; x++) world.setBlockRuntimeId(x * 16 + (step % 16), 64, 0, gold);
+            level.update(++tick);
+        }
+        await level.enqueueSave(async () => {});
+
+        expect(pass.stats.forcedSubChunkEncodes).toBeGreaterThan(0);
+        expect(passes.map(({ stats }) => stats.bypassedWrites)).toEqual(passes.map(() => 0));
+        await level.disable();
+    });
+
     it('saves the entities a chunk held at the cut, not the ones it holds at the commit', async () => {
         const { folder, level, overworld, provider, server } = await harness('cut-entities');
         const live = liveTestEntities(() => overworld).entityRuntime(Dimensions.Overworld.name);

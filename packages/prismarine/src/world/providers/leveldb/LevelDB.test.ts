@@ -29,6 +29,8 @@ import type { StoredItemStack } from '../../../inventory/persistence';
 import { stub } from '../../../testing/stub.test.helper';
 import Chunk from '../../chunk/Chunk';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
+import type SubChunk from '../../chunk/SubChunk';
+import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
 import type { Position } from '../../Position';
 import LevelDB, { CHUNK_VERSION } from './LevelDB';
 import { parseLevelStem } from '@jsprismarine/worldgen';
@@ -118,7 +120,14 @@ const buildChunk = (cx = 0, cz = 0): Chunk => {
 };
 
 const fullWriteCopy = (source: Chunk): Chunk => {
-    const copy = new Chunk(source.getX(), source.getZ(), source.getSubChunks(), source.getDimension());
+    // Decoded copies of the sub chunks rather than the source's own, which it hands out read-only.
+    const subChunks = new Map(
+        Array.from(source.getSubChunkEntries(), ([index, subChunk]): [number, SubChunk] => [
+            index,
+            decodeSubChunk(encodeSubChunk(subChunk, index, subChunk.sourceVersion)).subChunk
+        ])
+    );
+    const copy = new Chunk(source.getX(), source.getZ(), subChunks, source.getDimension());
     copy.setBiomes(ChunkBiomes.fromSectionIds(source.getBiomes().toSectionIds(), source.getDimension()));
     for (const blockEntity of source.getBlockEntities())
         copy.setBlockEntity(BlockEntityRegistry.fromNBT(blockEntity.toNBT()));
@@ -730,7 +739,7 @@ describe('world', () => {
                             );
                             break;
                         case 1:
-                            chunk.getBiomes().set(x, y, z, mutation % 2 === 0 ? DESERT : JUNGLE);
+                            chunk.setBiome(x, y, z, mutation % 2 === 0 ? DESERT : JUNGLE);
                             break;
                         case 2:
                             chunk.setBlockEntity(BlockEntityRegistry.fromNBT(beaconNbt(x, y, z, mutation)));
@@ -966,11 +975,12 @@ describe('world', () => {
                 await provider.enable();
 
                 const chunk = buildChunk();
-                const biomes = chunk.getBiomes();
+                const biomes = new ChunkBiomes(chunk.getDimension());
                 for (let x = 0; x < 16; x++) {
                     for (let z = 0; z < 16; z++) biomes.fillColumn(x, z, x < 8 ? DESERT : JUNGLE);
                 }
                 biomes.set(3, 70, 4, DEEP_DARK);
+                chunk.setBiomes(biomes);
 
                 await provider.writeChunk(chunk);
                 await provider.disable();

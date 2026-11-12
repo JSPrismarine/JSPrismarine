@@ -57,13 +57,24 @@ const bitsFor = (paletteSize: number): number => {
 const indexOf = (x: number, y: number, z: number): number => ((x & 0xf) << 8) | ((z & 0xf) << 4) | (y & 0xf);
 
 /**
+ * A biome column that can be read and not written, which is what a chunk hands out.
+ *
+ * A write goes through the chunk, which tells a save cut holding the column before the write
+ * lands (ADR 0018).
+ */
+export type ReadonlyChunkBiomes = Pick<
+    ChunkBiomes,
+    'getRevision' | 'get' | 'sectionIds' | 'toSectionIds' | 'networkSerialize'
+>;
+
+/**
  * One column's biomes, held as a palette per sub chunk.
  *
  * A section that is all one biome stays a single number rather than 4096 entries, so a column of
  * untouched terrain costs one value per sub chunk. Writing a second biome into a section expands
  * it, and the disk and network forms both pack from whichever representation a section is in.
  */
-export class ChunkBiomes {
+export class ChunkBiomes implements ReadonlyChunkBiomes {
     private readonly dimension: DimensionType;
     private readonly sections: PackedSection[];
     private revision = 0;

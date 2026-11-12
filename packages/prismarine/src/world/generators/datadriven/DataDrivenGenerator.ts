@@ -73,6 +73,7 @@ import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import BlockStorage from '../../chunk/BlockStorage';
 import Chunk from '../../chunk/Chunk';
+import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import SubChunk from '../../chunk/SubChunk';
 import { Dimensions } from '../../DimensionType';
 import { minSubChunk, subChunkCount } from '../../Dimension';
@@ -2853,7 +2854,8 @@ export class DataDrivenGenerator implements Generator {
         pipeline: SeededPipeline,
         biomeRegion: GenerationRegion
     ): void {
-        const biomes = chunk.getBiomes();
+        // Built apart and handed over, since a chunk hands out its own column read-only.
+        const biomes = new ChunkBiomes(chunk.getDimension());
         const sections = subChunkCount(pipeline.dimension);
         const floor = minSubChunk(pipeline.dimension);
         const packed = biomeRegion.biomeSection(0) === undefined ? this.packBiomeSections(cx, cz, pipeline) : undefined;
@@ -2866,6 +2868,7 @@ export class DataDrivenGenerator implements Generator {
             }
             biomes.setSection(floor + section, sectionIds);
         }
+        chunk.setBiomes(biomes);
     }
 
     /**

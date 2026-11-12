@@ -83,6 +83,8 @@ describe('world', () => {
             const afterSingleWrite = chunk.getBlockRevision();
             chunk.fillColumn(1, 0, 1, 2, stone);
             const afterFill = chunk.getBlockRevision();
+            // The view has no setBlock, but a plugin in plain JavaScript can still call it.
+            // @ts-expect-error a write around the chunk, which the revision still has to see
             chunk.getSubChunk(0)!.setBlock(2, 1, 0, stone, 0);
 
             expect(afterSingleWrite).toBeGreaterThan(initialRevision);
@@ -98,6 +100,7 @@ describe('world', () => {
 
             expect(chunk.getBlockRevision()).toBe(settled);
 
+            // @ts-expect-error a write around the chunk, which the revision still has to see
             chunk.getSubChunk(0)!.getStorages()[0]!.setBlock(3, 1, 3, stone);
             expect(chunk.getBlockRevision()).toBeGreaterThan(settled);
         });
@@ -179,13 +182,15 @@ describe('world', () => {
         });
 
         it('notices a block written through a sub chunk', () => {
-            // `getSubChunk` hands out the real thing and the cave carver writes through it,
-            // so the cache cannot depend on the two methods on `Chunk` remembering to clear
-            // it. Stale bytes here are terrain the client gets wrong with nothing to show it.
+            // `getSubChunk` hands out the real object behind a read-only type, so a plugin in
+            // plain JavaScript can still write through it, and the cache cannot depend on the
+            // methods on `Chunk` remembering to clear it. Stale bytes here are terrain the
+            // client gets wrong with nothing to show it.
             const chunk = new Chunk(0, 0);
             chunk.setBlockRuntimeId(1, 1, 1, stone());
             const before = Buffer.from(chunk.networkSerialize());
 
+            // @ts-expect-error a write around the chunk, which the cache still has to see
             chunk.getSubChunk(0)!.setBlock(2, 2, 2, stone(), 0);
 
             expect(chunk.networkSerialize().equals(before)).toBe(false);
@@ -198,6 +203,7 @@ describe('world', () => {
             chunk.setBlockRuntimeId(1, 1, 1, stone());
             const before = Buffer.from(chunk.networkSerialize());
 
+            // @ts-expect-error a write around the chunk, which the cache still has to see
             chunk.getSubChunks().get(0)!.setBlock(3, 3, 3, stone(), 0);
 
             expect(chunk.networkSerialize().equals(before)).toBe(false);
@@ -208,7 +214,7 @@ describe('world', () => {
             chunk.setBlockRuntimeId(1, 1, 1, stone());
             const before = Buffer.from(chunk.networkSerialize());
 
-            chunk.getOrCreateSubChunk(3).setBlock(0, 0, 0, stone(), 0);
+            chunk.setBlockRuntimeId(0, 48, 0, stone());
 
             expect(chunk.networkSerialize().equals(before)).toBe(false);
         });

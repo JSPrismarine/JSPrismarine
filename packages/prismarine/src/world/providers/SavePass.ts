@@ -15,7 +15,12 @@ export interface SavePassStats {
     readonly forcedSubChunkEncodes: number;
     /**
      * Sub chunks that had changed when their turn came although no write told the cut, which
-     * means something wrote through a live `SubChunk` and the pass saved a later tick's content.
+     * means something wrote around the chunk and the pass saved a later tick's content.
+     *
+     * Zero for TypeScript callers: a chunk hands out its sub chunks read-only. It stays as a
+     * check that costs one comparison per encode, because a plugin in plain JavaScript can still
+     * reach a sub chunk's own `setBlock`, and so can a generator that kept a sub chunk it handed
+     * to a chunk. The save pass tests assert it stays zero.
      */
     readonly bypassedWrites: number;
 }
