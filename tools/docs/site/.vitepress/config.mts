@@ -19,10 +19,9 @@ import { palette, paletteCss } from './theme/tokens.ts';
 const repositoryUrl = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
 // The root manifest's homepage is where the site is published, on a custom GitHub Pages domain.
 const siteUrl = manifest.homepage;
-// The docs workflow builds a pull request's preview for a folder under the site, such as `pr-preview/pr-12`.
-// Canonical and Open Graph URLs keep pointing at the published site.
-const previewPath = process.env.DOCS_PREVIEW_PATH?.replace(/^\/+|\/+$/g, '');
-const base = `${new URL(siteUrl).pathname}${previewPath ? `${previewPath}/` : ''}`;
+// A pull request's preview is this same build at an address of its own, so it shares the site's base
+// path, and its canonical and Open Graph URLs point at the published site.
+const base = new URL(siteUrl).pathname;
 // The README's Discord badge is the one place the invite is written.
 const discordInvite = /\]\((https:\/\/discord\.gg\/[\w-]+)\)/.exec(
     readFileSync(new URL('../../../../README.md', import.meta.url), 'utf8')
@@ -80,9 +79,9 @@ export default defineConfig({
         ]
     ],
     lastUpdated: true,
-    /** GitHub Pages serves the site's custom domain from a `CNAME` file at the branch root, which a preview is not. */
+    /** GitHub Pages serves the site's custom domain from a `CNAME` file at the branch root. */
     buildEnd(siteConfig) {
-        if (!previewPath) writeFileSync(path.join(siteConfig.outDir, 'CNAME'), `${new URL(siteUrl).hostname}\n`);
+        writeFileSync(path.join(siteConfig.outDir, 'CNAME'), `${new URL(siteUrl).hostname}\n`);
     },
     sitemap: { hostname: siteUrl },
     /** Per-page Open Graph title, description and URL, so shared links preview the page itself. */
