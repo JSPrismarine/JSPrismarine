@@ -12,6 +12,7 @@ import type {
 import type { ReplayInitialStateManifest } from '@jsprismarine/prismarine/network/ReplayManifest';
 import { OutboundPacketTrace } from '@jsprismarine/prismarine/network/OutboundPacketTrace';
 import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
+import { entityViewOf } from '@jsprismarine/prismarine/entity/data/actorView';
 import type { World } from '@jsprismarine/prismarine/world/World';
 import type { ChunkAdmissionRecord } from '@jsprismarine/prismarine/world/ChunkAdmissions';
 import LevelDB from '@jsprismarine/prismarine/world/providers/leveldb/LevelDB';
@@ -19,6 +20,7 @@ import { MovePlayerPacket, PositionMode } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -721,6 +723,28 @@ const replayOn = async (
         // The service method reads its dispatcher through `this`, so retain the receiver.
         const replayInboundRecord = networking.replayInboundRecord.bind(networking);
 
+        // As each sampled tick seals, after the entity replica has read it (the world's sink
+        // listens first): every entity's view folded from the log must equal its live one.
+        const replicator = live.server.getWorldReplicators().for(live.world);
+        const entityViewDivergences: string[] = [];
+        let entityViewsCompared = 0;
+        const compareEntityViews = (tick: number): void => {
+            const { runtime } = live.world.dataEntities();
+            for (const entity of runtime.store.values()) {
+                entityViewsCompared += 1;
+                const folded = replicator.entityView(BigInt(entity.id));
+                const shown = entityViewOf(entity, runtime.leashHolderIdOf(entity.id));
+                if (isDeepStrictEqual(folded, shown)) continue;
+                const parts = Object.keys(shown).filter(
+                    (key) =>
+                        folded === undefined || !isDeepStrictEqual(Reflect.get(folded, key), Reflect.get(shown, key))
+                );
+                entityViewDivergences.push(
+                    `tick ${tick - REPLAY_START_TICK}: ${entity.identifier} ${entity.id} ${parts.join(', ')} ${JSON.stringify(parts.map((key) => [folded === undefined ? undefined : Reflect.get(folded, key), Reflect.get(shown, key)]))}`
+                );
+            }
+        };
+
         const onTick = async (event: { getTick(): number }): Promise<void> => {
             const tick = event.getTick();
             if (tick === sampleStart && instrumented) live.outbound.setEnabled(true);
@@ -787,6 +811,10 @@ const replayOn = async (
             const tick = live.server.getTick();
             if (tick >= sampleStart && tick <= sampleEnd) changeLogCosts.push([tick - REPLAY_START_TICK, cost]);
         });
+        const stopComparing = live.world.getEntityStore().onSealed(() => {
+            const tick = live.server.getTick();
+            if (instrumented && tick >= sampleStart && tick <= sampleEnd) compareEntityViews(tick);
+        });
         live.server.on('tick', onTick);
         try {
             // Through the last sampled tick, and for a cost run through the tick after it, whose
@@ -796,6 +824,7 @@ const replayOn = async (
             await Promise.all(scripted.requests);
         } finally {
             stopCounting();
+            stopComparing();
             clock?.mockRestore();
             live.server.removeListener('tick', onTick);
             live.server.removeListener('playerMove', onMove);
@@ -856,6 +885,9 @@ const replayOn = async (
             changeLogCosts,
             // What replication keeps of the world's block entities, read from the log (ADR 0016).
             blockReplica: live.server.getWorldReplicators().for(live.world).blockReplicaCounts(),
+            entityReplica: live.server.getWorldReplicators().for(live.world).entityReplicaCounts(),
+            entityViewDivergences,
+            entityViewsCompared,
             sampledAdmissions,
             admissionDivergences,
             capturedAdmissions: admissionsIn(
@@ -1050,6 +1082,15 @@ describe('live session replay', () => {
                         `blocks and block entities ${sum(blockEntries)} entries and ${sum(blockBytes)} bytes, ` +
                         `at most ${Math.max(0, ...blockEntries)} entries and ${Math.max(0, ...blockBytes)} bytes in one tick`,
                     'Change log cost'
+                );
+                // The entity replica folded from the log shows every entity as its live state does.
+                expect(first.entityViewDivergences).toEqual([]);
+                expect(first.entityViewsCompared).toBeGreaterThan(0);
+                const entityReplica = first.entityReplica;
+                reportProgress(
+                    `entity replica after the replay: ${entityReplica.entities} entities in ${entityReplica.bytes} bytes; ` +
+                        `${entityReplica.entriesRead} entity entries read; ${first.entityViewsCompared} views compared tick by tick`,
+                    'Replica cost'
                 );
                 const replica = first.blockReplica;
                 reportProgress(
