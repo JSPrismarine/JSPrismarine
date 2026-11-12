@@ -84,9 +84,22 @@ The server reads its game data the way the prebuilt server does: from
 
 ### Events
 
-`server.on(name, listener)` takes one of these <!-- fact:events.count -->18<!-- /fact --> events.
-Calling `event.preventDefault()` cancels an event where the server checks for it, such as a player's
-move or a trip through a portal.
+`server.on(name, listener)` takes one of these <!-- fact:events.count -->18<!-- /fact --> events, and
+`server.once`, `server.removeListener` and `server.removeAllListeners` take the same names. They
+subscribe on the kernel's event bus, `server.getKernel().events`, which the server raises every
+event on.
+
+- Listeners run in the order they subscribed. Subscribing the same function to an event twice
+  calls it once.
+- Calling `event.preventDefault()` cancels an event where the server checks for it, such as a chat
+  message, a player's move or a trip through a portal. The server reads the cancel as soon as the
+  listeners return, so a listener that cancels after an `await` is too late.
+- A canceled `chat` message reaches no player, and the listeners after the one that canceled still
+  run and see `event.isCanceled()`.
+- A listener that throws or rejects is logged. The listeners after it still run, and the action
+  that raised the event goes on.
+- The server waits for an asynchronous listener only for the RakNet events, one listener after
+  another. For every other event, what a listener does after its first `await` runs later.
 
 <!-- fact:events.table -->
 | Event                      | Listener receives               |
