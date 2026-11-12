@@ -126,16 +126,32 @@ export class PermissionManager implements Service {
     }
 
     /**
-     * Get a player's permissions.
-     * @param {Player} player - The player to get permissions for.
-     * @returns {Promise<string[]>} A promise that resolves with the player's permissions.
+     * Get a player's effective permissions as they stand now: the defaults, the player's own
+     * grants, and the operator defaults while the player is an operator.
+     *
+     * @remarks
+     * Built on every call rather than cached, so revoking operator status or replacing a
+     * player's grants takes effect on the player's next command.
+     *
+     * @param player - The player to get permissions for.
+     * @returns The player's current permissions.
      */
-    public async getPermissions(player: Player): Promise<string[]> {
+    public permissionsOf(player: Pick<Player, 'getUUID' | 'isOp'>): string[] {
         return [
             ...this.defaultPermissions,
             ...(this.permissions.get(player.getUUID().toString()) ?? []),
             ...(player.isOp() ? this.defaultOperatorPermissions : [])
         ];
+    }
+
+    /**
+     * Get a player's permissions.
+     * @param {Player} player - The player to get permissions for.
+     * @returns {Promise<string[]>} A promise that resolves with the player's permissions.
+     * @see {@link PermissionManager.permissionsOf} for the synchronous form.
+     */
+    public async getPermissions(player: Player): Promise<string[]> {
+        return this.permissionsOf(player);
     }
 
     /**
@@ -258,15 +274,17 @@ export class PermissionManager implements Service {
         this.server.post(['playerToggleOperator', event]);
         if (event.isCanceled()) return false;
 
-        await target.getNetworkSession().sendAvailableCommands();
-
         const uuid = target.getUUID().toString();
         if (op) this.ops.add(uuid);
         else this.ops.delete(uuid);
 
         try {
+            // Saved before the client is told anything, so a send that fails cannot leave the
+            // change in memory alone, to be undone by the next restart.
             await this.writeOp(uuid, username, op);
 
+            // After the change, so the list the client gets is the one its new status allows.
+            await target.getNetworkSession().sendAvailableCommands();
             await target.sendSettings();
             return true;
         } catch {
