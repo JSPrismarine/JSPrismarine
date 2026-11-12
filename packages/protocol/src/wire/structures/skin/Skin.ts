@@ -275,7 +275,7 @@ export default class Skin {
                     image: new SkinImage({
                         width: animation.ImageWidth,
                         height: animation.ImageHeight,
-                        data: Buffer.from(animation.Image, 'base64')
+                        data: Buffer.from(text(animation.Image), 'base64')
                     }),
                     frames: animation.Frames,
                     type: animation.Type,

@@ -367,6 +367,30 @@ describe('utils', () => {
                 expect(animation?.getExpression()).toBe(1);
             });
 
+            it.each([{ length: 4096 }, { type: 'Buffer', data: [1, 2, 3, 4] }, [1, 2, 3, 4], null, 42])(
+                'does not allocate animation bytes from a non-string image %j',
+                (image) => {
+                    // JSON claims cross an unchecked runtime boundary in the login parser.
+                    const jwt: ClientData = JSON.parse(
+                        JSON.stringify({
+                            ...clientData(),
+                            AnimatedImageData: [
+                                {
+                                    ImageWidth: 1,
+                                    ImageHeight: 1,
+                                    Image: image,
+                                    Frames: 1,
+                                    Type: 1,
+                                    AnimationExpression: 0
+                                }
+                            ]
+                        })
+                    );
+                    const [animation] = Skin.fromJWT(jwt).getAnimations();
+                    expect(animation?.getImage().data).toEqual(Buffer.alloc(0));
+                }
+            );
+
             it('reads the trusted flag case-insensitively and keeps the profile hash', () => {
                 // The writer always ends a skin with `"false"` and an empty profile hash: six
                 // bytes and one byte. A client may spell the flag `True`, as the docs do.
