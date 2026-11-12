@@ -37,9 +37,8 @@ export default class SetPlayerGameTypeHandler implements InputLaneHandler<SetPla
             return;
         }
 
-        const gametype = data.gametype;
-        // Slice 7: `setGamemode` waits for the send that stops the player's block cracking
-        // before it writes the game mode, so it runs after this unit, in a unit of its own.
-        step.defer(() => player.setGamemode(gametype));
+        // In this input's unit: `setGamemode` writes the game mode and queues its packets before
+        // it returns, and what it hands back only waits for the transport.
+        step.output(player.setGamemode(data.gametype));
     }
 }

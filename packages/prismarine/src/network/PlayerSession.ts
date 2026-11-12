@@ -324,6 +324,18 @@ export type RespawnDestination = ReturnType<typeof respawnPoint> & { readonly wo
 /** How often the two per-player triggers are checked, which is Java's one second. */
 const ADVANCEMENT_CHECK_TICKS = 20;
 
+/**
+ * Waits for sends that were all queued before this was called, in the order they were made.
+ *
+ * A send queues its packet before its first await (`MinecraftSession.sendDataPacket`), so a
+ * method that calls each send in turn and hands the promises here has queued every packet when
+ * it returns, and has written everything it writes. Awaiting each send in turn instead queued
+ * the next packet, and made the writes after it, only once the transport framed the last.
+ */
+const allSent = async (sends: readonly Promise<void>[]): Promise<void> => {
+    await Promise.all(sends);
+};
+
 /** What a move packet reads of the actor that moved: its id, where it is, where it faces and whether it stands. */
 export type MovedActor = Pick<ShownActor, 'getRuntimeId' | 'getPosition' | 'pitch' | 'yaw' | 'headYaw' | 'isOnGround'>;
 
@@ -1204,21 +1216,21 @@ export default class PlayerSession {
      * client alone. `UpdateAbilitiesPacket` does carry `targetActorUniqueId`, so it is
      * genuinely about this player and belongs with everyone who can see them.
      */
-    public async announceSettings(): Promise<void> {
-        await this.sendGamemode();
-        await this.sendSettings();
+    public announceSettings(): Promise<void> {
+        return allSent([
+            this.sendGamemode(),
+            this.sendSettings(),
 
-        // Explicitly, because the fan-out below leaves this client out: it needs its own
-        // player's abilities too, and this is the one copy it gets.
-        await this.sendAbilities(this.shown());
+            // Explicitly, because the fan-out below leaves this client out: it needs its own
+            // player's abilities too, and this is the one copy it gets.
+            this.sendAbilities(this.shown()),
 
-        await Promise.all(
-            this.server
+            ...this.server
                 .getSessionManager()
                 .getSessions()
                 .filter((session) => session !== this)
                 .map(async (session) => session.sendAbilities(this.shown()))
-        );
+        ]);
     }
 
     /**
@@ -1960,40 +1972,40 @@ export default class PlayerSession {
      * client in the world caches for this player. `StoreActors.sync` does not notice a game mode,
      * so these are the sends. {@link PlayerSession.sendAbilityChange} follows them.
      */
-    public async sendGameTypeChange(): Promise<void> {
-        await this.sendGamemode();
+    public sendGameTypeChange(): Promise<void> {
+        return allSent([
+            this.sendGamemode(),
 
-        // Everyone in the world, this player included, caches each player's game type and
-        // permission flags, so the docs have the server follow an accepted change with
-        // `UpdatePlayerGameTypePacket` to every client.
-        await Promise.all(
-            this.getWorld()
+            // Everyone in the world, this player included, caches each player's game type and
+            // permission flags, so the docs have the server follow an accepted change with
+            // `UpdatePlayerGameTypePacket` to every client.
+            ...this.getWorld()
                 .getViewers()
                 .map(async (session) => session.sendGameTypeFor(this.shown()))
-        );
+        ]);
     }
 
     /**
      * The last sends of a game mode change, which read off the new game mode: the settings, the
      * game type again, whether the player may fly, which is in its metadata, and its abilities.
      */
-    public async sendAbilityChange(): Promise<void> {
-        await this.announceSettings();
-        await this.sendGamemode();
+    public sendAbilityChange(): Promise<void> {
+        const sends = [this.announceSettings(), this.sendGamemode()];
 
         // Whether the player may fly is in its metadata, which the actor writes from the game mode
         // and sends to the player and everyone who sees them.
         const actor = this.getActor();
-        if (actor === undefined) await this.sendMetadata();
+        if (actor === undefined) sends.push(this.sendMetadata());
         else {
             actor.showPlayerState();
-            await this.getWorld().sendActorMetadata(actor);
+            sends.push(this.getWorld().sendActorMetadata(actor));
         }
 
         // The abilities are read off the gamemode, so they are stale the moment it changes -
         // and they were never re-sent. Among them is `INSTABUILD`, which is what tells the
         // client it may help itself from the creative menu.
-        await this.sendAbilities();
+        sends.push(this.sendAbilities());
+        return allSent(sends);
     }
 
     /**
@@ -3562,59 +3574,65 @@ export default class PlayerSession {
      * mode or of world. A death is the player systems', inside the blow. Left alone, the cracks
      * would go out every tick for good.
      */
-    public async stopMining(): Promise<void> {
+    public stopMining(): Promise<void> {
         const components = this.getPlayer().getComponents();
         const mining = blockMiningOf(components.get('mining.block'));
-        if (mining === null) return;
+        if (mining === null) return allSent([]);
 
         components.set('mining.block', null);
-        await this.world.stopBlockCracking(mining.position);
+        return this.world.stopBlockCracking(mining.position);
     }
 
     /**
      * Changes the player's game mode, after the `playerSetGamemode` event, and tells this client
      * and every client that caches it.
+     *
+     * Every write is made, and every packet queued, before this returns. The promise only says
+     * when the transport has framed the packets.
      * @param mode - The new mode; the current one by default, which sends it again.
      */
-    public async setGamemode(mode?: Gametype): Promise<void> {
+    public setGamemode(mode?: Gametype): Promise<void> {
         const player = this.getPlayer();
         mode ??= player.gamemode;
 
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.server.post(['playerSetGamemode', event]);
-        if (event.isCanceled()) return;
+        if (event.isCanceled()) return allSent([]);
 
+        const sends: Promise<void>[] = [];
         // A new game mode changes how, or whether, the player breaks blocks, so the mining in
         // progress does not carry over into it.
-        if (event.getGamemode() !== player.gamemode) await this.stopMining();
+        if (event.getGamemode() !== player.gamemode) sends.push(this.stopMining());
 
         // A logged component field, which the store's player systems and the actor read.
         this.inputs().setPlayerGamemode(player, event.getGamemode());
-        await this.sendGameTypeChange();
-        if (!mayFlyIn(player.gamemode)) await this.setFlying(false);
-        await this.sendAbilityChange();
+        sends.push(this.sendGameTypeChange());
+        if (!mayFlyIn(player.gamemode)) sends.push(this.setFlying(false));
+        sends.push(this.sendAbilityChange());
+        return allSent(sends);
     }
 
     /**
      * Starts or stops the player flying, after the `playerToggleFlight` event, and sends the
      * settings. A game mode that may not fly only ever lands.
+     *
+     * The flight is written and the settings queued before this returns.
      */
-    public async setFlying(flying: boolean): Promise<void> {
+    public setFlying(flying: boolean): Promise<void> {
         const player = this.getPlayer();
-        if (flying === player.isFlying()) return;
+        if (flying === player.isFlying()) return allSent([]);
 
         if (!mayFlyIn(player.gamemode)) {
             this.inputs().setPlayerFlying(player, false);
-            await this.announceSettings();
-            return;
+            return this.announceSettings();
         }
 
         const event = new PlayerToggleFlightEvent(this, flying);
         this.server.post(['playerToggleFlight', event]);
-        if (event.isCanceled()) return;
+        if (event.isCanceled()) return allSent([]);
 
         this.inputs().setPlayerFlying(player, event.getIsFlying());
-        await this.announceSettings();
+        return this.announceSettings();
     }
 
     /** Starts or stops the player sprinting, after the `playerToggleSprint` event. */

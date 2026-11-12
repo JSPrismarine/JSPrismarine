@@ -33,12 +33,14 @@ const request = (gametype: Gametype): SetPlayerGameTypePacket => new SetPlayerGa
 
 describe('SetPlayerGameTypeHandler', () => {
     it('applies the requested game type for a player who may run the gamemode command', async () => {
-        const { applied, resent, context, deferred, settled } = fakeSession(['minecraft.command.gamemode']);
+        const { applied, resent, context, deferred, outputs, settled } = fakeSession(['minecraft.command.gamemode']);
 
         new SetPlayerGameTypeHandler().handle(request(Gametype.CREATIVE), context);
-        // Deferred, since the change still waits on a send before it writes.
-        expect(deferred).toHaveLength(1);
-        expect(applied).toEqual([]);
+        // In the input's own unit: the change is written before the handler returns, and only
+        // the sends are left to wait on.
+        expect(deferred).toHaveLength(0);
+        expect(outputs).toHaveLength(1);
+        expect(applied).toEqual([Gametype.CREATIVE]);
         await settled();
 
         expect(applied).toEqual([Gametype.CREATIVE]);
