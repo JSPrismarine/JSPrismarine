@@ -5,7 +5,8 @@ import { readBrarchive } from './brarchive';
 import type { Diagnostic } from './diagnostics';
 import { compareVersions, parseVersion } from './formatVersion';
 import { parseLenientJson } from './lenientJson';
-import { isZip, readZip } from './zip';
+import { createZipBudget, isZip, readZip } from './zip';
+import type { ZipBudget } from './zip';
 
 /**
  * The header UUID of Mojang's vanilla Bedrock behavior pack.
@@ -105,18 +106,21 @@ const EVERY_FILE: PackFileFilter = () => true;
  * hide the rest of the report.
  *
  * @param wanted - Which files to read; see {@link PackFileFilter}. Every file by default.
+ * @param budget - What an archive and the packs nested in it may expand to, together; a fresh
+ * {@link createZipBudget} by default.
  */
 export const expandSource = (
     source: BedrockPackSource,
     diagnostics: Diagnostic[],
-    wanted: PackFileFilter = EVERY_FILE
+    wanted: PackFileFilter = EVERY_FILE,
+    budget: ZipBudget = createZipBudget()
 ): PackFiles[] => {
     try {
         switch (source.kind) {
             case 'directory':
                 return [readDirectoryPack(source.path, wanted)];
             case 'archive':
-                return expandArchive(source.path, diagnostics, wanted);
+                return expandArchive(source.path, diagnostics, wanted, budget);
             case 'brarchiveLayers':
                 return readLayerFolders(source.path, source.uuids, diagnostics).map((layer) =>
                     readDirectoryPack(layer, wanted)
@@ -178,8 +182,14 @@ const addPackFile = (
 };
 
 /** Expands a `.mcpack` (manifest at the root) or `.mcaddon` (nested `.mcpack`s). */
-const expandArchive = (path: string, diagnostics: Diagnostic[], wanted: PackFileFilter): PackFiles[] => {
-    const entries = readZip(readFileSync(path));
+const expandArchive = (
+    path: string,
+    diagnostics: Diagnostic[],
+    wanted: PackFileFilter,
+    budget: ZipBudget
+): PackFiles[] => {
+    // One budget for the archive and every pack nested in it, so nesting cannot multiply it.
+    const entries = readZip(readFileSync(path), { budget });
     if (entries.has('manifest.json')) return [zipPack(path, entries, wanted)];
 
     const packs: PackFiles[] = [];
@@ -194,7 +204,7 @@ const expandArchive = (path: string, diagnostics: Diagnostic[], wanted: PackFile
                 });
                 continue;
             }
-            packs.push(zipPack(`${path}/${name}`, readZip(bytes), wanted));
+            packs.push(zipPack(`${path}/${name}`, readZip(bytes, { budget }), wanted));
         } else if (name.endsWith('.mcworld') || name.endsWith('.mctemplate')) {
             diagnostics.push({
                 severity: 'warning',

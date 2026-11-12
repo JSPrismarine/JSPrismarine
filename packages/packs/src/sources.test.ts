@@ -6,6 +6,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { textFiles, writeBrarchive, writeZip } from '../fixtures/writers';
 import type { Diagnostic } from './diagnostics';
 import { expandSource } from './sources';
+import { createZipBudget } from './zip';
 
 const temporaryDirs: string[] = [];
 const temporaryDir = (): string => {
@@ -60,6 +61,29 @@ describe('expandSource', () => {
         const [pack] = expandSource({ kind: 'directory', path: packFolder() }, [], () => false);
 
         expect([...pack!.files.keys()]).toEqual(['manifest.json']);
+    });
+
+    it('reads an .mcaddon and every pack nested in it against one budget', () => {
+        const manifest = (name: string) => `{"format_version": 2, "name": "${name}", "padding": "${'x'.repeat(400)}"}`;
+        const pack = (name: string) => writeZip(textFiles({ 'manifest.json': manifest(name) }));
+        const addon = join(temporaryDir(), 'bundle.mcaddon');
+        const nested = new Map([
+            ['a.mcpack', pack('a')],
+            ['b.mcpack', pack('b')]
+        ]);
+        writeFileSync(addon, writeZip(nested));
+        // Exactly what the outer archive and both packs expand to. A byte less, and the packs
+        // nested in it can only fail to fit if they spend the outer archive's budget.
+        const outerBytes = [...nested.values()].reduce((total, bytes) => total + bytes.length, 0);
+        const fits = outerBytes + 2 * manifest('a').length;
+
+        const both = expandSource({ kind: 'archive', path: addon }, [], undefined, createZipBudget(fits));
+        expect(both).toHaveLength(2);
+
+        const diagnostics: Diagnostic[] = [];
+        const short = expandSource({ kind: 'archive', path: addon }, diagnostics, undefined, createZipBudget(fits - 1));
+        expect(short).toEqual([]);
+        expect(diagnostics).toMatchObject([{ code: 'source.unreadable', message: expect.stringMatching(/budget/) }]);
     });
 
     it('applies the filter to an archive too', () => {
