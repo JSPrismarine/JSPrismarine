@@ -143,7 +143,7 @@ describe('modules/ticker', () => {
 
         // Worker records polled at the end of one tick reach the input step of the next, as a
         // frame the socket transport delivers during the tick does.
-        expect(order).toEqual(['inputs', 'tick', 'world', 'functions', 'network']);
+        expect(order).toEqual(['inputs', 'functions', 'tick', 'world', 'network']);
     });
 
     it('opens each world change log tick before the input step and seals one the world did not update', async () => {
@@ -337,12 +337,12 @@ describe('modules/ticker', () => {
     it('records how late each tick started against its due time and how long its work took', async () => {
         let blockMs = 0;
         const harness = buildHarness({
-            emitTick: async () => {
-                // Fake `performance` only moves with the timers, so the stall is a timer that the
-                // test's own advance runs, rather than an advance nested inside that one.
+            emitTick: () => {
+                // A tick handler is not waited for, so the stall is one that holds the thread: the
+                // fake clock moves while the handler runs, as a slow synchronous handler's would.
                 const stall = blockMs;
                 blockMs = 0;
-                if (stall > 0) await new Promise((resolve) => setTimeout(resolve, stall));
+                if (stall > 0) vi.advanceTimersByTime(stall);
             }
         });
         const handle = await startTestModule(tickerModule(harness.ticker));

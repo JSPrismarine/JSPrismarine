@@ -193,9 +193,15 @@ export class EventEmitter {
 
     /**
      * Calls every listener of the event without waiting for the asynchronous ones.
+     * @param onRejected - Where the rejection of an asynchronous listener goes. Without it, such a
+     *   rejection is left unhandled.
      * @returns How many listeners received the event.
      */
-    public post(pair: EventTypes): number {
-        return this.registry.call(pair[0], pair[1]).length;
+    public post(pair: EventTypes, onRejected?: (error: unknown) => void): number {
+        const results = this.registry.call(pair[0], pair[1]);
+        if (onRejected !== undefined) {
+            for (const result of results) if (result instanceof Promise) result.catch(onRejected);
+        }
+        return results.length;
     }
 }
