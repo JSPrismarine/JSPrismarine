@@ -211,11 +211,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
 
                     // The client is told how much progress a tick is worth, not how long the
                     // block takes, so this is only ever as right as `getBreakTime` is.
-                    await world.sendWorldEvent(
-                        blockPosition,
-                        LevelEvent.START_BLOCK_CRACKING,
-                        Math.floor(65535 / breakTime)
-                    );
+                    world.sendWorldEvent(blockPosition, LevelEvent.START_BLOCK_CRACKING, Math.floor(65535 / breakTime));
                 });
                 return;
             }

@@ -89,9 +89,9 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
         getTicks: () => 0,
         getDimension: () => Dimensions.Overworld,
         getServer: () => server,
-        sendActorEvent: async () => {},
-        sendActorSound: async () => {},
-        sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
+        sendActorEvent: () => {},
+        sendActorSound: () => {},
+        sendWorldEvent: (_at: unknown, event: LevelEvent) => void effects.push(event),
         broadcastMove: async () => {},
         playNamedSound: () => {},
         getGameRuleManager: () =>

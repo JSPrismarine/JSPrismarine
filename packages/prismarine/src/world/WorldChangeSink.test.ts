@@ -218,9 +218,9 @@ describe('world', () => {
             const { world, sealed } = await flatWorld();
 
             world.beginChangeTick();
-            await world.sendWorldEvent(new Vector3(1, GROUND, 1), LevelEvent.PARTICLES_CRIT, 0);
+            world.sendWorldEvent(new Vector3(1, GROUND, 1), LevelEvent.PARTICLES_CRIT, 0);
             const outcome = world.getEntityStore().unit(() => {
-                void world.sendWorldEvent(new Vector3(2, GROUND, 2), LevelEvent.PARTICLES_CRIT, 0);
+                world.sendWorldEvent(new Vector3(2, GROUND, 2), LevelEvent.PARTICLES_CRIT, 0);
                 throw new Error('planned');
             });
             world.sealChangeTick();
@@ -265,7 +265,7 @@ describe('world', () => {
             world.beginChangeTick();
             world.sealChangeTick();
 
-            await world.sendWorldEvent(null, LevelEvent.START_RAINING, 100);
+            world.sendWorldEvent(null, LevelEvent.START_RAINING, 100);
             world.beginChangeTick();
             world.sealChangeTick();
 
@@ -283,7 +283,7 @@ describe('world', () => {
             const { world: elsewhere } = await flatWorld();
 
             world.beginChangeTick();
-            await world.sendWorldEvent(new Position(1, GROUND, 1, elsewhere), LevelEvent.PARTICLES_CRIT, 0);
+            world.sendWorldEvent(new Position(1, GROUND, 1, elsewhere), LevelEvent.PARTICLES_CRIT, 0);
             world.sealChangeTick();
 
             expect(sealed.at(-1)?.entries).toEqual([]);

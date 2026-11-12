@@ -104,7 +104,7 @@ const worldDouble = (player: PlayerSession, recorded: Recorded, target?: StoreAc
         }),
         entityRelocated: () => {},
         broadcastMove: async () => {},
-        sendActorSound: async (entity: StoreActor, sound: number) =>
+        sendActorSound: (entity: StoreActor, sound: number) =>
             void recorded.actorSounds.push({ runtimeId: entity.getRuntimeId(), sound }),
         playNamedSoundAt: (_position: Vector3, sound: string, options?: { volume?: number; pitch?: number }) =>
             void recorded.namedSounds.push({ sound, ...options }),

@@ -595,12 +595,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 if (!attachLead(action.source, action.target)) return;
 
                 const target = entityOf(action.target);
-                if (target !== null) {
-                    void target
-                        .getWorld()
-                        .sendActorSound(target, LevelSoundEvent.LEAD_LEASH)
-                        .catch((error: unknown) => world()?.getServer().getLogger().error(error));
-                }
+                if (target !== null) target.getWorld().sendActorSound(target, LevelSoundEvent.LEAD_LEASH);
                 return;
             }
             case 'dye-entity': {

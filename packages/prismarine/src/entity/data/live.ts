@@ -406,17 +406,10 @@ const liveHost = (
         if (world === undefined || body === undefined) return;
         // There is no packet that updates a dropped stack: `AddItemActor` carries the item and is
         // only sent when the entity appears, so this event is the one way to say the number changed.
-        void world
-            .sendActorEvent(body, ActorEvent.UPDATE_STACK_SIZE, count)
-            .catch((error: unknown) => options.report(String(error)));
+        world.sendActorEvent(body, ActorEvent.UPDATE_STACK_SIZE, count);
     },
     playSoundAt: (at, sound) => options.liveWorld()?.playNamedSoundAt(new Vector3(at.x, at.y, at.z), sound),
-    levelEvent: (at, event, data) => {
-        void options
-            .liveWorld()
-            ?.sendWorldEvent(new Vector3(at.x, at.y, at.z), event, data)
-            .catch((error: unknown) => options.report(String(error)));
-    },
+    levelEvent: (at, event, data) => options.liveWorld()?.sendWorldEvent(new Vector3(at.x, at.y, at.z), event, data),
     hurt: (id, amount, cause, sourceId, deathMessageOverride) => {
         const world = options.liveWorld();
         const target = world?.getActor(BigInt(id));
@@ -460,9 +453,7 @@ const liveHost = (
         const world = options.liveWorld();
         const attacker = actors.actorOf(id);
         if (world === undefined || attacker === undefined) return;
-        void world
-            .sendActorSound(attacker, LevelSoundEvent.ATTACK)
-            .catch((error: unknown) => options.report(String(error)));
+        world.sendActorSound(attacker, LevelSoundEvent.ATTACK);
     },
     applyStatusEffect: (id, effect) => {
         const target = options.liveWorld()?.getActor(BigInt(id));
@@ -494,10 +485,8 @@ const liveHost = (
         const target = actors.actorOf(id);
         if (world === undefined || target === undefined) return;
 
-        void Promise.all([
-            world.sendActorEvent(target, ActorEvent.HURT_ANIMATION),
-            world.sendActorSound(target, LevelSoundEvent.HURT)
-        ]).catch((error: unknown) => options.report(String(error)));
+        world.sendActorEvent(target, ActorEvent.HURT_ANIMATION);
+        world.sendActorSound(target, LevelSoundEvent.HURT);
     },
     startDeathAnimation: (id) => {
         const world = options.liveWorld();
@@ -506,9 +495,7 @@ const liveHost = (
 
         // `DRAGON_START_DEATH_ANIM` is the unverified Bedrock candidate for Java's dragon death
         // start (docs/plans/end-dragon-fight.md, open question 2); a retail client run decides.
-        void world
-            .sendActorEvent(target, ActorEvent.DRAGON_START_DEATH_ANIM)
-            .catch((error: unknown) => options.report(String(error)));
+        world.sendActorEvent(target, ActorEvent.DRAGON_START_DEATH_ANIM);
     },
     knockback: (id, directionX, directionZ, strength) => {
         const target = options.liveWorld()?.getActor(BigInt(id));
@@ -938,10 +925,7 @@ export class LiveEntityRuntime {
                 traded: (result) => {
                     if (!result.traded) return;
                     // Java's `notifyTrade` plays the villager's yes after every completed trade.
-                    void this.options
-                        .liveWorld()
-                        ?.sendActorSound(trader, LevelSoundEvent.HAGGLE_YES)
-                        .catch((error: unknown) => this.options.report(String(error)));
+                    this.options.liveWorld()?.sendActorSound(trader, LevelSoundEvent.HAGGLE_YES);
                 }
             })
             .then((window) => {
@@ -1015,10 +999,7 @@ export class LiveEntityRuntime {
         const loveTicks = this.runtime.byId(id)?.body.loveTicks ?? 0;
         if (interaction.accepted && previousLoveTicks <= 0 && loveTicks > 0) {
             const world = this.options.liveWorld();
-            if (world !== undefined)
-                void world
-                    .sendActorEvent(target, ActorEvent.LOVE_HEARTS)
-                    .catch((error: unknown) => this.options.report(String(error)));
+            world?.sendActorEvent(target, ActorEvent.LOVE_HEARTS);
         }
 
         return interaction;

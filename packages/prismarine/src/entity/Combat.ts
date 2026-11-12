@@ -171,19 +171,16 @@ export const meleeAttack = (attacker: StoreActor, target: StoreActor, options: M
     const source = DamageSource.entity(attacker, shove);
     const landed = damage > NO_DAMAGE && (world.dataEntities().damageEntity(target, damage, source, 'melee') ?? false);
 
-    // The sounds and the particles are occurrences, logged before these calls return, so nothing
-    // here waits on them.
-    const logged = (occurrence: Promise<void>): void =>
-        void occurrence.catch((error: unknown) => attacker.getServer().getLogger().error(error));
+    // The sounds and the particles are occurrences in the change log, which replication sends.
     if (!landed) {
-        logged(world.sendActorSound(attacker, LevelSoundEvent.ATTACK_NODAMAGE));
+        world.sendActorSound(attacker, LevelSoundEvent.ATTACK_NODAMAGE);
         return false;
     }
 
-    logged(world.sendActorSound(attacker, critical ? LevelSoundEvent.ATTACK_STRONG : LevelSoundEvent.ATTACK));
+    world.sendActorSound(attacker, critical ? LevelSoundEvent.ATTACK_STRONG : LevelSoundEvent.ATTACK);
 
     // On the target rather than on the attacker: the stars burst around what was hit.
-    if (critical) logged(world.sendWorldEvent(target.getPosition(), LevelEvent.PARTICLES_CRIT, 0));
+    if (critical) world.sendWorldEvent(target.getPosition(), LevelEvent.PARTICLES_CRIT, 0);
 
     return true;
 };

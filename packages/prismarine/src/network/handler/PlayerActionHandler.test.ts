@@ -74,7 +74,7 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
         // block in it is stone.
         getLoadedChunk: () => (chunksLoaded ? stub<Chunk>({}) : null),
         loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
-        sendWorldEvent: async (where: Vector3 | null) => {
+        sendWorldEvent: (where: Vector3 | null) => {
             if (where) cracking.push(`event ${at(where)}`);
         },
         startBlockCracking: async (where: Vector3, face: number, tool: Item | null, previous: BlockMining | null) => {
