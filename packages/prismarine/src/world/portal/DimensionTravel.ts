@@ -3,11 +3,13 @@
  *
  * This is the server half of the portal note's section 6. {@link DimensionTravel.touch} is
  * what the world calls for every entity standing in a portal block, and opens the contact
- * timer on the entity. {@link DimensionTravel.resolve} names the world, the feet position and
- * the facing a traveler arrives with, creating the arrival portal or the End platform when the
- * rules say so. {@link DimensionTravel.transfer} moves the entity there, players through the
- * client's dimension change sequence on their session. A store entity's `StoreActor.update`
- * calls the last two once the timer runs out.
+ * timer on the entity. Once the timer runs out, the entity's `StoreActor.update` calls
+ * {@link DimensionTravel.depart}, which files the trip as a message and prepares the destination
+ * outside every tick. {@link DimensionTravel.admit}, part of the input step, lands each trip once
+ * its destination is ready: it names the world, the feet position and the facing the traveler
+ * arrives with, creating the arrival portal or the End platform when the rules say so, and
+ * {@link DimensionTravel.transfer} moves the entity there, players through the client's
+ * dimension change sequence on their session.
  *
  * Every rule is data from {@link PORTALS} and {@link DIMENSION_TRAVEL}; the geometry is
  * chunk 5's in `@jsprismarine/block-behaviors`, reached through the content world adapter of
@@ -32,13 +34,13 @@ import type PlayerSession from '../../network/PlayerSession';
 import type { Arrival } from '../../network/PlayerSession';
 import type Server from '../../Server';
 import { Dimensions } from '../Dimension';
-import type { Level } from '../Level';
 import { requestedSpawnPosition } from '../SpawnPlacement';
+import { outsideTick } from '../TickContext';
 import type { World } from '../World';
 import { createNetherPortal } from './create';
 import { portalRuleOf, travelRuleOf } from './rules';
 import { scalePosition } from './scale';
-import type { BlockLookup, PortalRectangle } from './search';
+import type { BlockLookup, PortalRectangle, RelativePortalPosition, TravelerSize } from './search';
 import { exitPosition, exitYaw, findExitPortal, portalRectangleAround, relativePosition } from './search';
 
 /** The portal block an entity is standing in. */
@@ -72,12 +74,82 @@ export const END_ARRIVAL_YAW = 90;
 /** How far past the 5 by 5 platform the chunks around the End spawn are loaded. */
 const END_PLATFORM_HALF_SIDE = 2;
 
+/** `BlockPos.containing(bottomCenter).below()`: the platform's air starts at y 49 and its obsidian at 48. */
+const END_PLATFORM_CENTER = { ...END_SPAWN_POINT, y: END_SPAWN_POINT.y - 1 } as const;
+
 /**
  * How many blocks past the creation radius a chunk may be written in: Java's frame extends
  * from -1 to 2 along the axis (`FRAME_BOX_START`, `FRAME_BOX_END`) and the forced platform
  * two blocks to each side across it.
  */
 const CREATION_WRITE_MARGIN = 3;
+
+/** What every trip carries from its source world, whatever the portal. */
+interface RouteBase {
+    /** The stem the trip goes to. */
+    readonly to: string;
+    /** Whether the traveler is a player, who builds a portal to arrive in and stands lower in the End. */
+    readonly player: boolean;
+    /** The traveler's facing as it stepped in. */
+    readonly yaw: number;
+    readonly pitch: number;
+}
+
+/** A trip through a nether portal, which keeps the traveler's place in the portal. */
+interface NetherRoute extends RouteBase {
+    readonly kind: 'nether';
+    /** The traveler's feet scaled into the destination, where the search and a new portal center. */
+    readonly target: Vector3;
+    readonly relative: RelativePortalPosition;
+    readonly size: TravelerSize;
+    /** The axis of the portal the traveler left through. */
+    readonly axis: PortalAxis;
+    readonly searchRadius: number;
+}
+
+/** A trip through an end portal, into the End or out of it. */
+interface EndRoute extends RouteBase {
+    readonly kind: 'enter-end' | 'leave-end';
+}
+
+/** Where a trip goes, planned in the source world's tick. */
+type TripRoute = NetherRoute | EndRoute;
+
+/** A trip filed in a source world's tick and waiting for an input step to land it. */
+interface PortalTrip {
+    /** The world the traveler leaves. */
+    readonly from: World;
+    /** The traveler's runtime id in {@link PortalTrip.from}. */
+    readonly entity: bigint;
+    readonly route: TripRoute;
+    /** The preparation of the destination running for this trip, if one is. */
+    preparing: Promise<void> | undefined;
+}
+
+/** Every chunk within `radius` blocks of a position on x and z, as chunk coordinates. */
+const chunksAround = (center: { readonly x: number; readonly z: number }, radius: number): [number, number][] => {
+    const chunks: [number, number][] = [];
+    for (let cx = Math.floor(center.x - radius) >> 4; cx <= Math.floor(center.x + radius) >> 4; cx += 1) {
+        for (let cz = Math.floor(center.z - radius) >> 4; cz <= Math.floor(center.z + radius) >> 4; cz += 1)
+            chunks.push([cx, cz]);
+    }
+    return chunks;
+};
+
+/**
+ * The chunks a trip's arrival reads and writes: those a nether portal would be created in, which
+ * also brings any portal already standing in them into the index, and those around the End
+ * platform. A trip out of the End lands at a spawn its world already knows and needs none.
+ */
+const chunksOf = (route: TripRoute): [number, number][] => {
+    if (route.kind === 'nether')
+        return chunksAround(
+            { x: route.target.getX(), z: route.target.getZ() },
+            PORTAL_CREATION_RADIUS + CREATION_WRITE_MARGIN
+        );
+    if (route.kind === 'enter-end') return chunksAround(END_PLATFORM_CENTER, END_PLATFORM_HALF_SIDE);
+    return [];
+};
 
 /** A block position from a vector, for the geometry that reads integers. */
 const blockOf = (at: Vector3): BlockPosition => ({
@@ -110,6 +182,11 @@ export const isMidDimensionChange = (entity: StoreActor): boolean =>
 
 /** The portal and End travel service of one server. */
 export class DimensionTravel {
+    /** The trips filed and not landed yet, in the order they started. */
+    private trips: PortalTrip[] = [];
+    /** The preparations running outside the ticks. */
+    private readonly preparing = new Set<Promise<void>>();
+
     public constructor(private readonly server: Server) {}
 
     /**
@@ -126,7 +203,7 @@ export class DimensionTravel {
      * change.
      */
     public async touch(entity: StoreActor, portal: PortalBlockRef): Promise<void> {
-        if (isMidDimensionChange(entity) || this.isInRide(entity)) return;
+        if (isMidDimensionChange(entity) || this.isDeparting(entity) || this.isInRide(entity)) return;
 
         if (!entity.isOnPortalCooldown() && entity.portalContact() === undefined) {
             const event = new EntityPortalEnterEvent(entity, portal);
@@ -246,83 +323,205 @@ export class DimensionTravel {
     }
 
     /**
-     * Resolves where a trip from a portal block lands, creating a portal or the End platform
-     * when the rules say so.
+     * Starts a trip through the portal block an entity's contact ran out in. The entity's update
+     * calls this inside its world's tick, and it never waits.
      *
-     * A nether portal links to the other dimension by the scaled position, lands in the
-     * nearest portal within {@link import('./rules').PORTAL_SEARCH_RADIUS} with the traveler's
-     * place in the source portal kept, and otherwise creates one for a player and refuses
-     * everything else. An end portal into the End writes the platform and lands at
-     * {@link END_SPAWN_POINT} facing west; one out of the End lands a player at their resolved
-     * respawn point and anything else at the Overworld spawn.
+     * The trip is planned from the source world alone: where the traveler stands in the portal,
+     * the scaled target and the facing. It is filed for the input step, and the destination is
+     * prepared outside every tick: its world is built if nobody has entered it, and the chunks the
+     * arrival reads are loaded. Nothing in the destination changes here, and the traveler stays
+     * where it is until {@link DimensionTravel.admit} lands it
+     * ([ADR 0011](../../../../../docs/adr/0011-a-world-exchanges-only-plain-data.md)).
      *
-     * @returns The arrival, or undefined when the trip goes nowhere: the block is no portal,
-     *   the level has no world for the other side, or there is no portal to arrive in and
-     *   the traveler is not a player.
+     * @returns Whether a trip was filed: false when the block is no portal, the level has no
+     *   world for the other side, or the other side takes no nether portal.
      */
-    public async resolve(entity: StoreActor, portal: PortalBlockRef): Promise<PortalArrival | undefined> {
+    public depart(entity: StoreActor, portal: PortalBlockRef): boolean {
+        const route = this.routeOf(entity, portal);
+        if (route === undefined) return false;
+
+        const trip: PortalTrip = { from: portal.world, entity: entity.getRuntimeId(), route, preparing: undefined };
+        this.trips.push(trip);
+        this.prepare(trip);
+        return true;
+    }
+
+    /** Whether an entity has a trip filed that has not landed yet. */
+    public isDeparting(entity: StoreActor): boolean {
+        const world = entity.getWorld();
+        const id = entity.getRuntimeId();
+        return this.trips.some((trip) => trip.from === world && trip.entity === id);
+    }
+
+    /** How many trips wait for an input step to land them. */
+    public get pending(): number {
+        return this.trips.length;
+    }
+
+    /**
+     * The input step's share: lands every trip whose destination is ready, in the order the trips
+     * started, and keeps the rest for a later step.
+     *
+     * A destination is ready once its world is built and the chunks the arrival reads are loaded,
+     * which the input step decides from loaded chunks alone, so a replay that admits the same
+     * chunks at the same ticks lands each trip at the same tick. The traveler then leaves its
+     * world and enters the other through {@link DimensionTravel.transfer}, so both changes land
+     * in the tick this step opens. A trip whose traveler left its world in the meantime is
+     * dropped.
+     *
+     * @returns How many trips landed.
+     */
+    public async admit(): Promise<number> {
+        const due = this.trips;
+        this.trips = [];
+        let landed = 0;
+        for (const trip of due) {
+            const traveler = trip.from.getActor(trip.entity);
+            if (traveler === null) continue;
+
+            const to = this.readyDestination(trip);
+            if (to === undefined) {
+                this.trips.push(trip);
+                this.prepare(trip);
+                continue;
+            }
+
+            try {
+                const arrival = await this.arrivalOf(trip, traveler, to);
+                if (arrival === undefined) continue;
+                await this.transfer(traveler, arrival);
+                landed += 1;
+            } catch (error: unknown) {
+                this.server.getLogger().error(`A trip from ${trip.from.getName()} to ${trip.route.to} failed`);
+                this.server.getLogger().error(error);
+            }
+        }
+        return landed;
+    }
+
+    /** Settles once the destination of every filed trip has been prepared as far as it can be. */
+    public async prepared(): Promise<void> {
+        await Promise.all(this.preparing);
+    }
+
+    /**
+     * Where a trip from a portal block goes, read from the source world alone.
+     *
+     * A nether portal links to the other dimension by the scaled position and keeps the traveler's
+     * place in the portal. An end portal goes into the End, or out of it from the End.
+     */
+    private routeOf(entity: StoreActor, portal: PortalBlockRef): TripRoute | undefined {
         const rule = portalRuleOf(portal.block);
         if (rule === undefined) return undefined;
 
         const from = portal.world;
-        const targetId = rule.links[from.getDimension().id];
-        if (targetId === undefined) return undefined;
-
         const level = from.getLevel();
-        if (rule.kind === 'end') {
-            if (from.getDimension().id === Dimensions.TheEnd.id) return this.leaveEnd(entity, level, targetId);
-            const end = await this.worldOf(level, targetId);
-            return end === undefined ? undefined : this.enterEnd(entity, end);
-        }
+        const to = rule.links[from.getDimension().id];
+        if (to === undefined || !level.getStems().has(to)) return undefined;
 
-        const to = await this.worldOf(level, targetId);
-        return to === undefined ? undefined : this.throughNetherPortal(entity, portal, to);
-    }
+        const facing = { to, player: isPlayer(entity), yaw: entity.yaw, pitch: entity.pitch };
+        if (rule.kind === 'end')
+            return { ...facing, kind: from.getDimension().id === Dimensions.TheEnd.id ? 'leave-end' : 'enter-end' };
 
-    /** The level's world of a dimension, built if the stem exists and undefined when it does not. */
-    private async worldOf(level: Level, dimensionId: string): Promise<World | undefined> {
-        return level.getStems().has(dimensionId) ? level.world(dimensionId) : undefined;
-    }
-
-    /** `NetherPortalBlock.getPortalDestination` and `getExitPortal`, with Bedrock's player-only creation. */
-    private async throughNetherPortal(
-        entity: StoreActor,
-        portal: PortalBlockRef,
-        to: World
-    ): Promise<PortalArrival | undefined> {
-        const from = portal.world;
-        const travel = travelRuleOf(to.getDimension());
+        const target = level.dimensionTypeOf(to);
+        const travel = travelRuleOf(target);
         if (travel === undefined || !travel.allowsNetherPortal) return undefined;
 
         const feet = feetOf(entity);
-        const size = entity.getBox();
+        const { width, height } = entity.getBox();
+        const size = { width, height };
         const source = this.sourceRectangle(from, portal);
-        const relative = relativePosition(source, feet, size);
-        const target = scalePosition(from.getDimension(), to.getDimension(), feet);
+        return {
+            ...facing,
+            kind: 'nether',
+            target: scalePosition(from.getDimension(), target, feet),
+            relative: relativePosition(source, feet, size),
+            size,
+            axis: source.axis,
+            searchRadius: travel.portalSearchRadius
+        };
+    }
 
+    /** The destination of a trip once it can land without waiting, or undefined. */
+    private readyDestination(trip: PortalTrip): World | undefined {
+        const { route } = trip;
+        const to = trip.from.getLevel().readyWorld(route.to);
+        if (to === undefined) return undefined;
+        if (route.kind === 'nether' && this.exitPortalIn(to, route) !== undefined) return to;
+        return chunksOf(route).every(([x, z]) => to.getLoadedChunk(x, z) !== null) ? to : undefined;
+    }
+
+    /**
+     * Prepares a trip's destination outside every tick: builds its world, then loads the chunks
+     * the arrival reads, which enter that world at an input step. A nether trip that already has
+     * a portal to arrive in loads nothing. One preparation runs per trip at a time.
+     */
+    private prepare(trip: PortalTrip): void {
+        if (trip.preparing !== undefined) return;
+
+        const { route } = trip;
+        const level = trip.from.getLevel();
+        const preparing: Promise<void> = outsideTick(async () => {
+            await level.prepareWorld(route.to);
+            const to = level.readyWorld(route.to);
+            if (to === undefined) return;
+            if (route.kind === 'nether' && this.exitPortalIn(to, route) !== undefined) return;
+            await Promise.all(chunksOf(route).map(async ([x, z]) => to.getChunk(x, z)));
+        })
+            .catch((error: unknown) => {
+                this.server.getLogger().error(`Failed to prepare ${route.to} for a trip from ${trip.from.getName()}`);
+                this.server.getLogger().error(error);
+            })
+            .finally(() => {
+                trip.preparing = undefined;
+                this.preparing.delete(preparing);
+            });
+        trip.preparing = preparing;
+        this.preparing.add(preparing);
+    }
+
+    /** The portal a nether trip arrives in among the destination's loaded chunks, if one stands there. */
+    private exitPortalIn(to: World, route: NetherRoute): PortalRectangle | undefined {
         const lookup: BlockLookup = (at) => to.loadedBlockAt(at.x, at.y, at.z);
-        let destination = findExitPortal(to.getPortalIndex(), lookup, target, travel.portalSearchRadius);
-        if (destination === undefined) {
-            // The chunks a portal would be created in, which also brings any portal already
-            // standing in them into the index.
-            await this.loadAround(to, target, PORTAL_CREATION_RADIUS + CREATION_WRITE_MARGIN);
-            destination = findExitPortal(to.getPortalIndex(), lookup, target, travel.portalSearchRadius);
-        }
+        return findExitPortal(to.getPortalIndex(), lookup, route.target, route.searchRadius);
+    }
 
+    /**
+     * Where a ready trip lands, creating a portal or the End platform when the rules say so.
+     *
+     * A nether trip lands in the nearest portal within the search radius with the traveler's
+     * place in the source portal kept, and otherwise creates one for a player and refuses
+     * everything else. A trip into the End writes the platform and lands at
+     * {@link END_SPAWN_POINT} facing west; one out of the End lands a player at their resolved
+     * respawn point and anything else at the Overworld spawn.
+     *
+     * @returns The arrival, or undefined when there is no portal to arrive in and the traveler
+     *   is not a player.
+     */
+    private async arrivalOf(trip: PortalTrip, traveler: StoreActor, to: World): Promise<PortalArrival | undefined> {
+        const { route } = trip;
+        if (route.kind === 'nether') return this.throughNetherPortal(route, to);
+        if (route.kind === 'enter-end') return this.enterEnd(route, to);
+        return this.leaveEnd(traveler, route, to);
+    }
+
+    /** `NetherPortalBlock.getPortalDestination` and `getExitPortal`, with Bedrock's player-only creation. */
+    private throughNetherPortal(route: NetherRoute, to: World): PortalArrival | undefined {
+        let destination = this.exitPortalIn(to, route);
         let createdPortal = false;
         if (destination === undefined) {
             // Only a player builds a portal on Bedrock; an item or a mob with nowhere to arrive stays.
-            if (!isPlayer(entity)) return undefined;
+            if (!route.player) return undefined;
             const actions = this.server.getContent().world.blockWorld.at(to.getDimension().name);
-            destination = createNetherPortal(actions, blockOf(target), source.axis, to.getDimension()).rectangle;
+            destination = createNetherPortal(actions, blockOf(route.target), route.axis, to.getDimension()).rectangle;
             createdPortal = true;
         }
 
         return {
             world: to,
-            position: exitPosition(destination, relative, size),
-            yaw: exitYaw(entity.yaw, source.axis, destination.axis),
-            pitch: entity.pitch,
+            position: exitPosition(destination, route.relative, route.size),
+            yaw: exitYaw(route.yaw, route.axis, destination.axis),
+            pitch: route.pitch,
             createdPortal
         };
     }
@@ -342,15 +541,12 @@ export class DimensionTravel {
     }
 
     /** `EndPortalBlock.getPortalDestination` into the End, with `EndPlatformFeature.createEndPlatform`. */
-    private async enterEnd(entity: StoreActor, end: World): Promise<PortalArrival> {
-        // `BlockPos.containing(bottomCenter).below()`: the platform's air starts at y 49 and its obsidian at 48.
-        const platformCenter = { ...END_SPAWN_POINT, y: END_SPAWN_POINT.y - 1 };
-        await this.loadAround(end, Vector3.fromObject(platformCenter), END_PLATFORM_HALF_SIDE);
-        writeEndPlatform(this.server.getContent().world.blockWorld.at(end.getDimension().name), platformCenter);
+    private enterEnd(route: TripRoute, end: World): PortalArrival {
+        writeEndPlatform(this.server.getContent().world.blockWorld.at(end.getDimension().name), END_PLATFORM_CENTER);
 
         // A `ServerPlayer` has `(0, 1, 0)` subtracted, so players stand on the platform at 49
         // and everything else arrives at 50.
-        const y = isPlayer(entity) ? END_SPAWN_POINT.y - 1 : END_SPAWN_POINT.y;
+        const y = route.player ? END_SPAWN_POINT.y - 1 : END_SPAWN_POINT.y;
         return {
             world: end,
             position: new Vector3(END_SPAWN_POINT.x + 0.5, y, END_SPAWN_POINT.z + 0.5),
@@ -364,43 +560,31 @@ export class DimensionTravel {
      * `EndPortalBlock.getPortalDestination` out of the End: a player's
      * `findRespawnPositionAndUseSpawnBlock(false, ...)`, which spends no anchor charge, and
      * `adjustSpawnLocation` at the Overworld spawn for anything else.
+     *
+     * The player's respawn search still waits inside the input step, as the `Respawn` handler's
+     * does, until the search's answer is an input of its own.
      */
-    private async leaveEnd(entity: StoreActor, level: Level, targetId: string): Promise<PortalArrival | undefined> {
-        const session = sessionOf(entity);
+    private async leaveEnd(traveler: StoreActor, route: TripRoute, to: World): Promise<PortalArrival> {
+        const session = sessionOf(traveler);
         if (session !== undefined) {
             const respawn = await session.getRespawnPoint();
             return {
                 world: respawn.world,
                 position: respawn.block,
-                yaw: entity.yaw,
-                pitch: entity.pitch,
+                yaw: route.yaw,
+                pitch: route.pitch,
                 createdPortal: false
             };
         }
 
-        const to = await this.worldOf(level, targetId);
-        if (to === undefined) return undefined;
         // Where a joining player's feet go before the terrain is consulted.
         const spawn = await to.getSpawnPosition();
         return {
             world: to,
             position: requestedSpawnPosition(spawn),
-            yaw: entity.yaw,
-            pitch: entity.pitch,
+            yaw: route.yaw,
+            pitch: route.pitch,
             createdPortal: false
         };
-    }
-
-    /** Loads every chunk within `radius` blocks of a position on x and z. */
-    private async loadAround(world: World, center: Vector3, radius: number): Promise<void> {
-        const loads: Promise<unknown>[] = [];
-        const minX = Math.floor(center.getX() - radius) >> 4;
-        const maxX = Math.floor(center.getX() + radius) >> 4;
-        const minZ = Math.floor(center.getZ() - radius) >> 4;
-        const maxZ = Math.floor(center.getZ() + radius) >> 4;
-        for (let cx = minX; cx <= maxX; cx += 1) {
-            for (let cz = minZ; cz <= maxZ; cz += 1) loads.push(world.getChunk(cx, cz));
-        }
-        await Promise.all(loads);
     }
 }

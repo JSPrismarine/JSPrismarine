@@ -51,8 +51,10 @@ import LevelDB from '../providers/leveldb/LevelDB';
 import type { World } from '../World';
 import type WorldManager from '../WorldManager';
 import { DimensionTravel, END_ARRIVAL_YAW } from './DimensionTravel';
-import type { PortalBlockRef } from './DimensionTravel';
+import type { PortalArrival, PortalBlockRef } from './DimensionTravel';
 import { ChunkCompletionQueue } from '../ChunkCompletionQueue';
+import type { SealedTick } from '../changelog/ChangeLog';
+import { insideTick, runInTick } from '../TickContext';
 import type { StoreActor } from '../../entity/data/storeActors';
 
 const NETHER_STEM_ID = 'minecraft:the_nether';
@@ -107,14 +109,20 @@ interface SceneOptions {
     readonly entities?: ReturnType<typeof definitionsOf>['entities'];
 }
 
-/** A level with its three vanilla dimensions over a scratch LevelDB, and the server around it. */
-const buildScene = async ({ entities }: SceneOptions = {}) => {
+/**
+ * A level with three vanilla stems over a scratch LevelDB, and the server around it, with no
+ * world built yet.
+ */
+const buildLevel = async ({ entities }: SceneOptions = {}) => {
     const folder = path.join(scratch, 'level');
     let level: Level | undefined;
     let content: ServerContent | undefined;
     // Always a data runtime per dimension, which holds the players a world's `addPlayer` enters.
     const runtimes = new EntityRuntimes();
 
+    // One queue, inactive unless a test activates it: an inactive queue admits a chunk as soon as
+    // it is ready, and an active one holds it for an input step, as the ticker's does.
+    const completions = new ChunkCompletionQueue();
     // A real bus, so a test can listen for the travel events and cancel one.
     const events = new EventEmitter();
     const sessions = sessionsWith({ getPlayerList: () => new Map(), getAllPlayers: () => [] });
@@ -135,7 +143,7 @@ const buildScene = async ({ entities }: SceneOptions = {}) => {
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getSessionManager: () => sessions,
-        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
+        getChunkCompletionQueue: () => completions,
         getContent: () => {
             if (content === undefined) throw new Error('the content was read before it was built');
             return content;
@@ -216,10 +224,16 @@ const buildScene = async ({ entities }: SceneOptions = {}) => {
     });
 
     const travel = new DimensionTravel(server);
-    const overworld = await level.world(OVERWORLD_STEM_ID);
-    const nether = await level.world(NETHER_STEM_ID);
-    const end = await level.world(END_STEM_ID);
-    return { server, level, overworld, nether, end, travel };
+    return { server, level, travel, completions };
+};
+
+/** {@link buildLevel} with the world of each of its three dimensions built. */
+const buildScene = async (options: SceneOptions = {}) => {
+    const scene = await buildLevel(options);
+    const overworld = await scene.level.world(OVERWORLD_STEM_ID);
+    const nether = await scene.level.world(NETHER_STEM_ID);
+    const end = await scene.level.world(END_STEM_ID);
+    return { ...scene, overworld, nether, end };
 };
 
 /** A survival player standing at a feet position, whose session records what it sends into `sent`. */
@@ -278,6 +292,41 @@ const mobAt = (world: World, feet: Vector3): StoreActor => {
 /** The cows a world's store holds, through their actors. A cow that changes world is a new actor there. */
 const cowsIn = (world: World): StoreActor[] => world.getActors().filter((actor) => actor.getType() === 'minecraft:cow');
 
+/**
+ * The input steps that follow a trip's start: each waits for the destination's preparation and
+ * then admits, until no trip is left. The scene's completion queue is inactive, so a chunk the
+ * preparation loads enters its world as soon as it is ready.
+ */
+const settle = async (travel: DimensionTravel): Promise<void> => {
+    for (let step = 0; step < 10 && travel.pending > 0; step += 1) {
+        await travel.prepared();
+        await travel.admit();
+    }
+    expect(travel.pending).toBe(0);
+};
+
+/**
+ * Starts a trip and lands it as the input step does, answering where it landed with nothing
+ * moved: the transfer is replaced while the trip lands, so a test reads the arrival alone.
+ */
+const resolveTrip = async (
+    travel: DimensionTravel,
+    entity: StoreActor,
+    portal: PortalBlockRef
+): Promise<PortalArrival | undefined> => {
+    let landed: PortalArrival | undefined;
+    const { transfer } = travel;
+    travel.transfer = async (_traveler, arrival) => {
+        landed = { ...arrival, createdPortal: 'createdPortal' in arrival && arrival.createdPortal === true };
+    };
+    try {
+        if (travel.depart(entity, portal)) await settle(travel);
+    } finally {
+        travel.transfer = transfer;
+    }
+    return landed;
+};
+
 const nameAt = (world: World, x: number, y: number, z: number): string | undefined =>
     world.loadedBlockAt(x, y, z)?.name;
 
@@ -289,7 +338,7 @@ afterEach(() => {
     fs.rmSync(scratch, { recursive: true, force: true });
 });
 
-describe('DimensionTravel.resolve', () => {
+describe('Where a trip lands', () => {
     describe('through a nether portal', () => {
         it('lands a player in the Nether at the scaled position and builds a portal there', async () => {
             const scene = await buildScene();
@@ -298,7 +347,7 @@ describe('DimensionTravel.resolve', () => {
 
             const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
             await scene.overworld.addPlayer(player);
-            const arrival = await scene.travel.resolve(player.getActor()!, {
+            const arrival = await resolveTrip(scene.travel, player.getActor()!, {
                 world: scene.overworld,
                 position: new Vector3(80, 64, 0),
                 block: 'minecraft:portal'
@@ -331,7 +380,7 @@ describe('DimensionTravel.resolve', () => {
             await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
 
             const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
-            const arrival = await scene.travel.resolve(item, {
+            const arrival = await resolveTrip(scene.travel, item, {
                 world: scene.overworld,
                 position: new Vector3(80, 64, 0),
                 block: 'minecraft:portal'
@@ -349,7 +398,7 @@ describe('DimensionTravel.resolve', () => {
             await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
 
             const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
-            const arrival = await scene.travel.resolve(item, {
+            const arrival = await resolveTrip(scene.travel, item, {
                 world: scene.overworld,
                 position: new Vector3(80, 64, 0),
                 block: 'minecraft:portal'
@@ -374,7 +423,7 @@ describe('DimensionTravel.resolve', () => {
             await lightPortal(scene.overworld, new Vector3(2, 60, 0), 'x');
 
             const item = itemAt(scene.end, new Vector3(0.5, 60, 0.5));
-            const arrival = await scene.travel.resolve(item, {
+            const arrival = await resolveTrip(scene.travel, item, {
                 world: scene.end,
                 position: new Vector3(0, 60, 0),
                 block: 'minecraft:portal'
@@ -392,7 +441,7 @@ describe('DimensionTravel.resolve', () => {
             const item = itemAt(scene.overworld, new Vector3(0.5, 64, 0.5));
 
             expect(
-                await scene.travel.resolve(item, {
+                await resolveTrip(scene.travel, item, {
                     world: scene.overworld,
                     position: new Vector3(0, 64, 0),
                     block: 'minecraft:obsidian'
@@ -409,7 +458,7 @@ describe('DimensionTravel.resolve', () => {
             const player = playerAt(scene.server, scene.overworld, new Vector3(0.5, 60, 0.5));
             await scene.overworld.addPlayer(player);
 
-            const arrival = await scene.travel.resolve(player.getActor()!, {
+            const arrival = await resolveTrip(scene.travel, player.getActor()!, {
                 world: scene.overworld,
                 position: new Vector3(0, 60, 0),
                 block: 'minecraft:end_portal'
@@ -436,7 +485,7 @@ describe('DimensionTravel.resolve', () => {
             const scene = await buildScene();
             const item = itemAt(scene.overworld, new Vector3(0.5, 60, 0.5));
 
-            const arrival = await scene.travel.resolve(item, {
+            const arrival = await resolveTrip(scene.travel, item, {
                 world: scene.overworld,
                 position: new Vector3(0, 60, 0),
                 block: 'minecraft:end_portal'
@@ -455,7 +504,7 @@ describe('DimensionTravel.resolve', () => {
             // A player stepping into the End's portal is in the End, which finds its session.
             await scene.end.addPlayer(player);
 
-            const arrival = await scene.travel.resolve(player.getActor()!, {
+            const arrival = await resolveTrip(scene.travel, player.getActor()!, {
                 world: scene.end,
                 position: new Vector3(0, 60, 0),
                 block: 'minecraft:end_portal'
@@ -472,7 +521,7 @@ describe('DimensionTravel.resolve', () => {
             const scene = await buildScene();
             const item = itemAt(scene.end, new Vector3(0.5, 60, 0.5));
 
-            const arrival = await scene.travel.resolve(item, {
+            const arrival = await resolveTrip(scene.travel, item, {
                 world: scene.end,
                 position: new Vector3(0, 60, 0),
                 block: 'minecraft:end_portal'
@@ -703,7 +752,7 @@ describe('DimensionTravel.transfer', () => {
 describe('DimensionTravel.transfer out of the End', () => {
     /** The End-exit arrival of `player`, resolved from an exit portal block under them. */
     const exitArrival = async (scene: Awaited<ReturnType<typeof buildScene>>, player: PlayerSession) => {
-        const arrival = await scene.travel.resolve(player.getActor()!, {
+        const arrival = await resolveTrip(scene.travel, player.getActor()!, {
             world: scene.end,
             position: new Vector3(0, 60, 0),
             block: 'minecraft:end_portal'
@@ -839,10 +888,15 @@ describe('DimensionTravel.transfer of a data-driven mob', () => {
     }, 60_000);
 });
 
-/** One world tick for an entity standing in a portal: the world's touch, then the entity's own update. */
+/**
+ * One world tick for an entity standing in a portal: the world's touch and the entity's own
+ * update, then the input steps that land a trip the update started.
+ */
 const tickInPortal = async (travel: DimensionTravel, entity: StoreActor, portal: PortalBlockRef, tick: number) => {
     await travel.touch(entity, portal);
     await entity.update(tick);
+    // The input steps of the ticks after it, which land a trip the update started.
+    await settle(travel);
 };
 
 describe('DimensionTravel through the tick', () => {
@@ -972,8 +1026,10 @@ describe('DimensionTravel through the tick', () => {
         bot.getPlayer().gamemode = Gametype.CREATIVE;
         await scene.overworld.addPlayer(bot);
 
-        // Creative goes through on the first contact tick, into the portal the trip builds.
+        // Creative goes through on the first contact tick, into the portal the trip builds, and
+        // lands at the next input step.
         await scene.overworld.update(1);
+        await settle(scene.travel);
         expect(bot.getWorld()).toBe(scene.nether);
         const pending = bot.pendingDimensionChange();
         expect(pending).toBeDefined();
@@ -994,13 +1050,14 @@ describe('DimensionTravel through the tick', () => {
         await scene.level.disable();
     }, 60_000);
 
-    it('takes a bot standing in a hand-built portal to the Nether world through `World.update` alone', async () => {
+    it('takes a bot standing in a hand-built portal to the Nether world through `World.update` and the input step', async () => {
         const scene = await buildScene();
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
         await scene.overworld.addPlayer(bot);
 
         for (let tick = 1; tick <= 80; tick += 1) await scene.overworld.update(tick);
+        await settle(scene.travel);
 
         expect(bot.getWorld()).toBe(scene.nether);
         expect(scene.overworld.getViewers()).not.toContain(bot);
@@ -1015,6 +1072,7 @@ describe('DimensionTravel through the tick', () => {
         const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
         await scene.overworld.addPlayer(bot);
         for (let tick = 1; tick <= 80; tick += 1) await scene.overworld.update(tick);
+        await settle(scene.travel);
         const pending = bot.pendingDimensionChange();
         expect(pending?.arrival.world).toBe(scene.nether);
         expect(scene.nether.getPortalIndex().has({ x: 9, y: 70, z: 0 })).toBe(true);
@@ -1035,6 +1093,141 @@ describe('DimensionTravel through the tick', () => {
         expect(bot.getActor()!.portalContact()).toBeUndefined();
         expect(bot.pendingDimensionChange()).toBe(pending);
         expect(scene.nether.getViewers()).toContain(bot);
+
+        await scene.level.disable();
+    }, 60_000);
+});
+
+describe('DimensionTravel as messages', () => {
+    /** The membership entries of a sealed tick, as what changed and for which entity. */
+    const memberships = (sealed: SealedTick | undefined): [string, bigint][] =>
+        (sealed?.entries ?? []).flatMap((entry): [string, bigint][] =>
+            entry.kind === 'membership' ? [[entry.change, entry.entity]] : []
+        );
+
+    /** Closes the tick the scene's setup wrote into, so the next tick holds only what it did. */
+    const closeSetup = (...worlds: World[]): void => {
+        for (const world of worlds) {
+            world.beginChangeTick();
+            world.sealChangeTick();
+        }
+    };
+
+    it('leaves in one entry of the source world and enters in one of the destination, both at the next input step', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
+        const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        closeSetup(scene.overworld, scene.nether);
+
+        // The source world's tick: the touch, then the update that starts the trip.
+        scene.overworld.beginChangeTick();
+        scene.nether.beginChangeTick();
+        await scene.travel.touch(mob, portalAt(scene.overworld, new Vector3(80, 64, 0)));
+        await mob.update(1);
+        const started = scene.overworld.sealChangeTick();
+        const untouched = scene.nether.sealChangeTick();
+
+        expect(scene.travel.pending).toBe(1);
+        expect(memberships(started)).toEqual([]);
+        expect(untouched?.entries).toEqual([]);
+        expect(cowsIn(scene.overworld)).toEqual([mob]);
+        expect(cowsIn(scene.nether)).toEqual([]);
+
+        // The next input step, with both worlds' ticks open as the ticker opens them.
+        await scene.travel.prepared();
+        scene.overworld.beginChangeTick();
+        scene.nether.beginChangeTick();
+        expect(await scene.travel.admit()).toBe(1);
+        const left = scene.overworld.sealChangeTick();
+        const entered = scene.nether.sealChangeTick();
+
+        const [arrived] = cowsIn(scene.nether);
+        if (arrived === undefined) throw new Error('the cow did not arrive in the Nether');
+        expect(memberships(left)).toEqual([['leave', mob.getRuntimeId()]]);
+        expect(memberships(entered)).toEqual([['enter', arrived.getRuntimeId()]]);
+        expect(scene.travel.pending).toBe(0);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('moves a player out of a world tick into the input step: one leave, one enter, the destination untouched before', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        bot.getPlayer().gamemode = Gametype.CREATIVE;
+        scene.overworld.addPlayer(bot);
+        closeSetup(scene.overworld, scene.nether);
+        // From here a chunk waits for an input step, as under the ticker.
+        scene.completions.activate();
+
+        // Creative goes through on its first contact tick.
+        scene.nether.beginChangeTick();
+        await scene.overworld.update(1);
+        const untouched = scene.nether.sealChangeTick();
+
+        expect(scene.travel.pending).toBe(1);
+        expect(memberships(scene.overworld.lastChangeTick())).toEqual([]);
+        expect(untouched?.entries).toEqual([]);
+        expect(bot.getWorld()).toBe(scene.overworld);
+
+        // Input steps until the trip lands: the chunks the preparation loaded, then the trip.
+        // Each step's entries are kept, so the counts cover every step it took.
+        const left: [string, bigint][] = [];
+        const entered: [string, bigint][] = [];
+        let tick = 2;
+        for (; scene.travel.pending > 0 && tick < 200; tick += 1) {
+            scene.overworld.beginChangeTick();
+            scene.nether.beginChangeTick();
+            await scene.completions.admissions.admit(tick);
+            await scene.travel.admit();
+            left.push(...memberships(scene.overworld.sealChangeTick()));
+            entered.push(...memberships(scene.nether.sealChangeTick()));
+            // Lets the generation the step did not wait for finish before the next step.
+            await new Promise((resolve) => setImmediate(resolve));
+        }
+
+        expect(scene.travel.pending).toBe(0);
+        expect(bot.getWorld()).toBe(scene.nether);
+        expect(left).toEqual([['leave', bot.runtimeId]]);
+        expect(entered).toEqual([['enter', bot.runtimeId]]);
+
+        scene.completions.deactivate();
+        await scene.level.disable();
+    }, 60_000);
+
+    it('builds a destination nobody entered outside the tick that starts the trip, and lands the trip once it is ready', async () => {
+        const scene = await buildLevel();
+        const overworld = await scene.level.world(OVERWORLD_STEM_ID);
+        const mob = mobAt(overworld, new Vector3(0.5, 60, 0.5));
+
+        // Whether each build the trip asks for runs inside a tick.
+        const builds: boolean[] = [];
+        const build = scene.level.world.bind(scene.level);
+        scene.level.world = async (dimensionId) => {
+            builds.push(insideTick());
+            return build(dimensionId);
+        };
+
+        await runInTick(async () => {
+            await scene.travel.touch(mob, {
+                world: overworld,
+                position: new Vector3(0, 60, 0),
+                block: 'minecraft:end_portal'
+            });
+            await mob.update(1);
+        });
+
+        // The tick filed the trip and asked for the End once, outside itself, and the cow is still here.
+        expect(builds).toEqual([false]);
+        expect(scene.travel.pending).toBe(1);
+        expect(cowsIn(overworld)).toEqual([mob]);
+
+        await settle(scene.travel);
+        const end = scene.level.readyWorld(END_STEM_ID);
+        if (end === undefined) throw new Error('the End was not built');
+        expect(cowsIn(overworld)).toEqual([]);
+        expect(cowsIn(end).map((cow) => cow.getPosition())).toEqual([new Vector3(100.5, 50, 0.5)]);
 
         await scene.level.disable();
     }, 60_000);
