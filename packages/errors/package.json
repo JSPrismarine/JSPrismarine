@@ -191,6 +191,11 @@
                 "import": "./dist/prismarine/server.js",
                 "module": "./dist/prismarine/server.js"
             },
+            "./prismarine/stats": {
+                "types": "./dist/prismarine/stats.d.ts",
+                "import": "./dist/prismarine/stats.js",
+                "module": "./dist/prismarine/stats.js"
+            },
             "./prismarine/world": {
                 "types": "./dist/prismarine/world.d.ts",
                 "import": "./dist/prismarine/world.js",
@@ -383,6 +388,10 @@
         "./prismarine/server": {
             "jsprismarine:dist": "./dist/prismarine/server.js",
             "default": "./src/prismarine/server.ts"
+        },
+        "./prismarine/stats": {
+            "jsprismarine:dist": "./dist/prismarine/stats.js",
+            "default": "./src/prismarine/stats.ts"
         },
         "./prismarine/world": {
             "jsprismarine:dist": "./dist/prismarine/world.js",

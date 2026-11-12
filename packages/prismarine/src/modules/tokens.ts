@@ -6,6 +6,7 @@ import type { CommandManager } from '../command/CommandManager';
 import type { ServerContent } from '../content/ServerContent';
 import type PacketHandlerRegistry from '../network/PacketHandlerRegistry';
 import type { PermissionManager } from '../permission/PermissionManager';
+import type { StatsRegistry } from '../stats/StatsRegistry';
 import type WorldManager from '../world/WorldManager';
 import type { Networking } from './network';
 import type { Ticker } from './ticker';
@@ -45,3 +46,8 @@ export const packetHandlersToken = createToken<PacketHandlerRegistry>('prismarin
 export const worldsToken = createToken<WorldManager>('prismarine:worlds');
 /** The command registry and dispatcher, provided by the `prismarine:commands` module. */
 export const commandsToken = createToken<CommandManager>('prismarine:commands');
+/**
+ * The server's named metrics, provided by the `prismarine:stats` module. A module registers a
+ * metric here for a value it owns, and the stats providers read snapshots from it.
+ */
+export const statsToken = createToken<StatsRegistry>('prismarine:stats');

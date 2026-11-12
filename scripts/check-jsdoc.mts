@@ -29,6 +29,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const SOURCES = 'packages/*/src/**/*.ts';
 const EXCLUDED = [
     '**/*.test.*',
+    '**/*.test-utils.*',
     '**/*.d.ts',
     '**/@types/**',
     'packages/bedrock-data/src/generated/**',

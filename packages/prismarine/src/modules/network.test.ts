@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+import { TransportNames } from '../network/transport/Transport';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
@@ -279,6 +280,19 @@ describe('modules/network', () => {
             // Inactive, as on a server whose tick loop does not run.
             getChunkCompletionQueue: () => new ChunkCompletionQueue()
         });
+
+    it('names RakNet as the one started transport while it runs, and none after kill', async () => {
+        const networking = new ServerNetworking(rakNetServer(0));
+        expect(networking.getStartedTransports()).toEqual([]);
+
+        try {
+            await networking.start('127.0.0.1', 0);
+            expect(networking.getStartedTransports()).toEqual([TransportNames.raknet]);
+        } finally {
+            networking.kill();
+        }
+        expect(networking.getStartedTransports()).toEqual([]);
+    });
 
     it('listens on IPv6 beside a wildcard IPv4 bind and advertises both ports', async () => {
         const networking = new ServerNetworking(rakNetServer(0));
