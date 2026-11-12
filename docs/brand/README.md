@@ -201,6 +201,10 @@ scrolling off the screen edge, under a strip that holds the label and the copy b
   click; one panel shows at a time, headed by what that audience gets.
 - The solid accent and signal figure tiles stay: they carry the page's character. Each shows a figure
   the hero does not.
+- The grid ends on the releases as a line to ride (`ReleaseLine`): the newest feature releases as
+  stops, oldest first, each ring sized by how much the release changed, with a diamond on any that
+  break something and a dashed stop for the changes waiting for the next one. Pointing at a stop
+  sends the rider there and shows that release under the line.
 - The page ends on a call to action with a command to copy, plus a line for players and contributors,
   not on decoration. The footer under it routes by audience.
 
@@ -255,6 +259,8 @@ pages such as `tools/docs/site/index.md` and `tools/docs/site/brand-kit.md`.
 | `WindowBlind`            | A cabin window with a blind to pull. The blind carries a heading; the land passes while it is up. |
 | `BoardingPass`           | An upright pass that prints from a slot, leans toward the pointer, and has a stub that tears off. |
 | `PassingLand`            | Land made of the mark's triangle, in two ranges, for a window or a backdrop.  |
+| `RouteLine`              | Stops on a transit line with a rider, for steps in order: a guide, a release history, a roadmap. With `selectable`, the rider goes to the stop the reader points at. |
+| `ReleaseLine`            | The release history on a `RouteLine`, with the selected release's first changes under it. |
 | `LatestRelease`          | The newest release's version, date and first changes.             |
 | `ReleaseNotes`           | Release notes from the changelog, with long groups collapsed.     |
 | `PackageDirectory`       | A filterable grid of the published packages.                      |

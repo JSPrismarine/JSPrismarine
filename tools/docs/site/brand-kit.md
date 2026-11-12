@@ -206,6 +206,44 @@ Land made of the mark's triangle, in two ranges. It moves only while `moving` is
 <PassingLand :moving="lookingOut" :span="220" />
 ```
 
+### RouteLine
+
+Stops on a transit line, for anything that happens in order: the steps of a guide, a release history, a
+roadmap. The line draws itself when it scrolls into view and the rider travels to the last stop. A flagged
+stop is a diamond. A closed stop is a diamond too, and the rider stops there.
+
+<div class="kit-tile is-ink kit-tile--wide" style="color: var(--jsp-cream)">
+    <RouteLine style="width: 100%; --route-surface: var(--jsp-ink)" :stops="[
+        { label: 'Step 1', title: 'Download', body: 'One file for your system.' },
+        { label: 'Step 2', title: 'Start it', body: 'It listens on port ' + project.defaultPort + '.' },
+        { label: 'Arrive', title: 'Players join' }
+    ]" />
+</div>
+
+```vue
+<RouteLine
+    :stops="[
+        { label: 'Step 1', title: 'Download', body: 'One file for your system.' },
+        { label: 'Step 2', title: 'Start it', flagged: true },
+        { label: 'Arrive', title: 'Players join', href: '/guide/joining' }
+    ]"
+    tone="accent"
+/>
+```
+
+### ReleaseLine
+
+The release history on a selectable `RouteLine`. Point at a stop, or walk the line with the arrow keys, and
+the release under it changes.
+
+<div class="kit-tile is-ink kit-tile--wide" style="color: var(--jsp-cream)">
+    <ReleaseLine style="width: 100%; --route-surface: var(--jsp-ink)" :history="releases.history" :changelog-url="releases.changelogUrl" :pending="releases.pending" :pending-url="releases.pendingUrl" />
+</div>
+
+```vue
+<ReleaseLine :history="releases.history" :changelog-url="releases.changelogUrl" :pending="releases.pending" :pending-url="releases.pendingUrl" />
+```
+
 ### Code
 
 Fenced code uses the ink surface and the brand syntax colors in both modes.
