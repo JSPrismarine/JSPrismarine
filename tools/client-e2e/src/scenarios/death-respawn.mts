@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { screenContaining, sleep, waitTicks } from '../scenario.mts';
+import { readHealth, screenContaining, sleep, vec3, waitTicks } from '../scenario.mts';
 
 export const deathRespawn: Scenario = {
     name: 'death-respawn',
@@ -35,8 +35,8 @@ export const deathRespawn: Scenario = {
 
         const deadline = Date.now() + 15_000;
         for (;;) {
-            const health = (await client.state()).health as { current?: unknown } | undefined;
-            if (typeof health?.current === 'number' && health.current > 0) {
+            const health = readHealth(await client.state());
+            if (health !== undefined && health.current > 0) {
                 log(`respawned with ${health.current} health`);
                 break;
             }
@@ -47,9 +47,9 @@ export const deathRespawn: Scenario = {
             await sleep(250);
         }
 
-        const feet = (await client.state()).feet as number[] | undefined;
+        const feet = vec3(await client.state(), 'feet');
         assert.ok(
-            Array.isArray(feet) && feet[1]! >= 64 - 0.01,
+            feet[1] >= 64 - 0.01,
             `the respawn stood the player inside the stone spawn block: feet ${JSON.stringify(feet)}`
         );
 

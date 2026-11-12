@@ -226,10 +226,34 @@ export const standAt = async (
 /** Reads `[x, y, z]` out of a state snapshot key such as `feet` or `server_position`. */
 export const vec3 = (state: Record<string, unknown>, key: string): [number, number, number] => {
     const value = state[key];
-    if (!Array.isArray(value) || value.length !== 3 || !value.every((axis) => typeof axis === 'number')) {
-        throw new Error(`state.${key} is not a 3-vector: ${JSON.stringify(value)}`);
+    if (Array.isArray(value) && value.length === 3) {
+        const [x, y, z] = value;
+        if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') return [x, y, z];
     }
-    return value as [number, number, number];
+    throw new Error(`state.${key} is not a 3-vector: ${JSON.stringify(value)}`);
+};
+
+/** The health a state snapshot shows, as its current and maximum. */
+export interface ShownHealth {
+    readonly current: number;
+    readonly maximum: number;
+}
+
+/** Reads the health out of a state snapshot, or undefined when it holds no pair of numbers. */
+export const readHealth = (state: Record<string, unknown>): ShownHealth | undefined => {
+    const { health } = state;
+    if (typeof health !== 'object' || health === null || !('current' in health) || !('maximum' in health)) {
+        return undefined;
+    }
+    const { current, maximum } = health;
+    return typeof current === 'number' && typeof maximum === 'number' ? { current, maximum } : undefined;
+};
+
+/** Reads the health out of a state snapshot, throwing when it holds no pair of numbers. */
+export const healthOf = (state: Record<string, unknown>): ShownHealth => {
+    const health = readHealth(state);
+    if (health === undefined) throw new Error(`state.health is not a pair of numbers: ${JSON.stringify(state.health)}`);
+    return health;
 };
 
 /** Where the client draws the player named `name`, or undefined while it lists no such player. */

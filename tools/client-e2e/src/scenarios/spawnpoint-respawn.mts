@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { screenContaining, sleep, waitTicks } from '../scenario.mts';
+import { readHealth, screenContaining, sleep, vec3, waitTicks } from '../scenario.mts';
 
 const NETHER = [1, 'minecraft:the_nether', 'Nether'];
 /** On the flat Nether's floor, which tops out at y 3. */
@@ -36,8 +36,8 @@ export const spawnpointRespawn: Scenario = {
 
         const healthBy = Date.now() + 15_000;
         for (;;) {
-            const health = (await client.state()).health as { current?: unknown } | undefined;
-            if (typeof health?.current === 'number' && health.current > 0) break;
+            const health = readHealth(await client.state());
+            if (health !== undefined && health.current > 0) break;
             assert.ok(
                 Date.now() < healthBy,
                 `player never regained health after respawning: ${JSON.stringify(health)}`
@@ -45,12 +45,9 @@ export const spawnpointRespawn: Scenario = {
             await sleep(250);
         }
 
-        const feet = (await client.state()).feet as number[] | undefined;
+        const feet = vec3(await client.state(), 'feet');
         assert.ok(
-            Array.isArray(feet) &&
-                Math.abs(feet[0]! - POINT.x) < 0.5 &&
-                Math.abs(feet[1]! - POINT.y) < 0.5 &&
-                Math.abs(feet[2]! - POINT.z) < 0.5,
+            Math.abs(feet[0] - POINT.x) < 0.5 && Math.abs(feet[1] - POINT.y) < 0.5 && Math.abs(feet[2] - POINT.z) < 0.5,
             `the player respawned away from their spawn point ${JSON.stringify(POINT)}: feet ${JSON.stringify(feet)}`
         );
         log(`respawned at the Nether spawn point, feet ${JSON.stringify(feet)}`);
