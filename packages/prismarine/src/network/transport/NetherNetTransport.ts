@@ -44,9 +44,9 @@ export interface NetherNetTransportSource {
     close(reason?: string): void;
 }
 
-/** Where the transport reports peers opening and peers that never did. `Logger` fits. */
+/** Where the transport reports peers opening, as detail, and warns of peers that never did. `Logger` fits. */
 export interface NetherNetTransportLog {
-    info(message: string): void;
+    debug(message: string): void;
     warn(message: string): void;
 }
 
@@ -123,7 +123,7 @@ export default class NetherNetTransport extends KeyedTransport<NetherNetTranspor
         private readonly source: NetherNetTransportSource,
         ids: ConnectionIds,
         private readonly peerAddress: NetherNetPeerAddress = selectedCandidateAddress,
-        private readonly log: NetherNetTransportLog = { info: () => {}, warn: () => {} }
+        private readonly log: NetherNetTransportLog = { debug: () => {}, warn: () => {} }
     ) {
         super(ids);
         // The NetherNet server keys a peer on the connection ID the client picked. That ID stays
@@ -134,7 +134,7 @@ export default class NetherNetTransport extends KeyedTransport<NetherNetTranspor
             const early = this.early.get(peer.id) ?? [];
             this.early.delete(peer.id);
             if (accepted === undefined) return;
-            this.log.info(`NetherNet peer ${peer.id} opened from ${address} as connection ${accepted.id}`);
+            this.log.debug(`NetherNet peer ${peer.id} opened from ${address} as connection ${accepted.id}`);
             for (const frame of early) this.receive(peer.id, frame);
         });
         // A peer that closes before it opened was never accepted, so `forget` finds nothing.

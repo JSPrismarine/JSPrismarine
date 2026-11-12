@@ -43,7 +43,10 @@ export interface NetherNetOfferAnswerer {
     handleOffer(signal: SignalStructure, respond: (signal: SignalStructure) => void): Promise<void>;
 }
 
-/** Where the signaling server reports what went wrong. `@jsprismarine/logger`'s `Logger` fits. */
+/**
+ * Where the signaling server reports what it does. `@jsprismarine/logger`'s `Logger` fits. Each
+ * join's candidates and progress go to `debug`, and a join that fails to `warn`.
+ */
 export interface SignalingLogger {
     debug(message: string): void;
     info(message: string): void;
@@ -167,13 +170,15 @@ export class HttpSignaling {
         const networkId = parseNetworkId(networkIdText);
         const offer = await readOffer(request);
         const from = `${remoteOf(request)} (network ${networkId})`;
-        logger.info(`NetherNet join from ${from}, offering ${describeCandidates(offer).join(', ') || 'no candidates'}`);
+        logger.debug(
+            `NetherNet join from ${from}, offering ${describeCandidates(offer).join(', ') || 'no candidates'}`
+        );
 
         const started = Date.now();
         const result = await this.negotiate(offer);
         if ('answer' in result) {
             const answer = await this.options.sign(result.answer, await this.dialedBy(request));
-            logger.info(
+            logger.debug(
                 `NetherNet join from ${from} answered in ${Date.now() - started} ms as connection ${result.connectionId}, offering ${describeCandidates(answer).join(', ') || 'no candidates'}`
             );
             if (isPublicAddress(request.socket.remoteAddress ?? '') && !hasPublicCandidate(answer)) {
@@ -261,8 +266,10 @@ export class HttpSignaling {
                     // From here the join is WebRTC's: report each state change until it settles.
                     const peer = answerer.connections.get(connectionId)?.peer;
                     if (peer !== undefined) {
-                        tracePeerConnection(peer, (line) =>
-                            this.options.logger.info(`NetherNet connection ${connectionId}: ${line}`)
+                        tracePeerConnection(peer, (line, failed) =>
+                            this.options.logger[failed ? 'warn' : 'debug'](
+                                `NetherNet connection ${connectionId}: ${line}`
+                            )
                         );
                     }
                     settle({ answer: signal.data, connectionId });

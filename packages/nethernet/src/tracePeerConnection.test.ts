@@ -46,34 +46,34 @@ describe('tracePeerConnection', () => {
     it('says no check passed when a peer closes while ICE is still checking', () => {
         const fake = fakePeer();
         const lines: string[] = [];
-        tracePeerConnection(fake.peer, (line) => lines.push(line));
+        tracePeerConnection(fake.peer, (line, failed) => lines.push(failed ? `failed: ${line}` : line));
 
         fake.ice('closed');
         fake.state('closed');
 
         expect(lines).toStrictEqual([
-            'connection closed before it connected; ICE was checking: no connectivity check passed, so the client reached no address in the answer'
+            'failed: connection closed before it connected; ICE was checking: no connectivity check passed, so the client reached no address in the answer'
         ]);
     });
 
     it('says the handshake stalled when a peer closes after ICE connected', () => {
         const fake = fakePeer();
         const lines: string[] = [];
-        tracePeerConnection(fake.peer, (line) => lines.push(line));
+        tracePeerConnection(fake.peer, (line, failed) => lines.push(failed ? `failed: ${line}` : line));
 
         fake.ice('connected');
         fake.ice('closed');
         fake.state('closed');
 
         expect(lines).toStrictEqual([
-            'connection closed before it connected; ICE was connected: the client reached the server, and the handshake after it did not finish'
+            'failed: connection closed before it connected; ICE was connected: the client reached the server, and the handshake after it did not finish'
         ]);
     });
 
     it('reports a peer that connected and later closed as it did before', () => {
         const fake = fakePeer();
         const lines: string[] = [];
-        tracePeerConnection(fake.peer, (line) => lines.push(line));
+        tracePeerConnection(fake.peer, (line, failed) => lines.push(failed ? `failed: ${line}` : line));
 
         fake.ice('connected');
         fake.state('connected');

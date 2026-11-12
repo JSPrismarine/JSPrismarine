@@ -21,9 +21,10 @@ const stalledAt = (ice: IceState): string => {
  * ICE got, which tells an answer the client could not reach from a handshake that stalled after
  * the two sides found each other.
  * @param peer - The peer.
- * @param log - Where each change goes, as one line.
+ * @param log - Where each change goes, as one line. `failed` marks the line for a peer that ended
+ *   before it connected, which is worth a warning; the rest is detail for debugging.
  */
-export const tracePeerConnection = (peer: DriverPeer, log: (line: string) => void): void => {
+export const tracePeerConnection = (peer: DriverPeer, log: (line: string, failed: boolean) => void): void => {
     // ICE reports `closed` when the peer is torn down, which says nothing about how far it got.
     let ice = peer.iceState;
     let connected = peer.state === 'connected';
@@ -33,12 +34,14 @@ export const tracePeerConnection = (peer: DriverPeer, log: (line: string) => voi
     peer.onStateChange((state) => {
         if (state === 'connected') connected = true;
         const ended = state === 'closed' || state === 'failed';
-        log(ended && !connected ? `connection ${state} before it connected; ${stalledAt(ice)}` : `connection ${state}`);
+        if (ended && !connected) log(`connection ${state} before it connected; ${stalledAt(ice)}`, true);
+        else log(`connection ${state}`, false);
         if (state !== 'connected') return;
         const local = peer.localAddress();
         const remote = peer.remoteAddress();
         log(
-            `ICE pair ${local === undefined ? '?' : `${local.address}:${local.port}`} <-> ${remote === undefined ? '?' : `${remote.address}:${remote.port}`}`
+            `ICE pair ${local === undefined ? '?' : `${local.address}:${local.port}`} <-> ${remote === undefined ? '?' : `${remote.address}:${remote.port}`}`,
+            false
         );
     });
 };
