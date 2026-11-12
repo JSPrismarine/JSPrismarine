@@ -336,6 +336,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 return this.sendToTrackedEntity({ getRuntimeId: () => entry.data.entity }, () => [
                     animatePacketOf(entry.data)
                 ]);
+            case 'relayed-sound':
+                this.sendRelayedSound(entry.data);
+                return undefined;
             case 'emote':
                 return this.sendToTrackedEntity({ getRuntimeId: () => entry.data.entity }, () => [
                     emotePacketOf(entry.data)
@@ -690,6 +693,27 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         packet.position = position;
 
         this.sendAround(position, packet, { radius: WORLD_EVENT_RADIUS });
+    }
+
+    /** A sound a client made, to the players near it but that client. */
+    private sendRelayedSound(relayed: OccurrenceKinds['relayed-sound']): void {
+        const packet = new LevelSoundEventPacket();
+        packet.sound = relayed.sound;
+        packet.positionX = relayed.x;
+        packet.positionY = relayed.y;
+        packet.positionZ = relayed.z;
+        packet.extraData = relayed.data;
+        packet.entityType = relayed.type;
+        packet.isBabyMob = relayed.baby;
+        packet.disableRelativeVolume = relayed.global;
+        packet.entityUniqueId = relayed.actor;
+        packet.fireAtPosition =
+            relayed.firedAt === null ? null : new Vector3(relayed.firedAt.x, relayed.firedAt.y, relayed.firedAt.z);
+
+        this.sendAround(new Vector3(relayed.x, relayed.y, relayed.z), packet, {
+            radius: SOUND_RADIUS,
+            exclude: { getRuntimeId: () => relayed.sender }
+        });
     }
 
     /** An entity's noise, to the players near where it stood. */

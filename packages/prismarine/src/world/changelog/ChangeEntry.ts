@@ -185,7 +185,8 @@ export interface OccurrenceKinds {
         readonly x: number;
         readonly y: number;
         readonly z: number;
-        readonly sound: LevelSoundEvent;
+        /** The sound, or -1 for a name outside the server's enum. */
+        readonly sound: number;
         readonly data: number;
         readonly type: string;
         readonly baby: boolean;
