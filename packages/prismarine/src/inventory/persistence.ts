@@ -15,6 +15,7 @@
 import type { ItemDrop } from '@jsprismarine/block-behaviors';
 
 import { isRecord } from '../utils/isRecord';
+import { isStringList } from '../utils/isStringList';
 import ContainerEntry from './ContainerEntry';
 import type HumanInventory from './HumanInventory';
 import type Inventory from './Inventory';
@@ -51,6 +52,10 @@ export interface StoredItemStack {
      * match across the fallback path.
      */
     readonly contents?: readonly (StoredItemStack | null)[];
+    /** The Bedrock block identifiers the stack may be placed on, which adventure mode reads. */
+    readonly canPlaceOn?: readonly string[];
+    /** The Bedrock block identifiers the stack may destroy, which adventure mode reads. */
+    readonly canDestroy?: readonly string[];
 }
 
 /** Whether an unknown value, such as JSON read from actor NBT, has the shape of a stored stack. */
@@ -61,11 +66,9 @@ export const isStoredItemStack = (value: unknown): value is StoredItemStack => {
     if (value.meta !== undefined && typeof value.meta !== 'number') return false;
     if (value.damage !== undefined && typeof value.damage !== 'number') return false;
     if (value.customName !== undefined && typeof value.customName !== 'string') return false;
-    if (
-        value.lore !== undefined &&
-        (!Array.isArray(value.lore) || !value.lore.every((line) => typeof line === 'string'))
-    )
-        return false;
+    if (value.lore !== undefined && !isStringList(value.lore)) return false;
+    if (value.canPlaceOn !== undefined && !isStringList(value.canPlaceOn)) return false;
+    if (value.canDestroy !== undefined && !isStringList(value.canDestroy)) return false;
     if (value.enchantments !== undefined) {
         if (!isRecord(value.enchantments)) return false;
         if (!Object.values(value.enchantments).every((level) => typeof level === 'number')) return false;
@@ -151,6 +154,8 @@ export const storedItem = (item: Item, count: number = item.getAmount()): Stored
     const customName = item.getCustomName();
     const damage = Math.max(0, item.getMaxDurability() - item.getDurability());
     const contents = item.getContents();
+    const canPlaceOn = item.getCanPlaceOnBlocks();
+    const canDestroy = item.getCanDestroyBlocks();
 
     return {
         name: item.getName(),
@@ -160,7 +165,9 @@ export const storedItem = (item: Item, count: number = item.getAmount()): Stored
         ...(customName === undefined ? {} : { customName }),
         ...(lore.length === 0 ? {} : { lore: [...lore] }),
         ...(enchantments.size === 0 ? {} : { enchantments: Object.fromEntries(enchantments) }),
-        ...(contents.length === 0 ? {} : { contents: contents.map((slot) => (slot ? storedItem(slot) : null)) })
+        ...(contents.length === 0 ? {} : { contents: contents.map((slot) => (slot ? storedItem(slot) : null)) }),
+        ...(canPlaceOn.length === 0 ? {} : { canPlaceOn: [...canPlaceOn] }),
+        ...(canDestroy.length === 0 ? {} : { canDestroy: [...canDestroy] })
     };
 };
 
@@ -194,6 +201,8 @@ export const restoredItem = (stored: StoredItemStack | null | undefined, content
         enchantments: stored.enchantments,
         customName: stored.customName,
         lore: stored.lore,
+        canPlaceOnBlocks: stored.canPlaceOn,
+        canDestroyBlocks: stored.canDestroy,
         ...(stored.contents === undefined
             ? {}
             : { contents: stored.contents.map((slot) => restoredItem(slot, content)) })
