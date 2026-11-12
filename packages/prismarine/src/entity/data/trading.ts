@@ -65,7 +65,11 @@ export const loggedMerchantSource = (
     current: () => Merchant,
     logged: <T>(merchant: Merchant, change: () => T) => T
 ): TradeSource => ({
-    offers: (context) => current().offers(context),
+    // Logged too: the first offers a curing player is shown draw the trader's cured discount.
+    offers: (context) => {
+        const merchant = current();
+        return logged(merchant, () => merchant.offers(context));
+    },
     trade: (index, context) => {
         const merchant = current();
         return logged(merchant, () => merchant.trade(index, context));
