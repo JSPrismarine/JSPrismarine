@@ -1,5 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
+import { PositionMode } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -36,6 +37,8 @@ interface Recorded {
     readonly searches: { name: string; origin: { x: number; z: number }; radius: number | undefined }[];
     /** Every eye of ender the store was asked to throw. */
     readonly eyes: { from: EntityPosition; target: EntityPosition; stack: StoredItemStack }[];
+    /** Every position the player's session was asked to move the player to. */
+    readonly moved: { position: Vector3; type?: PositionMode }[];
 }
 
 const recording = (): Recorded => ({
@@ -45,7 +48,8 @@ const recording = (): Recorded => ({
     actorSounds: [],
     namedSounds: [],
     searches: [],
-    eyes: []
+    eyes: [],
+    moved: []
 });
 
 /** A player reduced to what the port reads and writes, over a store player, with its actor. */
@@ -70,7 +74,9 @@ const playerDouble = (recorded: Recorded): PlayerSession => {
             // The two advancement triggers the port raises read these. With no content built there
             // is nothing listening, which is what `enabled` checks first.
             getInventory: () => new HumanInventory(),
-            getServer: () => stub<Server>({ getContent: () => testContent() })
+            getServer: () => stub<Server>({ getContent: () => testContent() }),
+            setPlayerPosition: async (options: { position: Vector3; type?: PositionMode }) =>
+                void recorded.moved.push(options)
         },
         { runtimeId: 7n, actor: entity }
     );
@@ -86,6 +92,8 @@ const worldDouble = (player: PlayerSession, recorded: Recorded, target?: StoreAc
         // The player's session, which is how the port tells a player from any other entity.
         viewerOf: (runtimeId: bigint) => (runtimeId === 7n ? player : undefined),
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }),
+        // Every column's surface is at y 70.
+        getLoadedChunk: () => ({ getHighestBlockAt: () => 70 }),
         getServer: () => ({
             getLogger: () => ({ debug: (message: string) => void recorded.logged.push(message) }),
             getContent: () => testContent(),
@@ -155,6 +163,17 @@ describe('the item actor port', () => {
         expect(state.creative).toBe(false);
         expect(state.onGround).toBe(true);
         expect(state.eyeInWater).toBe(false);
+    });
+
+    it("teleports a player at random through its session, so the player's own client is told", () => {
+        const { port, recorded } = portUnderTest();
+
+        port.perform({ kind: 'teleport-randomly', target: SOURCE, radius: 8 });
+
+        // The random source answers 0.5, which lands on the column the player stands in.
+        expect(recorded.moved).toHaveLength(1);
+        expect(recorded.moved[0]?.type).toBe(PositionMode.Teleport);
+        expect(recorded.moved[0]?.position.getY()).toBeCloseTo(71 + 1.62);
     });
 
     it('keeps an item cooldown until the clock passes it', () => {
