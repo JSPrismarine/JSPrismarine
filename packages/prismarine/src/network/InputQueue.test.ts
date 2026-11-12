@@ -174,7 +174,7 @@ describe('network', () => {
         it("keeps each source's inputs in arrival order across steps, and loses none", () => {
             const queue = new InputQueue();
             const applied: string[] = [];
-            const sources = ['a', 'b', 'c'];
+            const sources = ['a', 'b', 'c'] as const;
             const sent = { a: 0, b: 0, c: 0 };
             // An uneven interleaving: a sends 7, b sends 3, c sends 1, mixed as they arrive.
             for (const source of ['a', 'a', 'b', 'a', 'c', 'a', 'b', 'a', 'a', 'b', 'a'] as const) {
@@ -187,9 +187,7 @@ describe('network', () => {
             expect(Math.max(...steps)).toBeLessThanOrEqual(2);
             for (const source of sources) {
                 const own = applied.filter((name) => name.startsWith(source));
-                expect(own).toEqual(
-                    Array.from({ length: sent[source as keyof typeof sent] }, (_unused, index) => `${source}${index}`)
-                );
+                expect(own).toEqual(Array.from({ length: sent[source] }, (_unused, index) => `${source}${index}`));
             }
             expect(applied).toHaveLength(11);
         });
