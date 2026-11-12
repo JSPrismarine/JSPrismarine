@@ -35,6 +35,13 @@ const undo = (current: NBTTagCompound | null, changes: readonly BlockEntityField
         current
     );
 
+/** Applies `changes` oldest first, the way a replay forward does. */
+const redo = (current: NBTTagCompound | null, changes: readonly BlockEntityFieldChange[]) =>
+    changes.reduce<NBTTagCompound | null>(
+        (tags, change) => withBlockEntityField(tags, AT, change.field, change.after),
+        current
+    );
+
 /** The bytes a block entity's tags serialize to, which is what the replay digest reads. */
 const bytesOf = (tags: NBTTagCompound | null) => {
     if (tags === null) return null;
@@ -87,6 +94,23 @@ describe('a block entity in the change log', () => {
         ['a renamed chest emptied', chest({ 2: ['minecraft:dirt', 5] }), chest({}, 'Empty')]
     ])('undoes %s back to the same bytes', (_name, before, after) => {
         expect(bytesOf(undo(after, blockEntityChanges(before, after)))).toEqual(bytesOf(before));
+    });
+
+    it('replays a change to a list that does not split, forward and back, to the same bytes', () => {
+        const slotted = chest({ 0: ['minecraft:bread', 3], 4: ['minecraft:stone', 2] });
+        const unslotted = chest({});
+        const stack = new NBTTagCompound('');
+        stack.addValue('Name', new Types.StringVal('minecraft:bread'));
+        unslotted.addValue('Items', new Set([stack]));
+
+        for (const [before, after] of [
+            [slotted, unslotted],
+            [unslotted, slotted]
+        ] as const) {
+            const changes = blockEntityChanges(before, after);
+            expect(bytesOf(redo(before, changes))).toEqual(bytesOf(after));
+            expect(bytesOf(undo(after, changes))).toEqual(bytesOf(before));
+        }
     });
 
     it('keeps a list whose stacks name no slot whole in its data', () => {
