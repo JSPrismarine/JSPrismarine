@@ -1,4 +1,3 @@
-import { Vector3 } from '@jsprismarine/math';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
@@ -8,6 +7,7 @@ import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import { StoreActors } from '../entity/data/storeActors';
 import { entityFixture } from '../entity/data/testing';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
+import { sealOccurrences } from '../testing/occurrences.test.helper';
 import type { ShownActor } from '../world/ShownActor';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 
@@ -115,7 +115,12 @@ describe('PlayerSession and an eye of ender signal', () => {
 
         // The thrown eye's bow: half volume and a low pitch, which is what tells a player an
         // eye left the hand rather than an arrow. Both have to survive the trip to the packet.
-        replicator.namedSound(new Vector3(0.5, 64.9, 0.5), 'random.bow', { volume: 0.5, pitch: 0.4 });
+        sealOccurrences(replicator, {
+            kind: 'occurrence',
+            occurrence: 'named-sound',
+            data: { x: 0.5, y: 64.9, z: 0.5, name: 'random.bow', volume: 0.5, pitch: 0.4 }
+        });
+        await replicator.flushOccurrences();
 
         const sounds = sent.filter((p) => p instanceof PlaySoundPacket);
         expect(sounds).toHaveLength(1);

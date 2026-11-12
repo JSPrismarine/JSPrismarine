@@ -22,7 +22,7 @@ import {
     WORLD_EVENT_RADIUS
 } from '../world/Proximity';
 import type { AudienceOptions, World } from '../world/World';
-import type { NamedSoundOptions, WorldChangeSink } from '../world/WorldChangeSink';
+import type { WorldChangeSink } from '../world/WorldChangeSink';
 import type { EntityId } from '../world/changelog/ChangeEntry';
 import type { OccurrenceEntry, OccurrenceKinds } from '../world/changelog/ChangeEntry';
 import type { SealedTick } from '../world/changelog/ChangeLog';
@@ -290,6 +290,12 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 return undefined;
             case 'block-sound':
                 this.sendBlockSound(entry.data);
+                return undefined;
+            case 'named-sound':
+                this.sendNamedSound(entry.data);
+                return undefined;
+            case 'named-particle':
+                this.sendNamedParticle(entry.data);
                 return undefined;
             default:
                 // A shown block goes out with the block changes, and a vetoed action is a record.
@@ -620,19 +626,21 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         });
     }
 
-    /** @inheritdoc */
-    public namedSound(position: Vector3, name: string, options: NamedSoundOptions = {}): void {
+    /** A sound by name, to the players near it. */
+    private sendNamedSound({ x, y, z, name, volume, pitch }: OccurrenceKinds['named-sound']): void {
+        const position = new Vector3(x, y, z);
         const packet = new PlaySoundPacket();
         packet.name = name;
         packet.position = position;
-        packet.volume = options.volume ?? 1;
-        packet.pitch = options.pitch ?? 1;
+        packet.volume = volume;
+        packet.pitch = pitch;
 
         this.sendAround(position, packet, { radius: SOUND_RADIUS });
     }
 
-    /** @inheritdoc */
-    public namedParticle(position: Vector3, name: string): void {
+    /** A particle effect by name, to the players near it. */
+    private sendNamedParticle({ x, y, z, name }: OccurrenceKinds['named-particle']): void {
+        const position = new Vector3(x, y, z);
         const packet = new SpawnParticleEffectPacket();
         packet.dimensionId = this.world.getDimension().bedrockId;
         packet.effectName = name;

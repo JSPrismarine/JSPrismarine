@@ -176,12 +176,12 @@ const liveWorld = (
 ): {
     world: World;
     chunk: Chunk;
-    sounds: string[];
+    sounds: () => string[];
     changed: () => string[];
     redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[];
 } => {
     const chunk = new Chunk(0, 0);
-    const sounds: string[] = [];
+    const heard: string[] = [];
     const shown: string[] = [];
     // A real store, so the block writes are logged and reach the sink as a sealed tick does.
     const runtime = inertEntityRuntime();
@@ -209,9 +209,9 @@ const liveWorld = (
 
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
-        namedSound: (_at, name) => void sounds.push(name),
         tickSealed: ({ entries }) => {
             for (const entry of entries) {
+                if (entry.kind === 'occurrence' && entry.occurrence === 'named-sound') heard.push(entry.data.name);
                 const block =
                     entry.kind === 'field' && entry.field === 'block'
                         ? { ...entry.address, block: entry.after }
@@ -229,6 +229,12 @@ const liveWorld = (
         store.sealTick();
         store.beginTick();
         return shown;
+    };
+    /** The named sounds clients were told about so far, which seals the open tick and opens the next. */
+    const sounds = (): string[] => {
+        store.sealTick();
+        store.beginTick();
+        return heard;
     };
     return { world, chunk, sounds, changed, redstoneUpdates };
 };
@@ -404,7 +410,7 @@ const IGLOO_LOOT = {
 describe('useItemOnBlock', () => {
     let world: World;
     let chunk: Chunk;
-    let sounds: string[];
+    let sounds: () => string[];
     let changed: () => string[];
     let redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[];
     let content: ServerContent;
@@ -485,7 +491,7 @@ describe('useItemOnBlock', () => {
 
         expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(1);
         expect(world.loadedBlockAt(2, 65, 2)?.states['open_bit']).toBe(1);
-        expect(sounds).toContain('open.door');
+        expect(sounds()).toContain('open.door');
     });
 
     // Java links the seed to its crop in code, in `Items`, so the click path's own table has
@@ -592,7 +598,7 @@ describe('useItemOnBlock', () => {
         expect(session.opened[0]!.contents[0]!.toItemStack().getName()).toBe('minecraft:stick');
         expect(session.opened[0]!.contents[0]!.getCount()).toBe(5);
         expect(session.opened[0]!.contents[1]!.toItemStack().getName()).toBe('minecraft:air');
-        expect(sounds).toContain('random.chestopen');
+        expect(sounds()).toContain('random.chestopen');
     });
 
     it('rolls a generated chest on the open that first shows it', async () => {
@@ -823,7 +829,7 @@ describe('useItemOnBlock', () => {
 
             expect(world.loadedBlockAt(4, 63, 4)?.name).toBe('minecraft:stone');
             expect(world.loadedBlockAt(4, 64, 4)?.name).toBe('minecraft:crafting_table');
-            expect(sounds).toContain('place');
+            expect(sounds()).toContain('place');
         });
 
         it('orients stairs from the interaction rotation and click face', () => {
@@ -950,7 +956,7 @@ describe('useItemOnBlock', () => {
             expect(world.loadedBlockAt(6, 64, 7)?.name).toBe('minecraft:piston');
             expect(world.loadedBlockAt(6, 64, 7)?.states['facing_direction']).toBe(4);
             expect(javaBlockStates('minecraft:piston', { facing_direction: 4 }).facing_direction).toBe('east');
-            expect(sounds).toContain('minecraft:piston.out');
+            expect(sounds()).toContain('minecraft:piston.out');
             expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:piston_arm_collision');
             expect(
                 javaBlockStates('minecraft:piston_arm_collision', world.loadedBlockAt(7, 64, 7)!.states)
@@ -1081,7 +1087,7 @@ describe('useItemOnBlock', () => {
                     expect(world.loadedBlockAt(center.x + dx, 64, center.z + dz)?.name).toBe('minecraft:end_portal');
                 }
             }
-            expect(sounds).toContain('block.end_portal.spawn');
+            expect(sounds()).toContain('block.end_portal.spawn');
         });
 
         it('spends one eye of ender on the frame it fills, in survival', () => {

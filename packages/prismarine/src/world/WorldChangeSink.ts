@@ -1,4 +1,3 @@
-import type { Vector3 } from '@jsprismarine/math';
 import type { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -76,30 +75,6 @@ export interface WorldChangeSink {
      * @param {number} z - The chunk's z, in chunks.
      */
     chunkLeft(x: number, z: number): void;
-
-    /**
-     * A named sound played at a position.
-     *
-     * Separate from a block's sound because the name is a string rather than a number. The
-     * `LevelSoundEvent` enum covers a few dozen sounds; the engine systems and the block
-     * behaviors name several hundred, `open.door` and `random.chestopen` among them, and
-     * those travel as text.
-     * @param {Vector3} position - Where the sound comes from, already centered in its block.
-     * @param {string} name - The client sound definition's name.
-     * @param {NamedSoundOptions} [options] - Volume and pitch, when they are not the definition's own.
-     */
-    namedSound(position: Vector3, name: string, options?: NamedSoundOptions): void;
-
-    /**
-     * A named particle effect appeared at a position.
-     *
-     * The counterpart of {@link namedSound} for particles, and separate from
-     * {@link worldEffect} for the same reason: the hardcoded effects are numbered, the ones a
-     * behavior pack can name are not.
-     * @param {Vector3} position - The world-space point where the effect appears.
-     * @param {string} name - The effect's identifier, such as `minecraft:crop_growth_emitter`.
-     */
-    namedParticle(position: Vector3, name: string): void;
 
     /**
      * Something happened to one entity: it was hurt, it died, it swung an arm.
@@ -268,8 +243,6 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     tickSealed: () => {},
     chunkEntered: () => {},
     chunkLeft: () => {},
-    namedSound: () => {},
-    namedParticle: () => {},
     actorEffect: async () => {},
     actorSound: () => {},
     entityAttributesChanged: async () => {},
