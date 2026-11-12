@@ -18,7 +18,6 @@ import type { LevelStem } from '@jsprismarine/worldgen';
 import type { Block } from '../block/Block';
 import type Server from '../Server';
 import type { Service } from '../utils/Service';
-import Timer from '../utils/Timer';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { randomOf } from '../utils/Random';
 import type { Random } from '../utils/Random';
@@ -98,6 +97,7 @@ import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
 import type { ChunkSaveContext } from './providers/ChunkSaveContext';
+import type { ProviderSavePass } from './providers/SavePass';
 import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
 import type { EntityStore } from '../entity/data/EntityStore';
@@ -226,14 +226,6 @@ interface ChunkLoadState {
 interface ChunkLoad extends ChunkLoadState {
     readonly chunk: Promise<Chunk>;
 }
-
-/**
- * Chunks written between yields to the event loop while saving.
- *
- * Smaller than the preload's batch because a save happens while players are connected: eight
- * chunks is a couple of milliseconds, so a tick that lands mid-save is late rather than lost.
- */
-const SAVE_BATCH_SIZE = 8;
 
 /** How many chunks one tick may write and unload after players move away. */
 const CHUNK_UNLOAD_BATCH_SIZE = 8;
@@ -587,26 +579,7 @@ export class World implements Service {
     private lastChunk: Chunk | null = null;
     private lastChunkSource: Map<number, Chunk> | null = null;
 
-    /** Two minutes at the server's twenty ticks per second. */
-    private static readonly AUTO_SAVE_INTERVAL_TICKS = 20 * 120;
-
-    /**
-     * The save that is still running, or null when none is.
-     *
-     * It settles when that pass is done and never rejects, so a pass queued behind it cannot
-     * fail on its predecessor's behalf. See {@link World.enqueueSave}.
-     *
-     * A tick starts a save and does not wait for it. Writing 441 freshly generated chunks
-     * takes about a second and a half, and `Server.tick` installs the next tick's timer only
-     * once `update` has resolved - so an awaited autosave stopped the world for as long as it
-     * took. That is under the loop's two second catch-up limit on an idle machine and over it
-     * on a busy one, which is the whole of the difference between a server that holds 20 TPS
-     * and one that announces it has skipped ninety ticks. {@link saveChunks} already yields
-     * between batches; not awaiting it is what lets those yields reach the tick loop rather
-     * than only the socket.
-     */
-    private saving: Promise<void> | null = null;
-    /** One selected unload batch, queued behind the same writer as saves. */
+    /** One selected unload batch, queued behind the level's other writes to the save. */
     private unloading: Promise<void> | null = null;
     private readonly server: Server;
     private readonly level: Level;
@@ -836,21 +809,28 @@ export class World implements Service {
     }
 
     /**
-     * On disable hook.
+     * On disable hook: stops the world and writes it, through the level's save.
      *
-     * The order is the whole of it. Marking the world closing stops the preload asking for
-     * more chunks and stops the tick; waiting for the start region means every chunk that was
-     * generated is in `this.chunks` before the save walks it; and the provider is closed last,
-     * once nothing is left that could ask it for anything.
-     *
-     * An autosave a tick started is one of those things. {@link World.save} waits for it
-     * before writing anything of its own, so by the time the level closes the provider no
-     * write is outstanding - closing the database under one is the same failure the start
-     * region race used to cause. The provider itself is the level's to close, once every
-     * world of the save has been through this.
+     * A level shutting down stops every world first with {@link World.stop} and writes them in
+     * one pass instead.
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
+        await this.stop();
+        await this.level.saveWorlds([this]);
+    }
+
+    /**
+     * Stops the world, so that nothing new starts while the save that follows runs.
+     *
+     * The order is the whole of it. Marking the world closing stops the preload asking for
+     * more chunks and stops the tick; waiting for the start region means every chunk that was
+     * generated is in `this.chunks` before the save walks it; and the unload batch in flight
+     * finishes its write. The provider is the level's to close, once every world of the save has
+     * been through this and the last pass has committed.
+     * @group Lifecycle
+     */
+    public async stop(): Promise<void> {
         this.closing = true;
 
         // A start region that failed has already been reported to whoever awaited `enable`;
@@ -858,7 +838,6 @@ export class World implements Service {
         await this.startingRegion?.catch(() => {});
 
         await this.unloading;
-        await this.save();
     }
 
     public getGenerator(): Generator {
@@ -1127,19 +1106,6 @@ export class World implements Service {
         const startProfile = profileSpanStarter(this.server);
 
         // TODO: tick chunks
-
-        // Auto save every 2 minutes. The interval has to be a remainder rather than an
-        // equality: `currentTick / 20 === 120` holds for exactly one value of the counter,
-        // so the world was saved once, two minutes in, and then never again for the rest
-        // of the process' life.
-        //
-        // Started, not awaited - see {@link World.saving} for why the tick must not wait.
-        const endAutoSaveProfile = startProfile?.(`World.autosave:${this.name}`);
-        try {
-            if (this.getTicks() % World.AUTO_SAVE_INTERVAL_TICKS === 0) this.beginAutoSave();
-        } finally {
-            endAutoSaveProfile?.();
-        }
 
         // Before the entities, so a mob walks on the world as it is this tick rather than as it was
         // before the sand under it fell away.
@@ -4121,149 +4087,58 @@ export class World implements Service {
     }
 
     /**
-     * Saves changed chunks into disk.
+     * Hands a save pass this world's players and every chunk that changed or holds entities, as
+     * they are now (ADR 0018). The level calls it for each of its worlds at the cut, in one
+     * synchronous run.
      *
-     * In batches with a yield between them, for the same reason the preload runs in batches:
-     * writing a chunk is synchronous, so `Promise.all` over every changed chunk was one
-     * uninterrupted run of work. The first autosave after a start region preload has all 441
-     * chunks to write and held the event loop for ten seconds - the server froze solid, and
-     * the tick loop came back announcing it had skipped two hundred ticks.
-     *
-     * A failed chunk write is logged and left dirty for retry. Other chunks in the pass still
-     * save, and the next pass tries the failed chunk again.
+     * A chunk that cannot be cut is logged and left dirty for the next pass, unless
+     * `requireSuccess`, for a replay checkpoint, which cannot use a save that missed one.
+     * @internal
      */
-    public async saveChunks(): Promise<void> {
-        await this.writeChunks(false);
-    }
-
-    /** Writes changed chunks, failing when a replay checkpoint could not persist one. */
-    private async writeChunks(requireSuccess: boolean): Promise<void> {
-        const timer = new Timer();
-        this.server.getLogger().info(`Saving chunks for level ${this.getFormattedName()}`);
+    public cutSave(pass: ProviderSavePass, players: Map<string, WorldPlayerData>, requireSuccess: boolean): void {
+        for (const session of this.getViewers()) {
+            const player = session.getPlayer();
+            const key = keyOfPlayer(player);
+            players.set(key, playerRecordOf(player, { key, server: this.server }, this.getDimension()));
+        }
 
         // A store entity's record is written into its actor's tags once per save rather than once
         // per tick, and the chunk serializer reads it there.
         this.dataEntities().persist();
         const saveContext = this.chunkSaveContext();
-
-        const changed = Array.from(this.chunks.values()).filter(
-            (chunk) =>
-                chunk.getHasChanged() || saveContext.entitiesByChunk.has(Chunk.packXZ(chunk.getX(), chunk.getZ()))
-        );
-        for (let i = 0; i < changed.length; i += SAVE_BATCH_SIZE) {
-            for (const chunk of changed.slice(i, i + SAVE_BATCH_SIZE)) {
-                try {
-                    await this.getProvider().writeChunk(chunk, saveContext);
-                } catch (error: unknown) {
-                    chunk.markChanged();
-                    this.server
-                        .getLogger()
-                        .error(
-                            `Failed to save chunk ${chunk.getX()},${chunk.getZ()}; it remains dirty for a later retry`
-                        );
-                    this.server.getLogger().error(error);
-                    // Replay capture cannot use this chunk's stale persisted state as its baseline.
-                    if (requireSuccess) throw error;
-                }
+        for (const chunk of this.chunks.values()) {
+            if (!chunk.getHasChanged() && !saveContext.entitiesByChunk.has(Chunk.packXZ(chunk.getX(), chunk.getZ())))
+                continue;
+            try {
+                pass.cutChunk(chunk, saveContext);
+            } catch (error: unknown) {
+                chunk.markChanged();
+                this.server
+                    .getLogger()
+                    .error(`Failed to save chunk ${chunk.getX()},${chunk.getZ()}; it remains dirty for a later retry`);
+                this.server.getLogger().error(error);
+                // Replay capture cannot use this chunk's stale persisted state as its baseline.
+                if (requireSuccess) throw error;
             }
-
-            if (i + SAVE_BATCH_SIZE < changed.length) await new Promise((resolve) => setImmediate(resolve));
         }
+    }
 
-        this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)!`);
+    /** Writes this world's changed chunks and players now, through the level's save. */
+    public async saveChunks(): Promise<void> {
+        await this.level.saveWorlds([this]);
     }
 
     /**
-     * Writes this world to disk: every player in it, every changed chunk, the level data.
-     *
-     * Queued behind whatever save is already running rather than run beside it. A caller that
-     * asks for a save gets one, so this waits its turn instead of declining like the autosave
-     * does, but it never writes at the same time as another pass.
+     * Writes the level this world is one dimension of: every player, every changed chunk, the
+     * level data. Queued behind whatever write is already running; see `LevelSave`.
      */
     public async save(): Promise<void> {
-        await this.enqueueSave();
+        await this.level.save();
     }
 
-    /**
-     * Saves players and chunks for a replay checkpoint, propagating persistence errors.
-     *
-     * Ordinary autosaves log failed writes and retry them later. A replay snapshot must fail
-     * instead, because copying the provider after a swallowed error would capture stale state.
-     */
-    public async saveForReplay(): Promise<void> {
-        await this.enqueueSave(async () => {
-            // Wait for every player write before returning, so a failed capture cannot leave
-            // another record write running while the provider snapshot is abandoned.
-            for (const session of this.getViewers()) await this.savePlayerData(session.getPlayer(), true);
-            await this.writeChunks(true);
-        });
-    }
-
-    /**
-     * Starts an autosave unless a save is already running.
-     *
-     * Skipped rather than queued, which is the one way this differs from {@link World.save}. A
-     * pass still going when the next falls due has more to write than two minutes of ticks
-     * allowed, and queueing would answer that with an ever-growing backlog of passes over the
-     * same chunks. Nothing is lost by skipping, because a chunk this pass does not reach is
-     * still dirty and the next one picks it up.
-     */
-    private beginAutoSave(): void {
-        if (this.saving !== null) return;
-
-        // Nothing awaits this - the tick that started it is over by the time it finishes - so
-        // a rejection escaping would be an unhandled one, and the server runs with
-        // `--unhandled-rejections=strict`. A save that fails is worth a log line and the next
-        // pass; it is not worth the process.
-        this.enqueueSave().catch((error: unknown) => {
-            this.server.getLogger().error(`Failed to save level ${this.getFormattedName()}`);
-            this.server.getLogger().error(error);
-        });
-    }
-
-    /**
-     * Runs one world or chunk write once the write before it has finished.
-     *
-     * Two passes over the same chunks at once would race on `Chunk.markSaved`. The one that
-     * finished second would clear the flag for a write the other had not made yet, and that
-     * change would never reach disk. Serializing them here rather than at each call site is
-     * what makes that impossible rather than merely unlikely, and it is what lets
-     * {@link World.disable} close the provider knowing no write is outstanding.
-     *
-     * {@link World.saving} holds a promise that settles when the running pass is done and
-     * never rejects, so waiting for a predecessor cannot fail on its behalf. The pass's own
-     * failure still reaches whoever awaited this.
-     */
-    private async enqueueSave(write: () => Promise<void> = () => this.write()): Promise<void> {
-        const previous = this.saving;
-
-        let finished!: () => void;
-        const slot = new Promise<void>((resolve) => {
-            finished = resolve;
-        });
-        // Taken in the same turn this was called, before any await, so a shutdown arriving on
-        // the next turn finds the promise to wait for.
-        this.saving = slot;
-
-        try {
-            await previous;
-            await write();
-        } finally {
-            // Only when nothing has queued behind this, so the last pass in a chain is the one
-            // that clears the slot.
-            if (this.saving === slot) this.saving = null;
-            finished();
-        }
-    }
-
-    /** One pass over everything, with nothing queued in front of it. */
-    private async write(): Promise<void> {
-        // `forEach` discards the promise an async callback returns, so these writes used to
-        // be in flight - and their failures unobserved - long after `save` had resolved.
-        // A shutdown save could return before a single player had reached disk.
-        await Promise.all(this.getViewers().map(async (session) => this.savePlayerData(session.getPlayer())));
-        await this.saveChunks();
-        await this.saveLevelData();
+    /** Runs a chunk write behind the level's other writes to the save; see `LevelSave.enqueue`. */
+    private async enqueueSave(write: () => Promise<void>): Promise<void> {
+        await this.level.enqueueSave(write);
     }
 
     /** The level this world is one dimension of. */

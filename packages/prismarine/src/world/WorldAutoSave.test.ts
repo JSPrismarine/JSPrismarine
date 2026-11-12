@@ -18,6 +18,9 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import type { Generator } from './Generator';
 import LevelDB from './providers/leveldb/LevelDB';
+import type { ProviderSavePass } from './providers/SavePass';
+import type { ChunkSaveContext } from './providers/ChunkSaveContext';
+import type { Level } from './Level';
 import { inertEntityRuntime, liveTestEntities, testContent } from '../testing/entityServer';
 import { DimensionTravel } from './portal/DimensionTravel';
 import { Position } from './Position';
@@ -36,8 +39,9 @@ import { ChunkCompletionQueue } from './ChunkCompletionQueue';
  *
  * On an idle machine that is under the tick loop's two second catch-up limit and invisible. On a
  * loaded one it is over, and the server announces that it skipped ninety ticks. The fix is for
- * the tick to start the save and move on, which is what these cover: it does not wait, two saves
- * never overlap, a shutdown still waits, and what reaches disk is unchanged.
+ * the tick to start the save and move on. Under ADR 0018 the tick takes the cut and encodes a
+ * bounded share of it, and the commit runs outside the tick. These cover that: the tick does not
+ * wait, two saves never overlap, a shutdown still waits, and what reaches disk is unchanged.
  */
 
 /** The floor every generated chunk gets, which is also what the round trip compares. */
@@ -110,24 +114,25 @@ const signAt = (x: number, y: number, z: number): GenericBlockEntity => {
 };
 
 /**
- * A provider whose chunk writes can be held open.
+ * A provider whose save passes can be held at their commit.
  *
- * Parking the writes is what makes the question "did the tick wait for this?" answerable
+ * Parking the commit is what makes the question "did the tick wait for this?" answerable
  * without depending on how fast a real disk happens to be.
  */
 class GatedLevelDB extends LevelDB {
-    /** Resolves once the first write has been parked. */
+    /** Resolves once the first commit has been parked. */
     public readonly parked: Promise<void>;
 
-    /** How many chunks have reached disk. */
+    /** How many chunks have reached disk through a committed pass. */
     public written = 0;
 
-    /** How many passes over the chunk list have started. */
+    /** How many passes have started. */
     public passes = 0;
 
-    /** How many were ever inside one at the same time, which is the overlap signal. */
+    /** How many were ever between their cut and the end of their commit at once, which is the overlap signal. */
     public concurrentPasses = 0;
 
+    private inside = 0;
     private open = false;
     private release: () => void = () => {};
     private announceParked: () => void = () => {};
@@ -143,20 +148,47 @@ class GatedLevelDB extends LevelDB {
         });
     }
 
-    /** Lets the parked write, and every write after it, through. */
+    /** Lets the parked commit, and every commit after it, through. */
     public openGate(): void {
         this.open = true;
         this.release();
     }
 
-    public override async writeChunk(chunk: Chunk): Promise<void> {
-        if (!this.open) {
-            this.announceParked();
-            await this.gate;
-        }
-
+    /** The unload pass writes a chunk on its own, outside a save pass. */
+    public override async writeChunk(chunk: Chunk, saveContext?: ChunkSaveContext): Promise<void> {
+        await this.wait();
+        await super.writeChunk(chunk, saveContext);
         this.written++;
-        return super.writeChunk(chunk);
+    }
+
+    private async wait(): Promise<void> {
+        if (this.open) return;
+        this.announceParked();
+        await this.gate;
+    }
+
+    public override beginSavePass(): ProviderSavePass {
+        const pass = super.beginSavePass();
+        const commit = pass.commit.bind(pass);
+        const cutChunk = pass.cutChunk.bind(pass);
+        let chunks = 0;
+        this.passes++;
+        this.inside++;
+        this.concurrentPasses = Math.max(this.concurrentPasses, this.inside);
+        pass.cutChunk = (chunk, context) => {
+            chunks++;
+            cutChunk(chunk, context);
+        };
+        pass.commit = async (options) => {
+            try {
+                await this.wait();
+                await commit(options);
+                this.written += chunks;
+            } finally {
+                this.inside--;
+            }
+        };
+        return pass;
     }
 }
 
@@ -175,24 +207,23 @@ const loadedWorld = async (name: string) => {
     await level.enable();
     const world = await level.world(OVERWORLD_STEM_ID);
 
-    // Counted here rather than in `writeChunk`, because a pass that writes nothing still has
-    // to be distinguishable from no pass at all.
-    const chunks = world.saveChunks.bind(world);
-    let inside = 0;
-    world.saveChunks = async () => {
-        provider.passes++;
-        inside++;
-        provider.concurrentPasses = Math.max(provider.concurrentPasses, inside);
-        try {
-            return await chunks();
-        } finally {
-            inside--;
-        }
-    };
-
     for (let i = 0; i < CHUNK_COUNT; i++) await world.getChunk(i, 0);
 
     return { world, provider, level };
+};
+
+/** Runs level ticks until the autosave in progress has encoded its last sub chunk and asked to commit. */
+const tickUntilParked = async (level: Level, provider: GatedLevelDB, from: number): Promise<number> => {
+    let parked = false;
+    void provider.parked.then(() => {
+        parked = true;
+    });
+    let tick = from;
+    for (; !parked && tick < from + 200; tick++) {
+        level.update(tick);
+        await new Promise((resolve) => setImmediate(resolve));
+    }
+    return tick;
 };
 
 beforeEach(() => {
@@ -209,15 +240,17 @@ afterEach(() => {
 });
 
 describe('the autosave a tick starts', () => {
-    it('lets the tick finish while chunks are still being written', async () => {
+    it('cuts in the tick, encodes over the ticks after it and commits outside them', async () => {
         const { world, provider, level } = await loadedWorld('unblocked');
 
         world.setTicks(AUTO_SAVE_TICK - 1);
-        await level.update(AUTO_SAVE_TICK);
+        // The tick returns at once: the cut is in it, and the commit is not.
+        expect(level.update(AUTO_SAVE_TICK)).toBeUndefined();
+        expect(provider.passes).toBe(1);
+        expect(provider.written).toBe(0);
 
-        // The tick is over and the save has not written a single chunk, because it is parked
-        // on the first one. Awaited, this call could not have returned.
-        await provider.parked;
+        // The chunks' sections are encoded `SAVE_ENCODE_BUDGET` a tick, then the commit parks.
+        await tickUntilParked(level, provider, AUTO_SAVE_TICK + 1);
         expect(provider.written).toBe(0);
 
         provider.openGate();
@@ -229,12 +262,12 @@ describe('the autosave a tick starts', () => {
         const { world, provider, level } = await loadedWorld('no-overlap');
 
         world.setTicks(AUTO_SAVE_TICK - 1);
-        await level.update(AUTO_SAVE_TICK);
-        await provider.parked;
+        level.update(AUTO_SAVE_TICK);
+        await tickUntilParked(level, provider, AUTO_SAVE_TICK + 1);
 
         // Two minutes of ticks later the next autosave falls due, with the first still parked.
         world.setTicks(AUTO_SAVE_TICK * 2 - 1);
-        await level.update(AUTO_SAVE_TICK * 2);
+        level.update(AUTO_SAVE_TICK * 2);
 
         expect(provider.passes).toBe(1);
 
@@ -246,8 +279,8 @@ describe('the autosave a tick starts', () => {
         const { world, provider, level } = await loadedWorld('explicit');
 
         world.setTicks(AUTO_SAVE_TICK - 1);
-        await level.update(AUTO_SAVE_TICK);
-        await provider.parked;
+        level.update(AUTO_SAVE_TICK);
+        await tickUntilParked(level, provider, AUTO_SAVE_TICK + 1);
 
         // What a plugin or a console command does, with the autosave still parked. It has to
         // happen - a caller that asks for a save gets one - but not at the same time.
@@ -261,17 +294,18 @@ describe('the autosave a tick starts', () => {
         await level.disable();
     });
 
-    it('is waited for by a shutdown, so the provider never closes under a write', async () => {
+    it('finishes an autosave a shutdown finds still encoding, before the provider closes', async () => {
         const { world, provider, level } = await loadedWorld('shutdown');
 
         world.setTicks(AUTO_SAVE_TICK - 1);
-        await level.update(AUTO_SAVE_TICK);
-        await provider.parked;
-
+        level.update(AUTO_SAVE_TICK);
+        // No more ticks: a shutdown stops them, so the encoding the ticks would have done is the
+        // shutdown's to finish.
         let shutDown = false;
         const disabling = level.disable().then(() => void (shutDown = true));
+        await provider.parked;
 
-        // A turn of the loop with the save still parked. The shutdown must still be waiting.
+        // A turn of the loop with the commit still parked. The shutdown must still be waiting.
         await new Promise((resolve) => setImmediate(resolve));
         expect(shutDown).toBe(false);
 

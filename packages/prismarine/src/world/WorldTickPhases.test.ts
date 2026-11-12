@@ -326,7 +326,6 @@ describe('world', () => {
 
                 expect(names).toEqual(
                     expect.arrayContaining([
-                        'World.autosave:tick-test-world',
                         'World.blockUpdates:tick-test-world',
                         'World.systems:tick-test-world',
                         'World.portalContacts:tick-test-world',

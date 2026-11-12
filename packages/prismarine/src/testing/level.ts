@@ -25,6 +25,7 @@ import GameRuleManager from '../world/GameRuleManager';
 import type { Generator } from '../world/Generator';
 import { GeneratorFactories } from '../world/GeneratorFactories';
 import { Level } from '../world/Level';
+import { LevelSave } from '../world/LevelSave';
 import type { DimensionLoad } from '../world/Level';
 import type BaseProvider from '../world/providers/BaseProvider';
 import { RespawnSearch } from '../world/RespawnSearch';
@@ -97,6 +98,17 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         if (found === undefined) throw new Error(`the fake level has no ${dimensionId} world`);
         return found;
     };
+    // A real save over the provider, without the level's own state, so a world that saves
+    // through its level writes its chunks the way it would under a real one.
+    const provider = options.provider;
+    const saves =
+        provider === undefined
+            ? undefined
+            : new LevelSave({
+                  name: options.name ?? 'test',
+                  provider: () => provider,
+                  logger: () => server.getLogger()
+              });
     const respawnSearch = new RespawnSearch({
         hasStem: (stemId) => stems.has(stemId),
         world,
@@ -140,8 +152,11 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
             ticks++;
             weather.tick(ticks);
             for (const world of worlds()) world.update(tick);
+            saves?.tick(ticks, worlds());
         },
-        save: async () => {},
+        save: async () => saves?.save(worlds()),
+        saveWorlds: async (saved) => saves?.save(saved),
+        enqueueSave: async (write) => (saves === undefined ? write() : saves.enqueue(write)),
         saveLevelData: async () => {},
         getPlayerData: async (key) => options.playerData?.get(key) ?? null,
         savePlayerData: async (key, data) => {
@@ -160,6 +175,8 @@ export interface TestLevelOptions {
     readonly seed?: bigint;
     /** What the Overworld stem builds to. */
     readonly generator: Generator;
+    /** What a Nether stem builds to. Left out, the level has no Nether. */
+    readonly nether?: Generator;
     /**
      * The world spawn, known before any world is built, so enabling the Overworld skips the
      * search for dry land and the chunks it would generate.
@@ -179,16 +196,36 @@ export interface TestLevelOptions {
  * the provider.
  */
 export const testLevel = (options: TestLevelOptions): Level => {
+    const nether = options.nether;
+    const netherStem: LevelStem = {
+        type: Dimensions.Nether.id,
+        generator: { type: TEST_GENERATOR_KIND, settings: undefined }
+    };
     const level = new Level({
         name: options.name,
         path: options.path,
         server: options.server,
         provider: options.provider,
         seed: options.seed ?? 1234n,
-        stems: new Map([[OVERWORLD_STEM_ID, TEST_OVERWORLD_STEM]]),
-        dimensionTypes: new Map([[Dimensions.Overworld.id, Dimensions.Overworld.java]]),
-        load: new Map([[OVERWORLD_STEM_ID, options.load ?? 'lazy']]),
-        factories: new GeneratorFactories([{ kind: TEST_GENERATOR_KIND, build: () => options.generator }]),
+        stems: new Map([
+            [OVERWORLD_STEM_ID, TEST_OVERWORLD_STEM],
+            ...(nether === undefined ? [] : ([[Dimensions.Nether.id, netherStem]] as const))
+        ]),
+        dimensionTypes: new Map([
+            [Dimensions.Overworld.id, Dimensions.Overworld.java],
+            ...(nether === undefined ? [] : ([[Dimensions.Nether.id, Dimensions.Nether.java]] as const))
+        ]),
+        load: new Map([
+            [OVERWORLD_STEM_ID, options.load ?? 'lazy'],
+            ...(nether === undefined ? [] : ([[Dimensions.Nether.id, 'lazy']] as const))
+        ]),
+        factories: new GeneratorFactories([
+            {
+                kind: TEST_GENERATOR_KIND,
+                build: ({ dimension }) =>
+                    nether !== undefined && dimension.id === Dimensions.Nether.id ? nether : options.generator
+            }
+        ]),
         worldgen: () => {
             throw new Error('A test level never reads the Java registries');
         },
