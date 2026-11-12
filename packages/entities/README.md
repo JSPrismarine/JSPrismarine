@@ -315,8 +315,9 @@ entity.componentState.set(AIR, { remaining: 300, untilHurt: 10 });
 ```
 
 The field guards give the key its type and check every value that arrives untyped, from a save or a
-host's undo. Values are plain data: numbers, strings, booleans, `null`, arrays and plain objects,
-with another entity named by its id. A value is frozen when it is written, so a component writes a
+host's undo. Values are plain data: finite numbers, strings, booleans, `null`, arrays and plain
+objects, with another entity named by its id. A JSON record writes `Infinity` and `NaN` as `null`,
+so the guards refuse them. A value is frozen when it is written, so a component writes a
 new record instead of editing the one it read.
 
 Every write goes through `ComponentStates.write`, which calls the environment's
