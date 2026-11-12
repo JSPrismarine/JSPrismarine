@@ -67,6 +67,7 @@ import { WindowTypes } from '../inventory/WindowTypes';
 import type { Item } from '../item/Item';
 import BlockPosition from '../world/BlockPosition';
 import { Position } from '../world/Position';
+import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import CoordinateUtils from '../world/CoordinateUtils';
 import { chunkViewArea, offsetsIn } from '../world/ChunkViewArea';
@@ -3646,9 +3647,12 @@ export default class PlayerSession {
      * Gives up the chunk tickets {@link attemptRespawnPoint} took, for a caller that stops asking
      * before it has the answer, such as a trip out of the End that was dropped. A respawn request
      * of the same player that still waits takes its ticket again at its next attempt.
+     * @param level - The level whose search took the tickets, the player's own by default. A
+     *   player who moved to another level since asks a different search, so a caller that knows
+     *   where the search ran names it.
      */
-    public abandonRespawnPoint(): void {
-        this.world.getLevel().getRespawnSearch().release(playerKeyOf(this.identity));
+    public abandonRespawnPoint(level: Pick<Level, 'getRespawnSearch'> = this.world.getLevel()): void {
+        level.getRespawnSearch().release(playerKeyOf(this.identity));
     }
 
     /** Clears a spawn point the answer says was lost, and names the world the answer is in. */

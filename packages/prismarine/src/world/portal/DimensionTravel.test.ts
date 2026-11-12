@@ -51,6 +51,7 @@ import type { Generator } from '../Generator';
 import { GeneratorFactories } from '../GeneratorFactories';
 import { Level } from '../Level';
 import LevelDB from '../providers/leveldb/LevelDB';
+import type { RespawnSearch } from '../RespawnSearch';
 import type { World } from '../World';
 import type WorldManager from '../WorldManager';
 import { arrivalTarget, DimensionTravel, END_ARRIVAL_YAW, stemTarget } from './DimensionTravel';
@@ -1377,6 +1378,43 @@ describe('DimensionTravel as messages', () => {
         });
         expect(scene.travel.pending).toBe(0);
         expect(tickets.count).toBe(0);
+        expect(tickets.holds(250, 250)).toBe(false);
+
+        scene.completions.deactivate();
+        await scene.level.disable();
+    }, 60_000);
+
+    it('gives up the respawn ticket through the level that searched, after the player moved to another', async () => {
+        const scene = await buildScene();
+        const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5));
+        scene.end.addPlayer(player);
+        player.getPlayer().setSeenCredits(true);
+        player.getPlayer().setSpawnPoint({ x: 4000, y: 64, z: 4000, dimension: 'minecraft:overworld' });
+        scene.completions.activate();
+        scene.travel.depart(player.getActor()!, {
+            world: scene.end,
+            position: new Vector3(0, 60, 0),
+            block: 'minecraft:end_portal'
+        });
+        const tickets = scene.overworld.chunkTickets();
+        await runInTick(async () => {
+            scene.travel.admit();
+        });
+        expect(tickets.holds(250, 250)).toBe(true);
+
+        // The player is moved into a world of another level before the step drops the trip, and
+        // that level's search has nothing of theirs.
+        const released: string[] = [];
+        const otherLevel = stub<Level>({
+            getRespawnSearch: () => stub<RespawnSearch>({ release: (key) => void released.push(key) })
+        });
+        scene.end.removePlayer(player);
+        Reflect.set(player, 'world', stub<World>({ getLevel: () => otherLevel }));
+        await runInTick(async () => {
+            scene.travel.admit();
+        });
+
+        expect(released).toEqual([]);
         expect(tickets.holds(250, 250)).toBe(false);
 
         scene.completions.deactivate();
