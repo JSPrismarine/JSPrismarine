@@ -1018,7 +1018,7 @@ describe('the dragon fight over a live End world', () => {
             const trace = async (order: readonly (readonly [number, number])[]) => {
                 setUp({ ...freshFightState(), gateways: [0] });
                 await killBetweenTicks();
-                const ticks: unknown[] = [];
+                const ticks: { tick: number; killed: boolean; portal: string | undefined; gateway: boolean }[] = [];
                 for (const [x, z] of order) {
                     ticker.advance();
                     await finishRead(x, z);
@@ -1046,7 +1046,7 @@ describe('the dragon fight over a live End world', () => {
 
             expect(backward).toEqual(forward);
             // Nothing happens until the tick that admits the last of the four.
-            expect(forward.slice(0, -1).every((tick) => (tick as { killed: boolean }).killed === false)).toBe(true);
+            expect(forward.slice(0, -1).every((tick) => tick.killed === false)).toBe(true);
             expect(forward.at(-1)).toMatchObject({
                 killed: true,
                 portal: 'minecraft:end_portal',
