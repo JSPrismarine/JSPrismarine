@@ -10,11 +10,10 @@ import { parseConfigDocument } from '../config/ConfigDocument';
 import type { OpEntry, PlayerPermissions } from '../config/JsonConfigTypes';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
 import { withCwd } from '../utils/cwd';
+import { isStringList } from '../utils/isStringList';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
-const isStringList = (value: unknown): value is string[] =>
-    Array.isArray(value) && value.every((item) => typeof item === 'string');
 const isOpEntry = (value: unknown): value is OpEntry =>
     isRecord(value) && typeof value.name === 'string' && typeof value.uuid === 'string';
 const isPlayerPermissions = (value: unknown): value is PlayerPermissions =>
