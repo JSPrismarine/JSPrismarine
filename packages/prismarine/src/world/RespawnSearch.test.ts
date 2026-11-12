@@ -80,11 +80,24 @@ const request = (spawnPoint?: RespawnRequest['spawnPoint']): RespawnRequest => (
     body: { width: 0.6, height: 1.8, eyeHeight: EYE_HEIGHT }
 });
 
+/**
+ * Asks until the search answers, letting the builds it starts finish between attempts, as the
+ * input steps of later ticks would.
+ */
+const answerOf = async (search: RespawnSearch, asked: RespawnRequest) => {
+    for (let attempts = 0; attempts < 10; attempts += 1) {
+        const attempt = search.attempt(asked);
+        if (attempt.kind === 'answer') return attempt.answer;
+        await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+    throw new Error('The search never answered');
+};
+
 describe('RespawnSearch', () => {
     it('answers the world spawn for a player with no point of their own', async () => {
         const { search, built } = searchOver();
 
-        const answer = await search.find(request());
+        const answer = await answerOf(search, request());
 
         expect(answer).toEqual({
             player: 'Steve',
@@ -102,7 +115,7 @@ describe('RespawnSearch', () => {
         const overworld = worldOf(Dimensions.Overworld, { '0,64,0': 'minecraft:stone', '-1,65,0': 'minecraft:stone' });
         const { search } = searchOver({ overworld });
 
-        const answer = await search.find(request());
+        const answer = await answerOf(search, request());
 
         expect(answer.block).toEqual({ x: 0, y: 66, z: 0 });
     });
@@ -111,7 +124,7 @@ describe('RespawnSearch', () => {
         const nether = worldOf(Dimensions.Nether, { '10,40,10': 'minecraft:red_bed' });
         const { search, built } = searchOver({ nether });
 
-        const answer = await search.find(request({ x: 10, y: 40, z: 10, dimension: 'minecraft:nether' }));
+        const answer = await answerOf(search, request({ x: 10, y: 40, z: 10, dimension: 'minecraft:nether' }));
 
         expect(answer).toMatchObject({
             spawn: 'own',
@@ -126,7 +139,8 @@ describe('RespawnSearch', () => {
         const overworld = worldOf(Dimensions.Overworld, { '5,70,5': 'minecraft:stone' });
         const { search } = searchOver({ overworld });
 
-        const answer = await search.find(
+        const answer = await answerOf(
+            search,
             request({ x: 5, y: 70, z: 5, dimension: Dimensions.Overworld.id, forced: true })
         );
 
@@ -138,7 +152,7 @@ describe('RespawnSearch', () => {
         const spawnPoint = { x: 10, y: 64, z: 10, dimension: Dimensions.Overworld.id };
         const asked = request(spawnPoint);
 
-        const answer = await search.find(asked);
+        const answer = await answerOf(search, asked);
 
         expect(answer).toMatchObject({ spawn: 'world', block: { x: 0, y: 64, z: 0 }, spawnPointLost: true });
         // The search writes nothing: the player clears its own point once it has the answer.
@@ -148,7 +162,7 @@ describe('RespawnSearch', () => {
     it('builds no world for a point in a dimension the level has no stem for', async () => {
         const { search, built } = searchOver();
 
-        const answer = await search.find(request({ x: 0, y: 64, z: 0, dimension: 'custom:nowhere' }));
+        const answer = await answerOf(search, request({ x: 0, y: 64, z: 0, dimension: 'custom:nowhere' }));
 
         expect(answer).toMatchObject({ spawn: 'world', spawnPointLost: true });
         expect(built).toEqual([]);
@@ -159,10 +173,10 @@ describe('RespawnSearch', () => {
         const { search } = searchOver({ nether });
         const asked = request({ x: 10, y: 40, z: 10, dimension: Dimensions.Nether.id });
 
-        const answer = await search.find(structuredClone(asked));
+        const answer = await answerOf(search, structuredClone(asked));
 
         expect(structuredClone(answer)).toEqual(answer);
-        expect(await search.find(asked)).toEqual(answer);
+        expect(await answerOf(search, asked)).toEqual(answer);
     });
     describe('an attempt, which never waits', () => {
         it('waits for a chunk it lacks with one ticket, and answers once the chunk is in', async () => {
@@ -178,7 +192,7 @@ describe('RespawnSearch', () => {
 
             unloaded.delete('0,0');
             const attempt = search.attempt(request());
-            expect(attempt).toEqual({ kind: 'answer', answer: await search.find(request()) });
+            expect(attempt).toEqual({ kind: 'answer', answer: await answerOf(search, request()) });
             expect(tickets.holds(0, 0)).toBe(false);
             expect(tickets.loadsStarted).toBe(1);
         });

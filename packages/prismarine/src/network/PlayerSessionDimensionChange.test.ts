@@ -277,7 +277,7 @@ describe('PlayerSession.changeWorld', () => {
         // Filed as a message: the held change waits for the next input step.
         expect(session.getWorld()).toBe(first);
         expect(travel.pending).toBe(1);
-        expect(await travel.admit()).toBe(1);
+        expect(travel.admit()).toBe(1);
         expect(session.getWorld()).toBe(second);
         expect(session.pendingDimensionChange()?.arrival.world).toBe(second);
     });
@@ -295,7 +295,7 @@ describe('PlayerSession.changeWorld', () => {
 
         await session.update(1200);
         expect(logged.some((line) => line.includes('never closed loading screen'))).toBe(true);
-        expect(await travel.admit()).toBe(1);
+        expect(travel.admit()).toBe(1);
         expect(session.getWorld()).toBe(second);
         expect(session.pendingDimensionChange()?.arrival.world).toBe(second);
     });
@@ -511,7 +511,7 @@ describe('PlayerSession.changeWorld', () => {
         expect(session.completeCredits()).toBe(true);
         // A message: nothing goes out until the next input step carries the change out.
         expect(sent).toEqual([]);
-        expect(await travel.admit()).toBe(1);
+        expect(travel.admit()).toBe(1);
 
         const change = sent.find((p): p is ChangeDimensionPacket => p instanceof ChangeDimensionPacket);
         expect(change?.getPacketData()?.dimension).toBe(Dimensions.Nether.bedrockId);
@@ -570,10 +570,10 @@ describe('PlayerSession.changeWorld', () => {
 
         session.requestRespawn();
 
-        await session.getServer().getRespawnRequests().admit();
+        session.getServer().getRespawnRequests().admit();
         // The respawn files the held change for the next input step.
         expect(sent.filter((packet) => packet instanceof ChangeDimensionPacket)).toHaveLength(0);
-        expect(await travel.admit()).toBe(1);
+        expect(travel.admit()).toBe(1);
 
         expect(player.getHealth() > 0).toBe(true);
         expect(session.getWorld()).toBe(nether);

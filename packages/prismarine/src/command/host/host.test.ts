@@ -494,7 +494,7 @@ describe('the server command host', () => {
             // carries it out.
             expect(player.changeWorld).not.toHaveBeenCalled();
             expect(fixture.travel.pending).toBe(1);
-            expect(await fixture.travel.admit()).toBe(1);
+            expect(fixture.travel.admit()).toBe(1);
 
             // The world change carries the position, so the player does not land at the
             // Nether's spawn first, and `setPlayerPosition` is not run in the world being left.
@@ -511,7 +511,7 @@ describe('the server command host', () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
             await expect(fixture.run('execute in minecraft:the_nether run tp @a 10 70 10')).resolves.toBe(1);
-            await fixture.travel.admit();
+            fixture.travel.admit();
 
             expect(player.changeWorld).toHaveBeenCalledWith(
                 expect.objectContaining({ world: fixture.nether, position: new Vector3(10, 70, 10) })

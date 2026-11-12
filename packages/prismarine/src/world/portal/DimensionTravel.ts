@@ -125,7 +125,12 @@ interface PortalTrip {
     readonly route: TripRoute;
     /** The preparation of the destination running for this trip, if one is. */
     preparing: Promise<void> | undefined;
+    /** Who holds the chunk ticket on the arrival chunks until the trip lands or is dropped. */
+    readonly ticket: string;
 }
+
+/** What a ready trip's arrival says while the arrival still waits, such as for a respawn search. */
+const WAITING = 'waiting';
 
 /**
  * Where a player's move goes, which may need its world built or its spawn found before the input
@@ -176,17 +181,20 @@ interface WorldMove {
     readonly session: PlayerSession;
     readonly target: MoveTarget;
     /** What follows the change, in the same input step. */
-    readonly then: () => Promise<void>;
+    readonly then: () => void;
     /** The preparation of the target running for this move, if one is. */
     preparing: Promise<void> | undefined;
 }
 
 /** Every chunk within `radius` blocks of a position on x and z, as chunk coordinates. */
-const chunksAround = (center: { readonly x: number; readonly z: number }, radius: number): [number, number][] => {
-    const chunks: [number, number][] = [];
+const chunksAround = (
+    center: { readonly x: number; readonly z: number },
+    radius: number
+): { x: number; z: number }[] => {
+    const chunks: { x: number; z: number }[] = [];
     for (let cx = Math.floor(center.x - radius) >> 4; cx <= Math.floor(center.x + radius) >> 4; cx += 1) {
         for (let cz = Math.floor(center.z - radius) >> 4; cz <= Math.floor(center.z + radius) >> 4; cz += 1)
-            chunks.push([cx, cz]);
+            chunks.push({ x: cx, z: cz });
     }
     return chunks;
 };
@@ -194,9 +202,10 @@ const chunksAround = (center: { readonly x: number; readonly z: number }, radius
 /**
  * The chunks a trip's arrival reads and writes: those a nether portal would be created in, which
  * also brings any portal already standing in them into the index, and those around the End
- * platform. A trip out of the End lands at a spawn its world already knows and needs none.
+ * platform. A trip out of the End needs none of its own: the respawn search, or the search for
+ * the world's spawn, waits for what it reads.
  */
-const chunksOf = (route: TripRoute): [number, number][] => {
+const chunksOf = (route: TripRoute): { x: number; z: number }[] => {
     if (route.kind === 'nether')
         return chunksAround(
             { x: route.target.getX(), z: route.target.getZ() },
@@ -243,6 +252,8 @@ export class DimensionTravel {
     private moves: WorldMove[] = [];
     /** The preparations running outside the ticks. */
     private readonly preparing = new Set<Promise<void>>();
+    /** Numbers each trip's chunk ticket. */
+    private nextTicket = 0;
 
     public constructor(private readonly server: Server) {}
 
@@ -250,8 +261,8 @@ export class DimensionTravel {
      * Records that an entity's body overlaps a portal block on this tick.
      *
      * The world calls this once per tick per entity standing in a portal. The first touch
-     * raises a cancelable `EntityPortalEnterEvent`, waits for every listener, asynchronous
-     * ones included, and opens the entity's contact timer unless one canceled; later touches
+     * raises a cancelable `EntityPortalEnterEvent` and opens the entity's contact timer unless a
+     * listener canceled it before returning, as a guard does (ADR 0013); later touches
      * keep it counting. A touch for an entity on portal cooldown raises nothing and winds the
      * cooldown back to its full length, as Java's `Entity.setAsInsidePortal`, so the arrival
      * portal cannot send it back until it has left and stepped back in. Nothing happens for an
@@ -259,12 +270,12 @@ export class DimensionTravel {
      * (MCPE-47288), or for a player whose client is still on the loading screen of the last
      * change.
      */
-    public async touch(entity: StoreActor, portal: PortalBlockRef): Promise<void> {
+    public touch(entity: StoreActor, portal: PortalBlockRef): void {
         if (isMidDimensionChange(entity) || this.isDeparting(entity) || this.isInRide(entity)) return;
 
         if (!entity.isOnPortalCooldown() && entity.portalContact() === undefined) {
             const event = new EntityPortalEnterEvent(entity, portal);
-            await this.server.emit('entityPortalEnter', event);
+            this.server.post(['entityPortalEnter', event]);
             if (event.isCanceled()) return;
         }
 
@@ -275,8 +286,9 @@ export class DimensionTravel {
      * Moves an entity to where a trip resolved to, and starts its portal cooldown so the
      * arrival portal does not send it straight back.
      *
-     * A player raises a cancelable `PlayerChangeDimensionEvent` first and then goes through
-     * `PlayerSession.changeWorld`, which runs the client's dimension change sequence; the
+     * A player raises a cancelable `PlayerChangeDimensionEvent` first, which a listener cancels
+     * before it returns, and then goes through `PlayerSession.changeWorld`, which runs the
+     * client's dimension change sequence and queues its packets; the
      * cooldown is the player's 10 ticks. A player leaving the End who has not seen the end
      * credits is held instead: `PlayerSession.startCredits` rolls them and keeps the arrival
      * until the client reports them finished. Anything else leaves its world with `removeEntity`,
@@ -289,14 +301,14 @@ export class DimensionTravel {
      * age, its pickup delay and its motion, and an inert actor with its saved identifier and
      * actor record tags, as each would be saved.
      */
-    public async transfer(entity: StoreActor, arrival: Arrival): Promise<void> {
+    public transfer(entity: StoreActor, arrival: Arrival): void {
         const from = entity.getWorld();
         const session = sessionOf(entity);
 
         if (session !== undefined) {
             const player = session.getPlayer();
             const event = new PlayerChangeDimensionEvent(session, from, arrival.world, arrival);
-            await this.server.emit('playerChangeDimension', event);
+            this.server.post(['playerChangeDimension', event]);
             if (event.isCanceled()) return;
 
             player.setPortalCooldown(PORTAL_COOLDOWN_TICKS.player);
@@ -308,11 +320,11 @@ export class DimensionTravel {
             // once instead of replaying them.
             if (from.getDimension().id === Dimensions.TheEnd.id && !player.hasSeenCredits()) {
                 player.setSeenCredits(true);
-                await session.startCredits(arrival);
+                session.released(session.startCredits(arrival));
                 return;
             }
 
-            await session.changeWorld(arrival, { whenPending: 'drop' });
+            session.released(session.changeWorld(arrival, { whenPending: 'drop' }));
             return;
         }
 
@@ -397,7 +409,13 @@ export class DimensionTravel {
         const route = this.routeOf(entity, portal);
         if (route === undefined) return false;
 
-        const trip: PortalTrip = { from: portal.world, entity: entity.getRuntimeId(), route, preparing: undefined };
+        const trip: PortalTrip = {
+            from: portal.world,
+            entity: entity.getRuntimeId(),
+            route,
+            preparing: undefined,
+            ticket: `travel:${this.nextTicket++}`
+        };
         this.trips.push(trip);
         this.prepare(trip);
         return true;
@@ -418,7 +436,7 @@ export class DimensionTravel {
      * @param arrival - Where the player lands, in a world that is already built.
      * @param then - What follows the change, such as the respawn exchange after the credits.
      */
-    public move(session: PlayerSession, arrival: Arrival, then: () => Promise<void> = async () => {}): void {
+    public move(session: PlayerSession, arrival: Arrival, then: () => void = () => {}): void {
         this.moveTo(session, arrivalTarget(arrival), then);
     }
 
@@ -428,7 +446,7 @@ export class DimensionTravel {
      * step at which it is ready. A player's later moves wait behind an earlier one, so they land
      * in the order they were filed.
      */
-    public moveTo(session: PlayerSession, target: MoveTarget, then: () => Promise<void> = async () => {}): void {
+    public moveTo(session: PlayerSession, target: MoveTarget, then: () => void = () => {}): void {
         const move: WorldMove = { session, target, then, preparing: undefined };
         this.moves.push(move);
         this.prepareMove(move);
@@ -449,18 +467,23 @@ export class DimensionTravel {
      * chunks at the same ticks lands each trip at the same tick. The traveler then leaves its
      * world and enters the other through {@link DimensionTravel.transfer}, so both changes land
      * in the tick this step opens. A trip whose traveler left its world in the meantime is
-     * dropped.
+     * dropped. A trip out of the End also waits for the respawn search, or the world's spawn,
+     * which it asks again at each step. Nothing here waits: what a trip lacks it asks for, and a
+     * later step lands it.
      *
      * @returns How many moves and trips landed.
      */
-    public async admit(): Promise<number> {
-        let landed = await this.admitMoves();
+    public admit(): number {
+        let landed = this.admitMoves();
 
         const due = this.trips;
         this.trips = [];
         for (const trip of due) {
             const traveler = trip.from.getActor(trip.entity);
-            if (traveler === null) continue;
+            if (traveler === null) {
+                this.release(trip);
+                continue;
+            }
 
             const to = this.readyDestination(trip);
             if (to === undefined) {
@@ -470,11 +493,17 @@ export class DimensionTravel {
             }
 
             try {
-                const arrival = await this.arrivalOf(trip, traveler, to);
+                const arrival = this.arrivalOf(trip, traveler, to);
+                if (arrival === WAITING) {
+                    this.trips.push(trip);
+                    continue;
+                }
+                this.release(trip);
                 if (arrival === undefined) continue;
-                await this.transfer(traveler, arrival);
+                this.transfer(traveler, arrival);
                 landed += 1;
             } catch (error: unknown) {
+                this.release(trip);
                 this.server.getLogger().error(`A trip from ${trip.from.getName()} to ${trip.route.to} failed`);
                 this.server.getLogger().error(error);
             }
@@ -482,11 +511,16 @@ export class DimensionTravel {
         return landed;
     }
 
+    /** Gives up the chunk ticket a trip holds on its arrival chunks. */
+    private release(trip: PortalTrip): void {
+        trip.from.getLevel().readyWorld(trip.route.to)?.chunkTickets().release(trip.ticket);
+    }
+
     /**
      * Carries out the moves filed before this step whose targets are ready, in order, and keeps
      * the rest, with every later move of the same player, for a later step.
      */
-    private async admitMoves(): Promise<number> {
+    private admitMoves(): number {
         const due = this.moves;
         this.moves = [];
         const waiting = new Set<PlayerSession>();
@@ -504,8 +538,8 @@ export class DimensionTravel {
             }
 
             try {
-                await session.changeWorld(arrival);
-                await then();
+                session.released(session.changeWorld(arrival));
+                then();
                 moved += 1;
             } catch (error: unknown) {
                 this.server.getLogger().error(`Moving ${session.identity.name} to ${arrival.world.getName()} failed`);
@@ -581,13 +615,14 @@ export class DimensionTravel {
         const to = trip.from.getLevel().readyWorld(route.to);
         if (to === undefined) return undefined;
         if (route.kind === 'nether' && this.exitPortalIn(to, route) !== undefined) return to;
-        return chunksOf(route).every(([x, z]) => to.getLoadedChunk(x, z) !== null) ? to : undefined;
+        return chunksOf(route).every(({ x, z }) => to.getLoadedChunk(x, z) !== null) ? to : undefined;
     }
 
     /**
-     * Prepares a trip's destination outside every tick: builds its world, then loads the chunks
-     * the arrival reads, which enter that world at an input step. A nether trip that already has
-     * a portal to arrive in loads nothing. One preparation runs per trip at a time.
+     * Prepares a trip's destination outside every tick: builds its world, then takes a chunk
+     * ticket on the chunks the arrival reads, which loads them, so they enter that world at an
+     * input step, and keeps them from unloading until the trip lands. A nether trip that already
+     * has a portal to arrive in loads nothing. One preparation runs per trip at a time.
      */
     private prepare(trip: PortalTrip): void {
         if (trip.preparing !== undefined) return;
@@ -599,7 +634,7 @@ export class DimensionTravel {
             const to = level.readyWorld(route.to);
             if (to === undefined) return;
             if (route.kind === 'nether' && this.exitPortalIn(to, route) !== undefined) return;
-            await Promise.all(chunksOf(route).map(async ([x, z]) => to.getChunk(x, z)));
+            to.chunkTickets().request(trip.ticket, chunksOf(route));
         })
             .catch((error: unknown) => {
                 this.server.getLogger().error(`Failed to prepare ${route.to} for a trip from ${trip.from.getName()}`);
@@ -628,10 +663,10 @@ export class DimensionTravel {
      * {@link END_SPAWN_POINT} facing west; one out of the End lands a player at their resolved
      * respawn point and anything else at the Overworld spawn.
      *
-     * @returns The arrival, or undefined when there is no portal to arrive in and the traveler
-     *   is not a player.
+     * @returns The arrival, undefined when there is no portal to arrive in and the traveler is
+     *   not a player, or {@link WAITING} while a trip out of the End waits for its spawn.
      */
-    private async arrivalOf(trip: PortalTrip, traveler: StoreActor, to: World): Promise<PortalArrival | undefined> {
+    private arrivalOf(trip: PortalTrip, traveler: StoreActor, to: World): PortalArrival | undefined | typeof WAITING {
         const { route } = trip;
         if (route.kind === 'nether') return this.throughNetherPortal(route, to);
         if (route.kind === 'enter-end') return this.enterEnd(route, to);
@@ -694,13 +729,15 @@ export class DimensionTravel {
      * `findRespawnPositionAndUseSpawnBlock(false, ...)`, which spends no anchor charge, and
      * `adjustSpawnLocation` at the Overworld spawn for anything else.
      *
-     * The player's respawn search still waits inside the input step, as the `Respawn` handler's
-     * does, until the search's answer is an input of its own.
+     * Neither waits. The player's respawn search reads loaded chunks and takes a ticket for what
+     * it lacks, and a world that has not found its spawn searches outside the tick; the trip
+     * asks again at the next input step.
      */
-    private async leaveEnd(traveler: StoreActor, route: TripRoute, to: World): Promise<PortalArrival> {
+    private leaveEnd(traveler: StoreActor, route: TripRoute, to: World): PortalArrival | typeof WAITING {
         const session = sessionOf(traveler);
         if (session !== undefined) {
-            const respawn = await session.getRespawnPoint();
+            const respawn = session.attemptRespawnPoint();
+            if (respawn === undefined) return WAITING;
             return {
                 world: respawn.world,
                 position: respawn.block,
@@ -711,7 +748,13 @@ export class DimensionTravel {
         }
 
         // Where a joining player's feet go before the terrain is consulted.
-        const spawn = await to.getSpawnPosition();
+        const spawn = to.getKnownSpawnPosition();
+        if (spawn === null) {
+            outsideTick(
+                () => void to.getSpawnPosition().catch((error: unknown) => this.server.getLogger().error(error))
+            );
+            return WAITING;
+        }
         return {
             world: to,
             position: requestedSpawnPosition(spawn),

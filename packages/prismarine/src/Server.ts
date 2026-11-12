@@ -298,9 +298,9 @@ export default class Server extends EventEmitter {
             admitInputs: async () =>
                 (await this.networking.admitInputs()) +
                 (await this.chunkCompletionQueue.admissions.admit(this.getTick())) +
-                (await this.respawnRequests.admit()) +
-                (await this.dimensionTravel.admit()) +
-                (await this.worldMessages.admit()),
+                this.respawnRequests.admit() +
+                this.dimensionTravel.admit() +
+                this.worldMessages.admit(),
             pollNetwork: () => this.networking.pollInbound(),
             // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
             getWorlds: () => this.worldManager.getLevels(),

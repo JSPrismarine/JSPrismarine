@@ -53,6 +53,7 @@ import { testLevel } from '../testing/level';
 import type { Level } from './Level';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 import { ChatManager } from '../chat/ChatManager';
+import { respawnPointOf } from '../testing/respawnPoint.test.helper';
 
 /** Where the bed stands, with the ground under it and nothing above. */
 const BED = { x: 10, y: 64, z: 10 };
@@ -264,13 +265,13 @@ describe('a player with a spawn point of their own', () => {
         expect(player.getSpawnPoint()).toEqual({ ...BED, dimension: 'minecraft:overworld' });
 
         // Beside the bed, in the first free column around it, rather than in the bed itself.
-        const beside = await player.getRespawnPoint();
+        const beside = await respawnPointOf(player);
         expect([beside.block.getX(), beside.block.getY(), beside.block.getZ()]).toEqual([BED.x, BED.y, BED.z + 1]);
 
         // Java's "your home bed was missing or obstructed": the point stops being used and the
         // player goes back to the world spawn.
         scene.blocks.setBlock(BED, 'minecraft:stone');
-        const fallback = await player.getRespawnPoint();
+        const fallback = await respawnPointOf(player);
         expect([fallback.block.getX(), fallback.block.getY(), fallback.block.getZ()]).toEqual([0, 70, 0]);
         expect(player.getSpawnPoint()).toBeUndefined();
 
@@ -296,7 +297,7 @@ describe('a player with a spawn point of their own', () => {
 
         // Nothing stands at (32, 65, -17) and the point is used anyway, which is what Java's
         // forced spawn means.
-        const point = await player.getRespawnPoint();
+        const point = await respawnPointOf(player);
         expect([point.block.getX(), point.block.getY(), point.block.getZ()]).toEqual([32, 65, -17]);
 
         await scene.level.disable();
@@ -312,7 +313,7 @@ describe('a player with a spawn point of their own', () => {
 
         // A player with no point of their own comes back at it.
         expect(player.getSpawnPoint()).toBeUndefined();
-        const point = await player.getRespawnPoint();
+        const point = await respawnPointOf(player);
         expect([point.block.getX(), point.block.getY(), point.block.getZ()]).toEqual([-8, 72, 44]);
 
         await scene.level.disable();
@@ -336,7 +337,7 @@ describe('a player with a spawn point of their own', () => {
 
         expect(back.getSpawnPoint()).toEqual({ ...BED, dimension: 'minecraft:overworld' });
 
-        const point = await back.getRespawnPoint();
+        const point = await respawnPointOf(back);
         expect([point.block.getX(), point.block.getY(), point.block.getZ()]).toEqual([BED.x, BED.y, BED.z + 1]);
 
         await returning.level.disable();

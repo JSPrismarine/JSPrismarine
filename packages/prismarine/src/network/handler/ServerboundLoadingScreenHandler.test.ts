@@ -25,7 +25,7 @@ const fakeSession = ({ open = [], pending }: { open?: number[]; pending?: number
         },
         pendingDimensionChange: () =>
             pending === undefined ? undefined : { loadingScreenId: pending, arrival: stub<Arrival>() },
-        completeDimensionChange: async (id) => {
+        completeDimensionChange: (id) => {
             completed.push(id);
             return id === pending;
         },
@@ -77,10 +77,10 @@ describe('ServerboundLoadingScreenHandler', () => {
         });
 
         new ServerboundLoadingScreenHandler().handle(packet, context);
-        // Finished in the handler, whose unit holds the end of the pending change; its sends go
-        // to the step, and nothing waits behind the handler.
+        // Finished in the handler, whose unit holds the end of the pending change; its sends are
+        // queued, and nothing waits behind the handler.
         expect(deferred).toHaveLength(0);
-        expect(outputs).toHaveLength(1);
+        expect(outputs).toHaveLength(0);
         expect(completed).toEqual([3]);
         await settled();
 

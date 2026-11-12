@@ -57,6 +57,17 @@ export const overworldSpawnOf = async (world: World): Promise<Vector3> => {
 };
 
 /**
+ * {@link overworldSpawnOf} without waiting: the spawn the level has found, or null while its
+ * Overworld has not found one.
+ *
+ * @param world - The world the player is in.
+ */
+export const knownOverworldSpawnOf = (world: World): Vector3 | null =>
+    world.getDimension().bedrockId === Dimensions.Overworld.bedrockId
+        ? world.getKnownSpawnPosition()
+        : world.getLevel().getSpawn();
+
+/**
  * The `SetSpawnPosition` for a player in a world, as a `PlayerRespawn` point.
  *
  * @param player - Whose spawn point the packet carries, when it has one.

@@ -62,10 +62,9 @@ export default class ServerboundLoadingScreenHandler implements InputLaneHandler
 
         report(false);
 
-        // The change stops being pending before the session's first wait, so this input's unit
-        // holds that write. What follows is the arrival's sends, then the advancement hook, in
-        // the order the client has always seen them, and a held change is filed as a message for
-        // the next input step rather than started here.
-        if (closedId !== null) step.output(session.completeDimensionChange(closedId).then(() => undefined));
+        // The change ends in this input's unit: the arrival's sends are queued, then the
+        // advancement hook runs, in the order the client has always seen them, and a held change
+        // is filed as a message for the next input step rather than started here.
+        if (closedId !== null) session.completeDimensionChange(closedId);
     }
 }

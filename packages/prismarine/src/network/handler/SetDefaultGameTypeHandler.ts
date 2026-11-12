@@ -70,12 +70,10 @@ export default class SetDefaultGameTypeHandler implements InputLaneHandler<SetDe
         // its own input step applies. Each client hears its new mode and then the default.
         const world = session.getWorld();
         for (const target of services.sessions.getSessions()) {
-            const change = async () => {
-                await target.setGamemode(packet.gamemode);
-                await sendDefault(config, target);
-            };
-            if (target.getWorld() === world) step.output(change());
-            else services.messages.send(target.getWorld(), change);
+            // Both queue their packets as they are called, so the mode goes out ahead of the default.
+            const change = () => Promise.all([target.setGamemode(packet.gamemode), sendDefault(config, target)]);
+            if (target.getWorld() === world) step.output(change().then(() => undefined));
+            else services.messages.send(target.getWorld(), () => target.released(change().then(() => undefined)));
         }
     }
 }

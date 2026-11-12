@@ -94,17 +94,6 @@ class Lacks {
     /** Worlds that do not know their spawn yet. */
     public readonly spawns = new Set<World>();
 
-    /**
-     * @param given - Worlds and spawns the caller already waited for, which {@link RespawnSearch.find}
-     *   hands to its next pass.
-     */
-    public constructor(
-        public readonly given: { readonly worlds: Map<string, World>; readonly spawns: Map<World, Vector3> } = {
-            worlds: new Map(),
-            spawns: new Map()
-        }
-    ) {}
-
     public get any(): boolean {
         return this.chunks.size > 0 || this.worlds.size > 0 || this.spawns.size > 0;
     }
@@ -191,37 +180,6 @@ export class RespawnSearch {
         return { kind: 'waiting' };
     }
 
-    /**
-     * Finds where a player comes back, loading what the search lacks and waiting for it.
-     *
-     * For portal travel out of the End, which still waits inside the tick until slice 9 turns
-     * travel into messages; a death and a respawn use {@link attempt}.
-     * @param request - Who is asking, their spawn point and their body.
-     */
-    public async find(request: RespawnRequest): Promise<RespawnAnswer> {
-        const given = { worlds: new Map<string, World>(), spawns: new Map<World, Vector3>() };
-        const loaded = new Set<string>();
-        for (;;) {
-            const lacks = new Lacks(given);
-            const answer = this.search(request, lacks);
-            if (answer !== undefined && !lacks.any) return answer;
-
-            for (const stemId of lacks.worlds) given.worlds.set(stemId, await this.worlds.world(stemId));
-            for (const world of lacks.spawns) given.spawns.set(world, await world.getSpawnPosition());
-            const loads: Promise<unknown>[] = [];
-            for (const [world, chunks] of lacks.chunks) {
-                for (const [key, { x, z }] of chunks) {
-                    // A chunk loaded once and still missing would be asked for forever.
-                    const named = `${world.getName()}:${key}`;
-                    if (loaded.has(named)) throw new Error(`Chunk ${key} of ${world.getName()} did not stay loaded`);
-                    loaded.add(named);
-                    loads.push(world.getChunk(x, z));
-                }
-            }
-            await Promise.all(loads);
-        }
-    }
-
     /** Gives up the chunk tickets a player's waiting attempts took. */
     private release(player: string): void {
         for (const world of this.ticketed.get(player) ?? []) world.chunkTickets().release(`respawn:${player}`);
@@ -281,7 +239,7 @@ export class RespawnSearch {
         // block, so it is raised out of whatever this player's body overlaps there: the body is
         // theirs, and so is how far the eyes sit above the feet.
         const world = this.worlds.worldSpawn();
-        const spawn = lacks.given.spawns.get(world) ?? world.getKnownSpawnPosition();
+        const spawn = world.getKnownSpawnPosition();
         if (spawn === null) {
             lacks.spawns.add(world);
             return undefined;
@@ -322,7 +280,7 @@ export class RespawnSearch {
         const stemId = dimensionByName(spawn.dimension)?.id ?? spawn.dimension;
         if (!this.worlds.hasStem(stemId)) return undefined;
 
-        const world = lacks.given.worlds.get(stemId) ?? this.worlds.built(stemId);
+        const world = this.worlds.built(stemId);
         if (world === undefined) {
             lacks.worlds.add(stemId);
             return undefined;

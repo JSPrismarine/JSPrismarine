@@ -79,7 +79,7 @@ describe('World viewers', () => {
         expect(actor instanceof StorePlayerActor && actor.player).toBe(session.getPlayer());
 
         created.beginChangeTick();
-        await created.removePlayer(session);
+        created.removePlayer(session);
         created.sealChangeTick();
         expect(created.viewerOf(4n)).toBeUndefined();
         expect(created.getActor(4n)).toBeNull();
