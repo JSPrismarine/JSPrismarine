@@ -214,12 +214,16 @@ const statusEffectsOf = (runtimeId: bigint, effects: readonly StatusEffect[]): M
  * bytes as the fourth, and an empty slot has to travel as air. The main hand is a separate packet
  * because that is the one the client reads a held item from, with zero for both slots, as a mob
  * has no inventory to name one in; the off hand follows only when something is in it, the way
- * vanilla sends it.
+ * vanilla sends it, or as air when `offhandEmptied` says a client may still draw one there.
+ *
+ * @param offhandEmptied - Whether the viewers were last shown something in the off hand that is
+ *   gone now. An update says so, and a first sight never does.
  */
 export const equipmentPackets = (
     runtimeEntityId: bigint,
     worn: ViewableEquipment,
-    context: ProtocolContext
+    context: ProtocolContext,
+    offhandEmptied = false
 ): NetworkPacket<unknown>[] => {
     const packets: NetworkPacket<unknown>[] = [
         new MobArmorEquipmentPacket({
@@ -238,11 +242,11 @@ export const equipmentPackets = (
             windowId: 0
         })
     ];
-    if (worn.offhand !== undefined) {
+    if (worn.offhand !== undefined || offhandEmptied) {
         packets.push(
             new MobEquipmentPacket({
                 runtimeEntityId,
-                item: worn.offhand.toStackDescriptor(context),
+                item: (worn.offhand ?? Item.air()).toStackDescriptor(context),
                 inventorySlot: 0,
                 hotbarSlot: 0,
                 windowId: WindowIds.OFFHAND

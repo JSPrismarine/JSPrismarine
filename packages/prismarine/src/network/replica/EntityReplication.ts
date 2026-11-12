@@ -306,8 +306,13 @@ export class EntityReplication {
         if (known.kind !== 'item' && this.equipmentWritten(known.kind, fields, slots, player)) {
             const worn = this.equipmentOf(held, view, player);
             if (!sameEquipmentItems(known.equipment, worn)) {
+                const offhandEmptied = known.equipment.offhand !== undefined && worn.offhand === undefined;
                 known.equipment = worn;
-                sends.push(this.ports.sendToTracked(entity, (codec) => equipmentPackets(entity, worn, codec.context)));
+                sends.push(
+                    this.ports.sendToTracked(entity, (codec) =>
+                        equipmentPackets(entity, worn, codec.context, offhandEmptied)
+                    )
+                );
             }
         }
 

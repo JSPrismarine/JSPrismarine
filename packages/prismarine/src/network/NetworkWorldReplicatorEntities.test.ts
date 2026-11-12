@@ -16,9 +16,10 @@ import type { ShownActor, ShownEntity } from '../world/ShownActor';
 import type { World } from '../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
-import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { PacketCompressionAlgorithm, WindowIds } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
+import { MobEquipmentPacket } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
@@ -501,6 +502,28 @@ describe('network', () => {
                     [2.5, false],
                     [6.5, true]
                 ]);
+            });
+
+            it('tells the viewers an off hand that was emptied holds air', async () => {
+                const watching = fakePlayer(1001n);
+                const { tick, spawn } = replicatorOverLog([watching.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                await tick(() => entity!.body.setEquipment({ offhand: { identifier: 'minecraft:shield', count: 1 } }));
+                watching.spy.frames.length = 0;
+
+                await tick(() => entity!.body.setEquipment({}));
+
+                const offhands = packetsIn(watching.spy.frames)
+                    .filter(({ name }) => name === 'MobEquipmentPacket')
+                    .map(({ buffer }) => {
+                        const packet = new MobEquipmentPacket(buffer);
+                        packet.codecProtocol = Codec2193.protocolVersion;
+                        packet.decode();
+                        return packet.getPacketData();
+                    })
+                    .filter((data) => data?.windowId === WindowIds.OFFHAND);
+                expect(offhands).toHaveLength(1);
             });
 
             it("queues a move for a player who turns only the head, with the head's yaw", async () => {

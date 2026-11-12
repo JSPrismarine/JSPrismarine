@@ -46,6 +46,21 @@ describe('network', () => {
             expect(sent[1]).toBeInstanceOf(MobEquipmentPacket);
         });
 
+        it('sends an off hand emptied since the viewers last saw it as air', async () => {
+            const sent = equipmentPackets(42n, {}, protocolContext, true);
+
+            expect(sent).toHaveLength(3);
+            const offhand = packetData(
+                nth(
+                    sent.filter((packet) => packet instanceof MobEquipmentPacket),
+                    1,
+                    'MobEquipmentPacket'
+                )
+            );
+            expect(offhand.windowId).toBe(WindowIds.OFFHAND);
+            expect(Item.fromStackDescriptor(protocolContext, offhand.item).getName()).toBe('minecraft:air');
+        });
+
         it('sends the armor before the hand, so a client dresses the mob it just spawned', async () => {
             const sent = shownWearing({
                 head: new Item({ name: 'minecraft:iron_helmet', count: 1 }),
