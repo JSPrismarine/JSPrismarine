@@ -129,11 +129,19 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
             })
     });
 
-    const sessions = sessionsWith({ getPlayerList: () => new Map(), getAllPlayers: () => [], getSessions: () => [] });
+    // No session is filed under an entity id, so a chat line, which `ChatManager` hands each joined
+    // player directly, reaches no client.
+    const sessions = sessionsWith({
+        getPlayerList: () => new Map(),
+        getAllPlayers: () => [],
+        getSessions: () => [],
+        sessionOf: () => null
+    });
     const chat = new ChatManager({
-        on: () => () => {},
-        off: () => {},
-        emit: async (name, ...args) => void events.push([name, args[0]])
+        post: (name, ...args) => {
+            events.push([name, args[0]]);
+            return 0;
+        }
     });
     // The searches a death files, which a test admits as the input step would.
     const respawnRequests = new RespawnRequests((error) => void logged.push(String(error)));

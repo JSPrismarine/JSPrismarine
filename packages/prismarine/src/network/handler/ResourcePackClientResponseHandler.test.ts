@@ -1,3 +1,4 @@
+import type { Chat } from '../../chat/Chat';
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
@@ -159,7 +160,7 @@ const harness = ({
         sendInventory: record('InventoryContent')
     });
 
-    const emit = vi.fn(async (_name: string, _event: unknown) => {});
+    const announce = vi.fn(async (_chat: Chat) => {});
     const parts: ContextParts = {
         log: stub<HandlerLog>({ info: () => {}, warn: () => {}, error: () => {}, debug }),
         config: {
@@ -176,14 +177,14 @@ const harness = ({
                 post: (_id, event) => {
                     if (cancelSpawn && event instanceof PlayerSpawnEvent) event.preventDefault();
                     return 0;
-                },
-                emit
-            }
+                }
+            },
+            chat: { send: announce }
         },
         tick: 100
     };
 
-    return { sent, packets, emit, kick, debug, parts, session };
+    return { sent, packets, announce, kick, debug, parts, session };
 };
 
 const response = (status: ResourcePackStatus, packIds: string[] = []) =>
@@ -539,12 +540,12 @@ describe('ResourcePackClientResponseHandler', () => {
     });
 
     it('announces the join once, after everything else', async () => {
-        const { sent, emit, parts, session } = harness();
+        const { sent, announce, parts, session } = harness();
 
         await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
-        expect(emit).toHaveBeenCalledOnce();
-        expect(emit.mock.calls[0]?.[0]).toBe('chat');
+        expect(announce).toHaveBeenCalledOnce();
+        expect(announce.mock.calls[0]?.[0].getMessage()).toBe('%multiplayer.player.joined');
         expect(sent.at(-1)).toBe('InventoryContent');
     });
 
@@ -580,18 +581,18 @@ describe('ResourcePackClientResponseHandler', () => {
         // `decodePayload` rejects a fifth alternative, so this only reaches the handler from a
         // caller setting the field. Numeric enums accept any number.
         const unknown: number = 9;
-        const { sent, kick, emit, debug, parts, session } = harness();
+        const { sent, kick, announce, debug, parts, session } = harness();
 
         await respond(new ResourcePackClientResponseHandler(), response(unknown), parts, session);
 
         expect(sent).toEqual([]);
         expect(kick).not.toHaveBeenCalled();
-        expect(emit).not.toHaveBeenCalled();
+        expect(announce).not.toHaveBeenCalled();
         expect(debug).toHaveBeenCalledOnce();
     });
 
     it('starts the join once, however many times the client says it completed', async () => {
-        const { sent, emit, parts, session } = harness();
+        const { sent, announce, parts, session } = harness();
         const handler = new ResourcePackClientResponseHandler();
 
         await respond(handler, response(ResourcePackStatus.Completed), parts, session);
@@ -599,7 +600,7 @@ describe('ResourcePackClientResponseHandler', () => {
         await respond(handler, response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent).toEqual(afterFirst);
-        expect(emit).toHaveBeenCalledOnce();
+        expect(announce).toHaveBeenCalledOnce();
     });
 
     it('sends no second pack stack once the join has started', async () => {
@@ -651,11 +652,11 @@ describe('ResourcePackClientResponseHandler', () => {
     });
 
     it('sends nothing when a subscriber cancels the spawn', async () => {
-        const { sent, emit, parts, session } = harness({ cancelSpawn: true });
+        const { sent, announce, parts, session } = harness({ cancelSpawn: true });
 
         await respond(new ResourcePackClientResponseHandler(), response(ResourcePackStatus.Completed), parts, session);
 
         expect(sent).toEqual([]);
-        expect(emit).not.toHaveBeenCalled();
+        expect(announce).not.toHaveBeenCalled();
     });
 });

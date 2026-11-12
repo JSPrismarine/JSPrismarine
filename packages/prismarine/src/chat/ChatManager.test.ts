@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import type { CommandExecutor } from '../command/CommandExecutor';
 import type { ServerEvents } from '../events/ServerEvents';
-import ChatEvent from '../events/chat/ChatEvent';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import { Chat, ChatType } from './Chat';
@@ -111,18 +110,23 @@ describe('ChatManager', () => {
         expect(steve.lines.map(({ message }) => message)).toEqual(['for steve']);
     });
 
-    it('reaches players from a `chat` event emitted without it', async () => {
+    it('posts one `chat` event and reaches every player in one pass after its listeners', async () => {
         const bus = new KernelEventBus<ServerEvents>();
         const chat = new ChatManager(bus);
-        const steve = recipient('Steve');
-        chat.join(steve.player);
+        const order: string[] = [];
+        const steve: ChatRecipient = { ...recipient('Steve').player, receive: async () => void order.push('Steve') };
+        chat.join(steve);
+        bus.on('chat', () => void order.push('first listener'));
+        const alex: ChatRecipient = { ...recipient('Alex').player, receive: async () => void order.push('Alex') };
+        chat.join(alex);
+        bus.on('chat', () => void order.push('second listener'));
 
-        await bus.emit('chat', new ChatEvent(say('a plugin broadcast')));
+        await chat.send(say('hello'));
 
-        expect(steve.lines.map(({ message }) => message)).toEqual(['a plugin broadcast']);
+        expect(order).toEqual(['first listener', 'second listener', 'Steve', 'Alex']);
     });
 
-    it('stops the players who joined after a listener that cancels, and not the ones before it', async () => {
+    it('stops every player when a listener cancels, whenever they joined', async () => {
         const bus = new KernelEventBus<ServerEvents>();
         const chat = new ChatManager(bus);
         const early = recipient('Early');
@@ -130,11 +134,46 @@ describe('ChatManager', () => {
         chat.join(early.player);
         bus.on('chat', (event) => event.preventDefault());
         chat.join(late.player);
+        const later: boolean[] = [];
+        bus.on('chat', (event) => void later.push(event.isCanceled()));
 
         await chat.send(say('hello'));
 
-        expect(early.lines).toHaveLength(1);
+        expect(early.lines).toEqual([]);
         expect(late.lines).toEqual([]);
+        // The listeners after the one that canceled still run, and see the cancel.
+        expect(later).toEqual([true]);
+    });
+
+    it('delivers when a listener cancels only after its first wait', async () => {
+        const bus = new KernelEventBus<ServerEvents>();
+        const chat = new ChatManager(bus);
+        const steve = recipient('Steve');
+        chat.join(steve.player);
+        bus.on('chat', async (event) => {
+            await Promise.resolve();
+            event.preventDefault();
+        });
+
+        await chat.send(say('hello'));
+
+        expect(steve.lines).toHaveLength(1);
+    });
+
+    it('reports a listener that throws and still delivers', async () => {
+        const failures: unknown[] = [];
+        const bus = new KernelEventBus<ServerEvents>({ onListenerError: (error) => failures.push(error) });
+        const chat = new ChatManager(bus);
+        const steve = recipient('Steve');
+        chat.join(steve.player);
+        bus.on('chat', () => {
+            throw new Error('broken plugin');
+        });
+
+        await chat.send(say('hello'));
+
+        expect(failures).toHaveLength(1);
+        expect(steve.lines).toHaveLength(1);
     });
 
     it('sends nothing to a player that left', async () => {
@@ -148,7 +187,6 @@ describe('ChatManager', () => {
 
         expect(steve.lines).toEqual([]);
         expect(chat.hasJoined('Steve')).toBe(false);
-        expect(bus.hasListeners('chat')).toBe(false);
     });
 
     it('keeps the player holding a key when the player it replaced leaves', async () => {

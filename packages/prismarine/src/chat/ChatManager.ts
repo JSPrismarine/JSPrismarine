@@ -71,7 +71,7 @@ export const chatRecipientOf = (
 });
 
 /** The part of the server's event bus chat uses. */
-export type ChatBus = Pick<ServerEventBus, 'on' | 'off' | 'emit'>;
+export type ChatBus = Pick<ServerEventBus, 'post'>;
 
 /** A sender that names an account, which is what a player's own chat carries to the client. */
 const hasXuid = (sender: CommandExecutor): sender is CommandExecutor & { getXUID(): string | null } =>
@@ -91,36 +91,41 @@ const reaches = (channel: string, recipient: ChatRecipient): boolean =>
 /**
  * Chat for the whole server: sending a message, and which players it reaches.
  *
- * A message goes out as a `chat` event, and everything that shows chat listens for it: the
- * console, the remote console, plugins and every player that has joined. A player joins the
- * fan-out with {@link ChatManager.join} once its join completes and leaves it with
+ * A message goes out as a `chat` event first, which the console, the remote console and plugins
+ * listen for, and then to every player that has joined whom its channel reaches. A player joins
+ * the fan-out with {@link ChatManager.join} once its join completes and leaves it with
  * {@link ChatManager.leave}, both keyed by `keyOfPlayer`. The table is server-wide state, not a
  * world's, so it changes when the call is made, inside a tick or between ticks.
  *
- * Each recipient is its own `chat` listener, added when it joins. A listener that cancels the
- * event therefore stops the players who joined after that listener was added, and not the ones
- * who joined before it, as when each player subscribed itself.
+ * The event is a before-hook: its listeners are called in the order they subscribed, and a
+ * listener that cancels it before its first wait stops every player, whenever they joined. The
+ * players are not listeners themselves, so the fan-out is one pass over them after the event.
  */
 export class ChatManager {
-    private readonly server: ChatBus;
-    /** Each joined player's listener, by `keyOfPlayer`. */
-    private readonly recipients = new Map<
-        string,
-        { recipient: ChatRecipient; listener: (event: ChatEvent) => Promise<void> }
-    >();
+    private readonly events: ChatBus;
+    /** Each joined player, by `keyOfPlayer`, in the order they joined. */
+    private readonly recipients = new Map<string, ChatRecipient>();
 
-    /** @param server - The bus `chat` events go out on, which is the server's. */
-    public constructor(server: ChatBus) {
-        this.server = server;
+    /** @param events - The bus `chat` events go out on, which is the server's. */
+    public constructor(events: ChatBus) {
+        this.events = events;
     }
 
     /**
      * Sends a message to the console, the plugins and every player its channel reaches.
+     *
+     * The `chat` listeners run first, each to its first wait, and the players get the message
+     * once they all have, unless one canceled it. Every line is queued before this returns.
      * @param chat - The message.
+     * @returns When the transport has framed every player's line.
      */
-    public async send(chat: Chat): Promise<void> {
+    public send(chat: Chat): Promise<void> {
         const event = new ChatEvent(chat);
-        await this.server.emit('chat', event);
+        this.events.post('chat', event);
+        if (event.isCanceled()) return Promise.resolve();
+        return Promise.all([...this.recipients.values()].map((recipient) => this.deliver(chat, recipient))).then(
+            () => {}
+        );
     }
 
     /**
@@ -128,16 +133,9 @@ export class ChatManager {
      * @param recipient - The connected player.
      */
     public join(recipient: ChatRecipient): void {
-        const { key } = recipient;
-        const previous = this.recipients.get(key);
-        if (previous !== undefined) this.leave(previous.recipient);
-
-        const listener = async (event: ChatEvent): Promise<void> => {
-            if (event.isCanceled()) return;
-            await this.deliver(event.getChat(), recipient);
-        };
-        this.recipients.set(key, { recipient, listener });
-        this.server.on('chat', listener);
+        // Deleted first, so a replacing login goes to the end of the order, as a new join does.
+        this.recipients.delete(recipient.key);
+        this.recipients.set(recipient.key, recipient);
     }
 
     /**
@@ -146,10 +144,8 @@ export class ChatManager {
      * @param recipient - The recipient {@link ChatManager.join} was given.
      */
     public leave(recipient: ChatRecipient): void {
-        const entry = this.recipients.get(recipient.key);
-        if (entry?.recipient !== recipient) return;
+        if (this.recipients.get(recipient.key) !== recipient) return;
         this.recipients.delete(recipient.key);
-        this.server.off('chat', entry.listener);
     }
 
     /**

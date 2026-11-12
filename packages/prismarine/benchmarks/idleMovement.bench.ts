@@ -120,7 +120,7 @@ const outputs: Promise<void>[] = [];
 const context: MovementContext = {
     session,
     log: server.getLogger(),
-    services: { events: { post: () => 0, emit: async () => {} } },
+    services: { events: { post: () => 0 } },
     step: {
         tick: 0,
         output: (send) => void outputs.push(send)
