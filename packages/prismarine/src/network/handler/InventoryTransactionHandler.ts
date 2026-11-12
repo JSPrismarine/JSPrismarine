@@ -253,9 +253,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
     /**
      * Handles an inventory transaction.
      *
-     * Synchronous, as the input step needs. A break with client-timed breaking still waits on
-     * the world before it finishes writing, so it goes to `step.defer`, beside the slice that
-     * removes the wait.
+     * Synchronous, as the input step needs.
      * @param packet - The transaction to apply.
      * @param context - The player's network session, and the input step that applies it.
      * @param interactionRotation - The view rotation from PlayerAuthInput when present.
@@ -567,9 +565,8 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                     return;
                 }
 
-                // Deferred until slice 9: a break writes through `setBlockByName`, which may still
-                // load a chunk, and drops what the block yields after it.
-                step.defer(async () => void (await world.breakBlock(blockPosition, session.getPlayer())));
+                // The break reads and writes the loaded chunk only, in this unit.
+                world.breakBlock(blockPosition, session.getPlayer());
                 return;
             }
 

@@ -91,8 +91,8 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
      * Acts on one action.
      *
      * Synchronous, as the input step needs. A block it acts on has to be in a loaded chunk, and
-     * the world's calls that still wait before they write or tell anyone, such as a break, go
-     * to `step.defer`, each beside the slice that removes the wait.
+     * the world's calls that still wait before they write or tell anyone go to `step.defer`,
+     * each beside the slice that removes the wait.
      * @param {number} action - a {@link PlayerActionType}.
      * @param {BlockPosition} blockPosition - the block it concerns, or the origin for those that concern none.
      * @param {number} blockFace - the face of that block.
@@ -245,9 +245,9 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                     return;
                 }
 
-                // Deferred until slice 9: a break writes through `setBlockByName`, which may
-                // still load a chunk, and drops what the block yields after it.
-                step.defer(async () => void (await world.breakBlock(blockPosition, session.getPlayer())));
+                // The break reads and writes the loaded chunk only, in this unit, and leaves a block
+                // whose chunk is not loaded alone.
+                world.breakBlock(blockPosition, session.getPlayer());
                 return;
             }
 
@@ -267,8 +267,8 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                     return;
                 }
 
-                // Deferred until slice 9, as the predicted break above.
-                step.defer(async () => void (await world.breakBlock(blockPosition, session.getPlayer())));
+                // In this unit, as the predicted break above.
+                world.breakBlock(blockPosition, session.getPlayer());
                 return;
             }
 

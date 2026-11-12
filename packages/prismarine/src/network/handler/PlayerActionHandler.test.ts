@@ -61,7 +61,7 @@ const fakeSession = (gamemode: Gametype, { serverAuthoritativeBreaking = false, 
     const at = (where: Vector3) => `${where.getX()},${where.getY()},${where.getZ()}`;
 
     const world = stub<World>({
-        breakBlock: async (where: Vector3) => {
+        breakBlock: (where: Vector3) => {
             broken.push(BlockPosition.fromVector3(where));
             return true;
         },
@@ -214,9 +214,9 @@ describe('PlayerActionHandler', () => {
             expect(scene.logged).toHaveLength(3);
         });
 
-        it('defers a break, which still waits on the world, and writes nothing before the step runs it', async () => {
+        it('breaks a block in the handler, with nothing deferred', () => {
             const scene = fakeSession(Gametype.CREATIVE);
-            const { context, deferred, settled } = inputContext(scene.session, scene);
+            const { context, deferred } = inputContext(scene.session, scene);
 
             new PlayerActionHandler().handleAction(
                 PlayerActionType.CreativeDestroyBlock,
@@ -225,9 +225,7 @@ describe('PlayerActionHandler', () => {
                 context
             );
 
-            expect(deferred).toHaveLength(1);
-            expect(scene.broken).toEqual([]);
-            await settled();
+            expect(deferred).toHaveLength(0);
             expect(scene.broken).toEqual([new BlockPosition(1, 2, 0)]);
         });
 

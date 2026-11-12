@@ -132,7 +132,7 @@ const buildFixture = (): Fixture => {
             ticks = value;
         },
         sendTime: async () => {},
-        breakBlock: async (position: Vector3) => {
+        breakBlock: (position: Vector3) => {
             blocks.set(key(position.getX(), position.getY(), position.getZ()), {
                 name: 'minecraft:air',
                 states: {}
