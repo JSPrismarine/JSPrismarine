@@ -4,7 +4,7 @@
         "description": {
             "identifier": "minecraft:item",
             "is_spawnable": false,
-            "is_summonable": true
+            "is_summonable": false
         },
         "components": {
             "minecraft:collision_box": {
