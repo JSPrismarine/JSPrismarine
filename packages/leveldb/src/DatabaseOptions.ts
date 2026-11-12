@@ -23,8 +23,10 @@ export interface DatabaseOptions {
     /** How many level 0 files may pile up before they are merged into level 1. */
     l0CompactionTrigger?: number;
     /**
-     * fsync after every batch. Slow, and unnecessary given the log is replayed on open. A write or
-     * commit can ask for its own with {@link WriteOptions.sync}.
+     * fsync after every batch. Slow. Without it the log, which is replayed on open, keeps every
+     * batch through a crash of the process, since the bytes are in the page cache, but not through
+     * an operating system crash or a power loss. A write or commit can ask for its own with
+     * {@link WriteOptions.sync}.
      */
     sync?: boolean;
 }

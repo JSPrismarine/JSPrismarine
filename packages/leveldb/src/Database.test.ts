@@ -324,6 +324,24 @@ describe('leveldb', () => {
                 await db.close();
             });
 
+            it('fails a commit queued behind one whose append failed, and its sync with it', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                const log = Reflect.get(db, 'log');
+                const descriptor: unknown = Reflect.get(log, 'descriptor');
+                // Both appended before either lands, so the second is framed for the first's end.
+                Reflect.set(log, 'descriptor', -1);
+                const first = db.commit(new WriteBatch().put(key('first'), key('v')), { sync: true });
+                const second = db.commit(new WriteBatch().put(key('second'), key('v')), { sync: true });
+
+                await expect(first).rejects.toThrow();
+                await expect(second).rejects.toThrow('An earlier append to this log failed');
+                expect(() => db.put(key('later'), key('v'))).toThrow(/refuses further writes/);
+
+                Reflect.set(log, 'descriptor', descriptor);
+                await db.close();
+            });
+
             it('applies none of a torn commit after a reopen, and keeps the commit before it', async () => {
                 // A crash in the middle of a save pass's commit. The record spans many 32 KiB
                 // blocks, and the copy keeps only its first part.

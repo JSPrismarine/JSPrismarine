@@ -126,6 +126,12 @@ export class AppendFile {
     /** The appends and syncs still running on the thread pool, or null when none is. */
     private tail: Promise<void> | null = null;
     private pending = 0;
+    /**
+     * The first append on the thread pool that failed. The length counted it, so every record
+     * framed after it was framed for an offset the file does not have, and none of them is
+     * written.
+     */
+    private failure: unknown;
 
     public constructor(file: string) {
         this.descriptor = openAppendable(file);
@@ -160,22 +166,43 @@ export class AppendFile {
      * Appends the parts on libuv's thread pool, after every append and sync asked for before.
      * The length counts them at once, so after a failed append it no longer matches the file and
      * the caller has to stop appending.
-     * @returns Settles once the parts are in the file.
+     * @returns Settles once the parts are in the file. Rejects when this append fails, and
+     *   without writing when an append asked for before it failed, since its record was framed
+     *   for an offset past the one that failed.
      */
     public appendLater(parts: readonly Buffer[]): Promise<void> {
         this.written += totalLength(parts);
         return this.enqueue(async () => {
-            let remaining = [...parts];
-            while (remaining.length > 0) {
-                const { bytesWritten } = await writev(this.descriptor, remaining);
-                remaining = remainingParts(remaining, bytesWritten);
+            this.assertNoFailedAppend();
+            try {
+                let remaining = [...parts];
+                while (remaining.length > 0) {
+                    const { bytesWritten } = await writev(this.descriptor, remaining);
+                    remaining = remainingParts(remaining, bytesWritten);
+                }
+            } catch (error) {
+                this.failure ??= error;
+                throw error;
             }
         });
     }
 
-    /** Syncs the file on the thread pool once every append asked for before has landed. */
+    /**
+     * Syncs the file on the thread pool once every append asked for before has landed.
+     * @returns Settles once synced. Rejects when the sync fails, or when an append before it
+     *   failed, since the file does not hold what was asked to be synced.
+     */
     public syncLater(): Promise<void> {
-        return this.enqueue(() => fsync(this.descriptor));
+        return this.enqueue(async () => {
+            this.assertNoFailedAppend();
+            await fsync(this.descriptor);
+        });
+    }
+
+    private assertNoFailedAppend(): void {
+        if (this.failure !== undefined) {
+            throw new Error('An earlier append to this log failed', { cause: this.failure });
+        }
     }
 
     /** Settles once nothing is running on the thread pool, whatever the outcome of the work. */
@@ -201,11 +228,21 @@ export class AppendFile {
         return run;
     }
 
+    /**
+     * Syncs the file before returning.
+     * @throws {Error} When an append or sync on the thread pool is still running, which this
+     *   would overtake.
+     */
     public sync(): void {
         if (this.busy) throw new Error('An append is still running on this log');
         fs.fsyncSync(this.descriptor);
     }
 
+    /**
+     * Closes the file.
+     * @throws {Error} When an append or sync on the thread pool is still running, which would
+     *   then write to a closed descriptor.
+     */
     public close(): void {
         if (this.busy) throw new Error('An append is still running on this log');
         fs.closeSync(this.descriptor);
