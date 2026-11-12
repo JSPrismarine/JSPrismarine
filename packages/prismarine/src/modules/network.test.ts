@@ -23,6 +23,7 @@ import { UnconnectedPing, UnconnectedPong } from '@jsprismarine/raknet';
 import { about } from '../about';
 import type { Config } from '../config/Config';
 import SessionManager from '../SessionManager';
+import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import PacketLogFilter from '../network/PacketLogFilter';
 import { stub } from '../testing/stub.test.helper';
 import { softwareLabel } from '../version';
@@ -121,7 +122,9 @@ describe('modules/network', () => {
             getLogger: () => stub<Logger>({ debug: () => {}, info, warn, error: () => {} }),
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
-            getSessionManager: () => new SessionManager()
+            getSessionManager: () => new SessionManager(),
+            // Inactive, as on a server whose tick loop does not run.
+            getChunkCompletionQueue: () => new ChunkCompletionQueue()
         });
 
     it('starts with NetherNet alone, advertising the same server name RakNet would', async () => {
@@ -272,7 +275,9 @@ describe('modules/network', () => {
                 }),
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
-            getSessionManager: () => new SessionManager()
+            getSessionManager: () => new SessionManager(),
+            // Inactive, as on a server whose tick loop does not run.
+            getChunkCompletionQueue: () => new ChunkCompletionQueue()
         });
 
     it('listens on IPv6 beside a wildcard IPv4 bind and advertises both ports', async () => {
@@ -490,7 +495,9 @@ describe('modules/network', () => {
             getVersion: () => '0.0.0-test',
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
-            getSessionManager: () => new SessionManager()
+            getSessionManager: () => new SessionManager(),
+            // Inactive, as on a server whose tick loop does not run.
+            getChunkCompletionQueue: () => new ChunkCompletionQueue()
         });
 
     /**
@@ -622,7 +629,9 @@ describe('modules/network', () => {
                 }),
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
-            getSessionManager: () => new SessionManager()
+            getSessionManager: () => new SessionManager(),
+            // Inactive, as on a server whose tick loop does not run.
+            getChunkCompletionQueue: () => new ChunkCompletionQueue()
         });
         const networking = new ServerNetworking(server);
 
@@ -687,7 +696,9 @@ describe('modules/network', () => {
             getVersion: () => '0.0.0-test',
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
-            getSessionManager: () => new SessionManager()
+            getSessionManager: () => new SessionManager(),
+            // Inactive, as on a server whose tick loop does not run.
+            getChunkCompletionQueue: () => new ChunkCompletionQueue()
         });
 
     /** Joins by address on the signaling port and returns the UDP port NetherNet's media uses. */
