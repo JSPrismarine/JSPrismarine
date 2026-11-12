@@ -10,8 +10,13 @@ import { ErrorCode, SignalStructure, SignalType } from './protocol/Signal';
 import { randomUint64 } from './randomUint64';
 import type { DriverChannel, PeerConfig, WebRtcDriver } from './WebRtcDriver';
 
-/** How long a peer may take from its answer to opening both channels and connecting. */
-export const DEFAULT_ACCEPT_TIMEOUT_MS = 5_000;
+/**
+ * How long a peer may take from its answer to opening both channels and connecting. Ten seconds
+ * is the default EndstoneMC's NetherNet specification gives for Bedrock's negotiation timeout.
+ * A client joining by address may ask its player to trust the server after it has the answer,
+ * and the time the player takes counts against this.
+ */
+export const DEFAULT_ACCEPT_TIMEOUT_MS = 10_000;
 
 /** The two channels a NetherNet client opens, and nothing else. */
 const EXPECTED_CHANNELS = ['ReliableDataChannel', 'UnreliableDataChannel'] as const;
