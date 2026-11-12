@@ -26,8 +26,28 @@ const channelOf = (channel: DataChannel): DriverChannel => ({
     }
 });
 
+/** A line the native library logged that no failing call claimed. */
+export interface NativeLogLine {
+    /** libdatachannel's level: 1 fatal, 2 error, 3 warning. */
+    readonly level: number;
+    /** The line, without the source location libdatachannel puts first. */
+    readonly text: string;
+}
+
+/** How the native driver reports what the library logs. */
+export interface NativeDriverOptions {
+    /**
+     * Receives the warnings and errors no failing call claimed, such as a connection that fails
+     * after it opened. The lines a failing call logged go into its error's message instead.
+     */
+    readonly log?: (line: NativeLogLine) => void;
+}
+
+/** Runs native calls, and explains a failed one with what the library logged while it ran. */
+type Explain = <T>(call: () => T) => T;
+
 /** A {@link PeerConnection} of the native library as a {@link DriverPeer}. */
-const peerOf = (peer: PeerConnection): DriverPeer => {
+const peerOf = (peer: PeerConnection, explain: Explain): DriverPeer => {
     const gathered = new Promise<string>((resolve, reject) => {
         const settle = (): void => {
             if (peer.iceGatheringState !== 'complete') return;
@@ -48,9 +68,9 @@ const peerOf = (peer: PeerConnection): DriverPeer => {
         get state() {
             return peer.connectionState;
         },
-        setRemoteDescription: (type, sdp) => peer.setRemoteDescription({ type, sdp }),
-        addRemoteCandidate: (candidate, sdpMid) => peer.addRemoteCandidate(candidate, sdpMid),
-        createDataChannel: (label, options) => channelOf(peer.createDataChannel(label, options)),
+        setRemoteDescription: (type, sdp) => explain(() => peer.setRemoteDescription({ type, sdp })),
+        addRemoteCandidate: (candidate, sdpMid) => explain(() => peer.addRemoteCandidate(candidate, sdpMid)),
+        createDataChannel: (label, options) => channelOf(explain(() => peer.createDataChannel(label, options))),
         localDescription: () => gathered,
         onDataChannel: (listener) => {
             peer.on('datachannel', (channel: DataChannel) => listener(channelOf(channel)));
@@ -73,20 +93,55 @@ const peerOf = (peer: PeerConnection): DriverPeer => {
 /**
  * The native networking library as a {@link WebRtcDriver}.
  * @param network - The loaded library.
+ * @param options - Where the library's log lines go.
  * @returns The driver.
  */
-export const nativeDriver = (network: NativeNetwork): WebRtcDriver => ({
-    createPeer: (config: PeerConfig = {}) =>
-        peerOf(
-            new PeerConnection(network, {
-                ...(config.bindAddress === undefined ? {} : { bindAddress: config.bindAddress }),
-                ...(config.iceServers === undefined ? {} : { iceServers: config.iceServers }),
-                portRangeBegin: config.portRangeBegin ?? 0,
-                portRangeEnd: config.portRangeEnd ?? 0,
-                enableIceUdpMux: config.enableIceUdpMux ?? false
-            })
-        )
-});
+export const nativeDriver = (network: NativeNetwork, options: NativeDriverOptions = {}): WebRtcDriver => {
+    // The lines a failing call logged, while it is being explained.
+    let claimed: string[] | undefined;
+    network.onLog((level, line) => {
+        const text = line.replace(/^\S+@\d+: /, '');
+        if (claimed === undefined) options.log?.({ level, text });
+        else claimed.push(text);
+    });
+    /** The error with what the library logged while the failed call ran, when it logged anything. */
+    const explained = (error: unknown): unknown => {
+        claimed = [];
+        let lines: string[];
+        try {
+            // The library logged on this thread before it returned, so the lines are queued.
+            network.flushLog();
+        } finally {
+            lines = [...new Set(claimed)];
+            claimed = undefined;
+        }
+        if (lines.length === 0 || !(error instanceof Error)) return error;
+        return new Error(`${error.message}: ${lines.join('; ')}`, { cause: error });
+    };
+    const explain: Explain = (call) => {
+        try {
+            return call();
+        } catch (error: unknown) {
+            throw explained(error);
+        }
+    };
+    return {
+        createPeer: (config: PeerConfig = {}) =>
+            peerOf(
+                explain(
+                    () =>
+                        new PeerConnection(network, {
+                            ...(config.bindAddress === undefined ? {} : { bindAddress: config.bindAddress }),
+                            ...(config.iceServers === undefined ? {} : { iceServers: config.iceServers }),
+                            portRangeBegin: config.portRangeBegin ?? 0,
+                            portRangeEnd: config.portRangeEnd ?? 0,
+                            enableIceUdpMux: config.enableIceUdpMux ?? false
+                        })
+                ),
+                explain
+            )
+    };
+};
 
 /** The native library could not be loaded, so NetherNet cannot run here. */
 export class NetherNetUnavailableError extends Error {
@@ -95,12 +150,13 @@ export class NetherNetUnavailableError extends Error {
 
 /**
  * Loads the native library and returns its driver.
+ * @param options - Where the library's log lines go.
  * @returns The driver.
  * @throws {NetherNetUnavailableError} When the library cannot be loaded, with the platform and the cause.
  */
-export const loadNativeDriver = async (): Promise<WebRtcDriver> => {
+export const loadNativeDriver = async (options: NativeDriverOptions = {}): Promise<WebRtcDriver> => {
     try {
-        return nativeDriver(await NativeNetwork.load());
+        return nativeDriver(await NativeNetwork.load(), options);
     } catch (error: unknown) {
         throw new NetherNetUnavailableError(
             `NetherNet's native library cannot load on ${process.platform}-${process.arch}: ${

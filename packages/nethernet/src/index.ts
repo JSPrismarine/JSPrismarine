@@ -23,6 +23,7 @@ export { exchangeOffer, JoinRefusedError, probeJoin } from './joinByAddress';
 export type { JoinProbe, SignalingAddress } from './joinByAddress';
 export type { NetherNetStatus } from './NetherNetStatus';
 export { loadNativeDriver, nativeDriver, NetherNetUnavailableError } from './nativeDriver';
+export type { NativeDriverOptions, NativeLogLine } from './nativeDriver';
 export { decodeDiscoveryPacket, DiscoveryPacketType, encodeDiscoveryPacket } from './protocol/Discovery';
 export type { DiscoveryMessage, DiscoveryPacket, DiscoveryRequest, DiscoveryResponse } from './protocol/Discovery';
 export { ErrorCode, SignalStructure, SignalType } from './protocol/Signal';

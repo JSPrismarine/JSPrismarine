@@ -38,6 +38,10 @@ export interface NetherNetServerOptions {
     readonly ports?: PortAllocator;
 }
 
+/** A close reason with what went wrong, so the log line that reports it says why. */
+const withCause = (reason: string, error: unknown): string =>
+    `${reason}: ${error instanceof Error ? error.message : String(error)}`;
+
 /**
  * NetherNet's server side: turns each client's offer into an answer over a WebRTC driver, and
  * keeps the connection it negotiates. Offers arrive through {@link NetherNetServer.handleOffer},
@@ -139,15 +143,15 @@ export class NetherNetServer extends EventEmitter {
 
         try {
             connection.peer.setRemoteDescription('offer', signal.data);
-        } catch {
-            fail(ErrorCode.FailedToSetRemoteDescription, 'offerfailed', connection);
+        } catch (error: unknown) {
+            fail(ErrorCode.FailedToSetRemoteDescription, withCause('offerfailed', error), connection);
             return;
         }
         let answer: string;
         try {
             answer = await connection.peer.localDescription();
-        } catch {
-            if (!connection.closed) fail(ErrorCode.FailedToCreateAnswer, 'answerfailed', connection);
+        } catch (error: unknown) {
+            if (!connection.closed) fail(ErrorCode.FailedToCreateAnswer, withCause('answerfailed', error), connection);
             return;
         }
         if (connection.closed) return;
