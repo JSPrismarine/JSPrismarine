@@ -96,7 +96,7 @@ import type { ChunkSaveContext } from './providers/ChunkSaveContext';
 import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
 import type { EntityStore } from '../entity/data/EntityStore';
-import type { OccurrenceEntry, StateEntry } from './changelog/ChangeEntry';
+import type { OccurrenceEntry, OccurrenceKinds, StateEntry } from './changelog/ChangeEntry';
 import { Position } from './Position';
 import type { SealedTick } from './changelog/ChangeLog';
 import type { ChangeLogCost } from './changelog/changeLogCost';
@@ -2041,6 +2041,16 @@ export class World implements Service {
             occurrence: 'actor-event',
             data: { entity: entity.getRuntimeId(), event, data }
         });
+    }
+
+    /**
+     * Shows a player's animation, such as an arm swing, to the players that see the player. The
+     * player's own client already played it. It is an `animate` occurrence in the change log,
+     * which replication sends to the players tracking the player.
+     * @param {OccurrenceKinds['animate']} animation - Whose animation, and what it is.
+     */
+    public relayAnimation(animation: OccurrenceKinds['animate']): void {
+        this.occurred({ kind: 'occurrence', occurrence: 'animate', data: animation });
     }
 
     /**

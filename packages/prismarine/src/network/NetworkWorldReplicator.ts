@@ -38,6 +38,7 @@ import type PlayerSession from './PlayerSession';
 import { encodePacketBatchFromBuffersBySize, encodePacketsForCodec, FullFlushFragmentCache } from './encodePacketBatch';
 import type { EncodedPacketBatch } from './encodePacketBatch';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
+import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPacket';
 import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
@@ -89,6 +90,16 @@ const movePacketFor = (entity: ShownActor, teleport: boolean): MoveActorAbsolute
     packet.flags =
         (entity.isOnGround() ? MoveActorAbsolutePacket.FLAG_ON_GROUND : 0) |
         (teleport ? MoveActorAbsolutePacket.FLAG_TELEPORT : 0);
+    return packet;
+};
+
+/** A player's animation, as the players that see it are shown it. */
+const animatePacketOf = ({ entity, action, data, swingSource }: OccurrenceKinds['animate']): AnimatePacket => {
+    const packet = new AnimatePacket();
+    packet.runtimeEntityId = entity;
+    packet.action = action;
+    packet.data = data;
+    packet.swingSource = swingSource;
     return packet;
 };
 
@@ -301,6 +312,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 return undefined;
             case 'actor-event':
                 return this.sendActorEvent(entry.data);
+            case 'animate':
+                return this.sendToTrackedEntity({ getRuntimeId: () => entry.data.entity }, () => [
+                    animatePacketOf(entry.data)
+                ]);
             default:
                 // A shown block goes out with the block changes, and a vetoed action is a record.
                 return undefined;
