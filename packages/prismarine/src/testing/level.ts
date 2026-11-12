@@ -129,6 +129,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         storedDragonFightState: () => undefined,
         isClosed: () => false,
         loadedWorld: () => undefined,
+        readyWorld: (dimensionId) => worlds().find((each) => each.getDimension().id === dimensionId),
         worlds: function* () {
             yield* worlds();
         },

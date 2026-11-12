@@ -13,8 +13,8 @@ import type { World } from './World';
 /** One change for a world, with the world it is for. */
 interface WorldMessage {
     readonly world: World;
-    /** Writes before its first wait, so the writes land in the world's unit; what it awaits after are its sends. */
-    readonly apply: () => Promise<void>;
+    /** Writes in its world's unit and queues its sends, waiting for nothing. */
+    readonly apply: () => void;
 }
 
 /** The changes waiting for an input step to apply them in their worlds. */
@@ -32,10 +32,9 @@ export class WorldMessages {
      * Files a change for a world.
      *
      * @param world - The world the change writes.
-     * @param apply - The change. It writes before its first wait, and what it awaits after are
-     *   its sends.
+     * @param apply - The change. It writes and queues its sends, and waits for nothing.
      */
-    public send(world: World, apply: () => Promise<void>): void {
+    public send(world: World, apply: () => void): void {
         this.pending.push({ world, apply });
     }
 
@@ -46,13 +45,13 @@ export class WorldMessages {
      *
      * @returns How many messages were applied.
      */
-    public async admit(): Promise<number> {
+    public admit(): number {
         const due = this.pending;
         this.pending = [];
         let applied = 0;
         for (const { world, apply } of due) {
             try {
-                await world.runInput(apply);
+                world.runInputNow(apply);
                 applied += 1;
             } catch (error: unknown) {
                 this.report(error);

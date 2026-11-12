@@ -1119,7 +1119,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
         live.runtime.remove(pet.id, 'test restart');
         // The owner logs out, and back in under a new runtime id.
-        await world.removePlayer(firstPlayer);
+        world.removePlayer(firstPlayer);
         const rejoinedPlayer = addPlayer(4, 4, ownerUuid);
         const at = body.getPosition();
         const restored = live.restoreRecord(

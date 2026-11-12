@@ -42,7 +42,7 @@ describe('respawn requests', () => {
         requests.request(search, requestOf('second'), async (answer) => void applied.push(answer.player));
 
         expect(attempts).toEqual([]);
-        expect(await requests.admit()).toBe(2);
+        expect(requests.admit()).toBe(2);
         expect(applied).toEqual(['first', 'second']);
         expect(requests.size).toBe(0);
     });
@@ -59,17 +59,17 @@ describe('respawn requests', () => {
 
         // Steve's chunks are not in: his first request waits, his second is not even tried,
         // and Alex's answer does not wait for either.
-        expect(await requests.admit()).toBe(1);
+        expect(requests.admit()).toBe(1);
         expect(applied).toEqual(['alex death']);
         expect(attempts).toEqual(['steve', 'alex']);
         expect(requests.size).toBe(2);
 
         // Another step without the chunks tries the head again and nothing else.
-        expect(await requests.admit()).toBe(0);
+        expect(requests.admit()).toBe(0);
         expect(attempts).toEqual(['steve', 'alex', 'steve']);
 
         waiting.delete('steve');
-        expect(await requests.admit()).toBe(2);
+        expect(requests.admit()).toBe(2);
         expect(applied).toEqual(['alex death', 'steve death', 'steve respawn']);
         expect(requests.size).toBe(0);
     });
@@ -83,9 +83,9 @@ describe('respawn requests', () => {
             requests.request(search, requestOf('later'), async () => void applied.push('later'));
         });
 
-        await requests.admit();
+        requests.admit();
         expect(applied).toEqual(['dying']);
-        await requests.admit();
+        requests.admit();
         expect(applied).toEqual(['dying', 'later']);
     });
 
@@ -97,7 +97,7 @@ describe('respawn requests', () => {
         requests.request(search, requestOf('broken'), async () => void applied.push('never'));
         requests.request(search, requestOf('after'), async (answer) => void applied.push(answer.player));
 
-        expect(await requests.admit()).toBe(1);
+        expect(requests.admit()).toBe(1);
         expect(applied).toEqual(['after']);
         expect(reported).toHaveLength(1);
         expect(requests.size).toBe(0);

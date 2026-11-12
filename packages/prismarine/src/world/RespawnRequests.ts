@@ -15,7 +15,7 @@ import type { RespawnAnswer, RespawnRequest, RespawnSearch } from './RespawnSear
 interface PendingRespawn {
     readonly search: RespawnSearch;
     readonly request: RespawnRequest;
-    readonly apply: (answer: RespawnAnswer) => Promise<void>;
+    readonly apply: (answer: RespawnAnswer) => void;
 }
 
 /** The respawn searches waiting for an input step. */
@@ -36,11 +36,7 @@ export class RespawnRequests {
      * @param request - Who is asking, their spawn point and their body.
      * @param apply - Applies the answer, inside the input step.
      */
-    public request(
-        search: RespawnSearch,
-        request: RespawnRequest,
-        apply: (answer: RespawnAnswer) => Promise<void>
-    ): void {
+    public request(search: RespawnSearch, request: RespawnRequest, apply: (answer: RespawnAnswer) => void): void {
         this.pending.push({ search, request, apply });
     }
 
@@ -51,7 +47,7 @@ export class RespawnRequests {
      *
      * @returns How many answers were applied.
      */
-    public async admit(): Promise<number> {
+    public admit(): number {
         const due = this.pending;
         this.pending = [];
         const waiting: PendingRespawn[] = [];
@@ -71,7 +67,7 @@ export class RespawnRequests {
                     waiting.push(pending);
                     continue;
                 }
-                await pending.apply(attempt.answer);
+                pending.apply(attempt.answer);
                 applied += 1;
             } catch (error: unknown) {
                 this.report(error);

@@ -31,9 +31,9 @@ const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolea
     const worldNamed = (name: string) =>
         stub<World>({
             getName: () => name,
-            runInput: async (apply) => {
+            runInputNow: (apply) => {
                 inputs.push(name);
-                await apply();
+                apply();
             }
         });
     /** The worlds a message was applied in, in order. */
@@ -49,7 +49,8 @@ const fakeServer = ({ op, saveFails = false }: { op: boolean; saveFails?: boolea
             getConnection: () =>
                 stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) }),
             getWorld: () => world,
-            setGamemode: async (mode?: Gametype) => void applied.push([name, mode])
+            setGamemode: async (mode?: Gametype) => void applied.push([name, mode]),
+            released: (sends) => void sends.catch((error: unknown) => void logged.push(String(error)))
         });
         if (isOp) ops.add(uuid);
         return { player: session, session };
@@ -105,7 +106,7 @@ describe('SetDefaultGameTypeHandler', () => {
         const { applied, committed, sent, handle, messages } = fakeServer({ op: true });
 
         await handle(request(Gametype.CREATIVE));
-        await messages.admit();
+        messages.admit();
 
         expect(committed).toEqual([[Gametype.CREATIVE, true]]);
         expect(applied).toEqual([
@@ -129,7 +130,7 @@ describe('SetDefaultGameTypeHandler', () => {
         expect(sent.get('Alex')).toEqual([]);
         expect(messages.size).toBe(1);
 
-        expect(await messages.admit()).toBe(1);
+        expect(messages.admit()).toBe(1);
         expect(inputs).toEqual(['nether']);
         expect(applied).toEqual([
             ['Steve', Gametype.CREATIVE],
@@ -142,7 +143,7 @@ describe('SetDefaultGameTypeHandler', () => {
         const { applied, logged, handle, messages } = fakeServer({ op: true, saveFails: true });
 
         await handle(request(Gametype.CREATIVE));
-        await messages.admit();
+        messages.admit();
 
         expect(logged).toEqual([`Could not save the default game type ${Gametype.CREATIVE}: Error: disk full`]);
         expect(applied).toHaveLength(2);

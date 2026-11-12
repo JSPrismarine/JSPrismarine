@@ -1183,7 +1183,7 @@ export class World implements Service {
         // before `handlePortal`.
         const endPortalContactsProfile = startProfile?.(`World.portalContacts:${this.name}`);
         try {
-            await this.touchPortals(tickingEntities);
+            this.touchPortals(tickingEntities);
         } finally {
             endPortalContactsProfile?.();
         }
@@ -3504,7 +3504,7 @@ export class World implements Service {
      * store player keeps what its next entity needs.
      * @param session - The player's session.
      */
-    public async removePlayer(session: PlayerSession): Promise<void> {
+    public removePlayer(session: PlayerSession): void {
         this.players.delete(Number(session.runtimeId));
         leaveStore(this.dataEntities().runtime, session.getPlayer(), 'left_world');
     }
@@ -3680,18 +3680,13 @@ export class World implements Service {
      * the last change is skipped: another change would be refused, so the body scan is not
      * worth running.
      */
-    private async touchPortals(entities: readonly StoreActor[]): Promise<void> {
+    private touchPortals(entities: readonly StoreActor[]): void {
         const travel = this.server.getDimensionTravel();
-
-        // Awaited so that an asynchronous `entityPortalEnter` listener has answered before
-        // the entity's own update advances the contact. An entity in no portal costs no await.
-        const touches: Promise<void>[] = [];
         for (const entity of entities) {
             if (isMidDimensionChange(entity)) continue;
             const portal = this.portalOverlapping(entity);
-            if (portal !== undefined) touches.push(travel.touch(entity, portal));
+            if (portal !== undefined) travel.touch(entity, portal);
         }
-        await Promise.all(touches);
     }
 
     /**

@@ -41,6 +41,7 @@ const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld
             identity: identityNamed('tester'),
             sendRespawn: async (position, state) => void done.push({ state, position }),
             changeWorld: async (arrival) => void done.push({ what: 'changeWorld', arrival }),
+            released: () => {},
             sendAttributes: async () => void done.push({ what: 'attributes' }),
             sendMetadata: async () => void done.push({ what: 'metadata' }),
             sendAbilities: async () => void done.push({ what: 'abilities' }),

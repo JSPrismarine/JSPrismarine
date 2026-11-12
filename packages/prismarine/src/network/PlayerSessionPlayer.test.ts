@@ -27,6 +27,7 @@ import { Position } from '../world/Position';
 import type { BlockMining } from '../world/BlockMining';
 import type { DimensionTravel } from '../world/portal/DimensionTravel';
 import type { World } from '../world/World';
+import { respawnPointOf } from '../testing/respawnPoint.test.helper';
 
 /**
  * Runs `n` ticks, the way the world does: the input step, the player's actor and its own part,
@@ -35,7 +36,7 @@ import type { World } from '../world/World';
 const tick = async (session: PlayerSession, n: number, from = 1) => {
     for (let i = 0; i < n; i++) {
         // The input step first, as a tick runs it, which is where a death's respawn answer lands.
-        await session.getServer().getRespawnRequests().admit();
+        session.getServer().getRespawnRequests().admit();
         // The level clock the store's void and grace periods read.
         vi.spyOn(session.getWorld(), 'getTicks').mockReturnValue(from + i);
         await session.getActor()?.update(from + i);
@@ -567,7 +568,7 @@ describe("PlayerSession's player", () => {
 
             session.requestRespawn();
 
-            await session.getServer().getRespawnRequests().admit();
+            session.getServer().getRespawnRequests().admit();
 
             expect(player.getHealth()).toBe(20);
             expect(player.getFood()).toBe(20);
@@ -592,7 +593,7 @@ describe("PlayerSession's player", () => {
 
             session.requestRespawn();
 
-            await session.getServer().getRespawnRequests().admit();
+            session.getServer().getRespawnRequests().admit();
 
             expect(sent.map((packet) => packet.constructor.name)).toEqual([
                 'ActorEventPacket',
@@ -610,7 +611,7 @@ describe("PlayerSession's player", () => {
 
             session.requestRespawn();
 
-            await session.getServer().getRespawnRequests().admit();
+            session.getServer().getRespawnRequests().admit();
 
             expect(player.getHealth()).toBe(7);
         });
@@ -622,7 +623,7 @@ describe("PlayerSession's player", () => {
             expect(sent.filter((packet) => packet instanceof RespawnPacket)).toHaveLength(0);
             expect(session.getServer().getRespawnRequests().size).toBe(1);
 
-            await session.getServer().getRespawnRequests().admit();
+            session.getServer().getRespawnRequests().admit();
             expect(sent.filter((packet) => packet instanceof RespawnPacket)).toHaveLength(1);
         });
 
@@ -677,7 +678,7 @@ describe("PlayerSession's player", () => {
 
             session.requestRespawn();
 
-            await session.getServer().getRespawnRequests().admit();
+            session.getServer().getRespawnRequests().admit();
 
             expect(sent.filter((packet) => packet instanceof RespawnPacket)).toHaveLength(0);
         });
@@ -711,7 +712,7 @@ describe("PlayerSession's player", () => {
             level = fake.level;
             fake.player.setSpawnPoint({ x: 10, y: 64, z: 10, dimension: 'minecraft:nether' });
 
-            const point = await fake.session.getRespawnPoint();
+            const point = await respawnPointOf(fake.session);
 
             expect(point.world).toBe(nether);
             // Beside the anchor, in the first free column around it, as in one world.
@@ -725,11 +726,11 @@ describe("PlayerSession's player", () => {
             const fake = fakePlayer({ worlds: [nether] });
             level = fake.level;
             fake.session.setWorld(nether);
-            await fake.travel.admit();
+            fake.travel.admit();
             // The fake Overworld is all air, so nothing stands where the bed was.
             fake.player.setSpawnPoint({ x: 10, y: 64, z: 10, dimension: 'minecraft:overworld' });
 
-            const point = await fake.session.getRespawnPoint();
+            const point = await respawnPointOf(fake.session);
 
             expect(point.world).toBe(fake.world);
             expect(point.block).toEqual(new Vector3(0, 64, 0));
@@ -743,9 +744,9 @@ describe("PlayerSession's player", () => {
             const fake = fakePlayer({ worlds: [nether] });
             level = fake.level;
             fake.session.setWorld(nether);
-            await fake.travel.admit();
+            fake.travel.admit();
 
-            const point = await fake.session.getRespawnPoint();
+            const point = await respawnPointOf(fake.session);
 
             expect(point.world).toBe(fake.world);
             expect(point.block).toEqual(new Vector3(0, 64, 0));
@@ -778,7 +779,7 @@ describe("PlayerSession's player", () => {
                 'changes world',
                 async (session: PlayerSession, travel: DimensionTravel) => {
                     session.setWorld(elsewhere());
-                    await travel.admit();
+                    travel.admit();
                 }
             ]
         ])('stops the cracks when the player %s, rather than sending them every tick for good', async (_, end) => {
@@ -869,7 +870,7 @@ describe("PlayerSession's player", () => {
             session.setWorld(target);
             // A message: the change runs at the next input step.
             expect(session.getWorld()).not.toBe(target);
-            await travel.admit();
+            travel.admit();
 
             const removal = sent.findIndex(
                 (packet) => packet instanceof RemoveActorPacket && packet.uniqueEntityId === mobId
@@ -891,7 +892,7 @@ describe("PlayerSession's player", () => {
             );
 
             session.setWorld(nether());
-            expect(await travel.admit()).toBe(1);
+            expect(travel.admit()).toBe(1);
 
             // The stored spawn is the block under a joining player's feet, so the feet go one
             // block up, centered, and the eyes the client is told about are 1.62 above that.
@@ -961,7 +962,7 @@ describe("PlayerSession's player", () => {
 
             await tick(session, 50);
             // The next input step, which sends the respawn answer and the death screen's cause.
-            await session.getServer().getRespawnRequests().admit();
+            session.getServer().getRespawnRequests().admit();
 
             expect(player.getHealth() > 0).toBe(false);
             const death = sent.find((packet) => packet instanceof DeathInfoPacket);

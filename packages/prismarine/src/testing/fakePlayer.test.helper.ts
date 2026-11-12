@@ -186,6 +186,8 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
 
     const level = fakeLevel({
         server,
+        // The spawn the Overworld found before anybody joined, as a real level has it.
+        spawn: new Vector3(0, 64, 0),
         worlds: () => [world, ...others],
         stems: new Map(
             [world, ...others].map((each) => {

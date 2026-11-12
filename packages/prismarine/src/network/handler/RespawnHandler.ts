@@ -51,23 +51,24 @@ export default class RespawnHandler implements InputLaneHandler<RespawnPacket> {
             // Where the player comes back: the spawn block and the eyes above it, in the world the
             // spawn is in. The search reads blocks that may not be loaded, so it is a request, and
             // the input step that has its answer runs the rest; the search clears a spawn point
-            // that no longer holds. The change of world still waits for its chunks until slice 9
-            // turns it into a message.
-            session.requestRespawnPoint(async (point) => {
+            // that no longer holds. The answer is applied in that step and queues its packets.
+            session.requestRespawnPoint((point) => {
                 // The dead body moves world first, facing as it fell; `PlayerSession.requestRespawn` then
                 // stands it at the eyes once the client's `Respawn` action arrives, as in one world.
                 if (point.world !== session.getWorld()) {
-                    await session.changeWorld({
-                        world: point.world,
-                        position: point.block,
-                        yaw: player.yaw,
-                        pitch: player.pitch,
-                        respawn: true,
-                        closesLoadingScreen: false
-                    });
+                    session.released(
+                        session.changeWorld({
+                            world: point.world,
+                            position: point.block,
+                            yaw: player.yaw,
+                            pitch: player.pitch,
+                            respawn: true,
+                            closesLoadingScreen: false
+                        })
+                    );
                 }
-                await session.sendRespawn(point.block, PlayerRespawnState.SEARCHING_FOR_SPAWN);
-                await session.sendRespawn(point.eyes, PlayerRespawnState.READY_TO_SPAWN);
+                session.released(session.sendRespawn(point.block, PlayerRespawnState.SEARCHING_FOR_SPAWN));
+                session.released(session.sendRespawn(point.eyes, PlayerRespawnState.READY_TO_SPAWN));
             });
             return;
         }

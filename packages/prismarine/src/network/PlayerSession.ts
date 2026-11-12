@@ -37,6 +37,7 @@ import { applyPlayerRecord, recordedPosition } from '../world/playerRecord';
 import type { RespawnAnswer, RespawnRequest } from '../world/RespawnSearch';
 import { spawnTarget } from '../world/portal/DimensionTravel';
 import type { respawnPoint } from '../world/SpawnPlacement';
+import { outsideTick } from '../world/TickContext';
 import type Server from '../Server';
 import { commandPermissionOf } from '../command/CommandManager';
 import { PLAYER_SOFT_ENUM } from '../command/jsprismarineCommands';
@@ -80,7 +81,7 @@ import type { SessionPlayer, SessionPlayerRef, SessionPlayers } from './sessionP
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { sendCachedJoinPacket } from './joinPacketCache';
 import { creativeContentFrom } from './payloadAdapters';
-import { overworldSpawnOf, playerSpawnPositionPacket } from './spawnPosition';
+import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from './spawnPosition';
 import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
@@ -682,7 +683,7 @@ export default class PlayerSession {
         await this.world.savePlayerData(this.getPlayer());
         // Tells everyone who could see this player to take them away, world-scoped and only the
         // clients that actually had them.
-        await this.world.removePlayer(this);
+        this.world.removePlayer(this);
         await this.removeFromPlayerList();
 
         // Announce disconnection. The leaving player is still in the fan-out here.
@@ -922,7 +923,7 @@ export default class PlayerSession {
                     'PlayerSession/update'
                 );
             this.endLoadingScreen(pending.loadingScreenId);
-            await this.completeDimensionChange(pending.loadingScreenId);
+            this.completeDimensionChange(pending.loadingScreenId);
         } else if (
             pending !== undefined &&
             pending.arrivalReleased !== true &&
@@ -1040,10 +1041,8 @@ export default class PlayerSession {
      * {@link PlayerSession.reconcileTrackedEntities}: that returns early while another pass
      * runs, and a world change cannot be skipped.
      */
-    public async despawnAllTrackedEntities(): Promise<void> {
-        for (const runtimeId of this.entityTracker.clear()) {
-            await this.sendRemoveActorById(runtimeId);
-        }
+    public despawnAllTrackedEntities(): Promise<void> {
+        return allSent([...this.entityTracker.clear()].map((runtimeId) => this.sendRemoveActorById(runtimeId)));
     }
 
     /**
@@ -1179,6 +1178,15 @@ export default class PlayerSession {
      */
     public async send(packet: NetworkPacket<unknown>): Promise<void> {
         return this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * Lets sends that are already queued go without waiting for the transport, and logs a
+     * failure to frame them. For simulation code, which never reads the result of a send.
+     * @param sends - The sends, already started.
+     */
+    public released(sends: Promise<void>): void {
+        void sends.catch((error: unknown) => this.server.getLogger().error(error));
     }
 
     /**
@@ -1405,7 +1413,7 @@ export default class PlayerSession {
      * dimension change sent the old world's terrain into the new one, and resolved the
      * leftover coordinates against a world where they mean somewhere else entirely.
      */
-    public async clearChunks() {
+    public clearChunks(): void {
         this.chunkEpoch += 1;
         this.loadedChunks.clear();
         this.loadingChunks.clear();
@@ -2094,7 +2102,7 @@ export default class PlayerSession {
      * an initial view radius of {@link DEFAULT_VIEW_DISTANCE_CHUNKS}, as a join and a world change
      * start.
      */
-    public async sendInitialSpawnChunks(): Promise<void> {
+    public sendInitialSpawnChunks(): Promise<void> {
         const position = this.own().getPosition();
         const centerX = CoordinateUtils.fromBlockToChunk(position.getX());
         const centerZ = CoordinateUtils.fromBlockToChunk(position.getZ());
@@ -2116,7 +2124,7 @@ export default class PlayerSession {
         // `saved_chunks` describes chunks already sent, and at this point none have been.
         // The session re-sends this every tick that carries chunks, keeping it centered on
         // the player as they move.
-        await this.sendNetworkChunkPublisher(DEFAULT_VIEW_DISTANCE_CHUNKS, []);
+        const publisher = this.sendNetworkChunkPublisher(DEFAULT_VIEW_DISTANCE_CHUNKS, []);
 
         // Queued, not sent: the player joins immediately and the world fills in around them
         // from the middle outwards, instead of everyone waiting while 81 chunks are built.
@@ -2125,6 +2133,7 @@ export default class PlayerSession {
             centerZ,
             savedChunks.map((coord): [number, number] => [coord.x, coord.z])
         );
+        return publisher;
     }
 
     /**
@@ -2182,14 +2191,16 @@ export default class PlayerSession {
      * Answers a respawn change with the two `Respawn` states once its terrain is on the wire.
      * Called whenever a batch of chunks lands, and when the change is made.
      */
-    private async answerRespawnIfReady(): Promise<void> {
+    private answerRespawnIfReady(): Promise<void> {
         const at = this.pendingRespawnAnswer;
-        if (at === undefined) return;
-        if (this.loadingChunks.size > 0 || this.chunkSendQueue.length > 0) return;
+        if (at === undefined) return allSent([]);
+        if (this.loadingChunks.size > 0 || this.chunkSendQueue.length > 0) return allSent([]);
 
         this.pendingRespawnAnswer = undefined;
-        await this.sendRespawn(at, PlayerRespawnState.SEARCHING_FOR_SPAWN);
-        await this.sendRespawn(eyePositionAt(at), PlayerRespawnState.READY_TO_SPAWN);
+        return allSent([
+            this.sendRespawn(at, PlayerRespawnState.SEARCHING_FOR_SPAWN),
+            this.sendRespawn(eyePositionAt(at), PlayerRespawnState.READY_TO_SPAWN)
+        ]);
     }
 
     /**
@@ -2324,13 +2335,14 @@ export default class PlayerSession {
      * would otherwise be sent back once the 10 tick cooldown ran out, before the client ever
      * closed the first screen. Custom dimension ids are sent after the level announces them in
      * `DimensionData`.
+     *
+     * Every write is made and every packet queued before this returns, so the input step that
+     * runs it waits for nothing. The record's save is handed to work outside the tick.
      * @param arrival - The world, feet position and rotation the player lands at.
      * @param options - What to do with this arrival when a change is already pending.
+     * @returns Settles once the transport has framed the packets.
      */
-    public async changeWorld(
-        arrival: Arrival,
-        options: { readonly whenPending?: 'queue' | 'drop' } = {}
-    ): Promise<void> {
+    public changeWorld(arrival: Arrival, options: { readonly whenPending?: 'queue' | 'drop' } = {}): Promise<void> {
         const player = this.getPlayer();
         const { world } = arrival;
         const target = world.getDimension();
@@ -2345,7 +2357,7 @@ export default class PlayerSession {
                     `${queue ? 'Holding' : 'Dropped'} the move of ${this.identity.name} to ${world.getName()}: a change to ${pending.arrival.world.getName()} is pending on loading screen ${pending.loadingScreenId}`,
                     'PlayerSession/changeWorld'
                 );
-            return;
+            return allSent([]);
         }
         // A dead client can leave the screen of a change sent under its death screen unopened, so
         // the change stayed pending for the whole timeout and held every later move behind it.
@@ -2360,25 +2372,25 @@ export default class PlayerSession {
                     `${queue ? 'Holding' : 'Dropped'} the move of ${this.identity.name} to ${world.getName()}: they are dead`,
                     'PlayerSession/changeWorld'
                 );
-            return;
+            return allSent([]);
         }
         const from = this.world;
         const left = from.getDimension();
 
         // The cracks belong to a block in the world being left.
-        await this.stopMining();
+        const sends = [this.stopMining()];
 
         // The record goes to the level being left while the player is still in it, so it
         // carries that world's dimension and the next login finds them where they were should
-        // nothing save them again.
-        await from.savePlayerData(player);
+        // nothing save them again. The record is built here and written off the tick.
+        void from.savePlayerData(player).catch((error: unknown) => this.server.getLogger().error(error));
 
         // Out of the old world first, so it stops broadcasting to us and its players are told
         // we left. Then the old world's entities come off this client, before `addPlayer`
         // below fills the tracker with the new world's.
-        await from.removePlayer(this);
-        await this.despawnAllTrackedEntities();
-        await this.clearChunks();
+        from.removePlayer(this);
+        sends.push(this.despawnAllTrackedEntities());
+        this.clearChunks();
 
         // The arrival is feet; the position a player holds is their eyes, like everything their
         // client reports. Raised here and nowhere else, so the stored position, the packet and
@@ -2388,19 +2400,21 @@ export default class PlayerSession {
 
         // Not broadcast: nobody in the new world sees the player yet, and the client's own
         // teleport waits for the screen to close.
-        await this.setPlayerPosition(
-            {
-                position: Position.fromVector3(eyes, world),
-                type: PositionMode.Teleport,
-                pitch: arrival.pitch,
-                yaw: arrival.yaw,
-                headYaw: arrival.yaw
-            },
-            false
+        sends.push(
+            this.setPlayerPosition(
+                {
+                    position: Position.fromVector3(eyes, world),
+                    type: PositionMode.Teleport,
+                    pitch: arrival.pitch,
+                    yaw: arrival.yaw,
+                    headYaw: arrival.yaw
+                },
+                false
+            )
         );
         world.addPlayer(this);
 
-        if (left.bedrockId === target.bedrockId) await this.detourFrom(target.bedrockId, eyes);
+        if (left.bedrockId === target.bedrockId) sends.push(this.detourFrom(target.bedrockId, eyes));
 
         const loadingScreenId = this.beginLoadingScreen();
         // A death's respawn change is not pending: the client does not close a loading screen for
@@ -2409,35 +2423,40 @@ export default class PlayerSession {
         if (arrival.closesLoadingScreen !== false) {
             this.pendingChange = { loadingScreenId, arrival, left: left.name, sinceTick: this.server.getTick() };
         }
-        await this.send(
-            new ChangeDimensionPacket({
-                dimension: target.bedrockId,
-                position: eyes,
-                respawn: arrival.respawn ?? false,
-                loadingScreenId
-            })
+        sends.push(
+            this.send(
+                new ChangeDimensionPacket({
+                    dimension: target.bedrockId,
+                    position: eyes,
+                    respawn: arrival.respawn ?? false,
+                    loadingScreenId
+                })
+            )
         );
 
         const stopSound = new StopSoundPacket();
         stopSound.stopAllSounds = true;
-        await this.send(stopSound);
+        sends.push(this.send(stopSound));
 
-        await this.sendNetworkChunkPublisher(effectiveViewDistance(this.viewDistance), []);
+        sends.push(this.sendNetworkChunkPublisher(effectiveViewDistance(this.viewDistance), []));
 
         // Since 1.19.50 the server sends the acknowledgment that used to be the client's, and
         // sends it before any chunk; the client still answers with its own copy afterwards.
-        await this.send(
-            new PlayerActionPacket({
-                runtimeEntityId: this.runtimeId,
-                action: PlayerActionType.ChangeDimensionAck,
-                blockPosition: NO_BLOCK,
-                resultPosition: NO_BLOCK,
-                blockFace: 0
-            })
+        sends.push(
+            this.send(
+                new PlayerActionPacket({
+                    runtimeEntityId: this.runtimeId,
+                    action: PlayerActionType.ChangeDimensionAck,
+                    blockPosition: NO_BLOCK,
+                    resultPosition: NO_BLOCK,
+                    blockFace: 0
+                })
+            )
         );
 
-        await this.sendInitialSpawnChunks();
-        await this.sendPlayStatus(PlayStatus.PlayerSpawn);
+        sends.push(this.sendInitialSpawnChunks());
+        sends.push(this.sendPlayStatus(PlayStatus.PlayerSpawn));
+        return allSent(sends);
     }
 
     /**
@@ -2448,19 +2467,23 @@ export default class PlayerSession {
      * otherwise never close the screen.
      * @param position - The eyes the real `ChangeDimension` carries.
      */
-    private async detourFrom(bedrockId: number, position: Vector3): Promise<void> {
+    private detourFrom(bedrockId: number, position: Vector3): Promise<void> {
         const away = bedrockId === Dimension.NETHER ? Dimension.OVERWORLD : Dimension.NETHER;
+        const sends: Promise<void>[] = [];
         for (const dimension of [bedrockId, away, away]) {
-            await this.send(
-                new ChangeDimensionPacket({
-                    dimension,
-                    position,
-                    respawn: false,
-                    loadingScreenId: this.beginLoadingScreen()
-                })
+            sends.push(
+                this.send(
+                    new ChangeDimensionPacket({
+                        dimension,
+                        position,
+                        respawn: false,
+                        loadingScreenId: this.beginLoadingScreen()
+                    })
+                )
             );
-            await this.sendPlayStatus(PlayStatus.PlayerSpawn);
+            sends.push(this.sendPlayStatus(PlayStatus.PlayerSpawn));
         }
+        return allSent(sends);
     }
 
     /**
@@ -2509,8 +2532,9 @@ export default class PlayerSession {
      * A second start while one is pending is logged at debug and dropped, like a second
      * `changeWorld`.
      * @param arrival - Where the player lands once the credits are over.
+     * @returns Settles once the transport has framed the packet, which is queued before this returns.
      */
-    public async startCredits(arrival: Arrival): Promise<void> {
+    public startCredits(arrival: Arrival): Promise<void> {
         if (this.pendingCredits !== undefined) {
             this.server
                 .getLogger()
@@ -2518,14 +2542,14 @@ export default class PlayerSession {
                     `Refused to roll the credits for ${this.identity.name}: they are already rolling`,
                     'PlayerSession/startCredits'
                 );
-            return;
+            return allSent([]);
         }
 
         this.pendingCredits = arrival;
         const packet = new ShowCreditsPacket();
         packet.playerRuntimeId = this.runtimeId;
         packet.creditsState = CreditsState.Start;
-        await this.send(packet);
+        return this.send(packet);
     }
 
     /**
@@ -2542,17 +2566,15 @@ export default class PlayerSession {
         if (arrival === undefined) return false;
 
         this.pendingCredits = undefined;
-        this.server
-            .getDimensionTravel()
-            .move(this, { ...arrival, respawn: true, closesLoadingScreen: false }, async () => {
-                // A respawn change is settled by the respawn exchange, as after a death: the client
-                // waits for where it comes back and shows its loading screen until it is told, so
-                // without it the client sat there until the server gave up on it a minute later. It
-                // goes out once the terrain is on the wire: told sooner, the client stands the
-                // player in a world with no ground and falls through it.
-                this.pendingRespawnAnswer = arrival.position;
-                await this.answerRespawnIfReady();
-            });
+        this.server.getDimensionTravel().move(this, { ...arrival, respawn: true, closesLoadingScreen: false }, () => {
+            // A respawn change is settled by the respawn exchange, as after a death: the client
+            // waits for where it comes back and shows its loading screen until it is told, so
+            // without it the client sat there until the server gave up on it a minute later. It
+            // goes out once the terrain is on the wire: told sooner, the client stands the
+            // player in a world with no ground and falls through it.
+            this.pendingRespawnAnswer = arrival.position;
+            this.released(this.answerRespawnIfReady());
+        });
         return true;
     }
 
@@ -2602,24 +2624,33 @@ export default class PlayerSession {
      * inventory, which a dimension change is not known to keep, tells the client where its
      * spawn point is from the new dimension, and raises the changed dimension advancement
      * hook, in that order. A change held while this one was pending is filed last, as a message
-     * the next input step carries out. Called by `ServerboundLoadingScreenHandler`, which hands
-     * the sends to its step's outputs: the change stops being pending before the first wait.
+     * the next input step carries out. Called by `ServerboundLoadingScreenHandler` in its unit,
+     * and by the tick for a client that never closed the screen. Every packet is queued before
+     * this returns.
      * @param loadingScreenId - The id the client's `EndLoadingScreen` carried.
      * @returns Whether a change was pending under that id. Any other id changes nothing.
      */
-    public async completeDimensionChange(loadingScreenId: number): Promise<boolean> {
+    public completeDimensionChange(loadingScreenId: number): boolean {
         const pending = this.pendingChange;
         if (pending === undefined || pending.loadingScreenId !== loadingScreenId) return false;
         this.pendingChange = undefined;
 
         const { world } = pending.arrival;
-        await this.sendMove(this.shown(), PositionMode.Teleport);
-        await this.sendAttributes();
-        await this.sendInventory();
+        const sends = [this.sendMove(this.shown(), PositionMode.Teleport), this.sendAttributes(), this.sendInventory()];
         // The compass and the map point at the spawn across dimensions, so the client needs
-        // the spawn's dimension again now that its own has changed.
-        await this.send(playerSpawnPositionPacket(this.getPlayer(), world, await overworldSpawnOf(world)));
+        // the spawn's dimension again now that its own has changed. The level knows its spawn
+        // once anybody has joined it; before that it is searched outside the tick, and the
+        // packet follows the search.
+        const spawn = knownOverworldSpawnOf(world);
+        sends.push(
+            spawn === null
+                ? outsideTick(() => overworldSpawnOf(world)).then((found) =>
+                      this.send(playerSpawnPositionPacket(this.getPlayer(), world, found))
+                  )
+                : this.send(playerSpawnPositionPacket(this.getPlayer(), world, spawn))
+        );
         advancementChangedDimension(this, pending.left, world.getDimension().name);
+        this.released(allSent(sends));
 
         this.fileQueuedChange();
         return true;
@@ -2680,18 +2711,19 @@ export default class PlayerSession {
      *
      * No `MovePlayer`: the client has put itself at the `ReadyToSpawn` position already.
      */
-    public async sendRespawned(): Promise<void> {
+    public sendRespawned(): Promise<void> {
         const player = this.own();
         const event = new ActorEventPacket();
         event.runtimeEntityId = this.runtimeId;
         event.event = ActorEvent.SPAWN_ALIVE;
-        await this.connection.sendDataPacket(event);
+        const sends = [this.connection.sendDataPacket(event)];
 
         const health = new SetHealthPacket({ health: Math.ceil(player.getHealth()) });
-        await this.connection.sendDataPacket(health);
+        sends.push(this.connection.sendDataPacket(health));
 
-        await this.sendAttributes();
-        await this.sendMetadata();
+        sends.push(this.sendAttributes());
+        sends.push(this.sendMetadata());
+        return allSent(sends);
     }
 
     /**
@@ -2729,11 +2761,11 @@ export default class PlayerSession {
      * @param cause - The death message, as the chat line has it. `DeathInfo` takes the key without
      *   the `%` the chat packet wants.
      */
-    public async sendDeathScreen(announced: Vector3, { key, parameters }: DeathMessage): Promise<void> {
-        await this.sendRespawn(announced, PlayerRespawnState.SEARCHING_FOR_SPAWN);
-        await this.connection.sendDataPacket(
-            new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters })
-        );
+    public sendDeathScreen(announced: Vector3, { key, parameters }: DeathMessage): Promise<void> {
+        return allSent([
+            this.sendRespawn(announced, PlayerRespawnState.SEARCHING_FOR_SPAWN),
+            this.connection.sendDataPacket(new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters }))
+        ]);
     }
 
     /**
@@ -3473,10 +3505,10 @@ export default class PlayerSession {
         // unless the player came back or left before then.
         this.server
             .getRespawnRequests()
-            .request(this.world.getLevel().getRespawnSearch(), this.respawnRequest(), async (answer) => {
+            .request(this.world.getLevel().getRespawnSearch(), this.respawnRequest(), (answer) => {
                 if (this.getPlayer().getHealth() > 0 || !this.isConnected()) return;
-                await this.forgetLostSpawnPoint(answer);
-                await this.sendDeathScreen(Vector3.fromObject(answer.announced), message);
+                this.forgetLostSpawnPoint(answer);
+                this.released(this.sendDeathScreen(Vector3.fromObject(answer.announced), message));
             });
 
         this.showOwnHealth();
@@ -3509,42 +3541,42 @@ export default class PlayerSession {
      * The caller compares `world` with the player's own and changes world first when they
      * differ: see `RespawnHandler`.
      *
-     * Waits for whatever the search lacks, loading it, which inside a tick is a chunk load in the
-     * middle of the tick. Portal travel out of the End is the one caller left, until slice 9 turns
-     * travel into messages; a respawn files a request with {@link requestRespawnPoint}.
+     * The search reads loaded chunks only, so the answer is not always there at once
+     * ({@link attemptRespawnPoint}).
      *
      * @see {@link respawnPoint} for the three positions the exchange needs.
      */
-    public async getRespawnPoint(): Promise<RespawnDestination> {
-        return this.destinationOf(await this.world.getLevel().getRespawnSearch().find(this.respawnRequest()));
-    }
-
-    /**
-     * Asks where the player comes back, and hands the answer to `apply` at the input step that
-     * has it: the first one after everything the search reads is loaded
-     * (`world/RespawnRequests.ts`). {@link getRespawnPoint} says what the answer means.
-     *
-     * @param apply - What to do with the destination, inside the input step.
-     */
-    public requestRespawnPoint(apply: (destination: RespawnDestination) => Promise<void>): void {
+    public requestRespawnPoint(apply: (destination: RespawnDestination) => void): void {
         this.server
             .getRespawnRequests()
-            .request(this.world.getLevel().getRespawnSearch(), this.respawnRequest(), async (answer) =>
-                apply(await this.destinationOf(answer))
+            .request(this.world.getLevel().getRespawnSearch(), this.respawnRequest(), (answer) =>
+                apply(this.destinationOf(answer))
             );
     }
 
-    /** Clears a spawn point the answer says was lost, and names the world the answer is in. */
-    private async destinationOf(answer: RespawnAnswer): Promise<RespawnDestination> {
-        const level = this.world.getLevel();
-        await this.forgetLostSpawnPoint(answer);
+    /**
+     * {@link requestRespawnPoint} for a caller that asks again at each input step until it has
+     * the answer, such as a trip out of the End. Each attempt that lacks a chunk holds a ticket
+     * for it in the player's name.
+     *
+     * @returns The destination, or undefined while the search waits for what it lacks.
+     */
+    public attemptRespawnPoint(): RespawnDestination | undefined {
+        const attempt = this.world.getLevel().getRespawnSearch().attempt(this.respawnRequest());
+        return attempt.kind === 'answer' ? this.destinationOf(attempt.answer) : undefined;
+    }
 
+    /** Clears a spawn point the answer says was lost, and names the world the answer is in. */
+    private destinationOf(answer: RespawnAnswer): RespawnDestination {
+        const level = this.world.getLevel();
+        this.forgetLostSpawnPoint(answer);
+
+        // Built and ready: the search reads ready worlds only.
+        const own = answer.spawn === 'own' ? level.readyWorld(answer.dimension) : undefined;
+        if (answer.spawn === 'own' && own === undefined)
+            throw new Error(`The respawn search answered ${answer.dimension}, which is not ready`);
         return {
-            // Built and ready: the search reads ready worlds only.
-            world:
-                answer.spawn === 'own'
-                    ? await level.world(answer.dimension)
-                    : this.server.getWorldManager().getDefaultWorld(),
+            world: own ?? this.server.getWorldManager().getDefaultWorld(),
             announced: Vector3.fromObject(answer.announced),
             block: Vector3.fromObject(answer.block),
             eyes: Vector3.fromObject(answer.eyes)
@@ -3558,15 +3590,17 @@ export default class PlayerSession {
      * translation path for yet. Cleared so the next death goes straight to the world spawn rather
      * than walking the bed's neighbors again.
      */
-    private async forgetLostSpawnPoint(answer: RespawnAnswer): Promise<void> {
+    private forgetLostSpawnPoint(answer: RespawnAnswer): void {
         if (!answer.spawnPointLost) return;
 
         this.getPlayer().setSpawnPoint(undefined);
-        await this.sendMessage({
-            message: 'tile.bed.notValid',
-            type: TextPacketType.Translate,
-            needsTranslation: true
-        });
+        this.released(
+            this.sendMessage({
+                message: 'tile.bed.notValid',
+                type: TextPacketType.Translate,
+                needsTranslation: true
+            })
+        );
     }
 
     /** What the level's respawn search is asked for this player. */
@@ -3593,13 +3627,13 @@ export default class PlayerSession {
     public requestRespawn(): void {
         this.server
             .getRespawnRequests()
-            .request(this.world.getLevel().getRespawnSearch(), this.respawnRequest(), async (answer) =>
+            .request(this.world.getLevel().getRespawnSearch(), this.respawnRequest(), (answer) =>
                 this.respawnAt(answer)
             );
     }
 
     /** The respawn {@link requestRespawn} files, once the search has answered. */
-    private async respawnAt(answer: RespawnAnswer): Promise<void> {
+    private respawnAt(answer: RespawnAnswer): void {
         const player = this.getPlayer();
         // A player the server does not consider dead is put back where they already are, and
         // keeps everything. The answer still goes out: the client repeats the request once a
@@ -3613,11 +3647,11 @@ export default class PlayerSession {
 
             // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
             // Dedicated Server sends none here, and the client is already there.
-            const { eyes } = await this.destinationOf(answer);
-            await this.setPlayerPosition({ position: eyes, type: PositionMode.Respawn }, false);
+            const { eyes } = this.destinationOf(answer);
+            this.released(this.setPlayerPosition({ position: eyes, type: PositionMode.Respawn }, false));
         }
 
-        await this.sendRespawned();
+        this.released(this.sendRespawned());
         this.releaseChangeHeldOverDeath();
     }
 

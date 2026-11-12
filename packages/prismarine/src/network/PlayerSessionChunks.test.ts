@@ -134,7 +134,7 @@ describe('network', () => {
             await session.needNewChunks();
             expect(session.sender.isEmpty()).toBe(false);
 
-            await session.clearChunks();
+            session.clearChunks();
 
             expect(session.sender.isEmpty()).toBe(true);
             expect(session.sender.has(0, 0)).toBe(false);
@@ -142,7 +142,7 @@ describe('network', () => {
 
         it('queues afresh for the new world after a clear', async () => {
             await session.needNewChunks();
-            await session.clearChunks();
+            session.clearChunks();
 
             player.position = { x: 16 * 50, z: 16 * 50 };
             await session.needNewChunks();

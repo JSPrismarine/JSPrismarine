@@ -22,14 +22,4 @@ export interface InTickChunkLoad {
  * The paths that still load a chunk from inside a tick, as of the change that made chunk
  * completions inputs. Remove an entry with the code it names; a test reports how many are left.
  */
-export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [
-    {
-        // A death and a respawn file requests whose searches read loaded chunks only and wait
-        // with a ticket (`world/RespawnRequests.ts`). Portal travel out of the End still awaits
-        // the search, which then loads what it lacks; E2's travel as messages removes it.
-        path: 'respawn search awaited by portal travel out of the End',
-        file: 'world/RespawnSearch.ts',
-        call: 'loads.push(world.getChunk(x, z))',
-        slice: 9
-    }
-];
+export const IN_TICK_CHUNK_LOADS: readonly InTickChunkLoad[] = [];

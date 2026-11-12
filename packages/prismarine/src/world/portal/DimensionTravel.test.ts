@@ -303,7 +303,7 @@ const cowsIn = (world: World): StoreActor[] => world.getActors().filter((actor) 
 const settle = async (travel: DimensionTravel): Promise<void> => {
     for (let step = 0; step < 10 && travel.pending > 0; step += 1) {
         await travel.prepared();
-        await travel.admit();
+        travel.admit();
     }
     expect(travel.pending).toBe(0);
 };
@@ -545,9 +545,9 @@ describe('DimensionTravel.touch', () => {
         const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
         const portal = portalAt(scene.overworld, new Vector3(80, 64, 0));
 
-        await scene.travel.touch(item, portal);
+        scene.travel.touch(item, portal);
         const contact = item.portalContact();
-        await scene.travel.touch(item, portal);
+        scene.travel.touch(item, portal);
 
         expect(contact?.getPortal()).toBe(portal);
         expect(item.portalContact()).toBe(contact);
@@ -567,31 +567,32 @@ describe('DimensionTravel.touch', () => {
             if (refuse) event.preventDefault();
         });
 
-        await scene.travel.touch(item, portal);
+        scene.travel.touch(item, portal);
         expect(item.portalContact()).toBeUndefined();
 
         refuse = false;
-        await scene.travel.touch(item, portal);
-        await scene.travel.touch(item, portal);
+        scene.travel.touch(item, portal);
+        scene.travel.touch(item, portal);
         expect(item.portalContact()).toBeDefined();
         expect(entered).toEqual([portal, portal]);
 
         await scene.level.disable();
     }, 60_000);
 
-    it('waits for an asynchronous listener, so one that cancels after an await still stops the contact', async () => {
+    it('reads a cancel when the listener returns, as a guard, so one that cancels after an await is too late', async () => {
         const scene = await buildScene();
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
         const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
-        scene.server.on('entityPortalEnter', async (event) => {
+        let canceledLate: Promise<void> | undefined;
+        scene.server.on('entityPortalEnter', (event) => {
             // A plugin that asks a database before it decides.
-            await new Promise<void>((resolve) => setImmediate(resolve));
-            event.preventDefault();
+            canceledLate = new Promise<void>((resolve) => setImmediate(resolve)).then(() => event.preventDefault());
         });
 
-        await scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
+        scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
+        await canceledLate;
 
-        expect(item.portalContact()).toBeUndefined();
+        expect(item.portalContact()).toBeDefined();
 
         await scene.level.disable();
     }, 60_000);
@@ -601,7 +602,7 @@ describe('DimensionTravel.touch', () => {
         await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
         const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
         await scene.overworld.addPlayer(player);
-        await scene.travel.transfer(player.getActor()!, {
+        scene.travel.transfer(player.getActor()!, {
             world: scene.nether,
             position: new Vector3(12.5, 70, 0.5),
             yaw: 0,
@@ -610,7 +611,7 @@ describe('DimensionTravel.touch', () => {
         // Past the 10 tick cooldown, with the screen never closed.
         player.getPlayer().setPortalCooldown(0);
 
-        await scene.travel.touch(player.getActor()!, portalAt(scene.nether, new Vector3(12, 70, 0)));
+        scene.travel.touch(player.getActor()!, portalAt(scene.nether, new Vector3(12, 70, 0)));
 
         expect(player.getActor()!.portalContact()).toBeUndefined();
 
@@ -624,7 +625,7 @@ describe('DimensionTravel.touch', () => {
         const entered: StoreActor[] = [];
         scene.server.on('entityPortalEnter', (event) => void entered.push(event.getEntity()));
 
-        await scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
+        scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
 
         expect(item.portalContact()).toBeUndefined();
         expect(entered).toEqual([]);
@@ -648,7 +649,7 @@ describe('DimensionTravel.transfer', () => {
         const body = stack === undefined ? undefined : from.actors.actorOf(stack.id);
         if (stack === undefined || body === undefined) throw new Error('the scene declares no dropped item');
 
-        await scene.travel.transfer(body, {
+        scene.travel.transfer(body, {
             world: scene.nether,
             position: new Vector3(10.5, 70, 0.5),
             yaw: 90,
@@ -686,7 +687,7 @@ describe('DimensionTravel.transfer', () => {
         const actor = entity === undefined ? undefined : from.actors.actorOf(entity.id);
         if (entity === undefined || actor === undefined) throw new Error('the scene declares no inert actor');
 
-        await scene.travel.transfer(actor, {
+        scene.travel.transfer(actor, {
             world: scene.nether,
             position: new Vector3(10.5, 70, 0.5),
             yaw: 90,
@@ -711,7 +712,7 @@ describe('DimensionTravel.transfer', () => {
         const seen: [World, World][] = [];
         scene.server.on('playerChangeDimension', (event) => void seen.push([event.getFrom(), event.getTo()]));
 
-        await scene.travel.transfer(player.getActor()!, {
+        scene.travel.transfer(player.getActor()!, {
             world: scene.nether,
             position: new Vector3(10.5, 70, 0.5),
             yaw: 90,
@@ -736,7 +737,7 @@ describe('DimensionTravel.transfer', () => {
         await scene.overworld.addPlayer(player);
         scene.server.on('playerChangeDimension', (event) => event.preventDefault());
 
-        await scene.travel.transfer(player.getActor()!, {
+        scene.travel.transfer(player.getActor()!, {
             world: scene.nether,
             position: new Vector3(10.5, 70, 0.5),
             yaw: 90,
@@ -772,7 +773,7 @@ describe('DimensionTravel.transfer out of the End', () => {
         const arrival = await exitArrival(scene, player);
         sent.length = 0;
 
-        await scene.travel.transfer(player.getActor()!, arrival);
+        scene.travel.transfer(player.getActor()!, arrival);
 
         const credits = sent.filter((packet): packet is ShowCreditsPacket => packet instanceof ShowCreditsPacket);
         expect(credits).toHaveLength(1);
@@ -792,11 +793,11 @@ describe('DimensionTravel.transfer out of the End', () => {
         const sent: unknown[] = [];
         const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5), sent);
         await scene.end.addPlayer(player);
-        await scene.travel.transfer(player.getActor()!, await exitArrival(scene, player));
+        scene.travel.transfer(player.getActor()!, await exitArrival(scene, player));
         sent.length = 0;
 
         expect(player.completeCredits()).toBe(true);
-        expect(await scene.travel.admit()).toBe(1);
+        expect(scene.travel.admit()).toBe(1);
 
         const change = sent.find((packet): packet is ChangeDimensionPacket => packet instanceof ChangeDimensionPacket);
         expect(change?.getPacketData()?.respawn).toBe(true);
@@ -818,7 +819,7 @@ describe('DimensionTravel.transfer out of the End', () => {
         const arrival = await exitArrival(scene, player);
         sent.length = 0;
 
-        await scene.travel.transfer(player.getActor()!, arrival);
+        scene.travel.transfer(player.getActor()!, arrival);
 
         expect(sent.some((packet) => packet instanceof ShowCreditsPacket)).toBe(false);
         expect(player.getWorld()).toBe(scene.overworld);
@@ -869,7 +870,7 @@ describe('DimensionTravel.transfer of a data-driven mob', () => {
         const travelersIn = (world: World) => world.getActors().filter((each) => each.getType() === TRAVELER);
         expect(travelersIn(scene.overworld)).toEqual([actor]);
 
-        await scene.travel.transfer(actor, {
+        scene.travel.transfer(actor, {
             world: scene.nether,
             position: new Vector3(10.5, 70, 0.5),
             yaw: 90,
@@ -897,7 +898,7 @@ describe('DimensionTravel.transfer of a data-driven mob', () => {
  * update, then the input steps that land a trip the update started.
  */
 const tickInPortal = async (travel: DimensionTravel, entity: StoreActor, portal: PortalBlockRef, tick: number) => {
-    await travel.touch(entity, portal);
+    travel.touch(entity, portal);
     await entity.update(tick);
     // The input steps of the ticks after it, which land a trip the update started.
     await settle(travel);
@@ -1127,7 +1128,7 @@ describe('DimensionTravel as messages', () => {
         // The source world's tick: the touch, then the update that starts the trip.
         scene.overworld.beginChangeTick();
         scene.nether.beginChangeTick();
-        await scene.travel.touch(mob, portalAt(scene.overworld, new Vector3(80, 64, 0)));
+        scene.travel.touch(mob, portalAt(scene.overworld, new Vector3(80, 64, 0)));
         await mob.update(1);
         const started = scene.overworld.sealChangeTick();
         const untouched = scene.nether.sealChangeTick();
@@ -1142,7 +1143,7 @@ describe('DimensionTravel as messages', () => {
         await scene.travel.prepared();
         scene.overworld.beginChangeTick();
         scene.nether.beginChangeTick();
-        expect(await scene.travel.admit()).toBe(1);
+        expect(scene.travel.admit()).toBe(1);
         const left = scene.overworld.sealChangeTick();
         const entered = scene.nether.sealChangeTick();
 
@@ -1184,7 +1185,7 @@ describe('DimensionTravel as messages', () => {
             scene.overworld.beginChangeTick();
             scene.nether.beginChangeTick();
             await scene.completions.admissions.admit(tick);
-            await scene.travel.admit();
+            scene.travel.admit();
             left.push(...memberships(scene.overworld.sealChangeTick()));
             entered.push(...memberships(scene.nether.sealChangeTick()));
             // Lets the generation the step did not wait for finish before the next step.
@@ -1195,6 +1196,83 @@ describe('DimensionTravel as messages', () => {
         expect(bot.getWorld()).toBe(scene.nether);
         expect(left).toEqual([['leave', bot.runtimeId]]);
         expect(entered).toEqual([['enter', bot.runtimeId]]);
+
+        scene.completions.deactivate();
+        await scene.level.disable();
+    }, 60_000);
+
+    it("holds a trip's arrival chunks with a ticket from its preparation until it lands", async () => {
+        const scene = await buildScene();
+        const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        scene.completions.activate();
+
+        const departed = scene.travel.depart(mob, {
+            world: scene.overworld,
+            position: new Vector3(80, 64, 0),
+            block: 'minecraft:end_portal'
+        });
+        expect(departed).toBe(true);
+        await scene.travel.prepared();
+
+        // The End platform at (100, 48, 0) is in chunk (6, 0). An unload pass cannot take a
+        // ticketed chunk, so the trip never loads it twice.
+        const tickets = scene.end.chunkTickets();
+        expect(tickets.holds(6, 0)).toBe(true);
+        const loads = tickets.loadsStarted;
+
+        for (let tick = 2; scene.travel.pending > 0 && tick < 200; tick += 1) {
+            await runInTick(async () => {
+                await scene.completions.admissions.admit(tick);
+                scene.travel.admit();
+            });
+            await new Promise((resolve) => setImmediate(resolve));
+        }
+
+        expect(scene.travel.pending).toBe(0);
+        expect(cowsIn(scene.end)).toHaveLength(1);
+        expect(tickets.loadsStarted).toBe(loads);
+        expect(tickets.holds(6, 0)).toBe(false);
+        expect(scene.completions.admissions.snapshot().admittedInTick).toBe(0);
+
+        scene.completions.deactivate();
+        await scene.level.disable();
+    }, 60_000);
+
+    it('holds a trip out of the End at the input step until the respawn search has its chunks, loading none inside a tick', async () => {
+        const scene = await buildScene();
+        const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5));
+        scene.end.addPlayer(player);
+        player.getPlayer().setSeenCredits(true);
+        // A bed far out in the Overworld, in a chunk nothing has loaded.
+        player.getPlayer().setSpawnPoint({ x: 4000, y: 64, z: 4000, dimension: 'minecraft:overworld' });
+        expect(scene.overworld.getLoadedChunk(250, 250)).toBeNull();
+        scene.completions.activate();
+
+        const departed = scene.travel.depart(player.getActor()!, {
+            world: scene.end,
+            position: new Vector3(0, 60, 0),
+            block: 'minecraft:end_portal'
+        });
+        expect(departed).toBe(true);
+
+        // Each step asks the search; the steps before its chunk is in leave the trip filed.
+        let waited = 0;
+        for (let tick = 1; scene.travel.pending > 0 && tick < 200; tick += 1) {
+            await runInTick(async () => {
+                await scene.completions.admissions.admit(tick);
+                scene.travel.admit();
+            });
+            if (scene.travel.pending > 0) waited += 1;
+            await new Promise((resolve) => setImmediate(resolve));
+        }
+
+        expect(scene.travel.pending).toBe(0);
+        expect(waited).toBeGreaterThan(0);
+        expect(scene.overworld.getLoadedChunk(250, 250)).not.toBeNull();
+        expect(scene.completions.admissions.snapshot().admittedInTick).toBe(0);
+        // The bed is not there, so the trip lands at the world spawn and the point is cleared.
+        expect(player.getWorld()).toBe(scene.overworld);
+        expect(player.getPlayer().getSpawnPoint()).toBeUndefined();
 
         scene.completions.deactivate();
         await scene.level.disable();
@@ -1214,7 +1292,7 @@ describe('DimensionTravel as messages', () => {
         };
 
         await runInTick(async () => {
-            await scene.travel.touch(mob, {
+            scene.travel.touch(mob, {
                 world: overworld,
                 position: new Vector3(0, 60, 0),
                 block: 'minecraft:end_portal'
@@ -1272,7 +1350,7 @@ describe('DimensionTravel as messages', () => {
         if (nether === undefined) throw new Error('the Nether was not built');
         overworld.beginChangeTick();
         nether.beginChangeTick();
-        expect(await scene.travel.admit()).toBe(1);
+        expect(scene.travel.admit()).toBe(1);
         const left = overworld.sealChangeTick();
         const entered = nether.sealChangeTick();
 
@@ -1304,7 +1382,7 @@ describe('DimensionTravel as messages', () => {
         scene.travel.move(bot, { world: end, position: new Vector3(0, 70, 0), yaw: 0, pitch: 0 });
 
         // The Nether is not built at this step, so the End waits behind it.
-        expect(await scene.travel.admit()).toBe(0);
+        expect(scene.travel.admit()).toBe(0);
         expect(seen).toEqual([]);
 
         await settle(scene.travel);
@@ -1336,7 +1414,7 @@ describe('DimensionTravel as messages', () => {
 
         scene.overworld.beginChangeTick();
         scene.nether.beginChangeTick();
-        expect(await messages.admit()).toBe(1);
+        expect(messages.admit()).toBe(1);
         const elsewhere = scene.overworld.sealChangeTick();
         const applied = scene.nether.sealChangeTick();
 
