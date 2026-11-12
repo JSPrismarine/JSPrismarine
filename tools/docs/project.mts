@@ -43,10 +43,31 @@ export interface Executable {
     os: 'linux' | 'darwin' | 'windows';
 }
 
+/** The public demo server, and the host that provides part of it. */
+export interface DemoServer {
+    address: string;
+    /** The name the "Add to Minecraft" link gives the server in a player's list. */
+    name: string;
+    port: number;
+    sponsor: { discount: string; name: string; url: string };
+}
+
+/**
+ * The demo server anyone can join. No code records where it runs, so this is the one place its
+ * address is written; the landing page and the docs facts read it from here.
+ */
+export const demoServer: DemoServer = {
+    address: 'demo.jsprismarine.dev',
+    name: 'JSPrismarine demo',
+    port: 19132,
+    sponsor: { discount: '15%', name: 'RespawnHost', url: 'https://rspwn.click/jsprismarine' }
+};
+
 /** Facts about the project that the landing page shows. They are read from the repository, never typed in. */
 export interface ProjectData {
     /** The port a fresh server listens on. */
     defaultPort: number;
+    demo: DemoServer;
     engines: { node: string; pnpm: string };
     /** The SPDX license the workspace is released under, such as `MPL-2.0`. */
     license: string;
@@ -178,6 +199,7 @@ export function loadProject(): ProjectData {
         netherNetLanPort: Number(netherNetLanPort),
         netherNetIdentityFile,
         defaultPort: Number(port),
+        demo: demoServer,
         engines: { node: root.engines?.node ?? '', pnpm: root.engines?.pnpm ?? '' },
         license: root.license ?? '',
         packages,

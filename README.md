@@ -21,6 +21,12 @@ JSPrismarine is in active development, so some vanilla behavior is still missing
 
 ## Try it
 
+The quickest look is the demo server. In Minecraft, open **Servers → Add Server** and enter <!-- fact:demo.address -->`demo.jsprismarine.dev`<!-- /fact --> with port <!-- fact:demo.port -->19132<!-- /fact -->. No setup, and you see what works today. Xbox, PlayStation and Switch have no **Add Server**, and the [joining guide](docs/guide/joining.md#when-you-cannot-connect) explains what joining from them takes.
+
+<!-- fact:demo.sponsor -->RespawnHost<!-- /fact --> provides part of the demo server's hosting. Rent a server of your own at <!-- fact:demo.sponsorLink -->[rspwn.click/jsprismarine](https://rspwn.click/jsprismarine)<!-- /fact --> for <!-- fact:demo.discount -->15%<!-- /fact --> off, and you help pay for our test servers.
+
+### Run your own
+
 You need [Node.js](https://nodejs.org), [pnpm](https://pnpm.io/installation) and a JDK; [Running JSPrismarine](https://jsprismarine.dev/guide/running#run-from-source) lists the versions.
 
 ```bash

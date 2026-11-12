@@ -1,6 +1,6 @@
 import { loadProject, type ProjectData } from '../project.mts';
 
-export type { Executable, ProjectData, PublishedPackage, SupportedProtocol } from '../project.mts';
+export type { DemoServer, Executable, ProjectData, PublishedPackage, SupportedProtocol } from '../project.mts';
 
 declare const data: ProjectData;
 export { data };
