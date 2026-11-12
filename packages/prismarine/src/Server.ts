@@ -1132,7 +1132,8 @@ export default class Server {
      * Runs one tick now, for a harness that drives a server started with ticking disabled.
      *
      * Each call is exactly one tick, run to its end before this returns, so a replay takes the
-     * same steps on any host. See {@link ServerTicker.advance}.
+     * same steps on any host. Activate {@link Server.getChunkCompletionQueue} first, or inputs and
+     * finished chunks are applied when they arrive. See {@link ServerTicker.advance}.
      * @throws {Error} When the tick loop is running.
      */
     public advanceTick(): void {
