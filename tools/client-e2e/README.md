@@ -150,5 +150,7 @@ Add a file under `src/scenarios/` exporting a `Scenario` (see `src/scenario.mts`
 in the compatible suite in `src/run.mts`. A scenario receives its suite's server (console commands, log
 matching), its in-world client (input, state, captures), and an artifacts directory. Scenarios in
 one suite run sequentially with a reset between them; separate suites can run concurrently, so keep
-files inside the provided artifacts directory and avoid shared mutable state. Assert with
-`node:assert/strict` and throw to fail; the runner joins the client before the first scenario.
+files inside the provided artifacts directory and avoid shared mutable state. A scenario that starts
+additional clients waits until no scenario in another suite has any: on CI's software renderer, a
+fresh client's loading screen runs past its join budget when another one loads beside it. Assert
+with `node:assert/strict` and throw to fail; the runner joins the client before the first scenario.

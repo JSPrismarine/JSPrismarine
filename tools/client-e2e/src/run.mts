@@ -20,6 +20,7 @@ import { parseArgs } from 'node:util';
 import { ensureCinnabar, parseTransport } from './cinnabar.mts';
 import { CinnabarClient } from './client.mts';
 import { startServer, UDP_PORTS_LAYOUTS } from './jsp-server.mts';
+import { createMutex } from './mutex.mts';
 import type { ScenarioResult } from './retry.mts';
 import { mergeRetries, retrySuites } from './retry.mts';
 import { sleep, standAt, untilPlayersOnline } from './scenario.mts';
@@ -243,6 +244,18 @@ console.log(
 
 const serverLogs: string[] = new Array(selectedSuites.length);
 
+/**
+ * Lets one scenario at a time, across every suite, run clients beside its suite's own.
+ *
+ * Each client renders on the CPU in CI, and a fresh one's loading screen is the costliest thing
+ * it does. With two suites, two scenarios each bringing an observer in at once put four clients
+ * on the runner's four cores, and both observers' loading screens ran past their two minutes on
+ * protocol 2193, where one alone takes about eighty seconds. A scenario takes its turn before it
+ * launches its first additional client and gives it back once they are closed, so the budgets
+ * its joins get start when the runner has room for them.
+ */
+const additionalClientTurns = createMutex();
+
 const resetBetweenScenarios = async (
     server: Awaited<ReturnType<typeof startServer>>,
     client: CinnabarClient
@@ -462,6 +475,11 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             const scenarioArtifacts = path.join(artifacts, scenario.name);
             fs.mkdirSync(scenarioArtifacts, { recursive: true });
             const scenarioClients: CinnabarClient[] = [];
+            // One turn per scenario, shared by its additional clients, so two launched together
+            // do not wait on each other.
+            let additionalClientTurn: Promise<() => void> | undefined;
+            const takeAdditionalClientTurn = (): Promise<() => void> =>
+                (additionalClientTurn ??= additionalClientTurns.acquire());
             let recordingStarted = false;
             try {
                 if (values.record) {
@@ -475,6 +493,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                             'additional client names must be 1 to 16 letters, numbers, underscores, or hyphens'
                         );
                     }
+                    await takeAdditionalClientTurn();
                     const additional = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
                     scenarioClients.push(additional);
                     const root =
@@ -499,6 +518,8 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                     launchClient,
                     connect: (additional) => additional.connect(suiteServer.port, transport === 'nethernet'),
                     createClient: async (displayName) => {
+                        // Before the join's budget starts, which a wait for the turn must not spend.
+                        await takeAdditionalClientTurn();
                         const additionalJoined = suiteServer.waitForLine(
                             new RegExp(`${displayName} joined the game`),
                             120_000
@@ -537,6 +558,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                         console.warn(`${scenario.name}: additional client cleanup failed: ${String(error)}`);
                     });
                 }
+                if (additionalClientTurn !== undefined) (await additionalClientTurn)();
             }
 
             if (scenarioIndex < suite.scenarios.length - 1) {
