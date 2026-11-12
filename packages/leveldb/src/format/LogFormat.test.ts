@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CorruptionError } from '../Errors';
-import { LOG_BLOCK_SIZE, LOG_HEADER_SIZE, LogWriter, readLogRecords } from './LogFormat';
+import { LOG_BLOCK_SIZE, LOG_HEADER_SIZE, LogWriter, frameLogRecord, readLogRecords } from './LogFormat';
 import { ValueType, encodeInternalKey } from './InternalKey';
 import { WriteBatch } from './WriteBatch';
 
@@ -13,6 +13,24 @@ const roundTrip = (records: Buffer[]): Buffer[] => {
 
 describe('leveldb', () => {
     describe('log framing', () => {
+        it('frames a record as headers over views of it, copying none of its bytes', () => {
+            const record = Buffer.alloc(LOG_BLOCK_SIZE * 3 + 17, 0x5a);
+            const start = LOG_BLOCK_SIZE - 3;
+            const framed = frameLogRecord(record, start);
+
+            const views = framed.parts.filter((part) => part.buffer === record.buffer);
+            const added = framed.parts.filter((part) => part.buffer !== record.buffer);
+            // Four fragments: the record starts a block after the padded tail and fills three more.
+            const fragments = 4;
+            expect(views.reduce((total, part) => total + part.byteLength, 0)).toBe(record.byteLength);
+            expect(added.reduce((total, part) => total + part.byteLength, 0)).toBe(3 + fragments * LOG_HEADER_SIZE);
+            expect(framed.length).toBe(record.byteLength + 3 + fragments * LOG_HEADER_SIZE);
+
+            const writer = new LogWriter(start);
+            writer.append(record);
+            expect(Buffer.concat(framed.parts).equals(writer.finish())).toBe(true);
+        });
+
         it('round-trips a single small record', () => {
             expect(roundTrip([Buffer.from('hello')])).toEqual([Buffer.from('hello')]);
         });

@@ -74,10 +74,46 @@ describe('storage', () => {
         fs.writeFileSync(log, 'abc');
 
         const file = new AppendFile(log);
-        file.append(Buffer.from('def'));
+        file.append([Buffer.from('de'), Buffer.from('f')]);
         file.close();
 
         expect(file.length).toBe(6);
         expect(fs.readFileSync(log, 'utf8')).toBe('abcdef');
+    });
+
+    it('appends on the thread pool in the order the appends were asked for', async () => {
+        const log = path.join(directory, '000003.log');
+        const file = new AppendFile(log);
+
+        const first = file.appendLater([Buffer.from('ab'), Buffer.from('c')]);
+        const second = file.appendLater([Buffer.from('def')]);
+        // Counted at once, so the next record is framed at the offset it will land at.
+        expect(file.length).toBe(6);
+        expect(file.busy).toBe(true);
+        expect(() => file.append([Buffer.from('x')])).toThrow(/still running/);
+
+        await Promise.all([first, second, file.syncLater()]);
+        expect(file.busy).toBe(false);
+        file.close();
+
+        expect(fs.readFileSync(log, 'utf8')).toBe('abcdef');
+    });
+
+    it('lets the appends behind a failed one run, and reports the failure to its caller only', async () => {
+        const log = path.join(directory, '000003.log');
+        const file = new AppendFile(log);
+        // An invalid descriptor rather than a closed one: a closed number can be reused by another
+        // file the process opens, and the append would land there.
+        const descriptor: unknown = Reflect.get(file, 'descriptor');
+        Reflect.set(file, 'descriptor', -1);
+        const failing = file.appendLater([Buffer.from('lost')]);
+        await expect(failing).rejects.toThrow();
+
+        Reflect.set(file, 'descriptor', descriptor);
+        await file.appendLater([Buffer.from('kept')]);
+        await file.drain();
+        expect(file.busy).toBe(false);
+        file.close();
+        expect(fs.readFileSync(log, 'utf8')).toBe('kept');
     });
 });
