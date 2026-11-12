@@ -35,7 +35,7 @@ import type { ShownBreath } from '../../entity/playerBreath';
 import { mayFlyIn } from '../../entity/playerComponents';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
-import { HAND_SLOT_FIELD, slotKey } from '../../entity/playerShown';
+import { HAND_SLOT_FIELD, HEAD_YAW_FIELD, slotKey } from '../../entity/playerShown';
 import type { ShownPlayerState } from '../../entity/playerShown';
 import type { ViewableEquipment } from '../../entity/predicateView';
 import { restoredItem } from '../../inventory/persistence';
@@ -58,8 +58,11 @@ import { allSent } from '../allSent';
 /** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
 const MOVEMENT_EPSILON = 1e-4;
 
-/** The fields that move an entity, which a move is sent for and nothing else reads. */
-const POSE_FIELDS: ReadonlySet<string> = new Set(['position', 'yaw', 'pitch', 'teleports']);
+/**
+ * The fields that move an entity, which a move is sent for and nothing else reads. A player's head
+ * turns apart from its body, so a tick that writes only the head yaw still sends a move.
+ */
+const POSE_FIELDS: ReadonlySet<string> = new Set(['position', 'yaw', 'pitch', 'teleports', HEAD_YAW_FIELD]);
 
 /** The fields no metadata, property or health of an entity reads, so a tick writing only these is not projected. */
 const UNSHOWN_FIELDS: ReadonlySet<string> = new Set([
@@ -80,6 +83,8 @@ type Shown = {
     projection: ActorMetadataProjection;
     properties: SyncedProperties;
     pose: ShownPose;
+    /** A player's head yaw as its viewers were last sent it; undefined for any other entity. */
+    headYaw: number | undefined;
     health: ShownHealth | undefined;
     equipment: ViewableEquipment;
     /** A player's breath as its viewers were last told it, which is sent in steps. */
@@ -387,9 +392,11 @@ export class EntityReplication {
             Math.abs(last.y - pose.y) < MOVEMENT_EPSILON &&
             Math.abs(last.z - pose.z) < MOVEMENT_EPSILON &&
             last.yaw === pose.yaw &&
-            last.pitch === pose.pitch;
+            last.pitch === pose.pitch &&
+            shown.headYaw === player?.headYaw;
         if (still) return;
         shown.pose = pose;
+        shown.headYaw = player?.headYaw;
 
         const packet = new MoveActorAbsolutePacket();
         packet.runtimeEntityId = entity;
@@ -454,6 +461,7 @@ export class EntityReplication {
             projection,
             properties: view.properties,
             pose: view.pose,
+            headYaw: player?.headYaw,
             health: view.health,
             equipment: kind === 'item' ? {} : this.equipmentOf(held, view, player),
             breath: undefined
