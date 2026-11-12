@@ -147,6 +147,8 @@ export interface ConfigFile {
     'server-udp-ports'?: string;
     /** The address NetherNet advertises, as Bedrock Dedicated Server's `server-public-ip`: a raw IPv4, a raw or bracketed IPv6, or empty. */
     'server-public-ip'?: string;
+    /** Whether NetherNet looks up the public address to offer when `server-public-ip` is empty. */
+    'enable-server-public-ip-lookup'?: boolean;
     /** Whether players on the local network see the server among their LAN games, as Bedrock Dedicated Server's `enable-lan-visibility`. */
     'enable-lan-visibility'?: boolean;
     /** The zlib level for outgoing batches. @asType integer @minimum -1 @maximum 9 */
@@ -217,6 +219,7 @@ export const CONFIG_KEY_ORDER = [
     'enable-nethernet',
     'server-udp-ports',
     'server-public-ip',
+    'enable-server-public-ip-lookup',
     'enable-lan-visibility',
     'packet-compression-level',
     'packet-compression-algorithm',

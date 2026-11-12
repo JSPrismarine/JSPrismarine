@@ -60,6 +60,7 @@ describe('the config file a boot generates', () => {
         'enable-raknet',
         'use-raknet-worker',
         'enable-nethernet',
+        'enable-server-public-ip-lookup',
         'enable-lan-visibility',
         'packet-compression-level',
         'packet-compression-algorithm',

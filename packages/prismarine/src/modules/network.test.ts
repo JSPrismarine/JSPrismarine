@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { startTestModule } from '@jsprismarine/kernel/testing';
@@ -12,6 +12,7 @@ import {
     exchangeOffer,
     loadNativeDriver,
     NetherNetClient,
+    PUBLIC_IP_SERVICES,
     SignalStructure,
     SignalType,
     verifySelfSignedIdentity
@@ -84,7 +85,17 @@ describe('modules/network', () => {
     });
 
     /** A server running NetherNet alone, with LAN visibility off so nothing fixed binds. */
-    const netherNetServer = () =>
+    const netherNetServer = ({
+        lookup = false,
+        publicIp = '',
+        info = () => {},
+        warn = () => {}
+    }: {
+        lookup?: boolean;
+        publicIp?: string;
+        info?: (message: string) => void;
+        warn?: (message: string) => void;
+    } = {}) =>
         stub<Server>({
             getConfig: () =>
                 stub<Config>({
@@ -97,10 +108,11 @@ describe('modules/network', () => {
                     // Off, so the test binds nothing: UDP 7551 is a fixed, shared port.
                     getEnableLanVisibility: () => false,
                     getServerUdpPorts: () => '',
-                    getServerPublicIp: () => '',
+                    getServerPublicIp: () => publicIp,
+                    getEnableServerPublicIpLookup: () => lookup,
                     getLevelName: () => 'world'
                 }),
-            getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }),
+            getLogger: () => stub<Logger>({ debug: () => {}, info, warn, error: () => {} }),
             getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
             getPacketLogFilter: () => new PacketLogFilter(),
             getSessionManager: () => new SessionManager()
@@ -124,6 +136,86 @@ describe('modules/network', () => {
             vi.unstubAllEnvs();
             fs.rmSync(dataDirectory, { recursive: true, force: true });
         }
+    });
+
+    describe('public address lookup', () => {
+        /** Starts NetherNet on `address` with `fetch` answering every request, and stops it again. */
+        const startWith = async (
+            address: string,
+            fetch: (url: string) => Promise<Response>,
+            options: Parameters<typeof netherNetServer>[0]
+        ): Promise<void> => {
+            vi.stubGlobal('fetch', fetch);
+            const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
+            vi.stubEnv('JSP_DIR', dataDirectory);
+            const networking = new ServerNetworking(netherNetServer(options));
+            try {
+                await networking.start(address, 0);
+            } finally {
+                // Stopped after the test, once it has seen what the lookup logged.
+                stopping.push(() => {
+                    networking.kill();
+                    vi.unstubAllGlobals();
+                    vi.unstubAllEnvs();
+                    fs.rmSync(dataDirectory, { recursive: true, force: true });
+                });
+            }
+        };
+        const stopping: (() => void)[] = [];
+        afterEach(() => {
+            for (const stop of stopping.splice(0)) stop();
+        });
+
+        it('looks the address up from the first service that answers, and logs it', async () => {
+            const asked: string[] = [];
+            const info = vi.fn();
+            await startWith(
+                '0.0.0.0',
+                async (url) => {
+                    asked.push(url);
+                    if (asked.length === 1) throw new Error('fetch failed');
+                    return new Response('203.0.113.7\n');
+                },
+                { lookup: true, info }
+            );
+
+            await vi.waitFor(() =>
+                expect(info).toHaveBeenCalledWith(expect.stringContaining('NetherNet offers 203.0.113.7'))
+            );
+            expect(asked).toStrictEqual(PUBLIC_IP_SERVICES.slice(0, 2));
+        });
+
+        it('warns, naming server-public-ip and the switch, when no service answers', async () => {
+            const warn = vi.fn();
+            await startWith(
+                '0.0.0.0',
+                async () => {
+                    throw new Error('fetch failed');
+                },
+                { lookup: true, warn }
+            );
+
+            await vi.waitFor(() => expect(warn).toHaveBeenCalledOnce());
+            const [message] = warn.mock.calls[0]!;
+            expect(message).toContain("could not look up this server's public address");
+            expect(message).toContain(`${PUBLIC_IP_SERVICES[0]} failed: fetch failed`);
+            expect(message).toContain('server-public-ip');
+            expect(message).toContain('enable-server-public-ip-lookup');
+        });
+
+        it.each([
+            ['enable-server-public-ip-lookup is off', '0.0.0.0', { lookup: false }],
+            ['server-public-ip names an address', '0.0.0.0', { lookup: true, publicIp: '198.51.100.4' }],
+            ['the server binds loopback', '127.0.0.1', { lookup: true }],
+            ['the server binds IPv6 loopback, spelled out', '0:0:0:0:0:0:0:1', { lookup: true }]
+        ])('asks no service when %s', async (_case, address, options) => {
+            const fetch = vi.fn(async () => new Response('203.0.113.7'));
+            const warn = vi.fn();
+            await startWith(address, fetch, { ...options, warn });
+
+            expect(fetch).not.toHaveBeenCalled();
+            expect(warn).not.toHaveBeenCalled();
+        });
     });
 
     it('refuses to start NetherNet with a malformed server-udp-ports, before anything binds', async () => {
@@ -569,6 +661,7 @@ describe('modules/network', () => {
                     getServerPortV6: () => portV6,
                     getServerUdpPorts: () => udpPorts,
                     getServerPublicIp: () => '',
+                    getEnableServerPublicIpLookup: () => false,
                     getLevelName: () => 'world'
                 }),
             getLogger: () =>
