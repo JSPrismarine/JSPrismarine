@@ -5,7 +5,7 @@ import { FAMILIES } from './families.ts';
 import { loadActorIdentifiers } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
-import { loadVanillaEntityTypes } from './vanillaEntities.ts';
+import { loadOverlayEntityTypes, loadVanillaEntityTypes } from './vanillaEntities.ts';
 import { reportParityProgress } from './progress.ts';
 import { reportParityCases } from './trackerCases.ts';
 
@@ -79,6 +79,17 @@ describeFamily(
 
         it('can build the packet for every actor type the server advertises', () => {
             expect(verdict.unexpected, detail.join('\n')).toEqual([]);
+        });
+
+        it('advertises the summonable flag of each engine entity the overlay defines', () => {
+            const overlay = loadOverlayEntityTypes();
+            const disagreements = loadActorIdentifiers().flatMap((identifier) => {
+                const type = overlay.registry.get(identifier.id);
+                return type === undefined || type.flags.summonable === identifier.summonable
+                    ? []
+                    : [`${identifier.id}: advertised ${identifier.summonable}, overlay ${type.flags.summonable}`];
+            });
+            expect(disagreements).toEqual([]);
         });
 
         it('carries no stale allow-list entry', () => {
