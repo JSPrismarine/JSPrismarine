@@ -132,7 +132,7 @@
         "@types/node": "26.6.6",
         "@types/terminal-kit": "2.5.7",
         "ajv": "8.20.0",
-        "glob": "14.0.5",
+        "glob": "14.0.6",
         "rimraf": "6.1.4",
         "ts-json-schema-generator": "2.9.0",
         "tsx": "4.23.15",
