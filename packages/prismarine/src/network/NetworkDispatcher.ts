@@ -654,7 +654,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 return;
             }
             if (recordInbound && this.inboundPacketRecorder !== undefined) this.recordInboundPacket(packet, connection);
-            HandlerContexts.of(this.server).runInput(handler, packet, session, report);
+            // Not awaited: the outputs finish outside the step, and `report` takes their failures.
+            void HandlerContexts.of(this.server).runInput(handler, packet, session, report);
         } catch (error: unknown) {
             report(error);
         }

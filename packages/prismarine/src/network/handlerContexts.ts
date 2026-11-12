@@ -8,6 +8,7 @@
  */
 import type Server from '../Server';
 import { applyInputNow } from '../world/inputUnit';
+import { allSent } from './allSent';
 import type { HandlerServices, InputStep, SessionContext } from './handler/HandlerContext';
 import type { InputLaneHandler, SessionHandler } from './handler/SessionHandler';
 import type PlayerSession from './PlayerSession';
@@ -139,6 +140,9 @@ export class HandlerContexts {
      * @param packet - The decoded packet.
      * @param session - The session the packet arrived on.
      * @param report - Where a failed output goes.
+     * @returns Settles once every output has, after `report` was handed each failure. The input
+     *   step does not wait for it; a caller that does, such as a test, sees a `report` that throws
+     *   as its rejection.
      * @throws The handler's error, after its writes are undone.
      */
     public runInput<P>(
@@ -146,12 +150,14 @@ export class HandlerContexts {
         packet: P,
         session: PlayerSession,
         report: (error: unknown) => void
-    ): void {
+    ): Promise<void> {
+        const outputs: Promise<void>[] = [];
         const step: InputStep = {
             tick: this.server.getTick(),
-            output: (send) => void send.catch(report)
+            output: (send) => void outputs.push(send.catch(report))
         };
         const context = contextOf(this.server, session, { services: this.services, step });
         applyInputNow(session, () => handler.handle(packet, context));
+        return allSent(outputs);
     }
 }
