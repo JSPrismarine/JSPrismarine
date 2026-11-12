@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import type { Generator, SurfaceProbe } from './Generator';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
@@ -89,7 +89,7 @@ const testWorld = (generator: Generator) => {
         level: fakeLevel({
             server,
             seed: 1234n,
-            provider: stub<BaseProvider>({
+            provider: stubOf(BaseProvider, {
                 readChunk: async (_dimension, x, z, _seed, chunkGenerator) => chunkGenerator.generateChunk(x, z)
             })
         }),

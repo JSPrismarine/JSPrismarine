@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Dimensions } from './DimensionType';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import { World } from './World';
 import { worldSeedOf } from '../utils/Seed';
 import Chunk from './chunk/Chunk';
@@ -9,7 +9,7 @@ import type { Config } from '../config/Config';
 import type { Generator } from './Generator';
 import type { Logger } from '@jsprismarine/logger';
 import type { WorldData } from '../config/JsonConfigTypes';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
@@ -47,7 +47,7 @@ const testWorld = (config: WorldData) => {
         level: fakeLevel({
             server,
             seed: worldSeedOf(config.seed),
-            provider: stub<BaseProvider>({
+            provider: stubOf(BaseProvider, {
                 readChunk: async (_dimension, x, z, seed) => {
                     seeds.push(seed);
                     return new Chunk(x, z, new Map(), Dimensions.Overworld);

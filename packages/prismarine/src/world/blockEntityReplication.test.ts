@@ -11,12 +11,12 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { replicaSink } from '../testing/sealedBlocks.test.helper';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import { worldBlockEntities } from './contentAdapter';
 import type { Generator } from './Generator';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
@@ -77,7 +77,7 @@ const flatWorld = async () => {
         server,
         level: fakeLevel({
             server,
-            provider: stub<BaseProvider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) })
+            provider: stubOf(BaseProvider, { readChunk: async (_dimension, x, z) => flatChunk(x, z) })
         }),
         stem: TEST_OVERWORLD_STEM,
         generator: stub<Generator>({})

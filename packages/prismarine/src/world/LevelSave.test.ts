@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../../.test/reportProgress';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { Config } from '../config/Config';
+import type { WorldPlayerData } from '../config/JsonConfigTypes';
 import type Server from '../Server';
 import { inertEntityRuntime, liveTestEntities, testContent } from '../testing/entityServer';
 import { testLevel } from '../testing/level';
@@ -23,9 +24,9 @@ import { Dimensions } from './DimensionType';
 import type { DimensionType } from './DimensionType';
 import type { Generator } from './Generator';
 import type { Level } from './Level';
-import { AUTO_SAVE_INTERVAL_TICKS, SAVE_ENCODE_BUDGET } from './LevelSave';
+import { AUTO_SAVE_INTERVAL_TICKS, HELD_WRITE_LIMIT, SAVE_ENCODE_BUDGET } from './LevelSave';
 import { DimensionTravel } from './portal/DimensionTravel';
-import { decodeChunkKey } from './providers/leveldb/LevelDBKeys';
+import { decodeChunkKey, encodePlayerServerKey } from './providers/leveldb/LevelDBKeys';
 import LevelDB from './providers/leveldb/LevelDB';
 import type { ProviderSavePass } from './providers/SavePass';
 import type { World } from './World';
@@ -205,8 +206,8 @@ describe('a level save pass', () => {
             level.update(++tick);
             expect(written).toEqual([]);
         }
-        // Queued behind the autosave, so this settles once its commit has landed.
-        await level.enqueueSave(async () => {});
+        // Settles once the autosave's commit has landed.
+        await level.pendingSave();
 
         expect(written.map(({ call }) => call)).toEqual(['commit']);
         const dimensions = new Set(
@@ -239,9 +240,9 @@ describe('a level save pass', () => {
         expect(pass.stats.subChunkEncodes - encodesBefore).toBe(1);
         expect(pass.stats.bypassedWrites).toBe(0);
         while (pass.pendingEncodes > 0) level.update(++tick);
-        // Queued behind the autosave, so this settles once its commit has landed. An explicit
-        // save would be a pass of its own, cut after the write.
-        await level.enqueueSave(async () => {});
+        // Settles once the autosave's commit has landed. An explicit save would be a pass of its
+        // own, cut after the write.
+        await level.pendingSave();
 
         const saved = await readSaved(provider, Dimensions.Overworld, CHUNKS - 1);
         expect(saved.getBlockRuntimeId(5, 0, 5)).toBe(stone);
@@ -264,7 +265,7 @@ describe('a level save pass', () => {
                 for (let x = 0; x < CHUNKS; x++) world.getLoadedChunk(x, 0)!.setBlockRuntimeId(step * 3, 64, 0, gold);
             level.update(++tick);
         }
-        await level.enqueueSave(async () => {});
+        await level.pendingSave();
 
         for (const world of [overworld, nether]) {
             for (let x = 0; x < CHUNKS; x++) {
@@ -307,8 +308,8 @@ describe('a level save pass', () => {
         let tick = cutAutosave(level);
         live.runtime.remove(cow.id, 'test');
         while (passes[0]!.pendingEncodes > 0) level.update(++tick);
-        // Queued behind the autosave, so this settles once its commit has landed.
-        await level.enqueueSave(async () => {});
+        // Settles once the autosave's commit has landed.
+        await level.pendingSave();
 
         const atCut = await readSaved(provider, Dimensions.Overworld, 0);
         expect(atCut.takeStoredEntities().map((actor) => actor.getString('identifier', ''))).toEqual(['minecraft:cow']);
@@ -349,5 +350,168 @@ describe('a level save pass', () => {
         const keys = written.flatMap(({ keys }) => keys).map((key) => key.toString('latin1'));
         expect(keys.filter((key) => !key.startsWith('jsprismarine:world_data'))).toEqual([]);
         await level.disable();
+    });
+});
+
+/** A player's record as a disconnect writes it, standing at `x`. */
+const leftAt = (name: string, x: number): WorldPlayerData => ({
+    uuid: `${name}-uuid`,
+    username: name,
+    gamemode: 'Survival',
+    position: { x, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 }
+});
+
+/** Whether a batch holds `key`. */
+const holds = (written: Written, key: Buffer): boolean => written.keys.some((each) => each.equals(key));
+
+/** The chunk x coordinates of the Overworld chunk keys a batch holds. */
+const overworldChunksIn = (written: Written): number[] =>
+    [
+        ...new Set(
+            written.keys
+                .map((key) => decodeChunkKey(key))
+                .filter((decoded) => decoded !== null && decoded.dimension === Dimensions.Overworld.bedrockId)
+                .map((decoded) => decoded!.x)
+        )
+    ].sort();
+
+/** Writes gold into a loaded Overworld chunk and unloads it, as the unload pass would. */
+const changeAndUnload = async (overworld: World, x: number): Promise<void> => {
+    overworld.getLoadedChunk(x, 0)!.setBlockRuntimeId(1, 10, 1, gold);
+    await overworld['unloadChunks']([overworld.getLoadedChunk(x, 0)!]);
+    if (overworld.getLoadedChunk(x, 0) !== null) throw new Error(`chunk ${x},0 did not leave`);
+};
+
+describe('a write outside a pass', () => {
+    it('lands in the commit after the one whose cut it followed, which is still one batch', async () => {
+        const { level, provider } = await harness('after-cut-disconnect');
+        await level.save();
+        const written = watchDatabase(provider);
+        const passes = watchPasses(provider);
+
+        let tick = cutAutosave(level);
+        await level.savePlayerData('late', leftAt('late', 5));
+        while (passes[0]!.pendingEncodes > 0) level.update(++tick);
+        await level.pendingSave();
+        await level.save();
+
+        const key = encodePlayerServerKey('late');
+        expect(written.map(({ call }) => call)).toEqual(['commit', 'commit']);
+        expect(holds(written[0]!, key)).toBe(false);
+        expect(holds(written[1]!, key)).toBe(true);
+        expect(passes[0]!.stats.heldWrites).toBe(0);
+        expect(passes[1]!.stats.heldWrites).toBe(1);
+        await level.disable();
+    });
+
+    it('answers a rejoin before the next pass with the record the player left with, writing nothing', async () => {
+        const { level, provider } = await harness('rejoin');
+        await level.save();
+        const written = watchDatabase(provider);
+
+        await level.savePlayerData('leaver', leftAt('leaver', 12.5));
+        const rejoined = await level.getPlayerData('leaver');
+
+        expect(rejoined?.position?.x).toBe(12.5);
+        expect(written).toEqual([]);
+        expect(provider.heldWriteBytes()).toBeGreaterThan(0);
+        await level.disable();
+    });
+
+    it('reloads an unloaded chunk before the next pass with the content it left with, writing nothing', async () => {
+        const { level, overworld, provider } = await harness('reload');
+        await level.save();
+        const written = watchDatabase(provider);
+
+        await changeAndUnload(overworld, 1);
+        const reloaded = await overworld.getChunk(1, 0);
+
+        expect(reloaded.getBlockRuntimeId(1, 10, 1)).toBe(gold);
+        expect(written).toEqual([]);
+        await level.disable();
+    });
+
+    it('joins the next pass with every unload and disconnect since the last, in one batch', async () => {
+        const { level, overworld, provider } = await harness('many');
+        await level.save();
+        const written = watchDatabase(provider);
+        const passes = watchPasses(provider);
+
+        const unloaded = [0, 2, 3];
+        for (const x of unloaded) await changeAndUnload(overworld, x);
+        const leavers = ['first', 'second'];
+        for (const [index, name] of leavers.entries()) await level.savePlayerData(name, leftAt(name, index));
+        expect(written).toEqual([]);
+
+        await level.save();
+
+        expect(written.map(({ call }) => call)).toEqual(['commit']);
+        expect(overworldChunksIn(written[0]!)).toEqual(unloaded);
+        for (const name of leavers) expect(holds(written[0]!, encodePlayerServerKey(name))).toBe(true);
+        // One sub chunk and the Data3D record of each unloaded chunk, and each player's record.
+        expect(passes[0]!.stats.heldWrites).toBe(unloaded.length * 2 + leavers.length);
+        expect(provider.heldWriteBytes()).toBe(0);
+        await level.disable();
+    });
+
+    it('commits early, in one batch of its own, once the held bytes pass the limit', async () => {
+        const { level, provider } = await harness('limit');
+        await level.save();
+        const written = watchDatabase(provider);
+        // Every advancement done, which makes a record of about 10 KB.
+        const advancements = Object.fromEntries(
+            Array.from({ length: 120 }, (_, index) => [
+                `minecraft:story/advancement_${index}`,
+                { criteria: { done: '2026-11-12T00:00:00.000Z' }, done: true }
+            ])
+        );
+        let leavers = 0;
+        const leave = async () => {
+            const name = `player-${leavers++}`;
+            await level.savePlayerData(name, { ...leftAt(name, leavers), advancements });
+        };
+
+        // Under the limit: a tick commits nothing, and the next pass carries every record.
+        for (let index = 0; index < 8; index++) await leave();
+        expect(provider.heldWriteBytes()).toBeLessThanOrEqual(HELD_WRITE_LIMIT);
+        level.update(1);
+        await level.save();
+        expect(written).toHaveLength(1);
+        expect(written[0]!.keys.filter((key) => key.toString('latin1').startsWith('player_server_'))).toHaveLength(8);
+
+        // Over it: the next tick commits the held records alone, before any pass.
+        const first = leavers;
+        while (provider.heldWriteBytes() <= HELD_WRITE_LIMIT) await leave();
+        const records = leavers - first;
+        const held = provider.heldWriteBytes();
+        level.update(2);
+        await level.save();
+
+        expect(written).toHaveLength(3);
+        expect(written[1]!.keys).toHaveLength(records);
+        expect(written[2]!.keys.some((key) => key.toString('latin1').startsWith('player_server_'))).toBe(false);
+        reportProgress(`An early commit of ${records} held player records: ${held} bytes`, 'Held write bytes');
+        await level.disable();
+    });
+
+    it('is lost with nothing else when the process dies before the next pass', async () => {
+        const { folder, level, overworld, server } = await harness('crash-held');
+        await level.save();
+        const before = blocksOf(overworld.getLoadedChunk(1, 0)!);
+
+        await changeAndUnload(overworld, 1);
+        await level.savePlayerData('leaver', leftAt('leaver', 3));
+        const crashed = crashCopy(folder);
+        await level.disable();
+
+        expect(blocksOf(await savedChunk(crashed, server, Dimensions.Overworld, 1))).toEqual(before);
+        const reader = new LevelDB(crashed, server);
+        reader.setLevel({ name: 'reader', seed: 1234n });
+        await reader.enable();
+        try {
+            expect(await reader.readPlayerData('leaver')).toBeNull();
+        } finally {
+            await reader.disable();
+        }
     });
 });

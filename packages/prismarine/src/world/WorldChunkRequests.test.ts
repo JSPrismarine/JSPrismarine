@@ -13,7 +13,7 @@ import type { Config } from '../config/Config';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import type Server from '../Server';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import type { DimensionType } from './DimensionType';
 import { Dimensions } from './DimensionType';
@@ -23,7 +23,7 @@ import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
 import { runInTick } from './TickContext';
 import { trackTickWaits } from './TickWaits';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { encodeSubChunk } from './providers/leveldb/SubChunkCodec';
@@ -54,7 +54,7 @@ const testWorld = (
         name: 'chunk-request-test',
         path: 'chunk-request-test',
         server,
-        level: fakeLevel({ server, provider: stub<BaseProvider>({ readChunk, writeChunk: async () => {} }) }),
+        level: fakeLevel({ server, provider: stubOf(BaseProvider, { readChunk, writeChunk: async () => {} }) }),
         stem: TEST_OVERWORLD_STEM,
         generator,
         ...(completionQueue === undefined ? {} : { completionQueue })

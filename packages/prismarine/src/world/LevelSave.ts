@@ -17,6 +17,18 @@ export const AUTO_SAVE_INTERVAL_TICKS = 20 * 120;
  */
 export const SAVE_ENCODE_BUDGET = 64;
 
+/**
+ * Bytes of writes made outside a pass that a level holds before it commits them early, in a
+ * pass with no cut of its own.
+ *
+ * The database's default write buffer, 4 MiB: about 190 chunks at the 22,327 bytes a changed
+ * chunk encodes to on average (`docs/research/save-pass-measurement.md`), or nine chunk borders
+ * a player crosses at the default view distance. An early commit then fills at most one
+ * memtable, and the held writes stay under the 10 MB a pass may hold (ADR 0018), so a pass cut
+ * just before the limit holds no more than about 14 MB.
+ */
+export const HELD_WRITE_LIMIT = 4 * 1024 * 1024;
+
 /** What a pass reads from one world at its cut; see `World.cutSave`. */
 export interface SavedWorld {
     /**
@@ -68,10 +80,12 @@ interface PendingPass {
  * outside the tick once the last is encoded. A save that is asked for, such as a shutdown's, cuts
  * between two ticks, when its turn comes, and encodes at once.
  *
- * Every write to the save goes through one queue, so a pass never runs beside another or beside
- * a chunk the unload pass writes: two writers racing on `Chunk.markSaved` would clear the flag for
- * a write the other had not made. A player record written outside a pass waits for a commit that
- * is pending, so a record built after a cut never lands before the older one in it.
+ * Every pass goes through one queue, so a pass never runs beside another. A write made outside a
+ * pass, such as a chunk the unload pass writes or a player's record on disconnect, does not wait
+ * in the queue: the provider holds it, answers reads of its keys from it, and commits it ahead of
+ * the next pass's own writes, in the same batch. A write held before a cut lands with that cut's
+ * commit, and one held after it lands with the next. When the held writes pass
+ * {@link HELD_WRITE_LIMIT}, the level commits them early, in a pass that cuts nothing.
  */
 export class LevelSave {
     /** The write that is running, or null when none is. It settles when that write is done and never rejects. */
@@ -82,17 +96,22 @@ export class LevelSave {
     /** The autosave whose cut is taken and whose sub chunks are still encoding, or null. */
     private encoding: { readonly pending: PendingPass; readonly start: () => void } | null = null;
 
-    public constructor(private readonly options: LevelSaveOptions) {}
+    public constructor(private readonly options: LevelSaveOptions) {
+        // This is what commits the held writes, so it is what turns holding on.
+        options.provider().holdOutsideWrites();
+    }
 
     /**
-     * Runs at the end of each level tick: encodes the next share of the autosave in progress, or
-     * takes the autosave's cut when one falls due and nothing else is writing.
+     * Runs at the end of each level tick: encodes the next share of the autosave in progress,
+     * takes the autosave's cut when one falls due and no other pass is running, or else commits
+     * the held writes once they pass {@link HELD_WRITE_LIMIT}.
      *
-     * Skipped rather than queued when something is writing. A pass still going when the next
-     * falls due has more to write than two minutes of ticks allowed, and queueing would answer
-     * that with an ever-growing backlog of passes over the same chunks. Nothing is lost by
-     * skipping, because a chunk this pass does not reach is still dirty and the next one picks
-     * it up.
+     * The autosave is skipped rather than queued while another pass is running. A pass still
+     * going when the next falls due has more to write than two minutes of ticks allowed, and
+     * queueing would answer that with an ever-growing backlog of passes over the same chunks.
+     * Nothing is lost by skipping, because a chunk this pass does not reach is still dirty and
+     * the next one picks it up. Writes made outside a pass are held rather than queued, so a
+     * stream of chunk unloads no longer delays it.
      *
      * @param tick - The level's clock after this tick.
      * @param worlds - The worlds the level ticked.
@@ -102,7 +121,11 @@ export class LevelSave {
             this.advance(SAVE_ENCODE_BUDGET);
             return;
         }
-        if (tick % AUTO_SAVE_INTERVAL_TICKS !== 0 || this.queue !== null) return;
+        if (this.queue !== null) return;
+        if (tick % AUTO_SAVE_INTERVAL_TICKS !== 0) {
+            if (this.options.provider().heldWriteBytes() > HELD_WRITE_LIMIT) this.commitHeld();
+            return;
+        }
 
         let pending: PendingPass;
         try {
@@ -162,16 +185,25 @@ export class LevelSave {
     }
 
     /**
-     * Runs a write to the save outside a pass, once the write before it has finished.
-     * @returns Settles with the write.
+     * Writes the level's own state now, in a pass that cuts no world: the level record and every
+     * write held so far in one commit, then `level.dat`.
+     *
+     * Not left for the next autosave, because a caller asks for this when the state has to be on
+     * disk: the first load writes the spawn it found, and an operator's command saves on
+     * request. Queued behind a pass that is running, like {@link LevelSave.save}.
      */
-    public enqueue(write: () => Promise<void>): Promise<void> {
-        return this.occupy(write);
+    public async saveLevelData(): Promise<void> {
+        this.finishEncoding();
+        await this.occupy(async () => {
+            const pending = this.cut([], false);
+            await this.commit(pending);
+        });
     }
 
     /**
      * Settles once a pass whose cut is taken has committed, or at once when none is pending. A
-     * write made outside a pass waits for this, so it lands after the pass's older state.
+     * player record the provider does not keep waits for this, so it lands after the pass's
+     * older one.
      */
     public pendingCommit(): Promise<void> {
         return this.committing ?? Promise.resolve();
@@ -195,6 +227,24 @@ export class LevelSave {
             if (this.queue === slot) this.queue = null;
             finished();
         }
+    }
+
+    /**
+     * Commits the writes held so far in a pass that cuts nothing, once they have grown past
+     * {@link HELD_WRITE_LIMIT}. Still one batch, so a crash keeps all of them or none.
+     */
+    private commitHeld(): void {
+        const pending: PendingPass = {
+            pass: this.options.provider().beginSavePass(),
+            levelDat: undefined,
+            players: new Map(),
+            requireSuccess: false
+        };
+        // Nothing awaits it, as with the autosave; see `tick`.
+        this.occupy(async () => this.commit(pending)).catch((error: unknown) => {
+            this.options.logger().error(`Failed to commit the held writes of level ${this.options.name}`);
+            this.options.logger().error(error);
+        });
     }
 
     /** Takes the cut: every world's players and changed chunks, and the level's own state. */

@@ -1702,10 +1702,9 @@ export class World implements Service {
 
         if (discardedStacklessItems && this.getProvider().supportsChunkUnload === true) {
             try {
-                await this.enqueueSave(async () => {
-                    this.dataEntities().persist();
-                    await this.getProvider().writeChunk(chunk);
-                });
+                // Held for the level's next pass, which commits it (ADR 0018).
+                this.dataEntities().persist();
+                await this.getProvider().writeChunk(chunk);
             } catch (error: unknown) {
                 this.server
                     .getLogger()
@@ -3562,15 +3561,14 @@ export class World implements Service {
         if (this.chunks.get(index) !== chunk || this.loading.has(index)) return { left: Promise.resolve(false) };
 
         try {
-            await this.enqueueSave(async () => {
-                this.getPlayerChunkRefCounts().synchronize(this.players);
-                if (this.chunks.get(index) !== chunk || this.loading.has(index) || this.chunkRetained(chunk)) return;
-
-                const entities = saveContext.entitiesByChunk.get(index) ?? [];
-                if (chunk.getHasChanged() || entities.length > 0) {
-                    await this.getProvider().writeChunk(chunk, saveContext);
-                }
-            });
+            this.getPlayerChunkRefCounts().synchronize(this.players);
+            const entities = saveContext.entitiesByChunk.get(index) ?? [];
+            // Held for the level's next pass rather than written, so the chunk can leave as soon
+            // as this returns, and reads of it answer from the held bytes until the pass commits
+            // them (ADR 0018).
+            if (!this.chunkRetained(chunk) && (chunk.getHasChanged() || entities.length > 0)) {
+                await this.getProvider().writeChunk(chunk, saveContext);
+            }
         } catch (error: unknown) {
             this.getPlayerChunkRefCounts().synchronize(this.players);
             this.server.getLogger().error(`Failed to save chunk ${chunk.getX()},${chunk.getZ()} before unloading`);
@@ -4134,11 +4132,6 @@ export class World implements Service {
      */
     public async save(): Promise<void> {
         await this.level.save();
-    }
-
-    /** Runs a chunk write behind the level's other writes to the save; see `LevelSave.enqueue`. */
-    private async enqueueSave(write: () => Promise<void>): Promise<void> {
-        await this.level.enqueueSave(write);
     }
 
     /** The level this world is one dimension of. */

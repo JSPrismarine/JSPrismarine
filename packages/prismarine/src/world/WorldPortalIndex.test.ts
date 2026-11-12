@@ -4,12 +4,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { fakeLevel } from '../testing/level';
 import type PlayerSession from '../network/PlayerSession';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import { Position } from './Position';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 
@@ -26,13 +26,12 @@ const worldWith = (chunks: readonly Chunk[]): World => {
         players,
         loading: new Map(),
         level: fakeLevel({
-            provider: stub<BaseProvider>({
+            provider: stubOf(BaseProvider, {
                 supportsChunkUnload: true,
                 writeChunk: async (chunk) => chunk.markSaved()
             })
         }),
         getPlayers: () => Array.from(players.values()),
-        enqueueSave: async (write: () => Promise<void>) => write(),
         getEntities: () => [],
         actors: () => [].values(),
         dataEntities: () => ({

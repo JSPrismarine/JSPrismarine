@@ -13,11 +13,11 @@ import type { LiveEntityRuntime } from '../entity/data/live';
 import type Server from '../Server';
 import { testContent } from '../testing/entityServer';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import type { Generator } from './Generator';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { Position } from './Position';
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -63,7 +63,7 @@ const worldWithStore = () => {
         getStorePlayers: () => players,
         hasEntityRuntime: () => true
     });
-    const provider = stub<BaseProvider>({
+    const provider = stubOf(BaseProvider, {
         readChunk: async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
     });
     const world = new World({

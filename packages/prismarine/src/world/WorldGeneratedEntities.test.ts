@@ -8,12 +8,12 @@ import { EntityStore } from '../entity/data/EntityStore';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { StoreActor } from '../entity/data/storeActors';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 
 /**
  * The seam between world generation and the world.
@@ -76,7 +76,7 @@ const worldLoading = (
         // `loadChunk` joins a load already in flight through this, and a world built on the
         // prototype never ran the constructor that would have made it.
         loading: new Map(),
-        level: fakeLevel({ seed: 1n, provider: stub<BaseProvider>({ readChunk: async () => chunk }) }),
+        level: fakeLevel({ seed: 1n, provider: stubOf(BaseProvider, { readChunk: async () => chunk }) }),
         generator: {},
         config: {},
         systems: { onChunkLoaded: () => {} },

@@ -3,14 +3,14 @@ import { EntityStore } from '../entity/data/EntityStore';
 import { describe, expect, it, vi } from 'vitest';
 
 import type PlayerSession from '../network/PlayerSession';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import { Position } from './Position';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
-import type BaseProvider from './providers/BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 
 const PLAYER_COUNT = 16;
 const CHUNK_COUNT = 32;
@@ -30,9 +30,8 @@ const worldWith = (
         loadedChunksRevision: 0,
         players,
         loading: new Map(),
-        level: fakeLevel({ provider: stub<BaseProvider>({ supportsChunkUnload: unloadable, writeChunk }) }),
+        level: fakeLevel({ provider: stubOf(BaseProvider, { supportsChunkUnload: unloadable, writeChunk }) }),
         getPlayers: () => Array.from(players.values()),
-        enqueueSave: async (write: () => Promise<void>) => write(),
         getEntities: () => [],
         actors: () => [].values(),
         dataEntities: () => ({
