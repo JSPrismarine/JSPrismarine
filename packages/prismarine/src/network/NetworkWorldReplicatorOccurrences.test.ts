@@ -1,8 +1,9 @@
 import type { Logger } from '@jsprismarine/logger';
-import { LevelEvent, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { LevelEvent, LevelSoundEvent, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
+import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';
@@ -161,6 +162,28 @@ describe('network', () => {
                 expect(
                     near.sent.map((packet) => packet instanceof LevelEventPacket && packet.getPacketData()?.eventId)
                 ).toStrictEqual([LevelEvent.STOP_RAINING]);
+            });
+        });
+
+        describe('block-sound', () => {
+            it('plays at the center of the block to everyone near but the player it names', async () => {
+                // The one striking a block, whose client plays its own hits.
+                const striker = viewer(1n);
+                const neighbor = viewer(2n);
+                const replicator = replicatorOver([striker.session, neighbor.session]);
+
+                sealOccurrences(replicator, {
+                    kind: 'occurrence',
+                    occurrence: 'block-sound',
+                    data: { x: 3, y: 64, z: 4, sound: LevelSoundEvent.HIT, block: 42, except: 1n }
+                });
+                await replicator.flushOccurrences();
+
+                expect(striker.sent).toHaveLength(0);
+                const packet = neighbor.sent[0];
+                if (!(packet instanceof LevelSoundEventPacket)) throw new Error('expected a sound');
+                expect([packet.positionX, packet.positionY, packet.positionZ]).toStrictEqual([3.5, 64.5, 4.5]);
+                expect(packet.extraData).toBe(42);
             });
         });
     });

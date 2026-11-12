@@ -1910,7 +1910,19 @@ export class World implements Service {
 
         const runtimeId = BlockRuntimeIds.get(state);
 
-        this.changes.blockSound(position, LevelSoundEvent.HIT, runtimeId, striker);
+        if (this.isHere(position))
+            this.occurred({
+                kind: 'occurrence',
+                occurrence: 'block-sound',
+                data: {
+                    x: position.getX(),
+                    y: position.getY(),
+                    z: position.getZ(),
+                    sound: LevelSoundEvent.HIT,
+                    block: runtimeId,
+                    except: striker === undefined ? null : striker.getRuntimeId()
+                }
+            });
 
         const particles = CRACK_PARTICLES[face];
         if (particles !== undefined) await this.sendWorldEvent(position, particles, runtimeId);

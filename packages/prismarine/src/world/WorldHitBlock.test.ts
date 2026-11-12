@@ -2,12 +2,10 @@ import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import type PlayerSession from '../network/PlayerSession';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
-import { stub } from '../testing/stub.test.helper';
 import { occurrenceWorld } from '../testing/occurrences.test.helper';
-import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import type { OccurrenceEntry } from './changelog/ChangeEntry';
 
 /**
  * The sound of digging.
@@ -17,20 +15,24 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
  * silent right up until it gave way.
  */
 const fakeWorld = (state: BlockState) => {
-    const sounds: Array<{ sound: LevelSoundEvent; data: number; except?: PlayerSession }> = [];
+    const { world, occurrences } = occurrenceWorld({ getBlockState: async () => state });
 
-    const { world, occurrences } = occurrenceWorld({
-        getBlockState: async () => state,
-        changes: {
-            ...NULL_WORLD_CHANGE_SINK,
-            blockSound: (_position: Vector3, sound: LevelSoundEvent, data: number, except?: PlayerSession) =>
-                sounds.push({ sound, data, except })
-        }
-    });
-
-    /** The world effects logged since the last call. */
+    const logged: OccurrenceEntry[] = [];
+    /** Everything logged so far, read off the open tick. */
+    const read = () => {
+        logged.push(...occurrences());
+        return logged;
+    };
+    /** The block sounds logged. */
+    const sounds = () =>
+        read().flatMap((entry) =>
+            entry.occurrence === 'block-sound'
+                ? [{ sound: entry.data.sound, data: entry.data.block, except: entry.data.except }]
+                : []
+        );
+    /** The world effects logged. */
     const effects = () =>
-        occurrences().flatMap((entry) =>
+        read().flatMap((entry) =>
             entry.occurrence === 'world-effect' ? [{ event: entry.data.effect, data: entry.data.data }] : []
         );
 
@@ -47,19 +49,19 @@ describe('world', () => {
 
             await world.hitBlock(new Vector3(10, 64, -20), 1);
 
-            expect(sounds).toHaveLength(1);
-            expect(sounds[0]!.sound).toBe(LevelSoundEvent.HIT);
-            expect(sounds[0]!.data).toBe(BlockRuntimeIds.get(log));
-            expect(sounds[0]!.data).not.toBe(BlockRuntimeIds.getByName('minecraft:oak_log'));
+            expect(sounds()).toHaveLength(1);
+            expect(sounds()[0]!.sound).toBe(LevelSoundEvent.HIT);
+            expect(sounds()[0]!.data).toBe(BlockRuntimeIds.get(log));
+            expect(sounds()[0]!.data).not.toBe(BlockRuntimeIds.getByName('minecraft:oak_log'));
         });
 
         it('leaves the striker out of the sound, as their client plays its own hits', async () => {
             const { world, sounds } = fakeWorld(new BlockState('minecraft:stone'));
-            const striker = stub<PlayerSession>();
+            const striker = { getRuntimeId: () => 7n };
 
             await world.hitBlock(new Vector3(10, 64, -20), 1, striker);
 
-            expect(sounds[0]!.except).toBe(striker);
+            expect(sounds()[0]!.except).toBe(7n);
         });
 
         it('chips the side that was struck', async () => {
@@ -83,7 +85,7 @@ describe('world', () => {
             await world.hitBlock(new Vector3(10, 64, -20), 99);
 
             // The hit still lands - the swing happened - but there is no side to chip.
-            expect(sounds).toHaveLength(1);
+            expect(sounds()).toHaveLength(1);
             expect(effects()).toHaveLength(0);
         });
 
@@ -92,7 +94,7 @@ describe('world', () => {
 
             await world.hitBlock(new Vector3(10, 64, -20), 1);
 
-            expect(sounds).toHaveLength(0);
+            expect(sounds()).toHaveLength(0);
             expect(effects()).toHaveLength(0);
         });
     });

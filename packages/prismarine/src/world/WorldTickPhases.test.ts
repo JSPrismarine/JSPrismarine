@@ -64,7 +64,6 @@ const worldTicking = ({
         tickSealed: () => calls.push('tickSealed'),
         chunkEntered: () => calls.push('chunkEntered'),
         chunkLeft: () => calls.push('chunkLeft'),
-        blockSound: () => calls.push('blockSound'),
         namedSound: () => calls.push('namedSound'),
         namedParticle: () => calls.push('namedParticle'),
         actorSound: () => calls.push('actorSound'),
