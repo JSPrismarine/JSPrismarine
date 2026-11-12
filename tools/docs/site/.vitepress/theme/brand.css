@@ -40,6 +40,8 @@
     --jsp-on-accent: var(--jsp-deep);
     /* The smallest mono label the site sets. JetBrains Mono reads small, so the floor sits above 12px. */
     --jsp-label-size: 13px;
+    /* Text in a field. Safari on iOS zooms the page into a field whose text is under 16px. */
+    --jsp-input-size: 16px;
     /* Touch targets on phones. */
     --jsp-target: 44px;
     --jsp-term-text: color-mix(in srgb, var(--jsp-cream) 85%, var(--jsp-mint));
@@ -722,6 +724,11 @@
 /* In-page jumps glide instead of cutting, unless the reader asks for less motion. */
 html {
     scroll-behavior: smooth;
+}
+
+/* Two quick taps on a control are two presses, not a zoom. Pinching still zooms. */
+html {
+    touch-action: manipulation;
 }
 
 @media (prefers-reduced-motion: reduce) {

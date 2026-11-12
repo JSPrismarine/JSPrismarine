@@ -100,7 +100,7 @@ const shownAreas = computed(() => {
 
 .package-directory__search input {
     padding: 10px 14px;
-    font: 15px var(--vp-font-family-base);
+    font: var(--jsp-input-size) var(--vp-font-family-base);
     color: var(--vp-c-text-1);
     text-transform: none;
     letter-spacing: 0;
