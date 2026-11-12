@@ -263,8 +263,8 @@ describe('PlayerSession.changeWorld', () => {
         expect(session.getWorld()).toBe(first);
     });
 
-    it('holds a second change made while the first is pending and carries it out once it closes', async () => {
-        const { session, roster, level } = fakePlayer();
+    it('holds a second change made while the first is pending and files it once the first closes', async () => {
+        const { session, roster, level, travel } = fakePlayer();
         const first = worldOf(Dimensions.Nether, roster, level);
         const second = worldOf(Dimensions.TheEnd, roster, level);
 
@@ -274,12 +274,16 @@ describe('PlayerSession.changeWorld', () => {
 
         await session.completeDimensionChange(session.pendingDimensionChange()!.loadingScreenId);
 
+        // Filed as a message: the held change waits for the next input step.
+        expect(session.getWorld()).toBe(first);
+        expect(travel.pending).toBe(1);
+        expect(await travel.admit()).toBe(1);
         expect(session.getWorld()).toBe(second);
         expect(session.pendingDimensionChange()?.arrival.world).toBe(second);
     });
 
     it('finishes a change the client never closes, and carries out the move held behind it', async () => {
-        const { session, roster, level, logged } = fakePlayer();
+        const { session, roster, level, logged, travel } = fakePlayer();
         const first = worldOf(Dimensions.Nether, roster, level);
         const second = worldOf(Dimensions.TheEnd, roster, level);
 
@@ -291,6 +295,7 @@ describe('PlayerSession.changeWorld', () => {
 
         await session.update(1200);
         expect(logged.some((line) => line.includes('never closed loading screen'))).toBe(true);
+        expect(await travel.admit()).toBe(1);
         expect(session.getWorld()).toBe(second);
         expect(session.pendingDimensionChange()?.arrival.world).toBe(second);
     });
@@ -558,12 +563,15 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('carries out the change held over a death once the player respawns', async () => {
-        const { session, player, sent, roster, level } = fakePlayer();
+        const { session, player, sent, roster, level, travel } = fakePlayer();
         const nether = worldOf(Dimensions.Nether, roster, level);
         await session.getActor()?.setHealth(0);
         await session.changeWorld(arrivalIn(nether));
 
         await session.respawn();
+        // The respawn files the held change for the next input step.
+        expect(sent.filter((packet) => packet instanceof ChangeDimensionPacket)).toHaveLength(0);
+        expect(await travel.admit()).toBe(1);
 
         expect(player.getHealth() > 0).toBe(true);
         expect(session.getWorld()).toBe(nether);

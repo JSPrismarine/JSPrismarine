@@ -26,6 +26,7 @@ import { PORTALS } from '../world/portal/rules';
 import type { Level } from '../world/Level';
 import { Position } from '../world/Position';
 import type { BlockMining } from '../world/BlockMining';
+import type { DimensionTravel } from '../world/portal/DimensionTravel';
 import type { World } from '../world/World';
 
 /**
@@ -684,6 +685,7 @@ describe("PlayerSession's player", () => {
                 getLevel: level,
                 getDimension: () => Dimensions.Nether,
                 getSpawnPosition: async () => new Vector3(8, 70, -3),
+                getKnownSpawnPosition: () => new Vector3(8, 70, -3),
                 addPlayer: async () => {},
                 broadcastMove: async () => {},
                 getBlock: async (x, y, z) => stub<Block>({ isSolid: () => nameAt(x, y, z) !== 'minecraft:air' }),
@@ -714,7 +716,8 @@ describe("PlayerSession's player", () => {
             const nether = netherOf({}, () => level!);
             const fake = fakePlayer({ worlds: [nether] });
             level = fake.level;
-            await fake.session.setWorld(nether);
+            fake.session.setWorld(nether);
+            await fake.travel.admit();
             // The fake Overworld is all air, so nothing stands where the bed was.
             fake.player.setSpawnPoint({ x: 10, y: 64, z: 10, dimension: 'minecraft:overworld' });
 
@@ -731,7 +734,8 @@ describe("PlayerSession's player", () => {
             const nether = netherOf({}, () => level!);
             const fake = fakePlayer({ worlds: [nether] });
             level = fake.level;
-            await fake.session.setWorld(nether);
+            fake.session.setWorld(nether);
+            await fake.travel.admit();
 
             const point = await fake.session.getRespawnPoint();
 
@@ -755,19 +759,26 @@ describe("PlayerSession's player", () => {
                 addPlayer: async () => {},
                 broadcastMove: async () => {},
                 getSpawnPosition: async () => new Vector3(0, 64, 0),
+                getKnownSpawnPosition: () => new Vector3(0, 64, 0),
                 getDimension: () => Dimensions.Nether
             });
 
         it.each([
             ['disconnects', (session: PlayerSession) => session.leave()],
             ['changes game mode', (session: PlayerSession) => session.setGamemode(Gametype.CREATIVE)],
-            ['changes world', (session: PlayerSession) => session.setWorld(elsewhere())]
+            [
+                'changes world',
+                async (session: PlayerSession, travel: DimensionTravel) => {
+                    session.setWorld(elsewhere());
+                    await travel.admit();
+                }
+            ]
         ])('stops the cracks when the player %s, rather than sending them every tick for good', async (_, end) => {
-            const { session, player, stopped } = fakePlayer();
+            const { session, player, stopped, travel } = fakePlayer();
             player.gamemode = Gametype.SURVIVAL;
             session.inputs().setPlayerMining(player, playerMiningOf(mining));
 
-            await end(session);
+            await end(session, travel);
 
             expect(stopped).toEqual([mining.position]);
             expect(blockMiningOf(player.getComponents().get('mining.block'))).toBeNull();
@@ -823,13 +834,14 @@ describe("PlayerSession's player", () => {
                 addPlayer: async () => {},
                 broadcastMove: async () => {},
                 getSpawnPosition: async () => new Vector3(8.5, 70, -3.5),
+                getKnownSpawnPosition: () => new Vector3(8.5, 70, -3.5),
                 getDimension: () => Dimensions.Nether
             });
 
         it('takes the old world entities off the client before the dimension change', async () => {
             // The client keeps rendering what it was never told to remove. Changing dimension
             // does not clear it, so every mob from the old world has to be despawned by hand.
-            const { session, player, sent } = fakePlayer();
+            const { session, player, sent, travel } = fakePlayer();
             session['viewDistance'] = 10;
 
             // Runtime ids come from one counter for the whole file, so a fixed id would sooner or
@@ -846,7 +858,10 @@ describe("PlayerSession's player", () => {
             sent.length = 0;
 
             const target = nether();
-            await session.setWorld(target);
+            session.setWorld(target);
+            // A message: the change runs at the next input step.
+            expect(session.getWorld()).not.toBe(target);
+            await travel.admit();
 
             const removal = sent.findIndex(
                 (packet) => packet instanceof RemoveActorPacket && packet.uniqueEntityId === mobId
@@ -861,13 +876,14 @@ describe("PlayerSession's player", () => {
         it("arrives at the new world's spawn, facing the way the player was", async () => {
             // The session does the change; this only chooses the arrival. A caller with a
             // destination of its own, such as a teleport, moves the player again afterwards.
-            const { session, player, sent } = fakePlayer();
+            const { session, player, sent, travel } = fakePlayer();
             await session.setPlayerPosition(
                 { position: player.getPosition(), yaw: 45, pitch: -10, type: PositionMode.Teleport },
                 false
             );
 
-            await session.setWorld(nether());
+            session.setWorld(nether());
+            expect(await travel.admit()).toBe(1);
 
             // The stored spawn is the block under a joining player's feet, so the feet go one
             // block up, centered, and the eyes the client is told about are 1.62 above that.

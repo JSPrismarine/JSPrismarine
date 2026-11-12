@@ -62,12 +62,10 @@ export default class ServerboundLoadingScreenHandler implements InputLaneHandler
 
         report(false);
 
-        // Slice 9: finishing the change waits for the arrival's spawn and may start a queued
-        // world change, until dimension travel is a message the destination admits.
-        if (closedId !== null) {
-            step.defer(async () => {
-                await session.completeDimensionChange(closedId);
-            });
-        }
+        // The change stops being pending before the session's first wait, so this input's unit
+        // holds that write. What follows is the arrival's sends, then the advancement hook, in
+        // the order the client has always seen them, and a held change is filed as a message for
+        // the next input step rather than started here.
+        if (closedId !== null) step.output(session.completeDimensionChange(closedId).then(() => undefined));
     }
 }

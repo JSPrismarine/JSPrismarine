@@ -130,8 +130,9 @@ const debugAction = async (server: Server, current: CommandSource, action: strin
             if (player === undefined) throw new Error(`This command can't be run from the console`);
             const world = server.getWorldManager().getWorldByName(data);
             if (!world) throw new Error(`No world ${data} is loaded`);
-            await player.setWorld(world);
-            return `Moved ${player.getFormattedUsername()} to ${world.getName()}`;
+            // A message the next input step carries out once the world's spawn is known.
+            player.setWorld(world);
+            return `Moving ${player.getFormattedUsername()} to ${world.getName()}`;
         }
         case 'setConfig': {
             const [key = '', ...rest] = data.split(' ');
