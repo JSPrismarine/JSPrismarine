@@ -2370,7 +2370,8 @@ export class World implements Service {
      *
      * The counterpart of {@link World.playNamedSound} for things that are not blocks,
      * the way {@link World.spawnNamedParticleAt} is for particles: an entity's position
-     * is already the point, so nothing centers it.
+     * is already the point, so nothing centers it. It is a `named-sound` occurrence in the
+     * change log, which replication sends to the players near it.
      * @param {Vector3} position - Where the sound plays.
      * @param {string} sound - The sound definition's name.
      * @param {NamedSoundOptions} [options] - Volume and pitch, when the definition's own are not wanted.
@@ -2426,7 +2427,8 @@ export class World implements Service {
     }
 
     /**
-     * Emits a named particle effect at an exact world-space point.
+     * Emits a named particle effect at an exact world-space point. It is a `named-particle`
+     * occurrence in the change log, which replication sends to the players near it.
      * @param {Vector3} position - Where the effect appears.
      * @param {string} particle - The effect's identifier.
      */
