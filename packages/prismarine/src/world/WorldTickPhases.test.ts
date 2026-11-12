@@ -508,7 +508,7 @@ describe('world portal contacts', () => {
         const { world } = worldTicking({
             entities: [player],
             blockAt: portalOnlyAt(new Vector3(10, 65, 10)),
-            travel: stub<DimensionTravel>({ touch, isDeparting: () => false })
+            travel: stub<DimensionTravel>({ touch })
         });
 
         await world.update(1);
@@ -534,7 +534,7 @@ describe('world portal contacts', () => {
                 portalOnlyAt(new Vector3(11, 64, 10))(x, y, z).name === 'minecraft:portal'
                     ? { name: 'minecraft:portal', states: {} }
                     : { name: 'minecraft:air', states: {} },
-            travel: stub<DimensionTravel>({ touch, isDeparting: () => false })
+            travel: stub<DimensionTravel>({ touch })
         });
 
         await world.update(1);
@@ -548,7 +548,7 @@ describe('world portal contacts', () => {
         const { world } = worldTicking({
             entities: [player],
             blockAt: portalOnlyAt(new Vector3(10, 64, 10)),
-            travel: stub<DimensionTravel>({ touch, isDeparting: () => false })
+            travel: stub<DimensionTravel>({ touch })
         });
 
         await world.update(1);

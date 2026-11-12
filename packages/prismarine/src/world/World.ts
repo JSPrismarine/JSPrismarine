@@ -3616,7 +3616,7 @@ export class World implements Service {
      * cooldown is touched too, so the travel service can wind the cooldown back while it
      * stands in the arrival portal. A player whose client is still on the loading screen of
      * the last change is skipped: another change would be refused, so the body scan is not
-     * worth running. So is an entity whose trip is filed and has not landed yet.
+     * worth running.
      */
     private async touchPortals(entities: readonly StoreActor[]): Promise<void> {
         const travel = this.server.getDimensionTravel();
@@ -3625,7 +3625,7 @@ export class World implements Service {
         // the entity's own update advances the contact. An entity in no portal costs no await.
         const touches: Promise<void>[] = [];
         for (const entity of entities) {
-            if (isMidDimensionChange(entity) || travel.isDeparting(entity)) continue;
+            if (isMidDimensionChange(entity)) continue;
             const portal = this.portalOverlapping(entity);
             if (portal !== undefined) touches.push(travel.touch(entity, portal));
         }
