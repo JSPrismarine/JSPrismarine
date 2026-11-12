@@ -22,6 +22,7 @@ export default class MovePlayerHandler implements ConnectionLaneHandler<MovePlay
     public readonly phases = ['play'] as const;
     public readonly lane = 'connection';
 
+    /** Drops the packet and logs it: a client moves with `PlayerAuthInput`, which carries its position. */
     public async handle(_packet: MovePlayerPacket, { session, log }: SessionContext): Promise<void> {
         log.debug(
             `Dropped a MovePlayer from ${session.identity.name}: clients move with PlayerAuthInput`,

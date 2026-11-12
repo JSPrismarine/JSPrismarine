@@ -32,6 +32,12 @@ export default class RespawnHandler implements InputLaneHandler<RespawnPacket> {
     public readonly phases = ['play'] as const;
     public readonly lane = 'input';
 
+    /**
+     * Answers a client that is ready to spawn. A dead player's spawn point is a request, which a
+     * later input step answers with the respawn exchange; a living player is told where it stands
+     * through `step.output`. So the call returns before any of that is sent, and nothing it starts
+     * is awaited.
+     */
     public handle(packet: RespawnPacket, { session, log, step }: InputContext): undefined {
         const player = session.getPlayer();
         const data = packet.getPacketData();
