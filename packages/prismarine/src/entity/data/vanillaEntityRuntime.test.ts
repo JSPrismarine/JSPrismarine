@@ -7,12 +7,14 @@ import { entityContentGroups } from '../contentAdapter';
 import { EntityRuntime } from './EntityRuntime';
 import { dataEntityRecordOf } from './persistence';
 import { spawnDeclared, TestEntityWorld } from './testing';
+import { SHIPPED_PLAYER } from '../../testing/storePlayer.test.helper';
 
 describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
     'the runtime over every vanilla entity definition',
     { tags: ['real-data'] },
     () => {
         let runtime: EntityRuntime;
+        let built: ServerContent;
         let identifiers: readonly string[];
         let world: TestEntityWorld;
 
@@ -31,6 +33,15 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             const adapter = { ...world.world, ticks: world.ticks, ...entityContentGroups(runtime) };
             content = buildServerContent({ world: singleDimension(adapter) });
             identifiers = content.entities.registry.keys().filter((identifier) => identifier !== 'minecraft:player');
+            built = content;
+        });
+
+        it('declares the player components the store player fixture copies, as the fixture has them', () => {
+            // The unit tests run without the vanilla pack, so the fixture keeps a copy, and this
+            // is where the copy is held to the shipped file.
+            const player = built.entities.registry.get('minecraft:player');
+            for (const [name, body] of Object.entries(SHIPPED_PLAYER.components))
+                expect(player?.entity.components.get(name), name).toEqual(body);
         });
 
         it('runs the sulfur cube bouncy archetype through its active component-group physics', () => {
