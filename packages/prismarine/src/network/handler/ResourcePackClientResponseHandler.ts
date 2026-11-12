@@ -5,7 +5,7 @@ import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import type { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
-import type { PlayerSession } from '../../';
+import type PlayerSession from '../PlayerSession';
 import { eyePositionAt } from '../../entity/playerEyes';
 import { syncActorPropertyPacket } from '../actorProperties';
 import type { Level } from '../../world/Level';

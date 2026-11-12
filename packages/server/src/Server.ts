@@ -3,7 +3,8 @@ import type { ConsoleMessage, ServerMessage } from '@jsprismarine/console-protoc
 import { childProcessLink, isConsoleMessage } from '@jsprismarine/console-protocol';
 import type { LogTransport } from '@jsprismarine/logger';
 import { FileTransport, Logger } from '@jsprismarine/logger';
-import type { Config as ServerConfig, Server as PrismarineServer } from '@jsprismarine/prismarine';
+import type { Config as ServerConfig } from '@jsprismarine/prismarine/config/Config';
+import type { Server as PrismarineServer } from '@jsprismarine/prismarine';
 import { readContentSettings } from '@jsprismarine/prismarine/content/settings';
 import { resolvePackStack } from '@jsprismarine/prismarine/content/packStack';
 import { serverVersion } from '@jsprismarine/prismarine/version';
@@ -84,7 +85,12 @@ const contentPackPaths = (): string[] => {
  * protocol over the IPC channel its host opened.
  */
 const runInProcess = async (args: ServerArgs, { remote }: { remote: boolean }): Promise<void> => {
-    const { Config, RemoteConsole, RemoteLogTransport, Server } = await import('@jsprismarine/prismarine');
+    const [{ Config }, { RemoteConsole }, { RemoteLogTransport }, { Server }] = await Promise.all([
+        import('@jsprismarine/prismarine/config/Config'),
+        import('@jsprismarine/prismarine/console/RemoteConsole'),
+        import('@jsprismarine/prismarine/console/RemoteLogTransport'),
+        import('@jsprismarine/prismarine')
+    ]);
 
     const fileTransport = (config: ServerConfig): FileTransport =>
         new FileTransport({

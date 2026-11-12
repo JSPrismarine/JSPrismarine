@@ -1,5 +1,6 @@
 import { Logger } from '@jsprismarine/logger';
-import { Config, Server } from '@jsprismarine/prismarine';
+import { Config } from '@jsprismarine/prismarine/config/Config';
+import { Server } from '@jsprismarine/prismarine';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';

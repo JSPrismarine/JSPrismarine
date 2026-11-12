@@ -7,7 +7,7 @@ import { ingredientAccepts, recipeIngredients, recipeResult } from '@jsprismarin
 import type { Ingredient as JavaIngredient } from '@jsprismarine/recipes';
 import { WindowTypes } from '@jsprismarine/minecraft';
 
-import type { PlayerSession } from '../../';
+import type PlayerSession from '../PlayerSession';
 import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';

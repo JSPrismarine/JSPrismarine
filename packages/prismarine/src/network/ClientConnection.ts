@@ -1,4 +1,4 @@
-import type { PlayerSession } from '../';
+import type PlayerSession from './PlayerSession';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';

@@ -9,7 +9,7 @@ import PlayerToggleCrafterSlotRequestHandler from '@jsprismarine/prismarine/netw
 import StructureBlockUpdateHandler from '@jsprismarine/prismarine/network/handler/StructureBlockUpdateHandler';
 import StructureTemplateDataRequestHandler from '@jsprismarine/prismarine/network/handler/StructureTemplateDataRequestHandler';
 import type PlayerSession from '@jsprismarine/prismarine/network/PlayerSession';
-import type Server from '@jsprismarine/prismarine/Server';
+import type { Server } from '@jsprismarine/prismarine';
 import { inertEntityRuntime } from '@jsprismarine/prismarine/testing/entityServer';
 import { sessionContext } from '@jsprismarine/prismarine/testing/handlerContext.test.helper';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '@jsprismarine/prismarine/testing/level';

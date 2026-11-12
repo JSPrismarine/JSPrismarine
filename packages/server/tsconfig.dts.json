@@ -12,6 +12,8 @@
         "inlineSourceMap": false,
         "paths": {
             // Keep subpath imports on dist declarations instead of mixing in their source graph.
+            // The root is `Server.ts`, so it has no `index.d.ts`.
+            "@jsprismarine/prismarine": ["../prismarine/dist/Server.d.ts"],
             "@jsprismarine/prismarine/*": ["../prismarine/dist/*.d.ts"],
             "@jsprismarine/*": ["../*/dist/index.d.ts"]
         }

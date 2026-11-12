@@ -32,7 +32,7 @@ import path from 'node:path';
 import { setImmediate as yieldToEventLoop } from 'node:timers/promises';
 import { Logger } from '@jsprismarine/logger';
 import { PerformanceObserver, performance } from 'node:perf_hooks';
-import Server from '@jsprismarine/prismarine/Server';
+import { Server } from '@jsprismarine/prismarine';
 import { Config } from '@jsprismarine/prismarine/config/Config';
 import { ServerProfiler, attachProfiler } from '@jsprismarine/prismarine/profiling/ServerProfiler';
 import { summarizeTicks } from '@jsprismarine/prismarine/profiling/TickRecorder';

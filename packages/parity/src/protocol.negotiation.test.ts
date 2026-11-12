@@ -24,7 +24,7 @@ import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
 import { describe, expect, it } from 'vitest';
 
 import type ClientConnection from '@jsprismarine/prismarine/network/ClientConnection';
-import type Server from '@jsprismarine/prismarine/Server';
+import type { Server } from '@jsprismarine/prismarine';
 import type { Config } from '@jsprismarine/prismarine/config/Config';
 
 import { FAMILIES } from './families.ts';

@@ -3,7 +3,7 @@ import { setImmediate } from 'node:timers/promises';
 import { describe, expect, it, vi } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import Console, { completeCommand } from './Console';
-import type { Server } from './';
+import type Server from './Server';
 import type { CommandManager } from './command/CommandManager';
 import { stub } from './testing/stub.test.helper';
 

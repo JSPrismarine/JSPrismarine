@@ -1,7 +1,7 @@
 import type { WorldConfig, WorldPlayerData } from '../World';
 import type { Generator, World } from '../';
 import type { ChunkRequestOptions } from '../Generator';
-import type { Server } from '../../';
+import type Server from '../../Server';
 import type Chunk from '../chunk/Chunk';
 import type { DimensionType } from '../Dimension';
 import type { StoreActor } from '../../entity/data/storeActors';

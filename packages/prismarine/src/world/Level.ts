@@ -25,7 +25,7 @@ import UUID from '@jsprismarine/protocol/structure/UUID';
 import type { DimensionTypeDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
-import type { Server } from '../';
+import type Server from '../Server';
 import { replayInputFingerprint, serializeReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { ReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';

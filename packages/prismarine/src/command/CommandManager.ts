@@ -6,7 +6,8 @@ import { Error } from '@jsprismarine/errors';
 import { TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
-import type { Server, Service } from '../';
+import type Server from '../Server';
+import type { Service } from '../utils/Service';
 import { collectAsyncCommands, deferCommandWork } from './deferred';
 import Timer from '../utils/Timer';
 import type { CommandExecutor, CommandTarget } from './CommandExecutor';
