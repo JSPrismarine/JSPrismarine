@@ -2,9 +2,7 @@ import type EmotePacket from '@jsprismarine/protocol/packet/EmotePacket';
 import { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
-
-/** The `8-4-4-4-12` hex form a client writes an emote piece id in. */
-const EMOTE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isUuid } from '../../utils/isUuid';
 
 /**
  * A client asking to play an emote.
@@ -31,7 +29,7 @@ export default class EmoteHandler implements InputLaneHandler<EmotePacket> {
             return;
         }
 
-        if (!EMOTE_ID.test(packet.emoteId)) {
+        if (!isUuid(packet.emoteId)) {
             log.debug(
                 `${session.identity.name} sent an Emote whose id ${JSON.stringify(packet.emoteId)} is not a uuid, dropped`,
                 'EmoteHandler/handle'
