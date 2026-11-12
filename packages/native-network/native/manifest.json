@@ -1,6 +1,79 @@
 {
     "$comment": "Written by the Native network workflow's publish job. `build` is the hash of the native sources the builds were made from (src/nativeHash.ts), and `baseUrl` the GitHub release that holds them.",
-    "build": "",
-    "baseUrl": "",
-    "platforms": {}
+    "build": "c96d19d8e73e5301",
+    "baseUrl": "https://github.com/JSPrismarine/JSPrismarine/releases/download/native-network-build-c96d19d8e73e5301",
+    "platforms": {
+        "darwin-arm64": {
+            "shared": {
+                "file": "darwin-arm64-libjsp_native_network.dylib",
+                "bytes": 2227144,
+                "sha256": "0974c4e6d147d562db504c32e0d6fac2f9452888312507625dc1e4a47c6aef0f"
+            },
+            "static": {
+                "file": "darwin-arm64-libjsp_native_network.a",
+                "bytes": 5041856,
+                "sha256": "81c1686145c7c48649905916845b9b88251a741672064d990f0b7b9a0acb4b45"
+            }
+        },
+        "linux-arm64-gnu": {
+            "shared": {
+                "file": "linux-arm64-gnu-libjsp_native_network.so",
+                "bytes": 2691496,
+                "sha256": "1ef50b010707c3d458d36578340eb55f72c70602db7031413a584fd50248f6a8"
+            },
+            "static": {
+                "file": "linux-arm64-gnu-libjsp_native_network.a",
+                "bytes": 8799326,
+                "sha256": "27116b02c0d7c5e0c004e2117113b156ebdc1373fd1889a42ecbaa471a0cc8c5"
+            }
+        },
+        "linux-arm64-musl": {
+            "shared": {
+                "file": "linux-arm64-musl-libjsp_native_network.so",
+                "bytes": 2953080,
+                "sha256": "f0c77679759c8e262c2d5b4490b37afd5a2f372eb4a835d4029e87a3230449ab"
+            },
+            "static": {
+                "file": "linux-arm64-musl-libjsp_native_network.a",
+                "bytes": 9268630,
+                "sha256": "375fe68dee98ee51dc1bae18786fcff47b1e04ed92ae72a8707282a4b3ec3afe"
+            }
+        },
+        "linux-x64-gnu": {
+            "shared": {
+                "file": "linux-x64-gnu-libjsp_native_network.so",
+                "bytes": 2875976,
+                "sha256": "df5dd43dbf10beeffe8506a32a18ccff5184b1371ad809df9953b39133a5a1cd"
+            },
+            "static": {
+                "file": "linux-x64-gnu-libjsp_native_network.a",
+                "bytes": 8808224,
+                "sha256": "8672294f396ba39b0d5f1fcb55e1c7c943911b03a7572ab9168431beacef5a0d"
+            }
+        },
+        "linux-x64-musl": {
+            "shared": {
+                "file": "linux-x64-musl-libjsp_native_network.so",
+                "bytes": 3170384,
+                "sha256": "750c7113b050963116f5a11a83911853b3a64e365ba9d6b3f01913807f44088d"
+            },
+            "static": {
+                "file": "linux-x64-musl-libjsp_native_network.a",
+                "bytes": 9308504,
+                "sha256": "42399f23367b2af1ebf518b06321aed92b5c4faa55d4865c57a56e3bf6d5cf25"
+            }
+        },
+        "win32-x64": {
+            "shared": {
+                "file": "win32-x64-libjsp_native_network.dll",
+                "bytes": 2214912,
+                "sha256": "a5e49e9bc2dadd32c5d477b42e669a42fd5353e20e56b40281f49fb72563a968"
+            },
+            "static": {
+                "file": "win32-x64-libjsp_native_network.lib",
+                "bytes": 35171780,
+                "sha256": "2a105afbcf41939128c19d17e4119022bfb8df8cd3ce9d61d269a7edb33db64e"
+            }
+        }
+    }
 }
