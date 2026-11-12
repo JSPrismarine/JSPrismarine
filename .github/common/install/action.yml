@@ -23,6 +23,12 @@ inputs:
             `prepare` hook that fetches and generates the Bedrock data.
         required: false
         default: 'false'
+    native-network:
+        description: >-
+            Build the native networking library for this runner when the native sources differ
+            from the published builds. A job that brings its own build turns it off.
+        required: false
+        default: 'true'
 
 runs:
     using: 'composite'
@@ -91,6 +97,10 @@ runs:
               # Unquoted on purpose: empty vanishes, and the flags word-split.
               # shellcheck disable=SC2086
               pnpm install --frozen-lockfile --prefer-offline $ROOT_ONLY
+
+        - name: 🔌 Native networking library
+          if: ${{ inputs.root-only != 'true' && inputs.native-network == 'true' }}
+          uses: ./.github/common/native-network
 
         # A pull request never saves the store. Its entry is visible to that pull request alone,
         # and a copy per pull request pushed master's entries, the ones every pull request

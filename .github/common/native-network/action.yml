@@ -1,0 +1,47 @@
+name: 🔌 Native networking library
+description: >-
+    Builds @jsprismarine/native-network's library for this runner when the checkout's native
+    sources differ from the builds the manifest points at, so a change to them is tested before
+    its builds are published. Otherwise the install script has downloaded the published build.
+
+runs:
+    using: 'composite'
+    steps:
+        - name: 🔍 Compare the native sources with the published builds
+          id: sources
+          shell: bash
+          run: |
+              hash=$(node --input-type=module -e "import { nativeSourceHash } from './packages/native-network/src/nativeHash.ts'; console.log(nativeSourceHash('packages/native-network'))")
+              published=$(node -p "require('./packages/native-network/native/manifest.json').build")
+              echo "hash=$hash" >> "$GITHUB_OUTPUT"
+              if [ "$hash" != "$published" ]; then
+                  echo "stale=true" >> "$GITHUB_OUTPUT"
+                  echo "::notice title=Native networking library::The native sources ($hash) differ from the published builds ($published), so this job builds its own."
+              fi
+
+        # One build per runner kind and set of sources, shared by every job that needs it.
+        - name: ♻️ Restore this runner's build of these sources
+          id: cache
+          if: ${{ steps.sources.outputs.stale == 'true' }}
+          uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+          with:
+              path: packages/native-network/prebuilds
+              key: native-network-${{ runner.os }}-${{ runner.arch }}-${{ steps.sources.outputs.hash }}
+
+        - name: 🪟 Use the MSVC tools
+          if: ${{ steps.sources.outputs.stale == 'true' && steps.cache.outputs.cache-hit != 'true' && runner.os == 'Windows' }}
+          uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+          with:
+              arch: ${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}
+
+        - name: 🔨 Build the library
+          if: ${{ steps.sources.outputs.stale == 'true' && steps.cache.outputs.cache-hit != 'true' }}
+          shell: bash
+          run: node packages/native-network/scripts/build-native.mts
+
+        - name: 💾 Save the build
+          if: ${{ steps.sources.outputs.stale == 'true' && steps.cache.outputs.cache-hit != 'true' }}
+          uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+          with:
+              path: packages/native-network/prebuilds
+              key: native-network-${{ runner.os }}-${{ runner.arch }}-${{ steps.sources.outputs.hash }}
