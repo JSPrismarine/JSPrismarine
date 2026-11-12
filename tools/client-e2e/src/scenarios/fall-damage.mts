@@ -81,14 +81,20 @@ export const fallDamage: Scenario = {
         log(`fall took health from ${start} to ${hurt}`);
 
         // A hay bale under the feet breaks the fall. The server used to read the blocks under the
-        // eyes, which the client reports, so the bale was never seen. Natural regeneration may
-        // heal a point meanwhile, so this asserts no loss rather than an equal health.
-        await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:hay_block');
-        await dropFrom(context, 75);
-        await waitTicks(server, 10);
-        const onHay = healthOf(await client.state()).current;
-        assert.ok(onHay >= hurt, `an eleven block fall onto hay took health from ${hurt} to ${onHay}`);
-        await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:stone');
-        log(`an eleven block fall onto hay left health at ${onHay}`);
+        // eyes, which the client reports, so the bale was never seen. Regeneration is off for the
+        // drop, so a point healed meanwhile cannot hide a point lost to the fall.
+        server.command('gamerule naturalRegeneration false');
+        try {
+            await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:hay_block');
+            const beforeHay = healthOf(await client.state()).current;
+            await dropFrom(context, 75);
+            await waitTicks(server, 10);
+            const onHay = healthOf(await client.state()).current;
+            assert.equal(onHay, beforeHay, `an eleven block fall onto hay took health from ${beforeHay} to ${onHay}`);
+            log(`an eleven block fall onto hay left health at ${onHay}`);
+        } finally {
+            server.command('gamerule naturalRegeneration true');
+            await placeBlockAndWait(server, { x: 0, y: 63, z: 0 }, 'minecraft:stone');
+        }
     }
 };
