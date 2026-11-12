@@ -135,7 +135,7 @@ describe('Server', () => {
         });
 
         await prismarine.bootstrap('127.0.0.1', 0);
-        await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBeUndefined();
+        await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBe(true);
     });
 
     it('measures how long its ticks take once it is ticking', { tags: ['performance'] }, async () => {
@@ -233,6 +233,6 @@ describe('Server', () => {
         });
 
         await prismarine.bootstrap('127.0.0.1', 0);
-        await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBeUndefined();
+        await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBe(true);
     });
 });

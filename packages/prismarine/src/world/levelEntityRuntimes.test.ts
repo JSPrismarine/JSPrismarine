@@ -138,7 +138,7 @@ describe('two levels that share a dimension', () => {
         process.env.JSP_DIR = root;
 
         server = new Server({ logger: new Logger(), config: twoLevelConfig(), headless: true });
-        vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
+        vi.spyOn(server, 'shutdown').mockResolvedValue(true);
         // Port 0, so the OS picks a free one and two checkouts running this file at once do not
         // collide (#3000).
         await server.bootstrap('127.0.0.1', 0);

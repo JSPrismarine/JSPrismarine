@@ -237,7 +237,8 @@ export default class Server {
      *   `CHUNK_ADMISSION_BUDGET_PER_TICK` by default. A replay harness changes it to show that a
      *   recorded trace, not the budget, decides what a replay admits.
      * @param options.onStopCommandComplete - Called once the shutdown a `/stop` started has
-     *   finished and the command's feedback has settled, delivered or not.
+     *   finished and the command's feedback has settled, delivered or not. `stopped` is false when
+     *   the shutdown failed, such as when a world could not be saved.
      * @param [options.tickClock] - The clock the tick loop schedules and times its phases by,
      *   `performance.now` by default. Nothing a tick simulates reads it.
      * @returns {Server} The server instance.
@@ -262,7 +263,7 @@ export default class Server {
         outboundPacketRecorder?: OutboundPacketRecorder;
         transport?: Transport;
         chunkAdmissionBudget?: number;
-        onStopCommandComplete?: () => void;
+        onStopCommandComplete?: (stopped: boolean) => void;
         tickClock?: () => number;
     }) {
         this.kernel = new Kernel<ServerEvents>({ logger });
@@ -576,33 +577,49 @@ export default class Server {
      * Kills the server asynchronously.
      *
      * Asking twice forces the exit rather than returning - see {@link ShutdownLifecycle.forceExit}.
+     * With `stayAlive`, asking twice returns the outcome of the shutdown already running.
      * @param {object} [options] - The options.
      * @param {boolean} [options.crash] - If the server should crash.
      * @param {boolean} [options.stayAlive] - If we should let the process stay alive.
-     * @returns {Promise<void>} A promise that resolves when the server is killed.
+     * @returns {Promise<boolean>} Settles when the server is killed: true when every step of the
+     *   shutdown finished, false when one failed. Without `stayAlive` the process exits first,
+     *   with code 1 on a failure.
      */
-    public async shutdown(options?: { crash?: boolean; stayAlive?: boolean }): Promise<void> {
-        if (!this.lifecycle.beginShutdown()) return this.lifecycle.forceExit(options);
+    public shutdown(options?: { crash?: boolean; stayAlive?: boolean }): Promise<boolean> {
+        if (!this.lifecycle.beginShutdown()) {
+            this.lifecycle.forceExit(options);
+            return this.stopping ?? Promise.resolve(false);
+        }
+        this.stopping = this.stop(options);
+        return this.stopping;
+    }
 
-        this.remoteConsole?.markStopping();
-        // Before the first await, so the escape is armed even if everything below has to wait
-        // for an event loop that is busy generating terrain.
-        this.lifecycle.releaseHolds();
+    /** The shutdown {@link Server.shutdown} started, once one has. */
+    private stopping: Promise<boolean> | undefined;
 
-        this.logger.info(
-            options?.stayAlive ? 'Stopping server' : 'Stopping server, interrupt again to exit immediately',
-            'Server/kill'
-        );
-        await this.console?.disable();
-
-        // Before any teardown awaits: a tick still in flight sees `stopping` and
-        // stops rescheduling, and the pending timer dies here rather than firing
-        // into a server mid-teardown. The kernel stops the ticker module again
-        // inside `disable()`, which is a no-op by then.
-        this.ticker.stop();
-        this.generationGovernor?.close();
-
+    /** The body of {@link Server.shutdown}, run once. */
+    private async stop(options?: { crash?: boolean; stayAlive?: boolean }): Promise<boolean> {
+        // Every step is inside the one failure boundary, so a release or a console that throws
+        // ends in a failed outcome rather than a rejection.
         try {
+            this.remoteConsole?.markStopping();
+            // Before the first await, so the escape is armed even if everything below has to wait
+            // for an event loop that is busy generating terrain.
+            this.lifecycle.releaseHolds();
+
+            this.logger.info(
+                options?.stayAlive ? 'Stopping server' : 'Stopping server, interrupt again to exit immediately',
+                'Server/kill'
+            );
+            await this.console?.disable();
+
+            // Before any teardown awaits: a tick still in flight sees `stopping` and
+            // stops rescheduling, and the pending timer dies here rather than firing
+            // into a server mid-teardown. The kernel stops the ticker module again
+            // inside `disable()`, which is a no-op by then.
+            this.ticker.stop();
+            this.generationGovernor?.close();
+
             // No tick will apply what is still held for the input step, so apply it here: a player
             // whose connection closed during the last tick is torn down and saved like the rest,
             // rather than left in its world with nobody to remove it. Then the world messages those
@@ -647,10 +664,16 @@ export default class Server {
             console.debug('Server stopped, Goodbye!\n');
 
             if (!options?.stayAlive) process.exit(options?.crash ? 1 : 0);
+            return true;
         } catch (error: unknown) {
             console.error(error);
-            await this.remoteConsole?.disable();
+            try {
+                await this.remoteConsole?.disable();
+            } catch (closing: unknown) {
+                console.error(closing);
+            }
             if (!options?.stayAlive) process.exit(1);
+            return false;
         }
     }
 

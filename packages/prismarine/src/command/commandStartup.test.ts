@@ -139,7 +139,7 @@ describe('the command layer on a booted server', () => {
         process.env.JSP_DIR = root;
 
         server = new Server({ logger: new Logger(), config: debugConfig('commands'), headless: true });
-        vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
+        vi.spyOn(server, 'shutdown').mockResolvedValue(true);
         await server.bootstrap('127.0.0.1', 12347);
 
         world = server.getWorldManager().getDefaultWorld();
@@ -625,7 +625,7 @@ describe('the command layer on a server with packs of its own', () => {
         process.env.JSP_DIR = root;
 
         server = new Server({ logger: new Logger(), config: debugConfig('content-commands'), headless: true });
-        vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
+        vi.spyOn(server, 'shutdown').mockResolvedValue(true);
         await server.bootstrap('127.0.0.1', 12348);
 
         world = server.getWorldManager().getDefaultWorld();
