@@ -162,6 +162,8 @@ const buildManager = (
         getContent: () => content,
         getVersion: () => '9.9.9',
         getEntityRuntime: () => inertEntityRuntime(),
+        // No pack stack, so no content world for an unload to release.
+        hasEntityRuntime: () => false,
         getWorldReplicators: () =>
             stub<WorldReplicators>({ for: () => stub<NetworkWorldReplicator>({ chunkEntered: () => {} }) }),
         releaseOnShutdown: () => {}

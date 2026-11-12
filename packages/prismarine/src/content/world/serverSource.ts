@@ -298,6 +298,13 @@ export interface ServerWorldHandle extends ServerWorldSource {
      */
     entitiesAt(dimension: string, level?: string): LiveEntityRuntime | undefined;
     /**
+     * Forgets the adapters and entity runtimes of a level that has unloaded, once its save is
+     * written, so the level loaded again under that name starts from what the save holds rather
+     * than from the entities and draws of the instance before it.
+     * @param level - The level's name.
+     */
+    closeLevel(level: string): void;
+    /**
      * Captures the seeded random stream of each content adapter already built, under its
      * {@link worldKeyOf} key, which for the default level is the bare dimension.
      */
@@ -340,6 +347,15 @@ export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorl
         at: (dimension, level) => wiringAt(keyOf(dimension, level)).adapter,
         actorsAt: (dimension, level) => wiringAt(keyOf(dimension, level)).actors,
         entitiesAt: (dimension, level) => wirings.get(keyOf(dimension, level))?.live,
+        closeLevel: (level) => {
+            const filed = worldOfKey(keyOf('', level)).level;
+            for (const key of [...wirings.keys()]) {
+                const world = worldOfKey(key);
+                if (world.level !== filed) continue;
+                wirings.delete(key);
+                entityRuntimes?.close(world.dimension, world.level);
+            }
+        },
         saveRandomStates: () =>
             [...wirings]
                 .sort(([left], [right]) => left.localeCompare(right))
