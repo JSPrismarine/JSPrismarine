@@ -334,6 +334,24 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         }
     },
     {
+        name: 'touch-poison',
+        java: 'A puffed-up pufferfish poisons a player that touches it.',
+        reference: 'Java Pufferfish.touch, which adds MobEffects.POISON to the player',
+        subjects: () => ['minecraft:pufferfish'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const effects = componentValues(subject.bedrock, 'minecraft:mob_effect').map((value) =>
+                field(value, 'mob_effect')
+            );
+            if (!effects.includes('poison')) return `${subject.bedrock} declares no minecraft:mob_effect of poison`;
+            // A component the registry holds as data only is kept for its values and never runs.
+            const hooks = serverContent().entities.components.hooksOf('minecraft:mob_effect');
+            return hooks.has('onTick')
+                ? undefined
+                : 'the server never runs minecraft:mob_effect, so nothing is poisoned';
+        }
+    },
+    {
         name: 'built-in-motion',
         java: "A dropped item and a thrown eye of ender move, wait, despawn and shatter by Java's ItemEntity and EyeOfEnder constants.",
         reference:
