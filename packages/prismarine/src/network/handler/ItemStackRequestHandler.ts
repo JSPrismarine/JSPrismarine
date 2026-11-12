@@ -393,8 +393,10 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
 
                 // Redrawn whenever the item in the table changed, which is what
                 // `showEnchantingTable` says it has to be called for: the three rows are a
-                // function of the stack. The bookshelf count it keeps on the window is read only
-                // by the next request, which the step starts after this.
+                // function of the stack. The bookshelf count it keeps on the window can be set
+                // after a later request of the same step has run, and that is the count to read
+                // then: a row the client picks comes from the rows it was sent, and this send
+                // follows the count it was drawn from.
                 const open = session.getOpenBlockContainer();
                 if (open !== undefined && open.screen === WindowTypes.ENCHANTMENT && workstationChanged.size > 0) {
                     await refreshEnchantOptions(session, open, services.content.enchantments, session.getWorld());
