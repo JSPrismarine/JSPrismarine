@@ -62,7 +62,7 @@
         "@jsprismarine/mapping": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
         "@types/node": "26.6.6",
-        "glob": "14.0.5",
+        "glob": "14.0.6",
         "rimraf": "6.1.4",
         "typescript": "7.0.2",
         "vite": "8.3.8",

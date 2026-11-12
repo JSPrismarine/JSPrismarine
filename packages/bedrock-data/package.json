@@ -72,7 +72,7 @@
         "@jsprismarine/leveldb": "workspace:*",
         "@jsprismarine/nbt": "workspace:*",
         "@types/node": "26.6.6",
-        "glob": "14.0.5",
+        "glob": "14.0.6",
         "rimraf": "6.1.4",
         "tsx": "4.23.15",
         "typescript": "7.0.2",
