@@ -1,3 +1,6 @@
+import type { TickEvent } from '../src/events/Events';
+import { KernelEventBus } from '@jsprismarine/kernel';
+import type { ServerEvents } from '../src/events/ServerEvents';
 /**
  * Measures fixed tick-debt recovery and observes loopback UDP callbacks between catch-up ticks.
  *
@@ -10,6 +13,13 @@ import type { AddressInfo } from 'node:net';
 import { ServerTicker } from '../src/modules/ticker';
 import type { TickerServer } from '../src/modules/ticker';
 import { ChunkCompletionQueue } from '../src/world/ChunkCompletionQueue';
+
+/** A bus with one `tick` listener, which is how the ticker reaches the bench. */
+const tickBus = (listener: (event: TickEvent) => unknown) => {
+    const events = new KernelEventBus<ServerEvents>();
+    events.on('tick', listener);
+    return events;
+};
 
 const TICK_MS = 50;
 const DEBT_CASES_MS = [250, 1_000] as const;
@@ -50,7 +60,7 @@ const recoverDebt = async (debtMs: number) => {
     let startedAt = 0;
 
     const server: TickerServer = {
-        emitTick: (event) => {
+        events: tickBus((event) => {
             activeTick = event.getTick();
             tickIds.push(activeTick);
             // A tick runs in one call, so a slow one holds the thread for its whole length.
@@ -70,7 +80,7 @@ const recoverDebt = async (debtMs: number) => {
                 ticker.stop();
                 finish({ elapsedMs: performance.now() - startedAt, tickCount: tickIds.length });
             }
-        },
+        }),
         admitInputs: () => 0,
         pollNetwork: () => 0,
         getWorlds: () => [],

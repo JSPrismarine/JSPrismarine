@@ -886,7 +886,7 @@ describe('the dragon fight over a live End world', () => {
             });
             fight = freshFight(state);
             ticker = new ServerTicker({
-                emitTick: async () => {},
+                events: { post: () => 0 },
                 admitInputs: () => queue.admissions.admit(ticker.getTick()),
                 pollNetwork: () => 0,
                 getWorlds: () => [{ getName: () => 'the_end', update: async () => fight.tick() }],
