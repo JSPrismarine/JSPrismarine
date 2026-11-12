@@ -514,7 +514,8 @@ export const startServer = async (
         ],
         {
             cwd: serverPackage,
-            env: { ...process.env, JSP_DIR: dir, NODE_ENV: 'production' },
+            // JSP_BSTATS=0: a test server never reports usage statistics.
+            env: { ...process.env, JSP_DIR: dir, NODE_ENV: 'production', JSP_BSTATS: '0' },
             stdio: ['pipe', 'pipe', 'pipe']
         }
     );
