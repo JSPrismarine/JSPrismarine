@@ -1000,7 +1000,9 @@ export class EntityRuntime implements EntityScene {
      * client is sent when it first sees the entity.
      *
      * @returns Plain data with the runtime id, the position, the velocity, the record as it would
-     *   be written, the tags, the status effects and the vehicle it rides.
+     *   be written, the tags, the status effects, the vehicle it rides, the online owner, the shown
+     *   conditions, the actor record tags and the attributes with their bounds
+     *   (`savedForm.ts` reads it back as logged fields).
      */
     public savedFormOf(entity: DataEntity): PlainRecord {
         const { body } = entity;
@@ -1024,7 +1026,16 @@ export class EntityRuntime implements EntityScene {
             vehicle: this.rides.vehicleOf(entity.id) ?? null,
             owner: body.owner ?? null,
             conditions: SHOWN_CONDITIONS.filter((condition) => body.conditions.has(condition)),
-            actorTags: body.actorTags ?? null
+            actorTags: body.actorTags ?? null,
+            // The record keeps only each attribute's current value; a reader of the log needs its bounds.
+            attributes: Object.fromEntries(
+                entity.instance.attributes.names().flatMap((name) => {
+                    const attribute = entity.instance.attributes.get(name);
+                    if (attribute === undefined) return [];
+                    const { base, min, max, current } = attribute;
+                    return [[name, { base, min, max, current }]];
+                })
+            )
         };
     }
 

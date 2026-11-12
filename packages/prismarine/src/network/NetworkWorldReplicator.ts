@@ -23,10 +23,14 @@ import {
 } from '../world/Proximity';
 import type { AudienceOptions, World } from '../world/World';
 import type { NamedSoundOptions, WorldChangeSink } from '../world/WorldChangeSink';
+import type { EntityId } from '../world/changelog/ChangeEntry';
 import type { SealedTick } from '../world/changelog/ChangeLog';
+import type { EntityView } from '../entity/data/actorView';
 import type { BlockPositionKey } from '../world/positionKeys';
 import { BlockReplica } from './replica/BlockReplica';
 import type { BlockAt, BlockReplicaCounts } from './replica/BlockReplica';
+import { EntityReplica } from './replica/EntityReplica';
+import type { EntityReplicaCounts } from './replica/EntityReplica';
 import { broadcastSharedBatches } from './MinecraftSession';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
@@ -156,13 +160,18 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     /** The block entities of the world's loaded chunks, which a block entity update is folded from. */
     private readonly blocks = new BlockReplica();
 
+    /** The world's entities as the change log has them, which D4c sends from. */
+    private readonly entities: EntityReplica;
+
     /** Last pose for each actor that moved since the world's previous movement flush. */
     private readonly pendingMoves = new Map<number, MoveActorAbsolutePacket>();
 
     public constructor(
         private readonly world: World,
         private readonly server: Server
-    ) {}
+    ) {
+        this.entities = new EntityReplica(() => server.getContent());
+    }
 
     /**
      * Everyone in this world who should be told about something that happened at `position`.
@@ -236,6 +245,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         for (const [key, { x, y, z, block }] of blocks)
             this.pendingBlocks.set(key, { position: new Vector3(x, y, z), blockRuntimeId: block });
         for (const [key, at] of blockEntities) this.pendingBlockEntities.set(key, at);
+        // Read, not sent yet: `StoreActors.sync` still sends the entities until D4c moves it here.
+        this.entities.read(sealed);
     }
 
     /** @inheritdoc */
@@ -251,6 +262,23 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     /** What the block replica holds and has done, for reports and tests. */
     public blockReplicaCounts(): BlockReplicaCounts {
         return this.blocks.counts();
+    }
+
+    /**
+     * What a client is shown of one entity, folded from the change log.
+     * @param entity - The entity's runtime id.
+     * @returns The view, or undefined when no entry of the log has shown the entity entering.
+     */
+    public entityView(entity: EntityId): EntityView | undefined {
+        return this.entities.view(entity, (identity) => {
+            const session = this.world.getViewers().find((candidate) => candidate.identity.uuid === identity);
+            return session === undefined ? undefined : Number(session.runtimeId);
+        });
+    }
+
+    /** What the entity replica holds and has done, for reports and tests. */
+    public entityReplicaCounts(): EntityReplicaCounts {
+        return this.entities.counts();
     }
 
     /**
