@@ -253,9 +253,9 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
     /**
      * Handles an inventory transaction.
      *
-     * Synchronous, as the input step needs. A break and a melee hit still wait on the world
-     * before they finish writing, so they go to `step.defer`, each beside the slice that removes
-     * the wait.
+     * Synchronous, as the input step needs. A break with client-timed breaking still waits on
+     * the world before it finishes writing, so it goes to `step.defer`, beside the slice that
+     * removes the wait.
      * @param packet - The transaction to apply.
      * @param context - The player's network session, and the input step that applies it.
      * @param interactionRotation - The view rotation from PlayerAuthInput when present.
@@ -416,7 +416,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
      * From Position the client sent.
      */
     private handleUseItemOnEntity(data: UseItemOnEntityData, context: InputContext): void {
-        const { session, log, step } = context;
+        const { session, log } = context;
         if (
             data.actionType === ItemUseOnActorActionType.INTERACT ||
             data.actionType === ItemUseOnActorActionType.ITEM_INTERACT
@@ -444,27 +444,25 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
         if (attacker === undefined) return;
         const player = session.getPlayer();
         const components = player.getComponents();
-        // Deferred until slice 7, when sends leave the simulation: `meleeAttack` awaits its
-        // sounds before it says whether the blow landed, and the hunger depends on that.
-        step.defer(async () => {
-            const landed = await meleeAttack(attacker, target, {
-                reach: player.gamemode === Gametype.CREATIVE ? CREATIVE_REACH : SURVIVAL_REACH,
+        // In this input's unit: the blow, its sounds and the hunger it costs are all written
+        // before `meleeAttack` returns, so a throw anywhere undoes the swing whole.
+        const landed = meleeAttack(attacker, target, {
+            reach: player.gamemode === Gametype.CREATIVE ? CREATIVE_REACH : SURVIVAL_REACH,
 
-                // What they are holding, not their attack attribute: in vanilla the weapon *is*
-                // the number, and an empty hand is one point rather than none.
-                damage: player.getInventory().getItemInHand().getAttackDamage(),
+            // What they are holding, not their attack attribute: in vanilla the weapon *is*
+            // the number, and an empty hand is one point rather than none.
+            damage: player.getInventory().getItemInHand().getAttackDamage(),
 
-                // Falling, and actually descending: a player on the way up through a jump is off
-                // the ground too, and vanilla does not let them crit from there.
-                critical: !player.isOnGround() && components.get('vitals.fallDistance') > 0 && !player.isFlying(),
+            // Falling, and actually descending: a player on the way up through a jump is off
+            // the ground too, and vanilla does not let them crit from there.
+            critical: !player.isOnGround() && components.get('vitals.fallDistance') > 0 && !player.isFlying(),
 
-                knockbackLevels: components.get('movement.sprinting') ? SPRINT_KNOCKBACK : 0
-            });
-
-            // Only a swing that connected costs anything. A miss is free, which is why the hunger
-            // is charged here rather than before the attempt.
-            if (landed) session.inputs().exhaustPlayer(player, EXHAUSTION.attacking);
+            knockbackLevels: components.get('movement.sprinting') ? SPRINT_KNOCKBACK : 0
         });
+
+        // Only a swing that connected costs anything. A miss is free, which is why the hunger
+        // is charged here rather than before the attempt.
+        if (landed) session.inputs().exhaustPlayer(player, EXHAUSTION.attacking);
     }
 
     /**

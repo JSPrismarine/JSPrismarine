@@ -124,17 +124,15 @@ export const canHarm = (attacker: StoreActor, target: StoreActor): boolean => {
  * @param {StoreActor} attacker - Who is swinging.
  * @param {StoreActor} target - Who at.
  * @param {MeleeOptions} [options] - What the caller knows about this particular blow.
- * @returns {Promise<boolean>} `true` if the target actually took damage.
+ * Synchronous: the blow goes through the store's damage pipeline, and its sounds and particles
+ * are occurrences in the change log, so everything it does has happened when it returns.
+ * @returns {boolean} `true` if the target actually took damage.
  * @example
  * ```typescript
- * await meleeAttack(player, zombie, { reach: SURVIVAL_REACH, damage: sword.getAttackDamage() });
+ * meleeAttack(player, zombie, { reach: SURVIVAL_REACH, damage: sword.getAttackDamage() });
  * ```
  */
-export const meleeAttack = async (
-    attacker: StoreActor,
-    target: StoreActor,
-    options: MeleeOptions = {}
-): Promise<boolean> => {
+export const meleeAttack = (attacker: StoreActor, target: StoreActor, options: MeleeOptions = {}): boolean => {
     const { reach = DEFAULT_REACH, critical = false, knockbackLevels = 0 } = options;
 
     if (!canHarm(attacker, target)) return false;
@@ -167,21 +165,25 @@ export const meleeAttack = async (
 
     // Something that does no damage still makes a noise, because the alternative is a swing that
     // produces nothing at all and reads as the server having missed the packet.
-    // A store entity takes the blow through the store's damage pipeline.
+    // A store entity takes the blow through the store's damage pipeline. One that has left its
+    // world's store takes nothing, which is what the pipeline answers for an entity it no
+    // longer holds.
     const source = DamageSource.entity(attacker, shove);
-    const landed =
-        damage > NO_DAMAGE &&
-        (world.dataEntities().damageEntity(target, damage, source, 'melee') ?? (await target.damage(damage, source)));
+    const landed = damage > NO_DAMAGE && (world.dataEntities().damageEntity(target, damage, source, 'melee') ?? false);
 
+    // The sounds and the particles are occurrences, logged before these calls return, so nothing
+    // here waits on them.
+    const logged = (occurrence: Promise<void>): void =>
+        void occurrence.catch((error: unknown) => attacker.getServer().getLogger().error(error));
     if (!landed) {
-        await world.sendActorSound(attacker, LevelSoundEvent.ATTACK_NODAMAGE);
+        logged(world.sendActorSound(attacker, LevelSoundEvent.ATTACK_NODAMAGE));
         return false;
     }
 
-    await world.sendActorSound(attacker, critical ? LevelSoundEvent.ATTACK_STRONG : LevelSoundEvent.ATTACK);
+    logged(world.sendActorSound(attacker, critical ? LevelSoundEvent.ATTACK_STRONG : LevelSoundEvent.ATTACK));
 
     // On the target rather than on the attacker: the stars burst around what was hit.
-    if (critical) await world.sendWorldEvent(target.getPosition(), LevelEvent.PARTICLES_CRIT, 0);
+    if (critical) logged(world.sendWorldEvent(target.getPosition(), LevelEvent.PARTICLES_CRIT, 0));
 
     return true;
 };
