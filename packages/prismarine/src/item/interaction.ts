@@ -300,7 +300,7 @@ const placeBlock = (
     const { player, content } = interaction;
     const rotation = interaction.rotation ?? { pitch: player.pitch, yaw: player.yaw };
     const world = player.getWorld();
-    const blocks = content.world.blockWorld.at(world.getDimension().name);
+    const blocks = content.world.blockWorld.at(world.getDimension().name, world.getLevel().name);
     const canReplace = (block: SystemBlock): boolean =>
         block.name === 'minecraft:air' || blockFromContent(block.name, content, block.states)?.canBeReplaced() === true;
 
@@ -443,7 +443,10 @@ const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean
         .get(block.identifier)
         ?.state(block.states)
         .content.params(containerOpenSound);
-    const blockWorld = interaction.content.world.blockWorld.at(player.getWorld().getDimension().name);
+    const blockWorld = interaction.content.world.blockWorld.at(
+        player.getWorld().getDimension().name,
+        player.getWorld().getLevel().name
+    );
 
     void (async () => {
         const opened = await session.openBlockContainer(at, block.identifier, contents);

@@ -56,6 +56,8 @@ export interface BreakWorld {
     loadedBlockAt(x: number, y: number, z: number): SystemBlock | undefined;
     /** The dimension, whose name the hooks and the loot conditions carry. */
     getDimension(): { readonly name: string };
+    /** The level, which with the dimension names the world the hooks run in. */
+    getLevel(): { readonly name: string };
     /** Ticks since the world started, which a table's `time_check` is applied to. */
     getTicks(): number;
     /** The server, for its content and its log. */
@@ -281,7 +283,7 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
         const correctTool =
             player === undefined ||
             (blockFromContent(standing.name, content, standing.states)?.isCompatibleWithTool(held) ?? true);
-        const blocks = content.world.blockWorld.at(dimension);
+        const blocks = content.world.blockWorld.at(dimension, world.getLevel().name);
 
         // Read before the hook runs, because what spills a container is the hook itself. The
         // record also carries a bed's or banner's color, which picks the table that rolls.

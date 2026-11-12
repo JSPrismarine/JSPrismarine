@@ -128,7 +128,7 @@ export const isPerPlayerContainer = (identifier: string): boolean => identifier.
  */
 export interface ContainerViewer {
     getServer(): { getContent(): ServerContent | undefined };
-    getWorld(): { getDimension(): { readonly name: string } };
+    getWorld(): { getDimension(): { readonly name: string }; getLevel(): { readonly name: string } };
     getInventory(): { getEnderChest(): Inventory };
 }
 
@@ -141,7 +141,7 @@ const blockEntityBacking = (
     const content = player.getServer().getContent();
     if (content === undefined) return undefined;
 
-    const world = content.world.blockWorld.at(player.getWorld().getDimension().name);
+    const world = content.world.blockWorld.at(player.getWorld().getDimension().name, player.getWorld().getLevel().name);
     const per = slotsOf(identifier);
     const halves = halvesOf(world, at, identifier);
 
@@ -251,7 +251,7 @@ export const containerAnchorOf = (
     const content = player.getServer().getContent();
     if (content === undefined || isPerPlayerContainer(identifier)) return at;
 
-    const world = content.world.blockWorld.at(player.getWorld().getDimension().name);
+    const world = content.world.blockWorld.at(player.getWorld().getDimension().name, player.getWorld().getLevel().name);
     return halvesOf(world, at, identifier)[0] ?? at;
 };
 

@@ -19,6 +19,7 @@ import type { Block } from '../block/Block';
 import type { Item } from '../item/Item';
 import { Dimensions } from '../world/DimensionType';
 import { GameRules } from '../world/GameRuleManager';
+import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import { DamageCause } from './DamageCause';
 import type { DamageSource } from './DamageSource';
@@ -89,6 +90,8 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
         getName: () => 'test',
         getTicks: () => 0,
         getDimension: () => Dimensions.Overworld,
+        // The block actions of a break are the world's own, named by its level and dimension.
+        getLevel: () => stub<Level>({ name: 'test' }),
         getServer: () => server,
         sendActorEvent: () => {},
         sendActorSound: () => {},

@@ -391,8 +391,12 @@ export interface ServerWorldAdapter {
  * other family paying for a dimension argument.
  */
 export interface ServerWorldSource {
-    /** The adapter for one dimension, such as `minecraft:overworld`. */
-    at(dimension: string): ServerWorldAdapter;
+    /**
+     * The adapter for one dimension, such as `minecraft:overworld`.
+     * @param level - The level's name, for a world of a level other than the default. A source
+     *   with one level ignores it.
+     */
+    at(dimension: string, level?: string): ServerWorldAdapter;
     /**
      * Resolves a goal world from the runtime that owns this entity, when the source can see
      * every dimension. This avoids binding entities in secondary dimensions to `at()`'s

@@ -740,7 +740,7 @@ export class DimensionTravel {
         if (destination === undefined) {
             // Only a player builds a portal on Bedrock; an item or a mob with nowhere to arrive stays.
             if (!route.player) return undefined;
-            const actions = this.server.getContent().world.blockWorld.at(to.getDimension().name);
+            const actions = this.server.getContent().world.blockWorld.at(to.getDimension().name, to.getLevel().name);
             destination = createNetherPortal(actions, blockOf(route.target), route.axis, to.getDimension()).rectangle;
             createdPortal = true;
         }
@@ -770,7 +770,10 @@ export class DimensionTravel {
 
     /** `EndPortalBlock.getPortalDestination` into the End, with `EndPlatformFeature.createEndPlatform`. */
     private enterEnd(route: TripRoute, end: World): PortalArrival {
-        writeEndPlatform(this.server.getContent().world.blockWorld.at(end.getDimension().name), END_PLATFORM_CENTER);
+        writeEndPlatform(
+            this.server.getContent().world.blockWorld.at(end.getDimension().name, end.getLevel().name),
+            END_PLATFORM_CENTER
+        );
 
         // A `ServerPlayer` has `(0, 1, 0)` subtracted, so players stand on the platform at 49
         // and everything else arrives at 50.
