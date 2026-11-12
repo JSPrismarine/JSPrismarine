@@ -248,6 +248,27 @@ describe('the entity store', () => {
         expect(savedForms(runtime)).toEqual(before);
     });
 
+    it('keeps the actor record tags it logged when the bytes handed over or read back change in place', () => {
+        const { runtime } = fixture();
+        const cow = runtime.spawn('minecraft:cow', GROUND);
+        if (cow === undefined) throw new Error('the fixture declares no cow');
+        runtime.store.beginTick();
+        runtime.store.sealTick();
+        runtime.store.beginTick();
+
+        const given = new Uint8Array([10, 0, 0]);
+        cow.body.actorTags = given;
+        given[0] = 99;
+        const read = cow.body.actorTags;
+        if (read !== undefined) read[1] = 99;
+
+        expect([...(cow.body.actorTags ?? [])]).toEqual([10, 0, 0]);
+        const [entry] = runtime.store.sealTick()?.entries ?? [];
+        expect(entry?.kind === 'field' ? [...(entry.after instanceof Uint8Array ? entry.after : [])] : []).toEqual([
+            10, 0, 0
+        ]);
+    });
+
     it('appends nothing for an idle world', () => {
         const { runtime } = fixture();
         runtime.spawn('minecraft:cow', GROUND);

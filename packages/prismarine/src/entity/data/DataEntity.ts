@@ -463,13 +463,17 @@ export class MobBody {
         this.write('statusEffectClock', clock);
     }
 
-    /** The actor record tags this server does not model, as network NBT bytes. */
+    /**
+     * The actor record tags this server does not model, as network NBT bytes. A copy each way, so
+     * a change to the bytes in place cannot reach the body, or the entries that logged them,
+     * without a write.
+     */
     public get actorTags(): Uint8Array | undefined {
-        return this.logged.actorTags;
+        return this.logged.actorTags?.slice();
     }
 
     public set actorTags(tags: Uint8Array | undefined) {
-        this.write('actorTags', tags);
+        this.write('actorTags', tags?.slice());
     }
 
     /** Stable player identity behind {@link MobBody.owner}, retained across server restarts. */
