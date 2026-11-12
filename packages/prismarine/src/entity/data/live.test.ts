@@ -83,7 +83,7 @@ import { builtInEntityDefinitions } from '../../content/testing';
 import { spawnDeclared } from './testing';
 import { loose } from '../Archery';
 import type { OpenBlockContainer, OpenTrade } from '../../network/PlayerSession';
-import { dataEntityRecordIn } from './persistence';
+import { dataEntityRecordIn, dataEntityRecordOf } from './persistence';
 import { EntityRuntimes } from './live';
 import type { EntityRef } from '@jsprismarine/commands';
 import type { LiveEntityRuntime } from './live';
@@ -2950,6 +2950,21 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(zombie.position.y).toBe(GROUND_Y);
             expect(typesIn(second.world).filter((type) => type === 'minecraft:zombie')).toHaveLength(1);
+        });
+
+        it('brings a saved mob back with the portal cooldown it was saved with', () => {
+            const nbt = savedActorNbt('minecraft:zombie', { x: 2.5, y: GROUND_Y + 4, z: 3.5 });
+            nbt.addValue('PortalCooldown', new Types.NumberVal(123));
+
+            const migrated = live.restoreExisting(EntitySerializer.fromNBT(nbt));
+            const actor = migrated === undefined ? undefined : live.actors.actorOf(migrated.id);
+            if (migrated === undefined || actor === undefined) throw new Error('the saved zombie was not migrated');
+            expect(actor.getPortalCooldown()).toBe(123);
+
+            const record = dataEntityRecordOf(migrated, live.runtime.poolOf(migrated.id));
+            const restored = live.restore(record, EntitySerializer.fromNBT(EntitySerializer.toNBT(actor)));
+            if (restored === undefined) throw new Error('the saved zombie was not restored');
+            expect(live.actors.actorOf(restored.id)?.getPortalCooldown()).toBe(123);
         });
 
         it('migrates a saved actor without a record into the data runtime, facing the way it was saved', async () => {
