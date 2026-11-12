@@ -15,6 +15,7 @@ import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { inputContext } from '../testing/handlerContext.test.helper';
 import { sealOccurrences } from '../testing/occurrences.test.helper';
+import type { OccurrenceEntry } from '../world/changelog/ChangeEntry';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
@@ -104,33 +105,105 @@ const replicatorOver = (viewers: PlayerSession[]) => {
 
 describe('network', () => {
     describe('NetworkWorldReplicator occurrences', () => {
-        it('encodes one broadcast occurrence once for each codec and compression group of its audience', async () => {
-            // Six viewers in three groups: two protocol versions, and one viewer on the first
-            // version that negotiated another compression.
-            const older = counting(Codec2193);
-            const newer = counting(Codec2225);
-            const viewers = [
-                viewer(1n, { codec: older.codec }),
-                viewer(2n, { codec: older.codec }),
-                viewer(3n, { codec: older.codec }),
-                viewer(4n, { codec: newer.codec }),
-                viewer(5n, { codec: newer.codec }),
-                viewer(6n, { codec: older.codec, compressionAlgorithm: PacketCompressionAlgorithm.NONE })
-            ];
-            const replicator = replicatorOver(viewers.map(({ session }) => session));
-
-            sealOccurrences(replicator, {
+        /** One broadcast occurrence of each kind, all near the viewers and about an entity they all track. */
+        const broadcasts: readonly OccurrenceEntry[] = [
+            {
                 kind: 'occurrence',
                 occurrence: 'world-effect',
                 data: { position: { x: 1, y: 64, z: 1 }, effect: LevelEvent.PARTICLES_CRIT, data: 0 }
-            });
-            await replicator.flushOccurrences();
+            },
+            {
+                kind: 'occurrence',
+                occurrence: 'block-sound',
+                data: { x: 1, y: 64, z: 1, sound: LevelSoundEvent.HIT, block: 1, except: null }
+            },
+            {
+                kind: 'occurrence',
+                occurrence: 'named-sound',
+                data: { x: 1, y: 64, z: 1, name: 'random.chestopen', volume: 1, pitch: 1 }
+            },
+            {
+                kind: 'occurrence',
+                occurrence: 'named-particle',
+                data: { x: 1, y: 64, z: 1, name: 'minecraft:crop_growth_emitter' }
+            },
+            {
+                kind: 'occurrence',
+                occurrence: 'actor-sound',
+                data: { entity: 99n, x: 1, y: 64, z: 1, sound: LevelSoundEvent.HURT, type: 'minecraft:cow' }
+            },
+            {
+                kind: 'occurrence',
+                occurrence: 'relayed-sound',
+                data: {
+                    sender: 99n,
+                    x: 1,
+                    y: 64,
+                    z: 1,
+                    sound: LevelSoundEvent.STEP,
+                    data: -1,
+                    type: 'minecraft:player',
+                    baby: false,
+                    global: false,
+                    actor: 99n,
+                    firedAt: null
+                }
+            },
+            {
+                kind: 'occurrence',
+                occurrence: 'actor-event',
+                data: { entity: 99n, event: ActorEvent.HURT_ANIMATION, data: 0 }
+            },
+            {
+                kind: 'occurrence',
+                occurrence: 'animate',
+                data: { entity: 99n, action: 1, data: 0, swingSource: null }
+            },
+            {
+                kind: 'occurrence',
+                occurrence: 'emote',
+                data: {
+                    entity: 99n,
+                    emote: '4c8ae710-df2e-47cd-814d-cc7bf21a3d67',
+                    lengthTicks: 40,
+                    xuid: '',
+                    platformId: '',
+                    flags: EmoteFlags.ServerSide
+                }
+            }
+        ];
 
-            expect(older.counter.encodes + newer.counter.encodes).toBe(3);
-            expect(older.counter.encodes).toBe(2);
-            for (const { frames } of viewers) expect(frames).toHaveLength(1);
-            expect(viewers[1]!.frames).toStrictEqual(viewers[0]!.frames);
-        });
+        it.each(broadcasts.map((entry) => [entry.occurrence, entry] as const))(
+            'encodes one %s once for each codec and compression group of its audience',
+            async (_kind, entry) => {
+                // Six viewers in three groups: two protocol versions, and one viewer on the first
+                // version that negotiated another compression.
+                const older = counting(Codec2193);
+                const newer = counting(Codec2225);
+                const tracked = [99n];
+                const viewers = [
+                    viewer(1n, { codec: older.codec, tracked }),
+                    viewer(2n, { codec: older.codec, tracked }),
+                    viewer(3n, { codec: older.codec, tracked }),
+                    viewer(4n, { codec: newer.codec, tracked }),
+                    viewer(5n, { codec: newer.codec, tracked }),
+                    viewer(6n, { codec: older.codec, compressionAlgorithm: PacketCompressionAlgorithm.NONE, tracked })
+                ];
+                const replicator = replicatorOver(viewers.map(({ session }) => session));
+
+                sealOccurrences(replicator, entry);
+                await replicator.flushOccurrences();
+
+                expect(older.counter.encodes + newer.counter.encodes).toBe(3);
+                expect(older.counter.encodes).toBe(2);
+                for (const { frames, sent } of viewers) {
+                    expect(frames).toHaveLength(1);
+                    expect(sent).toHaveLength(0);
+                }
+                expect(viewers[1]!.frames).toStrictEqual(viewers[0]!.frames);
+                expect(viewers[3]!.frames).toStrictEqual(viewers[4]!.frames);
+            }
+        );
 
         it('sends nothing until the flush, and each occurrence once', async () => {
             const one = viewer(1n);
