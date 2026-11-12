@@ -61,6 +61,16 @@ for (const mode of config.modes) {
         if (!wanted(id)) continue;
         await page.goto(config.base + path, { waitUntil: 'networkidle' });
         await page.evaluate(() => document.fonts.ready);
+        // Content that starts when it scrolls into view (a reveal, a print, a drawn chart) never starts in a
+        // full-page capture of an unscrolled page, so walk the page a viewport at a time first.
+        await page.evaluate(async () => {
+            for (let y = 0; y < document.documentElement.scrollHeight; y += innerHeight / 2) {
+                scrollTo(0, y);
+                await new Promise((done) => setTimeout(done, 60));
+            }
+            scrollTo(0, 0);
+        });
+        await page.waitForTimeout(300);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
         if (overflow > 0) console.log(`OVERFLOW ${id} ${mode.id} ${overflow}px`);
         const height = await page.evaluate(() => document.documentElement.scrollHeight);
