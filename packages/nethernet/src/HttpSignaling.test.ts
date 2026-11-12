@@ -29,13 +29,13 @@ const running: HttpSignaling[] = [];
 const start = async (
     answerer: NetherNetOfferAnswerer,
     answerTimeoutMs?: number,
-    info: (line: string) => void = () => {}
+    debug: (line: string) => void = () => {}
 ) => {
     const signaling = new HttpSignaling({
         answerer,
         status: () => '{"name":"Test"}',
         sign: (answer) => `${answer}a=identity:signed\r\n`,
-        logger: { debug: () => {}, info, warn: () => {}, error: () => {} },
+        logger: { debug, info: () => {}, warn: () => {}, error: () => {} },
         answerTimeoutMs
     });
     running.push(signaling);
