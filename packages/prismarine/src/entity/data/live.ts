@@ -1077,7 +1077,9 @@ export class LiveEntityRuntime {
      * @returns The entity, or undefined when no loaded pack declares its type.
      */
     public restore(record: DataEntityRecord, stored: StoredActor): DataEntity | undefined {
-        return this.restoreRecord(record, stored.position, stored);
+        const entity = this.restoreRecord(record, stored.position, stored);
+        if (entity !== undefined) this.actors.actorOf(entity.id)?.setPortalCooldown(stored.portalCooldown);
+        return entity;
     }
 
     /**
@@ -1143,6 +1145,7 @@ export class LiveEntityRuntime {
         if (health !== undefined) entity.instance.attributes.set('health', Math.min(health.max, SAVED_ACTOR_HEALTH));
 
         this.keep(entity, stored);
+        this.actors.actorOf(entity.id)?.setPortalCooldown(stored.portalCooldown);
         return entity;
     }
 
