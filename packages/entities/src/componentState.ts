@@ -166,9 +166,10 @@ const sameData = (left: ComponentStateData, right: ComponentStateData): boolean 
 
 /** Freezes a state value all the way down, so a before-value handed to a host cannot change later. */
 const deepFreeze = <T extends ComponentStateData>(value: T): T => {
-    if (value === null || typeof value !== 'object' || Object.isFrozen(value)) return value;
+    if (value === null || typeof value !== 'object') return value;
+    // Into a frozen value too: `Object.freeze({ seen: [] })` leaves `seen` open to a push.
     for (const field of Object.values(value)) deepFreeze(field);
-    return Object.freeze(value);
+    return Object.isFrozen(value) ? value : Object.freeze(value);
 };
 
 /**
