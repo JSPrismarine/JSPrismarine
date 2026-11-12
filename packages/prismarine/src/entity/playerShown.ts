@@ -23,12 +23,13 @@ export const HEAD_YAW_FIELD = 'look.headYaw';
 export const HAND_SLOT_FIELD = 'inventory.handSlot';
 
 /**
- * The component fields a player's metadata shows: sprinting, whether it may fly, which its game
- * mode decides, and its breath.
+ * The component fields clients are shown of a player: sprinting, whether it may fly, which its
+ * game mode decides, whether it is flying, and its breath.
  */
 export const SHOWN_PLAYER_COMPONENTS = [
     'movement.sprinting',
     'abilities.gamemode',
+    'abilities.flying',
     'vitals.air',
     'vitals.breathing'
 ] as const satisfies readonly PlayerComponentField[];
@@ -59,6 +60,7 @@ export type ShownPlayerState = {
     readonly handSlot: number;
     readonly sprinting: boolean;
     readonly gamemode: Gametype;
+    readonly flying: boolean;
     /** Ticks of breath left. */
     readonly air: number;
     readonly breathing: boolean;
@@ -78,6 +80,7 @@ export const shownPlayerStateIn = (field: (name: string) => PlainData | undefine
         handSlot: numberField(HAND_SLOT_FIELD)(value(HAND_SLOT_FIELD)),
         sprinting: booleanField('movement.sprinting')(value('movement.sprinting')),
         gamemode: getGametypeId(numberField('abilities.gamemode')(value('abilities.gamemode'))),
+        flying: booleanField('abilities.flying')(value('abilities.flying')),
         air: numberField('vitals.air')(value('vitals.air')),
         breathing: booleanField('vitals.breathing')(value('vitals.breathing'))
     };

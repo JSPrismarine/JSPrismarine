@@ -202,6 +202,7 @@ describe('the entity replica', () => {
                 handSlot: player.getInventory().getHandSlotIndex(),
                 sprinting: components.get('movement.sprinting'),
                 gamemode: components.get('abilities.gamemode'),
+                flying: components.get('abilities.flying'),
                 air: components.get('vitals.air'),
                 breathing: components.get('vitals.breathing')
             };
@@ -225,6 +226,7 @@ describe('the entity replica', () => {
             () => player.getInventory().setHandSlot(1),
             () => player.getComponents().set('movement.sprinting', true),
             () => player.getComponents().set('abilities.gamemode', Gametype.CREATIVE),
+            () => player.getComponents().set('abilities.flying', true),
             () => player.getComponents().set('vitals.air', 120),
             () => player.getComponents().set('vitals.breathing', false),
             () => player.getInventory().getArmor().setItem(0, sword),
