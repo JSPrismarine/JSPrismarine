@@ -82,6 +82,7 @@ const WRITES: readonly {
     { field: 'condition:on_ground', write: ({ body }) => body.conditions.add('on_ground') },
     { field: 'projectileAge', write: ({ body }) => (body.projectileAge = 5), saved: false },
     { field: 'projectileStuck', write: ({ body }) => (body.projectileStuck = true), saved: false },
+    { field: 'teleports', write: ({ body }) => body.teleportTo({ x: 3, y: FLOOR_Y + 1, z: 2 }) },
     {
         field: 'equipment',
         write: ({ body }) => body.setEquipment({ mainhand: { identifier: 'minecraft:bow', count: 1 } })

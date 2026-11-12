@@ -574,7 +574,7 @@ describe('a store player', () => {
 
             expect(fixture.runtime.teleportPlayer(player.id, { x: 0.5, y: FLOOR_Y + 2, z: 0.5 })).toBe(true);
             expect(components.get('vitals.fallDistance')).toBe(0);
-            expect(player.body.teleportPending).toBe(true);
+            expect(player.body.teleports).toBe(1);
             report(fixture, player, { y: FLOOR_Y + 1 }, true);
 
             expect(healthOf(player)).toBe(20);

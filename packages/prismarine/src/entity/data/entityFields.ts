@@ -84,6 +84,7 @@ const BODY_FIELDS: { readonly [K in keyof LoggedBodyState]: (value: PlainData) =
         value === null ? undefined : value instanceof Uint8Array ? value : wrong('actorTags', value),
     projectileAge: numberField('projectileAge'),
     projectileStuck: booleanField('projectileStuck'),
+    teleports: numberField('teleports'),
     equipment: (value) => equipmentOf(value) ?? wrong('equipment', value),
     inventory: (value) => stringsIn('inventory', value),
     containerSlots: (value) =>
