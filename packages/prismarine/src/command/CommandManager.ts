@@ -69,7 +69,8 @@ const buildCommands = (server: Server, content?: Parameters<typeof buildVanillaC
 export class CommandManager implements Service {
     private readonly server: Server;
     private readonly onStopCommandComplete: (() => void) | undefined;
-    private stopCommandRequests = 0;
+    /** The shutdown the last `stop` started, which the stop notice waits for. */
+    private requestedShutdown: Promise<void> | undefined;
 
     /** What `@jsprismarine/commands` calls into - see {@link import('./host').serverCommandHost}. */
     private readonly host: CommandHost;
@@ -107,8 +108,8 @@ export class CommandManager implements Service {
         this.randomSequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed());
         this.host = serverCommandHost(
             server,
-            () => {
-                this.stopCommandRequests += 1;
+            (shutdown) => {
+                this.requestedShutdown = shutdown;
             },
             this.randomSequences
         );
@@ -615,22 +616,54 @@ export class CommandManager implements Service {
      * @param target - the player, entity or console who should execute the command
      * @param input - the command input including arguments
      * @returns Whether the command ran, as {@link dispatchCommand} answers it, and a promise that
-     *   settles once what it started has. A failure among those is logged, and `settled` never
-     *   rejects.
+     *   settles once what it started has. A failure among those is logged and told to the sender,
+     *   and `settled` never rejects.
      */
     public runCommand(
         sender: CommandExecutor,
         target: CommandTarget,
         input = ''
     ): { readonly ran: boolean; readonly settled: Promise<void> } {
+        const { ran, finished } = this.startCommand(sender, target, input);
+        return { ran, settled: finished.then(() => undefined) };
+    }
+
+    /**
+     * {@link runCommand}, with `finished` telling whether everything the command started
+     * succeeded.
+     */
+    private startCommand(
+        sender: CommandExecutor,
+        target: CommandTarget,
+        input: string
+    ): { readonly ran: boolean; readonly finished: Promise<boolean> } {
         const started: Promise<unknown>[] = [];
-        const settle = (after?: () => void): Promise<void> =>
-            Promise.all(started).then(after, (error: unknown) => this.server.getLogger().error(error));
+        const settle = (shutdown?: Promise<void>): Promise<boolean> =>
+            Promise.allSettled(started).then(async (outcomes) => {
+                const failures = outcomes.flatMap((outcome) => (outcome.status === 'rejected' ? [outcome.reason] : []));
+                for (const failure of failures) this.server.getLogger().error(failure);
+                // Work a body started belongs to the command, so its failure reaches the sender as
+                // a body that threw does, such as `/debug loadWorld` naming a world the config
+                // does not have.
+                if (failures.length > 0) await this.tellFailure(sender, failures[0]);
+                // Told once the shutdown finished, whatever became of the feedback around it: a
+                // player who ran `/stop` is kicked by it, and a send to them can fail.
+                if (
+                    shutdown !== undefined &&
+                    (await shutdown.then(
+                        () => true,
+                        () => false
+                    ))
+                ) {
+                    this.onStopCommandComplete?.();
+                }
+                return failures.length === 0;
+            });
         try {
             // Anything else an `@e` selector can match has no way to be answered.
             if (!isCommandExecutor(target)) {
                 started.push(Promise.resolve(sender.sendMessage(`§c${target.getName()} cannot execute commands`)));
-                return { ran: false, settled: settle() };
+                return { ran: false, finished: settle() };
             }
             if (input.startsWith('/')) input = input.slice(1);
             input = input.trim();
@@ -647,24 +680,27 @@ export class CommandManager implements Service {
                         );
                 }
 
-                const stopRequestsBefore = this.stopCommandRequests;
+                const shutdownBefore = this.requestedShutdown;
                 const ran = this.runVanilla(sender, target, vanilla, input, started);
                 // `/stop` parks teardown and its confirmation on the vanilla command path.
                 // Notify the process entry only after both have settled.
-                const stopped = vanilla === 'stop' && this.stopCommandRequests > stopRequestsBefore;
-                return { ran, settled: settle(stopped ? () => this.onStopCommandComplete?.() : undefined) };
+                const shutdown =
+                    vanilla === 'stop' && this.requestedShutdown !== shutdownBefore
+                        ? this.requestedShutdown
+                        : undefined;
+                return { ran, finished: settle(shutdown) };
             }
 
             started.push(Promise.resolve(sender.sendMessage('§cUnknown command. Type "/help" for help.')));
-            return { ran: false, settled: settle() };
+            return { ran: false, finished: settle() };
         } catch (error: unknown) {
             switch (true) {
                 case error instanceof CommandSyntaxException:
                     started.push(Promise.resolve(sender.sendMessage(`§c${error.getMessage()}`)));
-                    return { ran: false, settled: settle() };
+                    return { ran: false, finished: settle() };
                 case error instanceof Error:
                     started.push(Promise.resolve(sender.sendMessage(`§c${error.message}`)));
-                    return { ran: false, settled: settle() };
+                    return { ran: false, finished: settle() };
                 default:
                     this.server.getLogger().error(error);
                     break;
@@ -678,7 +714,24 @@ export class CommandManager implements Service {
                     'CommandManager/dispatchCommand'
                 );
             this.server.getLogger().error(error);
-            return { ran: false, settled: settle() };
+            return { ran: false, finished: settle() };
+        }
+    }
+
+    /** Tells the sender why work its command started failed, as a body that threw is told. */
+    private async tellFailure(sender: CommandExecutor, error: unknown): Promise<void> {
+        // The global `Error`, which this module's import of `@jsprismarine/errors` shadows: work a
+        // body started rejects with whatever it threw, such as a plain `Error`.
+        const message =
+            error instanceof CommandSyntaxException
+                ? error.getMessage()
+                : error instanceof globalThis.Error
+                  ? error.message
+                  : String(error);
+        try {
+            await sender.sendMessage(`§c${message}`);
+        } catch (sendError: unknown) {
+            this.server.getLogger().error(sendError);
         }
     }
 
@@ -689,12 +742,12 @@ export class CommandManager implements Service {
      * @param target - the player, entity or console who should execute the command
      * @param input - the command input including arguments
      * @returns True when the command ran. False when the target cannot run commands, the
-     * sender lacks the permission, the command is unknown, or it threw; in each of those
-     * cases the sender has been sent the reason.
+     * sender lacks the permission, the command is unknown, or it or the work it started
+     * failed; in each of those cases the sender has been sent the reason.
      */
     public async dispatchCommand(sender: CommandExecutor, target: CommandTarget, input = ''): Promise<boolean> {
-        const { ran, settled } = this.runCommand(sender, target, input);
-        await settled;
-        return ran;
+        const { ran, finished } = this.startCommand(sender, target, input);
+        const succeeded = await finished;
+        return ran && succeeded;
     }
 }

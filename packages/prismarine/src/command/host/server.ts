@@ -103,7 +103,10 @@ const dropLast = (stack: readonly FogLayer[], userId: string): FogLayer[] => {
  *
  * @param server - The live server every verb reads and writes through.
  */
-export const serverSideCommandHost = (server: Server, onStopRequested: () => void): ServerCommandHost => {
+export const serverSideCommandHost = (
+    server: Server,
+    onStopRequested: (shutdown: Promise<void>) => void
+): ServerCommandHost => {
     /**
      * Each player's fog stack, keyed by runtime id.
      *
@@ -146,8 +149,9 @@ export const serverSideCommandHost = (server: Server, onStopRequested: () => voi
         // Kept alive on purpose: the process exiting from inside a command
         // would take the dispatch's own feedback with it.
         stop: () => {
-            onStopRequested();
-            return carryOut(server.shutdown({ stayAlive: true }), undefined);
+            const shutdown = server.shutdown({ stayAlive: true });
+            onStopRequested(shutdown);
+            return carryOut(shutdown, undefined);
         },
         reload: () => carryOut(server.reload(), undefined),
 
