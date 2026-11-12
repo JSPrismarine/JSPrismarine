@@ -329,6 +329,15 @@ describe('a world tick and its change log', () => {
         expect(world.lastChangeTick()?.entries).toContainEqual({ kind: 'chunk', change: 'enter', x: 2, z: 3 });
     });
 
+    it('takes a chunk out for a chunk leave replayed from the log, which needs only its position', async () => {
+        const { world } = worldWithStore();
+        await world.loadChunk(2, 3);
+
+        expect(world.replayChunkLeave(2, 3)).toBe(true);
+        expect(world.getLoadedChunk(2, 3)).toBeNull();
+        expect(world.replayChunkLeave(2, 3)).toBe(false);
+    });
+
     it('stops ticking once its store could not undo a unit, and says so once', async () => {
         const { world, runtime, errors } = worldWithStore();
         const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });

@@ -3557,8 +3557,32 @@ export class World implements Service {
         for (const entity of this.getEntityIndex().storeInChunk(chunk.getX(), chunk.getZ()))
             if (entity.identifier !== PLAYER_IDENTIFIER) live.runtime.remove(entity.id, 'chunk unload');
 
-        this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
+        this.dropChunk(chunk, index);
+        return true;
+    }
+
+    /**
+     * Applies a chunk entry of the change log that says a chunk left, for a world built from a
+     * snapshot that replays the log forward: the chunk is taken out of memory as an unload takes
+     * it, without a save. The entities it held left in entries of their own ahead of it. A chunk
+     * that entered needs its content, which arrived as an input, so it is loaded through
+     * {@link World.getChunk} instead.
+     * @param x - The chunk's x coordinate, in chunks.
+     * @param z - The chunk's z coordinate, in chunks.
+     * @returns Whether the chunk was in memory.
+     */
+    public replayChunkLeave(x: number, z: number): boolean {
+        const index = Chunk.packXZ(x, z);
+        const chunk = this.chunks.get(index);
+        if (chunk === undefined) return false;
+        this.dropChunk(chunk, index);
+        return true;
+    }
+
+    /** Takes a chunk out of memory and out of everything that indexes it. */
+    private dropChunk(chunk: Chunk, index: number): void {
+        this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         this.changes.chunkLeft(chunk.getX(), chunk.getZ());
         this.chunks.delete(index);
         this.loadedChunksRevision++;
@@ -3568,7 +3592,6 @@ export class World implements Service {
         this.lastChunkIndex = -1;
         this.lastChunk = null;
         this.lastChunkSource = null;
-        return true;
     }
 
     /**
