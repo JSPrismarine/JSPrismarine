@@ -8,6 +8,9 @@ import Server from './Server';
 import { Config } from './config/Config';
 import ChunkSender from './network/ChunkSender';
 import type { Transport } from './network/transport/Transport';
+import { statsToken } from './modules/tokens';
+import { ServerMetric } from './stats/serverMetrics';
+import type { StatsProvider } from './stats/StatsProvider';
 import { stubRakNetListener } from './testing/rakNetListener.test.helper';
 import { GenerationStopped } from './world/Generator';
 
@@ -159,15 +162,35 @@ describe('Server', () => {
         expect(errors).toEqual([broken]);
     });
 
-    it('starts and stops without crashing', async () => {
+    it('starts and stops without crashing, starting and stopping an embedder stats provider', async () => {
         const logger = new Logger();
+        const calls: string[] = [];
+        const provider: StatsProvider = {
+            id: 'embedder',
+            start: ({ registry }) => void calls.push(`start with ${registry.snapshot().metrics.size} metrics`),
+            stop: () => void calls.push('stop')
+        };
         const prismarine = new Server({
             logger,
-            config: debugConfig('test-world')
+            config: debugConfig('test-world'),
+            statsProviders: [provider]
         });
 
         await prismarine.bootstrap('127.0.0.1', 0);
+        expect(calls).toEqual([`start with ${Object.values(ServerMetric).length} metrics`]);
         await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBe(true);
+        expect(calls.at(-1)).toBe('stop');
+    });
+
+    it('registers every server metric in the registry its kernel provides', async () => {
+        const config = debugConfig('test-world-stats');
+        const prismarine = new Server({ logger: new Logger('error'), config });
+        await prismarine.getKernel().registerAll();
+        const registry = prismarine.getKernel().get(statsToken);
+
+        const names = Object.values(ServerMetric);
+        expect([...registry.snapshot().metrics.keys()]).toEqual(names);
+        for (const name of names) expect(registry.read(name), name).toBeDefined();
     });
 
     it('measures how long its ticks take once it is ticking', { tags: ['performance'] }, async () => {
@@ -250,6 +273,8 @@ describe('Server', () => {
         try {
             expect(new Set(subscribed)).toEqual(new Set(['connect', 'disconnect', 'frame']));
             expect(prismarine.getRaknet()).toBeUndefined();
+            // The config enables RakNet and NetherNet, but neither started.
+            expect(prismarine.getKernel().get(statsToken).read(ServerMetric.transports)?.value).toEqual([]);
         } finally {
             await prismarine.shutdown({ stayAlive: true });
         }
