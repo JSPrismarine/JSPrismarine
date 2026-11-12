@@ -93,6 +93,15 @@ export default class LoginSequence {
     private resolve!: (result: LoginResult) => void;
     private reject!: (error: Error) => void;
     private timer: NodeJS.Timeout | undefined;
+    private markFailed!: () => void;
+
+    /**
+     * Resolves when the login fails. A step still waiting on its auth provider then stops
+     * counting as the session's work, since nothing it could still send is wanted.
+     */
+    private readonly failed = new Promise<void>((resolve) => {
+        this.markFailed = resolve;
+    });
 
     /** Removes each step's handler from the session, once the login settles. */
     private readonly unregister: (() => void)[] = [];
@@ -154,7 +163,9 @@ export default class LoginSequence {
 
     /**
      * Registers one step as the handler of its packet in the `login` phase. A step that throws
-     * fails the login, and one whose packet arrives after the login settled does nothing.
+     * fails the login, and one whose packet arrives after the login settled does nothing. A step
+     * still running when the login fails is left behind, so `ClientSession.settled` does not wait
+     * on an auth provider that may never answer.
      * @returns A function that removes the handler again.
      */
     private step<T>(
@@ -166,7 +177,7 @@ export default class LoginSequence {
             handle: async (data, context) => {
                 if (this.settled) return;
                 try {
-                    await respond(data, context);
+                    await Promise.race([respond(data, context), this.failed]);
                 } catch (error: unknown) {
                     this.fail(error instanceof Error ? error : new Error(String(error)));
                 }
@@ -191,6 +202,9 @@ export default class LoginSequence {
             serverAddress: this.options.serverAddress,
             protocolVersion: this.options.protocolVersion
         });
+        // The login may have failed while the provider signed, and a Login sent now would start
+        // a join nobody is waiting for.
+        if (this.settled) return;
 
         await session.sendImmediate(
             new LoginPacket({
@@ -217,6 +231,7 @@ export default class LoginSequence {
     ): Promise<void> {
         const { publicKeyDer, salt } = readHandshake(handshake.jwt);
         const privateKey = await this.auth.getIdentityPrivateKey();
+        if (this.settled) return;
 
         session.enableEncryption(deriveEncryptionKey(privateKey, publicKeyDer, salt));
         log.debug('Client/LoginSequence: encryption enabled');
@@ -304,7 +319,10 @@ export default class LoginSequence {
 
     private fail(error: Error): void {
         this.stage = LoginStage.FAILED;
-        this.settle(() => this.reject(error));
+        this.settle(() => {
+            this.markFailed();
+            this.reject(error);
+        });
     }
 
     private settle(finish: () => void): void {
