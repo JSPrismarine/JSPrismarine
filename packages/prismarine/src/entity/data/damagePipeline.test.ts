@@ -321,6 +321,41 @@ describe('the damage pipeline', () => {
         });
     });
 
+    describe('a mob whose bite carries an effect', () => {
+        it('leaves no effect with a swing the grace period turned aside', () => {
+            const { runtime } = entityFixture(
+                undefined,
+                {},
+                {
+                    [PLAYER_IDENTIFIER]: SHIPPED_PLAYER,
+                    'jsprismarine:stinger': {
+                        components: {
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:attack': { damage: 2, effect_name: 'poison', effect_duration: 10 }
+                        }
+                    }
+                }
+            );
+            const stinger = runtime.spawn('jsprismarine:stinger', { ...GROUND, x: 1.5 });
+            const player = runtime.spawn(PLAYER_IDENTIFIER, GROUND);
+            const target = player === undefined ? undefined : runtime.mobById(player.id);
+            if (stinger === undefined || player === undefined || target === undefined)
+                throw new Error('the fixture declares no stinger or player');
+            const effects = player.body.statusEffects;
+
+            runtime.attack(stinger.body, target);
+            const poisoned = [...effects.keys()];
+            expect(poisoned).toHaveLength(1);
+
+            // The poison has run out, and the second swing lands inside the first one's grace.
+            effects.clear();
+            runtime.attack(stinger.body, target);
+
+            expect([...effects.keys()]).toEqual([]);
+        });
+    });
+
     describe('the rules a swing keeps', () => {
         /** A swing from `origin`, which keeps the grace period and shoves away from where it came. */
         const swing = (target: number, amount: number, levels = 0, origin = { x: -1.5, y: GROUND.y, z: 0.5 }) =>
