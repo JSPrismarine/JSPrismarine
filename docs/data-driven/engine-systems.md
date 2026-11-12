@@ -48,9 +48,11 @@ runs for a class-based entity and for a data-driven one over two different seams
 
 A tick runs in one synchronous call and reads no clock
 ([ADR 0015](../adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)). Nothing it calls
-waits: a send queues its packets and the transport frames them after the tick, a save is written
-off the tick, and anything that needs a chunk or a world that is not ready asks for it and tries
-again at a later input step. A plugin's `tick` listener is called inside the tick and runs to its
+waits: a send queues its packets and the transport frames them after the tick, and a save is written
+off the tick. Staged work that needs a chunk or a world that is not ready, such as a portal trip, a
+move to another world or a respawn search, asks for it and tries again at a later input step. A
+block write or a block break needs its chunk loaded already: on a chunk that is not loaded, it
+changes nothing and returns `false`. A plugin's `tick` listener is called inside the tick and runs to its
 first wait; what it does after that lands outside the tick.
 
 A tick starts with its input step, before any world updates. A packet whose handler declares the
