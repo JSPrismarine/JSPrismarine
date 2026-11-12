@@ -99,6 +99,12 @@ export interface LoggedBodyState {
     actorTags: Uint8Array | undefined;
     projectileAge: number;
     projectileStuck: boolean;
+    /**
+     * How many times the server has moved the entity instantly ({@link MobBody.teleportTo}). Only a
+     * change is read: a tick that writes it tells clients to snap to the entity's new place
+     * instead of gliding there.
+     */
+    teleports: number;
     equipment: MobEquipmentSet;
     inventory: readonly string[];
     containerSlots: readonly (ContentItemDrop | undefined)[];
@@ -190,9 +196,6 @@ export class MobBody {
      * sends to the client, and the body's velocity stays as it was.
      */
     public onImpulse: ((impulse: EntityPosition) => void) | undefined;
-
-    /** Whether the next client movement update must snap to this body's position. */
-    public teleportPending = false;
 
     /**
      * The boolean facts a brain reads off the body, such as `on_ground` or `aggressive`. The
@@ -606,6 +609,7 @@ export class MobBody {
             actorTags: undefined,
             projectileAge: 0,
             projectileStuck: false,
+            teleports: 0,
             equipment: NO_EQUIPMENT,
             inventory: [],
             containerSlots: []
@@ -793,14 +797,23 @@ export class MobBody {
         this.takingOff = false;
     }
 
-    /** Moves instantly, clears the current impulse, and marks the client update as a teleport. */
+    /** Moves instantly, clears the current impulse, and counts a teleport, which clients snap to. */
     public teleportTo(position: EntityPosition): void {
         this.velocity = { x: 0, y: 0, z: 0 };
         this.conditions.delete('jumping');
         this.stopMoving();
         this.rest();
         this.position = position;
-        this.teleportPending = true;
+        this.teleports += 1;
+    }
+
+    /** How many times the server has moved the entity instantly; see {@link LoggedBodyState.teleports}. */
+    public get teleports(): number {
+        return this.logged.teleports;
+    }
+
+    public set teleports(teleports: number) {
+        this.write('teleports', teleports);
     }
 
     /** Points the entity's head at a position. */

@@ -113,6 +113,8 @@ export class StoreActor implements ShownActor {
     public shownProjection: ActorMetadataProjection;
     public shownInputs: ActorMetadataInputs | undefined;
     public shownOwner: number | undefined;
+    /** The teleport count the last move was measured against, so a teleport since is sent as one. */
+    public shownTeleports: number;
     public shownEquipmentRevision = -1;
     /** What a client is shown the actor holding and wearing, which {@link StoreActor.writeEquipment} keeps. */
     protected equipment: ViewableEquipment = {};
@@ -140,6 +142,7 @@ export class StoreActor implements ShownActor {
         this.shownProperties = this.getSyncedProperties();
         this.shownOwner = entity.body.owner;
         this.shownPose = StoreActor.poseOf(entity);
+        this.shownTeleports = entity.body.teleports;
     }
 
     /**
@@ -746,8 +749,8 @@ export class StoreActors {
             Math.abs(shown.z - pose.z) < MOVEMENT_EPSILON &&
             shown.yaw === pose.yaw &&
             shown.pitch === pose.pitch;
-        const teleport = entity.body.teleportPending;
-        entity.body.teleportPending = false;
+        const teleport = entity.body.teleports !== actor.shownTeleports;
+        actor.shownTeleports = entity.body.teleports;
         if (still) return undefined;
 
         actor.shownPose = pose;
