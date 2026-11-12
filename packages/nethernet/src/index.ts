@@ -54,11 +54,14 @@ export {
 export { describeCandidates, tracePeerConnection } from './tracePeerConnection';
 export { fewestPeers, PortAllocator } from './PortAllocator';
 export type { PortLoad, PortSelectionStrategy } from './PortAllocator';
+export { lookupPublicIp, PUBLIC_IP_SERVICES } from './publicIpLookup';
+export type { PublicIpLookupOptions, PublicIpLookupResult } from './publicIpLookup';
 export {
     hasPublicCandidate,
     parsePublicIp,
     parseUdpPorts,
     UdpPortsError,
+    withAdvertisedCandidates,
     withDialedCandidates,
     withMappedCandidates
 } from './udpPorts';

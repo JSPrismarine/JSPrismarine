@@ -19,6 +19,9 @@ implements it, for a server and a client:
   the signal text, and LAN discovery's packets with their checksum and AES encryption.
 - `HttpSignaling`, the HTTP signaling a client joining by address uses: `GET /v1/join` for the
   server's status and `POST /v1/join/{networkId}` to trade an SDP offer for an answer.
+- `lookupPublicIp` asks the web services in `PUBLIC_IP_SERVICES`, one after another, for the
+  host's public address. `withAdvertisedCandidates` adds the configured and dialed addresses to an
+  answer, and uses a looked-up address when the answer has no public candidate.
 - `NetherNetIdentity`, which signs the `a=identity` a client requires on every answer, and the SDP
   helpers it is built on.
 - `encodeLanAdvertisement` and `decodeLanAdvertisement`, the advertisement a server answers LAN
