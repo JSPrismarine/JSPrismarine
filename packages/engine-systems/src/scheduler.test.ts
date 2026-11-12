@@ -305,6 +305,19 @@ describe('TickList', () => {
         expect(changes).toHaveLength(11);
     });
 
+    it('keeps a queued tick where it was scheduled when the caller moves its position', () => {
+        const list = new TickList();
+        const position = at(3);
+        list.schedule(position, 'minecraft:water', 1);
+        position.x = 9;
+
+        expect(list.hasScheduledTick(at(3), 'minecraft:water')).toBe(true);
+        list.restore(at(3), 'minecraft:water', null);
+        expect(list.count()).toBe(0);
+        list.restore(at(3), 'minecraft:water', { triggerTick: 2, priority: 0, subTickOrder: 0 });
+        expect(list.snapshot().map((tick) => tick.at)).toEqual([at(3)]);
+    });
+
     it('uses the jar budget of 65536 ticks per list by default', () => {
         expect(MAX_SCHEDULED_TICKS_PER_TICK).toBe(65536);
     });

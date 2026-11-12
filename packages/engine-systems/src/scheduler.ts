@@ -144,9 +144,12 @@ export class TickList {
         const key = identity({ at, type });
         if (this.queued.has(key)) return false;
         this.queued.add(key);
-        const tick: ScheduledTick = { type, at, triggerTick, priority, subTickOrder: this.subTickCounter++ };
+        // A copy, so a caller that moves its own position afterwards cannot move the queued tick
+        // away from the key `queued` holds for it, which `restore` trusts to skip its scan.
+        const position = { x: at.x, y: at.y, z: at.z };
+        const tick: ScheduledTick = { type, at: position, triggerTick, priority, subTickOrder: this.subTickCounter++ };
         this.queue.push(tick);
-        this.observer?.({ at, type, before: null, after: timingOf(tick) });
+        this.observer?.({ at: position, type, before: null, after: timingOf(tick) });
         return true;
     }
 
