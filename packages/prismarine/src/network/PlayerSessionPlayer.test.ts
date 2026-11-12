@@ -134,6 +134,9 @@ describe("PlayerSession's player", () => {
             // gamemode, settings and abilities it used to send from here now go out from the
             // join burst after StartGame, where a retail client will accept them.
             const { session, sent } = fakePlayer();
+            // The fixture's session has joined already; this one is still logging in.
+            session['joined'] = false;
+            expect(session.isConnected()).toBe(false);
 
             await session.join();
 
