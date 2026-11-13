@@ -1,7 +1,7 @@
 {
     "$comment": "Written by the Native network workflow's publish job. `build` is the hash of the native sources the builds were made from (src/nativeHash.ts), and `baseUrl` the GitHub release that holds them.",
-    "build": "a929049d6629f308",
-    "baseUrl": "https://github.com/JSPrismarine/JSPrismarine/releases/download/native-network-build-a929049d6629f308",
+    "build": "d794efa4c9c0a3f9",
+    "baseUrl": "https://github.com/JSPrismarine/JSPrismarine/releases/download/native-network-build-d794efa4c9c0a3f9",
     "platforms": {
         "darwin-arm64": {
             "shared": {
@@ -12,7 +12,7 @@
             "static": {
                 "file": "darwin-arm64-libjsp_native_network.a",
                 "bytes": 5042448,
-                "sha256": "17ce04704c616442aadea89c0838375a205bd12c98ca08ce253f7933640c268d"
+                "sha256": "db271d24a577053a0a7abc14fc14d898f5808bf47a1776aa39430120d086f7d2"
             }
         },
         "linux-arm64-gnu": {
@@ -67,12 +67,12 @@
             "shared": {
                 "file": "win32-x64-libjsp_native_network.dll",
                 "bytes": 2214912,
-                "sha256": "aaa5261af75910bcf6e15d6731bf1678dec3174d55758c85c1c325c23d4d5293"
+                "sha256": "910007bb0de5a99281aaa9a034e5a3a3ee732a7b069819916efb72f657dfd94b"
             },
             "static": {
                 "file": "win32-x64-libjsp_native_network.lib",
-                "bytes": 35172504,
-                "sha256": "ddf0bbdf955d1a29fa25cc080a9662b7f9cba692932d71ef160799ffdd110d95"
+                "bytes": 35174464,
+                "sha256": "f03fee8b5bf6ce066cdb8e91feaa57bafc271e796874001dc18f704ead4a8d36"
             }
         }
     }
