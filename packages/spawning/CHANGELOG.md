@@ -1,5 +1,21 @@
 # @jsprismarine/spawning
 
+## 0.21.0
+
+### Patch Changes
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+- Updated dependencies [[`363bc4b`](https://github.com/JSPrismarine/JSPrismarine/commit/363bc4bfc1fab7119e2f915bc95369543643af2c), [`304a733`](https://github.com/JSPrismarine/JSPrismarine/commit/304a7338b577f3bc86870d5f9eca134b74a79dc5), [`869b0fd`](https://github.com/JSPrismarine/JSPrismarine/commit/869b0fd00c52877eadfdd6594d6f288a2cfb3ba8), [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175), [`7977682`](https://github.com/JSPrismarine/JSPrismarine/commit/797768230c41b0fb03c06b30230f4ba8dd9d2d9b), [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e), [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964), [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c), [`3246094`](https://github.com/JSPrismarine/JSPrismarine/commit/3246094c5f015aa47f61872d91064d0ffada0098), [`37eb905`](https://github.com/JSPrismarine/JSPrismarine/commit/37eb9053b4ba2e9ed5ca65404fa7129c75dea04f), [`02c3c4f`](https://github.com/JSPrismarine/JSPrismarine/commit/02c3c4fed413754c61ee94466c181a0df3cf0127), [`b46bf9a`](https://github.com/JSPrismarine/JSPrismarine/commit/b46bf9a56f8b70e076f471d4574815a66cc947b4), [`939f1d1`](https://github.com/JSPrismarine/JSPrismarine/commit/939f1d169d4ef7f2cc29ecf1ac1e16a7cadb3784), [`a62725a`](https://github.com/JSPrismarine/JSPrismarine/commit/a62725a4b2c149d165fcb48c8b8816f6114e1fc4), [`b86f58f`](https://github.com/JSPrismarine/JSPrismarine/commit/b86f58f3ed84856df9758f2d86a1563219815edf), [`8f42dce`](https://github.com/JSPrismarine/JSPrismarine/commit/8f42dceac036a8b896069c40835944ee4190b1c1), [`7c3219a`](https://github.com/JSPrismarine/JSPrismarine/commit/7c3219a7baa1944f9a613bbbe97b9280f4c08c06), [`2e1e953`](https://github.com/JSPrismarine/JSPrismarine/commit/2e1e9532a42d6e6b38eb4ed923738946635e3f86), [`eec2435`](https://github.com/JSPrismarine/JSPrismarine/commit/eec2435c0ecf23fd43a9fdb28c4cfc9da0281aba), [`1c6e390`](https://github.com/JSPrismarine/JSPrismarine/commit/1c6e39015c4dcc454d188dc4423d6fd8930ec21b)]:
+  - @jsprismarine/entities@0.21.0
+  - @jsprismarine/packs@0.21.0
+  - @jsprismarine/predicates@0.21.0
+
 ## 0.20.0
 
 ### Patch Changes

@@ -1,5 +1,23 @@
 # @jsprismarine/kernel
 
+## 0.21.0
+
+### Minor Changes
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce11043`](https://github.com/JSPrismarine/JSPrismarine/commit/ce110434d734050dc3ac0286428ff9ed787396e8) Thanks [@filiphsps](https://github.com/filiphsps)! - The kernel's event bus gains `post`, `once`, `off`, `removeAll` and `hasListeners`. `post` calls each listener in subscription order without waiting for any of them. A listener that throws or rejects no longer stops the listeners after it or makes `emit` reject: the bus reports it, and a kernel logs it through its logger. Subscribing the same function to the same event twice through one handle subscribes it once. A listener may return any value. Code that implements `EventBus` itself has to add the new methods.
+
+### Patch Changes
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`51588cc`](https://github.com/JSPrismarine/JSPrismarine/commit/51588cccb408a3f95ab31d920849e1b5327429d2) Thanks [@filiphsps](https://github.com/filiphsps)! - Subscribing a function with `once` and then with `on` no longer leaves it one-shot. The bus keeps one subscription per function and handle, and an `on` in either order now makes that subscription permanent, so the function is called on every event until `off` removes it. Before, `once` followed by `on` called the function for the next event only.
+
 ## 0.20.0
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @jsprismarine/chunkgen
 
+## 0.21.0
+
+### Patch Changes
+
+- [#2988](https://github.com/JSPrismarine/JSPrismarine/pull/2988) [`ca5bee1`](https://github.com/JSPrismarine/JSPrismarine/commit/ca5bee16db1d450873451396b1a0bc5d0b3bead7) Thanks [@filiphsps](https://github.com/filiphsps)! - The Bun-compiled executable now runs chunk generation in a separate generation host process at a lowered operating system priority, as a server run from source does. It starts itself again with the hidden `--role generation-host`. A Bun-compiled build of your own opts in by defining `JSP_EMBEDDED_GENERATION_HOST` and handing that role to `@jsprismarine/chunkgen/generationHost`. Node single executables still generate in the server process.
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+
 ## 0.20.0
 
 ### Minor Changes
