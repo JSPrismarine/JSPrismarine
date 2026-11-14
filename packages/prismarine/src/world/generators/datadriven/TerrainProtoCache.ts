@@ -500,6 +500,17 @@ const isGenerationRegionPayload = (value: unknown): value is GenerationRegionPay
     if (value.biomeSections !== undefined && !(value.biomeSections instanceof ArrayBuffer)) return false;
     if (value.biomeSectionOffsets !== undefined && !(value.biomeSectionOffsets instanceof ArrayBuffer)) return false;
     if ((value.biomeSections === undefined) !== (value.biomeSectionOffsets === undefined)) return false;
+    if (
+        value.biomeCells !== undefined &&
+        !(
+            isRecord(value.biomeCells) &&
+            value.biomeCells.indices instanceof ArrayBuffer &&
+            Array.isArray(value.biomeCells.palette) &&
+            value.biomeCells.palette.every((biome) => typeof biome === 'string')
+        )
+    ) {
+        return false;
+    }
 
     return value.palette.every(
         (entry) =>

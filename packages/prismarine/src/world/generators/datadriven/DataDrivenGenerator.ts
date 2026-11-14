@@ -67,11 +67,12 @@ import {
     coldEnoughToSnow,
     createClimateSampler,
     findNoiseSpawnPosition,
-    memoizeBiomeResolver,
     parseBiomeClimate,
     parseBiomeSource,
     parseCarver
 } from '@jsprismarine/worldgen';
+import { createBiomeCellMemo } from '@jsprismarine/worldgen/biome/BiomeSource';
+import type { BiomeCellMemo } from '@jsprismarine/worldgen/biome/BiomeSource';
 
 import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
@@ -108,6 +109,7 @@ import type {
     GenerationRegionPayload,
     GenerationRegionTransfer,
     PackedBiomeSections,
+    RegionBiomeCells,
     RegionChunkPatch
 } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
@@ -542,6 +544,8 @@ interface SeededPipeline {
     readonly biomes: BiomeManager;
     /** The per-cell biome lookup every stage shares, so a cell is resolved once per world. */
     readonly biomeCells: BiomeResolver;
+    /** The memory behind {@link biomeCells}, which an adopted tile's sampled cells are written into. */
+    readonly biomeCellMemo: BiomeCellMemo;
     readonly possibleBiomes: ReadonlySet<string>;
     /** Every placed feature the dimension can run, indexed by decoration step then by index. */
     readonly featuresByStep: readonly StepFeatures[];
@@ -1623,8 +1627,12 @@ export class DataDrivenGenerator implements Generator {
     ): Promise<GenerationRegionTransfer> {
         const pipeline = this.pipelineFor(key, seed);
         const region = await this.buildTerrain(cx, cz, pipeline, beard, junctions, blending);
-        // A blended tile already holds its blended biomes.
-        if (region.biomeSection(0) === undefined) region.setBiomeSections(this.packBiomeSections(cx, cz, pipeline));
+        // A blended tile already holds its blended biomes, which the sampled cells would contradict.
+        // Any other tile carries its cells, so the threads that read it next start with its biomes.
+        if (region.biomeSection(0) === undefined) {
+            region.setBiomeCells(this.sampleBiomeCells(cx, cz, pipeline));
+            region.setBiomeSections(this.packBiomeSections(cx, cz, pipeline));
+        }
         return region.transfer();
     }
 
@@ -1904,15 +1912,65 @@ export class DataDrivenGenerator implements Generator {
         };
     }
 
-    /** Rebuilds a transferred region with the world-specific readers this thread owns. */
+    /**
+     * Rebuilds a transferred region with the world-specific readers this thread owns.
+     *
+     * The biome cells the tile's terrain sampled go into this thread's biome memory, so the
+     * feature pass, the biome palette and the Bedrock biome sections read them rather than
+     * running the climate search again for cells another thread already resolved.
+     */
     private adoptRegion(payload: GenerationRegionPayload, pipeline: SeededPipeline): GenerationRegion {
-        return GenerationRegion.adopt(payload, {
+        const region = GenerationRegion.adopt(payload, {
             seaLevel: pipeline.settings.seaLevel,
             seed: pipeline.randomState.seed,
             blocks: pipeline.oracle,
             biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
             ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
         });
+        const cells = region.biomeCells();
+        if (cells !== undefined) this.rememberBiomeCells(payload.chunkX, payload.chunkZ, cells, pipeline);
+        return region;
+    }
+
+    /** Samples the Java biome of each of a chunk's cells, in {@link RegionBiomeCells} order. */
+    private sampleBiomeCells(cx: number, cz: number, pipeline: SeededPipeline): RegionBiomeCells {
+        const minQuartY = pipeline.dimension.minY >> 2;
+        const quartHeight = pipeline.dimension.height >> 2;
+        const indices = new Uint16Array(quartHeight * 16);
+        const palette: string[] = [];
+        const slots = new Map<string, number>();
+        for (let cellY = 0; cellY < quartHeight; cellY++) {
+            for (let cellX = 0; cellX < 4; cellX++) {
+                for (let cellZ = 0; cellZ < 4; cellZ++) {
+                    const biome = pipeline.biomeCells(cx * 4 + cellX, minQuartY + cellY, cz * 4 + cellZ);
+                    let slot = slots.get(biome);
+                    if (slot === undefined) {
+                        slot = palette.length;
+                        palette.push(biome);
+                        slots.set(biome, slot);
+                    }
+                    indices[cellY * 16 + cellX * 4 + cellZ] = slot;
+                }
+            }
+        }
+        return { palette, indices: indices.buffer };
+    }
+
+    /** Writes a tile's sampled biome cells into the pipeline's biome memory. */
+    private rememberBiomeCells(cx: number, cz: number, cells: RegionBiomeCells, pipeline: SeededPipeline): void {
+        const minQuartY = pipeline.dimension.minY >> 2;
+        const indices = new Uint16Array(cells.indices);
+        for (let cell = 0; cell < indices.length; cell++) {
+            const biome = cells.palette[indices[cell]!];
+            // `setBiomeCells` checked every index against the palette when the region adopted them.
+            if (biome === undefined) continue;
+            pipeline.biomeCellMemo.remember(
+                cx * 4 + ((cell >> 2) & 3),
+                minQuartY + (cell >> 4),
+                cz * 4 + (cell & 3),
+                biome
+            );
+        }
     }
 
     /**
@@ -1952,6 +2010,16 @@ export class DataDrivenGenerator implements Generator {
             const build = async (): Promise<GenerationRegion> => {
                 const generated = await this.terrainTileFor(chunk.chunkX, chunk.chunkZ, pipeline);
                 this.recordTerrainTileBuild(chunk.chunkX, chunk.chunkZ, pipeline);
+                // A stored tile is read back by another thread or a later run, which then starts
+                // with its biomes. A worker's tile already carries them.
+                if (
+                    (cache !== undefined || this.sharedTerrainTileStore !== undefined) &&
+                    generated.biomeCells() === undefined &&
+                    // A blended tile holds blended biomes the sampled cells would contradict.
+                    generated.biomeSection(0) === undefined
+                ) {
+                    generated.setBiomeCells(this.sampleBiomeCells(chunk.chunkX, chunk.chunkZ, pipeline));
+                }
                 return generated;
             };
             const sharedStore = blended ? undefined : this.sharedTerrainTileStore;
@@ -3065,7 +3133,8 @@ export class DataDrivenGenerator implements Generator {
 
         const biomeSource = this.biomeSourceFor(key);
         const possibleBiomes = new Set(biomeSource.possibleBiomes());
-        const resolver = memoizeBiomeResolver(biomeSource.resolver(createClimateSampler(randomState)));
+        const biomeCellMemo = createBiomeCellMemo(biomeSource.resolver(createClimateSampler(randomState)));
+        const resolver = biomeCellMemo.resolve;
         const biomes = new BiomeManager(resolver, BiomeManager.obfuscateSeed(seed));
         const oracle = createJavaBlockOracle(registries.blockTags);
         const level = createNoiseStructureLevel({
@@ -3097,6 +3166,7 @@ export class DataDrivenGenerator implements Generator {
             materialRule: this.materialRules.rule(settings.materialRule),
             biomes,
             biomeCells: resolver,
+            biomeCellMemo,
             possibleBiomes,
             featuresByStep: decoration.featuresByStep,
             biomeDecoration: decoration.biomeDecoration,
