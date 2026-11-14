@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('d704d904db040768c3a96c6c6f33', 'hex');
 const payload = { type: -300, severity: -301, packetId: -302, message: 'héllo3' };
 
-describe('the declarative PacketViolationWarning layout', () => {
-    const layout = layoutAt(packetViolationWarningPacket, 2193);
+describe.each([2193, 2225])('the declarative PacketViolationWarning layout at protocol %i', (protocol) => {
+    const layout = layoutAt(packetViolationWarningPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

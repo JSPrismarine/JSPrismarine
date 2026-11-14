@@ -15,6 +15,8 @@ import type { Metadata } from '../wire/structures/Metadata';
  * `Type`, and the `Value` in that type's encoding), `Synched Properties` as a
  * `PropertySyncData` (int entries, then float entries), and `Tick` as a varuint64. Server to
  * client only.
+ *
+ * @see {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-actor-data-packet/}
  */
 export default class SetActorDataPacket extends FieldNetworkPacket {
     /** Target Runtime ID of the entity whose data changed. */

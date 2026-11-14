@@ -18,13 +18,17 @@ const CAMERA_RELATIVE_BYTES = Buffer.from([
     0x01 // Control Scheme: camera_relative
 ]);
 
-const encode = (data: ClientboundControlSchemeSet) => [
-    ...new ClientboundControlSchemeSetPacket(data).serialize(new NetworkBinaryStream())
-];
+const encode = (data: ClientboundControlSchemeSet, protocol?: number) => {
+    const packet = new ClientboundControlSchemeSetPacket(data);
+    if (protocol !== undefined) packet.codecProtocol = protocol;
+    return [...packet.serialize(new NetworkBinaryStream())];
+};
 
-const decode = (bytes: Buffer) => {
+const decode = (bytes: Buffer, protocol?: number) => {
     const stream = new NetworkBinaryStream(bytes);
-    const data = new ClientboundControlSchemeSetPacket().deserialize(stream);
+    const packet = new ClientboundControlSchemeSetPacket();
+    if (protocol !== undefined) packet.codecProtocol = protocol;
+    const data = packet.deserialize(stream);
     return { data, stream };
 };
 
@@ -68,5 +72,14 @@ describe('ClientboundControlSchemeSetPacket', () => {
             expect(data).toEqual({ controlScheme });
             expect(stream.feof()).toBe(true);
         }
+    });
+
+    // 1.26.50 and 1.26.60 print the same one-byte layout and enum, so both protocols share it.
+    it.each([2193, 2225])('round-trips the same bytes at protocol %i', (protocol) => {
+        expect(encode(CAMERA_RELATIVE, protocol)).toEqual([...CAMERA_RELATIVE_BYTES]);
+
+        const { data, stream } = decode(CAMERA_RELATIVE_BYTES, protocol);
+        expect(data).toEqual(CAMERA_RELATIVE);
+        expect(stream.feof()).toBe(true);
     });
 });

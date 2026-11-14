@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest';
  */
 const BYTES = Buffer.from('a313', 'hex');
 
-describe('the declarative RemoveActor layout', () => {
-    const layout = layoutAt(removeActorPacket, 2193);
+describe.each([2193, 2225])('the declarative RemoveActor layout at protocol %i', (protocol) => {
+    const layout = layoutAt(removeActorPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

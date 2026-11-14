@@ -2,6 +2,7 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import SyncActorPropertyPacket from './SyncActorPropertyPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 // Packet id 165 as a varuint.
 const HEADER = [0xa5, 0x01];
@@ -50,5 +51,22 @@ describe('SyncActorPropertyPacket', () => {
         expect(packet.propertyData.getNumber('type', 0)).toBe(1);
         expect(packet.propertyData.getCompound('properties', false)?.size()).toBe(0);
         expect(packet.feof()).toBe(true);
+    });
+
+    // The captures are payloads a real Bedrock Dedicated Server sent, without the packet header.
+    it.each([2193, 2225])('re-encodes the protocol %i capture to the same bytes', (protocol) => {
+        const bytes = capture(protocol, 0xa5);
+
+        const decoded = new SyncActorPropertyPacket();
+        decoded.codecProtocol = protocol;
+        decoded.setReadBuffer(Buffer.concat([Buffer.from(HEADER), bytes]));
+        decoded.decode();
+        expect(decoded.feof()).toBe(true);
+
+        const encoded = new SyncActorPropertyPacket();
+        encoded.codecProtocol = protocol;
+        encoded.propertyData = decoded.propertyData;
+        encoded.encode();
+        expect(encoded.getBuffer()).toEqual(Buffer.concat([Buffer.from(HEADER), bytes]));
     });
 });

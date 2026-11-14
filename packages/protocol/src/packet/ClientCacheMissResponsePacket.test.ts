@@ -33,3 +33,24 @@ describe('ClientCacheMissResponsePacket', () => {
         expect(packet.getBuffer()).toEqual(Buffer.from([0x88, 0x01, 0x00]));
     });
 });
+
+describe.each([2193, 2225])('ClientCacheMissResponsePacket at protocol %i', (protocol) => {
+    it('writes the same bytes as the docs list for both versions', () => {
+        const packet = Object.assign(new ClientCacheMissResponsePacket(), {
+            blobs: [{ blobId: 0x0102n, blobData: Buffer.from([0xaa, 0xbb]) }]
+        });
+        packet.codecProtocol = protocol;
+        packet.encode();
+
+        expect(packet.getBuffer()).toEqual(ENCODED);
+    });
+
+    it('reads the same bytes back to the same blobs', () => {
+        const packet = new ClientCacheMissResponsePacket(ENCODED);
+        packet.codecProtocol = protocol;
+        packet.decode();
+
+        expect(packet.blobs).toEqual([{ blobId: 0x0102n, blobData: Buffer.from([0xaa, 0xbb]) }]);
+        expect(packet.feof()).toBe(true);
+    });
+});

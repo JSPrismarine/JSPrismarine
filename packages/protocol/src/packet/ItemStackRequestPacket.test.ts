@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 
 import { NetworkUtil } from '../wire/networkUtil';
 import { ContainerUiId, ItemStackRequestActionType } from '../wire/structures/ItemStackRequest';
+import type { ItemStackRequest } from '../wire/structures/ItemStackRequest';
 import ItemStackRequestPacket from './ItemStackRequestPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 /**
  * The packet as a client writes it, built from the layout rather than from the reader.
@@ -76,6 +78,58 @@ const craftActions2225 = (): Buffer => {
     out.writeIntLE(0); // StringsToFilterOrigin.
 
     return out.getBuffer();
+};
+
+/** One request holding every action the server models, with the optional Dynamic ID both ways. */
+const everyAction = (): ItemStackRequest => {
+    const slot = (containerId: number, dynamicId: number | null, slotId: number, stackNetId: number) => ({
+        container: { containerId, dynamicId },
+        slotId,
+        stackNetId
+    });
+    return {
+        requestId: -9,
+        actions: [
+            {
+                type: ItemStackRequestActionType.TAKE,
+                count: 2,
+                source: slot(ContainerUiId.HOTBAR, 4, 1, 17),
+                destination: slot(ContainerUiId.CURSOR, null, 0, 0)
+            },
+            {
+                type: ItemStackRequestActionType.PLACE,
+                count: 1,
+                source: slot(ContainerUiId.CURSOR, null, 0, 0),
+                destination: slot(ContainerUiId.INVENTORY, null, 9, -3)
+            },
+            {
+                type: ItemStackRequestActionType.SWAP,
+                source: slot(ContainerUiId.OFFHAND, null, 1, 5),
+                destination: slot(ContainerUiId.INVENTORY, 70000, 2, 6)
+            },
+            { type: ItemStackRequestActionType.DROP, count: 3, source: slot(ContainerUiId.HOTBAR, null, 3, 8) },
+            { type: ItemStackRequestActionType.DESTROY, count: 4, source: slot(ContainerUiId.HOTBAR, null, 3, 8) },
+            {
+                type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                count: 5,
+                source: slot(ContainerUiId.CRAFTING_INPUT, null, 28, 9)
+            },
+            { type: ItemStackRequestActionType.CRAFTING_CREATE_SPECIFIC_RESULT },
+            { type: ItemStackRequestActionType.LAB_TABLE_COMBINE },
+            { type: ItemStackRequestActionType.BEACON_PAYMENT },
+            { type: ItemStackRequestActionType.MINE_BLOCK, hotbarSlot: 6 },
+            { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 11, repetitions: 2 },
+            { type: ItemStackRequestActionType.CRAFTING_RECIPE_AUTO, recipeNetId: 12, repetitions: 3 },
+            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 400, repetitions: 1 },
+            { type: ItemStackRequestActionType.CRAFTING_RECIPE_OPTIONAL },
+            { type: ItemStackRequestActionType.CRAFT_REPAIR_AND_DISENCHANT, repetitions: 1 },
+            { type: ItemStackRequestActionType.CRAFTING_LOOM },
+            { type: ItemStackRequestActionType.CRAFTING_NON_IMPLEMENTED_DEPRECATED },
+            { type: ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED }
+        ],
+        filterStrings: ['name'],
+        filterStringCause: 3
+    };
 };
 
 describe('ItemStackRequestPacket', () => {
@@ -259,5 +313,85 @@ describe('ItemStackRequestPacket', () => {
             { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 99, repetitions: 1 }
         ]);
         expect(decoded.feof()).toBe(true);
+    });
+    it.each([2193, 2225])(
+        'round-trips every action, both Dynamic ID forms and the strings at %i',
+        (protocolVersion) => {
+            const packet = new ItemStackRequestPacket();
+            packet.requests = [everyAction()];
+            packet.encode({ protocolVersion });
+
+            const decoded = decode(packet.getBuffer()!, protocolVersion);
+            expect(decoded.requests).toEqual(packet.requests);
+            expect(decoded.feof()).toBe(true);
+
+            // Encoding what was decoded reproduces the same bytes, so the layout is stable.
+            decoded.encode({ protocolVersion });
+            expect(decoded.getBuffer()).toEqual(packet.getBuffer());
+        }
+    );
+
+    it('writes the lab table as variant index 7 and action type 9 at both protocols', () => {
+        // 2193 and 2225 agree here: the two deprecated container actions (7 and 8) leave the
+        // oneOf list but keep their numbers, so the index runs two behind the type.
+        for (const protocolVersion of [2193, 2225]) {
+            const packet = new ItemStackRequestPacket();
+            packet.requests = [
+                {
+                    requestId: 1,
+                    actions: [{ type: ItemStackRequestActionType.LAB_TABLE_COMBINE }],
+                    filterStrings: [],
+                    filterStringCause: 0
+                }
+            ];
+            packet.encode({ protocolVersion });
+
+            // Header (two bytes), Requests, Client Request Id, Actions, variant index, action type.
+            expect([...packet.getBuffer()!.subarray(2, 7)]).toEqual([1, 2, 1, 7, 9]);
+        }
+    });
+
+    it("numbers the action types as the pinned game dump does, 9 and up rather than the 1.26.50 page's 7", () => {
+        // No Bedrock Dedicated Server capture of this packet exists, so the dump is the
+        // executable evidence; the 1.26.60 page and its changelog agree with it, and the 1.26.50
+        // page's dense positions are the documentation being corrected.
+        const dumpNames: Record<string, keyof typeof ItemStackRequestActionType> = {
+            Take: 'TAKE',
+            Place: 'PLACE',
+            Swap: 'SWAP',
+            Drop: 'DROP',
+            Destroy: 'DESTROY',
+            Consume: 'CRAFTING_CONSUME_INPUT',
+            Create: 'CRAFTING_CREATE_SPECIFIC_RESULT',
+            ScreenLabTableCombine: 'LAB_TABLE_COMBINE',
+            ScreenBeaconPayment: 'BEACON_PAYMENT',
+            ScreenHUDMineBlock: 'MINE_BLOCK',
+            CraftRecipe: 'CRAFTING_RECIPE',
+            CraftRecipeAuto: 'CRAFTING_RECIPE_AUTO',
+            CraftCreative: 'CREATIVE_CREATE',
+            CraftRecipeOptional: 'CRAFTING_RECIPE_OPTIONAL',
+            CraftRepairAndDisenchant: 'CRAFT_REPAIR_AND_DISENCHANT',
+            CraftLoom: 'CRAFTING_LOOM',
+            CraftNonImplemented_DEPRECATEDASKTYLAING: 'CRAFTING_NON_IMPLEMENTED_DEPRECATED',
+            CraftResults_DEPRECATEDASKTYLAING: 'CRAFTING_RESULTS_DEPRECATED'
+        };
+        const members = enumDumpMembers('ItemStackRequestActionType');
+
+        for (const { name, value } of members) {
+            const member = dumpNames[name];
+            if (member === undefined) continue; // The two removed container actions and test-only entries.
+            expect(ItemStackRequestActionType[member], name).toBe(value);
+        }
+        expect(members.filter(({ name }) => dumpNames[name] !== undefined)).toHaveLength(Object.keys(dumpNames).length);
+    });
+
+    it('numbers the container names as the pinned game dump does, with the recipe tabs at 64 to 66', () => {
+        const members = enumDumpMembers('ContainerEnumName');
+        const dumpValues = members.map(({ value }) => value).sort((a, b) => a - b);
+        const enumValues = Object.values(ContainerUiId)
+            .filter((value): value is number => typeof value === 'number')
+            .sort((a, b) => a - b);
+
+        expect(enumValues).toEqual(dumpValues.filter((value) => value <= Math.max(...enumValues)));
     });
 });

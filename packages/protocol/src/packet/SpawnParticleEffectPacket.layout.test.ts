@@ -38,18 +38,20 @@ const CASES = [
 ];
 
 describe('the declarative SpawnParticleEffect layout', () => {
-    const layout = layoutAt(spawnParticleEffectPacket, 2193);
+    for (const protocol of [2193, 2225]) {
+        const layout = layoutAt(spawnParticleEffectPacket, protocol);
 
-    for (const { branch, bytes, payload } of CASES) {
-        it(`writes the bytes the hand-written encoder wrote ${branch}`, () => {
-            const stream = new BinaryStream();
-            layout.encode(stream, payload);
+        for (const { branch, bytes, payload } of CASES) {
+            it(`writes the bytes the hand-written encoder wrote ${branch} at ${protocol}`, () => {
+                const stream = new BinaryStream();
+                layout.encode(stream, payload);
 
-            expect(stream.getBuffer()).toEqual(bytes);
-        });
+                expect(stream.getBuffer()).toEqual(bytes);
+            });
 
-        it(`reads those bytes back ${branch}`, () => {
-            expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
-        });
+            it(`reads those bytes back ${branch} at ${protocol}`, () => {
+                expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
+            });
+        }
     }
 });

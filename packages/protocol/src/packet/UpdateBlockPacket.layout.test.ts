@@ -24,7 +24,7 @@ describe('the declarative UpdateBlock layout', () => {
         layer: packet.layer
     });
 
-    it('matches the bytes the class wrote', () => {
+    it.each([2193, 2225])('matches the bytes the class wrote at protocol %i', (protocol) => {
         const packet = fill();
 
         const expected = new BinaryStream();
@@ -36,16 +36,18 @@ describe('the declarative UpdateBlock layout', () => {
         expected.writeUnsignedVarInt(packet.layer);
 
         const stream = new BinaryStream();
-        layoutAt(updateBlockPacket, 2193).encode(stream, payloadOf(packet));
+        layoutAt(updateBlockPacket, protocol).encode(stream, payloadOf(packet));
 
         expect(stream.getBuffer()).toEqual(expected.getBuffer());
     });
 
-    it('round-trips through the packet class and consumes the payload', () => {
+    it.each([2193, 2225])('round-trips through the packet class at protocol %i', (protocol) => {
         const sent = fill();
+        sent.codecProtocol = protocol;
         sent.encodePayload();
 
         const received = new UpdateBlockPacket(sent.getBuffer());
+        received.codecProtocol = protocol;
         received.decodePayload();
 
         expect(payloadOf(received)).toEqual(payloadOf(sent));

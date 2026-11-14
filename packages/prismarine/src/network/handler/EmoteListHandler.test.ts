@@ -17,7 +17,7 @@ const setup = () => {
 };
 
 const list = (runtimeId: bigint) =>
-    Object.assign(new EmoteListPacket(), {
+    new EmoteListPacket({
         runtimeId,
         emoteIds: [UUID.fromString('12345678-9abc-def0-1234-56789abcdef0')]
     });

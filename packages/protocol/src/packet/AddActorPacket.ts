@@ -12,7 +12,7 @@ import type { ActorLink } from '../wire/definitions/addActor';
 /**
  * Spawns an entity other than a player on the client.
  *
- * The wire layout lives in `addActor.wire.ts`'s declarative definition, which this class
+ * The wire layout lives in the declarative definition in `wire/definitions/addActor.ts`, which this class
  * walks at the protocol version stamped on it: the 2193 fields below, plus the trailing
  * optional `Passenger Block Data` from 2225 on.
  *

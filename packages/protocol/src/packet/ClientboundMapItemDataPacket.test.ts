@@ -123,4 +123,20 @@ describe('ClientboundMapItemDataPacket', () => {
         ]);
         expect(stream.feof()).toBe(true);
     });
+
+    it.each([2193, 2225])('round trips the full update at protocol %i, which changed nothing here', (protocol) => {
+        const reader = new ClientboundMapItemDataPacket();
+        reader.codecProtocol = protocol;
+        const data = reader.deserialize(new NetworkBinaryStream(full));
+
+        const writer = new ClientboundMapItemDataPacket(data);
+        writer.codecProtocol = protocol;
+        expect(writer.serialize(new NetworkBinaryStream())).toEqual(full);
+    });
+
+    it('numbers the decoration artwork as the 1.26.60 page lists it', () => {
+        expect(MapDecorationType.TrialChambers).toBe(24);
+        expect(MapDecorationType.AbandonedCamp).toBe(25);
+        expect(MapDecorationType.WarmOceanRuins).toBe(29);
+    });
 });

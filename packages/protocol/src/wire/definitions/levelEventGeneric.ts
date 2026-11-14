@@ -1,7 +1,7 @@
 /**
  * A level event whose data is a network-NBT compound rather than the position and single data
  * word carried by `LevelEventPacket`.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-event-generic-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/level-event-generic-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

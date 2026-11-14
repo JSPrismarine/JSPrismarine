@@ -8,7 +8,7 @@
  * (`LevelChunkPacketPayload.json`, ordinal 7, after the serialized chunk data) and
  * gophertunnel's `LevelChunk.Marshal` at v1.63.0 (`io.Bool(&pk.ClientBiomeUpdate)` last),
  * which agree. Nothing before it changed.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/LevelChunk.html}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/level-chunk-packet/}
  */
 import { definePacket, gated } from '../define';
 import * as t from '../fieldTypes';

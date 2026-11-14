@@ -16,8 +16,8 @@ const payload = {
     chunkData: Buffer.from('cafebabe', 'hex')
 };
 
-describe('the declarative ResourcePackChunkData layout', () => {
-    const layout = layoutAt(resourcePackChunkDataPacket, 2193);
+describe.each([2193, 2225])('the declarative ResourcePackChunkData layout at protocol %i', (protocol) => {
+    const layout = layoutAt(resourcePackChunkDataPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import Vec3 from '../structure/Vec3';
+import { clientboundDebugRendererPacket } from '../wire/definitions/clientboundDebugRenderer';
+import { layoutAt } from '../wire/WireLayout';
 import ClientboundDebugRendererPacket, { DebugRendererType } from './ClientboundDebugRendererPacket';
 
 const string = (value: string): number[] => [Buffer.byteLength(value), ...Buffer.from(value, 'utf8')];
@@ -43,6 +45,20 @@ const ADD_CUBE = Buffer.from([
 ]);
 
 describe('ClientboundDebugRendererPacket', () => {
+    it('names the action strings as the spec spells them', () => {
+        expect(Object.values(DebugRendererType)).toEqual(['Invalid', 'ClearDebugMarkers', 'AddDebugMarkerCube']);
+    });
+
+    it.each([2193, 2225])('round-trips the marker through the layout at protocol %i', (protocol) => {
+        const layout = layoutAt(clientboundDebugRendererPacket, protocol);
+        const stream = new NetworkBinaryStream();
+        layout.encode(stream, { type: DebugRendererType.AddDebugMarkerCube, debugMarkerData: MARKER });
+
+        expect(stream.getBuffer()).toEqual(ADD_CUBE.subarray(2));
+        const decoded = layout.decode(new NetworkBinaryStream(stream.getBuffer()));
+        expect(decoded.debugMarkerData?.duration).toBe(1500n);
+    });
+
     it('writes a clear as the type string and an empty optional', () => {
         const data = { type: DebugRendererType.ClearDebugMarkers, debugMarkerData: null };
         const expected = Buffer.from([0xa4, 0x01, ...string(data.type), 0x00]);

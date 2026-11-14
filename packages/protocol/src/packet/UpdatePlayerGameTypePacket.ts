@@ -13,7 +13,7 @@ import type { UpdatePlayerGameTypePayload } from '../wire/definitions/player';
  * The payload contains `Player Game Type` as a ZigZag varint32, `Target player` as a signed
  * varint64, and `Tick` as a varuint64 input tick. For the receiving player's own movement, the
  * tick lets the client reconcile predicted movement; zero is accepted for other players.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-player-game-type-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-player-game-type-packet/
  */
 export default class UpdatePlayerGameTypePacket extends NetworkPacket<UpdatePlayerGameTypePayload> {
     public get id(): number {

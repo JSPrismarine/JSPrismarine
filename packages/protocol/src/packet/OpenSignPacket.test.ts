@@ -21,6 +21,18 @@ const BYTES = Buffer.from([
 ]);
 
 describe('OpenSignPacket', () => {
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const packet = new OpenSignPacket(DATA);
+        packet.codecProtocol = protocol;
+        expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...BYTES]);
+
+        const reader = new OpenSignPacket();
+        reader.codecProtocol = protocol;
+        const stream = new NetworkBinaryStream(BYTES);
+        expect(reader.deserialize(stream)).toEqual(DATA);
+        expect(stream.feof()).toBe(true);
+    });
+
     it('writes every field in the order protocol 2193 defines', () => {
         const buffer = new OpenSignPacket(DATA).serialize(new NetworkBinaryStream());
 

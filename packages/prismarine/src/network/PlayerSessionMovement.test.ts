@@ -94,8 +94,7 @@ describe('network', () => {
 
             expect(moveData(sent)).toMatchObject({
                 mode: PositionMode.Teleport,
-                teleportCause: 0,
-                teleportItemId: 0,
+                teleportData: { cause: 0, sourceActorType: 0 },
                 ridingEntityRuntimeId: 0n
             });
         });

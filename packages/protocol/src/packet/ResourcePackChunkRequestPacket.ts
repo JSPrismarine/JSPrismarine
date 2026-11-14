@@ -8,7 +8,7 @@ import { resourcePackChunkRequestPacket } from '../wire/definitions/resourcePack
  * The wire layout lives in `@jsprismarine/protocol`'s `resourcePackChunkRequestPacket`
  * definition: Resource Name as a string (the pack's `uuid_version` as
  * `ResourcePackDataInfoPacket` named it), then Chunk as an int32 LE index.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-chunk-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-pack-chunk-request-packet/
  */
 export default class ResourcePackChunkRequestPacket extends FieldNetworkPacket {
     /** The pack id and version the server announced, joined by an underscore. */

@@ -23,4 +23,17 @@ describe('BlockEventPacket', () => {
         expect(data).toEqual(DATA);
         expect(stream.feof()).toBe(true);
     });
+
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const packet = new BlockEventPacket(DATA);
+        packet.codecProtocol = protocol;
+        const written = packet.serialize(new NetworkBinaryStream());
+
+        expect(written).toEqual(BYTES);
+
+        const reader = new BlockEventPacket();
+        reader.codecProtocol = protocol;
+
+        expect(reader.deserialize(new NetworkBinaryStream(written))).toEqual(DATA);
+    });
 });

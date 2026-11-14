@@ -1,7 +1,7 @@
 /**
  * `SimpleEventPacket`: Asks the server to turn commands on or off, or to unlock the world template
  * settings.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/simple-event-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/simple-event-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

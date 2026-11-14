@@ -12,8 +12,8 @@ const DISMISSED = Buffer.from('07000101', 'hex');
 const submitted = { formId: 7, jsonResponse: '[0,"a"]', formCancelReason: null };
 const dismissed = { formId: 7, jsonResponse: null, formCancelReason: 1 };
 
-describe('the declarative ModalFormResponse layout', () => {
-    const layout = layoutAt(modalFormResponsePacket, 2193);
+describe.each([2193, 2225])('the declarative ModalFormResponse layout at %i', (protocol) => {
+    const layout = layoutAt(modalFormResponsePacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote for a submitted form', () => {
         const stream = new BinaryStream();

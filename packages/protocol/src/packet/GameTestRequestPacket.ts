@@ -1,8 +1,10 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import BlockPos from '../structure/BlockPos';
+import { gameTestRequestPacket } from '../wire/definitions/gameTestRequest';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { GameTestRequestPayload } from '../wire/definitions/gameTestRequest';
 
 /**
  * The docs' `Rotation`, how far a structure is turned when it is placed.
@@ -10,7 +12,8 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
  * `Clockwise90`, `Clockwise180` and `CounterClockwise90` are other names for 1, 2 and 3, not
  * members 4, 5 and 6 as the rendered page lists them. The datagen snapshot in
  * `packages/minecraft` numbers them that way, and the page's own 2207 changelog "moves" them
- * back down to 1, 2 and 3.
+ * back down to 1, 2 and 3. `GameTestRequestPacket.test.ts` asserts the numbers against Mojang's
+ * pinned `enums.html` dump, so the values hold at protocol 2193 and 2225 alike.
  */
 export enum Rotation {
     /** Docs: `None`. */
@@ -30,22 +33,7 @@ export enum Rotation {
 }
 
 /** The fields of a `GameTestRequestPacket`, in wire order. */
-export interface GameTestRequest {
-    /** `MaxTestsPerBatch`, how many tests may run at once. */
-    maxTestsPerBatch: number;
-    /** `RepeatCount`, how many times to run each test. */
-    repeatCount: number;
-    /** `Rotation` to place the test structure with. */
-    rotation: Rotation;
-    /** `StopOnFailure`: stop the batch at the first failed test. */
-    stopOnFailure: boolean;
-    /** `TestPos`, the block the first test structure is placed at. */
-    testPosition: BlockPos;
-    /** `TestsPerRow`, how many test structures to lay out before starting a new row. */
-    testsPerRow: number;
-    /** `TestName`, the GameTest to run, for example `farm:crops`. */
-    testName: string;
-}
+export type GameTestRequest = GameTestRequestPayload;
 
 /**
  * A client's request to run a GameTest (the `/gametest run` family of commands).
@@ -53,8 +41,10 @@ export interface GameTestRequest {
  * Protocol 2193 layout, in wire order: `MaxTestsPerBatch` and `RepeatCount` as ZigZag
  * varint32, `Rotation` as one byte, `StopOnFailure` as one byte, `TestPos` as a
  * {@link BlockPos} (three ZigZag varint32), `TestsPerRow` as a ZigZag varint32, then
- * `TestName` as a varuint32 byte length followed by UTF-8. The server answers with a
- * `GameTestResultsPacket` once the test finishes.
+ * `TestName` as a varuint32 byte length followed by UTF-8. Protocol 2225 changes nothing. The
+ * server answers with a `GameTestResultsPacket` once the test finishes.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/game-test-request-packet/
  */
 export default class GameTestRequestPacket extends NetworkPacket<GameTestRequest> {
     public get id(): number {
@@ -62,24 +52,10 @@ export default class GameTestRequestPacket extends NetworkPacket<GameTestRequest
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: GameTestRequest): void {
-        stream.writeVarInt(data.maxTestsPerBatch);
-        stream.writeVarInt(data.repeatCount);
-        stream.writeByte(data.rotation);
-        stream.writeBoolean(data.stopOnFailure);
-        data.testPosition.serialize(stream);
-        stream.writeVarInt(data.testsPerRow);
-        stream.writeString(data.testName);
+        layoutAt(gameTestRequestPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): GameTestRequest {
-        return {
-            maxTestsPerBatch: stream.readVarInt(),
-            repeatCount: stream.readVarInt(),
-            rotation: stream.readByte(),
-            stopOnFailure: stream.readBoolean(),
-            testPosition: BlockPos.deserialize(stream),
-            testsPerRow: stream.readVarInt(),
-            testName: stream.readString()
-        };
+        return layoutAt(gameTestRequestPacket, this.codecProtocol).decode(stream);
     }
 }

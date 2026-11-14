@@ -10,7 +10,7 @@ import type { SetPlayerGameTypePayload } from '../wire/definitions/player';
  * Carries the game type chosen by the client, or the authoritative game type sent back by the
  * server. `Player Game Type` is a ZigZag varint32; decoded values stay numeric so the server
  * can reject values that do not name a supported game type.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-player-game-type-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-player-game-type-packet/
  */
 export default class SetPlayerGameTypePacket extends NetworkPacket<SetPlayerGameTypePayload> {
     public get id(): number {

@@ -8,7 +8,7 @@ import { resourcePackDataInfoPacket } from '../wire/definitions/resourcePacks';
  *
  * The packet docs give the field as a bare uint8. The names and numbers are Mojang's `PackType`
  * enum in the datagen snapshot behind `@jsprismarine/minecraft`
- * (`packages/minecraft/datagen/snapshot/v2193/enums.html`); gophertunnel uses the same numbers.
+ * (`packages/minecraft/datagen/snapshot/0e00fe80f4f3-enums.html`); gophertunnel uses the same numbers.
  */
 export enum PackType {
     Invalid = 0,
@@ -37,7 +37,7 @@ export enum PackType {
  * for a chunk.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-data-info-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-pack-data-info-packet/
  */
 export default class ResourcePackDataInfoPacket extends FieldNetworkPacket {
     /** The pack id and version joined by an underscore, as `ResourcePacksInfoPacket` gave them. */

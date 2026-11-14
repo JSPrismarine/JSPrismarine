@@ -18,11 +18,12 @@ export interface BlockActorData {
 /**
  * Sends a block actor's complete user data compound and its block position to the client.
  *
- * Protocol 2193 layout: `Block Position` as three ZigZag varint32 coordinates, followed by
- * `Actor Data Tags`. The reference labels that field unknown; this codec follows the captured
- * layout as little-endian network NBT with varint lengths and an empty root name. The compound
- * is a full replacement, so the client ignores it when no block actor exists at the position.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/block-actor-data-packet/
+ * Protocols 2193 and 2225 share one layout: `Block Position` as three ZigZag varint32 coordinates,
+ * followed by `Actor Data Tags`. The reference labels that field unknown and no capture of this
+ * packet exists; the codec writes it as little-endian network NBT with varint lengths and an empty
+ * root name, the form Bedrock uses for every compound tag on the wire. The compound is a full
+ * replacement, so the client ignores it when no block actor exists at the position.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/block-actor-data-packet/
  */
 export default class BlockActorDataPacket extends NetworkPacket<BlockActorData> {
     public get id(): number {

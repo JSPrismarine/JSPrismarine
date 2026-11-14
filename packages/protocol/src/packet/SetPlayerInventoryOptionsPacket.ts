@@ -18,7 +18,7 @@ export { InventoryLayout, InventoryLeftTab, InventoryRightTab };
  *
  * **Bound To:** Server
  *
- * Protocol 2193 layout (docs id 307), one `InventoryOptions` in wire order:
+ * Protocol 2193 and 2225 layout (docs id 307, unchanged between the two), one `InventoryOptions` in wire order:
  *
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
@@ -27,7 +27,7 @@ export { InventoryLayout, InventoryLeftTab, InventoryRightTab };
  * | Filtering | boolean | |
  * | Layout Inv | varint32 | ZigZag; one of {@link InventoryLayout} |
  * | Layout Craft | varint32 | ZigZag; one of {@link InventoryLayout} |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-player-inventory-options-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-player-inventory-options-packet/
  */
 export default class SetPlayerInventoryOptionsPacket extends FieldNetworkPacket {
     /** Left Inventory Tab: the recipe book tab that is open. */

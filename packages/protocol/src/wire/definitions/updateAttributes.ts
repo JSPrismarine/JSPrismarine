@@ -1,7 +1,7 @@
 /**
  * The changed attributes for one entity, including each attribute's bounds, current value,
  * name, and modifiers.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-attributes-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

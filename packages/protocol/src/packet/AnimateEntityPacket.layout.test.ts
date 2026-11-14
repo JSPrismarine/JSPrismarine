@@ -32,8 +32,8 @@ const CASES = [
     }
 ];
 
-describe('the declarative AnimateEntity layout', () => {
-    const layout = layoutAt(animateEntityPacket, 2193);
+describe.each([2193, 2225])('the declarative AnimateEntity layout at protocol %i', (protocol) => {
+    const layout = layoutAt(animateEntityPacket, protocol);
 
     for (const { branch, bytes, payload } of CASES) {
         it(`writes the bytes the hand-written serializer wrote ${branch}`, () => {

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import Vec2 from '../structure/Vec2';
+import { cameraAimAssistPacket } from '../wire/definitions/cameraAimAssist';
+import { layoutAt } from '../wire/WireLayout';
 import CameraAimAssistPacket, { CameraAimAssistAction, CameraAimAssistTargetMode } from './CameraAimAssistPacket';
 
 import type { CameraAimAssist } from './CameraAimAssistPacket';
@@ -89,5 +91,20 @@ describe('CameraAimAssistPacket', () => {
             viewAngle: new Vec2(Math.fround(0.1), Math.fround(12.3)),
             distance: Math.fround(15.9)
         });
+    });
+
+    // Mojang's 1.26.50 and 1.26.60 pages list the same fields, so one layout serves both protocols.
+    it.each([2193, 2225])('encodes and decodes the same payload bytes at protocol %i', (protocol) => {
+        const layout = layoutAt(cameraAimAssistPacket, protocol);
+        const stream = new NetworkBinaryStream();
+        layout.encode(stream, DATA);
+
+        expect([...stream.getBuffer()]).toEqual([...BYTES.subarray(2)]);
+        expect(layout.decode(new NetworkBinaryStream(BYTES.subarray(2)))).toEqual(DATA);
+    });
+
+    it('numbers the enums as the docs list them', () => {
+        expect([CameraAimAssistTargetMode.ANGLE, CameraAimAssistTargetMode.DISTANCE]).toEqual([0, 1]);
+        expect([CameraAimAssistAction.SET, CameraAimAssistAction.CLEAR]).toEqual([0, 1]);
     });
 });

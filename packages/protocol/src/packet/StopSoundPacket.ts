@@ -11,7 +11,7 @@ import { stopSoundPacket } from '../wire/definitions/levelSoundEvent';
  * `stopAllSounds` set the name may be empty.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/stop-sound-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/stop-sound-packet/
  */
 export default class StopSoundPacket extends FieldNetworkPacket {
     public soundName = '';

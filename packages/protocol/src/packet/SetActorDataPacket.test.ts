@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 import { FlagType, MAX_AIR_TICKS, Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { setActorDataPacket } from '../wire/definitions/setActorData';
+import { layoutAt } from '../wire/WireLayout';
 import SetActorDataPacket from './SetActorDataPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /** One `DataItemEntry` as the independent reader below decodes it. */
 interface DecodedItem {
@@ -237,6 +240,21 @@ describe('network', () => {
                     { id: MetadataFlag.BOUNDINGBOX_WIDTH, type: FlagType.FLOAT, value: 1 },
                     { id: MetadataFlag.BOUNDINGBOX_HEIGHT, type: FlagType.FLOAT, value: 1 }
                 ]);
+            });
+
+            // The first `SetActorDataPacket` a real Bedrock Dedicated Server sent during a login,
+            // at each protocol version. Neither version's page differs from the other for this
+            // packet, so one layout has to carry both captures byte for byte.
+            it.each([2193, 2225])('re-encodes the Bedrock Dedicated Server capture at protocol %i', (protocol) => {
+                const bytes = capture(protocol, 0x27);
+                const layout = layoutAt(setActorDataPacket, protocol);
+                const stream = new BinaryStream(bytes);
+                const payload = layout.decode(stream);
+                expect(stream.feof()).toBe(true);
+
+                const encoded = new BinaryStream();
+                layout.encode(encoded, payload);
+                expect(encoded.getBuffer().equals(bytes)).toBe(true);
             });
 
             it('round-trips every data item type, the properties and the tick', () => {

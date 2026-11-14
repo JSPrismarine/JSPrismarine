@@ -49,6 +49,13 @@ describe('AddVolumeEntityPacket', () => {
         expect([...buffer]).toEqual([...BYTES]);
     });
 
+    it('writes the same bytes at protocol 2225, which changed nothing here', () => {
+        const packet = new AddVolumeEntityPacket(DATA);
+        packet.codecProtocol = 2225;
+
+        expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...BYTES]);
+    });
+
     it('reads a hand-built buffer to its end', () => {
         const stream = new NetworkBinaryStream(BYTES);
         const data = new AddVolumeEntityPacket().deserialize(stream);
@@ -63,5 +70,12 @@ describe('AddVolumeEntityPacket', () => {
         const data = new AddVolumeEntityPacket().deserialize(new NetworkBinaryStream(buffer));
 
         expect(data).toEqual(DATA);
+    });
+
+    it('reads the same bytes at protocol 2225', () => {
+        const packet = new AddVolumeEntityPacket();
+        packet.codecProtocol = 2225;
+
+        expect(packet.deserialize(new NetworkBinaryStream(BYTES))).toEqual(DATA);
     });
 });

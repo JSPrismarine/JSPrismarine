@@ -1,7 +1,10 @@
+import BinaryStream from '@jsprismarine/binaryutils';
+import { gameRulesChangedPacket, layoutAt } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 import GameRulesChangedPacket from './GameRulesChangedPacket';
 import { GameRuleValueType } from '@jsprismarine/protocol/wire/structures/GameRule';
+import { capture } from '../testing/evidence.test.helper';
 
 describe('GameRulesChangedPacket', () => {
     // Header 0x48 and a count of three. Then, per rule, the name after its varuint length,
@@ -66,4 +69,20 @@ describe('GameRulesChangedPacket', () => {
 
         expect(packet.getBuffer()).toEqual(encoded);
     });
+
+    for (const protocol of [2193, 2225]) {
+        it(`re-encodes the real server capture to the same bytes at protocol ${protocol}`, () => {
+            // A raw payload (no header) a real Bedrock Dedicated Server sent, captured into bedrock-data.
+            const real = capture(protocol, 0x48);
+            const layout = layoutAt(gameRulesChangedPacket, protocol);
+            const stream = new BinaryStream(real);
+            const payload = layout.decode(stream);
+            expect(stream.feof()).toBe(true);
+            expect(payload.rulesList.length).toBeGreaterThan(0);
+
+            const out = new BinaryStream();
+            layout.encode(out, payload);
+            expect(out.getBuffer()).toEqual(real);
+        });
+    }
 });

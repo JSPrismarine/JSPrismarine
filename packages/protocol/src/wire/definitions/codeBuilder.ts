@@ -1,7 +1,7 @@
 /**
  * `CodeBuilderPacket`: Where the Code Builder websocket server lives, and whether to open the app
  * now.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/code-builder-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/code-builder-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

@@ -10,17 +10,20 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('c8d904', 'hex');
 const payload = { action: 200, id: -301 };
 
-describe('the declarative PositionTrackingDBClientRequest layout', () => {
-    const layout = layoutAt(positionTrackingDBClientRequestPacket, 2193);
+describe.each([2193, 2225] as const)(
+    'the declarative PositionTrackingDBClientRequest layout at protocol %i',
+    (protocol) => {
+        const layout = layoutAt(positionTrackingDBClientRequestPacket, protocol);
 
-    it('writes the bytes the hand-written encoder wrote', () => {
-        const stream = new BinaryStream();
-        layout.encode(stream, payload);
+        it('writes the bytes the hand-written encoder wrote', () => {
+            const stream = new BinaryStream();
+            layout.encode(stream, payload);
 
-        expect(stream.getBuffer()).toEqual(bytes);
-    });
+            expect(stream.getBuffer()).toEqual(bytes);
+        });
 
-    it('reads those bytes back', () => {
-        expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
-    });
-});
+        it('reads those bytes back', () => {
+            expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
+        });
+    }
+);

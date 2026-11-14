@@ -4,14 +4,14 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * The bytes the hand-written encoder produced, recorded before the class moved to the
- * declarative layout. Signed fields carry negative values and strings a multi-byte character, so
- * a wrong signedness, varint form or length unit changes the bytes.
+ * declarative layout. Both signed fields carry negative values, so a wrong signedness or varint form changes
+ * the bytes. 1.26.50 and 1.26.60 print the same layout, so both versions share them.
  */
 const bytes = Buffer.from('d704d904828080808020', 'hex');
 const payload = { cause: -300, damage: -301, armorSlots: 1099511627778n };
 
-describe('the declarative HurtArmor layout', () => {
-    const layout = layoutAt(hurtArmorPacket, 2193);
+describe.each([2193, 2225])('the declarative HurtArmor layout at protocol %i', (version) => {
+    const layout = layoutAt(hurtArmorPacket, version);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

@@ -23,7 +23,7 @@ export enum ScoreboardIdentityPacketType {
  * The wire layout lives in `@jsprismarine/protocol`'s `setScoreboardIdentityPacket` definition:
  * the packet type as a byte, then the entries as a counted list, each a Scoreboard Id and a
  * Player Unique Id behind its own presence byte.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-scoreboard-identity-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-scoreboard-identity-packet/
  */
 export default class SetScoreboardIdentityPacket extends FieldNetworkPacket {
     public type: ScoreboardIdentityPacketType = ScoreboardIdentityPacketType.Update;

@@ -8,8 +8,10 @@ import StructureBlockUpdatePacket, {
     StructureBlockType,
     StructureRedstoneSaveMode
 } from './StructureBlockUpdatePacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
-describe('StructureBlockUpdatePacket', () => {
+describe.each([2193, 2225] as const)('StructureBlockUpdatePacket at protocol %i', (protocolVersion) => {
+    const context = { protocolVersion };
     const encoded = Buffer.concat([
         Buffer.from([0x5a, 0x02, 0x04, 0x06, 0x05]),
         Buffer.from('house'),
@@ -55,12 +57,12 @@ describe('StructureBlockUpdatePacket', () => {
     it('decodes every editor field and consumes the whole buffer', () => {
         const stream = new NetworkBinaryStream(encoded);
 
-        expect(new StructureBlockUpdatePacket().deserialize(stream)).toEqual(data);
+        expect(new StructureBlockUpdatePacket().deserialize(stream, context)).toEqual(data);
         expect(stream.feof()).toBe(true);
     });
 
     it('encodes the same bytes back', () => {
-        expect(new StructureBlockUpdatePacket(data).serialize(new NetworkBinaryStream())).toEqual(encoded);
+        expect(new StructureBlockUpdatePacket(data).serialize(new NetworkBinaryStream(), context)).toEqual(encoded);
     });
 
     it('leaves out the redacted structure name when there is none', () => {
@@ -72,8 +74,35 @@ describe('StructureBlockUpdatePacket', () => {
                 structureName: { unredacted: 'a', redacted: null }
             }
         };
-        const encodedPacket = new StructureBlockUpdatePacket(packetData).serialize(new NetworkBinaryStream());
+        const encodedPacket = new StructureBlockUpdatePacket(packetData).serialize(new NetworkBinaryStream(), context);
 
         expect(encodedPacket.subarray(0, 7)).toEqual(Buffer.from([0x5a, 0x00, 0x00, 0x00, 0x01, 0x61, 0x00]));
+    });
+
+    it('numbers every Rotation alias as the 1.26.40 dump does', () => {
+        // The dump numbers the `Rotation` aliases 1 to 3; the rendered 1.26.50 page prints 4 to 6,
+        // which Mojang's 1.26.60 changelog corrects.
+        const rotations = Object.fromEntries(enumDumpMembers('Rotation').map(({ name, value }) => [name, value]));
+
+        expect(rotations).toEqual({
+            None: StructureRotation.None,
+            Rotate90: StructureRotation.Rotate90,
+            Rotate180: StructureRotation.Rotate180,
+            Rotate270: StructureRotation.Rotate270,
+            Clockwise90: StructureRotation.Clockwise90,
+            Clockwise180: StructureRotation.Clockwise180,
+            CounterClockwise90: StructureRotation.CounterClockwise90
+        });
+    });
+
+    it('writes Redstone Save Mode as a ZigZag varint32', () => {
+        const savesToMemory = {
+            ...data,
+            structureData: { ...data.structureData, redstoneSaveMode: StructureRedstoneSaveMode.SavesToMemory }
+        };
+        const bytes = new StructureBlockUpdatePacket(savesToMemory).serialize(new NetworkBinaryStream(), context);
+
+        expect(bytes.subarray(bytes.length - 3)).toEqual(Buffer.from([0x00, 0x01, 0x00]));
+        expect(encoded.subarray(encoded.length - 3)).toEqual(Buffer.from([0x02, 0x01, 0x00]));
     });
 });

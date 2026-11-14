@@ -18,7 +18,7 @@ import type { CommandOutputPayload } from '../wire/definitions/commands';
  * `Data Set` as an optional string.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/command-output-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/command-output-packet/
  */
 export default class CommandOutputPacket extends NetworkPacket<CommandOutputPayload> {
     /** Accepts payload data for sending or an encoded buffer for decoding. */

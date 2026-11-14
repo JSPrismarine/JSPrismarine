@@ -6,9 +6,10 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
 /**
  * How an item was used, as the Item Use Method int32 numbers it.
  *
- * Mojang's page for protocol 2193 leaves the field a bare int32 and lists no members. The
- * values are those of `ItemUseMethod` in Mojang's enum snapshot at
- * `packages/minecraft/datagen/snapshot/v2193/enums.html`, which gophertunnel reads the same way.
+ * Mojang's pages for protocols 2193 and 2225 leave the field a bare int32 and list no members.
+ * The values are those of `ItemUseMethod` in the pinned 1.26.40 dump
+ * `packages/minecraft/datagen/snapshot/0e00fe80f4f3-enums.html`, which
+ * `CompletedUsingItemPacket.test.ts` checks them against.
  */
 export enum ItemUseMethod {
     Unknown = -1,
@@ -37,9 +38,9 @@ export enum ItemUseMethod {
  * Bound to the client. The client starts the animation itself and keeps playing it until this
  * packet says the use is over.
  *
- * Wire order at protocol 2193: Item Id as an int16 in little-endian byte order, then Item Use
+ * Wire order at protocols 2193 and 2225, which lay it out the same: Item Id as an int16 in little-endian byte order, then Item Use
  * Method as an int32 in little-endian byte order (see {@link ItemUseMethod}).
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/completed-using-item-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/completed-using-item-packet/
  */
 export default class CompletedUsingItemPacket extends FieldNetworkPacket {
     /** Item Id: the network id of the item that finished being used. */

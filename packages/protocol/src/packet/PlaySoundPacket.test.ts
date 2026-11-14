@@ -1,6 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
+import { protocolVersion as protocol2225 } from '@jsprismarine/protocol/wire/versions/v2225';
 import { describe, expect, it } from 'vitest';
 
 import PlaySoundPacket from './PlaySoundPacket';
@@ -102,6 +103,37 @@ describe('network', () => {
             expect(packet.soundHandle).toBeNull();
             expect(packet.playbackPositionSeconds).toBeNull();
             expect(packet.feof()).toBe(true);
+        });
+
+        it.each([
+            ['2193', 2193],
+            ['2225', protocol2225]
+        ])('round-trips every field at protocol %s', (_label, protocol) => {
+            const packet = Object.assign(new PlaySoundPacket(), {
+                codecProtocol: protocol,
+                name: 'note.harp',
+                position: new Vector3(-3, 70, 12),
+                volume: 0.5,
+                pitch: 1.5,
+                loopCount: 2,
+                bypassListenerRangeCheck: true,
+                soundHandle: 7n,
+                playbackPositionSeconds: 1.25
+            });
+            packet.encode();
+
+            const read = Object.assign(new PlaySoundPacket(packet.getBuffer()), { codecProtocol: protocol });
+            read.decode();
+
+            expect(read.name).toBe('note.harp');
+            expect([read.position?.getX(), read.position?.getY(), read.position?.getZ()]).toEqual([-3, 70, 12]);
+            expect(read.volume).toBe(0.5);
+            expect(read.pitch).toBe(1.5);
+            expect(read.loopCount).toBe(2);
+            expect(read.bypassListenerRangeCheck).toBe(true);
+            expect(read.soundHandle).toBe(7n);
+            expect(read.playbackPositionSeconds).toBe(1.25);
+            expect(read.feof()).toBe(true);
         });
     });
 });

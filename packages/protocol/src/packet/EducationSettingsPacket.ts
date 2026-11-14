@@ -1,11 +1,16 @@
-import FieldNetworkPacket from '../FieldNetworkPacket';
-import { NetworkUtil } from '../wire/networkUtil';
+import NetworkPacket from '../NetworkPacket';
+import { PacketIdentifier } from '../PacketIdentifier';
+import { educationSettingsPacket } from '../wire/definitions/educationSettings';
+import { layoutAt } from '../wire/WireLayout';
+
+import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { EducationSettingsPayload } from '../wire/definitions/educationSettings';
+
+/** The Education Edition settings for a world. */
+export type EducationSettings = EducationSettingsPayload;
 
 /** A link the Education Edition client offers alongside the world. */
-export interface ExternalLinkSettings {
-    url: string;
-    displayName: string;
-}
+export type ExternalLinkSettings = NonNullable<EducationSettings['externalLinkSettings']>;
 
 /**
  * The Education Edition settings for a world, sent once while the game is starting.
@@ -26,84 +31,27 @@ export interface ExternalLinkSettings {
  * The three optionals are consecutive, and the docs do not mark them optional until the 2207
  * changelog. gophertunnel writes their presence bytes at 2193 and the deprecated boolean sits
  * between the second and the third, so leaving one out shifts everything after it.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/education-settings-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/education-settings-packet/
  */
-export default class EducationSettingsPacket extends FieldNetworkPacket {
-    /** URI the Code Builder panel opens. */
-    public codeBuilderDefaultUri = '';
-
-    /** Title shown on the Code Builder panel. */
-    public codeBuilderTitle = '';
-
-    public canResizeCodeBuilder = false;
-
-    public disableLegacyTitleBar = false;
-
-    /** Name of a post process filter the client applies to the whole screen. */
-    public postProcessFilter = '';
-
-    /** Resource path of the border drawn around in-game screenshots. */
-    public screenshotBorderResourcePath = '';
-
-    /** Whether the Agent may place and break blocks. Absent leaves the client's default. */
-    public canModifyBlocks?: boolean;
-
-    /** Per-world override for the Code Builder URI. */
-    public codeBuilderOverrideUri?: string;
-
-    /** Deprecated and always false. Named for the quiz feature it used to switch on. */
-    public hasQuiz = false;
-
-    public externalLinkSettings?: ExternalLinkSettings;
-
-    /** Reads the Code Builder settings, the agent capabilities and the external link. */
-    public decodePayload(): void {
-        this.codeBuilderDefaultUri = NetworkUtil.readString(this);
-        this.codeBuilderTitle = NetworkUtil.readString(this);
-        this.canResizeCodeBuilder = this.readBoolean();
-        this.disableLegacyTitleBar = this.readBoolean();
-        this.postProcessFilter = NetworkUtil.readString(this);
-        this.screenshotBorderResourcePath = NetworkUtil.readString(this);
-
-        this.canModifyBlocks = this.readBoolean() ? this.readBoolean() : undefined;
-        this.codeBuilderOverrideUri = this.readBoolean() ? NetworkUtil.readString(this) : undefined;
-        this.hasQuiz = this.readBoolean();
-        this.externalLinkSettings = this.readBoolean()
-            ? { url: NetworkUtil.readString(this), displayName: NetworkUtil.readString(this) }
-            : undefined;
+export default class EducationSettingsPacket extends NetworkPacket<EducationSettings> {
+    /** Accepts payload data for sending or an encoded buffer for decoding. */
+    public constructor(packetData?: EducationSettings | Buffer | null, buffer?: Buffer) {
+        if (Buffer.isBuffer(packetData)) {
+            super(null, packetData);
+        } else {
+            super(packetData ?? null, buffer);
+        }
     }
 
-    /** Writes the Code Builder settings, the agent capabilities and the external link. */
-    public encodePayload(): void {
-        NetworkUtil.writeString(this, this.codeBuilderDefaultUri);
-        NetworkUtil.writeString(this, this.codeBuilderTitle);
-        this.writeBoolean(this.canResizeCodeBuilder);
-        this.writeBoolean(this.disableLegacyTitleBar);
-        NetworkUtil.writeString(this, this.postProcessFilter);
-        NetworkUtil.writeString(this, this.screenshotBorderResourcePath);
+    public get id(): number {
+        return PacketIdentifier.EDUCATION_SETTINGS;
+    }
 
-        if (this.canModifyBlocks === undefined) {
-            this.writeBoolean(false);
-        } else {
-            this.writeBoolean(true);
-            this.writeBoolean(this.canModifyBlocks);
-        }
+    protected serializePayload(stream: NetworkBinaryStream, data: EducationSettings): void {
+        layoutAt(educationSettingsPacket, this.codecProtocol).encode(stream, data);
+    }
 
-        if (this.codeBuilderOverrideUri === undefined) {
-            this.writeBoolean(false);
-        } else {
-            this.writeBoolean(true);
-            NetworkUtil.writeString(this, this.codeBuilderOverrideUri);
-        }
-
-        this.writeBoolean(this.hasQuiz);
-
-        if (this.externalLinkSettings === undefined) {
-            this.writeBoolean(false);
-        } else {
-            this.writeBoolean(true);
-            NetworkUtil.writeString(this, this.externalLinkSettings.url);
-            NetworkUtil.writeString(this, this.externalLinkSettings.displayName);
-        }
+    protected deserializePayload(stream: NetworkBinaryStream): EducationSettings {
+        return layoutAt(educationSettingsPacket, this.codecProtocol).decode(stream);
     }
 }

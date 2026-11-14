@@ -35,4 +35,26 @@ describe('SubChunkRequestPacket', () => {
             ])
         );
     });
+
+    it('writes and reads the same bytes at protocols 2193 and 2225, which changed nothing in this packet', () => {
+        const encodeAt = (protocol: number): Buffer => {
+            const packet = new SubChunkRequestPacket();
+            packet.codecProtocol = protocol;
+            packet.dimensionType = 2;
+            packet.offsets = [{ x: -128, y: 127, z: 0 }];
+            packet.centerPos = { x: -1, y: 4, z: 70000 };
+            packet.encode();
+            return packet.getBuffer();
+        };
+        const at2193 = encodeAt(2193);
+        expect(encodeAt(2225)).toEqual(at2193);
+
+        const decoded = new SubChunkRequestPacket(at2193);
+        decoded.codecProtocol = 2225;
+        decoded.decode();
+        expect(decoded.dimensionType).toBe(2);
+        expect(decoded.offsets).toEqual([{ x: -128, y: 127, z: 0 }]);
+        expect(decoded.centerPos).toEqual({ x: -1, y: 4, z: 70000 });
+        expect(decoded.feof()).toBe(true);
+    });
 });

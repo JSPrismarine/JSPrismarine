@@ -23,4 +23,12 @@ describe('the declarative AgentAnimation layout', () => {
     it('reads those bytes back', () => {
         expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
     });
+
+    it('writes the same bytes at protocol 2225, which changed nothing in this packet', () => {
+        const stream = new BinaryStream();
+        layoutAt(agentAnimationPacket, 2225).encode(stream, payload);
+
+        expect(stream.getBuffer()).toEqual(bytes);
+        expect(layoutAt(agentAnimationPacket, 2225).decode(new BinaryStream(bytes))).toEqual(payload);
+    });
 });

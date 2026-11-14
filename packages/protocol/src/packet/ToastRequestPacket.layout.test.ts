@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('0768c3a96c6c6f300768c3a96c6c6f31', 'hex');
 const payload = { title: 'héllo0', content: 'héllo1' };
 
-describe('the declarative ToastRequest layout', () => {
-    const layout = layoutAt(toastRequestPacket, 2193);
+describe.each([2193, 2225])('the declarative ToastRequest layout at protocol %i', (version) => {
+    const layout = layoutAt(toastRequestPacket, version);
 
     it('writes the bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();

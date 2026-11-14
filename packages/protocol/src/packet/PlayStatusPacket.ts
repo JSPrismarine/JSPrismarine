@@ -7,7 +7,7 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
 
 /**
  * The docs' `PlayStatus` enum, the `Status` of a `PlayStatusPacket`, with the docs' member
- * names and the values the protocol 2193 docs list.
+ * names and values, the same in the 1.26.50 and 1.26.60 docs.
  */
 export enum PlayStatus {
     LoginSuccess,
@@ -35,8 +35,10 @@ export interface PlayStatusData {
  * `SetLocalPlayerAsInitialized`, so this packet appears twice in one join for two unrelated
  * reasons.
  *
- * Protocol 2193 layout after the header: `Status`, a big-endian int32 holding a `PlayStatus`
- * enum value. Nothing else.
+ * Layout after the header, identical at protocols 2193 and 2225: `Status`, a big-endian int32
+ * holding a `PlayStatus` enum value. Nothing else.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/play-status-packet/
  */
 export default class PlayStatusPacket extends NetworkPacket<PlayStatusData> {
     public get id(): number {

@@ -25,10 +25,17 @@ const CASES = [
     }
 ];
 
-describe('the declarative Disconnect layout', () => {
-    const layout = layoutAt(disconnectPacket, 2193);
+/** `SubClientLoginNotBound` (150, ZigZag 300, varint `ac 02`), the member 2225 added, then `Skip Message`. */
+const SUB_CLIENT_LOGIN_NOT_BOUND = {
+    branch: 'for the member 2225 added',
+    bytes: Buffer.from('ac0201', 'hex'),
+    payload: { reason: 150, messages: { skipMessage: true, message: '', filteredMessage: '' } }
+};
 
-    for (const { branch, bytes, payload } of CASES) {
+describe.each([2193, 2225] as const)('the declarative Disconnect layout at %i', (protocol) => {
+    const layout = layoutAt(disconnectPacket, protocol);
+
+    for (const { branch, bytes, payload } of [...CASES, SUB_CLIENT_LOGIN_NOT_BOUND]) {
         it(`writes the bytes the hand-written encoder wrote ${branch}`, () => {
             const stream = new BinaryStream();
             layout.encode(stream, payload);

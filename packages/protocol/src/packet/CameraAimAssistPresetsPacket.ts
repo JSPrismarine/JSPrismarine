@@ -43,8 +43,10 @@ const layout = () => layoutAt(cameraAimAssistPresetsPacket, protocolVersion);
  *
  * The docs label field 0 `Camera Aim-Assist Presets` and field 1 `Camera Aim-Assist Categories`,
  * but type field 0 as an array of category definitions and field 1 as an array of preset
- * definitions. The item types are what the client reads, so categories come first here.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-aim-assist-presets-packet/}
+ * definitions. The item types are what the client reads, so categories come first here; the
+ * captured `0x140.bin` payloads at protocols 2193 and 2225 start with a category and round-trip
+ * through this order.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-aim-assist-presets-packet/}
  */
 export default class CameraAimAssistPresetsPacket extends NetworkPacket<CameraAimAssistPresets> {
     public get id(): number {

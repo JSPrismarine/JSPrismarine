@@ -83,8 +83,8 @@ const FULL_BYTES = Buffer.from([
     ...[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb4, 0x42, 0x00, 0x00, 0x00, 0x00], // Key frame value, Vec3 (0, 90, 0)
     ...[0x00, 0x00, 0x20, 0x41], // Key frame time 10.0
     ...[0x06, ...Buffer.from('spring', 'utf8')], // Key frame easing func as a string
-    ...[0x01, 0x03, 0x61, 0x72, 0x63], // splineIdentifier present, "arc"
-    ...[0x01, 0x00], // loadFromJson present, false
+    ...[0x03, 0x61, 0x72, 0x63], // splineIdentifier "arc", no presence byte
+    0x00, // loadFromJson false, no presence byte
     ...[0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff], // AttachToEntity present, Entity Actor ID int64 LE -1
     ...[0x01, 0x01] // DetachFromEntity present, true
 ]);
@@ -132,6 +132,19 @@ describe('CameraInstructionPacket', () => {
         const data = new CameraInstructionPacket().deserialize(stream);
 
         expect(data).toEqual(EMPTY);
+        expect(stream.feof()).toBe(true);
+    });
+
+    it.each([2193, 2225])('writes and reads the hand-built bytes at protocol %i', (protocol) => {
+        const encoded = new CameraInstructionPacket(FULL);
+        encoded.codecProtocol = protocol;
+        expect([...encoded.serialize(new NetworkBinaryStream())]).toEqual([...FULL_BYTES]);
+
+        const decoded = new CameraInstructionPacket();
+        decoded.codecProtocol = protocol;
+        const stream = new NetworkBinaryStream(FULL_BYTES);
+
+        expect(decoded.deserialize(stream)).toEqual(FULL);
         expect(stream.feof()).toBe(true);
     });
 });

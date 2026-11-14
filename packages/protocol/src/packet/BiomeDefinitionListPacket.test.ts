@@ -1,11 +1,13 @@
 import { biome_definitions_network } from '@jsprismarine/bedrock-data';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
+import { packetIds as packetIds2225 } from '@jsprismarine/protocol/wire/versions/v2225';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
 import { NetworkUtil } from '../wire/networkUtil';
 import BiomeDefinitionListPacket from './BiomeDefinitionListPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /**
  * Reads one `BiomeDefinitionData` the way the 2193 client does and returns the fields a test
@@ -32,6 +34,9 @@ const readBiomeDefinition = (stream: BinaryStream) => {
 
     return { id, temperature, downfall, foliageSnow, depth, scale, mapWaterColor, rain, tags, hasChunkGenData };
 };
+
+/** The raw payload a real Bedrock Dedicated Server sent at `protocolVersion`, from `bedrock-data`. */
+const captureAt = (protocolVersion: 2193 | 2225): Buffer => capture(protocolVersion, 0x7a);
 
 describe('network', () => {
     describe('packet', () => {
@@ -109,6 +114,35 @@ describe('network', () => {
                 ]);
             });
 
+            it.each([2193, 2225] as const)(
+                'round-trips the BDS 1.26.x capture at protocol %i and parses it as the spec lays it out',
+                (protocolVersion) => {
+                    // The 1.26.60 page marks `tags` and `chunk gen data` optional; the 1.26.50 page
+                    // prints no marker, but the same bytes carry a presence bool at both versions.
+                    const captured = captureAt(protocolVersion);
+
+                    const decoded = new BiomeDefinitionListPacket();
+                    decoded.setReadBuffer(Buffer.concat([Buffer.from([0x7a]), captured]));
+                    decoded.decode({ protocolVersion });
+                    expect(decoded.definitions?.equals(captured)).toBe(true);
+
+                    const encoded = new BiomeDefinitionListPacket();
+                    encoded.definitions = captured;
+                    encoded.encode({ protocolVersion });
+                    expect(encoded.getBuffer().subarray(1).equals(captured)).toBe(true);
+
+                    const stream = new BinaryStream(captured);
+                    const biomeCount = stream.readUnsignedVarInt();
+                    for (let i = 0; i < biomeCount; i++) {
+                        stream.readUnsignedShortLE();
+                        readBiomeDefinition(stream);
+                    }
+                    const stringCount = stream.readUnsignedVarInt();
+                    for (let i = 0; i < stringCount; i++) NetworkUtil.readString(stream);
+                    expect(stream.feof()).toBe(true);
+                }
+            );
+
             it('reads a hand-built buffer to its end', () => {
                 const pk = new BiomeDefinitionListPacket();
                 pk.setReadBuffer(Buffer.from([0x7a, 0x00, 0x00]));
@@ -121,6 +155,7 @@ describe('network', () => {
             it('uses the network id the client expects', () => {
                 expect(netIdFor('BiomeDefinitionListPacket')).toBe(PacketIdentifier.BIOME_DEFINITION_LIST);
                 expect(netIdFor('BiomeDefinitionListPacket')).toBe(0x7a);
+                expect(packetIds2225.BiomeDefinitionListPacket).toBe(0x7a);
             });
         });
     });

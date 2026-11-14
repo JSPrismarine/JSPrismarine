@@ -34,9 +34,17 @@ const SWITCH_BYTES = Buffer.from([
     0x00 // DetachFromEntity absent
 ]);
 
-/** A spline with one control point and no key frame, the optionals at its end absent. */
+/** A spline with one control point, no key frame and an empty identifier. */
 const SPLINE: CameraInstructionData = {
-    spline: { totalTime: 10, type: 1, curve: [new Vec3(1, 2, 3)], progressKeyFrames: [], rotationKeyFrames: [] }
+    spline: {
+        totalTime: 10,
+        type: 1,
+        curve: [new Vec3(1, 2, 3)],
+        progressKeyFrames: [],
+        rotationKeyFrames: [],
+        splineIdentifier: '',
+        loadFromJson: false
+    }
 };
 
 /** `SPLINE` on the wire. */
@@ -54,8 +62,8 @@ const SPLINE_BYTES = Buffer.from([
     ...[0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x40, 0x40], // one Vec3 (1, 2, 3)
     0x00, // progressKeyFrames count
     0x00, // rotationOption count
-    0x00, // splineIdentifier absent
-    0x00, // loadFromJson absent
+    0x00, // splineIdentifier, an empty string
+    0x00, // loadFromJson, false
     0x00, // AttachToEntity absent
     0x00 // DetachFromEntity absent
 ]);

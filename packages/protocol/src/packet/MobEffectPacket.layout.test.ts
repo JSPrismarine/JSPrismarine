@@ -21,8 +21,8 @@ const payload = {
     ambient: true
 };
 
-describe('the declarative MobEffect layout', () => {
-    const layout = layoutAt(mobEffectPacket, 2193);
+describe.each([2193, 2225])('the declarative MobEffect layout at protocol %i', (version) => {
+    const layout = layoutAt(mobEffectPacket, version);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

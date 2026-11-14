@@ -21,17 +21,14 @@ const NO_EMOTES = Buffer.from([...HEADER, ...RUNTIME_ID_BYTES, 0x00]);
 
 describe('EmoteListPacket', () => {
     it('writes the runtime id as a varuint64, then the count and each uuid', () => {
-        const packet = new EmoteListPacket();
-        packet.runtimeId = RUNTIME_ID;
-        packet.emoteIds = [UUID.fromString(EMOTE_ID)];
+        const packet = new EmoteListPacket({ runtimeId: RUNTIME_ID, emoteIds: [UUID.fromString(EMOTE_ID)] });
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(ONE_EMOTE);
     });
 
     it('writes an empty list as a zero count after the runtime id', () => {
-        const packet = new EmoteListPacket();
-        packet.runtimeId = RUNTIME_ID;
+        const packet = new EmoteListPacket({ runtimeId: RUNTIME_ID, emoteIds: [] });
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(NO_EMOTES);
@@ -42,8 +39,9 @@ describe('EmoteListPacket', () => {
         packet.setReadBuffer(ONE_EMOTE);
         packet.decode();
 
-        expect(packet.runtimeId).toBe(RUNTIME_ID);
-        expect(packet.emoteIds.map((id) => id.toString())).toEqual([EMOTE_ID]);
+        const data = packet.getPacketData();
+        expect(data?.runtimeId).toBe(RUNTIME_ID);
+        expect(data?.emoteIds.map((id) => id.toString())).toEqual([EMOTE_ID]);
         expect(packet.feof()).toBe(true);
     });
 
@@ -52,8 +50,7 @@ describe('EmoteListPacket', () => {
         packet.setReadBuffer(NO_EMOTES);
         packet.decode();
 
-        expect(packet.runtimeId).toBe(RUNTIME_ID);
-        expect(packet.emoteIds).toEqual([]);
+        expect(packet.getPacketData()).toEqual({ runtimeId: RUNTIME_ID, emoteIds: [] });
         expect(packet.feof()).toBe(true);
     });
 });

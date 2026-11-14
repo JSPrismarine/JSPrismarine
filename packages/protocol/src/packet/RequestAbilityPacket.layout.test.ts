@@ -10,8 +10,10 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('d704c70100009040', 'hex');
 const payload = { ability: -300, valueType: 199, boolValue: true, floatValue: 4.5 };
 
-describe('the declarative RequestAbility layout', () => {
-    const layout = layoutAt(requestAbilityPacket, 2193);
+// Protocol 2225 (1.26.60) carries the same four fields as 2193 (1.26.50); the packet's page lists no
+// change between them.
+describe.each([2193, 2225])('the declarative RequestAbility layout at protocol %i', (protocol) => {
+    const layout = layoutAt(requestAbilityPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

@@ -15,8 +15,11 @@ export default class ClientMovementPredictionSyncHandler implements ConnectionLa
 
     /** Logs the actor, its speeds, and whether it is flying. */
     public handle(packet: ClientMovementPredictionSyncPacket, { session, log }: SessionContext): void {
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a ClientMovementPredictionSyncPacket without decoded data');
+
         log.debug(
-            `${session.identity.name} predicts actor ${packet.actorUniqueId} with speed ${packet.movementSpeed}, jump ${packet.jumpStrength}, box ${packet.boundingBoxWidth}x${packet.boundingBoxHeight}, flags 0x${packet.actorFlags.toString(16)}${packet.actorFlyingState ? ', flying' : ''}`,
+            `${session.identity.name} predicts actor ${data.actorUniqueId} with speed ${data.movementSpeed}, jump ${data.jumpStrength}, box ${data.boundingBoxWidth}x${data.boundingBoxHeight}, flags 0x${data.actorFlags.toString(16)}${data.actorFlyingState ? ', flying' : ''}`,
             'ClientMovementPredictionSyncHandler/handle'
         );
     }

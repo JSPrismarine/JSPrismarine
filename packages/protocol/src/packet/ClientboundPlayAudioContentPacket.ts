@@ -10,6 +10,7 @@ import type { PlaySoundPayload, SignedAudioContent } from '../wire/definitions/a
  * declarative definition, read off Mojang's v1.26.60 release schemas. A codec older than 2225
  * has no id for it, so only a 2225 session ever builds one.
  *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-play-audio-content-packet/
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class ClientboundPlayAudioContentPacket extends FieldNetworkPacket {
@@ -20,7 +21,7 @@ export default class ClientboundPlayAudioContentPacket extends FieldNetworkPacke
     public playbackContent: SignedAudioContent = { compactJwt: '' };
 
     /** `playbackType`. */
-    public playbackType: number = AudioContentPlaybackType.Sound;
+    public playbackType: string = AudioContentPlaybackType.Sound;
 
     /** `playSound`. */
     public playSound: PlaySoundPayload = {

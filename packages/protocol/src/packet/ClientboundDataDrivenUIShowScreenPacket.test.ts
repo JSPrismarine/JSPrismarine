@@ -25,7 +25,8 @@ const WITH_DATA_BYTES = Buffer.from([
 
 const WITHOUT_DATA: ClientboundDataDrivenUIShowScreen = {
     screenId: 'a',
-    formId: 7
+    formId: 7,
+    dataInstanceId: undefined
 };
 
 /** `WITHOUT_DATA` on the wire: the header, a one-byte screen id, the form id, an absent optional. */
@@ -40,7 +41,7 @@ describe('ClientboundDataDrivenUIShowScreenPacket', () => {
     it.each([
         ['a data instance', WITH_DATA, WITH_DATA_BYTES],
         ['no data instance', WITHOUT_DATA, WITHOUT_DATA_BYTES]
-    ])('writes a screen with %s in the order protocol 2193 defines', (_, data, bytes) => {
+    ])('writes a screen with %s in the order the docs list them', (_, data, bytes) => {
         const buffer = new ClientboundDataDrivenUIShowScreenPacket(data).serialize(new NetworkBinaryStream());
 
         expect([...buffer]).toEqual([...bytes]);
@@ -55,6 +56,23 @@ describe('ClientboundDataDrivenUIShowScreenPacket', () => {
 
         expect(read).toStrictEqual(data);
         expect(stream.feof()).toBe(true);
+    });
+
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        for (const [data, bytes] of [
+            [WITH_DATA, WITH_DATA_BYTES],
+            [WITHOUT_DATA, WITHOUT_DATA_BYTES]
+        ] as const) {
+            const packet = new ClientboundDataDrivenUIShowScreenPacket(data);
+            packet.codecProtocol = protocol;
+            expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...bytes]);
+
+            const decoder = new ClientboundDataDrivenUIShowScreenPacket();
+            decoder.codecProtocol = protocol;
+            const stream = new NetworkBinaryStream(bytes);
+            expect(decoder.deserialize(stream)).toStrictEqual(data);
+            expect(stream.feof()).toBe(true);
+        }
     });
 
     it('round-trips a populated packet', () => {

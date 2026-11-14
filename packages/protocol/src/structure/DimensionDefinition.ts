@@ -24,7 +24,7 @@ import { Generator } from '@jsprismarine/minecraft';
  * Protocol 2225 appends:
  * 6. `Cloud Height`: ZigZag varint32, the block y clouds render at.
  * 7. `Render Clouds`: bool, whether the dimension draws clouds.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/dimension-definition/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/dimension-definition/}
  */
 export default class DimensionDefinition extends NetworkStructure {
     /**

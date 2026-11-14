@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { packetIds as packetIds2193, protocolVersion as protocol2193 } from '../wire/versions/v2193';
+import { packetIds as packetIds2225, protocolVersion as protocol2225 } from '../wire/versions/v2225';
 import ClientboundTextureShiftPacket, { TextureShiftAction } from './ClientboundTextureShiftPacket';
 
 import type { ClientboundTextureShift } from './ClientboundTextureShiftPacket';
@@ -44,5 +46,20 @@ describe('ClientboundTextureShiftPacket', () => {
 
         expect(data).toEqual(DATA);
         expect(stream.feof()).toBe(true);
+    });
+
+    it.each([
+        [protocol2193, packetIds2193],
+        [protocol2225, packetIds2225]
+    ])('writes and reads the same bytes at protocol %i, under the id 336', (protocol, ids) => {
+        expect(ids.ClientboundTextureShiftPacket).toBe(336);
+
+        const packet = new ClientboundTextureShiftPacket(DATA);
+        packet.codecProtocol = protocol;
+        expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...BYTES]);
+
+        const reader = new ClientboundTextureShiftPacket();
+        reader.codecProtocol = protocol;
+        expect(reader.deserialize(new NetworkBinaryStream(BYTES))).toEqual(DATA);
     });
 });

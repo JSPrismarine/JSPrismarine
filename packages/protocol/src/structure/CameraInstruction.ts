@@ -162,10 +162,10 @@ export interface CameraSplineInstruction {
     progressKeyFrames: CameraSplineProgressKeyFrame[];
     /** `rotationOption`: a varuint32 count, then the entries. */
     rotationKeyFrames: CameraSplineRotationKeyFrame[];
-    /** `splineIdentifier`, optional: a named spline from `CameraSplinePacket` to load. */
-    splineIdentifier?: string;
-    /** `loadFromJson`, optional. */
-    loadFromJson?: boolean;
+    /** `splineIdentifier`, a string with no presence byte: a named spline from `CameraSplinePacket` to load. */
+    splineIdentifier: string;
+    /** `loadFromJson`, a boolean with no presence byte. */
+    loadFromJson: boolean;
 }
 
 /**
@@ -206,7 +206,7 @@ export interface CameraInstructionData {
  * `FieldOfView` (`Field of View` and `FOV Ease Time` float LE, `FOV Ease Type` string,
  * `Field of View Clear` boolean); `Spline` (`totalTime` float LE, `type` uint8, `curve` as a
  * varuint32 count of Vec3, `progressKeyFrames` and `rotationOption` as varuint32 counts of
- * entries, optional `splineIdentifier` string, optional `loadFromJson` boolean);
+ * entries, `splineIdentifier` string and `loadFromJson` boolean, neither behind a presence byte);
  * `AttachToEntity` int64 LE; `DetachFromEntity` boolean.
  *
  * The 1.26.51 schema lists the nine parts as required, but the client reads a presence byte
@@ -308,8 +308,8 @@ export default class CameraInstruction extends NetworkStructure {
             stream.writeFloatLE(frame.time);
             stream.writeString(frame.easing);
         }
-        stream.writeOptional(spline.splineIdentifier, (identifier) => stream.writeString(identifier));
-        stream.writeOptional(spline.loadFromJson, (load) => stream.writeBoolean(load));
+        stream.writeString(spline.splineIdentifier);
+        stream.writeBoolean(spline.loadFromJson);
     }
 
     private static readSpline(stream: NetworkBinaryStream): CameraSplineInstruction {
@@ -348,8 +348,8 @@ export default class CameraInstruction extends NetworkStructure {
             curve,
             progressKeyFrames,
             rotationKeyFrames,
-            splineIdentifier: stream.readOptional(() => stream.readString()),
-            loadFromJson: stream.readOptional(() => stream.readBoolean())
+            splineIdentifier: stream.readString(),
+            loadFromJson: stream.readBoolean()
         };
     }
 

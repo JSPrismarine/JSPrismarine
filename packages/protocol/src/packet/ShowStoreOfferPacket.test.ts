@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { netIdFor } from '../wire/versions/v2193';
+import { packetIds as packetIds2225, protocolVersion as protocol2225 } from '../wire/versions/v2225';
 import UUID from '../wire/structures/UUID';
 import ShowStoreOfferPacket, { ShowStoreOfferRedirectType } from './ShowStoreOfferPacket';
 
@@ -33,5 +34,23 @@ describe('ShowStoreOfferPacket', () => {
     it('is registered for packet 0x5b', () => {
         expect(netIdFor('ShowStoreOfferPacket')).toBe(0x5b);
         expect(new ShowStoreOfferPacket().getId()).toBe(0x5b);
+    });
+
+    it('keeps the same id and bytes at protocol 2225', () => {
+        expect(packetIds2225.ShowStoreOfferPacket).toBe(0x5b);
+
+        const decoded = new ShowStoreOfferPacket(encoded);
+        decoded.codecProtocol = protocol2225;
+        decoded.decode();
+        expect(decoded.offerId.toString()).toBe('00112233-4455-6677-8899-aabbccddeeff');
+        expect(decoded.redirectType).toBe(ShowStoreOfferRedirectType.ThirdPartyServerPage);
+        expect(decoded.feof()).toBe(true);
+
+        const packet = new ShowStoreOfferPacket();
+        packet.codecProtocol = protocol2225;
+        packet.offerId = UUID.fromString('00112233-4455-6677-8899-aabbccddeeff');
+        packet.redirectType = ShowStoreOfferRedirectType.ThirdPartyServerPage;
+        packet.encode();
+        expect(packet.getBuffer()).toEqual(encoded);
     });
 });

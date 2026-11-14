@@ -1,25 +1,19 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import BlockPos from '../structure/BlockPos';
+import { lecternUpdatePacket } from '../wire/definitions/lecternUpdate';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { LecternUpdate } from '../wire/definitions/lecternUpdate';
 
-/** A player turning to a page in a lectern book. */
-export interface LecternUpdate {
-    /** Zero-based page the client wants shown. */
-    newPage: number;
-    /** Number of pages in the book, as the client sees it. */
-    totalPages: number;
-    /** Position of the lectern, encoded as a signed `BlockPos`. */
-    position: BlockPos;
-}
+export type { LecternUpdate };
 
 /**
  * The client tells the server which page to display on a lectern.
  *
- * Protocol 2193 layout: `Page` (uint8), `Total Pages` (uint8), then `Position` as three
- * ZigZag varint32 coordinates. Dropping the book is no longer part of this packet.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/lectern-update-packet/
+ * Protocols 2193 and 2225 share one layout: `New page to show` (uint8), `Total Pages` (uint8),
+ * then `Position of Lectern to update` as three ZigZag varint32 coordinates.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/lectern-update-packet/
  */
 export default class LecternUpdatePacket extends NetworkPacket<LecternUpdate> {
     public get id(): number {
@@ -27,16 +21,10 @@ export default class LecternUpdatePacket extends NetworkPacket<LecternUpdate> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: LecternUpdate): void {
-        stream.writeByte(data.newPage);
-        stream.writeByte(data.totalPages);
-        data.position.serialize(stream);
+        layoutAt(lecternUpdatePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): LecternUpdate {
-        const newPage = stream.readByte();
-        const totalPages = stream.readByte();
-        const position = new BlockPos(0, 0, 0);
-        position.deserialize(stream);
-        return { newPage, totalPages, position };
+        return layoutAt(lecternUpdatePacket, this.codecProtocol).decode(stream);
     }
 }

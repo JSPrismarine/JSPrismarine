@@ -35,7 +35,7 @@ export enum MobEffectEvent {
  * | Effect Duration Ticks | varint32 | Negative never expires |
  * | Tick | varuint64 | PlayerInputTick; zero when the target is not the client's own player |
  * | Ambient | boolean | Set for beacon and conduit effects |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-effect-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/mob-effect-packet/
  */
 export default class MobEffectPacket extends FieldNetworkPacket {
     /** Target Runtime ID, the actor the effect is on. */

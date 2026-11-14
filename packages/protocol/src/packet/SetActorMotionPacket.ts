@@ -15,11 +15,12 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * Mobs do not need it: the server moves them, and `MoveActorAbsolutePacket` already says where
  * they ended up.
  *
- * Protocol 2193 wire order, with the docs' field names: `Target Runtime ID` (varuint64),
- * `Motion` (three little-endian floats), `Tick` (a `PlayerInputTick`, a varuint64).
+ * Wire order, identical at protocols 2193 and 2225, with the docs' field names:
+ * `Target Runtime ID` (varuint64), `Motion` (three little-endian floats), `Tick` (a
+ * `PlayerInputTick`, a varuint64).
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-actor-motion-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-actor-motion-packet/
  */
 export default class SetActorMotionPacket extends FieldNetworkPacket {
     public runtimeEntityId!: bigint;

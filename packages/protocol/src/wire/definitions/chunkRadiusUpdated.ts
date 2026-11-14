@@ -1,7 +1,8 @@
 /**
  * The view distance exchange: the client's `RequestChunkRadius` and the server's
  * `ChunkRadiusUpdated` answer.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/ChunkRadiusUpdated.html}
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/chunk-radius-updated-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/request-chunk-radius-packet/
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

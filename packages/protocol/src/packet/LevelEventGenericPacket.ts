@@ -18,7 +18,7 @@ import { levelEventGenericPacket } from '../wire/definitions/levelEventGeneric';
  * | ---- |:----:|:-----:|
  * | Event Id | varint32 | ZigZag |
  * | Event data | headless compound | The docs type it `unknown`; see {@link serializedEventData} |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-event-generic-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/level-event-generic-packet/
  */
 export default class LevelEventGenericPacket extends FieldNetworkPacket {
     /** Which event this is, and so what the data holds. */

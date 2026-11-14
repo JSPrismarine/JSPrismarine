@@ -40,6 +40,21 @@ describe('PlayerLocationPacket', () => {
         expect(hide.feof()).toBe(true);
     });
 
+    it.each([2193, 2225])('round-trips both forms at protocol %i', (protocol) => {
+        for (const [value, bytes] of [
+            [COORDINATES, COORDINATES_BYTES],
+            [HIDE, HIDE_BYTES]
+        ] as const) {
+            const packet = new PlayerLocationPacket(value);
+            packet.codecProtocol = protocol;
+            expect(packet.serialize(new NetworkBinaryStream())).toEqual(bytes);
+
+            const reader = new PlayerLocationPacket();
+            reader.codecProtocol = protocol;
+            expect(reader.deserialize(new NetworkBinaryStream(bytes))).toEqual(value);
+        }
+    });
+
     it('rejects an unknown alternative', () => {
         expect(() =>
             new PlayerLocationPacket().deserialize(new NetworkBinaryStream(Buffer.from([0xc6, 0x02, 0x02, 0x05, 0x0a])))

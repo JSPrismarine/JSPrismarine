@@ -1,7 +1,9 @@
 /**
  * The armor trim patterns and materials available to the client. The docs type ids and item
  * names as `hashed_string`; the wire carries plain strings and the client hashes them on receipt.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/trim-data-packet/}
+ * The real BDS captures `0x12e.bin` at v2193 and v2225 decode as varuint-prefixed strings
+ * (`TrimDataPacket.test.ts` round-trips them).
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/trim-data-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

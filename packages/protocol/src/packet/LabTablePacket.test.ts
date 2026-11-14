@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { layoutAt } from '../wire/WireLayout';
+import { labTablePacket } from '../wire/definitions/labTable';
+
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import BlockPos from '../structure/BlockPos';
 import LabTablePacket, { LabTableReactionType, LabTableType } from './LabTablePacket';
@@ -20,6 +23,24 @@ describe('LabTablePacket', () => {
         const stream = new NetworkBinaryStream(ENCODED);
 
         expect(new LabTablePacket().deserialize(stream)).toEqual(DATA);
+        expect(stream.feof()).toBe(true);
+    });
+});
+
+describe.each([2193, 2225])('the LabTablePacket layout at protocol %i', (protocol) => {
+    const layout = layoutAt(labTablePacket, protocol);
+
+    it('writes the payload bytes, ids and reactions as uint8 and the position as ZigZag varints', () => {
+        const stream = new NetworkBinaryStream();
+        layout.encode(stream, DATA);
+
+        expect(stream.getBuffer()).toEqual(ENCODED.subarray(1));
+    });
+
+    it('reads those bytes back', () => {
+        const stream = new NetworkBinaryStream(ENCODED.subarray(1));
+
+        expect(layout.decode(stream)).toEqual(DATA);
         expect(stream.feof()).toBe(true);
     });
 });

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { layoutAt } from '../wire/WireLayout';
+import { blockPickRequestPacket } from '../wire/definitions/blockPickRequest';
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import BlockPos from '../structure/BlockPos';
 import BlockPickRequestPacket from './BlockPickRequestPacket';
@@ -22,5 +24,21 @@ describe('BlockPickRequestPacket', () => {
 
         expect(data).toEqual(DATA);
         expect(stream.feof()).toBe(true);
+    });
+});
+
+describe.each([2193, 2225])('the BlockPickRequestPacket layout at protocol %i', (protocol) => {
+    const layout = layoutAt(blockPickRequestPacket, protocol);
+    const body = BYTES.subarray(1);
+
+    it('writes the same body at every version', () => {
+        const stream = new NetworkBinaryStream();
+        layout.encode(stream, DATA);
+
+        expect(stream.getBuffer()).toEqual(body);
+    });
+
+    it('reads that body back', () => {
+        expect(layout.decode(new NetworkBinaryStream(body))).toEqual(DATA);
     });
 });

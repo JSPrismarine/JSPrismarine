@@ -1,6 +1,6 @@
 /**
  * `PacketViolationWarningPacket`: The client reporting that a packet the server sent did not parse.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/packet-violation-warning-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/packet-violation-warning-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

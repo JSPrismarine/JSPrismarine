@@ -1,7 +1,7 @@
 /**
  * The boss bar at the top of a player's screen.
  *
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/boss-event-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/boss-event-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
@@ -11,7 +11,7 @@ import type { PayloadOf } from '../define';
 /**
  * The `BossEventPacket` field list.
  *
- * Every field travels whatever the `Event Type` is. Up to protocol 2192 the packet also
+ * Every field travels whatever the `Event Type` is. Before protocol 2192 the packet also
  * carried a `Player ID` between the target and the event type, and only wrote the fields the
  * event type used. A reader that still expects that layout takes the event type for the first
  * byte of a ZigZag `Player ID` and misreads the rest of the packet.

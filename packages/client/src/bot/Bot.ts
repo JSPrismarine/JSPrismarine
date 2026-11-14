@@ -87,7 +87,7 @@ export default class Bot {
                 if (move.runtimeEntityId !== this.runtimeEntityId) return;
                 if (move.mode !== PositionMode.Teleport && move.mode !== PositionMode.Respawn) return;
 
-                this.position = { ...move.position };
+                this.position = { x: move.position.getX(), y: move.position.getY(), z: move.position.getZ() };
                 this.pitch = move.pitch;
                 this.yaw = move.yaw;
                 this.headYaw = move.headYaw;

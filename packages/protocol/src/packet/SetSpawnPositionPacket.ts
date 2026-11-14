@@ -23,7 +23,7 @@ export type SetSpawnPositionPayload = PayloadOf<typeof setSpawnPositionPacket>;
  * The payload contains a `Spawn Position Type`, `Block Position`, `Dimension type`, and
  * `Spawn Block Pos`, in that order. Both positions use three ZigZag varint32 coordinates. A
  * bed respawn position is sent through `RespawnPacket` instead.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-spawn-position-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-spawn-position-packet/
  */
 export default class SetSpawnPositionPacket extends NetworkPacket<SetSpawnPositionPayload> {
     public get id(): number {

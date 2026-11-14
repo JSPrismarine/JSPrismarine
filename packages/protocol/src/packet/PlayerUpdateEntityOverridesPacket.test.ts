@@ -105,6 +105,17 @@ describe('PlayerUpdateEntityOverridesPacket', () => {
         expect(stream.feof()).toBe(true);
     });
 
+    it.each([2193, 2225])('writes the same bytes at protocol %i', (protocol) => {
+        const packet = new PlayerUpdateEntityOverridesPacket(SET_INT);
+        packet.codecProtocol = protocol;
+
+        expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...SET_INT_BYTES]);
+
+        const reader = new PlayerUpdateEntityOverridesPacket();
+        reader.codecProtocol = protocol;
+        expect(reader.deserialize(new NetworkBinaryStream(SET_INT_BYTES))).toEqual(SET_INT);
+    });
+
     it('ignores the casing of Type, as the docs spell it differently', () => {
         const { data, stream } = decode(
             Buffer.from([...HEADER, ...TARGET_AND_INDEX, 0x01, 0x0e, ...Buffer.from('RemoveOverride', 'utf8')])

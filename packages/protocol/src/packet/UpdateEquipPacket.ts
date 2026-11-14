@@ -1,4 +1,6 @@
 import FieldNetworkPacket from '../FieldNetworkPacket';
+import { updateEquipPacket } from '../wire/definitions/updateEquip';
+import { layoutAt } from '../wire/WireLayout';
 
 /**
  * The contents of a horse inventory, sent when a player opens one.
@@ -11,7 +13,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * end of the packet, so it is carried as raw bytes. Nothing builds one yet.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-equip-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-equip-packet/
  */
 export default class UpdateEquipPacket extends FieldNetworkPacket {
     /** The id of the opened window. */
@@ -31,19 +33,11 @@ export default class UpdateEquipPacket extends FieldNetworkPacket {
 
     /** Reads the window fields, the actor, and the rest of the packet as the inventory NBT. */
     public decodePayload(): void {
-        this.containerId = this.readByte();
-        this.type = this.readByte();
-        this.size = this.readVarInt();
-        this.entityUniqueId = this.readVarLong();
-        this.data = this.readRemaining();
+        Object.assign(this, layoutAt(updateEquipPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the window fields, the actor, and the inventory NBT. */
     public encodePayload(): void {
-        this.writeByte(this.containerId);
-        this.writeByte(this.type);
-        this.writeVarInt(this.size);
-        this.writeVarLong(this.entityUniqueId);
-        this.write(this.data);
+        layoutAt(updateEquipPacket, this.codecProtocol).encode(this, this);
     }
 }

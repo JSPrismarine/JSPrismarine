@@ -52,6 +52,31 @@ describe('the packets protocol 2225 added', () => {
         expect(roundTrip(clientboundMatchmakingStatePacket, without)).toEqual(without);
     });
 
+    it('gives each matchmaking option its own presence byte, as the 1.26.60 page marks both optional', () => {
+        const encode = (options: unknown): Buffer => {
+            const stream = new BinaryStream();
+            layoutAt(clientboundMatchmakingStatePacket, PROTOCOL_2225).encode(stream, {
+                state: MatchmakingState.Matchmaking,
+                destinationName: '',
+                options
+            } as never);
+            return stream.getBuffer();
+        };
+
+        // State, empty destination (one length byte), options present, then two presence bytes.
+        expect([...encode({ triggeringPlayerName: null, triggeredByLocalPlayer: null })]).toEqual([1, 0, 1, 0, 0]);
+        expect([...encode({ triggeringPlayerName: 'a', triggeredByLocalPlayer: false })]).toEqual([
+            1, 0, 1, 1, 1, 0x61, 1, 0
+        ]);
+
+        const partial = {
+            state: MatchmakingState.Idle,
+            destinationName: 'd',
+            options: { triggeringPlayerName: null, triggeredByLocalPlayer: true }
+        };
+        expect(roundTrip(clientboundMatchmakingStatePacket, partial)).toEqual(partial);
+    });
+
     it('writes an empty payload for the matchmaking cancel', () => {
         const layout = layoutAt(serverboundMatchmakingCancelPacket, PROTOCOL_2225);
         expect(layout.fields).toHaveLength(0);
@@ -76,6 +101,17 @@ describe('the packets protocol 2225 added', () => {
     it('round-trips the clientbound stonecutter recipe with its actor id', () => {
         const payload = { playerId: -42n, containerId: 1, recipeIndex: 7 };
         expect(roundTrip(clientboundStonecutterSetRecipePacket, payload)).toEqual(payload);
+    });
+
+    it('writes the clientbound stonecutter recipe as varint64, uint8, varint32', () => {
+        const stream = new BinaryStream();
+        layoutAt(clientboundStonecutterSetRecipePacket, PROTOCOL_2225).encode(stream, {
+            playerId: -42n,
+            containerId: 1,
+            recipeIndex: 7
+        });
+        // ZigZag: -42 -> 83 (0x53), 7 -> 14 (0x0e); the container id is a single raw byte.
+        expect([...stream.getBuffer()]).toEqual([0x53, 0x01, 0x0e]);
     });
 
     it('round-trips a block passenger, seated and unseated', () => {
@@ -117,6 +153,29 @@ describe('the packets protocol 2225 added', () => {
             }
         };
         expect(roundTrip(clientboundPlayAudioContentPacket, payload)).toEqual(payload);
+    });
+
+    it('writes the audio content playback type as a length-prefixed string', () => {
+        const layout = layoutAt(clientboundPlayAudioContentPacket, PROTOCOL_2225);
+        const stream = new BinaryStream();
+        layout.encode(stream, {
+            sharedMetadata: { compactJwt: '' },
+            playbackContent: { compactJwt: '' },
+            playbackType: AudioContentPlaybackType.Music,
+            playSound: {
+                name: '',
+                position: { x: 0, y: 0, z: 0 },
+                volume: 1,
+                pitch: 1,
+                loopCount: 0,
+                bypassListenerRangeCheck: false,
+                serverSoundHandle: null,
+                playbackPositionSeconds: null
+            }
+        });
+        const bytes = stream.getBuffer();
+        // Two empty JWT strings, then the playback type: varuint length 5 and "Music".
+        expect([...bytes.subarray(2, 8)]).toEqual([5, 0x4d, 0x75, 0x73, 0x69, 0x63]);
     });
 
     it('leaves the PlaySound trailers off the wire when they are absent', () => {

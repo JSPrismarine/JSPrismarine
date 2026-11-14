@@ -1,20 +1,22 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { clientboundDataDrivenUICloseScreenPacket } from '../wire/definitions/clientboundDataDrivenUICloseScreen';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { ClientboundDataDrivenUICloseScreenPayload } from '../wire/definitions/clientboundDataDrivenUICloseScreen';
 
 /** The fields of a `ClientboundDataDrivenUICloseScreenPacket`, in wire order. */
-export interface ClientboundDataDrivenUICloseScreen {
-    /** `FormId` of the one screen to close. Omit it to close every data-driven screen. */
-    formId?: number;
-}
+export type ClientboundDataDrivenUICloseScreen = ClientboundDataDrivenUICloseScreenPayload;
 
 /**
  * Tells the client to close one data-driven UI screen, or all of them.
  *
- * Protocol 2193 layout: `FormId` as an optional, one presence byte followed by a
+ * Protocol 2193 and 2225 layout, which do not differ: `FormId` as an optional, one presence byte followed by a
  * little-endian uint32 when the byte is 0x01. A packet whose presence byte is 0x00 closes
  * every open data-driven screen.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-data-driven-uiclose-screen-packet/
  */
 export default class ClientboundDataDrivenUICloseScreenPacket extends NetworkPacket<ClientboundDataDrivenUICloseScreen> {
     public get id(): number {
@@ -22,13 +24,10 @@ export default class ClientboundDataDrivenUICloseScreenPacket extends NetworkPac
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ClientboundDataDrivenUICloseScreen): void {
-        stream.writeBoolean(data.formId !== undefined);
-        if (data.formId !== undefined) {
-            stream.writeUnsignedIntLE(data.formId);
-        }
+        layoutAt(clientboundDataDrivenUICloseScreenPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ClientboundDataDrivenUICloseScreen {
-        return stream.readBoolean() ? { formId: stream.readUnsignedIntLE() } : {};
+        return layoutAt(clientboundDataDrivenUICloseScreenPacket, this.codecProtocol).decode(stream);
     }
 }

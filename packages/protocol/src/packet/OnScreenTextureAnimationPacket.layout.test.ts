@@ -16,8 +16,8 @@ const CASES = [
     { branch: 'for the first effect', bytes: Buffer.from('01000000', 'hex'), payload: { animationType: 1 } }
 ];
 
-describe('the declarative OnScreenTextureAnimation layout', () => {
-    const layout = layoutAt(onScreenTextureAnimationPacket, 2193);
+describe.each([2193, 2225] as const)('the declarative OnScreenTextureAnimation layout at protocol %i', (version) => {
+    const layout = layoutAt(onScreenTextureAnimationPacket, version);
 
     for (const { branch, bytes, payload } of CASES) {
         it(`writes the bytes the hand-written encoder wrote ${branch}`, () => {

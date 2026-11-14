@@ -34,4 +34,20 @@ describe('RecordStartedPacket', () => {
         expect(data).toEqual(DATA);
         expect(stream.feof()).toBe(true);
     });
+
+    it('writes the same bytes at protocol 2225, which changed nothing here', () => {
+        const packet = new RecordStartedPacket(DATA);
+        packet.codecProtocol = 2225;
+
+        expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...BYTES]);
+    });
+
+    it('reads the same bytes at protocol 2225', () => {
+        const packet = new RecordStartedPacket();
+        packet.codecProtocol = 2225;
+        const stream = new NetworkBinaryStream(BYTES);
+
+        expect(packet.deserialize(stream)).toEqual(DATA);
+        expect(stream.feof()).toBe(true);
+    });
 });

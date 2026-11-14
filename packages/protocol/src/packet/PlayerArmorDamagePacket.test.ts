@@ -46,4 +46,22 @@ describe('PlayerArmorDamagePacket', () => {
         ]);
         expect(packet.feof()).toBe(true);
     });
+
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const encoded = new PlayerArmorDamagePacket();
+        encoded.codecProtocol = protocol;
+        encoded.armorSlotAndDamagePairs = [
+            { armorSlot: ArmorSlot.HEAD, damage: 5 },
+            { armorSlot: ArmorSlot.BODY, damage: -1 }
+        ];
+        encoded.encode();
+        expect(encoded.getBuffer()).toEqual(Buffer.from([...HEADER, ...PAIRS]));
+
+        const decoded = new PlayerArmorDamagePacket();
+        decoded.codecProtocol = protocol;
+        decoded.setReadBuffer(encoded.getBuffer());
+        decoded.decode();
+        expect(decoded.armorSlotAndDamagePairs).toEqual(encoded.armorSlotAndDamagePairs);
+        expect(decoded.feof()).toBe(true);
+    });
 });

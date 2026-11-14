@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('409c', 'hex');
 const payload = { type: 40000 };
 
-describe('the declarative SimpleEvent layout', () => {
-    const layout = layoutAt(simpleEventPacket, 2193);
+describe.each([2193, 2225] as const)('the declarative SimpleEvent layout at protocol %i', (protocol) => {
+    const layout = layoutAt(simpleEventPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

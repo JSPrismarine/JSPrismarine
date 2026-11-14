@@ -1,26 +1,21 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import BlockPos from '../structure/BlockPos';
+import { blockPickRequestPacket } from '../wire/definitions/blockPickRequest';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { BlockPickRequestPayload } from '../wire/definitions/blockPickRequest';
 
 /** The position and hotbar state the client sends when it picks a block. */
-export interface BlockPickRequest {
-    /** Block to pick, encoded as a {@link BlockPos}. */
-    position: BlockPos;
-    /** Whether the picked item should include the block's data. */
-    withData: boolean;
-    /** Empty hotbar slots available to receive the picked item. */
-    maxSlots: number;
-}
+export type BlockPickRequest = BlockPickRequestPayload;
 
 /**
  * Sent when a player picks up a block in the world. The request names the block, says whether
  * to copy its data, and reports the client's empty hotbar slots.
  *
- * Protocol 2193 layout: `Position` as a {@link BlockPos}, `With Data?` as a boolean, then
+ * Layout at protocols 2193 and 2225, which agree: `Position` as a BlockPos, `With Data?` as a boolean, then
  * `Max Slots` as a uint8.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/block-pick-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/block-pick-request-packet/
  */
 export default class BlockPickRequestPacket extends NetworkPacket<BlockPickRequest> {
     public get id(): number {
@@ -28,18 +23,10 @@ export default class BlockPickRequestPacket extends NetworkPacket<BlockPickReque
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: BlockPickRequest): void {
-        data.position.serialize(stream);
-        stream.writeBoolean(data.withData);
-        stream.writeByte(data.maxSlots);
+        layoutAt(blockPickRequestPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): BlockPickRequest {
-        const position = new BlockPos(0, 0, 0);
-        position.deserialize(stream);
-        return {
-            position,
-            withData: stream.readBoolean(),
-            maxSlots: stream.readByte()
-        };
+        return layoutAt(blockPickRequestPacket, this.codecProtocol).decode(stream);
     }
 }

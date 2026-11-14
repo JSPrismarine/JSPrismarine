@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('ac02', 'hex');
 const payload = { locks: 300 };
 
-describe('the declarative UpdateClientInputLocks layout', () => {
-    const layout = layoutAt(updateClientInputLocksPacket, 2193);
+describe.each([2193, 2225])('the declarative UpdateClientInputLocks layout at protocol %i', (protocol) => {
+    const layout = layoutAt(updateClientInputLocksPacket, protocol);
 
     it('writes the bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();

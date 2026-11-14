@@ -1,7 +1,11 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { graphicsOverrideParameterPacket } from '../wire/definitions/graphicsOverrideParameter';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { GraphicsOverrideParameterPayload } from '../wire/definitions/graphicsOverrideParameter';
+import type { Vec3Like } from '../wire/fieldTypes';
 
 /**
  * `GraphicsOverrideParameterType`: which rendering parameter a `GraphicsOverrideParameterPacket`
@@ -116,131 +120,44 @@ export enum GraphicsOverrideParameterType {
 }
 
 /** Three little-endian floats, the docs' `Vec3`. */
-export interface GraphicsVec3 {
-    /** `X`. */
-    x: number;
-    /** `Y`. */
-    y: number;
-    /** `Z`. */
-    z: number;
-}
+export type GraphicsVec3 = Vec3Like;
 
 /** One entry of `Parameter Keyframe Values`: a time of day and the parameter's value then. */
-export interface ParameterKeyframeValue {
-    /** The map key, a time of day as a little-endian float. */
-    time: number;
-    /**
-     * The value at that time. A color parameter uses all three components; a float, int, or
-     * bool parameter uses `x` alone.
-     */
-    value: GraphicsVec3;
-}
+export type ParameterKeyframeValue = GraphicsOverrideParameter['keyframeValues'][number];
 
 /** The fields of a `GraphicsOverrideParameterPacket`, in wire order. */
-export interface GraphicsOverrideParameter {
-    /** `Parameter Keyframe Values`, at most 255 entries. Empty when the override is a single value. */
-    keyframeValues: ParameterKeyframeValue[];
-    /** `Float Value`: a single float override. Omit when the parameter is keyframed or a Vec3. */
-    floatValue?: number;
-    /** `Vec3 Value`: a single Vec3 override. Omit when the parameter is keyframed or a float. */
-    vec3Value?: GraphicsVec3;
-    /** `Biome Identifier`: the biome the override applies to. */
-    biomeIdentifier: string;
-    /** `Player Identifier`: the player the override applies to. Omit for every player. */
-    playerIdentifier?: string;
-    /** `Identifier for Parameter`: which parameter changes. */
-    parameter: GraphicsOverrideParameterType;
-    /** `Reset Parameter`: when true the parameter returns to its default and the value fields are ignored. */
-    resetParameter: boolean;
-}
+export type GraphicsOverrideParameter = GraphicsOverrideParameterPayload;
 
 /**
  * A rendering parameter a server script overrides for a biome, optionally for one player.
  *
- * Protocol 2193 layout, in wire order: `Parameter Keyframe Values` as a varuint32 count then
- * per entry the time as a little-endian float and the value as three little-endian floats;
+ * Layout at protocols 2193 and 2225, in wire order: `Parameter Keyframe Values` as a varuint32
+ * count then per entry the time as a little-endian float and the value as three little-endian floats;
  * `Float Value` as a presence byte then a little-endian float; `Vec3 Value` as a presence
  * byte then three little-endian floats; `Biome Identifier` as a string; `Player Identifier`
  * as a presence byte then a string; `Identifier for Parameter` as a uint8 with the values of
  * {@link GraphicsOverrideParameterType}; `Reset Parameter` as one byte. Strings are a
  * varuint32 byte length followed by UTF-8.
  *
- * The 1.26.51 schema marks `Float Value` and `Vec3 Value` required, and the 1.26.60-preview.21
- * changelog says they "are now optional" with no release note of a wire change. gophertunnel
- * (protocol 2193) and PocketMine (protocol 1001) both read them with a presence byte, so this
- * class does too. `Player Identifier` arrived at 1.26.20 for per-player overrides.
+ * The 1.26.50 page prints `Float Value` and `Vec3 Value` plain and the 1.26.60 page marks them
+ * optional, with a changelog row saying they "are now optional". Mojang's note for that build
+ * calls such rows a documentation correction, so both protocols write the presence byte (see
+ * `docs/research/protocol-2225-delta.md`). `Player Identifier` is optional on both pages.
  *
  * Only a script's `BiomeGraphicsOverride` API produces this packet; the server has nothing
  * to send in it today.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/graphics-override-parameter-packet/
  */
 export default class GraphicsOverrideParameterPacket extends NetworkPacket<GraphicsOverrideParameter> {
     public get id(): number {
         return PacketIdentifier.GRAPHICS_OVERRIDE_PARAMETER;
     }
 
-    private static writeVec3(stream: NetworkBinaryStream, value: GraphicsVec3): void {
-        stream.writeFloatLE(value.x);
-        stream.writeFloatLE(value.y);
-        stream.writeFloatLE(value.z);
-    }
-
-    private static readVec3(stream: NetworkBinaryStream): GraphicsVec3 {
-        return { x: stream.readFloatLE(), y: stream.readFloatLE(), z: stream.readFloatLE() };
-    }
-
     protected serializePayload(stream: NetworkBinaryStream, data: GraphicsOverrideParameter): void {
-        stream.writeUnsignedVarInt(data.keyframeValues.length);
-        for (const keyframe of data.keyframeValues) {
-            stream.writeFloatLE(keyframe.time);
-            GraphicsOverrideParameterPacket.writeVec3(stream, keyframe.value);
-        }
-
-        stream.writeBoolean(data.floatValue !== undefined);
-        if (data.floatValue !== undefined) {
-            stream.writeFloatLE(data.floatValue);
-        }
-
-        stream.writeBoolean(data.vec3Value !== undefined);
-        if (data.vec3Value !== undefined) {
-            GraphicsOverrideParameterPacket.writeVec3(stream, data.vec3Value);
-        }
-
-        stream.writeString(data.biomeIdentifier);
-
-        stream.writeBoolean(data.playerIdentifier !== undefined);
-        if (data.playerIdentifier !== undefined) {
-            stream.writeString(data.playerIdentifier);
-        }
-
-        stream.writeByte(data.parameter);
-        stream.writeBoolean(data.resetParameter);
+        layoutAt(graphicsOverrideParameterPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): GraphicsOverrideParameter {
-        const keyframeValues: ParameterKeyframeValue[] = [];
-        let count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            keyframeValues.push({
-                time: stream.readFloatLE(),
-                value: GraphicsOverrideParameterPacket.readVec3(stream)
-            });
-        }
-
-        const floatValue = stream.readBoolean() ? stream.readFloatLE() : undefined;
-        const vec3Value = stream.readBoolean() ? GraphicsOverrideParameterPacket.readVec3(stream) : undefined;
-        const biomeIdentifier = stream.readString();
-        const playerIdentifier = stream.readBoolean() ? stream.readString() : undefined;
-        const parameter: GraphicsOverrideParameterType = stream.readByte();
-        const resetParameter = stream.readBoolean();
-
-        return {
-            keyframeValues,
-            ...(floatValue !== undefined && { floatValue }),
-            ...(vec3Value !== undefined && { vec3Value }),
-            biomeIdentifier,
-            ...(playerIdentifier !== undefined && { playerIdentifier }),
-            parameter,
-            resetParameter
-        };
+        return layoutAt(graphicsOverrideParameterPacket, this.codecProtocol).decode(stream);
     }
 }

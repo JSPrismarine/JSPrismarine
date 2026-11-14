@@ -17,9 +17,9 @@ export interface SettingsCommand {
  * Requests a setting change through commands. The client sends it when the player changes a
  * world setting such as the day and night cycle or weather from the world settings menu.
  *
- * Protocol 2193 layout: `Command` as a varuint32-length-prefixed UTF-8 string, then
+ * Protocol 2193 and 2225 layout (1.26.60 recorded no change): `Command` as a varuint32-length-prefixed UTF-8 string, then
  * `Suppress Output?` as a boolean.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/settings-command-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/settings-command-packet/
  */
 export default class SettingsCommandPacket extends NetworkPacket<SettingsCommand> {
     public get id(): number {

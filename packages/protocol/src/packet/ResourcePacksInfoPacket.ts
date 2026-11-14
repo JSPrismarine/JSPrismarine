@@ -1,7 +1,10 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { resourcePacksInfoPacket } from '../wire/definitions/resourcePacks';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { PayloadOf } from '../wire/define';
 
 /** One `PackInfoData` entry of the `Resource Packs` list. */
 export interface ResourcePackEntry {
@@ -39,20 +42,7 @@ export interface PackIdVersion {
 }
 
 /** The fields of a `ResourcePacksInfoPacket`, in wire order. */
-export interface ResourcePacksInfo {
-    /** `Resource Pack Required`: the client must apply the server's packs to join. */
-    resourcePackRequired: boolean;
-    /** `Has Addon Packs`: at least one pack is an add-on pack. */
-    hasAddonPacks: boolean;
-    /** `Has Scripts`: at least one pack carries client scripts. */
-    hasScripts: boolean;
-    /** `Force Disable Vibrant Visuals`: turns deferred rendering off for the session, whatever the client would prefer. */
-    forceDisableVibrantVisuals: boolean;
-    /** `World Template Id And Version`. All zeroes and an empty version when the world came from no template. */
-    worldTemplate: PackIdVersion;
-    /** `Resource Packs`, one entry per pack the client needs. */
-    packs: ResourcePackEntry[];
-}
+export type ResourcePacksInfo = PayloadOf<typeof resourcePacksInfoPacket>;
 
 /**
  * Which packs the client has to fetch before it may join.
@@ -67,71 +57,18 @@ export interface ResourcePacksInfo {
  *
  * The fourth flag and the world template arrived at 2168; a reader without them takes the
  * flag for the start of the template and drops the connection.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-packs-info-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-packs-info-packet/
  */
 export default class ResourcePacksInfoPacket extends NetworkPacket<ResourcePacksInfo> {
     public get id(): number {
         return PacketIdentifier.RESOURCE_PACKS_INFO;
     }
 
-    private static writeId(stream: NetworkBinaryStream, id: PackIdVersion): void {
-        stream.writeUnsignedLongLE(id.uuidMostSignificant);
-        stream.writeUnsignedLongLE(id.uuidLeastSignificant);
-        stream.writeString(id.version);
-    }
-
-    private static readId(stream: NetworkBinaryStream): PackIdVersion {
-        return {
-            uuidMostSignificant: stream.readUnsignedLongLE(),
-            uuidLeastSignificant: stream.readUnsignedLongLE(),
-            version: stream.readString()
-        };
-    }
-
     protected serializePayload(stream: NetworkBinaryStream, data: ResourcePacksInfo): void {
-        stream.writeBoolean(data.resourcePackRequired);
-        stream.writeBoolean(data.hasAddonPacks);
-        stream.writeBoolean(data.hasScripts);
-        stream.writeBoolean(data.forceDisableVibrantVisuals);
-        ResourcePacksInfoPacket.writeId(stream, data.worldTemplate);
-
-        stream.writeUnsignedVarInt(data.packs.length);
-        for (const pack of data.packs) {
-            ResourcePacksInfoPacket.writeId(stream, pack.id);
-            stream.writeUnsignedLongLE(pack.sizeBytes);
-            stream.writeString(pack.contentKey);
-            stream.writeString(pack.subPackName);
-            stream.writeString(pack.contentIdentity);
-            stream.writeBoolean(pack.hasScripts);
-            stream.writeBoolean(pack.isAddonPack);
-            stream.writeBoolean(pack.isRayTracingCapable);
-            stream.writeString(pack.cdnUrl);
-        }
+        layoutAt(resourcePacksInfoPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ResourcePacksInfo {
-        const resourcePackRequired = stream.readBoolean();
-        const hasAddonPacks = stream.readBoolean();
-        const hasScripts = stream.readBoolean();
-        const forceDisableVibrantVisuals = stream.readBoolean();
-        const worldTemplate = ResourcePacksInfoPacket.readId(stream);
-
-        const packs: ResourcePackEntry[] = [];
-        let count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            packs.push({
-                id: ResourcePacksInfoPacket.readId(stream),
-                sizeBytes: stream.readUnsignedLongLE(),
-                contentKey: stream.readString(),
-                subPackName: stream.readString(),
-                contentIdentity: stream.readString(),
-                hasScripts: stream.readBoolean(),
-                isAddonPack: stream.readBoolean(),
-                isRayTracingCapable: stream.readBoolean(),
-                cdnUrl: stream.readString()
-            });
-        }
-
-        return { resourcePackRequired, hasAddonPacks, hasScripts, forceDisableVibrantVisuals, worldTemplate, packs };
+        return layoutAt(resourcePacksInfoPacket, this.codecProtocol).decode(stream);
     }
 }

@@ -3,8 +3,13 @@ import { describe, expect, it } from 'vitest';
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import CreativeContentPacket, { CreativeItemCategory, creativeCategoryOf } from './CreativeContentPacket';
 
-import type { CreativeContent } from './CreativeContentPacket';
+import { creativeContentPacket } from '../wire/definitions/creativeContent';
+import { layoutAt } from '../wire/WireLayout';
 
+import type { CreativeContent } from './CreativeContentPacket';
+import { capture, enumDumpMembers } from '../testing/evidence.test.helper';
+
+/** A file of the repository, by its path from the root. */
 /** LEB128, which is what the docs call a varuint. */
 const varuint = (value: number): number[] => {
     const bytes: number[] = [];
@@ -139,6 +144,57 @@ describe('CreativeContentPacket', () => {
 
         it('files a tab it does not know under items, so the menu stays drawable', () => {
             expect(creativeCategoryOf('something_mojang_added')).toBe(CreativeItemCategory.ITEMS);
+        });
+    });
+
+    describe('Creative Category numbering', () => {
+        it("numbers the tabs 1 through 5, as Mojang's enum dump does", () => {
+            const members = enumDumpMembers('CreativeItemCategory');
+
+            expect(members.length).toBeGreaterThan(0);
+            for (const { name, value } of members) {
+                if (name === 'NUM_CATEGORIES') continue;
+                expect(CreativeItemCategory[value]?.replaceAll('_', '').toLowerCase()).toBe(name.toLowerCase());
+            }
+        });
+
+        // The 1.26.50 page prints the tabs as 0 through 4 and the 1.26.60 page as 1 through 5. The
+        // capture from a real server at protocol 2193 carries 1 for `itemGroup.name.planks`, a
+        // construction group, so the numbering is the same at both versions.
+        it.each([2193, 2225])('re-encodes the captured creative menu at protocol %i', (protocol) => {
+            const bytes = capture(protocol, 0x91);
+            const layout = layoutAt(creativeContentPacket, protocol);
+            const stream = new NetworkBinaryStream(bytes);
+            const payload = layout.decode(stream);
+
+            expect(stream.feof()).toBe(true);
+            expect(payload.groups[0]).toMatchObject({
+                name: 'itemGroup.name.planks',
+                category: CreativeItemCategory.CONSTRUCTION
+            });
+            expect(new Set(payload.groups.map(({ category }) => category))).toEqual(
+                new Set([
+                    CreativeItemCategory.CONSTRUCTION,
+                    CreativeItemCategory.NATURE,
+                    CreativeItemCategory.EQUIPMENT,
+                    CreativeItemCategory.ITEMS
+                ])
+            );
+
+            // Writing the Creative Net Ids from the entries' positions reproduces the capture, so
+            // the server numbers them one-based and in order.
+            const encoded = new NetworkBinaryStream();
+            layout.encode(encoded, payload);
+            expect(encoded.getBuffer().equals(bytes)).toBe(true);
+        });
+
+        it('keeps the 0xFFFFFFFF Group Index that marks an ungrouped entry', () => {
+            const data: CreativeContent = {
+                groups: [],
+                entries: [{ item: { runtimeId: 5, count: 1, meta: 0, blockRuntimeId: 0 }, group: 0xffffffff }]
+            };
+
+            expect(decode(encode(data)).entries[0]?.group).toBe(0xffffffff);
         });
     });
 });

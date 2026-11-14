@@ -19,8 +19,9 @@ import type { ScorePacketEntry } from '../wire/definitions/scoreboard';
  *
  * Before protocol 2193 the packet opened with a `ScorePacketType` byte and each entry carried an
  * `IdentityDefinitionType` byte after the score. Mojang's Cereal conversion notes retire that
- * layout; a 1.26.51 client reads the per-entry selector described above.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-score-packet/
+ * layout; a 1.26.51 client reads the per-entry selector described above. Protocols 2193 and
+ * 2225 share one wire layout.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-score-packet/
  */
 export default class SetScorePacket extends FieldNetworkPacket {
     /** The lines to add, change or remove. */

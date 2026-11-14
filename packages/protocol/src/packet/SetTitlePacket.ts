@@ -18,7 +18,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * text; the `*_TEXT_OBJECT` members carry the JSON form that the `titleraw` command builds.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-title-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-title-packet/
  */
 export default class SetTitlePacket extends FieldNetworkPacket {
     public titleType: TitleType = TitleType.TITLE;

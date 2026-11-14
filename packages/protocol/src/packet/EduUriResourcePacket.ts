@@ -1,15 +1,13 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import EduSharedUriResource from '../structure/EduSharedUriResource';
+import { eduUriResourcePacket } from '../wire/definitions/eduUriResource';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
-import type { EduSharedUriResourceData } from '../structure/EduSharedUriResource';
+import type { EduUriResourcePayload } from '../wire/definitions/eduUriResource';
 
 /** The fields of an `EduUriResourcePacket`, in wire order. */
-export interface EduUriResource {
-    /** `Edu Shared URI Resource`, the link and button label every client should show. */
-    eduSharedUriResource: EduSharedUriResourceData;
-}
+export type EduUriResource = EduUriResourcePayload;
 
 /**
  * The link an Education Edition server shares with every connected client.
@@ -18,7 +16,7 @@ export interface EduUriResource {
  * `LevelSettings` for a joining player; this packet updates it for players already in the
  * world.
  *
- * Protocol 2193 layout: one {@link EduSharedUriResource}, which is `Button Name` then
+ * Protocol 2193 layout: one `EduSharedUriResource`, which is `Button Name` then
  * `Link Uri`, both strings (a varuint32 byte length followed by UTF-8).
  */
 export default class EduUriResourcePacket extends NetworkPacket<EduUriResource> {
@@ -27,12 +25,10 @@ export default class EduUriResourcePacket extends NetworkPacket<EduUriResource> 
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: EduUriResource): void {
-        const { buttonName, linkUri } = data.eduSharedUriResource;
-        new EduSharedUriResource(buttonName, linkUri).serialize(stream);
+        layoutAt(eduUriResourcePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): EduUriResource {
-        const { buttonName, linkUri } = EduSharedUriResource.deserialize(stream);
-        return { eduSharedUriResource: { buttonName, linkUri } };
+        return layoutAt(eduUriResourcePacket, this.codecProtocol).decode(stream);
     }
 }

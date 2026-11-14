@@ -10,7 +10,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
  * "AbilitiesSet" marks which `AbilitiesIndex` bits the layer carries and "AbilityValues"
  * holds their booleans. The three speed indices (13, 14, 19) have no value bit; their
  * presence in "AbilitiesSet" says the matching float applies.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/serialized-abilities-data-serialized-layer/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/serialized-abilities-data-serialized-layer/}
  */
 export default class SerializedAbilityLayer extends NetworkStructure {
     public constructor(

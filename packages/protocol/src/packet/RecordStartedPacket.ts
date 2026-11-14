@@ -1,22 +1,21 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import BlockPos from '../structure/BlockPos';
+import { recordStartedPacket } from '../wire/definitions/recordStarted';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { RecordStartedPayload } from '../wire/definitions/recordStarted';
 
 /** The fields of a `RecordStartedPacket`, in wire order. */
-export interface RecordStarted {
-    /** `Block Position`: the jukebox the record plays from. */
-    position: BlockPos;
-    /** `Server Sound Handle`: the `ServerSoundHandle` a later `ClientboundUpdateSoundDataPacket` can change the sound by. */
-    serverSoundHandle: bigint;
-}
+export type RecordStarted = RecordStartedPayload;
 
 /**
  * Tells the client a record started playing at a block, such as a disc put into a jukebox.
  *
- * Protocol 2193 layout, in wire order: `Block Position` as a {@link BlockPos} (three ZigZag
- * varint32), then `Server Sound Handle` as a little-endian uint64.
+ * Layout at protocols 2193 and 2225, in wire order: `Block Position` as a `BlockPos` (three
+ * ZigZag varint32), then `Server Sound Handle` as a little-endian uint64.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/record-started-packet/
  */
 export default class RecordStartedPacket extends NetworkPacket<RecordStarted> {
     public get id(): number {
@@ -24,14 +23,10 @@ export default class RecordStartedPacket extends NetworkPacket<RecordStarted> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: RecordStarted): void {
-        data.position.serialize(stream);
-        stream.writeUnsignedLongLE(data.serverSoundHandle);
+        layoutAt(recordStartedPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): RecordStarted {
-        return {
-            position: BlockPos.deserialize(stream),
-            serverSoundHandle: stream.readUnsignedLongLE()
-        };
+        return layoutAt(recordStartedPacket, this.codecProtocol).decode(stream);
     }
 }

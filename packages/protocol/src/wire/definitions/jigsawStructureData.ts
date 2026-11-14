@@ -1,7 +1,7 @@
 /**
  * The jigsaw structure rules the client needs before starting the world. The captured NBT
  * payload is carried through to the end of the packet.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/jigsaw-structure-data-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/jigsaw-structure-data-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

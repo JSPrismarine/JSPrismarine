@@ -12,11 +12,11 @@ export type SetHealthPayload = PayloadOf<typeof setHealthPacket>;
 /**
  * Sets the health bar of the receiving client.
  *
- * Protocol 2193 carries one field, `Health`, as a ZigZag varint32. The server sends it when a
+ * Protocols 2193 and 2225 carry one field, `Health`, as a ZigZag varint32. The server sends it when a
  * player spawns or respawns. It has no actor identifier, so its value applies to the receiving
  * player's health display.
  *
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-health-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-health-packet/
  */
 export default class SetHealthPacket extends NetworkPacket<SetHealthPayload> {
     public get id(): number {

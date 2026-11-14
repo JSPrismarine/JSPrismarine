@@ -7,7 +7,7 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
 
 /**
  * The `NpcDialogueActionType` enum carried by `NpcDialoguePacket`, numbered as the protocol
- * 2193 docs list them.
+ * 2193 and 2225 docs list them.
  */
 export enum NpcDialogueActionType {
     /** Docs: `Open`. Shows the dialogue window. */
@@ -38,10 +38,12 @@ export interface NpcDialogue {
 /**
  * Opens or closes an NPC dialogue window on the client without the player clicking an NPC.
  *
- * Protocol 2193 layout, in wire order: `Npc Id Raw Id` as a little-endian uint64,
+ * The layout is the same at protocols 2193 and 2225. In wire order: `Npc Id Raw Id` as a little-endian uint64,
  * `Npc Dialogue Action Type` as a ZigZag varint32 holding an {@link NpcDialogueActionType},
  * then `Dialogue`, `Scene Name`, `Npc Name` and `Action JSON` as strings. Strings are a
  * varuint32 byte length followed by UTF-8.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/npc-dialogue-packet/
  */
 export default class NpcDialoguePacket extends NetworkPacket<NpcDialogue> {
     public get id(): number {

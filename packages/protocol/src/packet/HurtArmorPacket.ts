@@ -19,7 +19,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * | Cause | varint32 | A `SharedTypes::Legacy::ActorDamageCause` number |
  * | Damage | varint32 | Damage points dealt to the wearer, not to the armor |
  * | Armor Slots | varuint64 | A bitset, one bit per armor slot |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/hurt-armor-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/hurt-armor-packet/
  */
 export default class HurtArmorPacket extends FieldNetworkPacket {
     /**

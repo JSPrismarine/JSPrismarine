@@ -13,7 +13,13 @@ export enum CommandParameterTypeFlag {
     Valid = 0x100000,
     Enum = 0x200000,
     Postfix = 0x1000000,
-    SoftEnum = 0x4000000
+    SoftEnum = 0x4000000,
+    /**
+     * A chained subcommand table, ORed with `Valid` and the table's index. A Bedrock Dedicated
+     * Server writes `0x8100000` for `/execute`'s trailing parameter
+     * (`bedrock-data/src/jsp/v2193/wire/0x4c.bin`).
+     */
+    Chained = 0x8000000
 }
 
 /**

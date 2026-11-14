@@ -2,9 +2,12 @@ import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { layoutAt } from '../wire/WireLayout';
+import { startGamePacket } from '../wire/definitions/startGame';
 import StartGamePacket, { EditorLevelMigrationVersion, EMPTY_COMPOUND, GameRuleType } from './StartGamePacket';
 
 import type { StartGame } from './StartGamePacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /**
  * The packet a Bedrock Dedicated Server 1.26.51.1 (protocol 2193) sent to a joining client,
@@ -73,6 +76,25 @@ describe('StartGamePacket', () => {
         });
     });
 
+    describe.each([2193, 2225])('Mojang capture at protocol %i', (protocolVersion) => {
+        /**
+         * The payload a Bedrock Dedicated Server sent at login, without its header byte, from
+         * `packages/bedrock-data/src/jsp/v<protocol>/wire/0x0b.bin`.
+         */
+        const bytes = capture(protocolVersion, 0x0b);
+        const layout = layoutAt(startGamePacket, protocolVersion);
+
+        it('decodes to the end of the payload and re-encodes byte for byte', () => {
+            const stream = new NetworkBinaryStream(bytes);
+            const payload = layout.decode(stream);
+            const encoded = new NetworkBinaryStream();
+            layout.encode(encoded, payload);
+
+            expect(stream.feof()).toBe(true);
+            expect(encoded.getBuffer()).toEqual(bytes);
+        });
+    });
+
     describe('optional fields', () => {
         const base = decode(CAPTURED);
 
@@ -97,6 +119,25 @@ describe('StartGamePacket', () => {
                 }
             };
 
+            expect(decode(encode(data))).toEqual(data);
+        });
+
+        it('writes the experience id, experience name and creator id without presence bytes', () => {
+            const data: StartGame = {
+                ...base,
+                serverJoinInformation: {
+                    gathering: {
+                        experienceId: { mostSignificantBits: 1n, leastSignificantBits: 2n },
+                        experienceName: 'x',
+                        creatorId: 'c'
+                    }
+                }
+            };
+
+            // Against the captured empty join information: a 16 byte uuid, the one-byte name,
+            // a one-byte creator id, and a zero presence byte for each of worldId, worldName,
+            // targetId, scenarioId and serverId.
+            expect(encode(data).byteLength).toBe(CAPTURED.byteLength + 16 + 2 + 2 + 5);
             expect(decode(encode(data))).toEqual(data);
         });
 

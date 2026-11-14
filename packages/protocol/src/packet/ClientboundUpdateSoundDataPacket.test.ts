@@ -14,7 +14,8 @@ const DATA: ClientboundUpdateSoundData = {
     fade: { type: SoundDataUpdateType.Fade, duration: 2, targetVolume: 0.25 },
     seekTo: { type: SoundDataUpdateType.SeekTo, seconds: 1.5 },
     pause: { type: SoundDataUpdateType.Pause },
-    resume: { type: SoundDataUpdateType.Resume }
+    resume: { type: SoundDataUpdateType.Resume },
+    event: { type: SoundDataUpdateType.Stop }
 };
 
 /** `DATA` on the wire, header included, written by hand in the order the docs list the fields. */
@@ -39,7 +40,8 @@ const STOP_EVERYWHERE: ClientboundUpdateSoundData = {
     fade: { type: SoundDataUpdateType.Stop },
     seekTo: { type: SoundDataUpdateType.Stop },
     pause: { type: SoundDataUpdateType.Stop },
-    resume: { type: SoundDataUpdateType.Stop }
+    resume: { type: SoundDataUpdateType.Stop },
+    event: { type: SoundDataUpdateType.Stop }
 };
 
 /** `STOP_EVERYWHERE` on the wire: the header, the handle, then seven zero alternative indexes. */
@@ -83,5 +85,63 @@ describe('ClientboundUpdateSoundDataPacket', () => {
         );
 
         expect(() => new ClientboundUpdateSoundDataPacket().deserialize(stream)).toThrow(/alternative 7/);
+    });
+});
+
+describe('ClientboundUpdateSoundDataPacket at protocol 2225', () => {
+    const encodeAt2225 = (data: ClientboundUpdateSoundData): Buffer => {
+        const packet = new ClientboundUpdateSoundDataPacket(data);
+        packet.codecProtocol = 2225;
+        return packet.serialize(new NetworkBinaryStream());
+    };
+
+    const decodeAt2225 = (bytes: Buffer): ClientboundUpdateSoundData => {
+        const packet = new ClientboundUpdateSoundDataPacket();
+        packet.codecProtocol = 2225;
+        const stream = new NetworkBinaryStream(bytes);
+        const data = packet.deserialize(stream);
+        expect(stream.feof()).toBe(true);
+        return data;
+    };
+
+    /** The handle, then `Event`: alternative index, `Type` byte, fields. Written by hand from the 1.26.60 pages. */
+    const withEvent = (event: ClientboundUpdateSoundData['event']): ClientboundUpdateSoundData => ({
+        ...STOP_EVERYWHERE,
+        event
+    });
+    const HEADER = [0xdc, 0x02, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+
+    it('writes the handle then one Event with the index and the Type byte, and no slots', () => {
+        expect([...encodeAt2225(withEvent({ type: SoundDataUpdateType.Stop }))]).toEqual([...HEADER, 0x00, 0x00]);
+        expect([...encodeAt2225(withEvent({ type: SoundDataUpdateType.Resume }))]).toEqual([...HEADER, 0x06, 0x06]);
+        expect([...encodeAt2225(withEvent({ type: SoundDataUpdateType.SetVolume, volume: 0.5 }))]).toEqual([
+            ...HEADER,
+            ...[0x01, 0x01, 0x00, 0x00, 0x00, 0x3f]
+        ]);
+        expect([...encodeAt2225(withEvent({ type: SoundDataUpdateType.SetPitch, pitch: 1 }))]).toEqual([
+            ...HEADER,
+            ...[0x02, 0x02, 0x00, 0x00, 0x80, 0x3f]
+        ]);
+        expect([
+            ...encodeAt2225(withEvent({ type: SoundDataUpdateType.Fade, duration: 2, targetVolume: 0.25 }))
+        ]).toEqual([...HEADER, ...[0x03, 0x03, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x80, 0x3e]]);
+        expect([...encodeAt2225(withEvent({ type: SoundDataUpdateType.SeekTo, seconds: 1.5 }))]).toEqual([
+            ...HEADER,
+            ...[0x04, 0x04, 0x00, 0x00, 0xc0, 0x3f]
+        ]);
+        expect([...encodeAt2225(withEvent({ type: SoundDataUpdateType.Pause }))]).toEqual([...HEADER, 0x05, 0x05]);
+    });
+
+    it('reads each Event alternative back and leaves the retired slots at Stop', () => {
+        const event = { type: SoundDataUpdateType.Fade, duration: 2, targetVolume: 0.25 } as const;
+        const data = decodeAt2225(encodeAt2225(withEvent(event)));
+
+        expect(data).toEqual(withEvent(event));
+    });
+
+    it('rejects a Type byte that disagrees with the alternative index', () => {
+        const bytes = Buffer.from([...HEADER, 0x01, 0x02, 0x00, 0x00, 0x00, 0x3f]);
+
+        expect(() => decodeAt2225(bytes)).toThrow(/does not match its type/);
     });
 });

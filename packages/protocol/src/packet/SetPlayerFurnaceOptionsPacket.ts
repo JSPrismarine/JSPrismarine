@@ -1,7 +1,10 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { setPlayerFurnaceOptionsPacket } from '../wire/definitions/setPlayerFurnaceOptions';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { SetPlayerFurnaceOptionsPayload } from '../wire/definitions/setPlayerFurnaceOptions';
 
 /** The docs' `SetPlayerFurnaceOptionsPacketPayload FurnaceType`: which furnace screen the options belong to. */
 export enum FurnaceType {
@@ -29,22 +32,10 @@ export enum FurnaceLayout {
 }
 
 /** The `FurnaceOptions` the player picked, in wire order. */
-export interface FurnaceOptions {
-    /** `Left Furnace Tab`. */
-    leftTab: FurnaceLeftTabIndex;
-    /** `Filtering`: the recipe book hides recipes the player cannot make. */
-    filtering: boolean;
-    /** `Layout`. */
-    layout: FurnaceLayout;
-}
+export type FurnaceOptions = SetPlayerFurnaceOptionsPayload['options'];
 
 /** The fields of a `SetPlayerFurnaceOptionsPacket`, in wire order. */
-export interface SetPlayerFurnaceOptions {
-    /** `FurnaceType`. */
-    furnaceType: FurnaceType;
-    /** `Furnace Options`. */
-    options: FurnaceOptions;
-}
+export type SetPlayerFurnaceOptions = SetPlayerFurnaceOptionsPayload;
 
 /**
  * How the player has arranged a furnace, blast furnace or smoker screen. The client sends it
@@ -61,18 +52,10 @@ export default class SetPlayerFurnaceOptionsPacket extends NetworkPacket<SetPlay
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: SetPlayerFurnaceOptions): void {
-        stream.writeByte(data.furnaceType);
-        stream.writeVarInt(data.options.leftTab);
-        stream.writeBoolean(data.options.filtering);
-        stream.writeVarInt(data.options.layout);
+        layoutAt(setPlayerFurnaceOptionsPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): SetPlayerFurnaceOptions {
-        const furnaceType: FurnaceType = stream.readByte();
-        const leftTab: FurnaceLeftTabIndex = stream.readVarInt();
-        const filtering = stream.readBoolean();
-        const layout: FurnaceLayout = stream.readVarInt();
-
-        return { furnaceType, options: { leftTab, filtering, layout } };
+        return layoutAt(setPlayerFurnaceOptionsPacket, this.codecProtocol).decode(stream);
     }
 }

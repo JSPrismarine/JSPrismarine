@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { trimDataPacket } from '../wire/definitions/trimData';
+import { layoutAt } from '../wire/WireLayout';
 import TrimDataPacket from './TrimDataPacket';
 
 import type { TrimData } from './TrimDataPacket';
@@ -73,4 +76,25 @@ describe('TrimDataPacket', () => {
         expect(new TrimDataPacket().deserialize(stream)).toEqual(data);
         expect(stream.feof()).toBe(true);
     });
+
+    for (const [version, directory] of [
+        [2193, 'v2193'],
+        [2225, 'v2225']
+    ] as const) {
+        it(`round-trips the real BDS capture at protocol ${version} byte for byte`, () => {
+            const captured = readFileSync(
+                new URL(`../../../bedrock-data/src/jsp/${directory}/wire/0x12e.bin`, import.meta.url)
+            );
+            const layout = layoutAt(trimDataPacket, version);
+            const read = new NetworkBinaryStream(captured);
+            const decoded = layout.decode(read);
+            const stream = new NetworkBinaryStream();
+            layout.encode(stream, decoded);
+
+            expect(read.feof()).toBe(true);
+            expect(decoded.patterns.length).toBeGreaterThan(0);
+            expect(decoded.materials.length).toBeGreaterThan(0);
+            expect(Buffer.from(stream.getBuffer())).toEqual(captured);
+        });
+    }
 });

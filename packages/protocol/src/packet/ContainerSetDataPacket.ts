@@ -19,7 +19,7 @@ import { containerSetDataPacket } from '../wire/definitions/containers';
  * | Container ID | uint8 | The open container the property belongs to |
  * | ID | varint32 | Which property to set |
  * | Value | varint32 | The property's new value |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/container-set-data-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/container-set-data-packet/
  */
 export default class ContainerSetDataPacket extends FieldNetworkPacket {
     /** Container ID, the window the client has open. Nothing happens if it has no such window. */

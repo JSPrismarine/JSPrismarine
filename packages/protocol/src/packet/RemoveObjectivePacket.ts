@@ -13,7 +13,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  *
  * The wire layout lives in `@jsprismarine/protocol`'s `removeObjectivePacket` definition:
  * Objective Name as a string.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/remove-objective-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/remove-objective-packet/
  */
 export default class RemoveObjectivePacket extends FieldNetworkPacket {
     /** Name the objective was registered under. */

@@ -1,9 +1,13 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
+import { respawnPacket } from '../wire/definitions/worldStatus';
+import { layoutAt } from '../wire/WireLayout';
 import RespawnPacket from './RespawnPacket';
 import type { RespawnPayload } from './RespawnPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 const payload: RespawnPayload = {
     position: { x: 1.5, y: 64.25, z: -3.75 },
@@ -64,5 +68,19 @@ describe('RespawnPacket', () => {
         expect(PlayerRespawnState.SEARCHING_FOR_SPAWN).toBe(0);
         expect(PlayerRespawnState.READY_TO_SPAWN).toBe(1);
         expect(PlayerRespawnState.CLIENT_READY_TO_SPAWN).toBe(2);
+    });
+
+    it.each([2193, 2225])('round-trips the Bedrock Dedicated Server capture at protocol %i', (protocol) => {
+        const bytes = capture(protocol, 0x2d);
+        const layout = layoutAt(respawnPacket, protocol);
+        const stream = new BinaryStream(bytes);
+        const decoded = layout.decode(stream);
+
+        expect(stream.feof()).toBe(true);
+        expect(decoded.state).toBe(PlayerRespawnState.SEARCHING_FOR_SPAWN);
+
+        const encoded = new BinaryStream();
+        layout.encode(encoded, decoded);
+        expect(encoded.getBuffer()).toStrictEqual(bytes);
     });
 });

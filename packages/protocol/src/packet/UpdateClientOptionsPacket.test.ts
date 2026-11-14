@@ -29,3 +29,23 @@ describe('UpdateClientOptionsPacket', () => {
         expect(packet.getBuffer()).toEqual(Buffer.from([0xc3, 0x02, 0x01, 0x01, 0x00]));
     });
 });
+
+describe('UpdateClientOptionsPacket at both protocol versions', () => {
+    it.each([2193, 2225])('round-trips both optionals with presence bytes at protocol %i', (protocol) => {
+        const packet = new UpdateClientOptionsPacket();
+        packet.codecProtocol = protocol;
+        packet.graphicsMode = GraphicsMode.RayTraced;
+        packet.filterProfanity = true;
+        packet.encode();
+
+        expect(packet.getBuffer()).toEqual(Buffer.from([0xc3, 0x02, 0x01, 0x03, 0x01, 0x01]));
+
+        const read = new UpdateClientOptionsPacket(packet.getBuffer());
+        read.codecProtocol = protocol;
+        read.decode();
+
+        expect(read.graphicsMode).toBe(GraphicsMode.RayTraced);
+        expect(read.filterProfanity).toBe(true);
+        expect(read.feof()).toBe(true);
+    });
+});

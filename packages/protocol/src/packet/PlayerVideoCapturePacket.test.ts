@@ -52,4 +52,20 @@ describe('PlayerVideoCapturePacket', () => {
         expect(data).toEqual(STOP);
         expect(stream.readByte()).toBe(0xff);
     });
+
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        for (const [data, bytes] of [
+            [START, START_BYTES],
+            [STOP, STOP_BYTES]
+        ] as const) {
+            const packet = new PlayerVideoCapturePacket(data);
+            packet.codecProtocol = protocol;
+
+            expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...bytes]);
+
+            const reader = new PlayerVideoCapturePacket();
+            reader.codecProtocol = protocol;
+            expect(reader.deserialize(new NetworkBinaryStream(bytes))).toEqual(data);
+        }
+    });
 });

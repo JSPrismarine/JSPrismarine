@@ -30,4 +30,14 @@ describe('PurchaseReceiptPacket', () => {
 
         expect(buffer).toEqual(Buffer.from([0x5c, 0x00]));
     });
+
+    it.each([2193, 2225])('round-trips the same bytes at protocol %i', (protocol) => {
+        const encoded = new PurchaseReceiptPacket(DATA);
+        encoded.codecProtocol = protocol;
+        expect(encoded.serialize(new NetworkBinaryStream())).toEqual(BYTES);
+
+        const decoded = new PurchaseReceiptPacket();
+        decoded.codecProtocol = protocol;
+        expect(decoded.deserialize(new NetworkBinaryStream(BYTES))).toEqual(DATA);
+    });
 });

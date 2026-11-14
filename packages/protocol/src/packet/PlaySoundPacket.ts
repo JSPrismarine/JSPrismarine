@@ -67,7 +67,7 @@ export enum SoundName {
 /**
  * Plays a named sound at a position, once or on a loop.
  *
- * Wire order at protocol 2193: `Name` as a string, `Position` as a `BlockPos` of three ZigZag
+ * Wire order, the same at protocols 2193 and 2225 (1.26.60 adds nothing to it): `Name` as a string, `Position` as a `BlockPos` of three ZigZag
  * varint32 holding each coordinate times eight (the client divides them back, so the sound
  * lands on an eighth of a block), `Volume` and `Pitch` as little-endian floats, then the
  * fields 1.26.50 added: `Loop Count` as a ZigZag varint32, `Bypass Listener Range Check` as
@@ -75,7 +75,7 @@ export enum SoundName {
  * little-endian uint64 and `Playback Position Seconds` as a float.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/play-sound-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/play-sound-packet/
  */
 export default class PlaySoundPacket extends FieldNetworkPacket {
     public name: SoundName | string = '';

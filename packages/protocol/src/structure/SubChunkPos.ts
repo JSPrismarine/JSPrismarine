@@ -1,6 +1,6 @@
 import NetworkStructure from '../NetworkStructure';
 
-import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * An absolute sub chunk position, counted in sub chunks: `Subchunk Position X`, `Subchunk
@@ -22,14 +22,14 @@ export default class SubChunkPos extends NetworkStructure {
     }
 
     /** Writes X, Y, then Z, each a little-endian int32. */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         stream.writeIntLE(this.x);
         stream.writeIntLE(this.y);
         stream.writeIntLE(this.z);
     }
 
     /** Reads X, Y, then Z, each a little-endian int32. */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         this.x = stream.readIntLE();
         this.y = stream.readIntLE();
         this.z = stream.readIntLE();

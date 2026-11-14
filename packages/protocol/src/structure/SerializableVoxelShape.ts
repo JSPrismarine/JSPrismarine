@@ -35,7 +35,7 @@ export interface SerializableCells {
  * `packages/bedrock-data/src/resources/voxel_shapes.json` lists the vanilla shapes under
  * `shapes` with these fields in camel case, so one entry maps onto the constructor
  * parameters as they are.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/voxel-shapes-serializable-voxel-shape/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/voxel-shapes-serializable-voxel-shape/}
  */
 export default class SerializableVoxelShape extends NetworkStructure {
     /**

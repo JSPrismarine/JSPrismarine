@@ -1,23 +1,23 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import BlockPos from '../structure/BlockPos';
+import { openSignPacket } from '../wire/definitions/openSign';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { OpenSignPayload } from '../wire/definitions/openSign';
 
 /** The fields of an `OpenSignPacket`, in wire order. */
-export interface OpenSign {
-    /** `Pos`, the sign block the client should open the editor for. */
-    position: BlockPos;
-    /** `Is Front Side`: edit the front face of the sign rather than the back. */
-    isFrontSide: boolean;
-}
+export type OpenSign = OpenSignPayload;
 
 /**
  * Tells the client to open the sign editing screen for one sign block.
  *
- * Protocol 2193 layout, in wire order: `Pos` as a {@link BlockPos} (three ZigZag varint32),
+ * Protocol 2193 layout, in wire order: `Pos` as a block position (three ZigZag varint32),
  * then `Is Front Side` as one byte. The server sends it after a player interacts with a sign
- * they may edit; the client answers with a `BlockActorData` carrying the new text.
+ * they may edit; the client answers with a `BlockActorData` carrying the new text. The layout is
+ * identical at protocol 2225.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/open-sign-packet/
  */
 export default class OpenSignPacket extends NetworkPacket<OpenSign> {
     public get id(): number {
@@ -25,14 +25,10 @@ export default class OpenSignPacket extends NetworkPacket<OpenSign> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: OpenSign): void {
-        data.position.serialize(stream);
-        stream.writeBoolean(data.isFrontSide);
+        layoutAt(openSignPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): OpenSign {
-        return {
-            position: BlockPos.deserialize(stream),
-            isFrontSide: stream.readBoolean()
-        };
+        return layoutAt(openSignPacket, this.codecProtocol).decode(stream);
     }
 }

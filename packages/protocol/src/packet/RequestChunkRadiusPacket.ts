@@ -19,12 +19,14 @@ export interface RequestChunkRadius {
 /**
  * How much world the client is asking for.
  *
- * Protocol 2193 wire order, with the field names Mojang's docs use: Chunk Radius (varint32,
+ * Wire order at protocols 2193 and 2225, with the field names Mojang's docs use: Chunk Radius (varint32,
  * ZigZag) then Max ChunkRadius (uint8).
  *
  * The single most important dial for a load test: view distance is quadratic in the chunks
  * a server has to generate, hold and send, so a fleet that forgets to ask for a small one
  * measures chunk generation rather than whatever it meant to measure.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/request-chunk-radius-packet/
  */
 export default class RequestChunkRadiusPacket extends NetworkPacket<RequestChunkRadius> {
     public get id(): number {

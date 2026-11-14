@@ -16,7 +16,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * `Is cache supported?` as one boolean byte.
  *
  * **Bound To:** Server
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-status-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/client-cache-status-packet/
  */
 export default class ClientCacheStatusPacket extends FieldNetworkPacket {
     /** `true` when the client offers to keep a blob cache. */

@@ -36,6 +36,23 @@ describe('MovementEffectPacket', () => {
         expect(stream.feof()).toBe(true);
     });
 
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const packet = new MovementEffectPacket(DATA);
+        packet.codecProtocol = protocol;
+        const buffer = packet.serialize(new NetworkBinaryStream());
+        expect([...buffer]).toEqual([...BYTES]);
+
+        const decoder = new MovementEffectPacket();
+        decoder.codecProtocol = protocol;
+        expect(decoder.deserialize(new NetworkBinaryStream(BYTES))).toEqual(DATA);
+    });
+
+    it("numbers the movement effects as the docs and Mojang's enum dump list them", () => {
+        expect(MovementEffectType.GLIDE_BOOST).toBe(0);
+        expect(MovementEffectType.DOLPHIN_BOOST).toBe(1);
+        expect(MovementEffectType.GEYSER_BOOST).toBe(2);
+    });
+
     it('round-trips a glide boost for an actor with a zero tick', () => {
         const glide: MovementEffect = {
             targetRuntimeId: 1n,

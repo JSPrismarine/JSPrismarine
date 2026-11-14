@@ -79,6 +79,23 @@ describe('ServerboundDataStorePacket', () => {
         });
     }
 
+    for (const protocol of [2193, 2225]) {
+        it(`writes and reads the same bytes at protocol ${protocol}`, () => {
+            const vector = vectors[2];
+            if (vector === undefined) throw new Error('the third vector is missing');
+            const { data, bytes } = vector;
+            const packet: ServerboundDataStore = { update: new DataStoreUpdate('hud', 'score', 'a.b', data, 7, 300) };
+            const writer = new ServerboundDataStorePacket(packet);
+            writer.codecProtocol = protocol;
+            const encoded = writer.serialize(new NetworkBinaryStream());
+            expect([...encoded]).toEqual(bytes);
+
+            const reader = new ServerboundDataStorePacket();
+            reader.codecProtocol = protocol;
+            expect(reader.deserialize(new NetworkBinaryStream(encoded))).toEqual(packet);
+        });
+    }
+
     it('rejects a header with another packet id', () => {
         const stream = new NetworkBinaryStream(Buffer.from([0xca, 0x02, ...STRINGS, 0x01, 0x01, ...COUNTS]));
 

@@ -17,7 +17,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * | ---- |:----:|:-----:|
  * | Camera ID | varint64 | Unique id of the camera actor |
  * | Target Player ID | varint64 | Unique id of the player to photograph |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-packet/
  */
 export default class CameraPacket extends FieldNetworkPacket {
     /** Camera ID, the unique id of the camera actor taking the picture. */

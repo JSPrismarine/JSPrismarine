@@ -1,9 +1,11 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import ItemStack from '../structure/ItemStack';
+import { creativeContentPacket } from '../wire/definitions/creativeContent';
+import { protocolVersion } from '../wire/versions/v2193';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
-import type { ItemStackData } from '../structure/ItemStack';
+import type { CreativeContentPayload } from '../wire/definitions/creativeContent';
 
 /**
  * The docs' `CreativeItemCategory`: which tab of the creative menu a group belongs to.
@@ -44,67 +46,27 @@ export const creativeCategoryOf = (name: string): CreativeItemCategory =>
     categoriesByName.get(name.toLowerCase()) ?? CreativeItemCategory.ITEMS;
 
 /** A heading in the creative menu, with the item shown beside it. */
-export interface CreativeGroup {
-    category: CreativeItemCategory;
-    /** A translation key such as `itemGroup.name.planks`, or empty for an anonymous group. */
-    name: string;
-    icon: ItemStackData;
-}
+export type CreativeGroup = CreativeContentPayload['groups'][number];
 
 /** One entry of the creative menu, and which heading it sits under. */
-export interface CreativeEntry {
-    item: ItemStackData;
-    /** An index into {@link CreativeContent.groups}. */
-    group: number;
-}
+export type CreativeEntry = CreativeContentPayload['entries'][number];
 
 /** The two lists the creative menu is made of. */
-export interface CreativeContent {
-    /** The headings, in the order the client draws them. An entry's group indexes this list. */
-    groups: CreativeGroup[];
-    /** The menu itself. Its order is what a creative pick is read against. */
-    entries: CreativeEntry[];
-}
+export type CreativeContent = CreativeContentPayload;
 
 /**
  * Writes the two lists without a packet header, for a caller that writes its own.
  *
- * The server's own packet class is that caller: it holds the menu as item instances and needs
- * the bytes of the payload alone, so the format lives here once and nothing reimplements it.
+ * The bytes are the packet's payload alone, so the format lives in the packet's definition
+ * once and nothing reimplements it.
  */
 export const writeCreativeContent = (stream: NetworkBinaryStream, data: CreativeContent): void => {
-    stream.writeUnsignedVarInt(data.groups.length);
-    for (const group of data.groups) {
-        stream.writeByte(group.category);
-        stream.writeString(group.name);
-        ItemStack.from(group.icon).serialize(stream);
-    }
-
-    stream.writeUnsignedVarInt(data.entries.length);
-    for (const [index, entry] of data.entries.entries()) {
-        stream.writeUnsignedVarInt(index + 1); // Creative Net Id, one-based.
-        ItemStack.from(entry.item).serialize(stream);
-        stream.writeUnsignedVarInt(entry.group);
-    }
+    layoutAt(creativeContentPacket, protocolVersion).encode(stream, data);
 };
 
 /** Reads the two lists, the mirror of {@link writeCreativeContent}. */
-export const readCreativeContent = (stream: NetworkBinaryStream): CreativeContent => {
-    const groups = Array.from({ length: stream.readUnsignedVarInt() }, () => ({
-        category: stream.readByte(),
-        name: stream.readString(),
-        icon: ItemStack.deserialize(stream).toData()
-    }));
-
-    const entries: CreativeEntry[] = [];
-    for (let count = stream.readUnsignedVarInt(); count > 0; count--) {
-        stream.readUnsignedVarInt(); // Creative Net Id, which is the entry's position.
-        const item = ItemStack.deserialize(stream).toData();
-        entries.push({ item, group: stream.readUnsignedVarInt() });
-    }
-
-    return { groups, entries };
-};
+export const readCreativeContent = (stream: NetworkBinaryStream): CreativeContent =>
+    layoutAt(creativeContentPacket, protocolVersion).decode(stream);
 
 /**
  * The contents of the creative menu.
@@ -119,7 +81,7 @@ export const readCreativeContent = (stream: NetworkBinaryStream): CreativeConten
  * the client draws its members loose, without a heading.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/creative-content-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/creative-content-packet/
  */
 export default class CreativeContentPacket extends NetworkPacket<CreativeContent> {
     public get id(): number {
@@ -127,10 +89,10 @@ export default class CreativeContentPacket extends NetworkPacket<CreativeContent
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: CreativeContent): void {
-        writeCreativeContent(stream, data);
+        layoutAt(creativeContentPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): CreativeContent {
-        return readCreativeContent(stream);
+        return layoutAt(creativeContentPacket, this.codecProtocol).decode(stream);
     }
 }

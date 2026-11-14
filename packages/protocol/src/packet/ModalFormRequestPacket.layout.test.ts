@@ -7,8 +7,8 @@ const BYTES = Buffer.from('070f7b2274797065223a22666f726d227d', 'hex');
 
 const payload = { formId: 7, formUiJson: '{"type":"form"}' };
 
-describe('the declarative ModalFormRequest layout', () => {
-    const layout = layoutAt(modalFormRequestPacket, 2193);
+describe.each([2193, 2225])('the declarative ModalFormRequest layout at protocol %i', (protocol) => {
+    const layout = layoutAt(modalFormRequestPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

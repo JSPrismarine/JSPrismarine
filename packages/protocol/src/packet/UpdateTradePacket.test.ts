@@ -34,4 +34,15 @@ describe('UpdateTradePacket', () => {
     it('encodes the same bytes back', () => {
         expect(new UpdateTradePacket(data).serialize(new NetworkBinaryStream())).toEqual(encoded);
     });
+
+    it.each([2193, 2225])('round-trips the same bytes at protocol %i', (protocol) => {
+        const packet = new UpdateTradePacket(data);
+        packet.codecProtocol = protocol;
+        const bytes = packet.serialize(new NetworkBinaryStream());
+        expect(bytes).toEqual(encoded);
+
+        const decoded = new UpdateTradePacket();
+        decoded.codecProtocol = protocol;
+        expect(decoded.deserialize(new NetworkBinaryStream(bytes))).toEqual(data);
+    });
 });

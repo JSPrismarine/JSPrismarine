@@ -11,8 +11,8 @@ import { describe, expect, it } from 'vitest';
 const WITH_POSITION = Buffer.from('042a010000c03f000010c000004040', 'hex');
 const WITHOUT_POSITION = Buffer.from('060700', 'hex');
 
-describe('the declarative Interact layout', () => {
-    const layout = layoutAt(interactPacket, 2193);
+describe.each([2193, 2225])('the declarative Interact layout at protocol %i', (protocol) => {
+    const layout = layoutAt(interactPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote, position and all', () => {
         const stream = new BinaryStream();

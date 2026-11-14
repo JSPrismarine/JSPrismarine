@@ -1,8 +1,12 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
 import PlayerFogPacket from './PlayerFogPacket';
 import type { PlayerFogPayload } from './PlayerFogPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { playerFogPacket } from '../wire/definitions/worldStatus';
+import { capture } from '../testing/evidence.test.helper';
 
 // Packet id 160 as a varuint.
 const header = [0xa0, 0x01];
@@ -36,5 +40,16 @@ describe('PlayerFogPacket', () => {
 
     it('uses the expected network identifier', () => {
         expect(new PlayerFogPacket(payload).getId()).toBe(PacketIdentifier.PLAYER_FOG);
+    });
+
+    it.each([2193, 2225])('round-trips the payload a real server sent at protocol %i', (protocol) => {
+        const captured = capture(protocol, 0xa0);
+        const layout = layoutAt(playerFogPacket, protocol);
+
+        const decoded = layout.decode(new BinaryStream(captured));
+        const stream = new BinaryStream();
+        layout.encode(stream, decoded);
+
+        expect(stream.getBuffer()).toEqual(captured);
     });
 });

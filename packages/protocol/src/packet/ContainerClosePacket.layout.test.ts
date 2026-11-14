@@ -34,6 +34,16 @@ describe('the declarative ContainerClose layout', () => {
         expect(stream.getBuffer()).toEqual(expected.getBuffer());
     });
 
+    it.each([2193, 2225])('writes the same three bytes at protocol %i', (protocol) => {
+        const stream = new BinaryStream();
+        layoutAt(containerClosePacket, protocol).encode(stream, payloadOf(fill()));
+
+        expect([...stream.getBuffer()]).toEqual([3, 7, 1]);
+
+        const read = layoutAt(containerClosePacket, protocol).decode(new BinaryStream(stream.getBuffer()));
+        expect(read).toEqual(payloadOf(fill()));
+    });
+
     it('round-trips through the packet class and consumes the payload', () => {
         const sent = fill();
         sent.encodePayload();

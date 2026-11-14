@@ -33,7 +33,8 @@ export default class DisconnectHandler implements ConnectionLaneHandler<Disconne
 
         const name = DisconnectReason[disconnect.reason];
         const reason = name === undefined ? `${disconnect.reason}` : `${disconnect.reason} (${name})`;
-        const message = disconnect.skipMessage ? '' : ` and message "${disconnect.message ?? ''}"`;
+        const { messages } = disconnect;
+        const message = messages.skipMessage ? '' : ` and message "${messages.message}"`;
 
         log.info(
             `${session.identity.name} (${session.getConnection().getAddress().toToken()}) disconnected with reason ${reason}${message}`,

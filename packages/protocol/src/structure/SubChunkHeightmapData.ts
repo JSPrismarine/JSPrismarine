@@ -1,6 +1,6 @@
 import NetworkStructure from '../NetworkStructure';
 
-import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * The docs enum `HeightMapDataType`: what a sub chunk contributes to the client's heightmap.
@@ -42,7 +42,7 @@ export type HeightMap = number[][];
  *
  * Writing checks that a present heightmap is 16 rows of 16 and reading checks each row's
  * length, since a wrong size would leave the stream misaligned for everything after it.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/sub-chunk-heightmap-data/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/sub-chunk-heightmap-data/}
  */
 export default class SubChunkHeightmapData extends NetworkStructure {
     public constructor(
@@ -58,7 +58,7 @@ export default class SubChunkHeightmapData extends NetworkStructure {
         super();
     }
 
-    private static writeHeightMap(stream: NetworkBinaryStream, heightMap: HeightMap | undefined): void {
+    private static writeHeightMap(stream: BinaryStream, heightMap: HeightMap | undefined): void {
         stream.writeBoolean(heightMap !== undefined);
         if (heightMap === undefined) return;
 
@@ -74,7 +74,7 @@ export default class SubChunkHeightmapData extends NetworkStructure {
         }
     }
 
-    private static readHeightMap(stream: NetworkBinaryStream): HeightMap | undefined {
+    private static readHeightMap(stream: BinaryStream): HeightMap | undefined {
         if (!stream.readBoolean()) return undefined;
 
         const heightMap: HeightMap = [];
@@ -95,7 +95,7 @@ export default class SubChunkHeightmapData extends NetworkStructure {
      * the optional `Subchunk Render Height Map`.
      * @throws when a present heightmap is not 16 rows of 16 heights.
      */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         stream.writeByte(this.heightMapType);
         SubChunkHeightmapData.writeHeightMap(stream, this.heightMap);
         stream.writeByte(this.renderHeightMapType);
@@ -106,7 +106,7 @@ export default class SubChunkHeightmapData extends NetworkStructure {
      * Reads the two type bytes and the heightmaps whose presence bytes say they follow.
      * @throws when a heightmap row does not carry 16 heights.
      */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         this.heightMapType = stream.readByte();
         this.heightMap = SubChunkHeightmapData.readHeightMap(stream);
         this.renderHeightMapType = stream.readByte();

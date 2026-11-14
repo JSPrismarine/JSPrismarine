@@ -59,13 +59,16 @@ export interface BlockProperty {
     definition: Buffer;
 }
 
-/** Optional world and experience identifiers shown in gathering or rich-presence UI. */
+/**
+ * World and experience identifiers shown in gathering or rich-presence UI. The experience id,
+ * experience name and creator id are always on the wire; the rest are optional.
+ */
 export interface GatheringJoinInfo {
-    experienceId?: WireUUID;
-    experienceName?: string;
+    experienceId: WireUUID;
+    experienceName: string;
     worldId?: WireUUID;
     worldName?: string;
-    creatorId?: string;
+    creatorId: string;
     targetId?: WireUUID;
     scenarioId?: string;
     serverId?: string;
@@ -198,7 +201,6 @@ export const EMPTY_COMPOUND = Buffer.from([0x0a, 0x00, 0x00]);
  * at 2225. Block definitions can come from this packet's payload or the connection's
  * {@link ProtocolContext}; omitting the payload list uses the context, while an empty list
  * sends none. The server supplies them, and this package writes them.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/start-game-packet/
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/start-game-packet/
  */
 export default class StartGamePacket extends NetworkPacket<StartGame> {

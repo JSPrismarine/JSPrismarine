@@ -14,7 +14,7 @@ import { resourcePackChunkDataPacket } from '../wire/definitions/resourcePacks';
  * `ResourcePackChunkRequestHandler` disconnects a client that asks for a chunk anyway.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-chunk-data-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-pack-chunk-data-packet/
  */
 export default class ResourcePackChunkDataPacket extends FieldNetworkPacket {
     /** The pack id and version joined by an underscore, as the request named them. */

@@ -7,9 +7,11 @@ export type ClientboundCloseForm = Record<string, never>;
 /**
  * Closes every server form on the client's UI stack and returns it to the HUD.
  *
- * Protocol 2193 layout: the packet header and no payload. The client acts on it only when a
+ * Layout at protocols 2193 and 2225: the packet header and no payload. The client acts on it only when a
  * server form (one opened by `ModalFormRequest` or `ServerSettingsResponse`) is on its stack;
  * inventories and other containers stay open.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-close-form-packet/
  */
 export default class ClientboundCloseFormPacket extends NetworkPacket<ClientboundCloseForm> {
     public get id(): number {

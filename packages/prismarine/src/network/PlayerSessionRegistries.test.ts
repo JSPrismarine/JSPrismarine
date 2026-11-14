@@ -198,11 +198,18 @@ describe('PlayerSession', () => {
         const crafting: CraftingData = {
             shaped: [],
             shapeless: [],
+            multi: [],
+            userDataShapeless: [],
+            shapelessChemistry: [],
+            shapedChemistry: [],
             smithingTransform: [],
+            smithingTrim: [],
             potionMixes: [
                 { inputId: 1, inputMeta: 0, reagentId: 2, reagentMeta: 0, outputId: 3, outputMeta: 0 },
                 { inputId: 4, inputMeta: 0, reagentId: 5, reagentMeta: 0, outputId: 6, outputMeta: 0 }
             ],
+            containerMixes: [],
+            materialReducers: [],
             cleanRecipes: true
         };
 

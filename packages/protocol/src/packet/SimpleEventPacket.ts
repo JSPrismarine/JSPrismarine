@@ -23,12 +23,12 @@ export enum SimpleEventSubtype {
  * `SetCommandsEnabledPacket`. Unlocking the template settings both frees the interface
  * client side and changes the setting server side.
  *
- * Protocol 2193 layout (docs id 64), in wire order:
+ * Protocol 2193 and 2225 layout (docs id 64 at both), in wire order:
  *
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
  * | Type | uint16 | Little-endian; one of {@link SimpleEventSubtype} |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/simple-event-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/simple-event-packet/
  */
 export default class SimpleEventPacket extends FieldNetworkPacket {
     /** Type, the request being made. */

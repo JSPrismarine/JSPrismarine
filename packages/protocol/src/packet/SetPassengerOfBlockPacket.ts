@@ -11,13 +11,14 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * declarative definition, read off Mojang's v1.26.60 release schemas. A codec older than 2225
  * has no id for it, so only a 2225 session ever builds one.
  *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-passenger-of-block-packet/
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class SetPassengerOfBlockPacket extends FieldNetworkPacket {
-    /** `passenger`. */
+    /** `PassengerActorUniqueID`. */
     public passenger: bigint = 0n;
 
-    /** `passengerOfBlockData`. */
+    /** `PassengerOfBlockData`. */
     public passengerOfBlockData: PassengerOfBlock | null = null;
     /** Writes the fields in layout order. */
     public encodePayload(): void {

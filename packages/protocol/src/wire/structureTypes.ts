@@ -8,6 +8,11 @@
  * @see `docs/adr/0003-declarative-wire-layouts.md`
  */
 import { Vector3 } from '@jsprismarine/math';
+import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
+
+import BlockPos from '../structure/BlockPos';
+import Vec2 from '../structure/Vec2';
+import Vec3 from '../structure/Vec3';
 
 import CommandOriginData from './structures/CommandOriginData';
 import { custom } from './fieldTypes';
@@ -103,4 +108,47 @@ export const commandOriginData: WireType<CommandOriginData> = custom(
     'CommandOriginData',
     (stream, value) => value.networkSerialize(stream),
     (stream) => CommandOriginData.networkDeserialize(stream)
+);
+
+/** `Vec2` as the {@link Vec2} structure class: two little-endian floats, x then y. */
+export const vec2Structure: WireType<Vec2> = custom(
+    'Vec2',
+    (stream, value) => value.serialize(stream),
+    (stream) => {
+        const vector = new Vec2(0, 0);
+        vector.deserialize(stream);
+        return vector;
+    }
+);
+
+/** `Vec3` as the {@link Vec3} structure class: three little-endian floats. */
+export const vec3Structure: WireType<Vec3> = custom(
+    'Vec3',
+    (stream, value) => value.serialize(stream),
+    (stream) => {
+        const vector = new Vec3(0, 0, 0);
+        vector.deserialize(stream);
+        return vector;
+    }
+);
+
+/**
+ * `BlockPos` as the {@link BlockPos} structure class: three ZigZag varints. The same bytes as
+ * `t.blockPos`, which hands back a plain `{ x, y, z }`.
+ */
+export const blockPosStructure: WireType<BlockPos> = custom(
+    'BlockPos',
+    (stream, value) => value.serialize(stream),
+    (stream) => {
+        const position = new BlockPos(0, 0, 0);
+        position.deserialize(stream);
+        return position;
+    }
+);
+
+/** A network NBT compound: little endian with varint lengths. */
+export const networkNbtCompound: WireType<NBTTagCompound> = custom(
+    'NetworkNbtCompound',
+    (stream, value) => value.writeToStream(stream, ByteOrder.LITTLE_ENDIAN, true),
+    (stream) => NBTTagCompound.readFromStream(stream, ByteOrder.LITTLE_ENDIAN, true)
 );

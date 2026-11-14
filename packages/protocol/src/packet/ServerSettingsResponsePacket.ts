@@ -12,8 +12,8 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  *
  * **Bound To:** Client
  *
- * Wire layout at protocol 2193: Form ID as a varuint32, then Form UI JSON as a string.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-response-packet/
+ * Wire layout at protocols 2193 and 2225: Form ID as a varuint32, then Form UI JSON as a string.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-settings-response-packet/
  */
 export default class ServerSettingsResponsePacket extends FieldNetworkPacket {
     /** Identifies the form in the client's reply. */

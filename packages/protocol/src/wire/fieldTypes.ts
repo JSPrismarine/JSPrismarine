@@ -253,3 +253,63 @@ export const pair = <A, B>(
         },
         (s) => ({ [firstKey]: first.read(s), [secondKey]: second.read(s) })
     );
+
+/** The value a {@link record} carries: one property per field, typed by that field's wire type. */
+export type RecordOf<F extends Record<string, WireType<unknown>>> = {
+    -readonly [K in keyof F]: F[K] extends WireType<infer T> ? T : never;
+};
+
+/**
+ * Several named fields as one unit, written and read in declaration order.
+ *
+ * This is the item type for a list of multi-field entries (`list(record({ ... }))`) and the
+ * shape of a nested structure that has no class of its own.
+ */
+export const record = <F extends Record<string, WireType<unknown>>>(fields: F): WireType<RecordOf<F>> => {
+    const entries = Object.entries(fields);
+    return type<RecordOf<F>>(
+        `record<${entries.map(([key, of]) => `${key}: ${of.wire}`).join(', ')}>`,
+        (s, v) => {
+            const values: Record<string, unknown> = v;
+            for (const [key, of] of entries) of.write(s, values[key]);
+        },
+        (s) => {
+            const values: Record<string, unknown> = {};
+            for (const [key, of] of entries) values[key] = of.read(s);
+            // The loop fills exactly the keys of `fields`, which the compiler cannot follow.
+            return values as RecordOf<F>;
+        }
+    );
+};
+
+/**
+ * A numeric wire type whose value is a member of an enum or numeric union `E`.
+ *
+ * The bytes are those of `of`; only the TypeScript type narrows, so a payload field can stay
+ * typed as its enum.
+ */
+export const enumOf = <E extends number>(of: WireType<number>): WireType<E> =>
+    type<E>(
+        of.wire,
+        (s, v) => of.write(s, v),
+        // The wire carries a bare number; the layout does not validate it against `E`.
+        (s) => of.read(s) as E
+    );
+
+/** Like {@link optional}, for payloads that leave an absent value `undefined` instead of `null`. */
+export const present = <T>(of: WireType<T>): WireType<T | undefined> =>
+    type<T | undefined>(
+        `optional<${of.wire}>`,
+        (s, v) => {
+            s.writeBoolean(v !== undefined);
+            if (v !== undefined) of.write(s, v);
+        },
+        (s) => (s.readBoolean() ? of.read(s) : undefined)
+    );
+
+/** `double`: a little-endian 64-bit float. */
+export const lf64 = type<number>(
+    'lf64',
+    (s, v) => s.writeDoubleLE(v),
+    (s) => s.readDoubleLE()
+);

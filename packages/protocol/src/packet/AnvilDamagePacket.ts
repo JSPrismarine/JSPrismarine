@@ -1,20 +1,19 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import BlockPos from '../structure/BlockPos';
+import { anvilDamagePacket } from '../wire/definitions/anvilDamage';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { AnvilDamagePayload } from '../wire/definitions/anvilDamage';
 
 /** A request to damage the anvil at one block position. */
-export interface AnvilDamage {
-    /** The anvil position, encoded as three ZigZag varint32 coordinates. */
-    blockPosition: BlockPos;
-}
+export type AnvilDamage = AnvilDamagePayload;
 
 /**
  * The client asks for an anvil to be damaged after using it. This packet is sent when the
  * server has disabled the Item Stack Net Manager.
  *
- * Protocol 2193 layout: `Block Position` as a {@link BlockPos}.
+ * Protocol 2193 layout: `Block Position` as a `BlockPos`.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/anvil-damage-packet/
  */
 export default class AnvilDamagePacket extends NetworkPacket<AnvilDamage> {
@@ -23,12 +22,10 @@ export default class AnvilDamagePacket extends NetworkPacket<AnvilDamage> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: AnvilDamage): void {
-        data.blockPosition.serialize(stream);
+        layoutAt(anvilDamagePacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): AnvilDamage {
-        const blockPosition = new BlockPos(0, 0, 0);
-        blockPosition.deserialize(stream);
-        return { blockPosition };
+        return layoutAt(anvilDamagePacket, this.codecProtocol).decode(stream);
     }
 }

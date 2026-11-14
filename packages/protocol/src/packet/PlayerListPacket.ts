@@ -16,6 +16,8 @@ export type { PlayerListData } from '../wire/structures/PlayerListEntry';
 /**
  * Player List (packet 63). Adds players to or removes them from the client's player list.
  *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-list-packet/
+ *
  * The payload is a varuint entry count followed by one entry per player. Each entry is a varuint
  * variant selector (1 for an Add entry, 0 for a Remove entry), the Action as a uint8, and the
  * UUID. An Add entry continues with the fields `PlayerListEntry.networkSerialize` writes. The

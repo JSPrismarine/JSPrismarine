@@ -18,8 +18,8 @@ const payload = {
     blockFace: 5
 };
 
-describe('the declarative PlayerAction layout', () => {
-    const layout = layoutAt(playerActionPacket, 2193);
+describe.each([2193, 2225])('the declarative PlayerAction layout at protocol %i', (protocol) => {
+    const layout = layoutAt(playerActionPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

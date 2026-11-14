@@ -13,7 +13,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * nothing.
  *
  * **Bound To:** Server
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-settings-request-packet/
  */
 export default class ServerSettingsRequestPacket extends FieldNetworkPacket {
     /** Reads the empty payload, which consumes no bytes. */

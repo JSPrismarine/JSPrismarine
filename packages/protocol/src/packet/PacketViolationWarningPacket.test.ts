@@ -3,6 +3,7 @@ import PacketViolationWarningPacket, {
     PacketViolationSeverity,
     PacketViolationType
 } from './PacketViolationWarningPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 // Header: id 156 is 0x9c 0x01. Type 0 (PacketMalformed) zigzags to 0, severity 2
 // (TerminatingConnection) to 4, and the offending id 156 to 312 (0xb8 0x02). The context
@@ -42,5 +43,37 @@ describe('PacketViolationWarningPacket', () => {
         expect(packet.packetId).toBe(11);
         expect(packet.message).toBe('');
         expect(packet.feof()).toBe(true);
+    });
+});
+
+/**
+ * Mojang's pinned enum dump from the 1.26.40 build lists both enums from -1, which is what the
+ * 1.26.60 page prints and what the 1.26.50 page's dense 0.. numbering contradicts.
+ */
+describe("the violation enums against Mojang's pinned enum dump", () => {
+    /** Reads one enum's member names and values from the dump's table. */
+    const dumped = (name: string): Record<string, number> =>
+        Object.fromEntries(enumDumpMembers(name).map((member) => [member.name, member.value]));
+
+    it('numbers PacketViolationType as the dump does', () => {
+        expect(dumped('PacketViolationType')).toEqual({ Unknown: -1, PacketMalformed: 0 });
+        expect({ Unknown: PacketViolationType.Unknown, PacketMalformed: PacketViolationType.PacketMalformed }).toEqual(
+            dumped('PacketViolationType')
+        );
+    });
+
+    it('numbers PacketViolationSeverity as the dump does', () => {
+        expect(dumped('PacketViolationSeverity')).toEqual({
+            Unknown: -1,
+            Warning: 0,
+            FinalWarning: 1,
+            TerminatingConnection: 2
+        });
+        expect({
+            Unknown: PacketViolationSeverity.Unknown,
+            Warning: PacketViolationSeverity.Warning,
+            FinalWarning: PacketViolationSeverity.FinalWarning,
+            TerminatingConnection: PacketViolationSeverity.TerminatingConnection
+        }).toEqual(dumped('PacketViolationSeverity'));
     });
 });

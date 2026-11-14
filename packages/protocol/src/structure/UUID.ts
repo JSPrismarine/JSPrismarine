@@ -1,4 +1,4 @@
-import type { NetworkBinaryStream } from '../';
+import type BinaryStream from '@jsprismarine/binaryutils';
 import NetworkStructure from '../NetworkStructure';
 
 /**
@@ -21,13 +21,13 @@ export default class UUID extends NetworkStructure {
     }
 
     /** Writes both halves as uint64 little endian. */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         stream.writeUnsignedLongLE(this.most);
         stream.writeUnsignedLongLE(this.least);
     }
 
     /** Reads both halves as uint64 little endian. */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         this.most = stream.readUnsignedLongLE();
         this.least = stream.readUnsignedLongLE();
     }

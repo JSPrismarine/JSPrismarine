@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('0768c3a96c6c6f30', 'hex');
 const payload = { xuid: 'héllo0' };
 
-describe('the declarative ShowProfile layout', () => {
-    const layout = layoutAt(showProfilePacket, 2193);
+describe.each([2193, 2225])('the declarative ShowProfile layout at protocol %i', (protocol) => {
+    const layout = layoutAt(showProfilePacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

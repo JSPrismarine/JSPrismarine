@@ -4,6 +4,7 @@ import NetworkBinaryStream from '../NetworkBinaryStream';
 import PlayerActionPacket, { PlayerActionType } from './PlayerActionPacket';
 
 import type { PlayerActionData } from './PlayerActionPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 /**
  * The packet as the client writes it under protocol 2193, header included: Player Runtime ID
@@ -49,6 +50,29 @@ const sample: PlayerActionData = {
 };
 
 describe('PlayerActionPacket', () => {
+    it('numbers every action the way the pinned game dump does', () => {
+        const dump = enumDumpMembers('PlayerActionType');
+
+        expect(dump).toHaveLength(40);
+        for (const { name, value } of dump) {
+            // `Count` is a sentinel, not an action a client sends.
+            if (name === 'Count') continue;
+            // A numeric enum maps its values back to their member names.
+            expect(PlayerActionType[value], name).toBe(name);
+        }
+    });
+
+    it.each([2193, 2225])('round-trips every field at protocol %i', (protocol) => {
+        const out = new PlayerActionPacket(sample);
+        out.codecProtocol = protocol;
+        const buffer = out.serialize(new NetworkBinaryStream());
+        expect([...buffer]).toEqual(expectedBytes);
+
+        const back = new PlayerActionPacket();
+        back.codecProtocol = protocol;
+        expect(back.deserialize(new NetworkBinaryStream(buffer))).toEqual(sample);
+    });
+
     it('reads a position below zero with a signed y, then stops at the end', () => {
         const stream = new NetworkBinaryStream(clientBytes(sample));
         const data = new PlayerActionPacket().deserialize(stream);

@@ -14,6 +14,7 @@ import { playerSkinPacket } from '../wire/definitions/playerSkin';
  * skin carries its own PlayFab id - is the layout's decision, not this file's. There is no
  * trusted flag of its own at this level; it travels inside the skin as its `TrustedSkinFlag`
  * string, which `Skin.isTrusted` records.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-skin-packet/
  */
 export default class PlayerSkinPacket extends FieldNetworkPacket {
     /** The player whose skin changed. */

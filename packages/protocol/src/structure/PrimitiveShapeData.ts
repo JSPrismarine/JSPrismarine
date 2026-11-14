@@ -1,5 +1,5 @@
+import type BinaryStream from '@jsprismarine/binaryutils';
 import type { Dimension } from '@jsprismarine/minecraft';
-import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
 import Vec2 from './Vec2';
 import Vec3 from './Vec3';
@@ -166,11 +166,11 @@ export interface PrimitiveShapeDataFields {
  * alternative's fields. The arrow's four fields, the text's `BackgroundColor` and the
  * pyramid's `Depth` are optionals too; every other alternative field is written bare.
  *
- * The 1.26.51 schema lists `Dimension ID` and the arrow fields as required and only marks
- * them optional at protocol 2207. gophertunnel and Cloudburst have written the presence byte
- * for them at every protocol since the packet appeared, including their 2193 codecs, so this
- * class does the same.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/primitive-shape-data-payload/}
+ * The 1.26.50 page lists `Dimension ID` and the arrow fields as required, and the 1.26.60
+ * page marks them optional. Mojang's note for that change says the docs were corrected to
+ * reflect the engine's real optionality, so the presence byte is written at protocols 2193 and
+ * 2225 alike (`docs/research/protocol-2225-delta.md`, "Enum and data changes outside the packet layer").
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/primitive-shape-data-payload/}
  */
 export default class PrimitiveShapeData extends NetworkStructure implements PrimitiveShapeDataFields {
     public networkId: bigint;
@@ -206,20 +206,29 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
         this.extraData = fields.extraData;
     }
 
-    private static writeOptional<T>(
-        stream: NetworkBinaryStream,
-        value: T | undefined,
-        write: (value: T) => void
-    ): void {
+    private static writeOptional<T>(stream: BinaryStream, value: T | undefined, write: (value: T) => void): void {
         stream.writeBoolean(value !== undefined);
         if (value !== undefined) write(value);
     }
 
-    private static readOptional<T>(stream: NetworkBinaryStream, read: () => T): T | undefined {
+    private static readOptional<T>(stream: BinaryStream, read: () => T): T | undefined {
         return stream.readBoolean() ? read() : undefined;
     }
 
-    private static writeExtraData(stream: NetworkBinaryStream, data: PrimitiveShapeExtraData): void {
+    // The static `deserialize` the vectors inherit takes a `NetworkBinaryStream`; the floats need only a `BinaryStream`.
+    private static readVec2(stream: BinaryStream): Vec2 {
+        const vector = new Vec2(0, 0);
+        vector.deserialize(stream);
+        return vector;
+    }
+
+    private static readVec3(stream: BinaryStream): Vec3 {
+        const vector = new Vec3(0, 0, 0);
+        vector.deserialize(stream);
+        return vector;
+    }
+
+    private static writeExtraData(stream: BinaryStream, data: PrimitiveShapeExtraData): void {
         stream.writeUnsignedVarInt(data.type);
 
         switch (data.type) {
@@ -232,7 +241,7 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
                 PrimitiveShapeData.writeOptional(stream, data.segments, (v) => stream.writeByte(v));
                 break;
             case PrimitiveShapeExtraDataType.Text:
-                stream.writeString(data.text);
+                stream.writeVarString(data.text);
                 stream.writeBoolean(data.useRotation);
                 PrimitiveShapeData.writeOptional(stream, data.backgroundColor, (v) => stream.writeUnsignedIntLE(v));
                 stream.writeFloatLE(data.lineGapHeight);
@@ -272,7 +281,7 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
         }
     }
 
-    private static readExtraData(stream: NetworkBinaryStream): PrimitiveShapeExtraData {
+    private static readExtraData(stream: BinaryStream): PrimitiveShapeExtraData {
         const type = stream.readUnsignedVarInt();
 
         switch (type) {
@@ -281,7 +290,7 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
             case PrimitiveShapeExtraDataType.Arrow:
                 return {
                     type,
-                    endLocation: PrimitiveShapeData.readOptional(stream, () => Vec3.deserialize(stream)),
+                    endLocation: PrimitiveShapeData.readOptional(stream, () => PrimitiveShapeData.readVec3(stream)),
                     headLength: PrimitiveShapeData.readOptional(stream, () => stream.readFloatLE()),
                     headRadius: PrimitiveShapeData.readOptional(stream, () => stream.readFloatLE()),
                     segments: PrimitiveShapeData.readOptional(stream, () => stream.readByte())
@@ -289,7 +298,7 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
             case PrimitiveShapeExtraDataType.Text:
                 return {
                     type,
-                    text: stream.readString(),
+                    text: stream.readVarString(),
                     useRotation: stream.readBoolean(),
                     backgroundColor: PrimitiveShapeData.readOptional(stream, () => stream.readUnsignedIntLE()),
                     lineGapHeight: stream.readFloatLE(),
@@ -298,16 +307,16 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
                     showTextBackface: stream.readBoolean()
                 };
             case PrimitiveShapeExtraDataType.Box:
-                return { type, bound: Vec3.deserialize(stream) };
+                return { type, bound: PrimitiveShapeData.readVec3(stream) };
             case PrimitiveShapeExtraDataType.Line:
-                return { type, endLocation: Vec3.deserialize(stream) };
+                return { type, endLocation: PrimitiveShapeData.readVec3(stream) };
             case PrimitiveShapeExtraDataType.Sphere:
                 return { type, segments: stream.readByte() };
             case PrimitiveShapeExtraDataType.Cylinder:
                 return {
                     type,
-                    radiusX: Vec2.deserialize(stream),
-                    radiusZ: Vec2.deserialize(stream),
+                    radiusX: PrimitiveShapeData.readVec2(stream),
+                    radiusZ: PrimitiveShapeData.readVec2(stream),
                     height: stream.readFloatLE(),
                     segments: stream.readByte()
                 };
@@ -319,11 +328,11 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
                     height: stream.readFloatLE()
                 };
             case PrimitiveShapeExtraDataType.Ellipsoid:
-                return { type, radii: Vec3.deserialize(stream), segmentsPerAxis: stream.readByte() };
+                return { type, radii: PrimitiveShapeData.readVec3(stream), segmentsPerAxis: stream.readByte() };
             case PrimitiveShapeExtraDataType.Cone:
                 return {
                     type,
-                    radii: Vec2.deserialize(stream),
+                    radii: PrimitiveShapeData.readVec2(stream),
                     height: stream.readFloatLE(),
                     segments: stream.readByte()
                 };
@@ -336,7 +345,7 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
      * Writes a shape entry: `Network ID`, then each optional field behind its presence byte,
      * then the `Extra Shape Data` variant.
      */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         stream.writeUnsignedVarLong(this.networkId);
         PrimitiveShapeData.writeOptional(stream, this.shapeType, (v) => stream.writeByte(v));
         PrimitiveShapeData.writeOptional(stream, this.location, (v) => v.serialize(stream));
@@ -354,12 +363,12 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
      * Reads a shape entry.
      * @throws when the `Extra Shape Data` selector names none of the ten alternatives.
      */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         this.networkId = stream.readUnsignedVarLong();
         this.shapeType = PrimitiveShapeData.readOptional(stream, () => stream.readByte());
-        this.location = PrimitiveShapeData.readOptional(stream, () => Vec3.deserialize(stream));
+        this.location = PrimitiveShapeData.readOptional(stream, () => PrimitiveShapeData.readVec3(stream));
         this.scale = PrimitiveShapeData.readOptional(stream, () => stream.readFloatLE());
-        this.rotation = PrimitiveShapeData.readOptional(stream, () => Vec3.deserialize(stream));
+        this.rotation = PrimitiveShapeData.readOptional(stream, () => PrimitiveShapeData.readVec3(stream));
         this.totalTimeLeft = PrimitiveShapeData.readOptional(stream, () => stream.readFloatLE());
         this.maxRenderDistance = PrimitiveShapeData.readOptional(stream, () => stream.readFloatLE());
         this.color = PrimitiveShapeData.readOptional(stream, () => stream.readUnsignedIntLE());

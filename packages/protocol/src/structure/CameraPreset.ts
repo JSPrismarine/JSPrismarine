@@ -160,10 +160,11 @@ export interface CameraPresetData {
  * `Control Scheme` as a uint8. Then `Apply Inherited Starting Rotation` as a boolean with no
  * presence byte, and `Starting Rotation` as an optional Vec2.
  *
- * The 1.26.51 schema lists every field as required, but the client reads a presence byte before
- * each of the fields above (gophertunnel and PocketMine agree), and the 1.26.60 preview schema
- * marks the same fields optional.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/camera-presets/}
+ * The 1.26.50 docs list every field as required, but the captured payload
+ * `bedrock-data/src/jsp/v2193/wire/0xc6.bin` carries a presence byte before each of the fields
+ * above, and the 1.26.60 docs mark the same fields optional; `CameraPresetsPacket.test.ts` round
+ * trips the capture at both protocols.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/camera-presets/}
  */
 export default class CameraPreset extends NetworkStructure {
     /**

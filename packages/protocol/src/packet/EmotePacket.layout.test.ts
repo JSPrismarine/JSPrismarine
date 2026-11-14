@@ -14,8 +14,8 @@ const payload = {
     flags: 3
 };
 
-describe('the declarative Emote layout', () => {
-    const layout = layoutAt(emotePacket, 2193);
+describe.each([2193, 2225])('the declarative Emote layout at protocol %i', (protocol) => {
+    const layout = layoutAt(emotePacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

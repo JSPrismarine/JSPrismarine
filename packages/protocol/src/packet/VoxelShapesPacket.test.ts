@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import SerializableVoxelShape from '../structure/SerializableVoxelShape';
+import { voxelShapesPacket } from '../wire/definitions/voxelShapes';
+import { layoutAt } from '../wire/WireLayout';
 import VoxelShapesPacket from './VoxelShapesPacket';
 
 import type { VoxelShapes } from './VoxelShapesPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /** Handle 0: a single solid cell filling the block. */
 const UNIT_CUBE = new SerializableVoxelShape({ xSize: 1, ySize: 1, zSize: 1, storage: [0x01] }, [0, 1], [0, 1], [0, 1]);
@@ -81,5 +84,25 @@ describe('VoxelShapesPacket', () => {
 
         expect(data).toEqual(EMPTY);
         expect(stream.feof()).toBe(true);
+    });
+
+    // The Name Map's wire form (varuint32 count, string key, uint16 handle) is not on the docs
+    // page, which only says "object"; the real server's payload settles it at both versions.
+    describe.each([2193, 2225])('Bedrock Dedicated Server capture at protocol %i', (protocol) => {
+        const captured = capture(protocol, 0x151);
+
+        it('decodes to the end and re-encodes to the same bytes', () => {
+            const layout = layoutAt(voxelShapesPacket, protocol);
+            const stream = new NetworkBinaryStream(captured);
+            const data = layout.decode(stream);
+
+            expect(stream.feof()).toBe(true);
+            expect(data.shapes).toHaveLength(287);
+            expect(data.nameMap).toHaveLength(220);
+
+            const encoded = new NetworkBinaryStream();
+            layout.encode(encoded, data);
+            expect(encoded.getBuffer().equals(captured)).toBe(true);
+        });
     });
 });

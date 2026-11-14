@@ -11,8 +11,8 @@ const CASES = [
     }
 ];
 
-describe('the declarative UnlockedRecipes layout', () => {
-    const layout = layoutAt(unlockedRecipesPacket, 2193);
+describe.each([2193, 2225])('the declarative UnlockedRecipes layout at protocol %i', (protocol) => {
+    const layout = layoutAt(unlockedRecipesPacket, protocol);
 
     for (const { branch, bytes, payload } of CASES) {
         it(`writes the bytes the hand-written serializer wrote ${branch}`, () => {

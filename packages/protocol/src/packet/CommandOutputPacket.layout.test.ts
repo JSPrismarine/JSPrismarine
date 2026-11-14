@@ -49,8 +49,8 @@ const withoutDataSet = {
     dataSet: null
 };
 
-describe('the declarative CommandOutput layout', () => {
-    const layout = layoutAt(commandOutputPacket, 2193);
+describe.each([2193, 2225])('the declarative CommandOutput layout at protocol %i', (protocol) => {
+    const layout = layoutAt(commandOutputPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

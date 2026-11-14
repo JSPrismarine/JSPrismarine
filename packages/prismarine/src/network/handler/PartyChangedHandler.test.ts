@@ -50,6 +50,14 @@ describe('PartyChangedHandler', () => {
         expect(logged.debug).toEqual(['Steve left its party. Parties are not tracked']);
     });
 
+    it('reads an absent party_info as leaving the party', () => {
+        const { logged, context } = fakeSession();
+
+        new PartyChangedHandler().handle(new PartyChangedPacket({ partyInfo: null }), context);
+
+        expect(logged.debug).toEqual(['Steve left its party. Parties are not tracked']);
+    });
+
     it('drops an id longer than the schema allows', () => {
         const { logged, context } = fakeSession();
 

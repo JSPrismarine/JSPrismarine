@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { serverToClientHandshakePacket } from '../wire/definitions/serverToClientHandshake';
+import { protocolVersion as protocol2193 } from '../wire/versions/v2193';
+import { protocolVersion as protocol2225 } from '../wire/versions/v2225';
+import { layoutAt } from '../wire/WireLayout';
 import ServerToClientHandshakePacket from './ServerToClientHandshakePacket';
 
 import type { ServerToClientHandshake } from './ServerToClientHandshakePacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /** `DATA` on the wire, header byte included: one varuint32-prefixed UTF-8 string. */
 const BYTES = Buffer.from([
@@ -48,5 +53,21 @@ describe('ServerToClientHandshakePacket', () => {
 
         expect(new ServerToClientHandshakePacket().deserialize(stream)).toEqual({ jwt });
         expect(stream.feof()).toBe(true);
+    });
+
+    // `0x03.bin` is the payload of a real Bedrock Dedicated Server's handshake at each protocol.
+    it.each([protocol2193, protocol2225])('round trips the protocol %i capture byte for byte', (protocol) => {
+        const bytes = capture(protocol, 0x03);
+        const layout = layoutAt(serverToClientHandshakePacket, protocol);
+        const stream = new NetworkBinaryStream(bytes);
+        const data = layout.decode(stream);
+
+        expect(stream.feof()).toBe(true);
+        expect(data.jwt.split('.')).toHaveLength(3);
+
+        const out = new NetworkBinaryStream();
+        layout.encode(out, data);
+
+        expect([...out.getBuffer()]).toEqual([...bytes]);
     });
 });

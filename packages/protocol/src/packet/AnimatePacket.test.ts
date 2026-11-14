@@ -78,6 +78,26 @@ describe('network', () => {
                 expect([...packet.getBuffer()]).toEqual([...wireBytes(1, 300n, 0, 'Attack')]);
             });
 
+            it('appends the Hand byte at protocol 2225 and reads it back', () => {
+                const packet = new AnimatePacket();
+                packet.codecProtocol = 2225;
+                packet.action = 1;
+                packet.runtimeEntityId = 1n;
+                packet.swingSource = null;
+                packet.hand = 1;
+                packet.encode();
+
+                // Header, Action, runtime id, Data (0.0), absent Swing Source, then Hand: Offhand.
+                expect([...packet.getBuffer()]).toEqual([0x2c, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]);
+
+                const read = new AnimatePacket(packet.getBuffer());
+                read.codecProtocol = 2225;
+                read.decode();
+                expect(read.hand).toBe(1);
+                expect(read.swingSource).toBeNull();
+                expect(read.feof()).toBe(true);
+            });
+
             it('writes a single zero byte after the float for an absent swing source', () => {
                 const packet = new AnimatePacket();
                 packet.action = 1;

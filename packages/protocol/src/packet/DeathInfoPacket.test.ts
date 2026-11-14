@@ -28,6 +28,19 @@ const NO_PARAMETERS_BYTES = Buffer.from([
 ]);
 
 describe('DeathInfoPacket', () => {
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const packet = new DeathInfoPacket(DATA);
+        packet.codecProtocol = protocol;
+        const buffer = packet.serialize(new NetworkBinaryStream());
+        expect([...buffer]).toEqual([...BYTES]);
+
+        const reader = new DeathInfoPacket();
+        reader.codecProtocol = protocol;
+        const stream = new NetworkBinaryStream(buffer);
+        expect(reader.deserialize(stream)).toEqual(DATA);
+        expect(stream.feof()).toBe(true);
+    });
+
     it('writes every field in the order protocol 2193 defines', () => {
         const buffer = new DeathInfoPacket(DATA).serialize(new NetworkBinaryStream());
 

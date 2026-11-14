@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('0768c3a96c6c6f3000', 'hex');
 const payload = { command: 'héllo0', suppressOutput: false };
 
-describe('the declarative SettingsCommand layout', () => {
-    const layout = layoutAt(settingsCommandPacket, 2193);
+describe.each([2193, 2225])('the declarative SettingsCommand layout at protocol %i', (protocol) => {
+    const layout = layoutAt(settingsCommandPacket, protocol);
 
     it('writes the bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();

@@ -450,7 +450,7 @@ const clientPayloadComparison = (
 
     const ingredientGaps: string[] = [];
     const checkIngredient = (ingredient: {
-        descriptor: { kind: 'name'; name: string } | { kind: 'tag'; tag: string } | null;
+        descriptor: { kind: 'name'; name: string } | { kind: 'tag'; tag: string } | { kind: 'molang' } | null;
     }): void => {
         const descriptor = ingredient.descriptor;
         if (descriptor === null) return;

@@ -6,6 +6,7 @@ import { levelChunkPacket } from '../wire/definitions/levelChunk';
 import LevelChunkPacket from './LevelChunkPacket';
 
 import type { LevelChunk } from './LevelChunkPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 const plain: LevelChunk = {
     chunkX: 4,
@@ -64,5 +65,17 @@ describe('the declarative LevelChunk layout', () => {
         const read = layoutAt(levelChunkPacket, 2193).decode(new NetworkBinaryStream(encoded));
 
         expect(read).toEqual({ ...layoutPayload(plain), isClientBiomeUpdate: false });
+    });
+
+    it.each([2193, 2225])('round-trips the Bedrock Dedicated Server capture at protocol %i', (protocol) => {
+        const captured = capture(protocol, 0x3a);
+        const at = layoutAt(levelChunkPacket, protocol);
+        const decoded = at.decode(new NetworkBinaryStream(captured));
+        const stream = new NetworkBinaryStream();
+        at.encode(stream, decoded);
+
+        // The capture is a request-mode chunk: a zero count, then the present sub-chunk limit.
+        expect(decoded.subChunkRequest.clientRequestsEnabled).toBe(true);
+        expect(stream.getBuffer()).toEqual(captured);
     });
 });

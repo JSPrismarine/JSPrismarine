@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('c8', 'hex');
 const payload = { simType: 200 };
 
-describe('the declarative SimulationType layout', () => {
-    const layout = layoutAt(simulationTypePacket, 2193);
+describe.each([2193, 2225])('the declarative SimulationType layout at protocol %i', (protocol) => {
+    const layout = layoutAt(simulationTypePacket, protocol);
 
     it('writes the bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();

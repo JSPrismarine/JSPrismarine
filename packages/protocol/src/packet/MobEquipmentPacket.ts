@@ -13,7 +13,7 @@ import type { MobEquipmentPayload } from '../wire/definitions/containers';
  * entity's held item. The item is a `NetworkItemStackDescriptor`; even an empty hand carries
  * the complete descriptor. `Container ID`, `Slot`, `Selected Slot`, and the target runtime id
  * surround it in the documented order.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-equipment-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/mob-equipment-packet/
  */
 export default class MobEquipmentPacket extends NetworkPacket<MobEquipmentPayload> {
     /** Accepts payload data for sending or an encoded buffer for decoding. */

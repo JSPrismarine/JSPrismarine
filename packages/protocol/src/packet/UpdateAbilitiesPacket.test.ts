@@ -1,9 +1,13 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
+import { updateAbilitiesPacket } from '../wire/definitions/updateAbilities';
+import { layoutAt } from '../wire/WireLayout';
 import UpdateAbilitiesPacket, { AbilityLayer, AbilityLayerFlag, AbilityLayerType } from './UpdateAbilitiesPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 // Flags in bit order. BUILD (0) true, FLYING (9) false, MAY_FLY (10) true, FLY_SPEED (13) and
 // WALK_SPEED (14) present with no value bit, MUTED (15) false.
@@ -80,6 +84,22 @@ describe('network', () => {
                 expect(layer?.verticalFlySpeed).toBe(1);
                 expect(layer?.walkSpeed).toBeCloseTo(0.1);
                 expect(pk.feof()).toBe(true);
+            });
+
+            it.each([2193, 2225])('round-trips the Bedrock Dedicated Server capture at protocol %i', (protocol) => {
+                const bytes = capture(protocol, 0xbb);
+                const layout = layoutAt(updateAbilitiesPacket, protocol);
+
+                const stream = new BinaryStream(bytes);
+                const payload = layout.decode(stream);
+                expect(stream.feof()).toBe(true);
+                expect(payload.playerPermission).toBe(PlayerPermissionLevel.MEMBER);
+                expect(payload.commandPermission).toBe(CommandPermissionLevel.ANY);
+                expect(payload.abilityLayers).toHaveLength(1);
+
+                const encoded = new BinaryStream();
+                layout.encode(encoded, payload);
+                expect(encoded.getBuffer()).toStrictEqual(bytes);
             });
 
             it('keeps bit 31 unsigned in both bitsets', () => {

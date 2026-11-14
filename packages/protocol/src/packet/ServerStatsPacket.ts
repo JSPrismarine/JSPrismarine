@@ -7,18 +7,20 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
 
 /** The fields of a `ServerStatsPacket`, in wire order. */
 export interface ServerStats {
-    /** `ServerTime`, how long the server spent on its last tick. */
+    /** `ServerTime`, a little-endian 32-bit float. The docs give no unit. */
     serverTime: number;
-    /** `NetworkTime`, how long the server spent on networking in its last tick. */
+    /** `NetworkTime`, a little-endian 32-bit float. The docs give no unit. */
     networkTime: number;
 }
 
 /**
  * Performance figures the server reports to the client.
  *
- * Protocol 2193 layout, in wire order: `ServerTime` then `NetworkTime`, each a little-endian
- * 32-bit float. Mojang's docs mark it as sent from the server only and do not say what unit the
- * two timings are in.
+ * Protocols 2193 and 2225 share one layout, in wire order: `ServerTime` then `NetworkTime`, each a
+ * little-endian 32-bit float. Mojang's docs mark it as sent from the server only and do not say
+ * what unit the two timings are in.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-stats-packet/
  */
 export default class ServerStatsPacket extends NetworkPacket<ServerStats> {
     public get id(): number {

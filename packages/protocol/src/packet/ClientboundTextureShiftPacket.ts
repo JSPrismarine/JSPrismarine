@@ -1,7 +1,10 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { clientboundTextureShiftPacket } from '../wire/definitions/clientboundTextureShift';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { ClientboundTextureShiftPayload } from '../wire/definitions/clientboundTextureShift';
 
 /** The `Action ID` of a texture shift update. The values are the ones the wire carries. */
 export enum TextureShiftAction {
@@ -14,24 +17,7 @@ export enum TextureShiftAction {
 }
 
 /** The fields of a `ClientboundTextureShiftPacket`, in wire order. */
-export interface ClientboundTextureShift {
-    /** `Action ID`. */
-    action: TextureShiftAction;
-    /** `Collection Name`, the texture shift collection the update applies to. */
-    collectionName: string;
-    /** `From Step`, the step the shift starts at. */
-    fromStep: string;
-    /** `To Step`, the step the shift ends at. */
-    toStep: string;
-    /** `All Steps`, every step name of the collection. */
-    allSteps: string[];
-    /** `Current Length In Ticks`, how far into the shift the client should be. */
-    currentLengthInTicks: bigint;
-    /** `Total Length In Ticks`, how long the whole shift takes. */
-    totalLengthInTicks: bigint;
-    /** `Enabled`. For a {@link TextureShiftAction.Start} action, whether the shift begins enabled. */
-    enabled: boolean;
-}
+export type ClientboundTextureShift = ClientboundTextureShiftPayload;
 
 /**
  * Updates the client's texture shift system: which step of a texture collection it shows and
@@ -52,46 +38,10 @@ export default class ClientboundTextureShiftPacket extends NetworkPacket<Clientb
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ClientboundTextureShift): void {
-        stream.writeByte(data.action);
-        stream.writeString(data.collectionName);
-        stream.writeString(data.fromStep);
-        stream.writeString(data.toStep);
-
-        stream.writeUnsignedVarInt(data.allSteps.length);
-        for (const step of data.allSteps) {
-            stream.writeString(step);
-        }
-
-        stream.writeUnsignedVarLong(data.currentLengthInTicks);
-        stream.writeUnsignedVarLong(data.totalLengthInTicks);
-        stream.writeBoolean(data.enabled);
+        layoutAt(clientboundTextureShiftPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ClientboundTextureShift {
-        const action: TextureShiftAction = stream.readByte();
-        const collectionName = stream.readString();
-        const fromStep = stream.readString();
-        const toStep = stream.readString();
-
-        const allSteps: string[] = [];
-        let count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            allSteps.push(stream.readString());
-        }
-
-        const currentLengthInTicks = stream.readUnsignedVarLong();
-        const totalLengthInTicks = stream.readUnsignedVarLong();
-        const enabled = stream.readBoolean();
-
-        return {
-            action,
-            collectionName,
-            fromStep,
-            toStep,
-            allSteps,
-            currentLengthInTicks,
-            totalLengthInTicks,
-            enabled
-        };
+        return layoutAt(clientboundTextureShiftPacket, this.codecProtocol).decode(stream);
     }
 }

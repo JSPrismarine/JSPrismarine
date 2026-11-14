@@ -38,4 +38,23 @@ describe('UpdateEquipPacket', () => {
 
         expect(packet.getBuffer()).toEqual(encoded);
     });
+
+    it.each([2193, 2225])('round-trips the same bytes at protocol %i, which changed nothing here', (protocol) => {
+        const packet = new UpdateEquipPacket();
+        packet.codecProtocol = protocol;
+        packet.containerId = 1;
+        packet.type = 12;
+        packet.size = 2;
+        packet.entityUniqueId = 9n;
+        packet.data = inventory;
+        packet.encode();
+        expect(packet.getBuffer()).toEqual(encoded);
+
+        const decoded = new UpdateEquipPacket(packet.getBuffer());
+        decoded.codecProtocol = protocol;
+        decoded.decode();
+        expect(decoded.entityUniqueId).toBe(9n);
+        expect(decoded.data).toEqual(inventory);
+        expect(decoded.feof()).toBe(true);
+    });
 });

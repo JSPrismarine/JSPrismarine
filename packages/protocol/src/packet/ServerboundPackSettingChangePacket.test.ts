@@ -58,4 +58,28 @@ describe('ServerboundPackSettingChangePacket', () => {
     it('uses the protocol 2193 packet id', () => {
         expect(new ServerboundPackSettingChangePacket().getId()).toBe(PacketIdentifier.SERVERBOUND_PACK_SETTING_CHANGE);
     });
+
+    it.each([2193, 2225])('writes the same layout at protocol %i', (protocol) => {
+        // mce::UUID: most significant uint64 little-endian, then least significant uint64 little-endian.
+        const uuidBytes = [
+            0x34, 0x12, 0x34, 0x12, 0x78, 0x56, 0x34, 0x12, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12, 0x34, 0x12
+        ];
+        const expected = Buffer.concat([
+            Buffer.from([0xc9, 0x02]),
+            Buffer.from(uuidBytes),
+            Buffer.from([1, 0x73, PackSettingValueType.StringList, 1, 1, 0x61])
+        ]);
+        const data = { packId: PACK_ID, packSettingName: 's', packSettingValue: ['a'] };
+
+        const writer = new ServerboundPackSettingChangePacket(data);
+        writer.codecProtocol = protocol;
+        const bytes = writer.serialize(new NetworkBinaryStream());
+        expect(bytes).toEqual(expected);
+
+        const reader = new ServerboundPackSettingChangePacket();
+        reader.codecProtocol = protocol;
+        const decoded = reader.deserialize(new NetworkBinaryStream(bytes));
+        expect(decoded.packId.toString()).toBe(PACK_ID.toString());
+        expect(decoded.packSettingValue).toEqual(['a']);
+    });
 });

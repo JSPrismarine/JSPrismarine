@@ -1,7 +1,7 @@
-import FieldNetworkPacket from '../FieldNetworkPacket';
+import { moveActorDeltaPacket } from '../wire/definitions/moveActorDelta';
+import { layoutAt } from '../wire/WireLayout';
 
-/** Degrees per step of the single byte a rotation is packed into. */
-const DEGREES_PER_STEP = 360 / 256;
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * A move of any non-player actor, with every changed component and nothing else.
@@ -22,29 +22,29 @@ const DEGREES_PER_STEP = 360 / 256;
  *
  * Up to protocol 2177 the six components were announced by a single uint16 flag field read
  * before them. 2193 replaced that with per-component presence bytes and added Ticks.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-actor-delta-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/move-actor-delta-packet/
  */
 export default class MoveActorDeltaPacket extends FieldNetworkPacket {
     /** Runtime id of the actor being moved. */
     public runtimeEntityId = 0n;
 
     /** New X coordinate, left out when X did not change. */
-    public positionX?: number;
+    public positionX: number | undefined;
 
     /** New Y coordinate, left out when Y did not change. */
-    public positionY?: number;
+    public positionY: number | undefined;
 
     /** New Z coordinate, left out when Z did not change. */
-    public positionZ?: number;
+    public positionZ: number | undefined;
 
     /** New pitch in degrees, left out when it did not change. */
-    public pitch?: number;
+    public pitch: number | undefined;
 
     /** New body yaw in degrees, left out when it did not change. */
-    public yaw?: number;
+    public yaw: number | undefined;
 
     /** New head yaw in degrees, left out when it did not change or the actor is not a mob. */
-    public headYaw?: number;
+    public headYaw: number | undefined;
 
     /** The actor stands on something rather than falling. */
     public isOnGround = false;
@@ -61,71 +61,13 @@ export default class MoveActorDeltaPacket extends FieldNetworkPacket {
     /** Ticks the client should spread the interpolation over. */
     public ticks = 0n;
 
-    /** Reads the runtime id, every present component, the four flags and the tick count. */
-    public decodePayload(): void {
-        this.runtimeEntityId = this.readUnsignedVarLong();
-
-        this.positionX = this.readOptionalFloat();
-        this.positionY = this.readOptionalFloat();
-        this.positionZ = this.readOptionalFloat();
-        this.pitch = this.readOptionalRotation();
-        this.yaw = this.readOptionalRotation();
-        this.headYaw = this.readOptionalRotation();
-
-        this.isOnGround = this.readBoolean();
-        this.forceMove = this.readBoolean();
-        this.forceMoveLocalEntity = this.readBoolean();
-        this.forceCompletion = this.readBoolean();
-        this.ticks = this.readUnsignedVarLong();
-    }
-
     /** Writes the runtime id, every set component, the four flags and the tick count. */
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-
-        this.writeOptionalFloat(this.positionX);
-        this.writeOptionalFloat(this.positionY);
-        this.writeOptionalFloat(this.positionZ);
-        this.writeOptionalRotation(this.pitch);
-        this.writeOptionalRotation(this.yaw);
-        this.writeOptionalRotation(this.headYaw);
-
-        this.writeBoolean(this.isOnGround);
-        this.writeBoolean(this.forceMove);
-        this.writeBoolean(this.forceMoveLocalEntity);
-        this.writeBoolean(this.forceCompletion);
-        this.writeUnsignedVarLong(this.ticks);
+        layoutAt(moveActorDeltaPacket, this.codecProtocol).encode(this, this);
     }
 
-    private readOptionalFloat(): number | undefined {
-        return this.readBoolean() ? this.readFloatLE() : undefined;
-    }
-
-    private writeOptionalFloat(value: number | undefined): void {
-        if (value === undefined) {
-            this.writeBoolean(false);
-            return;
-        }
-
-        this.writeBoolean(true);
-        this.writeFloatLE(value);
-    }
-
-    private readOptionalRotation(): number | undefined {
-        return this.readBoolean() ? this.readByte() * DEGREES_PER_STEP : undefined;
-    }
-
-    /**
-     * Rounds and wraps before writing, the same way `MoveActorAbsolutePacket` does. Angles
-     * accumulate past 360 and below 0, and the byte has to stay in range.
-     */
-    private writeOptionalRotation(degrees: number | undefined): void {
-        if (degrees === undefined) {
-            this.writeBoolean(false);
-            return;
-        }
-
-        this.writeBoolean(true);
-        this.writeByte(Math.round(degrees / DEGREES_PER_STEP) & 0xff);
+    /** Reads them back in the same order; an absent component is left `undefined`. */
+    public decodePayload(): void {
+        Object.assign(this, layoutAt(moveActorDeltaPacket, this.codecProtocol).decode(this));
     }
 }

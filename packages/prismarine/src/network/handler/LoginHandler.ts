@@ -267,7 +267,7 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
                 hasScripts: false,
                 forceDisableVibrantVisuals: false,
                 worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
-                packs: []
+                resourcePackEntries: []
             }),
             true
         );

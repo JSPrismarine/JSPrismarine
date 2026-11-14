@@ -7,8 +7,8 @@ const BYTES = Buffer.from('036f626a', 'hex');
 
 const payload = { objectiveName: 'obj' };
 
-describe('the declarative RemoveObjective layout', () => {
-    const layout = layoutAt(removeObjectivePacket, 2193);
+describe.each([2193, 2225])('the declarative RemoveObjective layout at protocol %i', (protocol) => {
+    const layout = layoutAt(removeObjectivePacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

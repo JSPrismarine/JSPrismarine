@@ -55,7 +55,7 @@ export interface LevelChunk {
  * By volume this is almost all of what a server sends, which makes it the packet a load test
  * most needs to be able to skip. Reading the envelope and leaving the payload alone costs
  * nothing and still says which chunk arrived, when, and how big it was.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-chunk-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/level-chunk-packet/
  */
 export default class LevelChunkPacket extends NetworkPacket<LevelChunk> {
     public get id(): number {

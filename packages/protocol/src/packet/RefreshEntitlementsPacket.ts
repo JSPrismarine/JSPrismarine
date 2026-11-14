@@ -8,9 +8,11 @@ export type RefreshEntitlements = Record<string, never>;
  * Asks the server to re-read the player's entitlements, the marketplace purchases and
  * subscriptions tied to the account.
  *
- * Protocol 2193 layout: the packet header and no payload. The docs describe it only as
+ * Protocol 2193 and 2225 layout: the packet header and no payload. The docs describe it only as
  * "Refresh Entitlements"; gophertunnel treats it as serverbound. A dedicated server that
  * does not gate content on entitlements can ignore it.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/refresh-entitlements-packet/
  */
 export default class RefreshEntitlementsPacket extends NetworkPacket<RefreshEntitlements> {
     public get id(): number {

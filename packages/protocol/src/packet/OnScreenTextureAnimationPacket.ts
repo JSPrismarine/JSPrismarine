@@ -8,7 +8,7 @@ import { onScreenTextureAnimationPacket } from '../wire/definitions/effects';
  * Bound to the client. The wire layout lives in `@jsprismarine/protocol`'s
  * `onScreenTextureAnimationPacket` definition: `Effect Id` as a little-endian uint32, and
  * nothing else.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/on-screen-texture-animation-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/on-screen-texture-animation-packet/
  */
 export default class OnScreenTextureAnimationPacket extends FieldNetworkPacket {
     /** `Effect Id`: which animation to play. */

@@ -4,31 +4,23 @@
  * The packet carries the player's predicted position and input flags every tick, followed by
  * optional block actions, item use, an item stack request, and vehicle data. All coordinates
  * and item stacks remain in Protocol's wire structures; a server resolves them into its own
- * game objects at the packet boundary.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-auth-input-packet/
+ * game objects at the packet boundary. The wire layout lives in the declarative definition
+ * `wire/definitions/playerAuthInput.ts`.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-auth-input-packet/
  */
 import type { Vector3 } from '@jsprismarine/math';
 
-import type BinaryStream from '@jsprismarine/binaryutils';
-import BlockPos from '../../structure/BlockPos';
-import { NetworkUtil } from '../networkUtil';
-import {
-    hasLegacyRequest,
-    LegacySlotChange,
-    MAX_INVENTORY_ACTIONS,
-    readInventoryAction,
-    readUseItemData,
-    writeInventoryAction,
-    writeUseItemData
-} from './InventoryTransaction';
-import { readItemStackRequest, writeItemStackRequest } from './ItemStackRequest';
-import { protocolVersion as protocolVersion2193 } from '../versions/v2193';
-
+import type BlockPos from '../../structure/BlockPos';
 import type { ItemStackRequest } from './ItemStackRequest';
 import type { InventoryActionData, LegacyTransactionRequest, UseItemData } from './InventoryTransaction';
 
-/** Input flags listed by Mojang for `PlayerAuthInputPacket`. */
+/**
+ * Input flags listed by Mojang for `PlayerAuthInputPacket`.
+ *
+ * The values follow the 1.26.60 page, with gaps at 2, 54 and 55; the 1.26.50 page prints dense
+ * positions instead. Mojang's pinned enum dump (`packages/minecraft/datagen/snapshot/0e00fe80f4f3-enums.html`)
+ * has the gapped numbers, and `PlayerAuthInputPacket.test.ts` asserts them against it.
+ */
 export enum PlayerAuthInputData {
     ASCEND = 0,
     DESCEND = 1,
@@ -196,7 +188,7 @@ export interface PlayerAuthInput {
     blockActions: PlayerBlockAction[] | null;
     /** Vehicle rotation, or `null` when the presence byte is zero. */
     vehicleRotation: InputVector2 | null;
-    /** Predicted vehicle runtime id, or `null` when the presence byte is zero. */
+    /** `Client Predicted Vehicle`, an actor unique id, or `null` when the presence byte is zero. */
     predictedVehicle: bigint | null;
     /** Movement direction before input permissions were applied. */
     analogMoveVector: InputVector2;
@@ -205,165 +197,3 @@ export interface PlayerAuthInput {
     /** Raw movement direction. */
     rawMoveVector: InputVector2;
 }
-
-/** Reads the packed use-item transaction nested inside `PlayerAuthInput`. */
-const readItemUse = (stream: BinaryStream): AuthInputItemUse => {
-    const legacyRequestId = stream.readVarInt();
-    const legacySlotChanges = stream.readBoolean()
-        ? Array.from({ length: stream.readUnsignedVarInt() }, () => LegacySlotChange.fromNetwork(stream))
-        : [];
-    const actionCount = stream.readUnsignedVarInt();
-    if (actionCount > MAX_INVENTORY_ACTIONS) {
-        throw new RangeError(
-            `A PlayerAuthInput item use carried ${actionCount} actions; the docs allow ${MAX_INVENTORY_ACTIONS}`
-        );
-    }
-    const actions = Array.from({ length: actionCount }, () => readInventoryAction(stream));
-
-    return { legacyRequestId, legacySlotChanges, actions, data: readUseItemData(stream) };
-};
-
-/** Writes the packed use-item transaction nested inside `PlayerAuthInput`. */
-const writeItemUse = (stream: BinaryStream, use: AuthInputItemUse): void => {
-    stream.writeVarInt(use.legacyRequestId);
-    const carriesLegacySlots = hasLegacyRequest(use.legacyRequestId);
-    stream.writeBoolean(carriesLegacySlots);
-    if (carriesLegacySlots) {
-        stream.writeUnsignedVarInt(use.legacySlotChanges.length);
-        for (const change of use.legacySlotChanges) change.toNetwork(stream);
-    }
-
-    stream.writeUnsignedVarInt(use.actions.length);
-    for (const action of use.actions) writeInventoryAction(stream, action);
-    writeUseItemData(stream, use.data);
-};
-
-/**
- * Reads `PlayerAuthInputPacket` fields in the order the client sends them.
- * @param stream - The stream positioned at the packet payload.
- * @param protocolVersion - The negotiated protocol version for nested item stack requests.
- */
-export const readPlayerAuthInput = (stream: BinaryStream, protocolVersion = protocolVersion2193): PlayerAuthInput => {
-    const pitch = stream.readFloatLE();
-    const yaw = stream.readFloatLE();
-    const position = NetworkUtil.readVector3(stream);
-    const moveVector = readVec2(stream);
-    const headYaw = stream.readFloatLE();
-
-    const flagCount = stream.readUnsignedVarInt();
-    if (flagCount > INPUT_FLAG_COUNT) {
-        throw new RangeError(`PlayerAuthInput claims ${flagCount} input flags; there are ${INPUT_FLAG_COUNT}`);
-    }
-    const inputData = new Set(Array.from({ length: flagCount }, () => stream.readVarInt()));
-
-    const inputMode = stream.readUnsignedVarInt();
-    const playMode = stream.readUnsignedVarInt();
-    const interactionModel = stream.readVarInt();
-    const interactRotation = readVec2(stream);
-    const tick = stream.readUnsignedVarLong();
-    const delta = NetworkUtil.readVector3(stream);
-
-    const itemUseTransaction = stream.readBoolean() ? readItemUse(stream) : null;
-    const itemStackRequest = stream.readBoolean() ? readItemStackRequest(stream, protocolVersion) : null;
-
-    let blockActions: PlayerBlockAction[] | null = null;
-    if (stream.readBoolean()) {
-        const actionCount = stream.readUnsignedVarInt();
-        if (actionCount > MAX_BLOCK_ACTIONS) {
-            throw new RangeError(
-                `PlayerAuthInput claims ${actionCount} block actions; the docs allow ${MAX_BLOCK_ACTIONS}`
-            );
-        }
-        blockActions = Array.from({ length: actionCount }, () => ({
-            action: stream.readVarInt(),
-            position: new BlockPos(stream.readVarInt(), stream.readVarInt(), stream.readVarInt()),
-            face: stream.readVarInt()
-        }));
-    }
-
-    const vehicleRotation = stream.readBoolean() ? readVec2(stream) : null;
-    const predictedVehicle = stream.readBoolean() ? stream.readVarLong() : null;
-
-    return {
-        pitch,
-        yaw,
-        position,
-        moveVector,
-        headYaw,
-        inputData,
-        inputMode,
-        playMode,
-        interactionModel,
-        interactRotation,
-        tick,
-        delta,
-        itemUseTransaction,
-        itemStackRequest,
-        blockActions,
-        vehicleRotation,
-        predictedVehicle,
-        analogMoveVector: readVec2(stream),
-        cameraOrientation: NetworkUtil.readVector3(stream),
-        rawMoveVector: readVec2(stream)
-    };
-};
-
-/**
- * Writes every `PlayerAuthInputPacket` field in the order the client sends it.
- * @param stream - The stream to write into.
- * @param input - The input fields to encode.
- * @param protocolVersion - The negotiated protocol version for nested item stack requests.
- */
-export const writePlayerAuthInput = (
-    stream: BinaryStream,
-    input: PlayerAuthInput,
-    protocolVersion = protocolVersion2193
-): void => {
-    stream.writeFloatLE(input.pitch);
-    stream.writeFloatLE(input.yaw);
-    NetworkUtil.writeVector3(stream, input.position);
-    writeVec2(stream, input.moveVector);
-    stream.writeFloatLE(input.headYaw);
-
-    stream.writeUnsignedVarInt(input.inputData.size);
-    for (const flag of input.inputData) stream.writeVarInt(flag);
-
-    stream.writeUnsignedVarInt(input.inputMode);
-    stream.writeUnsignedVarInt(input.playMode);
-    stream.writeVarInt(input.interactionModel);
-    writeVec2(stream, input.interactRotation);
-    stream.writeUnsignedVarLong(input.tick);
-    NetworkUtil.writeVector3(stream, input.delta);
-
-    stream.writeBoolean(input.itemUseTransaction !== null);
-    if (input.itemUseTransaction !== null) writeItemUse(stream, input.itemUseTransaction);
-
-    stream.writeBoolean(input.itemStackRequest !== null);
-    if (input.itemStackRequest !== null) writeItemStackRequest(stream, input.itemStackRequest, protocolVersion);
-
-    stream.writeBoolean(input.blockActions !== null);
-    if (input.blockActions !== null) {
-        stream.writeUnsignedVarInt(input.blockActions.length);
-        for (const action of input.blockActions) {
-            stream.writeVarInt(action.action);
-            action.position.serialize(stream);
-            stream.writeVarInt(action.face);
-        }
-    }
-
-    stream.writeBoolean(input.vehicleRotation !== null);
-    if (input.vehicleRotation !== null) writeVec2(stream, input.vehicleRotation);
-    stream.writeBoolean(input.predictedVehicle !== null);
-    if (input.predictedVehicle !== null) stream.writeVarLong(input.predictedVehicle);
-
-    writeVec2(stream, input.analogMoveVector);
-    NetworkUtil.writeVector3(stream, input.cameraOrientation);
-    writeVec2(stream, input.rawMoveVector);
-};
-
-const readVec2 = (stream: BinaryStream): InputVector2 => ({ x: stream.readFloatLE(), y: stream.readFloatLE() });
-
-const writeVec2 = (stream: BinaryStream, vector: InputVector2): void => {
-    stream.writeFloatLE(vector.x);
-    stream.writeFloatLE(vector.y);
-};

@@ -61,6 +61,16 @@ describe('ChangeDimensionPacket', () => {
         expect(packet.getPacketData()).toEqual(withoutScreen);
     });
 
+    it('writes the same bytes at protocols 2193 and 2225', () => {
+        const encodeAt = (protocolVersion: number) => {
+            const packet = new ChangeDimensionPacket({ ...withoutScreen, loadingScreenId: 0x01020304 });
+            packet.encode({ protocolVersion });
+            return [...packet.getBuffer()];
+        };
+
+        expect(encodeAt(2193)).toEqual(encodeAt(2225));
+    });
+
     it('uses the expected network identifier', () => {
         expect(new ChangeDimensionPacket(withoutScreen).getId()).toBe(PacketIdentifier.CHANGE_DIMENSION);
     });

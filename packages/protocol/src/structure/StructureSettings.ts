@@ -34,7 +34,7 @@ export enum AnimationMode {
 
 /**
  * The palette, bounds, and placement options of a structure.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/structure-settings/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/structure-settings/
  */
 export interface StructureSettings {
     /** Palette name; vanilla uses `default`. */

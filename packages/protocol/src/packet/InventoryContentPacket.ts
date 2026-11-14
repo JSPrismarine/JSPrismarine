@@ -13,10 +13,11 @@ import type { ItemStackDescriptorData } from '../wire/structures/ItemStackDescri
  * and a container. Each slot is a `NetworkItemStackDescriptor`; the server resolves its game
  * items into these protocol DTOs before constructing the packet.
  *
- * Protocol 2193 wire order: `Container Id` (varuint32), `Slots` (a varuint count followed by
- * descriptors), `Full Container Name`, and `Storage Item`. The last two fields are required
- * here, unlike in `InventorySlotPacket`.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/inventory-content-packet/
+ * Wire order at protocols 2193 and 2225: `Container Id` (varuint32), `Slots` (a varuint count
+ * followed by descriptors), `Full Container Name`, and `Storage Item`. The last two fields are
+ * required here, unlike in `InventorySlotPacket`. `Full Container Name` carries its `Dynamic ID`
+ * behind a presence byte at both versions, as the `0x31.bin` captures show.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/inventory-content-packet/
  */
 export default class InventoryContentPacket extends FieldNetworkPacket {
     /** `Container Id`: the window these slots belong to. */

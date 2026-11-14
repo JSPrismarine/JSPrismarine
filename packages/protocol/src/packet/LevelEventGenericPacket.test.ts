@@ -1,5 +1,9 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
+import { layoutAt } from '../wire/WireLayout';
+import { levelEventGenericPacket } from '../wire/definitions/levelEventGeneric';
 import LevelEventGenericPacket from './LevelEventGenericPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 // A headless compound: entries then TAG_End, with no type byte or root name in front. Here one
 // TAG_Float (0x05) named `originX` (varuint length 7) holding 1.5, then TAG_End.
@@ -30,4 +34,19 @@ describe('LevelEventGenericPacket', () => {
         expect(packet.serializedEventData).toEqual(EVENT_DATA);
         expect(packet.feof()).toBe(true);
     });
+
+    for (const protocol of [2193, 2225]) {
+        it(`re-encodes the real server capture to the same bytes at protocol ${protocol}`, () => {
+            const captured = capture(protocol, 0x7c);
+            const layout = layoutAt(levelEventGenericPacket, protocol);
+            const read = new BinaryStream(captured);
+            const decoded = layout.decode(read);
+            const stream = new BinaryStream();
+            layout.encode(stream, decoded);
+
+            expect(read.feof()).toBe(true);
+            expect(decoded.eventId).toBe(9801);
+            expect(Buffer.from(stream.getBuffer())).toEqual(captured);
+        });
+    }
 });

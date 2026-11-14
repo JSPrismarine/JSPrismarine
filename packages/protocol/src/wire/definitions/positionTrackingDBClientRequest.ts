@@ -1,6 +1,6 @@
 /**
  * `PositionTrackingDBClientRequestPacket`: A lookup in the server's position tracking database.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/position-tracking-dbclient-request-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/position-tracking-dbclient-request-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

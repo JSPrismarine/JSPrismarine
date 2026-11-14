@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('d704', 'hex');
 const payload = { packetType: -300 };
 
-describe('the declarative MultiplayerSettings layout', () => {
-    const layout = layoutAt(multiplayerSettingsPacket, 2193);
+describe.each([2193, 2225])('the declarative MultiplayerSettings layout at protocol %i', (protocol) => {
+    const layout = layoutAt(multiplayerSettingsPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

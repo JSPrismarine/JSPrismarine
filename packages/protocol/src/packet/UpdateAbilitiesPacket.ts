@@ -107,7 +107,7 @@ export class AbilityLayer {
  * `CommandPermissionLevel`, the generated enums in `@jsprismarine/minecraft`. The target id
  * is the actor unique id the client got in `StartGamePacket` or `AddPlayerPacket`; a packet
  * for an id the client does not know is dropped.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-abilities-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-abilities-packet/
  */
 export default class UpdateAbilitiesPacket extends FieldNetworkPacket {
     public commandPermission: CommandPermissionLevel = CommandPermissionLevel.ANY;

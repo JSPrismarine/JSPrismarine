@@ -19,7 +19,7 @@ export enum RequestAbilityValueType {
  * schema constrains to 0 through 19), Value Type as a uint8, then both a boolean and a float
  * LE. Only the slot named by the value type is meaningful; the other is sent as its zero
  * value.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-ability-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/request-ability-packet/
  */
 export default class RequestAbilityPacket extends FieldNetworkPacket {
     /** The ability being changed, see `AbilityLayerFlag`. */

@@ -15,8 +15,8 @@ export type SetCommandsEnabledPayload = PayloadOf<typeof setCommandsEnabledPacke
  * The packet contains one `Commands Enabled` boolean. It is used by the world settings screen,
  * cheats, and Education Edition tools; the server sends it in response to enabling commands
  * through `SimpleEventPacket`.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-commands-enabled-packet/
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/simple-event-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-commands-enabled-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/simple-event-packet/
  */
 export default class SetCommandsEnabledPacket extends NetworkPacket<SetCommandsEnabledPayload> {
     public get id(): number {

@@ -1,4 +1,6 @@
 import { ContainerUiId } from '@jsprismarine/minecraft';
+import { ContainerUiId as ContainerUiId2193 } from '@jsprismarine/minecraft/generated/v2193/ContainerUiId';
+import { ContainerUiId as ContainerUiId2225 } from '@jsprismarine/minecraft/generated/v2225/ContainerUiId';
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
@@ -6,6 +8,14 @@ import FullContainerName from '../structure/FullContainerName';
 import ContainerRegistryCleanupPacket from './ContainerRegistryCleanupPacket';
 
 import type { ContainerRegistryCleanup } from './ContainerRegistryCleanupPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
+
+/** Member names compared without case, underscores or a trailing `Container`: the generated enum drops it from a few names. */
+const compact = (name: string): string =>
+    name
+        .replaceAll('_', '')
+        .replace(/container$/i, '')
+        .toLowerCase();
 
 const DATA: ContainerRegistryCleanup = {
     removedContainers: [
@@ -57,5 +67,36 @@ describe('ContainerRegistryCleanupPacket', () => {
 
         expect(data).toEqual({ removedContainers: [] });
         expect(stream.feof()).toBe(true);
+    });
+
+    it.each([
+        ['2193', ContainerUiId2193],
+        ['2225', ContainerUiId2225]
+    ])('numbers Container Name at protocol %s the way the pinned game dump does', (_protocol, generated) => {
+        const dump = enumDumpMembers('ContainerEnumName');
+
+        expect(dump).toHaveLength(67);
+        for (const { name, value } of dump) {
+            // A numeric enum maps its values back to their member names.
+            expect(compact(generated[value] ?? ''), name).toBe(compact(name));
+        }
+    });
+
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const packet = new ContainerRegistryCleanupPacket(DATA);
+        packet.codecProtocol = protocol;
+        expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...BYTES]);
+
+        const reader = new ContainerRegistryCleanupPacket();
+        reader.codecProtocol = protocol;
+        const stream = new NetworkBinaryStream(BYTES);
+        expect(reader.deserialize(stream)).toEqual(DATA);
+        expect(stream.feof()).toBe(true);
+    });
+
+    it('adds the four reserved container names at protocol 2225 only', () => {
+        expect(ContainerUiId2225.RESERVED_CONTAINER_A).toBe(67);
+        expect(ContainerUiId2225.RESERVED_CONTAINER_D).toBe(70);
+        expect('RESERVED_CONTAINER_A' in ContainerUiId2193).toBe(false);
     });
 });

@@ -1,7 +1,7 @@
 /**
  * `TickingAreasLoadStatusPacket`: Whether the client is sitting on a loading screen waiting for
  * ticking areas to preload.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/ticking-areas-load-status-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/ticking-areas-load-status-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

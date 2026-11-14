@@ -28,7 +28,7 @@ export interface CameraAimAssistPriority {
  *
  * Each entry is its identifier string (varuint32 byte length then UTF-8) followed by the
  * priority as a little-endian int32.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/camera-aim-assist-category-priorities/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/camera-aim-assist-category-priorities/}
  */
 export default class CameraAimAssistCategoryPriorities extends NetworkStructure {
     /**

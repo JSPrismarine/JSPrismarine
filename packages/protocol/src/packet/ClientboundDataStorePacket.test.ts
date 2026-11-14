@@ -145,6 +145,18 @@ describe('ClientboundDataStorePacket', () => {
         expect(decode(NESTED_BYTES)).toEqual(NESTED);
     });
 
+    for (const protocolVersion of [2193, 2225]) {
+        it(`writes and reads the same bytes at protocol ${protocolVersion}`, () => {
+            const packet = new ClientboundDataStorePacket(DATA);
+            packet.codecProtocol = protocolVersion;
+            expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...BYTES]);
+
+            const received = new ClientboundDataStorePacket();
+            received.codecProtocol = protocolVersion;
+            expect(received.deserialize(new NetworkBinaryStream(BYTES))).toEqual(DATA);
+        });
+    }
+
     it('rejects an entry selector outside the three alternatives', () => {
         const stream = new NetworkBinaryStream(Buffer.from([...HEADER, 0x01, 0x03, ...HUD]));
 

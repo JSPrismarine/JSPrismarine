@@ -53,3 +53,9 @@ export const SINCE_2207_SUB_CHUNK_RESULTS = since(
  * one field under this gate and its successor under {@link SINCE_2225}.
  */
 export const UNTIL_2225 = until(2225, 'superseded at protocol 2225 (Minecraft 1.26.60)');
+
+/** The sub-chunk result numbering as it travelled before {@link SINCE_2207_SUB_CHUNK_RESULTS}. */
+export const UNTIL_2207_SUB_CHUNK_RESULTS = until(
+    2207,
+    'renumbered SubChunkRequestResult values at protocol 2207 (Minecraft 1.26.60-preview.21)'
+);

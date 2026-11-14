@@ -50,4 +50,26 @@ describe('AddItemActorPacket', () => {
         expect(result.metadata.getData()).toEqual(data.metadata.getData());
         expect(result.isFromFishing).toBe(true);
     });
+
+    it('writes the same bytes at protocols 2193 and 2225, which changed nothing in this packet', () => {
+        const encodeAt = (protocol: number): Buffer => {
+            const packet = new AddItemActorPacket(payload());
+            packet.codecProtocol = protocol;
+            packet.encode();
+            return packet.getBuffer();
+        };
+
+        expect(encodeAt(2225)).toEqual(encodeAt(2193));
+    });
+
+    it('round-trips at protocol 2225', () => {
+        const encoded = new AddItemActorPacket(payload());
+        encoded.codecProtocol = 2225;
+        encoded.encode();
+        const decoded = new AddItemActorPacket(encoded.getBuffer());
+        decoded.codecProtocol = 2225;
+        decoded.decode();
+
+        expect(decoded.getPacketData()?.position).toEqual(new Vector3(1, 2, 3));
+    });
 });

@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest';
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import BlockPos from '../structure/BlockPos';
 import UpdateSubChunkNetworkBlockInfo from '../structure/UpdateSubChunkNetworkBlockInfo';
+import { updateSubChunkBlocksPacket } from '../wire/definitions/updateSubChunkBlocks';
+import { layoutAt } from '../wire/WireLayout';
 import UpdateSubChunkBlocksPacket from './UpdateSubChunkBlocksPacket';
 
 import type { UpdateSubChunkBlocks } from './UpdateSubChunkBlocksPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /** Two first-layer changes and one waterlogging change in the sub chunk at (16, -64, -32). */
 const DATA: UpdateSubChunkBlocks = {
@@ -79,4 +82,22 @@ describe('UpdateSubChunkBlocksPacket', () => {
         expect(data).toEqual(DATA);
         expect(stream.feof()).toBe(true);
     });
+});
+
+describe('UpdateSubChunkBlocksPacket against a real server capture', () => {
+    for (const protocol of [2193, 2225] as const) {
+        it(`re-encodes the protocol ${protocol} payload to the bytes the server sent`, () => {
+            const bytes = capture(protocol, 0xac);
+            const layout = layoutAt(updateSubChunkBlocksPacket, protocol);
+            const stream = new NetworkBinaryStream(bytes);
+            const decoded = layout.decode(stream);
+
+            expect(stream.feof()).toBe(true);
+            expect(decoded.standards.length + decoded.extras.length).toBeGreaterThan(0);
+
+            const out = new NetworkBinaryStream();
+            layout.encode(out, decoded);
+            expect([...out.getBuffer()]).toEqual([...bytes]);
+        });
+    }
 });

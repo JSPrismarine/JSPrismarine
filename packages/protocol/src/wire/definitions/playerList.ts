@@ -39,6 +39,10 @@ import type { SkinWireLayout } from '../structures/skin/Skin';
 export interface PlayerListBody {
     /** The Action byte: 0 adds a player, 1 removes one. */
     type: number;
+    /**
+     * The Entries array, written with its count and no presence byte at either version, although
+     * the 1.26.50 page marks it optional; `bedrock-data/src/jsp/v2193/wire/0x3f.bin` shows none.
+     */
     entries: PlayerListEntry[];
 }
 

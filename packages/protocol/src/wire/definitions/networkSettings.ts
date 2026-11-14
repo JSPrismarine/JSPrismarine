@@ -1,7 +1,7 @@
 /**
  * The client's protocol-version request, sent before compression is agreed. The server reads
  * its version and replies with `NetworkSettingsPacket`, defined in `worldStatus.ts`.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-network-settings-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/request-network-settings-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

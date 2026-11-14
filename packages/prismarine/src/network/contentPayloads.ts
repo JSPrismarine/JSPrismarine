@@ -311,6 +311,10 @@ export const buildNetworkContentPayloads = (
                 outputs: recipe.outputs.map(output),
                 priority: recipe.priority
             })),
+            multi: [],
+            userDataShapeless: [],
+            shapelessChemistry: [],
+            shapedChemistry: [],
             smithingTransform: crafting.smithingTransform.map((recipe) => ({
                 id: recipe.id,
                 netId: recipe.netId,
@@ -320,6 +324,7 @@ export const buildNetworkContentPayloads = (
                 addition: recipe.addition,
                 output: output(recipe.output)
             })),
+            smithingTrim: [],
             // The one entry that names nothing: a brewing recipe carries the
             // three items as numbers, which is why `buildCraftingData` needs
             // the item registry before it can produce any of these.
@@ -331,6 +336,8 @@ export const buildNetworkContentPayloads = (
                 outputId: mix.outputId,
                 outputMeta: mix.outputMeta
             })),
+            containerMixes: [],
+            materialReducers: [],
             cleanRecipes: true
         },
         report: {
@@ -415,8 +422,15 @@ export const limitCraftingData = (crafting: CraftingData, limit: number): Crafti
     return {
         shaped: take(crafting.shaped),
         shapeless: take(crafting.shapeless),
+        multi: take(crafting.multi),
+        userDataShapeless: take(crafting.userDataShapeless),
+        shapelessChemistry: take(crafting.shapelessChemistry),
+        shapedChemistry: take(crafting.shapedChemistry),
         smithingTransform: take(crafting.smithingTransform),
+        smithingTrim: take(crafting.smithingTrim),
         potionMixes: take(crafting.potionMixes),
+        containerMixes: take(crafting.containerMixes),
+        materialReducers: take(crafting.materialReducers),
         cleanRecipes: crafting.cleanRecipes
     };
 };
@@ -425,8 +439,15 @@ export const limitCraftingData = (crafting: CraftingData, limit: number): Crafti
 export const craftingRecipeCount = (crafting: CraftingData): number =>
     crafting.shaped.length +
     crafting.shapeless.length +
+    crafting.multi.length +
+    crafting.userDataShapeless.length +
+    crafting.shapelessChemistry.length +
+    crafting.shapedChemistry.length +
     crafting.smithingTransform.length +
-    crafting.potionMixes.length;
+    crafting.smithingTrim.length +
+    crafting.potionMixes.length +
+    crafting.containerMixes.length +
+    crafting.materialReducers.length;
 
 /** What the join burst sends, as the line an operator reads at startup. */
 export const contentPayloadSummary = (payloads: NetworkContentPayloads): string =>

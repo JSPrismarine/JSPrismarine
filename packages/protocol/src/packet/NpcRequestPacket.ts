@@ -20,11 +20,11 @@ export enum NpcRequestType {
  * The target actor has to carry the NPC component. Education Edition is the only place the
  * component ships, though the dialogue system is exposed to add-ons.
  *
- * Wire order at protocol 2193: `NPC Runtime ID` as a varuint64, `Request Type` as a byte,
+ * Wire order at protocols 2193 and 2225: `NPC Runtime ID` as a varuint64, `Request Type` as a byte,
  * `Actions` as a string, `Action Index` as a byte, then `Scene Name` as a string.
  *
  * **Bound To:** Server
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/npc-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/npc-request-packet/
  */
 export default class NpcRequestPacket extends FieldNetworkPacket {
     /** The NPC the player interacted with. */

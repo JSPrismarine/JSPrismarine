@@ -1,7 +1,7 @@
 /**
  * `GuiDataPickItemPacket`: Tells the client which hotbar slot to hover over and the two lines to
  * show in the pick-block popup. It is used by pick block, commands, tests, and third-party content.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/gui-data-pick-item-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/gui-data-pick-item-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

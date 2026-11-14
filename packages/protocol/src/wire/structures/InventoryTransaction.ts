@@ -6,7 +6,7 @@
  * resolved by whoever holds an item table. `PlayerAuthInputPacket` carries the use-item half
  * of this inside itself, which is why the reader and writer pair for that body is exported
  * on its own rather than being folded into the transaction body.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/inventory-transaction-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/inventory-transaction-packet/}
  */
 import { Vector3 } from '@jsprismarine/math';
 
@@ -89,7 +89,9 @@ export enum InventorySourceType {
      * The 2193 docs page lists this as 4 because the schema carries no values and the page
      * numbers such members in order. The 2207 page's changelog "changes" it to 99999, the
      * value gophertunnel and PocketMine have read and written at every protocol, and the one
-     * the client sends.
+     * the client sends. Mojang's pinned `enums.html` dump
+     * (`packages/minecraft/datagen/snapshot/0e00fe80f4f3-enums.html`) carries 99999 as well,
+     * and `InventoryTransactionPacket.test.ts` asserts this enum against it.
      */
     NON_IMPLEMENTED_TODO = 99999
 }

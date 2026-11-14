@@ -27,8 +27,10 @@ const payload = {
     version: '1'
 };
 
-describe('the declarative CommandRequest layout', () => {
-    const layout = layoutAt(commandRequestPacket, 2193);
+// 2225 renumbers the `CommandOriginData` and `CurrentCmdVersion` enums, but both travel as member
+// names, so the bytes are the same at both protocol versions.
+describe.each([2193, 2225])('the declarative CommandRequest layout at protocol %i', (protocol) => {
+    const layout = layoutAt(commandRequestPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

@@ -56,4 +56,16 @@ describe('FeatureRegistryPacket', () => {
         expect(data).toEqual(DATA);
         expect(stream.feof()).toBe(true);
     });
+
+    it('writes and reads the same bytes at protocols 2193 and 2225, which changed nothing in this packet', () => {
+        for (const protocol of [2193, 2225]) {
+            const encoded = new FeatureRegistryPacket(DATA);
+            encoded.codecProtocol = protocol;
+            expect([...encoded.serialize(new NetworkBinaryStream())]).toEqual([...BYTES]);
+
+            const decoded = new FeatureRegistryPacket();
+            decoded.codecProtocol = protocol;
+            expect(decoded.deserialize(new NetworkBinaryStream(BYTES))).toEqual(DATA);
+        }
+    });
 });

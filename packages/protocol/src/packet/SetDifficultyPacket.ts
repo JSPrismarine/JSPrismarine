@@ -14,7 +14,7 @@ export type SetDifficultyPayload = PayloadOf<typeof setDifficultyPacket>;
  * current difficulty.
  *
  * The payload is one `Difficulty` varuint32: 0 Peaceful, 1 Easy, 2 Normal, or 3 Hard.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-difficulty-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-difficulty-packet/
  */
 export default class SetDifficultyPacket extends NetworkPacket<SetDifficultyPayload> {
     public get id(): number {

@@ -1,14 +1,13 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import PrimitiveShapeData from '../structure/PrimitiveShapeData';
+import { primitiveShapesPacket } from '../wire/definitions/primitiveShapes';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { PrimitiveShapesPayload } from '../wire/definitions/primitiveShapes';
 
 /** The fields of a `PrimitiveShapesPacket`, in wire order. */
-export interface PrimitiveShapes {
-    /** `Array of primitive shapes`: new, updated and removed shapes, one {@link PrimitiveShapeData} each. */
-    shapes: PrimitiveShapeData[];
-}
+export type PrimitiveShapes = PrimitiveShapesPayload;
 
 /**
  * Debug shapes for the client to draw, as the scripting `debug-utilities` module produces
@@ -28,19 +27,10 @@ export default class PrimitiveShapesPacket extends NetworkPacket<PrimitiveShapes
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: PrimitiveShapes): void {
-        stream.writeUnsignedVarInt(data.shapes.length);
-        for (const shape of data.shapes) {
-            shape.serialize(stream);
-        }
+        layoutAt(primitiveShapesPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): PrimitiveShapes {
-        const shapes: PrimitiveShapeData[] = [];
-        let count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            shapes.push(PrimitiveShapeData.deserialize(stream));
-        }
-
-        return { shapes };
+        return layoutAt(primitiveShapesPacket, this.codecProtocol).decode(stream);
     }
 }

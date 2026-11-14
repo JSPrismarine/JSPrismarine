@@ -17,8 +17,8 @@ const payload = {
     sortOrder: 1
 };
 
-describe('the declarative SetDisplayObjective layout', () => {
-    const layout = layoutAt(setDisplayObjectivePacket, 2193);
+describe.each([2193, 2225])('the declarative SetDisplayObjective layout at %i', (protocol) => {
+    const layout = layoutAt(setDisplayObjectivePacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

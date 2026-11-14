@@ -1,3 +1,4 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
@@ -6,6 +7,8 @@ import ServerWaypointPayload from '../structure/ServerWaypointPayload';
 import UUID from '../structure/UUID';
 import Vec2 from '../structure/Vec2';
 import Vec3 from '../structure/Vec3';
+import { locatorBarPacket } from '../wire/definitions/locatorBar';
+import { layoutAt } from '../wire/WireLayout';
 import LocatorBarPacket from './LocatorBarPacket';
 
 import type { LocatorBar } from './LocatorBarPacket';
@@ -89,6 +92,27 @@ describe('LocatorBarPacket', () => {
         const data = new LocatorBarPacket().deserialize(stream);
 
         expect(data).toEqual(DATA);
+        expect(stream.feof()).toBe(true);
+    });
+});
+
+/** `BYTES` without the two-byte packet id header. */
+const PAYLOAD_BYTES = BYTES.subarray(2);
+
+describe.each([2193, 2225])('the LocatorBar layout at protocol %i', (protocol) => {
+    const layout = layoutAt(locatorBarPacket, protocol);
+
+    it('writes the same bytes over a plain BinaryStream', () => {
+        const stream = new BinaryStream();
+        layout.encode(stream, DATA);
+
+        expect(stream.getBuffer()).toEqual(PAYLOAD_BYTES);
+    });
+
+    it('reads those bytes back over a plain BinaryStream', () => {
+        const stream = new BinaryStream(PAYLOAD_BYTES);
+
+        expect(layout.decode(stream)).toEqual(DATA);
         expect(stream.feof()).toBe(true);
     });
 });

@@ -74,7 +74,7 @@ export interface ItemStackRequestAction {
  *
  * Wire order: Client Request Id (varint32), Actions (varuint count, then each action),
  * Strings To Filter (varuint count, then strings), StringsToFilterOrigin (int32 LE).
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/item-stack-request/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/item-stack-request/
  */
 export interface ItemStackRequest {
     /** Client Request Id. A client makes these up negative and odd; the response names the same id. */
@@ -90,9 +90,11 @@ export interface ItemStackRequest {
 /**
  * Reads a FullContainerName: the Container Name byte, then the Dynamic ID as an optional.
  *
- * The optional is one presence byte followed by a uint32 LE when present. The 2193 schema
- * lists Dynamic ID as a required uint32 and only records the optional from 2207 on, but
- * gophertunnel at 2193 and the live 1.26.50 client both write the presence byte.
+ * The optional is one presence byte followed by a uint32 LE when present. The 1.26.50 page
+ * lists Dynamic ID as a required uint32 and the 1.26.60 page records it as optional, but the
+ * 1.26.60 changelog row "Dynamic ID is now optional" is Mojang correcting the docs, not a wire
+ * change (`docs/research/protocol-2225-delta.md`, the preview.21 note). The presence byte
+ * therefore travels at both 2193 and 2225, and no gate guards it.
  */
 const readFullContainerName = (stream: BinaryStream): FullContainerName => ({
     containerId: stream.readByte(),
@@ -108,6 +110,10 @@ const readFullContainerName = (stream: BinaryStream): FullContainerName => ({
  * notes on what a live client sends were taken against this layout. The sign still tells the
  * kinds apart: a positive value is a stack id the server handed out, a negative odd one is a
  * request id the client made up, and a negative even one below -1 is a legacy request id.
+ *
+ * Unbacked by a capture: both docs pages list `ItemStackNetIdVariant` as variable-size with
+ * no fields, so a Bedrock Dedicated Server capture of a request would settle whether this is
+ * four fixed bytes or a variant index followed by a value.
  */
 const readNetIdVariant = (stream: BinaryStream): number => stream.readIntLE();
 

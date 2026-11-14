@@ -16,8 +16,8 @@ const payload = {
     sceneName: 'héllo4'
 };
 
-describe('the declarative NpcRequest layout', () => {
-    const layout = layoutAt(npcRequestPacket, 2193);
+describe.each([2193, 2225])('the declarative NpcRequest layout at protocol %i', (protocol) => {
+    const layout = layoutAt(npcRequestPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

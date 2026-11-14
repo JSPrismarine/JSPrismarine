@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('c8c7c6', 'hex');
 const payload = { operation: 200, category: 199, codeStatus: 198 };
 
-describe('the declarative CodeBuilderSource layout', () => {
-    const layout = layoutAt(codeBuilderSourcePacket, 2193);
+describe.each([2193, 2225] as const)('the declarative CodeBuilderSource layout at protocol %i', (protocol) => {
+    const layout = layoutAt(codeBuilderSourcePacket, protocol);
 
     it('writes the bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();

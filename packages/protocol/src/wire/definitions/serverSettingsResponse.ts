@@ -1,7 +1,7 @@
 /**
  * `ServerSettingsResponsePacket`: The server's settings form, sent in reply to
  * `ServerSettingsRequestPacket`.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-response-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/server-settings-response-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

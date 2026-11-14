@@ -4,11 +4,13 @@ import { NetworkUtil } from '../networkUtil';
 
 /**
  * The docs' `PassengerOfBlockArguments__EmoteType`: the pose an entity takes while riding a
- * block. Protocol 2225 values, from the v1.26.60 `metadata.zip` schema.
+ * block. Protocol 2225 values, from the docs' `PassengerOfBlockArguments::EmoteType` page:
+ * Standing 0, Riding 1, Laying 2.
  */
 export enum PassengerOfBlockEmoteType {
-    Sitting = 0,
-    Standing = 1
+    Standing = 0,
+    Riding = 1,
+    Laying = 2
 }
 
 /**

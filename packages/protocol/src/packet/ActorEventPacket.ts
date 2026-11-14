@@ -27,6 +27,12 @@ import type { Vector3 } from '@jsprismarine/math';
  */
 export default class ActorEventPacket extends FieldNetworkPacket {
     public runtimeEntityId!: bigint;
+
+    /**
+     * `Event ID`: an {@link ActorEvent}. The values are the game's own at both protocols,
+     * 2193 and 2225, not the 0 to 60 the 1.26.50 docs page prints; `ActorEventPacket.test.ts`
+     * checks them against the 1.26.40 dump `datagen/snapshot/0e00fe80f4f3-enums.html`.
+     */
     public event!: ActorEvent;
 
     /** `Data`. Meaning depends on the event; zero for the ones that carry nothing. */

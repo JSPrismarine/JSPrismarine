@@ -17,8 +17,8 @@ const payload = {
     floatValue: 6.5
 };
 
-describe('the declarative ChangeMobProperty layout', () => {
-    const layout = layoutAt(changeMobPropertyPacket, 2193);
+describe.each([2193, 2225])('the declarative ChangeMobProperty layout at protocol %i', (protocol) => {
+    const layout = layoutAt(changeMobPropertyPacket, protocol);
 
     it('writes the bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();
