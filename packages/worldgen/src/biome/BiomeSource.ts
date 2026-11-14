@@ -20,6 +20,17 @@ export type BiomeResolver = (quartX: number, quartY: number, quartZ: number) => 
  */
 const BIOME_CELL_SLOTS = 1 << 17;
 
+/** A memoized biome resolver that can also be told answers computed elsewhere. */
+export interface BiomeCellMemo {
+    /** Resolves a cell, from memory when it is held. */
+    readonly resolve: BiomeResolver;
+    /**
+     * Stores the biome another resolver over the same source and seed computed for a cell, such
+     * as one in another worker, so this one need not compute it again.
+     */
+    remember(quartX: number, quartY: number, quartZ: number, biome: string): void;
+}
+
 /**
  * Wraps a resolver so each biome cell is resolved once.
  *
@@ -32,31 +43,44 @@ const BIOME_CELL_SLOTS = 1 << 17;
  * previous occupant. The stored coordinates are compared exactly before a value is reused, so
  * an eviction costs a recomputation and never an answer.
  */
-export const memoizeBiomeResolver = (resolver: BiomeResolver): BiomeResolver => {
+export const createBiomeCellMemo = (resolver: BiomeResolver): BiomeCellMemo => {
     const keyX = new Int32Array(BIOME_CELL_SLOTS);
     const keyY = new Int32Array(BIOME_CELL_SLOTS);
     const keyZ = new Int32Array(BIOME_CELL_SLOTS);
     const filled = new Uint8Array(BIOME_CELL_SLOTS);
     const values = new Array<string>(BIOME_CELL_SLOTS);
 
-    return (quartX, quartY, quartZ) => {
-        // Three 32-bit multiplicative hashes, folded; the constants are odd and well-mixed.
-        const slot =
-            (Math.imul(quartX, -1640531527) ^ Math.imul(quartY, -2048144789) ^ Math.imul(quartZ, -1028477379)) &
-            (BIOME_CELL_SLOTS - 1);
-        if (filled[slot] === 1 && keyX[slot] === quartX && keyY[slot] === quartY && keyZ[slot] === quartZ) {
-            return values[slot] as string;
-        }
+    // Three 32-bit multiplicative hashes, folded; the constants are odd and well-mixed.
+    const slotOf = (quartX: number, quartY: number, quartZ: number): number =>
+        (Math.imul(quartX, -1640531527) ^ Math.imul(quartY, -2048144789) ^ Math.imul(quartZ, -1028477379)) &
+        (BIOME_CELL_SLOTS - 1);
 
-        const biome = resolver(quartX, quartY, quartZ);
+    const remember = (quartX: number, quartY: number, quartZ: number, biome: string): void => {
+        const slot = slotOf(quartX, quartY, quartZ);
         keyX[slot] = quartX;
         keyY[slot] = quartY;
         keyZ[slot] = quartZ;
         values[slot] = biome;
         filled[slot] = 1;
-        return biome;
+    };
+
+    return {
+        resolve: (quartX, quartY, quartZ) => {
+            const slot = slotOf(quartX, quartY, quartZ);
+            if (filled[slot] === 1 && keyX[slot] === quartX && keyY[slot] === quartY && keyZ[slot] === quartZ) {
+                return values[slot] as string;
+            }
+
+            const biome = resolver(quartX, quartY, quartZ);
+            remember(quartX, quartY, quartZ, biome);
+            return biome;
+        },
+        remember
     };
 };
+
+/** {@link createBiomeCellMemo}'s resolver alone, for a caller with no answers to hand it. */
+export const memoizeBiomeResolver = (resolver: BiomeResolver): BiomeResolver => createBiomeCellMemo(resolver).resolve;
 
 /**
  * A dimension's biome layout.

@@ -162,9 +162,25 @@ export interface GenerationRegionPayload {
     readonly biomeSections?: ArrayBuffer;
     /** `Uint32Array` offsets delimiting each uniform or nonuniform section in `biomeSections`. */
     readonly biomeSectionOffsets?: ArrayBuffer;
+    /** The Java biome of each of the chunk's 4 by 4 by 4 cells, as {@link RegionBiomeCells}. */
+    readonly biomeCells?: RegionBiomeCells;
     /** The block entities, each with the state index it is attached to. */
     readonly blockEntities: ReadonlyArray<readonly [index: number, entity: RegionBlockEntity]>;
     readonly entitySpawns: readonly RegionEntitySpawn[];
+}
+
+/**
+ * The Java biome of every 4 by 4 by 4 cell of a region's center chunk, sampled once with its
+ * terrain so the threads that read the tile later need not sample the biome source again.
+ */
+export interface RegionBiomeCells {
+    /** The distinct biome identifiers, which `indices` point into. */
+    readonly palette: readonly string[];
+    /**
+     * `Uint16Array` of palette slots, one per cell, ordered by y cell from the bottom of the
+     * dimension, then x, then z: `(quartY - minQuartY) * 16 + (quartX & 3) * 4 + (quartZ & 3)`.
+     */
+    readonly indices: ArrayBuffer;
 }
 
 /** A payload and the buffers to hand `postMessage` so they move instead of being copied. */
@@ -304,6 +320,7 @@ export class GenerationRegion {
     private isAirByPaletteSlot: boolean[] = [];
     private biomeSectionIds: Uint16Array<ArrayBuffer> | undefined;
     private biomeSectionOffsets: Uint32Array<ArrayBuffer> | undefined;
+    private centerBiomeCells: RegionBiomeCells | undefined;
 
     /** Lazily computed heightmaps, one entry per heightmap and region column. */
     private readonly heightmapCaches = new Map<HeightmapType, Int32Array<ArrayBuffer>>();
@@ -441,6 +458,7 @@ export class GenerationRegion {
                       biomeSections: biomeSections.buffer,
                       biomeSectionOffsets: biomeSectionOffsets.buffer
                   }),
+            ...(this.centerBiomeCells === undefined ? {} : { biomeCells: this.centerBiomeCells }),
             blockEntities: [...this.blockEntities],
             entitySpawns: this.entitySpawns
         };
@@ -475,6 +493,7 @@ export class GenerationRegion {
             states: this.states.buffer,
             highest: this.highest.buffer,
             ...(this.frozenSurface === null ? {} : { frozenSurface: this.frozenSurface.buffer }),
+            ...(this.centerBiomeCells === undefined ? {} : { biomeCells: this.centerBiomeCells }),
             blockEntities: [...this.blockEntities],
             entitySpawns: this.entitySpawns
         };
@@ -519,6 +538,7 @@ export class GenerationRegion {
                 offsets: new Uint32Array(payload.biomeSectionOffsets)
             });
         }
+        if (payload.biomeCells !== undefined) region.setBiomeCells(payload.biomeCells);
         region.blockEntities = new Map(payload.blockEntities);
         region.entitySpawns = [...payload.entitySpawns];
         return region;
@@ -540,6 +560,29 @@ export class GenerationRegion {
 
         this.biomeSectionIds = ids;
         this.biomeSectionOffsets = offsets;
+    }
+
+    /**
+     * Stores the Java biome of each of the center chunk's cells.
+     *
+     * @throws RangeError when there is not one index per cell, or an index is outside the palette.
+     */
+    public setBiomeCells(cells: RegionBiomeCells): void {
+        const indices = new Uint16Array(cells.indices);
+        if (indices.length !== (this.height >> 2) * 16) {
+            throw new RangeError(
+                `A chunk of height ${this.height} has ${(this.height >> 2) * 16} biome cells, not ${indices.length}`
+            );
+        }
+        for (const index of indices) {
+            if (index >= cells.palette.length) throw new RangeError(`Biome cell index ${index} is outside its palette`);
+        }
+        this.centerBiomeCells = cells;
+    }
+
+    /** The center chunk's biome cells, or undefined when its terrain did not record them. */
+    public biomeCells(): RegionBiomeCells | undefined {
+        return this.centerBiomeCells;
     }
 
     /** One section's biome IDs, either a uniform id or its packed 16³ blocks. */

@@ -12,7 +12,8 @@ import {
     FixedBiomeSource,
     MultiNoiseBiomeSource,
     TheEndBiomeSource,
-    memoizeBiomeResolver
+    memoizeBiomeResolver,
+    createBiomeCellMemo
 } from './BiomeSource';
 import type { ClimateEntry, ClimateTargetPoint } from './Climate';
 import {
@@ -503,6 +504,21 @@ describe('the memoized biome resolver', () => {
                 }
             }
         }
+    });
+});
+
+describe('the biome cell memo', () => {
+    it('answers a remembered cell without asking the source', () => {
+        const asked: string[] = [];
+        const memo = createBiomeCellMemo((quartX, quartY, quartZ) => {
+            asked.push(`${quartX},${quartY},${quartZ}`);
+            return 'minecraft:plains';
+        });
+
+        memo.remember(5, -16, 9, 'minecraft:desert');
+        expect(memo.resolve(5, -16, 9)).toBe('minecraft:desert');
+        expect(memo.resolve(5, -16, 10)).toBe('minecraft:plains');
+        expect(asked).toEqual(['5,-16,10']);
     });
 });
 

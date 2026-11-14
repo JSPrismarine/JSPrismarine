@@ -833,6 +833,44 @@ describe('transfer', () => {
         expect(landed.workerInput()).not.toHaveProperty('biomeSections');
     });
 
+    it('carries its biome cells through a transfer and as read-only worker input', () => {
+        const built = terrainTile(1, -2);
+        const indices = new Uint16Array((384 >> 2) * 16);
+        indices[17] = 1;
+        built.setBiomeCells({ palette: ['minecraft:plains', 'minecraft:river'], indices: indices.buffer });
+        const options = {
+            seaLevel: 63,
+            seed: SEED,
+            blocks: createJavaBlockOracle(new Map()),
+            biomeAt: () => 'minecraft:plains'
+        };
+
+        const fromInput = GenerationRegion.adopt(structuredClone(built.workerInput()), options);
+        const transferred = built.transfer();
+        const fromTransfer = GenerationRegion.adopt(
+            structuredClone(transferred.payload, { transfer: [...transferred.transferList] }),
+            options
+        );
+
+        for (const landed of [fromInput, fromTransfer]) {
+            const cells = landed.biomeCells();
+            expect(cells?.palette).toEqual(['minecraft:plains', 'minecraft:river']);
+            expect(new Uint16Array(cells?.indices ?? new ArrayBuffer(0))).toEqual(indices);
+        }
+    });
+
+    it('refuses biome cells that do not cover the chunk or point outside their palette', () => {
+        const built = terrainTile(0, 0);
+        expect(() => built.setBiomeCells({ palette: ['minecraft:plains'], indices: new ArrayBuffer(32) })).toThrow(
+            RangeError
+        );
+        const outside = new Uint16Array((384 >> 2) * 16);
+        outside[5] = 1;
+        expect(() => built.setBiomeCells({ palette: ['minecraft:plains'], indices: outside.buffer })).toThrow(
+            RangeError
+        );
+    });
+
     it('rebuilds air classification before updating an adopted column ceiling', () => {
         const built = terrainTile(0, 0);
         built.writeName(0, -64, 0, STONE.name);

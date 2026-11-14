@@ -70,6 +70,19 @@ describe('TerrainProtoCache', () => {
         expect(events).toContain('hit');
     });
 
+    it('keeps the biome cells a tile sampled, so a cache hit does not search the climate again', async () => {
+        const cache = new TerrainProtoCache({ directory: directory(), maxBytes: 1024 * 1024 });
+        const indices = new Uint16Array((384 >> 2) * 16).fill(1);
+        await cache.write(key(3), {
+            ...payload(3, -4),
+            biomeCells: { palette: ['minecraft:plains', 'minecraft:forest'], indices: indices.buffer }
+        });
+
+        const read = await cache.read(key(3), identity(3, -4));
+        expect(read?.biomeCells?.palette).toEqual(['minecraft:plains', 'minecraft:forest']);
+        expect(new Uint16Array(read?.biomeCells?.indices ?? new ArrayBuffer(0))).toEqual(indices);
+    });
+
     it('rejects a corrupt record and deletes it for clean regeneration', async () => {
         const root = directory();
         const events: string[] = [];
