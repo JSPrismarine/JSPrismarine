@@ -30,6 +30,23 @@ Bedrock does the same thing with its own stamp. Record 0x40 (`BlendingData`) hol
 badly made edges". No Mojang document gives the exact rule. Neither edition treats a chunk without
 a stamp as current.
 
+## Progress
+
+Branch `feat/java-chunk-blending`, 2026-11-14.
+
+| Slice | State |
+| --- | --- |
+| 1. Blender in `@jsprismarine/worldgen` | Done. Matches Java exactly on `vectors/blending.json`. |
+| 2. Which stored chunks are old | Done. LevelDB record, Java's load rule, Bedrock 0x40. |
+| 3. Blending in the generator | Done. Terrain, biomes, surface, features, carvers; caches and the whole-chunk worker path step aside. |
+| 4. Border ticks | Folded into slice 5. Java's `generateBorderTicks` only acts on old chunks, which means upgrading ones; the world's exposed-fluid ticks cover the fluids, and leaf updates wait on [#3078](https://github.com/JSPrismarine/JSPrismarine/issues/3078). |
+| 5. Below-zero retrogen | Done, with `Data2D` biomes. |
+| 6. Verification and documentation | Parity row `worldgen.blending` and the dimensions guide done. No client e2e scenario: the suite has no way to seed a save with old chunks yet. |
+
+Follow-ups: [#3077](https://github.com/JSPrismarine/JSPrismarine/issues/3077) (legacy biome ids),
+[#3078](https://github.com/JSPrismarine/JSPrismarine/issues/3078) (post-processing marks),
+[#3079](https://github.com/JSPrismarine/JSPrismarine/issues/3079) (persisted edge heights).
+
 ## Decisions
 
 1. **Mirror Java's rule.** A stored overworld chunk is old when its JSPrismarine record carries
@@ -58,7 +75,7 @@ a stamp as current.
 
 Each slice is one or a few commits that leave the tree green.
 
-### 1. The blender in `@jsprismarine/worldgen` (done)
+### 1. The blender in `@jsprismarine/worldgen`
 
 `blending/Blender.ts`, `blending/BlendingData.ts`, `blending/longHashOrder.ts`,
 `blending/generationVersion.ts` and `NormalNoise.parity`. `utils/oracle/DumpBlendingVectors.java`
@@ -117,11 +134,17 @@ not decode today.
 - A client e2e scenario that loads a save with old chunks and walks across a seam.
 - The data-driven docs page on worlds and a Changeset per package.
 
-## Known gaps to file
+## Known gaps
 
 - Legacy Bedrock biomes (the 27 `BEDROCK_BIOME_LOSSES`, such as `taiga_hills`) have no Java id, and
   Java's 1.18 upgrade maps each to a current biome. Until `@jsprismarine/mapping` carries that
-  mapping, the blender reads them as the nearest mapped biome's fallback.
+  mapping, the blender reads them as the current biome source's biome
+  ([#3077](https://github.com/JSPrismarine/JSPrismarine/issues/3077)).
 - Java freezes an old chunk's edge heights the first time it computes them. The server recomputes
-  them from the stored blocks until the record is written back, so an edit on an old chunk's edge
-  before then moves the blend.
+  them from the stored blocks, so an edit on an old chunk's edge moves the blend
+  ([#3079](https://github.com/JSPrismarine/JSPrismarine/issues/3079)).
+- The terrain tile's surface pass and the feature pass give each quart the blender of its own
+  chunk, built from the old chunks the task carried. A quart in a neighbor chunk near the edge of
+  that set can miss an old chunk Java's neighbor blender would see.
+- During the below-zero upgrade the surface pass under y = 0 reads the blended biomes rather than
+  the upgrade's biomes, and structure starts that cross y = 0 are not skipped as Java skips them.
