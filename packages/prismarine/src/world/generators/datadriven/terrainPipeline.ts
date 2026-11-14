@@ -20,6 +20,7 @@
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
 
 import type { TerrainTaskInput } from './DataDrivenGenerator';
+import { hasValidBlending } from './javaBlending';
 import { DataDrivenGenerator, isPipelineKey } from './DataDrivenGenerator';
 import { readRegistryBundle } from './registryBundle';
 
@@ -70,7 +71,8 @@ const isTerrainInput = (value: unknown): value is TerrainTaskInput =>
     'beard' in value &&
     Array.isArray(value.beard) &&
     'junctions' in value &&
-    Array.isArray(value.junctions);
+    Array.isArray(value.junctions) &&
+    hasValidBlending(value);
 
 /**
  * Builds this worker's terrain pipeline.
@@ -113,7 +115,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                 BigInt(task.input.seed),
                 task.input.beard,
                 task.input.junctions,
-                task.input
+                task.input,
+                task.input.blending
             );
             return { payload: tile.payload, transferList: tile.transferList };
         }
