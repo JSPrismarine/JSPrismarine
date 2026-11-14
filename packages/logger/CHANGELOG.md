@@ -1,5 +1,23 @@
 # @jsprismarine/color-parser
 
+## 0.21.0
+
+### Patch Changes
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+
+- [#3017](https://github.com/JSPrismarine/JSPrismarine/pull/3017) [`1aa2c75`](https://github.com/JSPrismarine/JSPrismarine/commit/1aa2c75624bf48fbae384e920ed9ae53b2cd346c) Thanks [@filiphsps](https://github.com/filiphsps)! - `FileTransport` indents every line of a record after the first by four spaces, and treats a lone carriage return as a line break. A line break in text a client sent, such as a book title or a player name, used to start a new line that could pass for a record the server wrote.
+
+- [#3017](https://github.com/JSPrismarine/JSPrismarine/pull/3017) [`888c0d0`](https://github.com/JSPrismarine/JSPrismarine/commit/888c0d05b726d51dbe9d3fbb414b1f8b5df82f36) Thanks [@filiphsps](https://github.com/filiphsps)! - The logger makes every message terminal-safe before a transport sees it. Escape sequences, carriage returns and other control characters are removed, line feeds stay, and each further line of a console record is indented so it cannot pass for a record of its own. A message often carries text a client chose, such as a player name from an unverified login, a book title or a command, and those used to reach the console and the log file as they were. `terminalText` is exported for code that prints untrusted text itself.
+- Updated dependencies [[`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175), [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e), [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964), [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c)]:
+  - @jsprismarine/color-parser@0.21.0
+
 ## 0.20.0
 
 ### Patch Changes

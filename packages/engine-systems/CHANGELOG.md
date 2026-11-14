@@ -1,5 +1,32 @@
 # @jsprismarine/engine-systems
 
+## 0.21.0
+
+### Minor Changes
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`aaf583a`](https://github.com/JSPrismarine/JSPrismarine/commit/aaf583a5c37a1188708e7077c9b34f3f8d9ffc63) Thanks [@filiphsps](https://github.com/filiphsps)! - Scheduled block and fluid ticks stop on a count only. `TickList.tick` and `TickScheduler.tick` no longer take a `deadline` and never read the clock, so a call that passed one must drop the argument. The server no longer stops a world's scheduled ticks after 25 ms: each list runs up to 65536 due ticks a game tick, and a slow host ticks slower instead of running fewer of them. `SCHEDULED_TICK_TIME_BUDGET_MS` is removed.
+
+### Patch Changes
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`dd1d776`](https://github.com/JSPrismarine/JSPrismarine/commit/dd1d776ee64bb30a99dbc831c09ad940c13abe0a) Thanks [@filiphsps](https://github.com/filiphsps)! - A world's change log now holds everything the replay digest hashes, so a snapshot of a world plus the sealed ticks after it reaches the digest of any of them. The block update queue and the scheduled block and fluid ticks are logged as `block-update` and `scheduled-tick` entries, so undoing a unit also takes back the updates and ticks its writes queued, and each sealed tick carries a `header` with the level clock, the weather, the game rules, the random tick generator, the depth of the light queue and the chunk loads in flight. `World.replayStateDigest` takes a header to hash, `World.tickHeader` reads the world's own, and `World.replayChunkLeave` applies a logged chunk leave.
+  
+  Status effect changes are sent from the log as `status-effect` occurrences, so one made in a unit that throws is not sent. `WorldChangeSink.statusEffectChanged` is gone, `World.sendStatusEffect`, `sendWorldEvent`, `sendActorSound` and `sendActorEvent` return nothing, and `EntityStore` no longer takes unit journals (`UnitJournal`, `addUnitJournal`): the block update queue reports to an observer and is undone through the log. The replay recorder counts a packet toward the tick that queued it rather than the tick the transport framed it in.
+  
+  `TickScheduler.observe` hears each scheduled tick queued and taken off, and `TickList.restore` writes one back without reporting it.
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`b5831ed`](https://github.com/JSPrismarine/JSPrismarine/commit/b5831ed05d09c339c77867d3efcef3d7c95bd13a) Thanks [@filiphsps](https://github.com/filiphsps)! - `TickList.restore` reads its queue only when the tick it restores is queued. An undo or a replay restores one tick per logged entry, and each restore read the whole queue, so a span with many scheduled ticks cost the entry count times the queue length. `TickList.schedule` queues a copy of the position it is given, so a caller that changes its own position object afterwards no longer moves the queued tick away from the record `restore` relies on.
+- Updated dependencies [[`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175), [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e), [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964), [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c), [`aed0570`](https://github.com/JSPrismarine/JSPrismarine/commit/aed057021fc0c9169a6e3ec78c2b37b0b54d798a)]:
+  - @jsprismarine/blocks@0.21.0
+  - @jsprismarine/mapping@0.21.0
+
 ## 0.20.0
 
 ### Patch Changes

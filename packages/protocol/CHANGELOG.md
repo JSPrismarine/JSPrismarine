@@ -1,5 +1,44 @@
 # @jsprismarine/protocol
 
+## 0.21.0
+
+### Patch Changes
+
+- [#3017](https://github.com/JSPrismarine/JSPrismarine/pull/3017) [`114fd2b`](https://github.com/JSPrismarine/JSPrismarine/commit/114fd2b891c6dde6145805382ce053448bc646dc) Thanks [@filiphsps](https://github.com/filiphsps)! - `AvailableCommandsPacket` decodes enum constraints through a value-to-offset map built once per constrained enum, instead of searching the enum's values for every constraint. A packet with many enum values and many constraints used to cost their product to decode.
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+
+- [#3011](https://github.com/JSPrismarine/JSPrismarine/pull/3011) [`dfb4629`](https://github.com/JSPrismarine/JSPrismarine/commit/dfb46299c2cdc282c3f500a60a58ef2d8c039a2e) Thanks [@coderabbitai](https://github.com/apps/coderabbitai)! - <!-- coderabbit-ai-generated:v1 -->
+  
+  
+  Guard animation image decoding against non-string login claims that can select the array-like Buffer allocation overload.
+
+- [#3010](https://github.com/JSPrismarine/JSPrismarine/pull/3010) [`a2da3c6`](https://github.com/JSPrismarine/JSPrismarine/commit/a2da3c66fef11c13b6bd943ca1853b90f1a86ea3) Thanks [@coderabbitai](https://github.com/apps/coderabbitai)! - <!-- coderabbit-ai-generated:v1 -->
+  
+  
+  Escape wire-supplied command identifiers in decoding errors to prevent forged log lines and terminal control injection.
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`37e1ad9`](https://github.com/JSPrismarine/JSPrismarine/commit/37e1ad9c7742c7f1fa2523ea607f3ec915fcd042) Thanks [@filiphsps](https://github.com/filiphsps)! - Add the packet handler shape the server and the client share, under `@jsprismarine/protocol/handler/PacketHandler`: a `PacketHandler` takes the packet and a context its side supplies, lists the session phases it accepts, and a serverbound handler declares its `lane`. An `InputHandler` returns `undefined`, so an asynchronous input-lane handler does not type-check. The lanes, `LANES` and `strictestLane` move here from the server, under `@jsprismarine/protocol/handler/Lane`.
+
+- [`d2e8075`](https://github.com/JSPrismarine/JSPrismarine/commit/d2e80757443cca0569efe15357866c01a8e8229b) Thanks [@filiphsps](https://github.com/filiphsps)! - RakNet's unconnected pong and NetherNet's join status and LAN advertisement now name the software, `JSPrismarine`, in the field Bedrock Dedicated Server fills with the level name, as other third-party servers do. Protocol 2225 now lists Minecraft 1.26.61 and 1.26.62 beside 1.26.60, since the hotfixes kept its protocol number and wire layout, and the server list advertises 1.26.62.
+
+- [#3017](https://github.com/JSPrismarine/JSPrismarine/pull/3017) [`fc6c19c`](https://github.com/JSPrismarine/JSPrismarine/commit/fc6c19c34f7ba9af48c2aa0c8bf7d75b05788436) Thanks [@filiphsps](https://github.com/filiphsps)! - The wire layout walker, which decodes when the compiled decoder is unavailable, defines each decoded field and fallback as an own property, as the compiled decoder does. Assigning them used to run the inherited `__proto__` setter for a field of that name, so an object value became the payload's prototype instead of a field.
+- Updated dependencies [[`3d07749`](https://github.com/JSPrismarine/JSPrismarine/commit/3d07749f87f00a669397d4720ca6fb28fbe92545), [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175), [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e), [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964), [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c), [`aed0570`](https://github.com/JSPrismarine/JSPrismarine/commit/aed057021fc0c9169a6e3ec78c2b37b0b54d798a), [`778fb37`](https://github.com/JSPrismarine/JSPrismarine/commit/778fb37670bb087a056e33802ebeef39b1eccc2f)]:
+  - @jsprismarine/binaryutils@0.21.0
+  - @jsprismarine/blocks@0.21.0
+  - @jsprismarine/content@0.21.0
+  - @jsprismarine/items@0.21.0
+  - @jsprismarine/math@0.21.0
+  - @jsprismarine/minecraft@0.21.0
+  - @jsprismarine/nbt@0.21.0
+  - @jsprismarine/recipes@0.21.0
+
 ## 0.20.0
 
 ### Patch Changes

@@ -1,5 +1,27 @@
 # @jsprismarine/leveldb
 
+## 0.21.0
+
+### Minor Changes
+
+- [#2988](https://github.com/JSPrismarine/JSPrismarine/pull/2988) [`d36a05a`](https://github.com/JSPrismarine/JSPrismarine/commit/d36a05a3209f83ffb6eb6e12db370774d59febe8) Thanks [@filiphsps](https://github.com/filiphsps)! - `CompressionType` is now a constant object and a union type of its values instead of an enum. `CompressionType.Snappy` and the other members still work as values and `CompressionType` as a type, but a member can no longer be used as a type of its own. From source in a checkout, the table builder worker now runs on Node's built-in type stripping instead of `tsx`, so `tsx` is no longer a development dependency.
+
+### Patch Changes
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`19686c5`](https://github.com/JSPrismarine/JSPrismarine/commit/19686c5ad3964370f4d3ca0bf7f93d91872a3f9b) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `Database.commit`, which applies a batch at once and appends its log record on libuv's thread pool, and a per-call `sync` option for `write` and `commit`. Commits append in the order they were made, and `write` refuses to overtake one still appending. A commit whose append fails fails the commits queued behind it too, which were framed for an offset past the failed record, and the database then refuses every later write. A log record is now framed as headers over views of the encoded batch, so appending a batch no longer copies it a second time. `replaceFileAtomically`, which writes a file the way the database rewrites `CURRENT`, is exported for the files a save keeps beside its database.
+
+- [#2988](https://github.com/JSPrismarine/JSPrismarine/pull/2988) [`493f32a`](https://github.com/JSPrismarine/JSPrismarine/commit/493f32ae5e8d74bdda52bfe20a113d1a8875c0ce) Thanks [@filiphsps](https://github.com/filiphsps)! - An executable compiled with Bun's `--aot` saves its world again. Its modules keep their `.ts` paths, so the table builder worker asked for the `tsx` loader, which an executable does not carry. The embedded worker now starts without it.
+
+- [#3017](https://github.com/JSPrismarine/JSPrismarine/pull/3017) [`22f1a95`](https://github.com/JSPrismarine/JSPrismarine/commit/22f1a956d851557acfd0ad6ff7ed8004edc88d9f) Thanks [@filiphsps](https://github.com/filiphsps)! - The database no longer writes through a symbolic link planted in its directory. A new manifest, table or temporary file removes whatever entry already holds its name and is created exclusively, and a log is opened for appending with `O_NOFOLLOW` and must be a regular file. A link at one of those names used to be followed, which truncated or appended to a file outside the database directory.
+
 ## 0.20.0
 
 No changes in this release.
