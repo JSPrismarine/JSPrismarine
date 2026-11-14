@@ -12,6 +12,7 @@
         "inlineSourceMap": false,
         "paths": {
             "@jsprismarine/protocol/*": ["../protocol/dist/*"],
+            "@jsprismarine/worldgen/*": ["../worldgen/dist/*"],
             "@jsprismarine/*": ["../*/dist/index.d.ts"]
         }
     },

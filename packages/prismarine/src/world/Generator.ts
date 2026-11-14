@@ -2,6 +2,7 @@ import type { GenerationPriority, GenerationStatsSnapshot } from '@jsprismarine/
 
 import type { WorldConfig } from './World';
 import type Chunk from './chunk/Chunk';
+import type { StoredChunkReader } from './providers/Provider';
 
 /**
  * How a generator refuses a chunk once {@link Generator.stopGenerating} has been called.
@@ -161,6 +162,13 @@ export interface Generator {
         config?: WorldConfig,
         options?: ChunkRequestOptions
     ): Promise<Chunk>;
+
+    /**
+     * Tells the generator which chunks its dimension's save already holds, so new terrain can
+     * blend toward the old ones the way Java's `Blender` does. The provider calls it before it
+     * asks for a chunk; a generator that does not blend ignores it.
+     */
+    useStoredChunks?(stored: StoredChunkReader): void;
 
     /**
      * The topmost block of one column, without generating the chunk it is in.
