@@ -113,9 +113,16 @@ export class GenerationChunk implements StagedChunk {
         return this.outbound.get(`${chunkX},${chunkZ}`);
     }
 
-    /** Records the finished Bedrock chunk. Called once the region has been translated. */
+    /**
+     * Records the finished Bedrock chunk. Called once the region has been translated.
+     *
+     * The merged region is let go here: the chunk is what a later request for this position
+     * gets, and a neighbor reads the terrain tile and the feature patches, never the merge. A
+     * retained holder then keeps one copy of its blocks rather than two.
+     */
     public recordChunk(chunk: Chunk): void {
         this.finished = chunk;
+        this.finalTile = undefined;
     }
 
     /**
