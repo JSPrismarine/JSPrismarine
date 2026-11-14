@@ -22,7 +22,14 @@ const build = spawn(
 );
 const server = spawn(
     process.execPath,
-    ['--conditions=jsprismarine:dist', '--unhandled-rejections=strict', './dist/Server.js', '--watch'],
+    [
+        '--conditions=jsprismarine:dist',
+        '--unhandled-rejections=strict',
+        './dist/Server.js',
+        '--watch',
+        // `pnpm run dev -- --devtools` reaches this script as `-- --devtools`.
+        ...process.argv.slice(2).filter((argument) => argument !== '--')
+    ],
     { stdio: 'inherit', env: { ...process.env, NODE_ENV: 'development' } }
 );
 
