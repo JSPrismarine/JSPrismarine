@@ -76,6 +76,12 @@ const IDENTITY = UUID.fromString('0f1e2d3c-4b5a-4968-8776-655443322110');
 /** The moment the record says it was saved, since `savedAt` is a wall-clock stamp. */
 const SAVED_AT = new Date('2026-11-10T12:00:00.000Z');
 
+/**
+ * The release the JSON fixture's `$schema` URL names. The URL carries the server version, so the
+ * test stamps one in as a release build would, and a version bump leaves the fixture alone.
+ */
+const SCHEMA_VERSION = '0.20.0';
+
 let scratch: string;
 let previousDirectory: string | undefined;
 
@@ -88,11 +94,14 @@ beforeEach(() => {
     process.env.JSP_DIR = scratch;
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(SAVED_AT);
+    vi.stubGlobal('BUILD_TYPE', 'release');
+    vi.stubGlobal('BUILD_VERSION', SCHEMA_VERSION);
 });
 
 afterEach(() => {
     for (const session of built.splice(0)) session.disable();
     vi.useRealTimers();
+    vi.unstubAllGlobals();
     if (previousDirectory === undefined) delete process.env.JSP_DIR;
     else process.env.JSP_DIR = previousDirectory;
     fs.rmSync(scratch, { recursive: true, force: true });
