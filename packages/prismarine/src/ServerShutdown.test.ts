@@ -173,6 +173,37 @@ describe('Server shutdown', () => {
         expect(order).toEqual(['filed again', 'applied', 'kick']);
     });
 
+    it('tells a `stayAlive` caller whether the shutdown finished', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const failing = shutdownServer({
+            disable: async () => {
+                throw new Error('the world save threw');
+            }
+        });
+        const running = failing.shutdown({ stayAlive: true });
+
+        await expect(shutdownServer().shutdown({ stayAlive: true })).resolves.toBe(true);
+        await expect(running).resolves.toBe(false);
+        // A second /stop while the first runs gets the first one's outcome.
+        await expect(failing.shutdown({ stayAlive: true })).resolves.toBe(false);
+        expect(exit).not.toHaveBeenCalled();
+    });
+
+    it('fails a `stayAlive` shutdown whose release or console throws, rather than rejecting', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const lifecycle = new ShutdownLifecycle();
+        lifecycle.releaseOnShutdown(() => {
+            throw new Error('the release threw');
+        });
+        const releasing = shutdownServer({ lifecycle });
+        const closing = shutdownServer({
+            console: { disable: async () => Promise.reject(new Error('the console threw')) }
+        });
+
+        await expect(releasing.shutdown({ stayAlive: true })).resolves.toBe(false);
+        await expect(closing.shutdown({ stayAlive: true })).resolves.toBe(false);
+    });
+
     it('tells the operator that a second interrupt exits', async () => {
         const lines: string[] = [];
         const server = shutdownServer({ logger: stub<Logger>({ info: (line: string) => lines.push(line) }) });

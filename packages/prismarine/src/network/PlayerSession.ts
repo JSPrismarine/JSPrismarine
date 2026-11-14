@@ -70,6 +70,7 @@ import { Position } from '../world/Position';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import CoordinateUtils from '../world/CoordinateUtils';
+import type { ChunkViewArea } from '../world/ChunkViewArea';
 import { chunkViewArea, offsetsIn } from '../world/ChunkViewArea';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS, effectiveViewDistance, toChunk } from '../world/Proximity';
 import type { PlayerSpawn } from '../world/SpawnPlacement';
@@ -330,6 +331,17 @@ const OWN_SLOT_WINDOWS: Partial<Record<PlayerContainer, { readonly windowId: num
         cursor: { windowId: WindowIds.PLAYER_ONLY_UI, containerId: ContainerUiId.CURSOR }
     };
 
+/** Where a `NetworkChunkPublisherUpdate` was centered, in chunks, and the area it named. */
+interface PublishedView {
+    readonly x: number;
+    readonly z: number;
+    readonly area: ChunkViewArea;
+}
+
+/** Whether a chunk lies inside a published view, which the client keeps; never before the first. */
+const insideView = (view: PublishedView | null, x: number, z: number): boolean =>
+    view !== null && view.area.contains(x - view.x, z - view.z);
+
 /** What a move packet reads of the actor that moved: its id, where it is, where it faces and whether it stands. */
 export type MovedActor = Pick<ShownActor, 'getRuntimeId' | 'getPosition' | 'pitch' | 'yaw' | 'headYaw' | 'isOnGround'>;
 
@@ -386,6 +398,20 @@ export default class PlayerSession {
     private readonly chunkSender = new ChunkSender();
     private readonly loadedChunks = new Map<number, { readonly x: number; readonly z: number }>();
     private readonly loadingChunks = new Map<number, { readonly x: number; readonly z: number }>();
+
+    /**
+     * The chunk the last `NetworkChunkPublisherUpdate` was centered on, and the radius it named
+     * in chunks, or null before the first. The client drops every chunk outside it, so a chunk
+     * sent outside it is not counted as loaded: see {@link PlayerSession.flushQueuedChunks}.
+     */
+    private publishedView: PublishedView | null = null;
+
+    /**
+     * One list for each running {@link PlayerSession.flushQueuedChunks}, which every publisher
+     * update sent meanwhile is added to. A chunk the client kept was inside the view in effect
+     * when it was sent and inside every view published after it.
+     */
+    private readonly publishedViewWatchers = new Set<PublishedView[]>();
 
     /**
      * Which entities this client currently has on screen.
@@ -1146,6 +1172,8 @@ export default class PlayerSession {
         // before it. What governs visibility is the radius around the position.
         // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/proto.yml
         const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.viewDistance), []);
+        const laterViews: PublishedView[] = [];
+        this.publishedViewWatchers.add(laterViews);
 
         try {
             await publisherSend;
@@ -1157,6 +1185,9 @@ export default class PlayerSession {
             // shorter, but the sub chunk answers that follow use the cache, and the server this
             // was captured from never mixes the two for one client.
             const cached = requestMode && this.clientCacheEnabled;
+            // For each chunk, the view in effect when it went out and how many views the flush
+            // had seen published by then: the ones after it can make the client drop it too.
+            const sentUnder: { readonly view: PublishedView | null; readonly later: number }[] = [];
             for (const { chunk, payload, revision } of chunksToSend) {
                 // A world change while an earlier chunk was compressing or sending: the rest are
                 // the old world's, and the client has already been told it is somewhere else.
@@ -1189,6 +1220,7 @@ export default class PlayerSession {
                 if (epoch !== this.chunkEpoch) return;
 
                 // Shared compression is safe; framing and encryption remain ordered per connection.
+                sentUnder.push({ view: this.publishedView, later: laterViews.length });
                 await this.connection.sendSharedCompressedBatchAsync(
                     batch.content,
                     batch.packets,
@@ -1201,11 +1233,30 @@ export default class PlayerSession {
             // chunks; the sets were cleared for the new one and the hashes must not come back.
             if (epoch !== this.chunkEpoch) return;
 
-            // Loaded only once it is actually on the wire.
-            for (const { chunk } of chunksToSend) {
-                const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
-                this.loadedChunks.set(hash, { x: chunk.getX(), z: chunk.getZ() });
-                this.loadingChunks.delete(hash);
+            // Loaded only once it is actually on the wire, and only when the client kept it: it
+            // was inside the view in effect when it was sent and inside every view published
+            // since. The client drops a chunk outside either, so counting that one as held would
+            // leave a hole that is never sent again while the player stays in view of it. Such a
+            // chunk is forgotten instead, so the next `needNewChunks` that covers it asks again,
+            // unless it has already been queued anew.
+            for (const [index, { chunk }] of chunksToSend.entries()) {
+                const x = chunk.getX();
+                const z = chunk.getZ();
+                const hash = Chunk.packXZ(x, z);
+                const sent = sentUnder[index];
+                const kept =
+                    sent !== undefined &&
+                    insideView(sent.view, x, z) &&
+                    laterViews.slice(sent.later).every((view) => insideView(view, x, z));
+                if (kept) {
+                    this.loadedChunks.set(hash, { x, z });
+                    this.loadingChunks.delete(hash);
+                } else if (!this.chunkSender.has(x, z)) {
+                    this.loadingChunks.delete(hash);
+                    // A `needNewChunks` that ran while it was on its way skipped it as loading,
+                    // so a player who came back to it and stopped would never ask again.
+                    if (this.inCurrentView(x, z)) this.enqueueChunkCoordinate(hash, x, z);
+                }
             }
 
             // The spawn status waits for this, not the other way round.
@@ -1217,6 +1268,7 @@ export default class PlayerSession {
             for (const { chunk } of chunksToSend) this.loadingChunks.delete(Chunk.packXZ(chunk.getX(), chunk.getZ()));
             throw error;
         } finally {
+            this.publishedViewWatchers.delete(laterViews);
             this.releaseChunkQueueBytes(payloadBytes);
         }
     }
@@ -1270,7 +1322,9 @@ export default class PlayerSession {
      * receiving it and nothing else - so pushing one player's settings to every session made
      * a single spectator set `worldImmutable` on everybody else's client. It goes to this
      * client alone. `UpdateAbilitiesPacket` does carry `targetActorUniqueId`, so it is
-     * genuinely about this player and belongs with everyone who can see them.
+     * genuinely about this player and belongs with everyone who can see them: the clients that
+     * track this player's entity. A client in another world, or one that has not spawned the
+     * player yet, has no actor for it, and gets the abilities with the player's first sight.
      */
     public announceSettings(): Promise<void> {
         return allSent([
@@ -1284,7 +1338,7 @@ export default class PlayerSession {
             ...this.server
                 .getSessionManager()
                 .getSessions()
-                .filter((session) => session !== this)
+                .filter((session) => session !== this && session.tracks(this.runtimeId))
                 .map(async (session) => session.sendAbilities(this.shown()))
         ]);
     }
@@ -1365,6 +1419,16 @@ export default class PlayerSession {
         if (!unloaded && this.chunkSendQueue.length !== 0)
             return this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
         return allSent([]);
+    }
+
+    /** Whether a chunk is inside the area around the player that `needNewChunks` asks for. */
+    private inCurrentView(x: number, z: number): boolean {
+        if (!this.viewDistance || !this.isConnected()) return false;
+        const position = this.own().getPosition();
+        return chunkViewArea(this.viewDistance).contains(
+            x - CoordinateUtils.fromBlockToChunk(position.getX()),
+            z - CoordinateUtils.fromBlockToChunk(position.getZ())
+        );
     }
 
     /** Records queued coordinates once; the sender owns the only nearest-first ordering pass. */
@@ -2061,6 +2125,14 @@ export default class PlayerSession {
 
     public async sendNetworkChunkPublisher(distance: number, savedChunks: ChunkCoord[]): Promise<void> {
         const position = BlockPosition.fromVector3(this.own().getPosition());
+        // Recorded before the send, in the order the packets reach the connection.
+        const view: PublishedView = {
+            x: toChunk(position.getX()),
+            z: toChunk(position.getZ()),
+            area: chunkViewArea(distance)
+        };
+        this.publishedView = view;
+        for (const watcher of this.publishedViewWatchers) watcher.push(view);
         const pk = new NetworkChunkPublisherUpdatePacket({
             position: { x: position.getX(), y: position.getY(), z: position.getZ() },
             radius: distance << 4,
@@ -2219,6 +2291,9 @@ export default class PlayerSession {
         this.viewDistance = distance;
         const packet = new ChunkRadiusUpdatedPacket({ radius: distance });
         await this.connection.sendDataPacket(packet);
+        // The request is applied in an input step, and a removal later in the same step, such as
+        // a login of the same account replacing this one, can take the player off meanwhile.
+        if (!this.isConnected()) return;
 
         // A retail client discards every LevelChunk that reaches it before it has asked for a
         // radius and been answered with the ChunkRadiusUpdated above - that exchange is the

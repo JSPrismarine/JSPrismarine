@@ -232,7 +232,11 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             for (const replaced of sessions.claimIdentity(connection, accountOf(identity), joined)) {
                 await replaced.joined;
                 const replacedSession = replaced.connection.getPlayerSession();
-                if (replacedSession) await replacedSession.kick(REPLACED, DisconnectReason.LOGGED_IN_OTHER_LOCATION);
+                // A removal is an input: the replaced client's earlier inputs are applied first.
+                if (replacedSession)
+                    await login.removeAsInput(replaced.connection, () =>
+                        replacedSession.kick(REPLACED, DisconnectReason.LOGGED_IN_OTHER_LOCATION)
+                    );
                 else await replaced.connection.disconnect(REPLACED, false, DisconnectReason.LOGGED_IN_OTHER_LOCATION);
             }
 

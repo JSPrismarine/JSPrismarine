@@ -120,6 +120,128 @@ describe('network', () => {
             expect(session.sender.has(1, 1)).toBe(true);
         });
 
+        it('sends a chunk again that went out beyond the published view', async () => {
+            // The client drops a chunk outside the radius of the last publisher update. One sent
+            // there anyway, such as when the update names a stale position, used to be counted as
+            // held: once the player reached it the session never sent it again, and it stayed a hole.
+            const near = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+            const far = new Chunk(10, 0, new Map(), Dimensions.Overworld);
+            const world = stub<World>({
+                getLoadedChunk: (x, z) => (z !== 0 ? null : x === 0 ? near : x === 10 ? far : null)
+            });
+            const sentChunks: Array<[number, number]> = [];
+            const connection = stub<ClientConnection>({
+                codec: Codec2193,
+                sendDataPacket: async () => {},
+                sendSharedCompressedBatchAsync: async (_content, packets) => {
+                    for (const packet of packets) {
+                        if (packet instanceof LevelChunkPacket) {
+                            const data = packet.getPacketData();
+                            if (data) sentChunks.push([data.chunkX, data.chunkZ]);
+                        }
+                    }
+                }
+            });
+            let blockX = 0;
+            const walking = stub<SessionPlayer>({ getPosition: () => new Position(blockX, 64, 0, world) });
+            const walker = sessionFor(server, connection, walking, { world, joined: true });
+            walker['viewDistance'] = 2;
+
+            walker.tryDeliverLoaded(0, 0);
+            walker.tryDeliverLoaded(10, 0);
+            await walker.flush();
+            expect(sentChunks).toEqual([
+                [0, 0],
+                [10, 0]
+            ]);
+
+            blockX = 16 * 10;
+            await walker.needNewChunks();
+            expect(walker.sender.has(10, 0)).toBe(true);
+        });
+
+        it('sends a chunk again that went out beyond its view, though a later update covers it', async () => {
+            // The client drops a chunk outside the view in effect when it arrives, and a later
+            // update that covers it brings nothing back. Checking only the last view counted
+            // such a chunk as held when `needNewChunks` published while the flush was sending.
+            const near = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+            const far = new Chunk(10, 0, new Map(), Dimensions.Overworld);
+            const world = stub<World>({
+                getLoadedChunk: (x, z) => (z !== 0 ? null : x === 0 ? near : x === 10 ? far : null)
+            });
+            let blockX = 0;
+            let walker: PlayerSession | undefined;
+            const connection = stub<ClientConnection>({
+                codec: Codec2193,
+                sendDataPacket: async () => {},
+                sendSharedCompressedBatchAsync: async (_content, packets) => {
+                    const sentFar = packets.some(
+                        (packet) => packet instanceof LevelChunkPacket && packet.getPacketData()?.chunkX === 10
+                    );
+                    // The player walks to the far chunk while it is on its way, and an update
+                    // centered there goes out before this flush has finished.
+                    if (sentFar && walker !== undefined) {
+                        blockX = 16 * 10;
+                        await walker.sendNetworkChunkPublisher(2, []);
+                    }
+                }
+            });
+            const walking = stub<SessionPlayer>({ getPosition: () => new Position(blockX, 64, 0, world) });
+            walker = sessionFor(server, connection, walking, { world, joined: true });
+            walker['viewDistance'] = 2;
+
+            walker.tryDeliverLoaded(0, 0);
+            walker.tryDeliverLoaded(10, 0);
+            await walker.flush();
+
+            await walker.needNewChunks();
+            expect(walker.sender.has(10, 0)).toBe(true);
+        });
+
+        it('asks again for a dropped chunk that a request skipped while it was on its way', async () => {
+            // The player walks away before the flush publishes its view, so the client drops the
+            // chunk, and walks back while it is still sending. That `needNewChunks` skips it as
+            // loading, and a player who then stands still makes no further request.
+            const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+            const world = stub<World>({ getLoadedChunk: (x, z) => (x === 0 && z === 0 ? chunk : null) });
+            let blockX = 0;
+            let walker: PlayerSession | undefined;
+            const connection = stub<ClientConnection>({
+                codec: Codec2193,
+                sendDataPacket: async () => {},
+                sendSharedCompressedBatchAsync: async () => {
+                    blockX = 0;
+                    await walker?.needNewChunks();
+                }
+            });
+            const walking = stub<SessionPlayer>({ getPosition: () => new Position(blockX, 64, 0, world) });
+            walker = sessionFor(server, connection, walking, { world, joined: true });
+            walker['viewDistance'] = 2;
+
+            await walker.needNewChunks();
+            // The scheduler took it out of the queue to deliver it.
+            walker.sender.forget(0, 0);
+            walker.tryDeliverLoaded(0, 0);
+            blockX = 16 * 10;
+            await walker.flush();
+
+            expect(walker.sender.has(0, 0)).toBe(true);
+        });
+
+        it('asks for no chunks for a radius answered after the player left', async () => {
+            // A removal applied in the same input step as the request, such as a replacing login,
+            // takes the player off while the answer is on its way.
+            let leaving: PlayerSession | undefined;
+            const connection = stub<ClientConnection>({
+                sendDataPacket: async () => leaving?.disable()
+            });
+            leaving = sessionFor(server, connection, player.player, { joined: true });
+
+            await expect(leaving.setViewDistance(2)).resolves.toBeUndefined();
+
+            expect(leaving.sender.isEmpty()).toBe(true);
+        });
+
         it('does not requeue a chunk it is already sending', async () => {
             await session.needNewChunks();
             const size = session.sender.size;

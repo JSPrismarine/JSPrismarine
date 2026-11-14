@@ -122,7 +122,7 @@ const runInProcess = async (args: ServerArgs, { remote }: { remote: boolean }): 
 
     const logger = new Logger(config.getLogLevel(), transports);
     let keepAlive: NodeJS.Timeout | undefined;
-    const onStopCommandComplete = (): void => {
+    const onStopCommandComplete = (stopped: boolean): void => {
         if (keepAlive !== undefined) {
             clearInterval(keepAlive);
             keepAlive = undefined;
@@ -130,7 +130,9 @@ const runInProcess = async (args: ServerArgs, { remote }: { remote: boolean }): 
 
         // Closing readline removes its listener but does not close a terminal or pipe on stdin.
         // Wait for queued stdout (including the stop response) before exiting the process entry.
-        process.stdout.write('', () => process.exit(0));
+        // A shutdown that failed, such as a world save that threw, exits non-zero so a supervisor
+        // or script can tell.
+        process.stdout.write('', () => process.exit(stopped ? 0 : 1));
     };
 
     const server = new Server({

@@ -48,17 +48,30 @@ import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import { inertEntityRuntime, testContent } from '../../testing/entityServer';
 import type { DataEntity, MobBody } from '../../entity/data/DataEntity';
+import { Attributes as StoreAttributes } from '@jsprismarine/entities/attributes';
+import type { AttributeWrite } from '@jsprismarine/entities/attributes';
+import type { EntityInstance } from '@jsprismarine/entities/entityInstance';
 import { StoreActor } from '../../entity/data/storeActors';
 import { ObservedSet } from '../../entity/data/observedCollections';
 import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
+import { entityRefOf } from './support';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
 /** One block position's contents, keyed as `x,y,z`. */
 type BlockTable = Map<string, { name: string; states: Record<string, string | number | boolean> }>;
 
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
+
+/** A store entity's attributes with the health a type declares, recording each write the change log would. */
+const storeHealth = (max: number) => {
+    const writes: AttributeWrite[] = [];
+    const attributes = new StoreAttributes(new Map(), (write) => writes.push(write));
+    attributes.define('health', { base: max });
+    writes.length = 0;
+    return { attributes, writes, instance: stub<EntityInstance>({ attributes }) };
+};
 
 interface Fixture {
     readonly server: Server;
@@ -292,6 +305,7 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3, al
     const damage = vi.fn<LiveEntityRuntime['damageEntity']>(() => true);
     const remove = vi.fn<EntityRuntime['remove']>(() => true);
     const teleportTo = vi.fn();
+    const health = storeHealth(10);
     const live = stub<LiveEntityRuntime>({
         killEntity: kill,
         damageEntity: damage,
@@ -302,7 +316,8 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3, al
     const actor = stubOf(StoreActor, {
         entity: stub<DataEntity>({
             id: Number(id),
-            body: stub<MobBody>({ yaw: 0, pitch: 0, teleportTo, tags: new ObservedSet<string>() })
+            body: stub<MobBody>({ yaw: 0, pitch: 0, teleportTo, tags: new ObservedSet<string>() }),
+            instance: health.instance
         }),
         getRuntimeId: () => id,
         getType: () => type,
@@ -314,7 +329,7 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3, al
     });
     for (const angle of ['yaw', 'pitch', 'headYaw']) Object.defineProperty(actor, angle, { value: 0 });
     fixture.entities.push(actor);
-    return { actor, kill, damage, remove, teleportTo };
+    return { actor, kill, damage, remove, teleportTo, health };
 };
 
 const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3, alive = true): PlayerSession => {
@@ -353,6 +368,8 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3,
                 addTag: (tag: string) => !tags.has(tag) && tags.add(tag).has(tag),
                 removeTag: (tag: string) => tags.delete(tag),
                 attributes: new Attributes(Attributes.getPlayerDefaults()),
+                // The store entity, whose `health` attribute `max_health` is kept in.
+                entity: stub<DataEntity>({ id: Number(id), instance: storeHealth(20).instance }),
                 yaw: 0,
                 pitch: 0,
                 headYaw: 0
@@ -607,6 +624,38 @@ describe('the server command host', () => {
             // The identifier rename and the data path are covered in `data/live.test.ts`.
             await expect(fixture.run('summon minecraft:allay')).resolves.toBe(0);
             expect(fixture.entities).toHaveLength(0);
+        });
+
+        // `/attribute` is not registered here (modifiers are missing), so these call its verbs.
+        it("sets a player's maximum health on its store entity, where its health is read", () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            const health = player.getActor()!.entity.instance.attributes;
+            const host = serverCommandHost(fixture.server).entities;
+            const ref = entityRefOf(player.getActor()!);
+
+            expect(host.setAttributeBase(ref, 'minecraft:max_health', 10)).toBe(true);
+
+            expect(health.get('health')).toMatchObject({ max: 10, current: 10 });
+            expect(host.getAttributeBase(ref, 'max_health')).toBe(10);
+            expect(host.getAttributeValue(ref, 'max_health')).toBe(10);
+        });
+
+        it("writes a mob's maximum health through its store attribute, which reports the write", () => {
+            const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 0, 0));
+            const host = serverCommandHost(fixture.server).entities;
+            const ref = entityRefOf(pig.actor);
+
+            expect(host.setAttributeBase(ref, 'minecraft:max_health', 4)).toBe(true);
+
+            expect(pig.health.writes).toEqual([
+                {
+                    name: 'health',
+                    before: { base: 10, min: 0, max: 10, current: 10 },
+                    after: { base: 4, min: 0, max: 4, current: 4 }
+                }
+            ]);
+            // Setting it again changes nothing, and says so.
+            expect(host.setAttributeBase(ref, 'minecraft:max_health', 4)).toBe(false);
         });
 
         it('damages an entity', async () => {

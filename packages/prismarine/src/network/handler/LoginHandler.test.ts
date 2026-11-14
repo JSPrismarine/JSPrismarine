@@ -24,6 +24,7 @@ import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import type ClientConnection from '../ClientConnection';
 import { ConnectionContexts } from '../connectionContexts';
+import { InputQueue } from '../InputQueue';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
@@ -95,8 +96,12 @@ const loginPacket = (
         clientData: jwt(clientDataOf(displayName, identity))
     });
 
-/** The context the dispatcher hands a handler before the session, over a test's server. */
-const contextOf = (server: Server, connection: ClientConnection) => ConnectionContexts.of(server).contextOf(connection);
+/**
+ * The context the dispatcher hands a handler before the session, over a test's server. Inputs are
+ * applied when they are held unless a test passes a queue it steps itself.
+ */
+const contextOf = (server: Server, connection: ClientConnection, inputs?: InputQueue) =>
+    ConnectionContexts.of(server).contextOf(connection, inputs);
 describe('network', () => {
     describe('handler', () => {
         describe('LoginHandler', () => {
@@ -791,6 +796,37 @@ describe('network', () => {
 
                     expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
                     expect(second.disconnects).toEqual([]);
+                });
+
+                it('applies what the replaced client sent before removing its player', async () => {
+                    const { server: joining, sessions } = holdingServer();
+                    const first = liveConnection(sessions, 1);
+                    const second = liveConnection(sessions, 2);
+                    await new LoginHandler().handle(loginPacket('runner'), contextOf(joining, first.connection));
+
+                    // An input the first client sent before the second login, waiting for the step.
+                    const inputs = new InputQueue();
+                    const applied: Array<'input' | 'removed'> = [];
+                    void inputs.hold(first.connection, () => {
+                        applied.push(first.connection.getPlayerSession() === null ? 'removed' : 'input');
+                    });
+
+                    const secondLogin = new LoginHandler().handle(
+                        loginPacket('runner'),
+                        contextOf(joining, second.connection, inputs)
+                    );
+                    await settle();
+                    // The removal waits for the step, behind the input.
+                    expect(first.connection.getPlayerSession()).not.toBeNull();
+                    expect(first.disconnects).toEqual([]);
+
+                    expect(inputs.admit()).toBe(2);
+                    await secondLogin;
+
+                    expect(applied).toEqual(['input']);
+                    expect(first.disconnects).toEqual([DisconnectReason.LOGGED_IN_OTHER_LOCATION]);
+                    expect(first.connection.getPlayerSession()).toBeNull();
+                    expect(sessions.getAllPlayers()[0]).toBe(second.connection.getPlayerSession()?.getPlayer());
                 });
 
                 it('leaves a different offline player alone, though neither has an XUID', async () => {
