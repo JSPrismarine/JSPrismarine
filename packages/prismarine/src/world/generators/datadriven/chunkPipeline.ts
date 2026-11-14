@@ -34,6 +34,8 @@ import { cacheRoot } from './javaWorldgenSources';
 import { readRegistryBundle } from './registryBundle';
 import type { GenerationRegionPayload } from './GenerationRegion';
 import { SharedTerrainTileStore } from './SharedTerrainTileStore';
+import type { OldChunkRecord } from './javaBlending';
+import { hasValidBlending } from './javaBlending';
 
 /**
  * What a worker is handed once, to build its generator from.
@@ -86,6 +88,8 @@ export interface FullChunkTaskInput extends ChunkTaskInput {
 export interface FeatureTaskInput extends ChunkTaskInput {
     /** Terrain payloads in the feature view's row-major offset order. */
     readonly terrain: readonly GenerationRegionPayload[];
+    /** The old chunks within the blender's reach of the view, when the save holds any. */
+    readonly blending?: readonly OldChunkRecord[];
 }
 
 /** Raised when the pool hands a worker a task it has no body for. */
@@ -186,7 +190,8 @@ const isTerrainInput = (value: unknown): value is TerrainTaskInput =>
     'beard' in value &&
     Array.isArray(value.beard) &&
     'junctions' in value &&
-    Array.isArray(value.junctions);
+    Array.isArray(value.junctions) &&
+    hasValidBlending(value);
 
 /** Whether a cloned input has the bytes and collections a region needs to be adopted. */
 const isRegionPayload = (value: unknown): value is GenerationRegionPayload =>
@@ -226,7 +231,8 @@ const isFeatureInput = (value: unknown): value is FeatureTaskInput =>
     'terrain' in value &&
     Array.isArray(value.terrain) &&
     value.terrain.length === 9 &&
-    value.terrain.every(isRegionPayload);
+    value.terrain.every(isRegionPayload) &&
+    hasValidBlending(value);
 
 /**
  * Builds this worker's generator.
@@ -296,7 +302,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                     BigInt(task.input.seed),
                     task.input.beard,
                     task.input.junctions,
-                    task.input
+                    task.input,
+                    task.input.blending
                 );
                 return { payload: tile.payload, transferList: tile.transferList };
             }
@@ -314,7 +321,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                         task.chunkZ,
                         BigInt(task.input.seed),
                         task.input.terrain,
-                        task.input
+                        task.input,
+                        task.input.blending
                     ),
                     transferList: []
                 };

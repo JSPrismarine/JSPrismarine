@@ -11,6 +11,10 @@
  * [`javaWorldgenData.ts`](javaWorldgenData.ts). A server with neither cannot run this
  * generator, and says so rather than producing a world that is quietly not Java's.
  */
+import type { CarvingFilter } from '@jsprismarine/worldgen/blending/Blender';
+import type { StoredChunkReader } from '../../providers/Provider';
+import type { OldChunkRecord } from './javaBlending';
+import { BLENDING_RECORD_RADIUS, OldChunks, blendedBiomeCells, blenderFor } from './javaBlending';
 import { performance } from 'node:perf_hooks';
 import { setImmediate as yieldEventLoop } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
@@ -404,6 +408,11 @@ export interface TerrainTaskInput extends ChunkTaskInput {
     readonly beard: readonly BeardPiece[];
     /** The junction points that contribute after the pieces, in Java's order. */
     readonly junctions: readonly BeardJunction[];
+    /**
+     * The old chunks within the blender's reach, when the save holds any; see
+     * {@link OldChunks.recordsAround}. Absent for the common case of none.
+     */
+    readonly blending?: readonly OldChunkRecord[];
 }
 
 /**
@@ -878,6 +887,10 @@ export class DataDrivenGenerator implements Generator {
     private readonly sharedTerrainTileStore: SharedTerrainTileStore | undefined;
     /** Reuses a bounded number of chunk-local caches in this worker's serialized terrain tasks. */
     private readonly sampleContexts = new SampleContextPool();
+    /** The save's stored chunks per dimension, as the provider last handed them over. */
+    private readonly storedChunks = new Map<string, StoredChunkReader>();
+    /** The old chunks each pipeline has asked about, rebuilt when the provider's reader changes. */
+    private readonly oldChunksByPipeline = new WeakMap<SeededPipeline, { stored: StoredChunkReader; old: OldChunks }>();
     /**
      * The `worldgen/noise_settings` documents, the registries' plus any inline document a key
      * brought along. The map {@link DataDrivenGenerator.worldgen} reads, so an entry added here
@@ -1207,6 +1220,11 @@ export class DataDrivenGenerator implements Generator {
     private async pooledChunk(cx: number, cz: number, pipeline: SeededPipeline): Promise<Chunk | undefined> {
         const pool = this.chunkPool;
         if (pool === undefined) return undefined;
+        // A whole-chunk worker has no view of the save, so a chunk whose neighborhood reaches an
+        // old chunk takes the staged path, whose terrain tasks carry the old chunks' records.
+        if (this.oldChunksOf(pipeline)?.anyWithin(cx, cz, TERRAIN_READ_RADIUS + BLENDING_RECORD_RADIUS) === true) {
+            return undefined;
+        }
         // Refused before it is asked for, the way `GenerationQueue` refuses the inline path:
         // the pooled path does not go through that queue, because its depth is what holds a
         // pool at one worker.
@@ -1360,6 +1378,26 @@ export class DataDrivenGenerator implements Generator {
         return this.generateUnder(this.defaultKey, cx, cz, seed, options);
     }
 
+    /** @inheritDoc */
+    public useStoredChunks(stored: StoredChunkReader): void {
+        this.storedChunks.set(this.defaultKey.dimension.id, stored);
+    }
+
+    /**
+     * The old chunks of a pipeline's dimension, or undefined when no provider has said what the
+     * save holds, which is every generator outside a running world.
+     */
+    private oldChunksOf(pipeline: SeededPipeline): OldChunks | undefined {
+        const stored = this.storedChunks.get(pipeline.dimension.id);
+        if (stored === undefined) return undefined;
+        const known = this.oldChunksByPipeline.get(pipeline);
+        if (known !== undefined && known.stored === stored) return known.old;
+
+        const old = new OldChunks(stored, pipeline.oracle, pipeline.biomeCells);
+        this.oldChunksByPipeline.set(pipeline, { stored, old });
+        return old;
+    }
+
     /**
      * A `Generator` for one stem over this instance's registries, caches and worker pool.
      *
@@ -1385,6 +1423,7 @@ export class DataDrivenGenerator implements Generator {
                 return settingsOf().seaLevel;
             },
             generateChunk: (cx, cz, seed = 0n, _config, options) => this.generateUnder(key, cx, cz, seed, options),
+            useStoredChunks: (stored) => this.storedChunks.set(key.dimension.id, stored),
             raiseUrgency: (cx, cz, urgency) => this.raiseUrgencyUnder(key, cx, cz, urgency),
             surfaceAt: (x, z, seed = 0n) => this.surfaceUnder(key, x, z, seed),
             spawnChunk: (seed = 0n) => this.spawnChunkUnder(key, seed),
@@ -1536,6 +1575,7 @@ export class DataDrivenGenerator implements Generator {
      * @param seed - The world seed.
      * @param terrain - The nine tiles in {@link FEATURE_VIEW_TILES} order.
      * @param key - The stem's settings and dimension. Defaults to the instance's own.
+     * @param blending - The old chunks within the blender's reach of the view, when there are any.
      * @returns The center chunk's own feature writes and its eight outbound patches.
      * @throws RangeError when the task does not carry the complete 3 by 3 terrain view.
      */
@@ -1544,7 +1584,8 @@ export class DataDrivenGenerator implements Generator {
         cz: number,
         seed: bigint,
         terrain: readonly GenerationRegionPayload[],
-        key: PipelineKey = this.defaultKey
+        key: PipelineKey = this.defaultKey,
+        blending?: readonly OldChunkRecord[]
     ): readonly RegionChunkPatch[] {
         if (terrain.length !== FEATURE_VIEW_TILES.length) {
             throw new RangeError(`A feature task needs ${FEATURE_VIEW_TILES.length} terrain tiles.`);
@@ -1552,7 +1593,7 @@ export class DataDrivenGenerator implements Generator {
 
         const pipeline = this.pipelineFor(key, seed);
         const tiles = terrain.map((payload) => this.adoptRegion(payload, pipeline));
-        return this.featurePatchesFor(cx, cz, tiles, pipeline);
+        return this.featurePatchesFor(cx, cz, tiles, pipeline, blending);
     }
 
     /**
@@ -1571,6 +1612,7 @@ export class DataDrivenGenerator implements Generator {
      * @param beard - The structure pieces that push this chunk's terrain around.
      * @param junctions - The jigsaw junctions to add after all piece contributions.
      * @param key - The stem's settings and dimension. Defaults to the instance's own.
+     * @param blending - The old chunks within the blender's reach, when there are any.
      * @returns The tile and the buffers to transfer. The tile is spent: its bytes belong to the
      * receiving thread.
      */
@@ -1580,11 +1622,13 @@ export class DataDrivenGenerator implements Generator {
         seed: bigint,
         beard: readonly BeardPiece[],
         junctions: readonly BeardJunction[] = [],
-        key: PipelineKey = this.defaultKey
+        key: PipelineKey = this.defaultKey,
+        blending?: readonly OldChunkRecord[]
     ): Promise<GenerationRegionTransfer> {
         const pipeline = this.pipelineFor(key, seed);
-        const region = await this.buildTerrain(cx, cz, pipeline, beard, junctions);
-        region.setBiomeSections(this.packBiomeSections(cx, cz, pipeline));
+        const region = await this.buildTerrain(cx, cz, pipeline, beard, junctions, blending);
+        // A blended tile already holds its blended biomes.
+        if (region.biomeSection(0) === undefined) region.setBiomeSections(this.packBiomeSections(cx, cz, pipeline));
         return region.transfer();
     }
 
@@ -1884,7 +1928,11 @@ export class DataDrivenGenerator implements Generator {
      */
     private async runTerrain(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): Promise<GenerationChunk> {
         const chunk = region.center;
-        const cache = this.terrainProtoCache;
+        // A tile blended toward old chunks depends on the save, which no cache key names, so it is
+        // built every time and kept out of both caches.
+        const blended =
+            this.oldChunksOf(pipeline)?.anyWithin(chunk.chunkX, chunk.chunkZ, BLENDING_RECORD_RADIUS) === true;
+        const cache = blended ? undefined : this.terrainProtoCache;
         const key = cache === undefined ? undefined : this.terrainCacheKey(chunk.chunkX, chunk.chunkZ, pipeline);
         let tile: GenerationRegion | undefined;
 
@@ -1910,7 +1958,7 @@ export class DataDrivenGenerator implements Generator {
                 this.recordTerrainTileBuild(chunk.chunkX, chunk.chunkZ, pipeline);
                 return generated;
             };
-            const sharedStore = this.sharedTerrainTileStore;
+            const sharedStore = blended ? undefined : this.sharedTerrainTileStore;
             if (sharedStore === undefined) {
                 tile = await build();
             } else {
@@ -2010,9 +2058,10 @@ export class DataDrivenGenerator implements Generator {
      */
     private async terrainTileFor(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
         const beard = this.beardInputs(cx, cz, pipeline);
+        const blending = this.oldChunksOf(pipeline)?.recordsAround(cx, cz);
         const stagePool = this.stagePool;
         const pool = stagePool ?? this.pool;
-        if (pool === undefined) return this.buildTerrain(cx, cz, pipeline, beard.pieces, beard.junctions);
+        if (pool === undefined) return this.buildTerrain(cx, cz, pipeline, beard.pieces, beard.junctions, blending);
 
         let result;
         try {
@@ -2025,7 +2074,8 @@ export class DataDrivenGenerator implements Generator {
                     input: {
                         ...this.taskInput(pipeline),
                         beard: beard.pieces,
-                        junctions: beard.junctions
+                        junctions: beard.junctions,
+                        ...(blending === undefined ? {} : { blending })
                     } satisfies TerrainTaskInput
                 },
                 this.dependentUrgency(pipeline, cx, cz, TERRAIN_READ_RADIUS)
@@ -2036,7 +2086,7 @@ export class DataDrivenGenerator implements Generator {
             const canFallback = stagePool === undefined ? this.abandonPool(error) : this.abandonStagePool(error);
             if (!canFallback) throw error;
 
-            return this.buildTerrain(cx, cz, pipeline, beard.pieces, beard.junctions);
+            return this.buildTerrain(cx, cz, pipeline, beard.pieces, beard.junctions, blending);
         }
 
         // The worker's own payload, arriving across a thread boundary the compiler cannot
@@ -2057,6 +2107,11 @@ export class DataDrivenGenerator implements Generator {
     private async runFeatures(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): Promise<GenerationChunk> {
         const chunk = region.center;
         const tiles = FEATURE_VIEW_TILES.map(([dx, dz]) => region.neighbor(dx, dz, 'terrain').terrain);
+        const blending = this.oldChunksOf(pipeline)?.recordsAround(
+            chunk.chunkX,
+            chunk.chunkZ,
+            BLENDING_RECORD_RADIUS + FEATURE_READ_RADIUS
+        );
         const stagePool =
             this.options.structureBuilders === undefined &&
             (this.options.templates === undefined || this.options.stages?.javaTemplates === true)
@@ -2065,12 +2120,13 @@ export class DataDrivenGenerator implements Generator {
         let patches: readonly RegionChunkPatch[];
 
         if (stagePool === undefined) {
-            patches = this.featurePatchesFor(chunk.chunkX, chunk.chunkZ, tiles, pipeline);
+            patches = this.featurePatchesFor(chunk.chunkX, chunk.chunkZ, tiles, pipeline, blending);
         } else {
             try {
                 const input: FeatureTaskInput = {
                     ...this.taskInput(pipeline),
-                    terrain: tiles.map((tile) => tile.workerInput())
+                    terrain: tiles.map((tile) => tile.workerInput()),
+                    ...(blending === undefined ? {} : { blending })
                 };
                 const result = await stagePool.run(
                     {
@@ -2086,7 +2142,7 @@ export class DataDrivenGenerator implements Generator {
                 patches = featurePatchesFromWorker(result.payload);
             } catch (error: unknown) {
                 if (!this.abandonStagePool(error)) throw error;
-                patches = this.featurePatchesFor(chunk.chunkX, chunk.chunkZ, tiles, pipeline);
+                patches = this.featurePatchesFor(chunk.chunkX, chunk.chunkZ, tiles, pipeline, blending);
             }
         }
 
@@ -2099,12 +2155,22 @@ export class DataDrivenGenerator implements Generator {
         cx: number,
         cz: number,
         tiles: readonly GenerationRegion[],
-        pipeline: SeededPipeline
+        pipeline: SeededPipeline,
+        blending?: readonly OldChunkRecord[]
     ): readonly RegionChunkPatch[] {
-        const view = GenerationRegion.featureView(this.regionOptions(cx, cz, 1, pipeline), tiles);
+        // Java's feature pass reads biomes from the chunks' palettes, which near an old chunk are
+        // the blended ones the terrain pass stored.
+        const biomeCells = blendedBiomeCells(blending, pipeline.biomeCells);
+        const options = this.regionOptions(cx, cz, 1, pipeline);
+        const biomes =
+            biomeCells === pipeline.biomeCells ? undefined : new BiomeManager(biomeCells, pipeline.biomes.zoomSeed);
+        const view = GenerationRegion.featureView(
+            biomes === undefined ? options : { ...options, biomeAt: (x, y, z) => biomes.getBiome(x, y, z) },
+            tiles
+        );
 
         view.beginWriteTracking();
-        this.decorate(cx, cz, view, pipeline);
+        this.decorate(cx, cz, view, pipeline, biomeCells);
         return view.takeTrackedPatches();
     }
 
@@ -2186,7 +2252,8 @@ export class DataDrivenGenerator implements Generator {
         cz: number,
         pipeline: SeededPipeline,
         beard: readonly BeardPiece[],
-        junctions: readonly BeardJunction[] = []
+        junctions: readonly BeardJunction[] = [],
+        blending?: readonly OldChunkRecord[]
     ): Promise<GenerationRegion> {
         const region = this.createRegion(cx, cz, 0, pipeline);
         const context = this.sampleContexts.acquire();
@@ -2197,7 +2264,7 @@ export class DataDrivenGenerator implements Generator {
                 context,
                 verifySkippedCells: VERIFY_SKIPPED_WORLDGEN_CELLS
             });
-            return await this.buildTerrainWithSampler(cx, cz, pipeline, beard, junctions, region, sampler);
+            return await this.buildTerrainWithSampler(cx, cz, pipeline, beard, junctions, region, sampler, blending);
         } finally {
             this.sampleContexts.release(context);
         }
@@ -2211,12 +2278,26 @@ export class DataDrivenGenerator implements Generator {
         beard: readonly BeardPiece[],
         junctions: readonly BeardJunction[],
         region: GenerationRegion,
-        sampler: ChunkSampler
+        sampler: ChunkSampler,
+        blending: readonly OldChunkRecord[] | undefined
     ): Promise<GenerationRegion> {
+        const blender = blenderFor(cx, cz, blending);
         // Java reads the structure starts before it samples the terrain, so a village flattens
         // the hillside it is about to stand on. The starts are laid out against the bare noise,
         // which has no beard of its own, so there is no circle here.
         sampler.context.beardifier = createBeardifier(beard, junctions);
+        // Near an old chunk, Java's `NoiseChunk` gets the blender's alpha, offset and density.
+        blender.install(sampler.context);
+        // And the chunk's biomes come from `Blender.getBiomeResolver`, which the surface pass
+        // then reads through the chunk's own palette.
+        const blendedCells = blendedBiomeCells(blending, pipeline.biomeCells);
+        const biomes =
+            blendedCells === pipeline.biomeCells
+                ? pipeline.biomes
+                : new BiomeManager(blendedCells, pipeline.biomes.zoomSeed);
+        if (blendedCells !== pipeline.biomeCells) {
+            region.setBiomeSections(this.packBiomeSections(cx, cz, pipeline, blendedCells));
+        }
         const writeTerrainName = region.createTerrainNameWriter();
         const floor = Math.max(pipeline.dimension.minY, pipeline.settings.noiseSettings.minY);
         const ceiling = Math.min(
@@ -2248,7 +2329,7 @@ export class DataDrivenGenerator implements Generator {
         const surface = pipeline.surface.buildSurface({
             chunk: region.surfaceChunk(),
             rule: pipeline.materialRule,
-            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
+            biomeAt: (x, y, z) => biomes.getBiome(x, y, z),
             biomeClimate: pipeline.climateOf,
             sampleContext: sampler.context,
             possibleBiomes: pipeline.possibleBiomes
@@ -2256,7 +2337,7 @@ export class DataDrivenGenerator implements Generator {
 
         // Java's `terrain` status runs the fill, the surface materials and the carvers in that
         // order, so a cave mouth cuts through finished grass rather than being paved over by it.
-        if (this.options.carve !== false) this.carve(cx, cz, region, pipeline, sampler, surface);
+        if (this.options.carve !== false) this.carve(cx, cz, region, pipeline, sampler, surface, blender.carvingFilter);
 
         return region;
     }
@@ -2334,7 +2415,8 @@ export class DataDrivenGenerator implements Generator {
         region: GenerationRegion,
         pipeline: SeededPipeline,
         sampler: ChunkSampler,
-        surface: SurfacePass
+        surface: SurfacePass,
+        filter: CarvingFilter | undefined
     ): void {
         const mask = CarvingMask.forChunk(pipeline.surface.generationContext);
 
@@ -2353,6 +2435,9 @@ export class DataDrivenGenerator implements Generator {
             let tookGrass = false;
 
             for (let y = topY; y >= bottomY; y--) {
+                // Java 26.3's `applyCarvingMask` opens a marked block only where the blender's
+                // filter allows it; see `Blender.carvingFilter`.
+                if (filter !== undefined && !filter(localX, y, localZ)) continue;
                 const existing = region.stateAt(x, y, z);
                 if (pipeline.oracle.isAir(existing)) continue;
                 // Java skips `#minecraft:uncarvable` and nothing else. Water is carved like
@@ -2473,12 +2558,18 @@ export class DataDrivenGenerator implements Generator {
      * neighbor can still grow across the border, and `minecraft:biome` is what then keeps each
      * feature on the biome that asked for it.
      */
-    private decorate(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): void {
+    private decorate(
+        cx: number,
+        cz: number,
+        region: GenerationRegion,
+        pipeline: SeededPipeline,
+        biomeCells: BiomeResolver = pipeline.biomeCells
+    ): void {
         const random = new WorldgenRandom();
         const origin = { x: cx * 16, y: pipeline.dimension.minY, z: cz * 16 };
         const populationSeed = random.setDecorationSeed(pipeline.randomState.seed, origin.x, origin.z);
         const world = region.featureWorld();
-        const palette = this.biomePaletteAround(cx, cz, pipeline);
+        const palette = this.biomePaletteAround(cx, cz, pipeline, biomeCells);
         const starts = pipeline.structures?.startsFor(cx, cz) ?? [];
         const clip = chunkWriteBox(
             cx,
@@ -2561,20 +2652,34 @@ export class DataDrivenGenerator implements Generator {
      * the biome source per cell gives the same answer, because the palette is what that source
      * filled.
      */
-    private biomePaletteAround(cx: number, cz: number, pipeline: SeededPipeline): ReadonlySet<string> {
+    private biomePaletteAround(
+        cx: number,
+        cz: number,
+        pipeline: SeededPipeline,
+        biomeCells: BiomeResolver = pipeline.biomeCells
+    ): ReadonlySet<string> {
         const palette = new Set<string>();
         for (let dx = -1; dx <= 1; dx++) {
             for (let dz = -1; dz <= 1; dz++) {
-                for (const biome of this.chunkBiomes(cx + dx, cz + dz, pipeline)) palette.add(biome);
+                for (const biome of this.chunkBiomes(cx + dx, cz + dz, pipeline, biomeCells)) palette.add(biome);
             }
         }
         return palette;
     }
 
-    /** One chunk's biome palette, kept because each chunk's is read by nine decoration passes. */
-    private chunkBiomes(cx: number, cz: number, pipeline: SeededPipeline): ReadonlySet<string> {
+    /**
+     * One chunk's biome palette, kept because each chunk's is read by nine decoration passes. A
+     * blended palette depends on the save, so it is not kept.
+     */
+    private chunkBiomes(
+        cx: number,
+        cz: number,
+        pipeline: SeededPipeline,
+        biomeCells: BiomeResolver = pipeline.biomeCells
+    ): ReadonlySet<string> {
+        const blended = biomeCells !== pipeline.biomeCells;
         const key = this.chunkKey(cx, cz);
-        const cached = pipeline.chunkBiomes.get(key);
+        const cached = blended ? undefined : pipeline.chunkBiomes.get(key);
         if (cached !== undefined) {
             pipeline.chunkBiomes.delete(key);
             pipeline.chunkBiomes.set(key, cached);
@@ -2587,11 +2692,12 @@ export class DataDrivenGenerator implements Generator {
         for (let quartX = cx * 4; quartX < cx * 4 + 4; quartX++) {
             for (let quartZ = cz * 4; quartZ < cz * 4 + 4; quartZ++) {
                 for (let quartY = bottom; quartY <= top; quartY++) {
-                    biomes.add(pipeline.biomeCells(quartX, quartY, quartZ));
+                    biomes.add(biomeCells(quartX, quartY, quartZ));
                 }
             }
         }
 
+        if (blended) return biomes;
         pipeline.chunkBiomes.set(key, biomes);
         this.trimCache(pipeline.chunkBiomes);
         return biomes;
@@ -2764,7 +2870,12 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /** Samples and packs the Bedrock IDs for one chunk's biome sections. */
-    private packBiomeSections(cx: number, cz: number, pipeline: SeededPipeline): PackedBiomeSections {
+    private packBiomeSections(
+        cx: number,
+        cz: number,
+        pipeline: SeededPipeline,
+        biomeCells: BiomeResolver = pipeline.biomeCells
+    ): PackedBiomeSections {
         const sections = subChunkCount(pipeline.dimension);
         const sampled = new Uint16Array(sections * BIOME_CELLS_PER_SUBCHUNK);
         const uniform = new Uint8Array(sections);
@@ -2781,7 +2892,7 @@ export class DataDrivenGenerator implements Generator {
                 for (let cellZ = 0; cellZ < 4; cellZ++) {
                     for (let cellY = 0; cellY < 4; cellY++) {
                         const id = bedrockBiomeIdOf(
-                            pipeline.biomeCells(
+                            biomeCells(
                                 (cx * 16 + cellX * 4) >> 2,
                                 (sectionMinY + cellY * 4) >> 2,
                                 (cz * 16 + cellZ * 4) >> 2
