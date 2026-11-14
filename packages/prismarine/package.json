@@ -581,6 +581,10 @@
             "jsprismarine:dist": "./dist/world/chunk/Chunk.js",
             "default": "./src/world/chunk/Chunk.ts"
         },
+        "./world/chunk/ChunkGeneration": {
+            "jsprismarine:dist": "./dist/world/chunk/ChunkGeneration.js",
+            "default": "./src/world/chunk/ChunkGeneration.ts"
+        },
         "./world/ChunkAdmissions": {
             "jsprismarine:dist": "./dist/world/ChunkAdmissions.js",
             "default": "./src/world/ChunkAdmissions.ts"
@@ -656,6 +660,10 @@
         "./world/providers/BaseProvider": {
             "jsprismarine:dist": "./dist/world/providers/BaseProvider.js",
             "default": "./src/world/providers/BaseProvider.ts"
+        },
+        "./world/providers/Provider": {
+            "jsprismarine:dist": "./dist/world/providers/Provider.js",
+            "default": "./src/world/providers/Provider.ts"
         },
         "./world/providers/leveldb/LevelDB": {
             "jsprismarine:dist": "./dist/world/providers/leveldb/LevelDB.js",

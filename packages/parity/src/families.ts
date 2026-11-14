@@ -93,6 +93,8 @@ export const FAMILIES = {
     worldgenDeterminism: 'worldgen.determinism',
     /** Java's dimension types, presets and stems through the parsers, and one chunk per vanilla dimension. */
     worldgenDimensions: 'worldgen.dimensions',
+    /** New terrain generated beside old chunks meets them the way Java's world blender bends it. */
+    worldgenBlending: 'worldgen.blending',
 
     /** The command tree the server publishes against Mojang's Bedrock command metadata (phase 5). */
     commandsTree: 'commands.tree',
