@@ -37,7 +37,7 @@ import {
     writeLevelName
 } from './LevelDat';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
-import { decodeData3D, encodeData3D } from './BiomeCodec';
+import { decodeData2D, decodeData3D, encodeData3D } from './BiomeCodec';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
 import { decodeSubChunk, encodeSubChunk, writableSubChunkVersion } from './SubChunkCodec';
 import { OverlayBatch } from './OverlayBatch';
@@ -49,6 +49,7 @@ import {
 } from './ChunkGenerationRecord';
 import type { ChunkGeneration } from '../../chunk/ChunkGeneration';
 import { CURRENT_GENERATION } from '../../chunk/ChunkGeneration';
+import { applyBelowZeroRetrogen, belowZeroRetrogenOf } from '../../chunk/belowZeroRetrogen';
 import { Dimensions } from '../../DimensionType';
 import { maxSubChunk, minSubChunk } from '../../Dimension';
 import BaseProvider from '../BaseProvider';
@@ -711,7 +712,38 @@ export default class LevelDB extends BaseProvider {
         // Loaded, not changed: a chunk read from disk and never touched must not be written back.
         chunk.markLoadedFromDisk(persistedSubChunkKeys, blockEntityRecord !== null);
         if (repairActorDigest || hasPendingEntities) chunk.markChanged();
+
+        const missingBedrock = this.belowZeroRetrogenOf(dimension, cx, cz, chunk, persistedSubChunkKeys);
+        if (missingBedrock !== undefined) {
+            // Generated while the provider says this chunk is old, so the new floor blends up
+            // into the old terrain the way Java's below-zero upgrade does.
+            generator.useStoredChunks?.(this.storedChunks(dimension));
+            const generated = await generator.generateChunk(cx, cz, seed, config, options);
+            applyBelowZeroRetrogen(chunk, generated, missingBedrock);
+            chunk.markChanged();
+        }
         return chunk;
+    }
+
+    /**
+     * Whether a stored chunk is a pre-1.18 overworld chunk that has not had its floor under y = 0
+     * generated yet, and which of its columns stay open; see {@link belowZeroRetrogenOf}.
+     *
+     * The upgrade happens once: the chunk is saved with its blending record afterwards, and a
+     * chunk with a record is never upgraded again.
+     */
+    private belowZeroRetrogenOf(
+        dimension: DimensionType,
+        cx: number,
+        cz: number,
+        chunk: Chunk,
+        persistedSubChunkKeys: ReadonlySet<number>
+    ): ReadonlySet<number> | undefined {
+        const blending = chunk.getGeneration().blending;
+        if (blending === undefined || blending.minSection !== 0) return undefined;
+        if (this.read(encodeChunkGenerationKey(cx, cz, dimension.bedrockId)) !== null) return undefined;
+        for (const index of persistedSubChunkKeys) if (index < 0) return undefined;
+        return belowZeroRetrogenOf(chunk);
     }
 
     /**
@@ -743,6 +775,16 @@ export default class LevelDB extends BaseProvider {
         const biomes = this.read(key(ChunkTag.Data3D));
         if (biomes !== null) {
             chunk.setBiomes(ChunkBiomes.fromSectionIds(decodeData3D(biomes, dimension).palettes, dimension));
+        } else {
+            // A chunk last saved before 1.18 keeps one biome per column; Bedrock extends it up
+            // and down the column when it upgrades the chunk, and so does this.
+            const legacy = this.read(key(ChunkTag.Data2D));
+            const columns = legacy === null ? undefined : decodeData2D(legacy);
+            if (columns !== undefined) {
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++) chunk.fillBiomeColumn(x, z, columns[x * 16 + z]!);
+                }
+            }
         }
 
         return { chunk, persistedSubChunkKeys };
