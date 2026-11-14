@@ -1,5 +1,11 @@
 # @jsprismarine/parity
 
+## 0.21.0
+
+### Patch Changes
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
 ## 0.20.0
 
 No changes in this release.

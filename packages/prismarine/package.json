@@ -209,7 +209,7 @@
         }
     },
     "type": "module",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "prettier": "@nordcom/prettier",
     "files": [

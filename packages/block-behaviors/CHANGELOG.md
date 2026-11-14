@@ -1,5 +1,26 @@
 # @jsprismarine/block-behaviors
 
+## 0.21.0
+
+### Patch Changes
+
+- [#3014](https://github.com/JSPrismarine/JSPrismarine/pull/3014) [`18040a2`](https://github.com/JSPrismarine/JSPrismarine/commit/18040a257c11f26e13c1edf5c48f11c4634bcbf2) Thanks [@coderabbitai](https://github.com/apps/coderabbitai)! - <!-- coderabbit-ai-generated:v1 -->
+  
+  
+  Consume one empty container when filling a bucket or bottle from a liquid source.
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+- Updated dependencies [[`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175), [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e), [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964), [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c), [`aed0570`](https://github.com/JSPrismarine/JSPrismarine/commit/aed057021fc0c9169a6e3ec78c2b37b0b54d798a)]:
+  - @jsprismarine/blocks@0.21.0
+  - @jsprismarine/content@0.21.0
+  - @jsprismarine/mapping@0.21.0
+
 ## 0.20.0
 
 ### Patch Changes

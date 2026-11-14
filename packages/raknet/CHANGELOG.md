@@ -1,5 +1,37 @@
 # @jsprismarine/raknet
 
+## 0.21.0
+
+### Minor Changes
+
+- [#2987](https://github.com/JSPrismarine/JSPrismarine/pull/2987) [`7ad176f`](https://github.com/JSPrismarine/JSPrismarine/commit/7ad176f908b8c7946773fa9fa2a942f6ac3cbd45) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `@jsprismarine/native-network`, JSPrismarine's networking in native code: WebRTC peer connections and data channels on libdatachannel with Mbed TLS, bound through `node:ffi` and `bun:ffi`, and `SharedPort`, a UDP port that RakNet and NetherNet share, sorted by each datagram's bytes before libjuice's lookup. This release builds from source only; prebuilt libraries follow.
+  
+  `SharedByteRing` in `@jsprismarine/raknet` now has eight control slots, with a wake flag (`claimWake` and `clearWake`), and needs a power-of-two capacity, so native code can read and write the same rings. A ring made with any other capacity is refused.
+
+- [#2987](https://github.com/JSPrismarine/JSPrismarine/pull/2987) [`763c07d`](https://github.com/JSPrismarine/JSPrismarine/commit/763c07d5467a638658db0187110d2615160fdd19) Thanks [@filiphsps](https://github.com/filiphsps)! - RakNet and NetherNet can share one UDP port. When `server-udp-ports` covers `port` or `server-portv6` and both transports are on, the native networking library owns the port, sorts each datagram by its bytes, and hands RakNet its datagrams through shared-memory rings, in socket mode and with the RakNet worker.
+  
+  With RakNet off, the server port is opened the same way when NetherNet's UDP is on it, so a taken port stops the start, and query, when `query-port` is the server port, answers through it instead of binding a socket that would keep NetherNet's peers off the port.
+  
+  `@jsprismarine/raknet` adds `DatagramSource`, with `UdpDatagramSource` and `RingDatagramSource`, and `ServerSocket` and `WorkerServerSocket` take one as a new last constructor argument. `@jsprismarine/native-network`'s `SharedPort.attach` takes the rings to fill instead of allocating them.
+
+### Patch Changes
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+
+- [#2987](https://github.com/JSPrismarine/JSPrismarine/pull/2987) [`c9a2433`](https://github.com/JSPrismarine/JSPrismarine/commit/c9a243311a38b4974aa28e2b52228e225838c112) Thanks [@filiphsps](https://github.com/filiphsps)! - The UDP socket buffer sizes a socket asked for and got are logged at verbose instead of info.
+
+- [#2987](https://github.com/JSPrismarine/JSPrismarine/pull/2987) [`a9f5a42`](https://github.com/JSPrismarine/JSPrismarine/commit/a9f5a42e0896d3189c99185e8c26683ba58e1b32) Thanks [@filiphsps](https://github.com/filiphsps)! - A transport that is enabled and cannot listen now stops the server's start, with an error that names the transport, the port and the cause. A server that used to start with a warning when another program held `server-portv6` or the TCP side of `port` that NetherNet signals on now refuses to start: free the port, or turn the transport off with `enable-raknet` or `enable-nethernet`. LAN discovery and the query port still only warn.
+  
+  `Networking.start` returns a promise that settles once every transport listens, and `Server.bootstrap` rejects with that error. `RakNetListenerLike` declares the `listening` event its listeners already emit.
+- Updated dependencies [[`3d07749`](https://github.com/JSPrismarine/JSPrismarine/commit/3d07749f87f00a669397d4720ca6fb28fbe92545), [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175), [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e), [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964), [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c)]:
+  - @jsprismarine/binaryutils@0.21.0
+
 ## 0.20.0
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/native-network",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "description": "Networking in native code for JSPrismarine: WebRTC peer connections on libdatachannel, and a UDP port RakNet shares with NetherNet",
     "sideEffects": false,
     "publishConfig": {

@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/nethernet",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "description": "NetherNet, the WebRTC transport of Minecraft: Bedrock Edition: the protocol, signaling, identities and LAN discovery",
     "sideEffects": false,
     "publishConfig": {
