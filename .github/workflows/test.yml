@@ -348,7 +348,7 @@ jobs:
             # version. `sources.json` pins Java 26.3, whose `version.json` asks for 25.
             - name: ☕ Setup JDK
               if: ${{ steps.prepared.outputs.cache-hit != 'true' }}
-              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
               with:
                   distribution: temurin
                   java-version: '25'
@@ -451,7 +451,7 @@ jobs:
               uses: ./.github/common/install
 
             - name: ☕ Setup JDK
-              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
               with:
                   distribution: temurin
                   java-version: '25'
@@ -568,7 +568,7 @@ jobs:
               uses: ./.github/common/install
 
             - name: ☕ Setup JDK
-              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
               with:
                   distribution: temurin
                   java-version: '25'
