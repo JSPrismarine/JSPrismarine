@@ -41,6 +41,14 @@ import { decodeData3D, encodeData3D } from './BiomeCodec';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
 import { decodeSubChunk, encodeSubChunk, writableSubChunkVersion } from './SubChunkCodec';
 import { OverlayBatch } from './OverlayBatch';
+import {
+    decodeChunkGeneration,
+    encodeChunkGeneration,
+    encodeChunkGenerationKey,
+    generationOnLoad
+} from './ChunkGenerationRecord';
+import type { ChunkGeneration } from '../../chunk/ChunkGeneration';
+import { CURRENT_GENERATION } from '../../chunk/ChunkGeneration';
 import { Dimensions } from '../../DimensionType';
 import { maxSubChunk, minSubChunk } from '../../Dimension';
 import BaseProvider from '../BaseProvider';
@@ -56,7 +64,7 @@ import type { DimensionType } from '../../DimensionType';
 import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
-import type { LevelDatInputs } from '../Provider';
+import type { LevelDatInputs, StoredChunkReader } from '../Provider';
 import type { ChunkSaveContext } from '../ChunkSaveContext';
 import { createChunkSaveContext } from '../ChunkSaveContext';
 import {
@@ -68,6 +76,14 @@ import {
 
 /** The `Version` byte written since 1.21.120. Older values make the game run upgrade passes. */
 export const CHUNK_VERSION = 42;
+
+/**
+ * Bedrock's `BlendingData` record, `{0, blendingVersion}`. Bedrock blends new terrain against a
+ * chunk whose version is older than its own, so writing the current one tells BDS this server's
+ * chunks are not old. 10 is what Chunker writes for 1.26.40 and later
+ * (`v1_26_40/writer/ColumnWriter.java`); no Mojang document lists the values.
+ */
+const BEDROCK_BLENDING_DATA = Buffer.from([0, 10]);
 
 /** `FinalizedState`: 0 needs instaticking, 1 needs population, 2 is done. */
 const FINALIZED_DONE = 2;
@@ -219,6 +235,8 @@ export default class LevelDB extends BaseProvider {
     private holding = false;
     /** Writes made outside a pass that no pass has taken yet. */
     private held = new OverlayBatch();
+    /** One reader per dimension, so a generator handed it again can tell nothing changed. */
+    private readonly storedChunkReaders = new Map<string, StoredChunkReader>();
     /** Each pass's batch from its start until the database has applied it, oldest first. */
     private readonly unapplied: OverlayBatch[] = [];
     /** The cuts of each chunk whose pass has not yet marked the chunk saved. */
@@ -666,28 +684,14 @@ export default class LevelDB extends BaseProvider {
         // not recognize included - is a chunk that exists and must not be overwritten by a fresh
         // one, so it is read as best we can.
         if (this.read(key(ChunkTag.Version)) === null && this.read(key(ChunkTag.LegacyVersion)) === null) {
+            generator.useStoredChunks?.(this.storedChunks(dimension));
             const chunk = await generator.generateChunk(cx, cz, seed, config, options);
             if (this.readPendingEntities(this.read(pendingEntitiesKey), chunk)) chunk.markChanged();
             return chunk;
         }
 
-        const subChunks = new Map<number, ReturnType<typeof decodeSubChunk>['subChunk']>();
-        const persistedSubChunkKeys = new Set<number>();
-        for (let index = minSubChunk(dimension); index <= maxSubChunk(dimension); index++) {
-            const value = this.read(key(ChunkTag.SubChunkPrefix, index));
-            if (value === null) continue;
-
-            const { subChunk } = decodeSubChunk(value);
-            subChunks.set(index, subChunk);
-            persistedSubChunkKeys.add(index);
-        }
-
-        const chunk = new Chunk(cx, cz, subChunks, dimension);
-
-        const biomes = this.read(key(ChunkTag.Data3D));
-        if (biomes !== null) {
-            chunk.setBiomes(ChunkBiomes.fromSectionIds(decodeData3D(biomes, dimension).palettes, dimension));
-        }
+        const { chunk, persistedSubChunkKeys } = this.decodeTerrain(dimension, cx, cz);
+        chunk.setGeneration(this.generationOf(dimension, cx, cz) ?? CURRENT_GENERATION);
 
         const blockEntityRecord = this.read(key(ChunkTag.BlockEntity));
         for (const blockEntity of this.readBlockEntities(blockEntityRecord)) {
@@ -708,6 +712,76 @@ export default class LevelDB extends BaseProvider {
         chunk.markLoadedFromDisk(persistedSubChunkKeys, blockEntityRecord !== null);
         if (repairActorDigest || hasPendingEntities) chunk.markChanged();
         return chunk;
+    }
+
+    /**
+     * The blocks and biomes of a stored chunk, decoded without its block entities or actors.
+     *
+     * {@link LevelDB.readChunk} builds on it, and the world blender reads an old chunk's edges
+     * through it without loading the chunk into the world.
+     */
+    private decodeTerrain(
+        dimension: DimensionType,
+        cx: number,
+        cz: number
+    ): { readonly chunk: Chunk; readonly persistedSubChunkKeys: ReadonlySet<number> } {
+        const key = (tag: ChunkTag, subChunk?: number) =>
+            encodeChunkKey({ x: cx, z: cz, dimension: dimension.bedrockId, tag, subChunk });
+        const subChunks = new Map<number, ReturnType<typeof decodeSubChunk>['subChunk']>();
+        const persistedSubChunkKeys = new Set<number>();
+        for (let index = minSubChunk(dimension); index <= maxSubChunk(dimension); index++) {
+            const value = this.read(key(ChunkTag.SubChunkPrefix, index));
+            if (value === null) continue;
+
+            const { subChunk } = decodeSubChunk(value);
+            subChunks.set(index, subChunk);
+            persistedSubChunkKeys.add(index);
+        }
+
+        const chunk = new Chunk(cx, cz, subChunks, dimension);
+
+        const biomes = this.read(key(ChunkTag.Data3D));
+        if (biomes !== null) {
+            chunk.setBiomes(ChunkBiomes.fromSectionIds(decodeData3D(biomes, dimension).palettes, dimension));
+        }
+
+        return { chunk, persistedSubChunkKeys };
+    }
+
+    /**
+     * A stored chunk's generation stamp after Java's load rule, or undefined when the save does
+     * not hold the chunk. Two key reads; the chunk's blocks are not decoded.
+     */
+    public generationOf(dimension: DimensionType, cx: number, cz: number): ChunkGeneration | undefined {
+        const key = (tag: ChunkTag) => encodeChunkKey({ x: cx, z: cz, dimension: dimension.bedrockId, tag });
+        const version = this.read(key(ChunkTag.Version)) ?? this.read(key(ChunkTag.LegacyVersion));
+        if (version === null) return undefined;
+
+        const record = this.read(encodeChunkGenerationKey(cx, cz, dimension.bedrockId));
+        return generationOnLoad({
+            record: record === null ? undefined : decodeChunkGeneration(record),
+            // An empty record is no version at all, which reads as the oldest.
+            chunkVersion: version.byteLength === 0 ? 0 : version.readUInt8(0),
+            dimension
+        });
+    }
+
+    /**
+     * The stored chunks of one dimension as the world blender reads them; see
+     * {@link StoredChunkReader}.
+     */
+    public storedChunks(dimension: DimensionType): StoredChunkReader {
+        const known = this.storedChunkReaders.get(dimension.id);
+        if (known !== undefined) return known;
+        const reader: StoredChunkReader = {
+            generationAt: (cx, cz) => this.generationOf(dimension, cx, cz),
+            terrainAt: (cx, cz) =>
+                this.generationOf(dimension, cx, cz) === undefined
+                    ? undefined
+                    : this.decodeTerrain(dimension, cx, cz).chunk
+        };
+        this.storedChunkReaders.set(dimension.id, reader);
+        return reader;
     }
 
     /**
@@ -917,6 +991,11 @@ export default class LevelDB extends BaseProvider {
         finalized.writeInt32LE(FINALIZED_DONE);
         const finalizedKey = key(ChunkTag.FinalizedState);
         if (!this.holds(finalizedKey, finalized)) staged.put(finalizedKey, finalized);
+        const generationKey = encodeChunkGenerationKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
+        const generation = encodeChunkGeneration(chunk.getGeneration());
+        if (!this.holds(generationKey, generation)) staged.put(generationKey, generation);
+        const blendingKey = key(ChunkTag.BlendingData);
+        if (!this.holds(blendingKey, BEDROCK_BLENDING_DATA)) staged.put(blendingKey, BEDROCK_BLENDING_DATA);
         const pendingEntitiesKey = encodePendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
         if (this.mayHold(pendingEntitiesKey)) staged.del(pendingEntitiesKey);
 

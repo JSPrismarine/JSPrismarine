@@ -1,3 +1,5 @@
+import type { ChunkGeneration } from './ChunkGeneration';
+import { CURRENT_GENERATION } from './ChunkGeneration';
 import type { BlockState } from '../../block/state/BlockState';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
@@ -185,6 +187,14 @@ export default class Chunk {
      */
     private biomes: ChunkBiomes;
     private biomesEpoch = 0;
+
+    /**
+     * Which generator made this chunk, and whether that makes it old generation.
+     *
+     * A chunk starts with this server's own stamp; a provider that reads one from disk replaces
+     * it with what the save says. See {@link ChunkGeneration}.
+     */
+    private generation: ChunkGeneration = CURRENT_GENERATION;
 
     /** Entity NBT read from disk, waiting for the world to restore it. */
     private readonly storedEntities: NBTTagCompound[] = [];
@@ -467,6 +477,22 @@ export default class Chunk {
 
     public getZ(): number {
         return this.z;
+    }
+
+    /** Which generator made this chunk; see {@link ChunkGeneration}. */
+    public getGeneration(): ChunkGeneration {
+        return this.generation;
+    }
+
+    /**
+     * Records which generator made this chunk. The stamp is saved with the chunk, so a new one
+     * marks the chunk dirty; a provider reading a chunk sets it before
+     * {@link Chunk.markLoadedFromDisk}, which clears that again.
+     */
+    public setGeneration(generation: ChunkGeneration): void {
+        if (generation === this.generation) return;
+        this.generation = generation;
+        this.markChanged();
     }
 
     public getHasChanged(): boolean {

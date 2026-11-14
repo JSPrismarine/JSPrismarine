@@ -6,6 +6,7 @@ import type { DimensionType } from '../DimensionType';
 import type { WorldPersistenceData } from '../WorldPersistence';
 import type { LevelStem } from '@jsprismarine/worldgen';
 import type { ChunkSaveContext } from './ChunkSaveContext';
+import type { ChunkGeneration } from '../chunk/ChunkGeneration';
 
 /**
  * What a provider writes into the save's level metadata, `level.dat` for the LevelDB format.
@@ -25,6 +26,17 @@ export interface LevelDatInputs {
     readonly stems?: Readonly<Record<string, LevelStem>>;
     /** The Nether's `coordinate_scale`, written as `NetherScale`. Defaults to Java's 8. */
     readonly netherScale?: number;
+}
+
+/**
+ * A save's stored chunks of one dimension, as the world blender reads them: which are old
+ * generation, and the blocks and biomes of the ones that are.
+ */
+export interface StoredChunkReader {
+    /** The stored chunk's stamp after Java's load rule, or undefined when the save does not hold it. */
+    generationAt(chunkX: number, chunkZ: number): ChunkGeneration | undefined;
+    /** The stored chunk's blocks and biomes, without block entities or actors, or undefined. */
+    terrainAt(chunkX: number, chunkZ: number): Chunk | undefined;
 }
 
 /**
@@ -78,6 +90,12 @@ export default interface Provider extends Service {
      * @param chunk - the chunk to write.
      */
     writeChunk(chunk: Chunk, saveContext?: ChunkSaveContext): Promise<void>;
+
+    /**
+     * The stored chunks of a dimension as the world blender reads them, when the format keeps a
+     * generation stamp per chunk.
+     */
+    storedChunks?(dimension: DimensionType): StoredChunkReader;
 
     /** Every chunk coordinate the save holds for one dimension, when the format can list them. */
     listChunks?(dimension: DimensionType): IterableIterator<{ x: number; z: number }>;

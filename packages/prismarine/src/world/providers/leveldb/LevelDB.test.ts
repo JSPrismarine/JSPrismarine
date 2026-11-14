@@ -33,6 +33,12 @@ import type SubChunk from '../../chunk/SubChunk';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
 import type { Position } from '../../Position';
 import LevelDB, { CHUNK_VERSION } from './LevelDB';
+import {
+    FIRST_CAVES_AND_CLIFFS_CHUNK_VERSION,
+    decodeChunkGeneration,
+    encodeChunkGenerationKey
+} from './ChunkGenerationRecord';
+import { GENERATION_DATA_VERSION } from '@jsprismarine/worldgen/blending/generationVersion';
 import { parseLevelStem } from '@jsprismarine/worldgen';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../../Server';
@@ -1381,6 +1387,81 @@ describe('world', () => {
                 await expect(second.provider.enable()).rejects.toThrow(/already open/);
                 await first.provider.disable();
             });
+        });
+    });
+
+    describe('chunk generation stamps', () => {
+        const generationKey = (cx: number, cz: number) => encodeChunkGenerationKey(cx, cz, 0);
+        const versionKey = (cx: number, cz: number) =>
+            encodeChunkKey({ x: cx, z: cz, dimension: 0, tag: ChunkTag.Version });
+
+        /** Rewrites raw records the way an older server or BDS would have left them. */
+        const rewrite = async (worldPath: string, edit: (database: Database) => void) => {
+            const database = await Database.open(path.join(worldPath, 'db'));
+            edit(database);
+            await database.close();
+        };
+
+        it("writes this server's stamp and Bedrock's blending version with every chunk", async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            await provider.enable();
+            await provider.writeChunk(buildChunk());
+            await provider.disable();
+
+            const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+            expect(decodeChunkGeneration(database.get(generationKey(0, 0))!)).toEqual({
+                dataVersion: GENERATION_DATA_VERSION
+            });
+            expect(database.get(encodeChunkKey({ x: 0, z: 0, dimension: 0, tag: ChunkTag.BlendingData }))).toEqual(
+                Buffer.from([0, 10])
+            );
+            await database.close();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            const chunk = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
+            expect(chunk.getGeneration().blending).toBeUndefined();
+            await reopened.provider.disable();
+        });
+
+        it('reads an unstamped chunk as old and keeps it old after a save', async () => {
+            const worldPath = scratch();
+            const first = harness(worldPath);
+            await first.provider.enable();
+            await first.provider.writeChunk(buildChunk(0, 0));
+            await first.provider.writeChunk(buildChunk(1, 0));
+            await first.provider.disable();
+
+            await rewrite(worldPath, (database) => {
+                database.del(generationKey(0, 0));
+                database.del(generationKey(1, 0));
+                database.put(versionKey(1, 0), Buffer.from([FIRST_CAVES_AND_CLIFFS_CHUNK_VERSION - 1]));
+            });
+
+            const second = harness(worldPath);
+            await second.provider.enable();
+            const stored = second.provider.storedChunks(Dimensions.Overworld);
+            expect(stored.generationAt(0, 0)?.blending).toEqual({ minSection: -4, maxSection: 20 });
+            expect(stored.generationAt(1, 0)?.blending).toEqual({ minSection: 0, maxSection: 16 });
+            expect(stored.generationAt(5, 5)).toBeUndefined();
+            expect(stored.terrainAt(0, 0)?.getBlock(3, -64, 4).name).toBe('minecraft:bedrock');
+            expect(stored.terrainAt(5, 5)).toBeUndefined();
+
+            const chunk = await second.provider.readChunk(Dimensions.Overworld, 1, 0, 1234n, generator());
+            expect(chunk.getGeneration().blending).toEqual({ minSection: 0, maxSection: 16 });
+            chunk.setBlockRuntimeId(0, 100, 0, id('minecraft:dirt'));
+            await second.provider.writeChunk(chunk);
+            await second.provider.disable();
+
+            const third = harness(worldPath);
+            await third.provider.enable();
+            // The chunk now carries the current Bedrock version; its record keeps it old.
+            expect(third.provider.storedChunks(Dimensions.Overworld).generationAt(1, 0)?.blending).toEqual({
+                minSection: 0,
+                maxSection: 16
+            });
+            await third.provider.disable();
         });
     });
 });
