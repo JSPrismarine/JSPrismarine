@@ -35,6 +35,7 @@ those and compare exactly, not within a tolerance. What matches today:
 | All eight noise router slots, all seven dimensions | 6 positions each | exact |
 | All six aquifer functions, the three dimensions that have them | 6 positions each | exact |
 | Overworld chunk columns with aquifers applied | 9 columns, 384 blocks each | exact |
+| World blender over 17 synthetic old chunks | 17 records, 4 chunks of offsets, densities, biomes and carving | exact |
 
 Refresh the vectors with `pnpm --filter @jsprismarine/worldgen run vectors`. The command prepares
 the pinned jar automatically and needs a JDK 25 or newer to compile and run the Java oracle.
@@ -189,6 +190,45 @@ injection point rather than a stub:
 - **The world blender and the structure beard** are `SampleContext.blendAlpha`,
   `SampleContext.blendOffset`, `SampleContext.blendDensity` and `SampleContext.beardifier`. They
   default to the values Java uses outside a blending region, so terrain is correct without them.
+  `Blender.install` fills the first three; [The world blender](#the-world-blender) covers it.
+
+## The world blender
+
+Java keeps the terrain of a chunk an older generator made, and bends the terrain of each new chunk
+next to it so the two meet without a cliff. `blending/Blender.ts` and `blending/BlendingData.ts`
+port that machinery from 26.3.
+
+Which chunks are old is the caller's decision, because only the caller knows how chunks are
+stored. Java decides by the chunk's `DataVersion`: anything saved before 4997, the version 26.3
+registers `BlendingDataFix` at, is old. `blending/generationVersion.ts` exports that boundary, the
+version this package generates and `isOldGenerationDataVersion`.
+
+The caller does three things:
+
+1. For each old chunk, it builds a `BlendingData` with `BlendingData.unpack({ minSection, maxSection })`
+   and calls `calculate(view, newSidesOf(x, z, isOld))`. The `OldChunkView` answers three questions
+   about the stored chunk: whether a block is one of `BLENDING_SURFACE_BLOCKS`, whether it is
+   ground in Java's sense (it has a collision shape and is not air, leaves, a log or a mushroom
+   block), and which Java biome a quart holds.
+2. For the chunk it is generating, it calls `Blender.of(chunkX, chunkZ, lookup)`. The lookup is
+   asked about every chunk within eight chunks. With no old chunk within seven, the result is
+   `Blender.EMPTY`, which changes nothing.
+3. It calls `blender.install(sampleContext)` before sampling, wraps its noise biome lookup with
+   `blender.biomeResolver(...)` when it fills the chunk's biomes, and opens a carved block only
+   where `blender.carvingFilter` allows it.
+
+A `BlendingData` crosses a worker boundary as `snapshot()`, a structured-clone-friendly record of
+typed arrays, and comes back with `BlendingData.fromSnapshot`.
+
+Two details follow Java exactly even though they look odd:
+
+- The blender walks its old chunks in the order fastutil's `Long2ObjectOpenHashMap.forEach` does.
+  That order decides which of two biomes at the same distance wins and the order weighted sums
+  add up in. `blending/longHashOrder.ts` replays the map.
+- In 26.3 the carving filter answers true within four blocks of old terrain, and
+  `applyCarvingMask` opens a marked block only where it answers true. 1.18 used the same test to
+  skip those blocks. The bytecode of both methods confirms the 26.3 reading, so next to an old
+  chunk, caves open only near the old chunk.
 
 ## Known gaps
 
@@ -363,6 +403,13 @@ lookup on a new thread, because Java keeps the previous result in a thread-local
 
 `utils/oracle/DumpCarverBiomes.java` writes `vectors/carver-biomes.json` and takes one argument,
 the output directory. Compile and run it the same way as the surface dumper.
+
+`utils/oracle/DumpBlendingVectors.java` writes `vectors/blending.json` and also takes only the
+output directory. It builds old chunks as `ProtoChunk`s filled with a synthetic terrain that
+`blending.test.ts` rebuilds block for block, and reaches the blender's private constructor and
+carving filter by reflection, because `Blender.of` needs a running server. It also records the
+jar's data version and the lowest one `IOWorker.isOldChunk` does not treat as old, which the test
+compares with `blending/generationVersion.ts`.
 
 `surface-registries.json` carries the `material_rule`, `material_condition`, `carver`,
 `density_function`, `noise`, `noise_settings` and biome climate documents straight out of the jar,

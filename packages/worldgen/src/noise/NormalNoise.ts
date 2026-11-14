@@ -198,6 +198,39 @@ export class NormalNoise {
     }
 
     /**
+     * Java's `NormalNoise.createParity`: a noise built in code rather than read from a
+     * `worldgen/noise` document, whose base amplitude is chosen so the octaves keep the scale
+     * the pre-26.3 normalization gave them.
+     *
+     * The world blender's shift noise is the one caller. Java builds it from
+     * `NoiseData.DEFAULT_SHIFT`, which is `createParity(-3, 1, 1, 1, 0)`, so a data pack that
+     * overrides `minecraft:offset` does not move the blending seam.
+     *
+     * @param baseOctave - The exponent of the first octave's frequency.
+     * @param amplitudes - One amplitude modifier per octave, at least one.
+     * @throws When `amplitudes` is empty, as Java does.
+     */
+    public static parity(baseOctave: number, amplitudes: readonly number[]): NormalNoise {
+        if (amplitudes.length === 0) throw new RangeError('Need at least 1 amplitude');
+
+        const octaves = buildOctaves(baseOctave, 1, amplitudes.length, true, amplitudes);
+        const newFactor = computeNormalizationFactor(
+            octaves.reduce((total, octave) => total + Math.abs(octave.amplitude), 0),
+            octaves
+        );
+        const baseAmplitude =
+            newFactor === 0 ? 1 : computeParityNormalizationFactor(1, amplitudes.length, amplitudes) / newFactor;
+
+        return new NormalNoise({
+            baseAmplitude,
+            baseOctave,
+            octaveCount: amplitudes.length,
+            normalize: 'enabled',
+            amplitudeModifiers: amplitudes
+        });
+    }
+
+    /**
      * Binds the parameters to a random source, producing the sampleable octave stack.
      *
      * Each octave draws two Perlin instances from two positional factories, both keyed by
