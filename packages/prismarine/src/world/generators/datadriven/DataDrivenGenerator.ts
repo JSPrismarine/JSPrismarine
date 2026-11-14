@@ -132,13 +132,7 @@ import { createStructureTemplateStore } from './javaStructureTemplatePiece';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
 import type { JavaRegistry, JavaWorldgenRegistries } from './javaWorldgenData';
-import type { CanonicalWorldgenInput } from './TerrainProtoCache';
-import {
-    canonicalWorldgenInput,
-    fingerprintWorldgenInput,
-    TerrainProtoCache,
-    terrainProtoCacheKey
-} from './TerrainProtoCache';
+import { fingerprintWorldgenInput, TerrainProtoCache, terrainProtoCacheKey } from './TerrainProtoCache';
 import type { TerrainProtoCacheOptions } from './TerrainProtoCache';
 import type { SharedTerrainTileStore } from './SharedTerrainTileStore';
 import { shareRegistryBundle } from './registryBundle';
@@ -865,11 +859,13 @@ export class DataDrivenGenerator implements Generator {
     >;
     /** Compiled pipelines by {@link pipelineCacheKey}. */
     private readonly pipelines = new Map<string, SeededPipeline>();
-    /** Each pipeline's dimension and settings in cache-key form, which every chunk's key repeats. */
-    private readonly pipelineKeyInputs = new WeakMap<
-        SeededPipeline,
-        { readonly dimension: CanonicalWorldgenInput; readonly settings: CanonicalWorldgenInput }
-    >();
+    /**
+     * Each pipeline's digest of everything but the chunk position, for each kind of tile key.
+     *
+     * Every chunk's key repeats the whole noise settings document, which is megabytes in
+     * canonical form; hashing it once per pipeline leaves a few dozen bytes per chunk.
+     */
+    private readonly pipelineKeyStems = new WeakMap<SeededPipeline, { persistent?: string; shared?: string }>();
     /** Parsed biome sources by {@link biomeSourceCacheKey}, shared by every seed of one key. */
     private readonly biomeSources = new Map<string, BiomeSource>();
     /** Optional disk storage for immutable terrain-status proto tiles. */
@@ -1987,44 +1983,50 @@ export class DataDrivenGenerator implements Generator {
         if (this.terrainTileBuildStats !== undefined) Atomics.add(this.terrainTileBuildStats, 0, 1);
     }
 
-    /** The pipeline's dimension and settings in cache-key form, written once rather than per chunk. */
-    private keyInputsOf(pipeline: SeededPipeline): {
-        readonly dimension: CanonicalWorldgenInput;
-        readonly settings: CanonicalWorldgenInput;
-    } {
-        let inputs = this.pipelineKeyInputs.get(pipeline);
-        if (inputs === undefined) {
-            inputs = {
-                dimension: canonicalWorldgenInput(pipeline.dimension),
-                settings: canonicalWorldgenInput(pipeline.settings)
-            };
-            this.pipelineKeyInputs.set(pipeline, inputs);
+    /** The pipeline's memoized key stems, created on first use. */
+    private keyStemsOf(pipeline: SeededPipeline): { persistent?: string; shared?: string } {
+        let stems = this.pipelineKeyStems.get(pipeline);
+        if (stems === undefined) {
+            stems = {};
+            this.pipelineKeyStems.set(pipeline, stems);
         }
-        return inputs;
+        return stems;
     }
 
+    /** The persistent terrain cache's key for one chunk: its pipeline's stem digest and the position. */
     private terrainCacheKey(cx: number, cz: number, pipeline: SeededPipeline): string {
+        const stems = this.keyStemsOf(pipeline);
+        stems.persistent ??= this.persistentKeyStem(pipeline);
+        return terrainProtoCacheKey({ stem: stems.persistent, chunk: { x: cx, z: cz } });
+    }
+
+    /** Everything a persistent tile's identity holds except its position. */
+    private persistentKeyStem(pipeline: SeededPipeline): string {
         const fingerprints = this.terrainProtoCacheFingerprints;
         if (fingerprints === undefined) throw new Error('The terrain proto cache has no worldgen fingerprints');
 
-        const keyInputs = this.keyInputsOf(pipeline);
-
-        return terrainProtoCacheKey({
+        return fingerprintWorldgenInput({
             seed: pipeline.randomState.seed.toString(),
-            dimension: keyInputs.dimension,
+            dimension: pipeline.dimension,
             pipeline: pipeline.key,
-            settings: keyInputs.settings,
+            settings: pipeline.settings,
             effectiveDataPackRegistryFingerprint: fingerprints.registries,
             templateFingerprint: fingerprints.templates,
             carve: this.options.carve !== false,
             structures: this.options.structures !== false,
-            codeVersion: this.options.persistentProtoCache?.codeVersion ?? null,
-            chunk: { x: cx, z: cz }
+            codeVersion: this.options.persistentProtoCache?.codeVersion ?? null
         });
     }
 
     /** Complete identity for a process-local tile, including the data that can change its fill. */
     private sharedTerrainTileCacheKey(cx: number, cz: number, pipeline: SeededPipeline): string {
+        const stems = this.keyStemsOf(pipeline);
+        stems.shared ??= this.sharedKeyStem(pipeline);
+        return terrainProtoCacheKey({ stem: stems.shared, chunk: { x: cx, z: cz } });
+    }
+
+    /** Everything a process-local tile's identity holds except its position. */
+    private sharedKeyStem(pipeline: SeededPipeline): string {
         const registryFingerprint = this.terrainRegistryFingerprint;
         if (registryFingerprint === undefined)
             throw new Error('The shared terrain tile store has no registry fingerprint');
@@ -2032,19 +2034,16 @@ export class DataDrivenGenerator implements Generator {
         if (templateFingerprint === undefined)
             throw new Error('The shared terrain tile store has no template fingerprint');
 
-        const keyInputs = this.keyInputsOf(pipeline);
-
-        return terrainProtoCacheKey({
+        return fingerprintWorldgenInput({
             generator: 'java-data-driven',
             seed: pipeline.randomState.seed.toString(),
-            dimension: keyInputs.dimension,
+            dimension: pipeline.dimension,
             pipeline: pipeline.key,
-            settings: keyInputs.settings,
+            settings: pipeline.settings,
             effectiveDataPackRegistryFingerprint: registryFingerprint,
             effectiveStructureTemplateFingerprint: templateFingerprint,
             carve: this.options.carve !== false,
-            structures: this.options.structures !== false,
-            chunk: { x: cx, z: cz }
+            structures: this.options.structures !== false
         });
     }
 
