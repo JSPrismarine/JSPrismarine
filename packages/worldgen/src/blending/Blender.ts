@@ -32,8 +32,8 @@ const DENSITY_BLENDING_RANGE_CHUNKS = 5 >> 2;
 /** How far, in cells, an old edge density reaches. */
 const DENSITY_BLENDING_RANGE_CELLS = 2;
 
-/** Carvers stop this many blocks short of old terrain. */
-const OLD_CHUNK_CARVING_DISTANCE = 4;
+/** How close to old terrain, in blocks, Java 26.3's carving filter lets a carved block open. */
+export const OLD_CHUNK_CARVING_DISTANCE = 4;
 
 /** Java's `blendOffsetAndFactor` result. */
 export interface BlendingOutput {
