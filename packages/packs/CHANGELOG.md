@@ -1,5 +1,21 @@
 # @jsprismarine/packs
 
+## 0.21.0
+
+### Patch Changes
+
+- [#2948](https://github.com/JSPrismarine/JSPrismarine/pull/2948) [`ce4370c`](https://github.com/JSPrismarine/JSPrismarine/commit/ce4370ce748cd2a122d75d0c674e2e8660d33175) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix the published type declarations for TypeScript consumers that resolve with `NodeNext` or `Node16`. Each relative import in the declaration files now names its `.js` module, so the package root exports its members instead of resolving to nothing.
+
+- [`7977682`](https://github.com/JSPrismarine/JSPrismarine/commit/797768230c41b0fb03c06b30230f4ba8dd9d2d9b) Thanks [@filiphsps](https://github.com/filiphsps)! - Resolve `decompress` to the maintained `@xhmikosr/decompress` fork in the workspace. The original 4.2.1, pulled in by the optional `@spyglassmc/core` peer, lets a crafted archive read or write outside the extraction directory through link entries and sibling-prefix paths, and keeps setuid and setgid bits. The override protects this repository's builds and tests. Projects that install `@spyglassmc/core` next to `@jsprismarine/packs` should add the same override themselves.
+
+- [#2973](https://github.com/JSPrismarine/JSPrismarine/pull/2973) [`5ca8ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/5ca8ea810ac561c9c35ff1648cdf49ffa922379e) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency vite to v8.3.8
+
+- [#2986](https://github.com/JSPrismarine/JSPrismarine/pull/2986) [`d82f8b2`](https://github.com/JSPrismarine/JSPrismarine/commit/d82f8b218de94e51ae474d78a44960c93dd33964) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.5
+
+- [#3022](https://github.com/JSPrismarine/JSPrismarine/pull/3022) [`e069aee`](https://github.com/JSPrismarine/JSPrismarine/commit/e069aeec377e288603352901756e024f8bf7610c) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency glob to v14.0.6
+
+- [#3017](https://github.com/JSPrismarine/JSPrismarine/pull/3017) [`1c6e390`](https://github.com/JSPrismarine/JSPrismarine/commit/1c6e39015c4dcc454d188dc4423d6fd8930ec21b) Thanks [@filiphsps](https://github.com/filiphsps)! - `readZip` bounds what an archive may expand to. Each entry must inflate to exactly the size its central directory declares, at most `MAX_ZIP_ENTRY_BYTES`, and a load may expand to at most `MAX_ZIP_TOTAL_BYTES` in all; both are defined in `packages/packs/src/zip.ts`. Both are checked before anything is allocated. Entries whose records overlap or run past the archive are refused, so a small archive can no longer name one compressed stream many times over. `readZip` takes an optional `{ maxEntryBytes, budget }`, and `createZipBudget` makes a budget that an `.mcaddon` shares with the `.mcpack` archives nested in it. `expandSource` takes that budget as an optional fourth argument.
+
 ## 0.20.0
 
 No changes in this release.

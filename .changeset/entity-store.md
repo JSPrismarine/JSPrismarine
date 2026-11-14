@@ -1,5 +1,0 @@
----
-"@jsprismarine/prismarine": patch
----
-
-Give each dimension's data-driven entities an entity store, `EntityRuntime.store`, which owns their membership and a change log of their state. An entity enters the log once, after its spawn event or its restore, with its saved form, and leaves it once with the form it had. Every change to a saved or hashed field in between, from position, rotation and velocity to attributes, properties, component groups, component state, equipment, inventory, tags, status effects, leash and riding links, is one field entry with the value before and after it. `EntityStore.unit` runs work in a span and undoes it when it throws, `EntityStore.replay` writes a log forward onto a store built from a snapshot, and `EntityRuntime.savedFormOf` returns the form a membership entry carries. `MobBody`'s saved fields are accessors now, and its inventory and container slots change through `setInventory`, `setContainerSlot` and `setContainerSlots`. Simulation does not change.
