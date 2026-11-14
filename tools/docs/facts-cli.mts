@@ -22,6 +22,7 @@ const write = process.argv.includes('--write');
 const packagePages = [
     'packages/parity/README.md',
     'packages/prismarine/src/content/README.md',
+    'packages/worldgen/README.md',
     'tools/client-e2e/README.md'
 ];
 

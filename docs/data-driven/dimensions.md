@@ -270,6 +270,58 @@ row described below generates a chunk of each `minecraft:normal` stem; `minecraf
 `minecraft:amplified` and `minecraft:single_biome_surface` go through the same factory with other
 settings documents and are not separately measured.
 
+## Blending with old chunks
+
+A save can hold chunks that another generator made: a Bedrock world from before 1.18, a world
+BDS generated, or a world this server generated before it matched Java <!-- fact:java.version -->26.3<!-- /fact -->.
+The server keeps those chunks as they are and bends the terrain of each new chunk generated next to
+them, so the two meet at the old surface instead of at a cliff. This is Java's world blender,
+ported value for value.
+
+Which chunks count as old follows Java's rule. Every chunk the server saves carries a record with
+the Java data version of the server that saved it, as Java's `DataVersion` does, currently <!-- fact:blending.dataVersion -->5023<!-- /fact -->. An Overworld chunk
+with no record, or with a version below <!-- fact:blending.oldBelowDataVersion -->4997<!-- /fact -->, is old; Java draws its line at
+the same version, so a Java world from before <!-- fact:java.version -->26.3<!-- /fact --> blends the same way. Once a chunk is old it
+stays old, because the record keeps the area of old generation when the chunk is saved again. The
+Nether, the End and custom dimensions never blend, as in Java. The server also writes Bedrock's own
+`BlendingData` record, so BDS opening the save treats this server's chunks as current.
+
+A new chunk within <!-- fact:blending.rangeChunks -->7<!-- /fact --> chunks of an old one is generated with the blender:
+
+- Its surface height bends toward the heights on the old chunk's edge and reaches them on the
+  shared edge.
+- Its densities next to the old chunk mix toward the old chunk's own, so caves and overhangs do
+  not end in a wall.
+- Its biomes near the seam take the old chunk's edge biomes, and the surface and feature passes
+  read those biomes.
+- When one of its eight neighbors is old, its carvers follow Java <!-- fact:java.version -->26.3<!-- /fact -->'s filter, which opens a
+  carved block only within <!-- fact:blending.carvingDistance -->4<!-- /fact --> blocks of that old terrain, measured from a position shifted by a
+  small noise. With no old neighbor, the carvers run as they would anywhere else.
+
+Such a chunk depends on what the save holds, so the generator keeps it out of the terrain caches.
+
+An Overworld Bedrock chunk from before 1.18 (chunk version below <!-- fact:blending.firstCavesAndCliffsChunkVersion -->33<!-- /fact -->) gets one more step the first
+time it loads, Java's below-zero upgrade. When its y = 0 layer holds bedrock and the save holds
+nothing of it below y = 0, the generator fills
+y <!-- fact:blending.retrogenMinY -->-64<!-- /fact --> to <!-- fact:blending.retrogenMaxY -->-1<!-- /fact --> under it, blended toward the old terrain above. Bedrock at y 0 to <!-- fact:blending.oldBedrockMaxY -->4<!-- /fact --> turns to
+deepslate, a column whose y = 0 block is air stays open all the way down, lush caves, dripstone
+caves and the deep dark keep their biome, and every other quart under the floor takes the old
+chunk's biome at y = 0. The chunk is saved with its old-generation record and is never upgraded
+again. The server reads the per-column biomes these chunks store (`Data2D`).
+
+Two differences from Java remain. A legacy Bedrock biome Java deleted in 1.18, such as
+`taiga_hills`, reads as whatever biome the current generator puts there, because the mapping
+has no Java id for it. And Java stores an old chunk's edge heights the first time it reads them.
+This server calculates them from the chunk's blocks and keeps the result in a bounded in-memory
+cache, so after a restart, or once the record falls out of the cache, an edit on an old chunk's
+edge moves the blend.
+
+The `worldgen.blending` parity row generates the chunks touching each side of an old plateau, one
+above and one below the natural surface. On each side it checks one column on the touching edge
+and that its top solid block sits within a small tolerance of the plateau's top. For a chunk out
+of reach it checks that the top solid block of every column matches the same chunk generated
+without the old chunk. It compares no other blocks.
+
 ## Custom dimension types
 
 A stem whose type has no row in the Bedrock overlay is a custom dimension. The level hands such

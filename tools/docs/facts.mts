@@ -22,6 +22,19 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
+import {
+    HEIGHT_BLENDING_RANGE_CHUNKS,
+    OLD_CHUNK_CARVING_DISTANCE
+} from '../../packages/worldgen/src/blending/Blender.ts';
+import {
+    RETROGEN_END_Y,
+    RETROGEN_MIN_Y,
+    RETROGEN_OLD_BEDROCK_MAX_Y
+} from '../../packages/worldgen/src/blending/belowZeroRetrogen.ts';
+import {
+    GENERATION_DATA_VERSION,
+    OLD_GENERATION_BELOW_DATA_VERSION
+} from '../../packages/worldgen/src/blending/generationVersion.ts';
 import { brandPurposes } from './site/.vitepress/theme/brandCatalog.ts';
 import { palette } from './site/.vitepress/theme/tokens.ts';
 import { loadCommands, loadOptionalSettings, loadSettings } from './code-data.mts';
@@ -143,6 +156,40 @@ function tickBudgetFacts() {
 
 /** A source file the facts below quote, read as text. */
 const sourceText = (...segments: string[]) => readFileSync(path.join(repoRoot, ...segments), 'utf8');
+
+/** The numbers the world blender and the below-zero upgrade run on, read from the code that uses them. */
+function blendingFacts() {
+    const record = readFileSync(
+        path.join(repoRoot, 'packages/prismarine/src/world/providers/leveldb/ChunkGenerationRecord.ts'),
+        'utf8'
+    );
+    const firstCavesAndCliffs = /export const FIRST_CAVES_AND_CLIFFS_CHUNK_VERSION = (\d+);/.exec(record)?.[1];
+    if (firstCavesAndCliffs === undefined) {
+        throw new Error('The docs facts no longer find FIRST_CAVES_AND_CLIFFS_CHUNK_VERSION.');
+    }
+    // The oracle's fixture, counted rather than restated.
+    const vectors: unknown = JSON.parse(
+        readFileSync(path.join(repoRoot, 'packages/worldgen/vectors/blending.json'), 'utf8')
+    );
+    const countOf = (field: string): string => {
+        const list = typeof vectors === 'object' && vectors !== null ? Reflect.get(vectors, field) : undefined;
+        if (!Array.isArray(list)) throw new Error(`The docs facts no longer find ${field} in blending.json.`);
+        return String(list.length);
+    };
+    return {
+        'blending.vectorRecords': countOf('records'),
+        'blending.vectorCenters': countOf('centers'),
+        'blending.dataVersion': String(GENERATION_DATA_VERSION),
+        'blending.oldBelowDataVersion': String(OLD_GENERATION_BELOW_DATA_VERSION),
+        'blending.rangeChunks': String(HEIGHT_BLENDING_RANGE_CHUNKS),
+        'blending.carvingDistance': String(OLD_CHUNK_CARVING_DISTANCE),
+        'blending.firstCavesAndCliffsChunkVersion': firstCavesAndCliffs,
+        'blending.retrogenMinY': String(RETROGEN_MIN_Y),
+        // The upgrade's end is exclusive, so the highest y it fills is one below it.
+        'blending.retrogenMaxY': String(RETROGEN_END_Y - 1),
+        'blending.oldBedrockMaxY': String(RETROGEN_OLD_BEDROCK_MAX_Y)
+    };
+}
 
 /**
  * How far clients follow an entity, and how the chunk admission step shares its turns, read off the
@@ -507,6 +554,7 @@ export async function loadFacts(): Promise<Facts> {
             ...prismarineEntryFacts(),
             ...tickBudgetFacts(),
             ...replicationFacts(),
+            ...blendingFacts(),
             ...parityFamilyFacts(),
             ...e2eFacts(),
             ...entityFacts()
