@@ -91,11 +91,31 @@ export type WorldConfig = Partial<WorldData>;
 /** A difficulty name accepted in `config.json`. */
 export type ConfigDifficulty = 'peaceful' | 'easy' | 'normal' | 'hard';
 
+/** The `stats.bstats` section: whether the server reports to bStats, and what the reports log. */
+export interface BStatsConfig {
+    /** Whether the server sends anonymous usage data to bStats. */
+    enabled?: boolean;
+    /** Whether a failed submit is logged. */
+    'log-errors'?: boolean;
+    /** Whether each submitted payload is logged. */
+    'log-sent-data'?: boolean;
+    /** Whether the text bStats answers a submit with is logged. */
+    'log-response-status-text'?: boolean;
+}
+
+/** The `stats` section: one entry per service the server reports usage statistics to. */
+export interface StatsConfig {
+    /** bStats, at https://bstats.org. */
+    bstats?: BStatsConfig;
+}
+
 /**
  * Settings supported by the JSON configuration file.
  * @title JSPrismarine server configuration
  */
 export interface ConfigFile {
+    /** Identifies this server, as a random UUID the server generates on its first start. @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ */
+    'server-uuid'?: string;
     /** How much the console and the log file say. */
     'log-level'?: LogLevel;
     /** The port the server listens on, as Bedrock Dedicated Server's `server-port`: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. @asType integer @minimum 0 @maximum 65535 */
@@ -171,6 +191,8 @@ export interface ConfigFile {
     'log-excluded-packets'?: string[];
     /** How many recipes to send: -1 for all, 0 for none, or a cap. @asType integer @minimum -1 */
     'crafting-recipe-limit'?: number;
+    /** The services the server reports anonymous usage statistics to. */
+    stats?: StatsConfig;
     /** Whether a pack that reports an error stops the server instead of loading short. */
     'content-strict'?: boolean;
     /** Extra behavior pack directories this world loads, after the vanilla ones. */
@@ -193,6 +215,7 @@ export type ContentConfigKey = 'content-strict' | 'content-world-packs' | 'conte
  */
 export const CONFIG_KEY_ORDER = [
     '$schema',
+    'server-uuid',
     'log-level',
     'server-port',
     'server-portv6',
@@ -231,6 +254,7 @@ export const CONFIG_KEY_ORDER = [
     'enable-ticking',
     'log-excluded-packets',
     'crafting-recipe-limit',
+    'stats',
     'content-strict',
     'content-world-packs',
     'content-datapacks'

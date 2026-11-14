@@ -86,6 +86,7 @@ const fakeConnection = (id: ConnectionId) => {
         id,
         address,
         capabilities,
+        transport: 'RakNet',
         sendFrame: () => {},
         close: (reason) => void closed.push(reason)
     };

@@ -131,6 +131,7 @@ const transportConnection: TransportConnection = {
     id: 1,
     address: new InetAddress('127.0.0.1', 19132),
     capabilities: { encrypted: false, reliableOrdered: true, maxFrameSize: Number.POSITIVE_INFINITY },
+    transport: 'RakNet',
     sendFrame: () => {},
     close: () => {}
 };

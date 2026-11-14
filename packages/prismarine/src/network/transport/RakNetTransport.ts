@@ -10,6 +10,7 @@ import type { ConnectionId, ConnectionIds } from './ConnectionId';
 import { KeyedTransport } from './KeyedTransport';
 import type { Listener } from './Subscription';
 import { Subscription } from './Subscription';
+import { TransportNames } from './Transport';
 import type { TransportCapabilities, TransportConnection } from './Transport';
 
 /**
@@ -46,6 +47,7 @@ export type RaknetEventBus = Pick<ServerEventBus, 'emit' | 'hasListeners'>;
 export class RakNetTransportConnection implements TransportConnection {
     public readonly address: InetAddress;
     public readonly capabilities = RAKNET_CAPABILITIES;
+    public readonly transport = TransportNames.raknet;
 
     public constructor(
         public readonly id: ConnectionId,

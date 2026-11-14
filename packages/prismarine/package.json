@@ -175,6 +175,31 @@
                 "import": "./dist/about.js",
                 "module": "./dist/about.js"
             },
+            "./stats/StatsMetric": {
+                "types": "./dist/stats/StatsMetric.d.ts",
+                "import": "./dist/stats/StatsMetric.js",
+                "module": "./dist/stats/StatsMetric.js"
+            },
+            "./stats/StatsPlatform": {
+                "types": "./dist/stats/StatsPlatform.d.ts",
+                "import": "./dist/stats/StatsPlatform.js",
+                "module": "./dist/stats/StatsPlatform.js"
+            },
+            "./stats/StatsProvider": {
+                "types": "./dist/stats/StatsProvider.d.ts",
+                "import": "./dist/stats/StatsProvider.js",
+                "module": "./dist/stats/StatsProvider.js"
+            },
+            "./stats/StatsRegistry": {
+                "types": "./dist/stats/StatsRegistry.d.ts",
+                "import": "./dist/stats/StatsRegistry.js",
+                "module": "./dist/stats/StatsRegistry.js"
+            },
+            "./stats/serverMetrics": {
+                "types": "./dist/stats/serverMetrics.d.ts",
+                "import": "./dist/stats/serverMetrics.js",
+                "module": "./dist/stats/serverMetrics.js"
+            },
             "./version": {
                 "types": "./dist/version.d.ts",
                 "import": "./dist/version.js",
@@ -568,6 +593,26 @@
         "./about": {
             "jsprismarine:dist": "./dist/about.js",
             "default": "./src/about.ts"
+        },
+        "./stats/StatsMetric": {
+            "jsprismarine:dist": "./dist/stats/StatsMetric.js",
+            "default": "./src/stats/StatsMetric.ts"
+        },
+        "./stats/StatsPlatform": {
+            "jsprismarine:dist": "./dist/stats/StatsPlatform.js",
+            "default": "./src/stats/StatsPlatform.ts"
+        },
+        "./stats/StatsProvider": {
+            "jsprismarine:dist": "./dist/stats/StatsProvider.js",
+            "default": "./src/stats/StatsProvider.ts"
+        },
+        "./stats/StatsRegistry": {
+            "jsprismarine:dist": "./dist/stats/StatsRegistry.js",
+            "default": "./src/stats/StatsRegistry.ts"
+        },
+        "./stats/serverMetrics": {
+            "jsprismarine:dist": "./dist/stats/serverMetrics.js",
+            "default": "./src/stats/serverMetrics.ts"
         },
         "./version": {
             "jsprismarine:dist": "./dist/version.js",

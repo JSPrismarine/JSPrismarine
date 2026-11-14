@@ -1,0 +1,10 @@
+---
+'@jsprismarine/prismarine': minor
+'@jsprismarine/server': patch
+---
+
+The server now reports usage statistics to [bStats](https://bstats.org). Reporting is on by default for every server, embedded ones included, and the start that adds the bStats settings to `config.json` logs a notice saying how to turn it off. Each report holds a random server UUID, the host's operating system, CPU architecture, core count and memory, and counts and labels: players online, the build type and version, the online mode, the enabled transports, and the platforms, Minecraft versions and transports online players joined with. It holds no player names, account IDs, chat or world data. Turn it off with `"stats": { "bstats": { "enabled": false } }` in `config.json` or `JSP_BSTATS=0` in the environment. `config.json` gains two keys: `server-uuid`, the random UUID the server generates on its first start, and the `stats.bstats` section with `enabled`, `log-errors`, `log-sent-data` and `log-response-status-text`. The [usage statistics guide](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/guide/usage-statistics.md) lists everything the server sends.
+
+The numbers come from a stats registry that providers read, and bStats is the first provider. A program that embeds `@jsprismarine/prismarine` can pass its own providers in the new `statsProviders` option of `Server`, and the package exports what they use from the modules that define it: `StatsProvider` and `StatsProviderContext` from `@jsprismarine/prismarine/stats/StatsProvider`, `StatsRegistry` and `StatsSnapshot` from `@jsprismarine/prismarine/stats/StatsRegistry`, the metric types from `@jsprismarine/prismarine/stats/StatsMetric`, `StatsPlatform` from `@jsprismarine/prismarine/stats/StatsPlatform`, and `ServerMetric`, the names of the server's own metrics, from `@jsprismarine/prismarine/stats/serverMetrics`.
+
+Breaking: `TransportConnection` has a new required `transport` field naming the transport that carried the connection, `RakNet` or `NetherNet`. A program with its own `TransportConnection` implementation must set it.

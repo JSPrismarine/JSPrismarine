@@ -45,6 +45,7 @@ import { about } from '../about';
 import { softwareLabel } from '../version';
 import type Server from '../Server';
 import { withCwd } from '../utils/cwd';
+import { errorMessage } from '../utils/errorMessage';
 import { networkToken } from './tokens';
 
 /** The IPv4 bind address meaning every interface, which is what turns on the IPv6 listener too. */
@@ -580,7 +581,7 @@ export class ServerNetworking implements Networking {
                 () => logger.info(`Visible to NetherNet clients on the local network (UDP port ${NETHERNET_LAN_PORT})`),
                 (error: unknown) =>
                     logger.warn(
-                        `Not visible on the local network: UDP port ${NETHERNET_LAN_PORT} is unavailable (${error instanceof Error ? error.message : String(error)})`
+                        `Not visible on the local network: UDP port ${NETHERNET_LAN_PORT} is unavailable (${errorMessage(error)})`
                     )
             );
         }
@@ -655,9 +656,6 @@ LOOPBACK.addSubnet('::ffff:7f00:0', 104, 'ipv6');
 /** Whether the server binds an address only this machine reaches, however it is spelled. */
 const isLoopback = (address: string): boolean =>
     isIPv4(address) ? LOOPBACK.check(address, 'ipv4') : isIPv6(address) && LOOPBACK.check(address, 'ipv6');
-
-/** The message of a thrown value, which is not always an `Error`. */
-const errorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 /**
  * Settles once a RakNet listener binds or fails to. Subscribe before `start`: a worker's failure

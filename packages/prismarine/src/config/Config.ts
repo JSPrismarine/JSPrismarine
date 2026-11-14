@@ -1,10 +1,14 @@
 import type { LogLevel } from '@jsprismarine/logger';
+import { randomUUID } from 'node:crypto';
+
+import { isRecord } from '../utils/isRecord';
+import { isUuid } from '../utils/isUuid';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
 import type { WorldData } from '../world/WorldManager';
 import { ConfigBuilder } from './ConfigBuilder';
 import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
-import type { ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
+import type { BStatsConfig, ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
 import { DEFAULT_WORLD_PRESET } from './normalizeWorldData';
 import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
 
@@ -50,6 +54,7 @@ const DEFAULT_PACKET_COMPRESSION_THRESHOLD = 256;
  * code that reads them.
  */
 const COMMENTS = {
+    'server-uuid': 'Identifies this server. Generated on first start.',
     'log-level': 'How much the console and the log file say: error, warn, info, verbose, debug or silly.',
     'server-port':
         "The port the server listens on, as Bedrock Dedicated Server's server-port: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. Unless server-udp-ports or query-port is set, RakNet's IPv4 listener, NetherNet's players and query all use this one UDP port; RakNet's IPv6 listener uses server-portv6. Bedrock clients look for 19132.",
@@ -99,8 +104,21 @@ const COMMENTS = {
     'enable-process-title': 'Whether to show the tick rate in the process title. Some terminals redraw slowly.',
     'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
     'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
-    'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.'
+    'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.',
+    stats: 'The services the server reports anonymous usage statistics to, one section each.'
 } as const satisfies Record<Exclude<keyof ConfigFile, ContentConfigKey>, string>;
+
+/**
+ * Written above `stats.bstats` when the server adds the section. Adapted from the header of
+ * bStats' own config file (`MetricsConfig.java` in Bastian/bstats-metrics, MIT), which addresses
+ * plugin authors where this addresses a server.
+ */
+const BSTATS_COMMENT = [
+    'bStats (https://bStats.org) collects some basic information for the JSPrismarine developers,',
+    'such as how many servers run JSPrismarine and how many players they have. The data sent to',
+    'bStats is anonymous. To opt out, set enabled to false.',
+    'Learn more here: https://bstats.org/docs/server-owners'
+].join('\n');
 
 /**
  * Settings a fresh config leaves out. Each is read when the file has it, and reading one writes
@@ -135,9 +153,8 @@ export const optionalSettings = (): readonly { key: OptionalSetting; comment: st
  * already optional in the file - a server starts with no config file at all,
  * and a config nobody enabled is the same question asked a second way.
  *
- * `worlds` is the one key with no entry: its default carries a fresh seed, so
- * it is generated per config rather than written down. See
- * {@link defaultWorlds}.
+ * `worlds` and `server-uuid` have no entry: each default is random, so it is
+ * generated per config rather than written down. See {@link defaultWorlds}.
  */
 const DEFAULTS = {
     'log-level': isDev ? 'verbose' : 'info',
@@ -179,8 +196,30 @@ const DEFAULTS = {
     'enable-process-title': true,
     'enable-ticking': true,
     'log-excluded-packets': [],
-    'crafting-recipe-limit': -1
-} as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'>;
+    'crafting-recipe-limit': -1,
+    stats: {
+        bstats: {
+            enabled: true,
+            'log-errors': false,
+            'log-sent-data': false,
+            'log-response-status-text': false
+        }
+    }
+} as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds' | 'server-uuid'> & {
+    stats: { bstats: Required<BStatsConfig> };
+};
+
+/**
+ * The `stats.bstats` settings as the server reads them: the keys of {@link BStatsConfig}, each a
+ * boolean. `enabled` is true only when the file holds a literal `true` there or has no section.
+ */
+export interface BStatsSettings extends Readonly<Required<BStatsConfig>> {
+    /**
+     * Why `enabled` reads as false although the file does not set it to `false`: the text names
+     * the key and the value that is not a boolean, or not a section. Unset when the file is fine.
+     */
+    readonly problem?: string;
+}
 
 /**
  * The single world a server with no `worlds` key runs: the normal preset on a seed of its own.
@@ -319,6 +358,14 @@ export class Config {
      */
     private craftingRecipeLimit: number = DEFAULTS['crafting-recipe-limit'];
 
+    /** The `server-uuid` key, once {@link enable} read it from the file or stored a new one there. */
+    private serverUuid: string | undefined;
+
+    private bstatsSettings: BStatsSettings = DEFAULTS.stats.bstats;
+
+    /** Whether this start wrote the `stats.bstats` section into the file. */
+    private bstatsSectionCreated = false;
+
     /**
      * Creates the server configuration.
      *
@@ -415,6 +462,99 @@ export class Config {
         this.enableTicking = read('enable-ticking', this.enableTicking);
         this.logExcludedPackets = read('log-excluded-packets', this.logExcludedPackets);
         this.craftingRecipeLimit = read('crafting-recipe-limit', this.craftingRecipeLimit);
+        this.readServerUuid(config);
+        this.readStats(config);
+    }
+
+    /**
+     * Reads `server-uuid`, writing a fresh random UUID when the file has none or holds something
+     * that is not a UUID. A file that refuses the write leaves no UUID, which
+     * {@link getServerUuid} reports as undefined.
+     */
+    private readServerUuid(config: ConfigBuilder): void {
+        const stored = config.get('server-uuid');
+        if (isUuid(stored)) {
+            this.serverUuid = stored;
+            return;
+        }
+        const fresh = randomUUID();
+        this.serverUuid = config.set('server-uuid', fresh, COMMENTS['server-uuid']) ? fresh : undefined;
+    }
+
+    /**
+     * Reads the `stats` section. A file with no `stats.bstats` section gets one, with its comment
+     * and bStats on. Anything else turns bStats on only for a literal `enabled: true`: a `stats` or
+     * `stats.bstats` that is not a section, or an `enabled` that is missing or not a boolean,
+     * or a top-level key spelled `stats.bstats`, reads as off, with {@link BStatsSettings.problem}
+     * saying why, and the file is left as it is.
+     * A logging switch the section lacks is written with its default, and one that is not a
+     * boolean reads as its default. A file that refuses to store the section turns bStats off too:
+     * the server would otherwise report without the section, and its notice, ever being written.
+     */
+    private readStats(config: ConfigBuilder): void {
+        const defaults = DEFAULTS.stats.bstats;
+        this.bstatsSectionCreated = false;
+        this.bstatsSettings = defaults;
+        const offFor = (key: string, value: unknown, expected: string): BStatsSettings => ({
+            ...defaults,
+            enabled: false,
+            problem: `${key} in config.json is ${value === undefined ? 'missing' : JSON.stringify(value)}, not ${expected}, so bStats is off. Set stats.bstats.enabled to true or false.`
+        });
+
+        const unwritten = (key: string): BStatsSettings => ({
+            ...defaults,
+            enabled: false,
+            problem: `config.json could not be written to add ${key}, so bStats is off.`
+        });
+
+        if (!config.has('stats')) config.set('stats', {}, COMMENTS.stats);
+        const stats = config.get('stats');
+        if (stats === undefined) {
+            this.bstatsSettings = unwritten('stats');
+            return;
+        }
+        if (!isRecord(stats)) {
+            this.bstatsSettings = offFor('stats', stats, 'a section');
+            return;
+        }
+        if (!('bstats' in stats)) {
+            // With no nested section, only a top-level key spelled "stats.bstats" answers to this
+            // path, and writing the section would replace it.
+            if (config.has('stats.bstats')) {
+                this.bstatsSettings = {
+                    ...defaults,
+                    enabled: false,
+                    problem:
+                        '"stats.bstats" in config.json is a top-level key, not a section inside stats, so bStats is off. Move it into the stats section.'
+                };
+                return;
+            }
+            this.bstatsSectionCreated = config.set('stats.bstats', defaults, BSTATS_COMMENT);
+            if (!this.bstatsSectionCreated) this.bstatsSettings = unwritten('stats.bstats');
+            return;
+        }
+        const section = stats.bstats;
+        if (!isRecord(section)) {
+            this.bstatsSettings = offFor('stats.bstats', section, 'a section');
+            return;
+        }
+
+        const flag = (key: Exclude<keyof BStatsConfig, 'enabled'>): boolean => {
+            const stored = section[key];
+            if (typeof stored === 'boolean') return stored;
+            if (stored === undefined) config.set(`stats.bstats.${key}`, defaults[key]);
+            return defaults[key];
+        };
+        const flags = {
+            'log-errors': flag('log-errors'),
+            'log-sent-data': flag('log-sent-data'),
+            'log-response-status-text': flag('log-response-status-text')
+        } satisfies Omit<BStatsSettings, 'enabled' | 'problem'>;
+        const enabled = section.enabled;
+        this.bstatsSettings =
+            typeof enabled === 'boolean'
+                ? { ...flags, enabled }
+                : { ...offFor('stats.bstats.enabled', enabled, 'true or false'), ...flags };
     }
 
     /**
@@ -855,5 +995,34 @@ export class Config {
      */
     public getLogExcludedPackets(): string[] {
         return this.logExcludedPackets;
+    }
+
+    /**
+     * The `server-uuid` key: a random UUID the server writes on its first start and reads back on
+     * every start after, so anything counting servers sees this one once. A stored value that is
+     * not a UUID is replaced by a fresh one.
+     * @returns The UUID as the file spells it, or undefined when the file refused to store one
+     * (a read-only file, say), since a UUID that changes on every start would count the server
+     * more than once. Also undefined on a `Config` whose `enable` never ran.
+     */
+    public getServerUuid(): string | undefined {
+        return this.serverUuid;
+    }
+
+    /**
+     * The `stats.bstats` settings. `enabled` is off unless the file says `true` or has no section,
+     * and a logging switch the file lacks or sets to something other than a boolean is off.
+     */
+    public getBStatsSettings(): BStatsSettings {
+        return this.bstatsSettings;
+    }
+
+    /**
+     * Whether this start wrote the `stats.bstats` section into the config file, which is how the
+     * server tells a first start with bStats from a later one. False when the file already had
+     * the section, and when the file refused the write.
+     */
+    public wasBStatsSectionCreated(): boolean {
+        return this.bstatsSectionCreated;
     }
 }

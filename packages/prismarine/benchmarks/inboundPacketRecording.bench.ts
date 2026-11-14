@@ -113,6 +113,7 @@ const replayTransportConnection: TransportConnection = {
     id: 1,
     address: new InetAddress('127.0.0.1', 19132),
     capabilities: replayCapabilities,
+    transport: 'RakNet',
     sendFrame: () => {},
     close: () => {}
 };
