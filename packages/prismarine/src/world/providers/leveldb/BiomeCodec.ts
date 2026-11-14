@@ -175,6 +175,25 @@ export const decodeData3D = (value: Buffer, dimension: DimensionType): Biomes =>
 };
 
 /**
+ * Reads a pre-1.18 `Data2D` record: a 512 byte heightmap this server does not need, then one
+ * biome id byte per column.
+ *
+ * The bytes run z-major, index `(z << 4) | x`, which is how PocketMine-MP's
+ * `ChunkUtils::extrapolate3DBiomes` reads them. A record too short to hold the biomes reads as
+ * undefined.
+ *
+ * @returns The biome of each column, indexed `x * 16 + z` like the `Data3D` heightmap.
+ */
+export const decodeData2D = (value: Buffer): Uint8Array | undefined => {
+    if (value.byteLength < HEIGHTMAP_BYTES + COLUMNS) return undefined;
+    const biomes = new Uint8Array(COLUMNS);
+    for (let x = 0; x < 16; x++) {
+        for (let z = 0; z < 16; z++) biomes[x * 16 + z] = value[HEIGHTMAP_BYTES + ((z << 4) | x)]!;
+    }
+    return biomes;
+};
+
+/**
  * One sub chunk's biomes with every block spelled out, for a caller that is about to write
  * different biomes into some of them.
  */

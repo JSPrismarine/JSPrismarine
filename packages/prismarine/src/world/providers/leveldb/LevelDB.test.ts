@@ -1463,5 +1463,63 @@ describe('world', () => {
             });
             await third.provider.disable();
         });
+
+        it('gives a pre-1.18 chunk its floor under y = 0 once, with its 2D biomes', async () => {
+            const worldPath = scratch();
+            const first = harness(worldPath);
+            await first.provider.enable();
+            const old = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) {
+                    old.fillColumn(x, z, 0, 0, id('minecraft:bedrock'));
+                    old.fillColumn(x, z, 1, 60, id('minecraft:stone'));
+                }
+            }
+            await first.provider.writeChunk(old);
+            await first.provider.disable();
+
+            // Taiga (5) in every column but x 4, z 8, which is desert (2) and the column the
+            // upgrade samples for the quart below it.
+            const data2D = Buffer.alloc(768);
+            data2D.fill(5, 512);
+            data2D[512 + ((8 << 4) | 4)] = 2;
+            await rewrite(worldPath, (database) => {
+                database.del(generationKey(0, 0));
+                database.del(encodeChunkKey({ x: 0, z: 0, dimension: 0, tag: ChunkTag.Data3D }));
+                database.put(encodeChunkKey({ x: 0, z: 0, dimension: 0, tag: ChunkTag.Data2D }), data2D);
+                database.put(versionKey(0, 0), Buffer.from([22]));
+            });
+
+            const second = harness(worldPath);
+            await second.provider.enable();
+            const floor: Array<[number, number]> = [];
+            const chunk = await second.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, {
+                generateChunk: async (cx: number, cz: number) => {
+                    floor.push([cx, cz]);
+                    const generated = new Chunk(cx, cz, new Map(), Dimensions.Overworld);
+                    for (let x = 0; x < 16; x++) {
+                        for (let z = 0; z < 16; z++) generated.fillColumn(x, z, -64, -1, id('minecraft:tuff'));
+                    }
+                    return generated;
+                }
+            });
+            expect(floor).toEqual([[0, 0]]);
+            expect(chunk.getBlock(4, -20, 4).name).toBe('minecraft:tuff');
+            expect(chunk.getBlock(4, 0, 4).name).toBe('minecraft:deepslate');
+            expect(chunk.getBiome(4, 30, 8)).toBe(DESERT);
+            expect(chunk.getBiome(5, -30, 9)).toBe(DESERT);
+            expect(chunk.getBiome(4, 30, 4)).toBe(5);
+            expect(chunk.getHasChanged()).toBe(true);
+            await second.provider.writeChunk(chunk);
+            await second.provider.disable();
+
+            const third = harness(worldPath);
+            await third.provider.enable();
+            const again = await third.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator(floor));
+            expect(floor).toEqual([[0, 0]]);
+            expect(again.getBlock(4, -20, 4).name).toBe('minecraft:tuff');
+            expect(again.getGeneration().blending).toEqual({ minSection: 0, maxSection: 16 });
+            await third.provider.disable();
+        });
     });
 });
