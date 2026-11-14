@@ -54,4 +54,22 @@ describe('PlayerEnchantOptionsPacket', () => {
         expect(data.options).toEqual([OPTION]);
         expect(stream.feof()).toBe(true);
     });
+
+    it.each([2193, 2225])('writes the same option bytes and reads them back at protocol %i', (protocol) => {
+        const packet = new PlayerEnchantOptionsPacket({ options: [OPTION] });
+        packet.codecProtocol = protocol;
+        const bytes = packet.serialize(new NetworkBinaryStream());
+
+        expect(bytes).toEqual(Buffer.from([0x92, 0x01, 0x01, ...OPTION_BYTES]));
+
+        const reader = new PlayerEnchantOptionsPacket();
+        reader.codecProtocol = protocol;
+        expect(reader.deserialize(new NetworkBinaryStream(bytes)).options).toEqual([OPTION]);
+    });
+
+    it('names the enchantments as the reference numbers them', () => {
+        expect(EnchantType.PROTECTION).toBe(0);
+        expect(EnchantType.SHARPNESS).toBe(9);
+        expect(EnchantType.LUNGE).toBe(41);
+    });
 });

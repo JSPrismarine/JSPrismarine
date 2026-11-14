@@ -1,6 +1,6 @@
 /**
  * `CameraPacket`: Points an Education Edition tripod camera at a player.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

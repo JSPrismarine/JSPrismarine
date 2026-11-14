@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
 import AvailableActorIdentifiersPacket from './AvailableActorIdentifiersPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 describe('network', () => {
     describe('packet', () => {
@@ -71,6 +72,32 @@ describe('network', () => {
                 expect(pk.identifiers).toEqual(Buffer.from([0x0a, 0x00, 0x00]));
                 expect(pk.feof()).toBe(true);
             });
+
+            for (const protocolVersion of [2193, 2225]) {
+                it(`round-trips the real server's payload byte for byte at protocol ${protocolVersion}`, () => {
+                    const captured = capture(protocolVersion, 0x77);
+
+                    // The capture is one network NBT compound with nothing after it.
+                    const stream = new BinaryStream(captured);
+                    const reader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
+                    reader.setUseVarint(true);
+                    expect(reader.parse().getList('idlist', false)?.size).toBeGreaterThan(0);
+                    expect(stream.feof()).toBe(true);
+
+                    const received = new AvailableActorIdentifiersPacket();
+                    received.codecProtocol = protocolVersion;
+                    received.setReadBuffer(Buffer.concat([Buffer.from([0x77]), captured]));
+                    received.decode();
+                    expect(received.identifiers?.equals(captured)).toBe(true);
+                    expect(received.feof()).toBe(true);
+
+                    const sent = new AvailableActorIdentifiersPacket();
+                    sent.codecProtocol = protocolVersion;
+                    sent.identifiers = received.identifiers;
+                    sent.encode({ protocolVersion });
+                    expect(sent.getBuffer().subarray(1).equals(captured)).toBe(true);
+                });
+            }
 
             it('uses the network id the client expects', () => {
                 expect(netIdFor('AvailableActorIdentifiersPacket')).toBe(PacketIdentifier.AVAILABLE_ACTOR_IDENTIFIERS);

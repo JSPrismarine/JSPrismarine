@@ -23,4 +23,15 @@ describe('MotionPredictionHintsPacket', () => {
         expect(data).toEqual(DATA);
         expect(stream.feof()).toBe(true);
     });
+
+    it.each([2193, 2225])('writes the same bytes and round-trips at protocol %i', (protocol) => {
+        const packet = new MotionPredictionHintsPacket(DATA);
+        packet.codecProtocol = protocol;
+        const encoded = packet.serialize(new NetworkBinaryStream());
+        expect(encoded).toEqual(BYTES);
+
+        const decoder = new MotionPredictionHintsPacket();
+        decoder.codecProtocol = protocol;
+        expect(decoder.deserialize(new NetworkBinaryStream(encoded))).toEqual(DATA);
+    });
 });

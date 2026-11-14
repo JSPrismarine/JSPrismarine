@@ -9,8 +9,9 @@ import type { Vector3 } from '@jsprismarine/math';
  * The docs' `InteractPacket::Action`: what the client did to the target actor, written as a
  * uint8.
  *
- * The 1.26.50 docs page numbers the members 1 to 4, but clients send 3 to 6, which is what
- * the page's own 2207 changelog and gophertunnel record.
+ * The 1.26.50 docs page numbers the members 1 to 4, but clients send 3 to 6 at both protocols.
+ * `InteractPacket.test.ts` checks these values against the pinned 1.26.40 `enums.html` that
+ * datagen keeps.
  */
 export enum InteractAction {
     Invalid = 0,
@@ -22,6 +23,8 @@ export enum InteractAction {
 
 /**
  * Sent by the client when it interacts with an actor, or presses the inventory button.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/interact-packet/
  *
  * Protocol 2193 layout: Action as a uint8, Target Runtime ID as a varuint64, then Position as
  * an optional Vec3: a presence byte, followed by three little-endian floats when it is 0x01.

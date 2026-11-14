@@ -31,7 +31,7 @@ describe('the declarative MoveActorAbsolute layout', () => {
         headYaw: packet.headYaw
     });
 
-    it('matches the bytes the class wrote', () => {
+    it.each([2193, 2225])('matches the bytes the class wrote at protocol %i', (protocol) => {
         const packet = fill();
         const toByte = (degrees: number) => Math.round(degrees / (360 / 256)) & 0xff;
 
@@ -46,7 +46,7 @@ describe('the declarative MoveActorAbsolute layout', () => {
         expected.writeByte(toByte(packet.headYaw));
 
         const stream = new BinaryStream();
-        layoutAt(moveActorAbsolutePacket, 2193).encode(stream, payloadOf(packet));
+        layoutAt(moveActorAbsolutePacket, protocol).encode(stream, payloadOf(packet));
 
         expect(stream.getBuffer()).toEqual(expected.getBuffer());
     });

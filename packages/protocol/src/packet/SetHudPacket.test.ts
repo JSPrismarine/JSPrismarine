@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { setHudPacket } from '../wire/definitions/setHud';
+import { layoutAt } from '../wire/WireLayout';
 import SetHudPacket, { HudElement, HudVisibility } from './SetHudPacket';
 
 import type { SetHud } from './SetHudPacket';
@@ -51,6 +53,26 @@ describe('SetHudPacket', () => {
         const data = new SetHudPacket().deserialize(stream);
 
         expect(data).toEqual(NO_ELEMENTS);
+        expect(stream.feof()).toBe(true);
+    });
+});
+
+/** The layout carries no version gate: 1.26.50 and 1.26.60 print the same fields, so both versions write the same body. */
+describe.each([2193, 2225])('the SetHudPacket layout at protocol %i', (protocol) => {
+    const layout = layoutAt(setHudPacket, protocol);
+    const body = BYTES.subarray(2);
+
+    it('writes the body the docs describe', () => {
+        const stream = new NetworkBinaryStream();
+        layout.encode(stream, DATA);
+
+        expect([...stream.getBuffer()]).toEqual([...body]);
+    });
+
+    it('reads that body back to its end', () => {
+        const stream = new NetworkBinaryStream(body);
+
+        expect(layout.decode(stream)).toEqual(DATA);
         expect(stream.feof()).toBe(true);
     });
 });

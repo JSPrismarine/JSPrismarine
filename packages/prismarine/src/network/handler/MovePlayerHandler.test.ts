@@ -1,4 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
+import { Vector3 } from '@jsprismarine/math';
 import { PositionMode } from '@jsprismarine/protocol';
 import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import { describe, expect, it, vi } from 'vitest';
@@ -32,13 +33,14 @@ const fake = () => {
 const move = (mode: PositionMode): MovePlayerPacket =>
     new MovePlayerPacket({
         runtimeEntityId: 7n,
-        position: { x: 3, y: 70, z: -4 },
+        position: new Vector3(3, 70, -4),
         pitch: 5,
         yaw: 90,
         headYaw: 85,
         mode,
         onGround: true,
         ridingEntityRuntimeId: 0n,
+        teleportData: null,
         tick: 300n
     });
 

@@ -1,8 +1,12 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { ContainerUiId } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
+import { itemStackResponsePacket } from '../wire/definitions/itemStackResponse';
 import { NetworkUtil } from '../wire/networkUtil';
+import { layoutAt } from '../wire/WireLayout';
 import ItemStackResponsePacket, { ItemStackResponseResult } from './ItemStackResponsePacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 /**
  * Reads the packet back the way a client of protocol 2193 does, from gophertunnel's
@@ -61,10 +65,12 @@ describe('ItemStackResponsePacket', () => {
                         container: { containerId: 12, dynamicId: null },
                         slots: [
                             {
+                                requestedSlot: 3,
                                 slot: 3,
                                 count: 16,
                                 itemStackId: 77,
                                 customName: '',
+                                redactedCustomName: null,
                                 durabilityCorrection: 0
                             }
                         ]
@@ -109,10 +115,12 @@ describe('ItemStackResponsePacket', () => {
                         container: { containerId: 0, dynamicId: 9 },
                         slots: [
                             {
+                                requestedSlot: 0,
                                 slot: 0,
                                 count: 0,
                                 itemStackId: 0,
                                 customName: '',
+                                redactedCustomName: null,
                                 durabilityCorrection: 0
                             }
                         ]
@@ -138,7 +146,17 @@ describe('ItemStackResponsePacket', () => {
                 containers: [
                     {
                         container: { containerId: 13, dynamicId: null },
-                        slots: [{ slot: 28, count: 0, itemStackId: 0, customName: '', durabilityCorrection: 0 }]
+                        slots: [
+                            {
+                                requestedSlot: 28,
+                                slot: 28,
+                                count: 0,
+                                itemStackId: 0,
+                                customName: '',
+                                redactedCustomName: null,
+                                durabilityCorrection: 0
+                            }
+                        ]
                     }
                 ]
             }
@@ -190,7 +208,17 @@ describe('ItemStackResponsePacket', () => {
                 containers: [
                     {
                         container: { containerId: 12, dynamicId: null },
-                        slots: [{ slot: 3, count: 16, itemStackId: 77, customName: '', durabilityCorrection: 0 }]
+                        slots: [
+                            {
+                                requestedSlot: 3,
+                                slot: 3,
+                                count: 16,
+                                itemStackId: 77,
+                                customName: '',
+                                redactedCustomName: null,
+                                durabilityCorrection: 0
+                            }
+                        ]
                     }
                 ]
             }
@@ -244,7 +272,17 @@ describe('ItemStackResponsePacket', () => {
                 containers: [
                     {
                         container: { containerId: 12, dynamicId: null },
-                        slots: [{ slot: 0, count: 1, itemStackId: 1, customName: '', durabilityCorrection: 40000 }]
+                        slots: [
+                            {
+                                requestedSlot: 0,
+                                slot: 0,
+                                count: 1,
+                                itemStackId: 1,
+                                customName: '',
+                                redactedCustomName: null,
+                                durabilityCorrection: 40000
+                            }
+                        ]
                     }
                 ]
             }
@@ -263,8 +301,24 @@ describe('ItemStackResponsePacket', () => {
                     {
                         container: { containerId: 12, dynamicId: 7 },
                         slots: [
-                            { slot: 3, count: 0, itemStackId: 0, customName: '', durabilityCorrection: 0 },
-                            { slot: 5, count: 2, itemStackId: 9, customName: 'Named', durabilityCorrection: -3 }
+                            {
+                                requestedSlot: 3,
+                                slot: 3,
+                                count: 0,
+                                itemStackId: 0,
+                                customName: '',
+                                redactedCustomName: null,
+                                durabilityCorrection: 0
+                            },
+                            {
+                                requestedSlot: 5,
+                                slot: 5,
+                                count: 2,
+                                itemStackId: 9,
+                                customName: 'Named',
+                                redactedCustomName: null,
+                                durabilityCorrection: -3
+                            }
                         ]
                     }
                 ]
@@ -277,5 +331,101 @@ describe('ItemStackResponsePacket', () => {
 
         expect(decoded.responses).toEqual(packet.responses);
         expect(decoded.feof()).toBe(true);
+    });
+
+    it('keeps Requested Slot and Slot apart, and the Redacted half of Custom Name', () => {
+        const packet = new ItemStackResponsePacket();
+        packet.responses = [
+            {
+                result: ItemStackResponseResult.OK,
+                requestId: 4,
+                containers: [
+                    {
+                        container: { containerId: 12, dynamicId: null },
+                        slots: [
+                            {
+                                requestedSlot: 2,
+                                slot: 7,
+                                count: 1,
+                                itemStackId: 5,
+                                customName: 'Named',
+                                redactedCustomName: '*****',
+                                durabilityCorrection: 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        const slot = readBack(encode(packet))[0]!.containers[0]!.slots[0]!;
+        expect(slot.requestedSlot).toBe(2);
+        expect(slot.slot).toBe(7);
+        expect(slot.filteredCustomName).toBe('*****');
+
+        const decoded = new ItemStackResponsePacket(encode(packet));
+        decoded.decode();
+        expect(decoded.responses).toEqual(packet.responses);
+    });
+
+    // Protocol 2225's changelog for this packet only renumbers and adds `ContainerEnumName`
+    // values, which Full Container Name carries as a plain uint8, so one layout serves both.
+    it.each([2193, 2225])('round-trips the same bytes at protocol %i', (protocol) => {
+        const layout = layoutAt(itemStackResponsePacket, protocol);
+        const bytes = Buffer.from([
+            0x02, // Responses: two.
+            0x00, // Result: Success.
+            0x05, // Client Request Id: -3.
+            0x01, // Containers: present.
+            0x01, // Containers: one.
+            0x0c, // Full Container Name: 12.
+            0x01, // Dynamic ID: present.
+            0x07,
+            0x00,
+            0x00,
+            0x00,
+            0x01, // Slots: one.
+            0x03, // Requested Slot.
+            0x04, // Slot.
+            0x10, // Amount: 16.
+            0x01, // Item Stack Net Id: present.
+            0x9a,
+            0x01,
+            0x00, // Custom Name: Unredacted, empty.
+            0x00, // Custom Name: no Redacted string.
+            0x00, // Durability Correction.
+            0x01, // Result: Error.
+            0x01, // Client Request Id: -1.
+            0x00 // Containers: absent.
+        ]);
+
+        const stream = new BinaryStream(bytes);
+        const payload = layout.decode(stream);
+        expect(stream.feof()).toBe(true);
+
+        const encoded = new BinaryStream();
+        layout.encode(encoded, payload);
+        expect(encoded.getBuffer()).toEqual(bytes);
+    });
+
+    // The ids Full Container Name carries at 2193 are Mojang's published numbering, from the
+    // pinned `enums.html` dump, not the dense 0..n order the 1.26.50 docs page prints.
+    it("numbers ContainerEnumName as Mojang's pinned enum dump does", () => {
+        const pinned = new Map(enumDumpMembers('ContainerEnumName').map(({ name, value }) => [name, value]));
+
+        const normalize = (name: string) =>
+            name
+                .replaceAll('_', '')
+                .replace(/container$/i, '')
+                .toLowerCase();
+        const expected = new Map([...pinned].map(([name, value]) => [normalize(name), value]));
+        const actual = new Map(
+            Object.entries(ContainerUiId)
+                .filter((entry): entry is [string, number] => typeof entry[1] === 'number')
+                .map(([name, value]) => [normalize(name), value])
+        );
+
+        expect(pinned.size).toBeGreaterThan(60);
+        expect(actual).toEqual(expected);
     });
 });

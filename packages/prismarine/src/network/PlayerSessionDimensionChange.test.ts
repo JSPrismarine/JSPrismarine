@@ -218,7 +218,7 @@ describe('PlayerSession.changeWorld', () => {
         await session.completeDimensionChange(session.pendingDimensionChange()!.loadingScreenId);
         const move = sent.find((p) => p instanceof MovePlayerPacket);
         expect(move?.getPacketData()?.mode).toBe(PositionMode.Teleport);
-        expect(move?.getPacketData()?.position.y).toBe(change?.getPacketData()?.position.getY());
+        expect(move?.getPacketData()?.position.getY()).toBe(change?.getPacketData()?.position.getY());
     });
 
     it('detours through another dimension only when the two worlds share a Bedrock id', async () => {
@@ -475,7 +475,7 @@ describe('PlayerSession.changeWorld', () => {
             (p) =>
                 p instanceof MovePlayerPacket &&
                 p.getPacketData()?.mode === PositionMode.Teleport &&
-                p.getPacketData()?.position.x === 100.5
+                p.getPacketData()?.position.getX() === 100.5
         );
         const attributes = indexOf(sent, (p) => p instanceof UpdateAttributesPacket);
         const inventory = indexOf(sent, (p) => p instanceof InventoryContentPacket);

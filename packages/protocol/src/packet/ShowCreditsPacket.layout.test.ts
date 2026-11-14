@@ -21,8 +21,8 @@ const CASES = [
     }
 ];
 
-describe('the declarative ShowCredits layout', () => {
-    const layout = layoutAt(showCreditsPacket, 2193);
+describe.each([2193, 2225])('the declarative ShowCredits layout at protocol %i', (protocol) => {
+    const layout = layoutAt(showCreditsPacket, protocol);
 
     for (const { branch, bytes, payload } of CASES) {
         it(`writes the bytes the hand-written encoder wrote ${branch}`, () => {

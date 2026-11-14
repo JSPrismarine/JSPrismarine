@@ -98,7 +98,7 @@ export class Attribute {
      * The modifier count is always zero: a modifier is a timed buff, and status effects are
      * not modelled, so there is never one to send.
      * @param stream - The network stream.
-     * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/
+     * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-attributes-packet/
      */
     public networkSerialize(stream: BinaryStream): void {
         stream.writeFloatLE(this.min);

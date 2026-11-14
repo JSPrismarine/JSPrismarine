@@ -1,6 +1,6 @@
 /**
  * The client's empty acknowledgement after it derives the session key and enables encryption.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-to-server-handshake-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/client-to-server-handshake-packet/}
  */
 import { definePacket } from '../define';
 

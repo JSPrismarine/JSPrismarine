@@ -23,7 +23,7 @@ import type { Attribute } from '../wire/structures/Attribute';
  * since it models no timed buffs. `PlayerSession.sendAttributesFor` fills Tick with the
  * client's last input tick for its own player and zero for any other entity.
  *
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-attributes-packet/
  */
 export default class UpdateAttributesPacket extends FieldNetworkPacket {
     public runtimeEntityId!: bigint;

@@ -24,3 +24,14 @@ describe('the declarative NetworkStackLatency layout', () => {
         expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
     });
 });
+
+describe('the NetworkStackLatency layout at 2225', () => {
+    it('writes and reads the same bytes as at 2193, since the packet did not change', () => {
+        const layout = layoutAt(networkStackLatencyPacket, 2225);
+        const stream = new BinaryStream();
+        layout.encode(stream, payload);
+
+        expect(stream.getBuffer()).toEqual(bytes);
+        expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
+    });
+});

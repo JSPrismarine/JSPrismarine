@@ -1,7 +1,7 @@
 /**
  * The biome definitions available to the client for rendering and world generation. The
  * server-supplied definition payload is carried as bytes to the end of the packet.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/biome-definition-list-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/biome-definition-list-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

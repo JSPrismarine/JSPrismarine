@@ -1,6 +1,6 @@
 /**
  * `CameraShakePacket`: A shake to add to the player's camera, or an order to stop the shaking.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-shake-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-shake-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

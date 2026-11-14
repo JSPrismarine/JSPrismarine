@@ -37,9 +37,9 @@ export const setSpawnPositionPacket = definePacket('SetSpawnPositionPacket', {
     type: t.varint32,
     /** `Block Position`: where to spawn. */
     position: t.blockPos,
-    /** `Dimension Type`: the dimension the position is in. */
+    /** `Dimension type`: the dimension the position is in, a `DimensionType`. */
     dimension: t.varint32,
-    /** `Spawn Block Position`: the block that caused the spawn point, e.g. the bed. */
+    /** `Spawn Block Pos`: the block that caused the spawn point, e.g. the bed. */
     blockPosition: t.blockPos
 });
 
@@ -49,16 +49,20 @@ export const respawnPacket = definePacket('RespawnPacket', {
     position: t.vec3,
     /** `State`: the respawn handshake state byte. */
     state: t.uint8,
-    /** `Runtime Entity ID`: whose respawn this is. */
+    /** `Player Runtime Id`: whose respawn this is. */
     runtimeEntityId: t.varuint64
 });
 
 /**
  * The `ChangeDimensionPacket` field list.
  *
- * The 1.26.51 schema lists `Loading Screen Id` as required and draws it as a plain uint32, but
- * its own description says to leave it empty when no screen is expected, and gophertunnel at
- * protocol 2193 writes the presence byte this `optional` writes.
+ * The 1.26.50 page draws `Loading Screen Id` as a plain uint32 and the 1.26.60 page as optional,
+ * with the changelog row "Loading Screen Id is now optional". That row sits in the preview.21
+ * section whose Mojang note says the docs were updated "to accurately reflect optionality of
+ * specific fields", so it corrects the documentation and is not a wire change
+ * (`docs/research/protocol-2225-delta.md`). The field's own description, "Leave empty if there is
+ * no loading screen expected", needs the presence byte, and gophertunnel at protocol 2193 writes
+ * it, so the one `optional` field serves both versions.
  */
 export const changeDimensionPacket = definePacket('ChangeDimensionPacket', {
     /** `Dimension ID`: a `DimensionType`, 0 the Overworld, 1 the Nether, 2 the End. */
@@ -95,7 +99,7 @@ export const networkChunkPublisherUpdatePacket = definePacket('NetworkChunkPubli
 export const networkSettingsPacket = definePacket('NetworkSettingsPacket', {
     /** `Compression Threshold`: the smallest batch worth compressing. */
     compressionThreshold: t.lu16,
-    /** `Compression Algorithm`: 0 zlib, 1 snappy, 0xffff none. */
+    /** `CompressionAlgorithm`: 0 ZLib, 1 Snappy, 0xffff None (the 1.26.50 page's 2 is a docs error). */
     compressionAlgorithm: t.lu16,
     /** `Client Throttle Enabled`. */
     clientThrottlingEnabled: t.bool,
@@ -121,6 +125,6 @@ export const updateAdventureSettingsPacket = definePacket('UpdateAdventureSettin
 
 /** The `PlayerFogPacket` field list. */
 export const playerFogPacket = definePacket('PlayerFogPacket', {
-    /** `Fog Stack`: fog setting identifiers, nearest last. */
+    /** `Fog Stack`: the fog effect strings created by the `/fog` command. */
     fogStack: t.list(t.string)
 });

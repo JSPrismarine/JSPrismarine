@@ -1,6 +1,6 @@
 /**
  * `SetLastHurtByPacket`: Tells the client which kind of actor hit the player last.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-last-hurt-by-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-last-hurt-by-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

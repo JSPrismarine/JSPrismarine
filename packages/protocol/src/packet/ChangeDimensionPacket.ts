@@ -17,7 +17,7 @@ export type ChangeDimensionPayload = PayloadOf<typeof changeDimensionPacket>;
  * presence byte and little-endian uint32. When present, that id links progress updates in
  * `ServerboundLoadingScreenPacket` to this screen. The destination dimension must differ from
  * the client's current dimension; sending the current one leaves the client on the change screen.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/change-dimension-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/change-dimension-packet/
  */
 export default class ChangeDimensionPacket extends NetworkPacket<ChangeDimensionPayload> {
     public get id(): number {

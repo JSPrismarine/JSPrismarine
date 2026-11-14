@@ -1,7 +1,10 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { resourcePackStackPacket } from '../wire/definitions/resourcePacks';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { PayloadOf } from '../wire/define';
 import type { Experiment } from '@jsprismarine/minecraft';
 
 export type { Experiment };
@@ -16,21 +19,8 @@ export interface ResourcePackStackEntry {
     subPackName: string;
 }
 
-/** The fields of `ResourcePackStackPacket`, in wire order. */
-export interface ResourcePackStack {
-    /** `Texture Pack Required`. When true the client must download the packs or leave. */
-    texturePackRequired: boolean;
-    /** `Texture Pack List`, applied in order with the first entry on top. */
-    texturePacks: ResourcePackStackEntry[];
-    /** `Base Game Version`, the game version the stack applies to. Vanilla sends `*`. */
-    gameVersion: string;
-    /** `Experiments` toggles: active toggles followed by always-on ones. */
-    experiments: Experiment[];
-    /** `ExperimentsEverToggled`, whether any experiment was ever toggled in this world. */
-    experimentsAlreadyEnabled: boolean;
-    /** `Include Editor Packs`, whether an Editor world adds the vanilla editor packs to the stack. */
-    includeEditorPacks: boolean;
-}
+/** The fields of `ResourcePackStackPacket`, in wire order. Each field is documented in its definition. */
+export type ResourcePackStack = PayloadOf<typeof resourcePackStackPacket>;
 
 /**
  * The order the packs are applied in, sent once the client says it has them all.
@@ -46,7 +36,7 @@ export interface ResourcePackStack {
  * that still expects them takes the texture pack count for the behavior pack count and every
  * field after it is read from the wrong place, which on an empty stack means running off the
  * end of an eleven byte packet.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-stack-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-pack-stack-packet/
  */
 export default class ResourcePackStackPacket extends NetworkPacket<ResourcePackStack> {
     public get id(): number {
@@ -54,56 +44,10 @@ export default class ResourcePackStackPacket extends NetworkPacket<ResourcePackS
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ResourcePackStack): void {
-        stream.writeBoolean(data.texturePackRequired);
-
-        stream.writeUnsignedVarInt(data.texturePacks.length);
-        for (const entry of data.texturePacks) {
-            stream.writeString(entry.uuid);
-            stream.writeString(entry.version);
-            stream.writeString(entry.subPackName);
-        }
-
-        stream.writeString(data.gameVersion);
-
-        // Little endian 32 bits, unlike every other count in this packet, which are varints.
-        stream.writeUnsignedIntLE(data.experiments.length);
-        for (const experiment of data.experiments) {
-            stream.writeString(experiment.name);
-            stream.writeBoolean(experiment.enabled);
-        }
-
-        stream.writeBoolean(data.experimentsAlreadyEnabled);
-        stream.writeBoolean(data.includeEditorPacks);
+        layoutAt(resourcePackStackPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ResourcePackStack {
-        const texturePackRequired = stream.readBoolean();
-
-        const texturePacks: ResourcePackStackEntry[] = [];
-        let packCount = stream.readUnsignedVarInt();
-        while (packCount-- > 0) {
-            texturePacks.push({
-                uuid: stream.readString(),
-                version: stream.readString(),
-                subPackName: stream.readString()
-            });
-        }
-
-        const gameVersion = stream.readString();
-
-        const experiments: Experiment[] = [];
-        let experimentCount = stream.readUnsignedIntLE();
-        while (experimentCount-- > 0) {
-            experiments.push({ name: stream.readString(), enabled: stream.readBoolean() });
-        }
-
-        return {
-            texturePackRequired,
-            texturePacks,
-            gameVersion,
-            experiments,
-            experimentsAlreadyEnabled: stream.readBoolean(),
-            includeEditorPacks: stream.readBoolean()
-        };
+        return layoutAt(resourcePackStackPacket, this.codecProtocol).decode(stream);
     }
 }

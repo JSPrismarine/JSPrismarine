@@ -28,6 +28,8 @@ const KEYFRAMED: GraphicsOverrideParameter = {
         { time: 0, value: { x: 1.5, y: 0.25, z: -2 } },
         { time: 1, value: { x: 0, y: 1, z: 0 } }
     ],
+    floatValue: undefined,
+    vec3Value: undefined,
     biomeIdentifier: 'minecraft:plains',
     playerIdentifier: 'Steve',
     parameter: GraphicsOverrideParameterType.SKY_ZENITH_COLOR,
@@ -59,7 +61,9 @@ const KEYFRAMED_BYTES = Buffer.from([
 const SINGLE_FLOAT: GraphicsOverrideParameter = {
     keyframeValues: [],
     floatValue: 1.5,
+    vec3Value: undefined,
     biomeIdentifier: 'minecraft:plains',
+    playerIdentifier: undefined,
     parameter: GraphicsOverrideParameterType.RAYLEIGH_STRENGTH,
     resetParameter: false
 };
@@ -79,8 +83,10 @@ const SINGLE_FLOAT_BYTES = Buffer.from([
 /** A single Vec3 override. */
 const SINGLE_VEC3: GraphicsOverrideParameter = {
     keyframeValues: [],
+    floatValue: undefined,
     vec3Value: { x: 1.5, y: 0.25, z: -2 },
     biomeIdentifier: 'minecraft:plains',
+    playerIdentifier: undefined,
     parameter: GraphicsOverrideParameterType.SUN_COLOR,
     resetParameter: false
 };
@@ -102,7 +108,10 @@ const SINGLE_VEC3_BYTES = Buffer.from([
 /** A reset: no values at all, the highest parameter number, the reset flag on. */
 const RESET: GraphicsOverrideParameter = {
     keyframeValues: [],
+    floatValue: undefined,
+    vec3Value: undefined,
     biomeIdentifier: 'minecraft:plains',
+    playerIdentifier: undefined,
     parameter: GraphicsOverrideParameterType.ORBITAL_OFFSET_DEGREES,
     resetParameter: true
 };
@@ -118,12 +127,20 @@ const RESET_BYTES = Buffer.from([
     0x01 // Reset Parameter true
 ]);
 
-const encode = (data: GraphicsOverrideParameter): Buffer =>
-    new GraphicsOverrideParameterPacket(data).serialize(new NetworkBinaryStream());
+/** The protocols whose layout the packet pins: 1.26.50 and 1.26.60. */
+const PROTOCOLS = [2193, 2225] as const;
 
-const decode = (bytes: Buffer): GraphicsOverrideParameter => {
+const encode = (data: GraphicsOverrideParameter, protocol: number): Buffer => {
+    const packet = new GraphicsOverrideParameterPacket(data);
+    packet.codecProtocol = protocol;
+    return packet.serialize(new NetworkBinaryStream());
+};
+
+const decode = (bytes: Buffer, protocol: number): GraphicsOverrideParameter => {
     const stream = new NetworkBinaryStream(bytes);
-    const data = new GraphicsOverrideParameterPacket().deserialize(stream);
+    const packet = new GraphicsOverrideParameterPacket();
+    packet.codecProtocol = protocol;
+    const data = packet.deserialize(stream);
     expect(stream.feof()).toBe(true);
     return data;
 };
@@ -136,14 +153,16 @@ const vectors: Array<{ name: string; data: GraphicsOverrideParameter; bytes: Buf
 ];
 
 describe('GraphicsOverrideParameterPacket', () => {
-    for (const { name, data, bytes } of vectors) {
-        it(`writes ${name} in the order protocol 2193 defines`, () => {
-            expect([...encode(data)]).toEqual([...bytes]);
-        });
+    for (const protocol of PROTOCOLS) {
+        for (const { name, data, bytes } of vectors) {
+            it(`writes ${name} in the wire order at protocol ${protocol}`, () => {
+                expect([...encode(data, protocol)]).toEqual([...bytes]);
+            });
 
-        it(`reads ${name} to the end of the buffer without inventing absent values`, () => {
-            expect(decode(bytes)).toStrictEqual(data);
-        });
+            it(`reads ${name} to the end of the buffer without inventing absent values at protocol ${protocol}`, () => {
+                expect(decode(bytes, protocol)).toStrictEqual(data);
+            });
+        }
     }
 
     it('numbers the parameter enum as the docs do', () => {

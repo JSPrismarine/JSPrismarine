@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import Experiments from '../structure/Experiments';
+import { resourcePackStackPacket } from '../wire/definitions/resourcePacks';
+import { layoutAt } from '../wire/WireLayout';
 import ResourcePackStackPacket from './ResourcePackStackPacket';
 
 import type { ResourcePackStack } from './ResourcePackStackPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /**
  * The packet with one pack and one experiment, written by hand in the order the protocol
@@ -76,5 +79,20 @@ describe('ResourcePackStackPacket', () => {
 
         expect(data).toEqual(ONE_PACK_ONE_EXPERIMENT_DATA);
         expect(stream.feof()).toBe(true);
+    });
+
+    // Raw payloads a real Bedrock Dedicated Server sent, one per protocol version.
+    it.each([2193, 2225])('round trips the real server capture at protocol %i', (protocolVersion) => {
+        const captured = capture(protocolVersion, 0x07);
+        const layout = layoutAt(resourcePackStackPacket, protocolVersion);
+
+        const stream = new NetworkBinaryStream(captured);
+        const data = layout.decode(stream);
+        expect(stream.feof()).toBe(true);
+        expect(data).toEqual(EMPTY_STACK_DATA);
+
+        const encoded = new NetworkBinaryStream();
+        layout.encode(encoded, data);
+        expect(encoded.getBuffer()).toEqual(captured);
     });
 });

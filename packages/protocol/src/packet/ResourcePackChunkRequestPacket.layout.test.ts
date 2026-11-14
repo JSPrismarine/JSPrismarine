@@ -11,8 +11,8 @@ const BYTES = Buffer.from('0a757569645f312e302e30fbffffff', 'hex');
 
 const payload = { resourceName: 'uuid_1.0.0', chunk: -5 };
 
-describe('the declarative ResourcePackChunkRequest layout', () => {
-    const layout = layoutAt(resourcePackChunkRequestPacket, 2193);
+describe.each([2193, 2225] as const)('the declarative ResourcePackChunkRequest layout at protocol %i', (protocol) => {
+    const layout = layoutAt(resourcePackChunkRequestPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

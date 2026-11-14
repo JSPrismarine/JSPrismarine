@@ -22,10 +22,11 @@ export interface NetworkSettings {
      */
     compressionThreshold: number;
     /**
-     * `CompressionAlgorithm`, numbered as the 1.26.51 docs list `PacketCompressionAlgorithm`:
-     * ZLib 0, Snappy 1, None 2. `@jsprismarine/minecraft` carries `NONE` as 65535, the value
-     * protocol 2207 moved it to. Two bytes wide here; each batch then repeats it in one, where
-     * none is 0xff.
+     * `CompressionAlgorithm`: ZLib 0, Snappy 1, None 65535, as the 1.26.60 docs and Mojang's
+     * pinned enum dump list `PacketCompressionAlgorithm`. The 1.26.50 page prints None as 2; that
+     * is the docs correction the 2207 changelog row records, not a wire change
+     * (`docs/research/protocol-2225-delta.md`). Two bytes wide here; each batch then repeats it
+     * in one, where none is 0xff.
      */
     compressionAlgorithm: PacketCompressionAlgorithm;
     /** `Client Throttle Enabled`: whether the client stops ticking players past the threshold. */
@@ -41,10 +42,12 @@ export interface NetworkSettings {
  * compression prefix: it is itself sent uncompressed, and everything after it carries the
  * algorithm byte.
  *
- * Protocol 2193 layout after the header: `Compression Threshold` as a little-endian uint16,
- * `CompressionAlgorithm` as a little-endian uint16, `Client Throttle Enabled` as one byte,
- * `Client Throttle Threshold` as a uint8, then `Client Throttle Scalar` as a little-endian
- * float.
+ * Protocol 2193 and 2225 share one layout after the header: `Compression Threshold` as a
+ * little-endian uint16, `CompressionAlgorithm` as a little-endian uint16,
+ * `Client Throttle Enabled` as one byte, `Client Throttle Threshold` as a uint8, then
+ * `Client Throttle Scalar` as a little-endian float.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/network-settings-packet/
  */
 export default class NetworkSettingsPacket extends NetworkPacket<NetworkSettings> {
     public get id(): number {

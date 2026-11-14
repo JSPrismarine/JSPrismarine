@@ -132,9 +132,11 @@ export const scorePacketEntry: WireType<ScorePacketEntry> = t.custom(
 /**
  * The `SetScorePacket` field list.
  *
- * The docs mark `Score Info` itself optional at 2193 and record it losing that marking at 2207.
- * No presence byte travels here: gophertunnel at 2193 writes the bare count, and a presence
- * byte would push every entry one byte out.
+ * The 1.26.50 page marks `Score Info` itself optional and the 1.26.60 page records it as "now
+ * not optional". That is the documentation being corrected, not a wire change (see "Enum and
+ * data changes" in `docs/research/protocol-2225-delta.md`). No presence byte travels at either
+ * protocol: gophertunnel at 2193 writes the bare count, and a presence byte would push every
+ * entry one byte out.
  */
 export const setScorePacket = definePacket('SetScorePacket', {
     /** `Score Info`: the lines to add, change or remove. */

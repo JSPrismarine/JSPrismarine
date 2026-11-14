@@ -104,7 +104,11 @@ export const addPlayerPacket = definePacket('AddPlayerPacket', {
     headYaw: t.lf32,
     /** `Carried Item`. */
     carriedItem: itemStackDescriptor,
-    /** `Player Game Type`, a `Gametype` value. */
+    /**
+     * `Player Game Type`, a `GameType` value as a ZigZag varint32. Both protocols use the engine's
+     * numbering (Survival 0, Creative 1, Adventure 2, Default 5, Spectator 6), not the 1.26.50 docs'
+     * 1 to 5 table; the real server's StartGame fixtures at 2193 and 2225 carry Default 5 and Survival 0.
+     */
     gamemode: t.varint32,
     /** `Entity Data`. */
     metadata,

@@ -1,7 +1,9 @@
-import type { NetworkBinaryStream } from '../';
+import { string as stringType } from '../wire/fieldTypes';
 import NetworkStructure from '../NetworkStructure';
 import Vec2 from './Vec2';
 import Vec3 from './Vec3';
+
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * A `WorldPosition`: `Position` as three little-endian floats, then `DimensionType` as a
@@ -61,28 +63,30 @@ export default class ServerWaypointPayload extends NetworkStructure {
         super();
     }
 
-    private static writeOptional<T>(
-        stream: NetworkBinaryStream,
-        value: T | undefined,
-        write: (value: T) => void
-    ): void {
+    private static writeOptional<T>(stream: BinaryStream, value: T | undefined, write: (value: T) => void): void {
         stream.writeBoolean(value !== undefined);
         if (value !== undefined) write(value);
     }
 
-    private static readOptional<T>(stream: NetworkBinaryStream, read: () => T): T | undefined {
+    private static readOptional<T>(stream: BinaryStream, read: () => T): T | undefined {
         return stream.readBoolean() ? read() : undefined;
     }
 
+    private static readVec3(stream: BinaryStream): Vec3 {
+        const position = new Vec3(0, 0, 0);
+        position.deserialize(stream);
+        return position;
+    }
+
     /** Writes the flag, then the seven optional fields in wire order. */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         stream.writeUnsignedIntLE(this.updateFlag);
         ServerWaypointPayload.writeOptional(stream, this.isVisible, (value) => stream.writeBoolean(value));
         ServerWaypointPayload.writeOptional(stream, this.worldPosition, (value) => {
             value.position.serialize(stream);
             stream.writeVarInt(value.dimensionType);
         });
-        ServerWaypointPayload.writeOptional(stream, this.texturePath, (value) => stream.writeString(value));
+        ServerWaypointPayload.writeOptional(stream, this.texturePath, (value) => stringType.write(stream, value));
         ServerWaypointPayload.writeOptional(stream, this.iconSize, (value) => value.serialize(stream));
         ServerWaypointPayload.writeOptional(stream, this.color, (value) => stream.writeIntLE(value));
         ServerWaypointPayload.writeOptional(stream, this.clientPositionAuthority, (value) =>
@@ -92,15 +96,19 @@ export default class ServerWaypointPayload extends NetworkStructure {
     }
 
     /** Reads the flag, then the seven optional fields in wire order. */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         this.updateFlag = stream.readUnsignedIntLE();
         this.isVisible = ServerWaypointPayload.readOptional(stream, () => stream.readBoolean());
         this.worldPosition = ServerWaypointPayload.readOptional(stream, () => ({
-            position: Vec3.deserialize(stream),
+            position: ServerWaypointPayload.readVec3(stream),
             dimensionType: stream.readVarInt()
         }));
-        this.texturePath = ServerWaypointPayload.readOptional(stream, () => stream.readString());
-        this.iconSize = ServerWaypointPayload.readOptional(stream, () => Vec2.deserialize(stream));
+        this.texturePath = ServerWaypointPayload.readOptional(stream, () => stringType.read(stream));
+        this.iconSize = ServerWaypointPayload.readOptional(stream, () => {
+            const size = new Vec2(0, 0);
+            size.deserialize(stream);
+            return size;
+        });
         this.color = ServerWaypointPayload.readOptional(stream, () => stream.readIntLE());
         this.clientPositionAuthority = ServerWaypointPayload.readOptional(stream, () => stream.readBoolean());
         this.actorUniqueId = ServerWaypointPayload.readOptional(stream, () => stream.readVarLong());

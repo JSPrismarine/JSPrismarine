@@ -12,7 +12,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
  * Protocol 2193 wire order:
  * 0. `name`: string, the `CameraAimAssistCategory Identifier` presets look the category up by.
  * 1. `priorities`: a {@link CameraAimAssistCategoryPriorities}.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/camera-aim-assist-category-definition/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/camera-aim-assist-category-definition/}
  */
 export default class CameraAimAssistCategoryDefinition extends NetworkStructure {
     /**

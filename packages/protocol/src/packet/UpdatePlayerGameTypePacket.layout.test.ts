@@ -9,8 +9,8 @@ import type { UpdatePlayerGameTypePayload } from '../wire/definitions/player';
 const bytes = Buffer.from('04054d', 'hex');
 const payload: UpdatePlayerGameTypePayload = { playerGameType: 2, targetPlayer: -3n, tick: 77n };
 
-describe('the declarative UpdatePlayerGameType layout', () => {
-    const layout = layoutAt(updatePlayerGameTypePacket, 2193);
+describe.each([2193, 2225])('the declarative UpdatePlayerGameType layout at protocol %i', (protocol) => {
+    const layout = layoutAt(updatePlayerGameTypePacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

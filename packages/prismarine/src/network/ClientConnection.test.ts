@@ -93,14 +93,14 @@ describe('network', () => {
             await connection.disconnect('Outdated client!', false);
             const first = send.mock.calls.at(-1)?.[0];
             expect(first).toBeInstanceOf(DisconnectPacket);
-            expect(first?.getPacketData()).toMatchObject({ message: 'Outdated client!' });
+            expect(first?.getPacketData()).toMatchObject({ messages: { message: 'Outdated client!' } });
             expect(send).toHaveBeenLastCalledWith(first, false, true);
 
             connection.hasCompression = true;
             await connection.disconnect('Kicked', false);
             const second = send.mock.calls.at(-1)?.[0];
             expect(second).toBeInstanceOf(DisconnectPacket);
-            expect(second?.getPacketData()).toMatchObject({ message: 'Kicked' });
+            expect(second?.getPacketData()).toMatchObject({ messages: { message: 'Kicked' } });
             expect(send).toHaveBeenLastCalledWith(second, true, true);
         });
 
@@ -122,7 +122,7 @@ describe('network', () => {
             expect(kickedPacket).toBeInstanceOf(DisconnectPacket);
             expect(kickedPacket?.getPacketData()).toMatchObject({
                 reason: DisconnectReason.KICKED,
-                message: 'Kicked'
+                messages: { message: 'Kicked' }
             });
             expect(send).toHaveBeenLastCalledWith(kickedPacket, false, true);
         });

@@ -12,7 +12,7 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
  * at 50 characters and reject an empty one; absence means the client keeps driving its own
  * rich presence. The `mExperienceName` and `mWorldName` fields that preceded it are gone at
  * 2193.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/presence-config/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/presence-config/}
  */
 export default class PresenceConfig extends NetworkStructure {
     public constructor(

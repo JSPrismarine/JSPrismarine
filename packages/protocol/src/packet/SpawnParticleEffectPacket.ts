@@ -17,7 +17,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * `Dimension Id` as a byte, `Actor Id` as a ZigZag varint64, `Position` as three little-endian
  * floats, `Effect Name` as a string, then `Molang Variables` as a presence byte followed by a
  * string when the byte is set.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/spawn-particle-effect-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/spawn-particle-effect-packet/
  */
 export default class SpawnParticleEffectPacket extends FieldNetworkPacket {
     /** Dimension the effect belongs to. */
@@ -35,9 +35,9 @@ export default class SpawnParticleEffectPacket extends FieldNetworkPacket {
     /**
      * Molang variables for the effect, as the JSON map the client reads them from.
      *
-     * Left out in almost every case. The docs mark the field present at 2193 and optional from
-     * 2207, but gophertunnel writes the presence byte at 2193 and a client reads one, so it is
-     * written here.
+     * Left out in almost every case. The 1.26.50 page prints the field plain and the 1.26.60
+     * page optional; Mojang's note says that change corrects the documentation, so the
+     * presence byte is written at both protocol versions. See `docs/research/protocol-2225-delta.md`.
      */
     public molangVariables?: string;
 

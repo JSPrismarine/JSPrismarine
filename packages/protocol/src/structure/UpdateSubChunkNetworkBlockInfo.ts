@@ -12,7 +12,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
  * (varuint64, the falling block actor the change is synced with, 0 when none), and
  * `Sync Message - Message` (varuint32: 0 none, 1 block became an actor, 2 actor became
  * a block).
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/update-sub-chunk-network-block-info/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/update-sub-chunk-network-block-info/}
  */
 export default class UpdateSubChunkNetworkBlockInfo extends NetworkStructure {
     /**

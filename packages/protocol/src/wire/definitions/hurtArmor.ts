@@ -1,7 +1,7 @@
 /**
  * `HurtArmorPacket`: Tells a client how much damage its armor took, and leaves the client to apply
  * it.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/hurt-armor-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/hurt-armor-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

@@ -1,12 +1,16 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import { AimAssistTargetMode, CameraAudioListener, ControlScheme } from '../structure/CameraPreset';
 import Vec2 from '../structure/Vec2';
 import Vec3 from '../structure/Vec3';
+import { cameraPresetsPacket } from '../wire/definitions/cameraPresets';
+import { layoutAt } from '../wire/WireLayout';
 import CameraPresetsPacket from './CameraPresetsPacket';
 
 import type { CameraPresetsPayload } from './CameraPresetsPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /** One preset with every optional field present. */
 const FULL: CameraPresetsPayload = {
@@ -128,5 +132,22 @@ describe('CameraPresetsPacket', () => {
 
         expect(data).toEqual(BARE);
         expect(stream.feof()).toBe(true);
+    });
+
+    // The 1.26.50 docs print the list as one `CameraPresets` object with no optional fields, which
+    // is not what a real server sends: the capture below carries a count and a presence byte per
+    // field at both protocols.
+    it.each([2193, 2225])('re-encodes the Bedrock Dedicated Server payload at protocol %i', (protocol) => {
+        const captured = capture(protocol, 0xc6);
+        const layout = layoutAt(cameraPresetsPacket, protocol);
+        const stream = new BinaryStream(captured);
+        const payload = layout.decode(stream);
+
+        expect(stream.feof()).toBe(true);
+        expect(payload.cameraPresets.map((preset) => preset.name)).toContain('minecraft:follow_orbit');
+
+        const encoded = new BinaryStream();
+        layout.encode(encoded, payload);
+        expect([...encoded.getBuffer()]).toEqual([...captured]);
     });
 });

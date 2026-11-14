@@ -37,6 +37,27 @@ const decode = (bytes: number[]) => {
 };
 
 describe('ResourcePackClientResponsePacket', () => {
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        // The docs renumber the ResourcePackResponse enum at 2225, but it is written as a string and the
+        // selector is the oneOf alternative index, so no byte changes between the two versions.
+        const cases = [
+            { status: ResourcePackStatus.Refused, packIds: [], tail: CANCEL },
+            { status: ResourcePackStatus.SendPacks, packIds: ['a_1.0.0'], tail: DOWNLOADING_ONE_PACK },
+            { status: ResourcePackStatus.HaveAllPacks, packIds: [], tail: DOWNLOADING_FINISHED },
+            { status: ResourcePackStatus.Completed, packIds: [], tail: STACK_FINISHED }
+        ];
+
+        for (const { tail, ...data } of cases) {
+            const packet = new ResourcePackClientResponsePacket(data);
+            packet.codecProtocol = protocol;
+            expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([HEADER, ...tail]);
+
+            const reader = new ResourcePackClientResponsePacket();
+            reader.codecProtocol = protocol;
+            expect(reader.deserialize(new NetworkBinaryStream(Buffer.from([HEADER, ...tail])))).toEqual(data);
+        }
+    });
+
     it('uses packet id 8', () => {
         expect(new ResourcePackClientResponsePacket().id).toBe(PacketIdentifier.RESOURCE_PACK_CLIENT_RESPONSE);
         expect(new ResourcePackClientResponsePacket().id).toBe(HEADER);

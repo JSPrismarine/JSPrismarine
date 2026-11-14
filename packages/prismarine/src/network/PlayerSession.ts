@@ -2994,7 +2994,7 @@ export default class PlayerSession {
         const position = player.getPosition();
         const packet = new MovePlayerPacket({
             runtimeEntityId: player.getRuntimeId(),
-            position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+            position,
             pitch: player.pitch,
             yaw: player.yaw,
             headYaw: player.headYaw,
@@ -3004,7 +3004,7 @@ export default class PlayerSession {
             ridingEntityRuntimeId: 0n,
             // The server does not model why a teleport happened, so the cause is Unknown (0)
             // and the source actor type is 0.
-            ...(mode === PositionMode.Teleport ? { teleportCause: 0, teleportItemId: 0 } : {}),
+            teleportData: mode === PositionMode.Teleport ? { cause: 0, sourceActorType: 0 } : null,
             tick: player.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n
         });
         // From here until the client says it handled the teleport, its inputs still name where

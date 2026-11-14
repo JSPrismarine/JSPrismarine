@@ -15,7 +15,7 @@ export type UpdateAdventureSettingsPayload = PayloadOf<typeof updateAdventureSet
  * The payload contains five booleans, in order: `No PvM`, `No MvP`, `Immutable World`,
  * `Show Name Tags`, and `Auto Jump`. Ability flags such as flying and invulnerability are
  * carried separately by `UpdateAbilitiesPacket`.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-adventure-settings-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-adventure-settings-packet/
  */
 export default class UpdateAdventureSettingsPacket extends NetworkPacket<UpdateAdventureSettingsPayload> {
     public get id(): number {

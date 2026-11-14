@@ -1,18 +1,13 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import Vec3 from '../structure/Vec3';
+import { motionPredictionHintsPacket } from '../wire/definitions/motionPredictionHints';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { MotionPredictionHintsPayload } from '../wire/definitions/motionPredictionHints';
 
 /** Actor movement state used to seed the client's prediction history. */
-export interface MotionPredictionHints {
-    /** Runtime id of the actor whose motion is being described. */
-    runtimeId: bigint;
-    /** Velocity in blocks per tick. */
-    motion: Vec3;
-    /** Whether the actor is currently touching the ground. */
-    onGround: boolean;
-}
+export type MotionPredictionHints = MotionPredictionHintsPayload;
 
 /**
  * Seeds the client's movement prediction for an actor whose ordinary position updates are
@@ -21,7 +16,7 @@ export interface MotionPredictionHints {
  *
  * Protocol 2193 layout: `mRuntimeId` as an unsigned varint64, `mMotion` as three little-endian
  * floats, then `mOnGround` as a boolean.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/motion-prediction-hints-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/motion-prediction-hints-packet/
  */
 export default class MotionPredictionHintsPacket extends NetworkPacket<MotionPredictionHints> {
     public get id(): number {
@@ -29,15 +24,10 @@ export default class MotionPredictionHintsPacket extends NetworkPacket<MotionPre
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: MotionPredictionHints): void {
-        stream.writeUnsignedVarLong(data.runtimeId);
-        data.motion.serialize(stream);
-        stream.writeBoolean(data.onGround);
+        layoutAt(motionPredictionHintsPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): MotionPredictionHints {
-        const runtimeId = stream.readUnsignedVarLong();
-        const motion = new Vec3(0, 0, 0);
-        motion.deserialize(stream);
-        return { runtimeId, motion, onGround: stream.readBoolean() };
+        return layoutAt(motionPredictionHintsPacket, this.codecProtocol).decode(stream);
     }
 }

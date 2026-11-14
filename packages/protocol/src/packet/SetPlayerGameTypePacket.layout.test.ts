@@ -9,8 +9,8 @@ import type { SetPlayerGameTypePayload } from '../wire/definitions/player';
 const bytes = Buffer.from('02', 'hex');
 const payload: SetPlayerGameTypePayload = { gametype: 1 };
 
-describe('the declarative SetPlayerGameType layout', () => {
-    const layout = layoutAt(setPlayerGameTypePacket, 2193);
+describe.each([2193, 2225])('the declarative SetPlayerGameType layout at protocol %i', (protocol) => {
+    const layout = layoutAt(setPlayerGameTypePacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

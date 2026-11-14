@@ -63,4 +63,27 @@ describe('PositionTrackingDBServerBroadcastPacket', () => {
         // Action NotFound, tracking id 0, then TAG_Compound, an empty name and TAG_End.
         expect(packet.getBuffer()).toEqual(Buffer.from([...HEADER, 0x02, 0x00, 0x0a, 0x00, 0x00]));
     });
+
+    it.each([2193, 2225])(
+        'writes the same bytes at protocol %i, as the layout is unchanged between them',
+        (protocol) => {
+            const packet = new PositionTrackingDBServerBroadcastPacket();
+            packet.codecProtocol = protocol;
+            packet.action = PositionTrackingDBServerBroadcastAction.Destroy;
+            packet.id = -3;
+            packet.positionTrackingData = record();
+            packet.encode();
+
+            // Destroy is 1, and the tracking id -3 ZigZag encodes as 5.
+            expect(packet.getBuffer()).toEqual(Buffer.from([...HEADER, 0x01, 0x05, ...RECORD_BYTES]));
+
+            const decoded = new PositionTrackingDBServerBroadcastPacket();
+            decoded.codecProtocol = protocol;
+            decoded.setReadBuffer(packet.getBuffer());
+            decoded.decode();
+            expect(decoded.action).toBe(PositionTrackingDBServerBroadcastAction.Destroy);
+            expect(decoded.id).toBe(-3);
+            expect(decoded.feof()).toBe(true);
+        }
+    );
 });

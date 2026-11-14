@@ -41,7 +41,7 @@ export interface CameraAimAssistItemSetting {
  * 5. `hand_settings`: optional. A presence byte, then a category name when present.
  *
  * Strings are a varuint32 byte length followed by UTF-8.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/camera-aim-assist-preset-definition/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/camera-aim-assist-preset-definition/}
  */
 export default class CameraAimAssistPresetDefinition extends NetworkStructure {
     /**

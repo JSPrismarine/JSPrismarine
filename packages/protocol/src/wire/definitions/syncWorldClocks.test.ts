@@ -16,6 +16,7 @@ const bodyOf = (buffer: Buffer): Buffer => {
 };
 
 const marker = { id: 7n, name: 'noon', time: -12, period: 24000 };
+const openEnded = { id: 8n, name: 'dusk', time: 12000, period: null };
 
 const payloads: Record<string, SyncWorldClocksPayload> = {
     'a state sync': {
@@ -27,7 +28,7 @@ const payloads: Record<string, SyncWorldClocksPayload> = {
     'a registry': {
         data: {
             type: SyncWorldClocksDataType.InitializeRegistry,
-            clocks: [{ id: 9n, name: 'overworld', time: 100, isPaused: false, timeMarkers: [marker] }]
+            clocks: [{ id: 9n, name: 'overworld', time: 100, isPaused: false, timeMarkers: [marker, openEnded] }]
         }
     },
     'added markers': { data: { type: SyncWorldClocksDataType.AddTimeMarker, clockId: 9n, timeMarkers: [marker] } },

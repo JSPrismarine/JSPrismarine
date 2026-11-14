@@ -3,6 +3,8 @@ import NetworkBinaryStream from '../NetworkBinaryStream';
 import BlockPos from '../structure/BlockPos';
 import CommandBlockUpdatePacket, { CommandBlockMode } from './CommandBlockUpdatePacket';
 
+import type { CommandBlockUpdate } from './CommandBlockUpdatePacket';
+
 describe('CommandBlockUpdatePacket', () => {
     const tail = Buffer.from([
         0x03,
@@ -81,5 +83,45 @@ describe('CommandBlockUpdatePacket', () => {
         expect(packet.serialize(new NetworkBinaryStream())).toEqual(
             Buffer.concat([Buffer.from([0x4e, 0x01, 0x02, 0x04, 0x06, 0x01, 0x00, 0x01]), tail])
         );
+    });
+});
+
+describe('CommandBlockUpdatePacket at each supported protocol', () => {
+    it.each([2193, 2225])('round-trips an entity and a block target at protocol %i', (protocol) => {
+        const block: CommandBlockUpdate = {
+            target: {
+                isBlock: true,
+                blockPosition: new BlockPos(-1, 64, 3),
+                commandBlockMode: CommandBlockMode.Chain,
+                redstoneMode: true,
+                isConditional: false
+            },
+            command: 'x',
+            lastOutput: '',
+            name: '',
+            filteredName: '',
+            trackOutput: false,
+            tickDelay: -2,
+            executeOnFirstTick: true
+        };
+        const entity: CommandBlockUpdate = { ...block, target: { isBlock: false, targetRuntimeId: 300n } };
+
+        const blockPacket = new CommandBlockUpdatePacket(block);
+        blockPacket.codecProtocol = protocol;
+        const blockBytes = blockPacket.serialize(new NetworkBinaryStream());
+        // header, selector 1, ZigZag(-1)=1, ZigZag(64)=0x80 0x01, ZigZag(3)=6, mode 2, redstone, conditional
+        expect(blockBytes.subarray(0, 9)).toEqual(Buffer.from([0x4e, 0x01, 0x01, 0x80, 0x01, 0x06, 0x02, 0x01, 0x00]));
+        const decodedBlock = new CommandBlockUpdatePacket();
+        decodedBlock.codecProtocol = protocol;
+        expect(decodedBlock.deserialize(new NetworkBinaryStream(blockBytes))).toEqual(block);
+
+        const entityPacket = new CommandBlockUpdatePacket(entity);
+        entityPacket.codecProtocol = protocol;
+        const entityBytes = entityPacket.serialize(new NetworkBinaryStream());
+        // header, selector 0, varuint64 300
+        expect(entityBytes.subarray(0, 4)).toEqual(Buffer.from([0x4e, 0x00, 0xac, 0x02]));
+        const decodedEntity = new CommandBlockUpdatePacket();
+        decodedEntity.codecProtocol = protocol;
+        expect(decodedEntity.deserialize(new NetworkBinaryStream(entityBytes))).toEqual(entity);
     });
 });

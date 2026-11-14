@@ -11,6 +11,10 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
  * | Target Actor ID | varint64 | ZigZag encoded unique id |
+ *
+ * Protocol 2225 uses the same layout.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/remove-actor-packet/
  */
 export default class RemoveActorPacket extends FieldNetworkPacket {
     public uniqueEntityId!: bigint;

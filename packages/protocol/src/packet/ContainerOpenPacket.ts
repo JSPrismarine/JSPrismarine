@@ -16,6 +16,8 @@ import { containerOpenPacket } from '../wire/definitions/containers';
  * (a `BlockPos` of three varint32s), `Target Actor ID` (varint64).
  *
  * **Bound To:** Client
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/container-open-packet/
  */
 export default class ContainerOpenPacket extends FieldNetworkPacket {
     /** `Container Id`: the window the client should file this container under. */

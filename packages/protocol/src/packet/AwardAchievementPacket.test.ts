@@ -4,6 +4,7 @@ import NetworkBinaryStream from '../NetworkBinaryStream';
 import AwardAchievementPacket, { AchievementId } from './AwardAchievementPacket';
 
 import type { AwardAchievement } from './AwardAchievementPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 const DATA: AwardAchievement = { achievementId: AchievementId.GettingWood };
 
@@ -45,5 +46,39 @@ describe('AwardAchievementPacket', () => {
         const stream = new NetworkBinaryStream(UNKNOWN_BYTES);
         expect(new AwardAchievementPacket().deserialize(stream)).toEqual(UNKNOWN);
         expect(stream.feof()).toBe(true);
+    });
+
+    it('writes and reads the same four bytes at 2193 and 2225, which differ in no field', () => {
+        for (const protocol of [2193, 2225]) {
+            const writer = new AwardAchievementPacket(DATA);
+            writer.codecProtocol = protocol;
+            expect([...writer.serialize(new NetworkBinaryStream())]).toEqual([...BYTES]);
+
+            const reader = new AwardAchievementPacket();
+            reader.codecProtocol = protocol;
+            const stream = new NetworkBinaryStream(BYTES);
+            expect(reader.deserialize(stream)).toEqual(DATA);
+            expect(stream.feof()).toBe(true);
+        }
+    });
+
+    it('carries the 2225 achievement WhatGoesAroundComesAround as 127', () => {
+        const buffer = new AwardAchievementPacket({
+            achievementId: AchievementId.WhatGoesAroundComesAround
+        }).serialize(new NetworkBinaryStream());
+
+        expect([...buffer]).toEqual([0xb5, 0x02, 0x7f, 0x00, 0x00, 0x00]);
+    });
+
+    it('numbers AchievementId as the pinned Mojang enums.html does for every member it lists', () => {
+        // Mojang's enum dump covers the numbers 7 to 117. The 1.26.60 type page alone numbers
+        // 118 to 127, so those are not asserted here.
+        const values = enumDumpMembers('MinecraftEventing::AchievementIds');
+        const ours = new Map(
+            Object.entries(AchievementId).filter((entry): entry is [string, number] => typeof entry[1] === 'number')
+        );
+
+        expect(values.length).toBeGreaterThan(0);
+        for (const { name, value } of values) expect(ours.get(name)).toBe(value);
     });
 });

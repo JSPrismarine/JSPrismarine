@@ -516,7 +516,7 @@ describe('network', () => {
                     hasScripts: false,
                     forceDisableVibrantVisuals: false,
                     worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
-                    packs: []
+                    resourcePackEntries: []
                 });
             });
 

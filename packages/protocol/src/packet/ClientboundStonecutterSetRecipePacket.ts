@@ -9,16 +9,17 @@ import { clientboundStonecutterSetRecipePacket } from '../wire/definitions/added
  * declarative definition, read off Mojang's v1.26.60 release schemas. A codec older than 2225
  * has no id for it, so only a 2225 session ever builds one.
  *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-stonecutter-set-recipe-packet/
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class ClientboundStonecutterSetRecipePacket extends FieldNetworkPacket {
-    /** `playerId`. */
+    /** `Player Id`, an `ActorUniqueID` (ZigZag varint64). */
     public playerId: bigint = 0n;
 
-    /** `containerId`. */
+    /** `Container Id`, one byte. */
     public containerId: number = 0;
 
-    /** `recipeIndex`. */
+    /** `Recipe Index`, a ZigZag varint32. */
     public recipeIndex: number = 0;
     /** Writes the fields in layout order. */
     public encodePayload(): void {

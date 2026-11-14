@@ -18,8 +18,10 @@ export interface GameTestResults {
 /**
  * The outcome of a GameTest the client asked for with a `GameTestRequestPacket`.
  *
- * Protocol 2193 layout, in wire order: `Succeeded` as one byte, then `Error` and `TestName`
+ * Protocol 2193 and 2225 share one layout, in wire order: `Succeeded` as one byte, then `Error` and `TestName`
  * each as a varuint32 byte length followed by UTF-8.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/game-test-results-packet/
  */
 export default class GameTestResultsPacket extends NetworkPacket<GameTestResults> {
     public get id(): number {

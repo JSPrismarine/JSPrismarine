@@ -1,6 +1,6 @@
 /**
  * `NetworkStackLatencyPacket`: A ping the client uses for its debug latency graph.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/network-stack-latency-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/network-stack-latency-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

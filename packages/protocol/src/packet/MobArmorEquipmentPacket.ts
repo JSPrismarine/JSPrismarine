@@ -1,25 +1,13 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import { readItemStackDescriptor, writeItemStackDescriptor } from '../wire/structures/ItemStackDescriptor';
+import { mobArmorEquipmentPacket } from '../wire/definitions/mobArmorEquipment';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
-import type { ItemStackDescriptorData } from '../wire/structures/ItemStackDescriptor';
+import type { MobArmorEquipmentPayload } from '../wire/definitions/mobArmorEquipment';
 
 /** The five positional armor slots an entity can show to a client. */
-export interface MobArmorEquipment {
-    /** Runtime id of the entity wearing these items. */
-    runtimeEntityId: bigint;
-    /** Head armor. */
-    head: ItemStackDescriptorData;
-    /** Torso armor. */
-    chest: ItemStackDescriptorData;
-    /** Leg armor. */
-    legs: ItemStackDescriptorData;
-    /** Foot armor. */
-    feet: ItemStackDescriptorData;
-    /** Body armor, used by horses, llamas, and wolves. */
-    body: ItemStackDescriptorData;
-}
+export type MobArmorEquipment = MobArmorEquipmentPayload;
 
 /**
  * Sends all five worn item slots for one entity.
@@ -27,7 +15,7 @@ export interface MobArmorEquipment {
  * After the target runtime id, the packet carries head, torso, legs, feet, and body as five
  * `NetworkItemStackDescriptor` values. Empty slots are full air descriptors; omitting one
  * would shift every later slot for the client.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-armor-equipment-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/mob-armor-equipment-packet/
  */
 export default class MobArmorEquipmentPacket extends NetworkPacket<MobArmorEquipment> {
     /** Accepts payload data for sending or an encoded buffer for decoding. */
@@ -44,22 +32,10 @@ export default class MobArmorEquipmentPacket extends NetworkPacket<MobArmorEquip
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: MobArmorEquipment): void {
-        stream.writeUnsignedVarLong(data.runtimeEntityId);
-        writeItemStackDescriptor(stream, data.head);
-        writeItemStackDescriptor(stream, data.chest);
-        writeItemStackDescriptor(stream, data.legs);
-        writeItemStackDescriptor(stream, data.feet);
-        writeItemStackDescriptor(stream, data.body);
+        layoutAt(mobArmorEquipmentPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): MobArmorEquipment {
-        return {
-            runtimeEntityId: stream.readUnsignedVarLong(),
-            head: readItemStackDescriptor(stream),
-            chest: readItemStackDescriptor(stream),
-            legs: readItemStackDescriptor(stream),
-            feet: readItemStackDescriptor(stream),
-            body: readItemStackDescriptor(stream)
-        };
+        return layoutAt(mobArmorEquipmentPacket, this.codecProtocol).decode(stream);
     }
 }

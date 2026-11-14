@@ -11,7 +11,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * `ClientboundMapItemDataPacket` for the new id.
  *
  * Wire layout at protocol 2193: Original Map Id then New Map Id, both ZigZag varint64.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/map-create-locked-copy-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/map-create-locked-copy-packet/
  */
 export default class MapCreateLockedCopyPacket extends FieldNetworkPacket {
     /** Id of the map being copied. */

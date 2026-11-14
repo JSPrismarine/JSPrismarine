@@ -70,6 +70,17 @@ describe('LoginPacket', () => {
         );
     });
 
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const packet = new LoginPacket(DATA);
+        packet.codecProtocol = protocol;
+        const buffer = packet.serialize(new NetworkBinaryStream());
+        expect([...buffer]).toEqual([...BYTES]);
+
+        const reader = new LoginPacket();
+        reader.codecProtocol = protocol;
+        expect(reader.deserialize(new NetworkBinaryStream(buffer))).toEqual(DATA);
+    });
+
     it('round-trips a login', () => {
         const buffer = new LoginPacket(DATA).serialize(new NetworkBinaryStream());
         const data = new LoginPacket().deserialize(new NetworkBinaryStream(buffer));

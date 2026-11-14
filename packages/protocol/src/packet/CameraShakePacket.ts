@@ -23,7 +23,7 @@ export enum CameraShakeAction {
  * Wire order at protocol 2193: Intensity and Seconds as floats in little-endian byte order,
  * then Shake Type and Shake Action as uint8 (see {@link CameraShakeType} and
  * {@link CameraShakeAction}).
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-shake-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-shake-packet/
  */
 export default class CameraShakePacket extends FieldNetworkPacket {
     /** Intensity of the shake, clamped to 4 by the client. */

@@ -1,28 +1,19 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import Vec3 from '../structure/Vec3';
+import { addPaintingPacket } from '../wire/definitions/addPainting';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { AddPaintingPayload } from '../wire/definitions/addPainting';
 
 /** Data needed to add a painting actor to the client world. */
-export interface AddPainting {
-    /** Unique actor id assigned to the painting. */
-    targetActorId: bigint;
-    /** Runtime id used for this actor in the current session. */
-    targetRuntimeId: bigint;
-    /** Bottom-left corner of the painting. */
-    position: Vec3;
-    /** Direction the painting faces on its wall. */
-    direction: number;
-    /** Client-known painting motif, such as `Kebab`. */
-    motif: string;
-}
+export type AddPainting = AddPaintingPayload;
 
 /**
  * Adds a painting actor without a generic actor-add packet. The motif identifies both the
  * artwork and its dimensions, so no generic actor metadata accompanies the position.
  *
- * Protocol 2193 layout: `Target Actor ID` as a ZigZag varint64, `Target Runtime ID` as an
+ * Layout at protocols 2193 and 2225, which do not differ: `Target Actor ID` as a ZigZag varint64, `Target Runtime ID` as an
  * unsigned varint64, `Position` as three little-endian floats, `Direction` as a ZigZag
  * varint32, then `Motif` as a string.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-painting-packet/
@@ -33,20 +24,10 @@ export default class AddPaintingPacket extends NetworkPacket<AddPainting> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: AddPainting): void {
-        stream.writeVarLong(data.targetActorId);
-        stream.writeUnsignedVarLong(data.targetRuntimeId);
-        data.position.serialize(stream);
-        stream.writeVarInt(data.direction);
-        stream.writeString(data.motif);
+        layoutAt(addPaintingPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): AddPainting {
-        const targetActorId = stream.readVarLong();
-        const targetRuntimeId = stream.readUnsignedVarLong();
-        const position = new Vec3(0, 0, 0);
-        position.deserialize(stream);
-        const direction = stream.readVarInt();
-        const motif = stream.readString();
-        return { targetActorId, targetRuntimeId, position, direction, motif };
+        return layoutAt(addPaintingPacket, this.codecProtocol).decode(stream);
     }
 }

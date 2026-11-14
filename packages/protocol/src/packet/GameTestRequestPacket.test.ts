@@ -5,6 +5,7 @@ import BlockPos from '../structure/BlockPos';
 import GameTestRequestPacket, { Rotation } from './GameTestRequestPacket';
 
 import type { GameTestRequest } from './GameTestRequestPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 const DATA: GameTestRequest = {
     maxTestsPerBatch: 5,
@@ -66,5 +67,40 @@ describe('GameTestRequestPacket', () => {
         expect(Rotation.Clockwise90).toBe(Rotation.Rotate90);
         expect(Rotation.Clockwise180).toBe(Rotation.Rotate180);
         expect(Rotation.CounterClockwise90).toBe(Rotation.Rotate270);
+    });
+
+    it('numbers Rotation as the pinned Mojang enums.html does for every member it lists', () => {
+        const dump = enumDumpMembers('Rotation');
+
+        expect(dump.map(({ name }) => name)).toEqual([
+            'None',
+            'Rotate90',
+            'Rotate180',
+            'Rotate270',
+            'Clockwise90',
+            'Clockwise180',
+            'CounterClockwise90'
+        ]);
+        for (const { name, value } of dump) {
+            expect(Rotation[name as keyof typeof Rotation], name).toBe(value); // the dump's names are the enum's keys
+        }
+    });
+
+    it('round-trips every rotation at protocol 2193 and 2225', () => {
+        for (const protocol of [2193, 2225]) {
+            for (const rotation of [Rotation.None, Rotation.Rotate90, Rotation.Rotate180, Rotation.Rotate270]) {
+                const packet = new GameTestRequestPacket({ ...DATA, rotation });
+                packet.codecProtocol = protocol;
+                const buffer = packet.serialize(new NetworkBinaryStream());
+                const reader = new GameTestRequestPacket();
+                reader.codecProtocol = protocol;
+
+                expect(reader.deserialize(new NetworkBinaryStream(buffer)), `${protocol}`).toEqual({
+                    ...DATA,
+                    rotation
+                });
+                expect(buffer[4]).toBe(rotation); // after the two-byte header and two one-byte varints
+            }
+        }
     });
 });

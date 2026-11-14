@@ -11,16 +11,15 @@ const bytes = Buffer.from('d704', 'hex');
 const payload = { lastHurtBy: -300 };
 
 describe('the declarative SetLastHurtBy layout', () => {
-    const layout = layoutAt(setLastHurtByPacket, 2193);
-
-    it('writes the bytes the hand-written encoder wrote', () => {
+    // 1.26.60 adds ActorType members, not fields: both versions write the same bytes.
+    it.each([2193, 2225])('writes the bytes the hand-written encoder wrote at %i', (version) => {
         const stream = new BinaryStream();
-        layout.encode(stream, payload);
+        layoutAt(setLastHurtByPacket, version).encode(stream, payload);
 
         expect(stream.getBuffer()).toEqual(bytes);
     });
 
-    it('reads those bytes back', () => {
-        expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
+    it.each([2193, 2225])('reads those bytes back at %i', (version) => {
+        expect(layoutAt(setLastHurtByPacket, version).decode(new BinaryStream(bytes))).toEqual(payload);
     });
 });

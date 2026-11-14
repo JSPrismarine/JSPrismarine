@@ -42,4 +42,25 @@ describe('UpdateBlockSyncedPacket', () => {
         expect(data.actorSyncMessage).toBe(ActorSyncMessage.BlockToEntity);
         expect(stream.feof()).toBe(true);
     });
+
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const data = {
+            blockPosition: new BlockPos(1, 2, 3),
+            blockRuntimeId: 300,
+            flags: 3,
+            layer: 1,
+            uniqueActorId: 5n,
+            actorSyncMessage: ActorSyncMessage.BlockToEntity
+        };
+        const packet = new UpdateBlockSyncedPacket(data);
+        packet.codecProtocol = protocol;
+        const written = packet.serialize(new NetworkBinaryStream());
+
+        expect(written).toEqual(ENCODED);
+
+        const reader = new UpdateBlockSyncedPacket();
+        reader.codecProtocol = protocol;
+
+        expect(reader.deserialize(new NetworkBinaryStream(written))).toEqual(data);
+    });
 });

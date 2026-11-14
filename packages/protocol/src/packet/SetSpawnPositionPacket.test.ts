@@ -1,9 +1,11 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { layoutAt, setSpawnPositionPacket } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
 import SetSpawnPositionPacket, { SpawnPositionType } from './SetSpawnPositionPacket';
 import type { SetSpawnPositionPayload } from './SetSpawnPositionPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /** Builds the documented 2193 layout independently of the packet encoder. */
 const wireBytes = (data: SetSpawnPositionPayload): Buffer => {
@@ -57,5 +59,38 @@ describe('SetSpawnPositionPacket', () => {
         packet.encode();
 
         expect([...packet.getBuffer()]).toEqual(expectedBytes);
+    });
+});
+
+describe.each([2193, 2225])('SetSpawnPositionPacket against a real server capture at protocol %i', (protocol) => {
+    const captured = capture(protocol, 0x2b);
+    const layout = layoutAt(setSpawnPositionPacket, protocol);
+
+    it('re-encodes the captured payload byte for byte', () => {
+        const decoded = layout.decode(new BinaryStream(captured));
+        const stream = new BinaryStream();
+        layout.encode(stream, decoded);
+
+        expect(stream.getBuffer()).toEqual(captured);
+    });
+
+    it('decodes the captured Dedicated Server values', () => {
+        // The capture is PlayerRespawn, extreme signed block positions, and dimension 3.
+        const edge = { x: -(2 ** 31), y: -(2 ** 31), z: -(2 ** 31) };
+        expect(layout.decode(new BinaryStream(captured))).toEqual({
+            type: SpawnPositionType.PlayerRespawn,
+            position: edge,
+            dimension: 3,
+            blockPosition: edge
+        });
+    });
+});
+
+describe.each([2193, 2225])('the declarative SetSpawnPosition layout at protocol %i', (protocol) => {
+    it('writes the documented bytes without the packet header', () => {
+        const stream = new BinaryStream();
+        layoutAt(setSpawnPositionPacket, protocol).encode(stream, worldSpawn);
+
+        expect([...stream.getBuffer()]).toEqual(expectedBytes.slice(1));
     });
 });

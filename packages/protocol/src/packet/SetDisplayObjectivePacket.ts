@@ -20,7 +20,7 @@ export enum ObjectiveSortOrder {
  * The wire layout lives in `@jsprismarine/protocol`'s `setDisplayObjectivePacket` definition:
  * DisplaySlotName, ObjectiveName, ObjectiveDisplayName and CriteriaName as strings, then
  * SortOrder as a ZigZag varint32.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-display-objective-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-display-objective-packet/
  */
 export default class SetDisplayObjectivePacket extends FieldNetworkPacket {
     /** Where the objective is shown: `list`, `sidebar` or `belowname`. */

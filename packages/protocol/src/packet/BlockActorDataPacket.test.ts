@@ -65,4 +65,15 @@ describe('BlockActorDataPacket', () => {
 
         expect(stream.getBuffer()).toEqual(expected.getBuffer());
     });
+
+    it.each([2193, 2225])('round-trips the same bytes at protocol %i', (protocol) => {
+        const layout = layoutAt(blockActorDataPacket, protocol);
+        const stream = new BinaryStream();
+        layout.encode(stream, { position: { x: 1, y: 2, z: 3 }, actorDataTags: signTags() });
+
+        expect(stream.getBuffer()).toEqual(encoded.subarray(1));
+        const decoded = layout.decode(new BinaryStream(stream.getBuffer()));
+        expect(decoded.position).toEqual({ x: 1, y: 2, z: 3 });
+        expect(decoded.actorDataTags.getString('id', '')).toBe('Sign');
+    });
 });

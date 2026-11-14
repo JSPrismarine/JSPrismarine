@@ -1,28 +1,13 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { PlayerVideoCaptureAction, playerVideoCapturePacket } from '../wire/definitions/playerVideoCapture';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { PlayerVideoCapture } from '../wire/definitions/playerVideoCapture';
 
-/** Which alternative a `PlayerVideoCapturePacket` carries, as the byte that opens the payload. */
-export enum PlayerVideoCaptureAction {
-    /** `Stop Video Capture`: no further fields. */
-    STOP = 0,
-    /** `Start Video Capture`: `FrameRate` and `FilePrefix` follow. */
-    START = 1
-}
-
-/** The fields of a `PlayerVideoCapturePacket`. `action` picks the alternative and its fields. */
-export type PlayerVideoCapture =
-    | {
-          action: PlayerVideoCaptureAction.START;
-          /** `FrameRate` of the capture, a little-endian uint32. */
-          frameRate: number;
-          /** `FilePrefix` for the frame files the client writes. */
-          filePrefix: string;
-      }
-    | {
-          action: PlayerVideoCaptureAction.STOP;
-      };
+export { PlayerVideoCaptureAction };
+export type { PlayerVideoCapture };
 
 /**
  * Starts or stops video capture on the client. Mojang marks the packet internal; a test
@@ -37,6 +22,8 @@ export type PlayerVideoCapture =
  * so the wire is a bool (true means start) followed by the start fields, as gophertunnel and
  * PocketMine write it at 2193. The client reads the byte as a bool, so any non-zero value
  * starts a capture.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-video-capture-packet/
  */
 export default class PlayerVideoCapturePacket extends NetworkPacket<PlayerVideoCapture> {
     public get id(): number {
@@ -44,21 +31,10 @@ export default class PlayerVideoCapturePacket extends NetworkPacket<PlayerVideoC
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: PlayerVideoCapture): void {
-        stream.writeByte(data.action);
-
-        if (data.action === PlayerVideoCaptureAction.STOP) return;
-
-        stream.writeUnsignedIntLE(data.frameRate);
-        stream.writeString(data.filePrefix);
+        layoutAt(playerVideoCapturePacket, this.codecProtocol).encode(stream, { capture: data });
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): PlayerVideoCapture {
-        if (!stream.readBoolean()) return { action: PlayerVideoCaptureAction.STOP };
-
-        return {
-            action: PlayerVideoCaptureAction.START,
-            frameRate: stream.readUnsignedIntLE(),
-            filePrefix: stream.readString()
-        };
+        return layoutAt(playerVideoCapturePacket, this.codecProtocol).decode(stream).capture;
     }
 }

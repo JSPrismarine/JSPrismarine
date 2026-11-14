@@ -1,13 +1,14 @@
-import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
+import { NBTTagCompound } from '@jsprismarine/nbt';
+
+import {
+    PositionTrackingDBServerBroadcastAction,
+    positionTrackingDBServerBroadcastPacket
+} from '../wire/definitions/positionTrackingDBServerBroadcast';
+import { layoutAt } from '../wire/WireLayout';
 
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
-/** The result of a position tracking lookup, as the Action uint8 numbers it. */
-export enum PositionTrackingDBServerBroadcastAction {
-    Update = 0,
-    Destroy = 1,
-    NotFound = 2
-}
+export { PositionTrackingDBServerBroadcastAction };
 
 /**
  * The answer to a `PositionTrackingDBClientRequestPacket`.
@@ -17,12 +18,12 @@ export enum PositionTrackingDBServerBroadcastAction {
  * at the position an Update carries and spins once a Destroy or a NotFound says the lodestone
  * is gone.
  *
- * Wire order at protocol 2193: Action as a uint8 (see
+ * The wire layout lives in the declarative definition this class walks: Action as a uint8 (see
  * {@link PositionTrackingDBServerBroadcastAction}), Id as a `PositionTrackingId` (ZigZag
  * varint32), then Position tracking data as one network NBT compound. The compound holds
  * `version` (byte), `id` (string), `pos` (list of three ints), `dim` (int), and `status`
  * (byte).
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/position-tracking-dbserver-broadcast-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/position-tracking-dbserver-broadcast-packet/
  */
 export default class PositionTrackingDBServerBroadcastPacket extends FieldNetworkPacket {
     /** Action: what became of the tracked position. */
@@ -36,15 +37,11 @@ export default class PositionTrackingDBServerBroadcastPacket extends FieldNetwor
 
     /** Reads the action, the tracking id, and the record compound. */
     public decodePayload(): void {
-        this.action = this.readByte();
-        this.id = this.readVarInt();
-        this.positionTrackingData = NBTTagCompound.readFromStream(this, ByteOrder.LITTLE_ENDIAN, true);
+        Object.assign(this, layoutAt(positionTrackingDBServerBroadcastPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the action, the tracking id, and the record compound. */
     public encodePayload(): void {
-        this.writeByte(this.action);
-        this.writeVarInt(this.id);
-        this.positionTrackingData.writeToStream(this, ByteOrder.LITTLE_ENDIAN, true);
+        layoutAt(positionTrackingDBServerBroadcastPacket, this.codecProtocol).encode(this, this);
     }
 }

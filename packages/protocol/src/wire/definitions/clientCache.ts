@@ -1,7 +1,7 @@
 /**
  * `ClientCacheStatusPacket`: whether the client keeps a blob cache of chunk and block entity
  * data. The client sends this once after login.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-status-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/client-cache-status-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

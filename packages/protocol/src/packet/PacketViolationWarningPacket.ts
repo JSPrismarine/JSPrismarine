@@ -6,9 +6,11 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
 /**
  * What the client objected to, as the Violation Type varint32 numbers it.
  *
- * The numbering starts at -1. The 1.26.51 page prints the members from 0, and its
- * 1.26.60-preview.21 changelog then "moves" Unknown to -1 and PacketMalformed to 0, which are
- * the values gophertunnel has used since the packet appeared.
+ * The numbering starts at -1 at both protocol versions. The 1.26.50 page prints the members from
+ * 0, and the 1.26.60 page prints them from -1 with a changelog row that "moves" them; Mojang's
+ * pinned enum dump from the 1.26.40 build (`packages/minecraft/datagen/snapshot/0e00fe80f4f3-enums.html`)
+ * already numbers them from -1, so the 1.26.50 page is the documentation being corrected, not a
+ * wire change (see `docs/research/protocol-2225-delta.md`).
  */
 export enum PacketViolationType {
     Unknown = -1,
@@ -36,7 +38,7 @@ export enum PacketViolationSeverity {
  * says whether it will keep the connection. It is the only word the server gets about a
  * malformed clientbound packet, so a join that stalls after a given packet shows up here first.
  *
- * Protocol 2193 layout (docs id 156), in wire order:
+ * Layout at protocol 2193 and 2225 (docs id 156), in wire order:
  *
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
@@ -44,7 +46,7 @@ export enum PacketViolationSeverity {
  * | Violation Severity | varint32 | ZigZag; one of {@link PacketViolationSeverity} |
  * | Violation PacketId | varint32 | ZigZag; the id of the packet the client rejected |
  * | Violation Context | string | The client's own description of what went wrong |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/packet-violation-warning-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/packet-violation-warning-packet/
  */
 export default class PacketViolationWarningPacket extends FieldNetworkPacket {
     /** Violation Type: what kind of problem the client found. */

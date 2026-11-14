@@ -13,13 +13,21 @@ describe('ClientMovementPredictionSyncHandler', () => {
         const logged: string[] = [];
         const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
         const session = stub<PlayerSession>({ identity: STEVE });
-        const packet = Object.assign(new ClientMovementPredictionSyncPacket(), {
-            actorUniqueId: 5n,
-            movementSpeed: 0.1,
-            jumpStrength: 0.42,
+        const packet = new ClientMovementPredictionSyncPacket({
+            actorFlags: 0x101n,
+            boundingBoxScale: 1,
             boundingBoxWidth: 0.6,
             boundingBoxHeight: 1.8,
-            actorFlags: 0x101n,
+            movementSpeed: 0.1,
+            underwaterMovementSpeed: 0,
+            lavaMovementSpeed: 0,
+            jumpStrength: 0.42,
+            health: 20,
+            hunger: 20,
+            frictionModifier: 0,
+            bounciness: 0,
+            airDragModifier: 0,
+            actorUniqueId: 5n,
             actorFlyingState: true
         });
 

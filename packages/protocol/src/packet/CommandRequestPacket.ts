@@ -16,7 +16,7 @@ import type CommandOriginData from '../wire/structures/CommandOriginData';
  * so the member name travels rather than its number.
  *
  * **Bound To:** Server
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/command-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/command-request-packet/
  */
 export default class CommandRequestPacket extends NetworkPacket<CommandRequestPayload> {
     /** Accepts payload data for sending or an encoded buffer for decoding. */

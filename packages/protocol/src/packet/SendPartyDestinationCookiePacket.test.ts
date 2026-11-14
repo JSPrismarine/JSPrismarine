@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { sendPartyDestinationCookiePacket } from '../wire/definitions/sendPartyDestinationCookie';
+import { layoutAt } from '../wire/WireLayout';
 import SendPartyDestinationCookiePacket, { PartyDestinationCookieIntent } from './SendPartyDestinationCookiePacket';
 
 import type { SendPartyDestinationCookie } from './SendPartyDestinationCookiePacket';
@@ -40,5 +42,24 @@ describe('SendPartyDestinationCookiePacket', () => {
         );
 
         expect(() => new SendPartyDestinationCookiePacket().deserialize(stream)).toThrow(/intent "notify"/);
+    });
+});
+
+describe.each([2193, 2225] as const)('the SendPartyDestinationCookie layout at %i', (protocol) => {
+    const layout = layoutAt(sendPartyDestinationCookiePacket, protocol);
+    const body = BYTES.subarray(2);
+
+    it('writes the same bytes at both versions, as the 1.26.50 and 1.26.60 pages list them', () => {
+        const stream = new NetworkBinaryStream();
+        layout.encode(stream, DATA);
+
+        expect([...stream.getBuffer()]).toEqual([...body]);
+    });
+
+    it('reads those bytes back to the end', () => {
+        const stream = new NetworkBinaryStream(body);
+
+        expect(layout.decode(stream)).toEqual(DATA);
+        expect(stream.feof()).toBe(true);
     });
 });

@@ -19,8 +19,8 @@ const payload = {
     overlay: 2
 };
 
-describe('the declarative BossEvent layout', () => {
-    const layout = layoutAt(bossEventPacket, 2193);
+describe.each([2193, 2225])('the declarative BossEvent layout at protocol %i', (protocol) => {
+    const layout = layoutAt(bossEventPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

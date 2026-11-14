@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { PacketIdentifier } from '../PacketIdentifier';
+import { cameraAimAssistActorPriorityPacket } from '../wire/definitions/cameraAimAssistActorPriority';
+import { packetIds as packetIds2193 } from '../wire/versions/v2193';
+import { packetIds as packetIds2225 } from '../wire/versions/v2225';
+import { layoutAt } from '../wire/WireLayout';
 import CameraAimAssistActorPriorityPacket from './CameraAimAssistActorPriorityPacket';
 
 import type { CameraAimAssistActorPriority } from './CameraAimAssistActorPriorityPacket';
@@ -60,5 +65,21 @@ describe('CameraAimAssistActorPriorityPacket', () => {
 
         expect(data).toEqual({ priorities: [] });
         expect(stream.feof()).toBe(true);
+    });
+
+    it.each([2193, 2225])('encodes the same payload bytes at protocol %i', (protocol) => {
+        const layout = layoutAt(cameraAimAssistActorPriorityPacket, protocol);
+        const stream = new NetworkBinaryStream();
+        layout.encode(stream, DATA);
+        const payload = BYTES.subarray(2);
+
+        expect([...stream.getBuffer()]).toEqual([...payload]);
+        expect(layout.decode(new NetworkBinaryStream(payload))).toEqual(DATA);
+    });
+
+    it('uses packet id 339 at both protocols', () => {
+        expect(PacketIdentifier.CAMERA_AIM_ASSIST_ACTOR_PRIORITY).toBe(339);
+        expect(packetIds2193.CameraAimAssistActorPriorityPacket).toBe(339);
+        expect(packetIds2225.CameraAimAssistActorPriorityPacket).toBe(339);
     });
 });

@@ -7,8 +7,8 @@ const BYTES = Buffer.from('ac020c', 'hex');
 
 const payload = { itemRuntimeEntityId: 300n, takerRuntimeEntityId: 12n };
 
-describe('the declarative TakeItemActor layout', () => {
-    const layout = layoutAt(takeItemActorPacket, 2193);
+describe.each([2193, 2225])('the declarative TakeItemActor layout at %i', (version) => {
+    const layout = layoutAt(takeItemActorPacket, version);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

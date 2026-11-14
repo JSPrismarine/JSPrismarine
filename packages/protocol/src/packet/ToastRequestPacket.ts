@@ -18,7 +18,9 @@ export interface ToastRequest {
  * achievements and friend activity.
  *
  * Protocol 2193 layout, in wire order: `Title` then `Content`, both strings. Strings are a
- * varuint32 byte length followed by UTF-8.
+ * varuint32 byte length followed by UTF-8. Protocol 2225 changes nothing.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/toast-request-packet/
  */
 export default class ToastRequestPacket extends NetworkPacket<ToastRequest> {
     public get id(): number {

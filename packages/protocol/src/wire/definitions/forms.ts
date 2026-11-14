@@ -23,9 +23,9 @@ export type ModalFormRequestPayload = PayloadOf<typeof modalFormRequestPacket>;
  * The `ModalFormResponsePacket` field list.
  *
  * A submitted form carries the JSON and no reason; a dismissed one carries the reason and no
- * JSON. The 1.26.51 metadata lists both as plain required fields, but the client has written
- * each behind a presence byte since 1.19.30, and the 1.26.60 preview changelog marks them
- * optional. The presence bytes are what a real client sends.
+ * JSON. The 1.26.50 page lists both as plain fields and the 1.26.60 page marks both optional;
+ * Mojang's note for that build says it corrected the docs to the engine, so both versions keep
+ * the presence bytes (`docs/research/protocol-2225-delta.md`).
  */
 export const modalFormResponsePacket = definePacket('ModalFormResponsePacket', {
     /** `Form ID`: the id the server chose when it sent the form. */

@@ -60,4 +60,32 @@ describe('MoveActorDeltaPacket', () => {
             Buffer.from([0x6f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         );
     });
+
+    it.each([2193, 2225])('lays out the same bytes at protocol %i', (protocol) => {
+        const payload = {
+            runtimeEntityId: 10n,
+            positionX: 1.5,
+            positionY: undefined,
+            positionZ: -2,
+            pitch: undefined,
+            yaw: 90,
+            headYaw: undefined,
+            isOnGround: true,
+            forceMove: false,
+            forceMoveLocalEntity: false,
+            forceCompletion: true,
+            ticks: 3n
+        };
+        const packet = Object.assign(new MoveActorDeltaPacket(), payload);
+        packet.codecProtocol = protocol;
+        packet.encode();
+
+        expect(packet.getBuffer()).toEqual(ENCODED);
+
+        const decoded = new MoveActorDeltaPacket(ENCODED);
+        decoded.codecProtocol = protocol;
+        decoded.decode();
+        expect(decoded).toMatchObject(payload);
+        expect(decoded.feof()).toBe(true);
+    });
 });

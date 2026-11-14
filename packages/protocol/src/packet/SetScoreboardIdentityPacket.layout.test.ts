@@ -15,8 +15,8 @@ const payload = {
     entries: [{ scoreboardId: -5n, playerUniqueId: -9007199254740993n }, { scoreboardId: 2n }]
 };
 
-describe('the declarative SetScoreboardIdentity layout', () => {
-    const layout = layoutAt(setScoreboardIdentityPacket, 2193);
+describe.each([2193, 2225])('the declarative SetScoreboardIdentity layout at protocol %i', (protocol) => {
+    const layout = layoutAt(setScoreboardIdentityPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

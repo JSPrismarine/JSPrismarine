@@ -1,21 +1,22 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import PlayerPartyInfo from '../structure/PlayerPartyInfo';
+import { partyChangedPacket } from '../wire/definitions/partyChanged';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { PartyChangedPayload } from '../wire/definitions/partyChanged';
 
 /** The fields of a `PartyChangedPacket`, in wire order. */
-export interface PartyChanged {
-    /** `party_info`, the party the client is now in and whether it leads it. */
-    partyInfo: PlayerPartyInfo;
-}
+export type PartyChanged = PartyChangedPayload;
 
 /**
  * The client reporting that its platform party changed.
  *
- * Protocol 2193 layout, in wire order: `party_info` as a {@link PlayerPartyInfo}, that is
- * `party_id` as a string then `is_party_leader` as one byte. At 2193 the field is required
- * and has no presence byte; 1.26.60-preview.21 (protocol 2207) made it optional.
+ * Layout at protocols 2193 and 2225, in wire order: `party_info` as an optional
+ * `PlayerPartyInfo`, that is a presence byte, then `party_id` as a string and `is_party_leader`
+ * as one byte when present. See `wire/definitions/partyChanged.ts` for why 2193 carries the
+ * presence byte.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/party-changed-packet/
  */
 export default class PartyChangedPacket extends NetworkPacket<PartyChanged> {
     public get id(): number {
@@ -23,10 +24,10 @@ export default class PartyChangedPacket extends NetworkPacket<PartyChanged> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: PartyChanged): void {
-        data.partyInfo.serialize(stream);
+        layoutAt(partyChangedPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): PartyChanged {
-        return { partyInfo: PlayerPartyInfo.deserialize(stream) };
+        return layoutAt(partyChangedPacket, this.codecProtocol).decode(stream);
     }
 }

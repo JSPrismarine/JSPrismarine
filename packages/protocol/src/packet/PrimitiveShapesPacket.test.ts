@@ -93,3 +93,75 @@ describe('PrimitiveShapesPacket', () => {
         expect(stream.feof()).toBe(true);
     });
 });
+
+/** A text shape and a half-filled arrow, written by hand in the order both docs pages list the fields. */
+const TEXT_AND_ARROW: PrimitiveShapes = {
+    shapes: [
+        new PrimitiveShapeData({
+            networkId: 3n,
+            shapeType: PrimitiveShapeType.Text,
+            dimensionId: Dimension.NETHER,
+            extraData: {
+                type: PrimitiveShapeExtraDataType.Text,
+                text: 'hi',
+                useRotation: true,
+                backgroundColor: 0xff000000,
+                lineGapHeight: 1.5,
+                depthTest: true,
+                showBackface: false,
+                showTextBackface: true
+            }
+        }),
+        new PrimitiveShapeData({
+            networkId: 4n,
+            shapeType: PrimitiveShapeType.Arrow,
+            extraData: { type: PrimitiveShapeExtraDataType.Arrow, endLocation: new Vec3(1, 2, 3), segments: 8 }
+        })
+    ]
+};
+
+const TEXT_AND_ARROW_BYTES = Buffer.from([
+    ...HEADER,
+    0x02, // shape count
+    // Text shape.
+    0x03, // NetworkId 3
+    ...[0x01, 0x04], // Shape Type present, Text
+    ...Array.from({ length: 6 }, () => 0x00), // Location, Scale, Rotation, Total Time Left, Max Render Distance, Color absent
+    ...[0x01, 0x02], // Dimension ID present, 1 (Nether) as a ZigZag varint32
+    0x00, // Attached To Entity ID absent
+    0x02, // Extra Shape Data selector: TextDataPayload
+    ...[0x02, 0x68, 0x69], // Text "hi"
+    0x01, // UseRotation
+    ...[0x01, 0x00, 0x00, 0x00, 0xff], // BackgroundColor present, 0xff000000 little-endian
+    ...floatLE(1.5), // LineGapHeight
+    0x01, // DepthTest
+    0x00, // ShowBackface
+    0x01, // ShowTextBackface
+    // Arrow shape.
+    0x04, // NetworkId 4
+    ...[0x01, 0x05], // Shape Type present, Arrow
+    ...Array.from({ length: 8 }, () => 0x00), // every other optional absent
+    0x01, // Extra Shape Data selector: ArrowDataPayload
+    ...[0x01, ...floatLE(1), ...floatLE(2), ...floatLE(3)], // Arrow End Location present
+    0x00, // Arrow Head Length absent
+    0x00, // Arrow Head Radius absent
+    ...[0x01, 0x08] // Num Segments present, 8
+]);
+
+describe.each([2193, 2225])('PrimitiveShapesPacket at protocol %i', (protocol) => {
+    it('writes the same bytes at both protocols', () => {
+        const packet = new PrimitiveShapesPacket(TEXT_AND_ARROW);
+        packet.codecProtocol = protocol;
+
+        expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...TEXT_AND_ARROW_BYTES]);
+    });
+
+    it('reads them back to the end', () => {
+        const packet = new PrimitiveShapesPacket();
+        packet.codecProtocol = protocol;
+        const stream = new NetworkBinaryStream(TEXT_AND_ARROW_BYTES);
+
+        expect(packet.deserialize(stream)).toEqual(TEXT_AND_ARROW);
+        expect(stream.feof()).toBe(true);
+    });
+});

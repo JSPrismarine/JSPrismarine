@@ -1,9 +1,13 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { layoutAt } from '../wire/WireLayout';
+import { syncWorldClocksPacket } from '../wire/definitions/syncWorldClocks';
 import SyncWorldClocksPacket, { SyncWorldClocksDataType } from './SyncWorldClocksPacket';
 
 import type { SyncWorldClocks } from './SyncWorldClocksPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /** Header bytes: 344 as a varuint32. */
 const HEADER = [0xd8, 0x02];
@@ -36,6 +40,7 @@ const INITIALIZE_BYTES = Buffer.from([
     ...[0xac, 0x02], // marker Id 300, varuint64
     ...[0x04, 0x6e, 0x6f, 0x6f, 0x6e], // marker Name "noon"
     ...[0xe0, 0x5d], // marker Time 6000, ZigZag varint32 (12000)
+    0x01, // marker Period is present
     ...[0xc0, 0x5d, 0x00, 0x00] // marker Period 24000, little-endian int32
 ]);
 
@@ -78,7 +83,8 @@ const ADD: SyncWorldClocks = {
         clockId: 0xffffffffffffffffn,
         timeMarkers: [
             { id: 1n, name: 'dawn', time: 0, period: 24000 },
-            { id: 2n, name: 'dusk', time: 12000, period: -1 }
+            { id: 2n, name: 'dusk', time: 12000, period: -1 },
+            { id: 3n, name: 'night', time: 13000, period: null }
         ]
     }
 };
@@ -113,7 +119,7 @@ describe('SyncWorldClocksPacket', () => {
         expect(stream.feof()).toBe(true);
     });
 
-    it('round-trips AddTimeMarkerData with a full 64-bit clock id and a negative period', () => {
+    it('round-trips AddTimeMarkerData with a full 64-bit clock id, a negative period and an absent one', () => {
         expect(roundTrip(ADD)).toEqual(ADD);
     });
 
@@ -126,6 +132,34 @@ describe('SyncWorldClocksPacket', () => {
     it('rejects a selector the schema does not define', () => {
         const stream = new NetworkBinaryStream(Buffer.from([...HEADER, 0x04]));
 
-        expect(() => new SyncWorldClocksPacket().deserialize(stream)).toThrow(/data variant 4/);
+        expect(() => new SyncWorldClocksPacket().deserialize(stream)).toThrow(/data type 4/);
+    });
+
+    it('writes an absent marker Period as a single zero presence byte', () => {
+        const absent: SyncWorldClocks = {
+            data: {
+                type: SyncWorldClocksDataType.AddTimeMarker,
+                clockId: 1n,
+                timeMarkers: [{ id: 2n, name: 'a', time: 0, period: null }]
+            }
+        };
+        const stream = new BinaryStream();
+        layoutAt(syncWorldClocksPacket, 2193).encode(stream, absent);
+
+        expect([...stream.getBuffer()]).toEqual([0x02, 0x01, 0x01, 0x02, 0x01, 0x61, 0x00, 0x00]);
+    });
+
+    describe.each([2193, 2225])('against the real server capture at protocol %i', (protocol) => {
+        const captured = capture(protocol, 0x158);
+
+        it('decodes the SyncStateData a Bedrock Dedicated Server sent and re-encodes it byte for byte', () => {
+            const layout = layoutAt(syncWorldClocksPacket, protocol);
+            const decoded = layout.decode(new BinaryStream(captured));
+            const out = new BinaryStream();
+            layout.encode(out, decoded);
+
+            expect(decoded.data.type).toBe(SyncWorldClocksDataType.SyncState);
+            expect(out.getBuffer()).toEqual(captured);
+        });
     });
 });

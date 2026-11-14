@@ -8,8 +8,8 @@
  * places across its own command set.
  *
  * The table is numbered in its own index space, separate from both the hard and the soft enum
- * tables, even though a parameter refers to it with the same `Enum` and `Valid` flags. The
- * `EnumAsChainedCommand` option bit is what tells a client which space the index is in.
+ * tables. A parameter refers to it with the `Chained` and `Valid` flags and the
+ * `EnumAsChainedCommand` option bit.
  */
 export class CommandChainedSubcommand {
     /** The table's name, which Mojang spells `EXECUTECHAINEDOPTION_0`. */

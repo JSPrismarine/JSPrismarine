@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import Vec3 from '../structure/Vec3';
+import { layoutAt } from '../wire/WireLayout';
+import { correctPlayerMovePredictionPacket } from '../wire/definitions/correctPlayerMovePrediction';
 import CorrectPlayerMovePredictionPacket, { RewindType } from './CorrectPlayerMovePredictionPacket';
 
 const f32 = (value: number): number[] => {
@@ -95,5 +97,21 @@ describe('CorrectPlayerMovePredictionPacket', () => {
 
         expect(decoded).toEqual(vehicleData);
         expect(stream.feof()).toBe(true);
+    });
+
+    it.each([2193, 2225])('encodes and decodes the same bytes at protocol %i', (protocol) => {
+        for (const [data, wire] of [
+            [playerData, PLAYER_CORRECTION],
+            [vehicleData, VEHICLE_CORRECTION]
+        ] as const) {
+            const stream = new NetworkBinaryStream();
+            layoutAt(correctPlayerMovePredictionPacket, protocol).encode(stream, data);
+            // The packet buffer starts with the two-byte varuint id 161.
+            expect(stream.getBuffer()).toEqual(wire.subarray(2));
+            const decoded = layoutAt(correctPlayerMovePredictionPacket, protocol).decode(
+                new NetworkBinaryStream(wire.subarray(2))
+            );
+            expect(decoded).toEqual(data);
+        }
     });
 });

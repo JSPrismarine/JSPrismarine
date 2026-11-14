@@ -1,33 +1,16 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { sendPartyDestinationCookiePacket } from '../wire/definitions/sendPartyDestinationCookie';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { SendPartyDestinationCookiePayload } from '../wire/definitions/sendPartyDestinationCookie';
 
-/**
- * `PartyDestinationCookieIntent`: why the server hands the client a cookie. The schema types
- * it as an int8 without `Enum-as-Value`, so Cereal writes the member name as a string, which
- * is what gophertunnel at protocol 2193 sends. Mojang's enum table numbers the members
- * `Notify` 0, `OptIn` 1 and `OptOut` 2; those numbers never reach the wire.
- */
-export enum PartyDestinationCookieIntent {
-    Notify = 'Notify',
-    OptIn = 'OptIn',
-    OptOut = 'OptOut'
-}
-
-const INTENT_NAMES: readonly string[] = Object.values(PartyDestinationCookieIntent);
-
-const isIntent = (name: string): name is PartyDestinationCookieIntent => INTENT_NAMES.includes(name);
+import { PartyDestinationCookieIntent } from '../wire/definitions/sendPartyDestinationCookie';
+export { PartyDestinationCookieIntent };
 
 /** The fields of a `SendPartyDestinationCookiePacket`, in wire order. */
-export interface SendPartyDestinationCookie {
-    /** `cookie`: the opaque party destination cookie, at most 2048 bytes. */
-    cookie: string;
-    /** `intent`. */
-    intent: PartyDestinationCookieIntent;
-    /** `destination_name`: the destination the cookie refers to, at most 64 bytes. */
-    destinationName: string;
-}
+export type SendPartyDestinationCookie = SendPartyDestinationCookiePayload;
 
 /**
  * Hands the client a party destination cookie. The client answers with a
@@ -43,9 +26,7 @@ export default class SendPartyDestinationCookiePacket extends NetworkPacket<Send
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: SendPartyDestinationCookie): void {
-        stream.writeString(data.cookie);
-        stream.writeString(data.intent);
-        stream.writeString(data.destinationName);
+        layoutAt(sendPartyDestinationCookiePacket, this.codecProtocol).encode(stream, data);
     }
 
     /**
@@ -53,11 +34,6 @@ export default class SendPartyDestinationCookiePacket extends NetworkPacket<Send
      * @throws when `intent` is not one of the three member names.
      */
     protected deserializePayload(stream: NetworkBinaryStream): SendPartyDestinationCookie {
-        const cookie = stream.readString();
-        const intent = stream.readString();
-        if (!isIntent(intent)) throw new Error(`Unknown party destination cookie intent "${intent}"`);
-        const destinationName = stream.readString();
-
-        return { cookie, intent, destinationName };
+        return layoutAt(sendPartyDestinationCookiePacket, this.codecProtocol).decode(stream);
     }
 }

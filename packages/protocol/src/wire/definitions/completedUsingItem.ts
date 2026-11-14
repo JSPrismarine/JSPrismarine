@@ -1,7 +1,7 @@
 /**
  * `CompletedUsingItemPacket`: The end of a use that takes time, such as finishing a drink or a
  * meal.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/completed-using-item-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/completed-using-item-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

@@ -30,4 +30,10 @@ describe('MultiplayerSettingsPacket', () => {
         expect(packet.packetType).toBe(MultiplayerSettingsPacketType.DisableMultiplayer);
         expect(packet.feof()).toBe(true);
     });
+
+    it('numbers the setting as the 1.26.50 and 1.26.60 enum pages do', () => {
+        expect(MultiplayerSettingsPacketType.EnableMultiplayer).toBe(0);
+        expect(MultiplayerSettingsPacketType.DisableMultiplayer).toBe(1);
+        expect(MultiplayerSettingsPacketType.RefreshJoincode).toBe(2);
+    });
 });

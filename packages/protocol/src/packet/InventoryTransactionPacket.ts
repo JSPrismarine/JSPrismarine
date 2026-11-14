@@ -37,7 +37,6 @@ export interface InventoryTransaction {
  * 2225 adds a `Hand` field to use-on-actor and release-item transaction bodies. The packet data
  * presented to callers is normalized across that layout change.
  *
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/inventory-transaction-packet/
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/inventory-transaction-packet/
  */
 export default class InventoryTransactionPacket extends NetworkPacket<InventoryTransaction> {

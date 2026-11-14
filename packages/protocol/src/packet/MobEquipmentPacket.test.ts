@@ -27,4 +27,17 @@ describe('MobEquipmentPacket', () => {
         expect(packet.getPacketData()).toEqual(data);
         expect(packet.feof()).toBe(true);
     });
+
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const encoded = new MobEquipmentPacket(data);
+        encoded.codecProtocol = protocol;
+        encoded.encode();
+        expect([...encoded.getBuffer()]).toEqual([0x1f, 0xac, 0x02, ...new Array<number>(8).fill(0), 8, 8, 0]);
+
+        const decoded = new MobEquipmentPacket(null, encoded.getBuffer());
+        decoded.codecProtocol = protocol;
+        decoded.decode();
+        expect(decoded.getPacketData()).toEqual(data);
+        expect(decoded.feof()).toBe(true);
+    });
 });

@@ -7,6 +7,7 @@ import CameraAimAssistPresetDefinition from '../structure/CameraAimAssistPresetD
 import CameraAimAssistPresetsPacket, { CameraAimAssistPresetsOperation } from './CameraAimAssistPresetsPacket';
 
 import type { CameraAimAssistPresets } from './CameraAimAssistPresetsPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /** One category "mobs" and one preset "ns:p" that uses it for an empty hand, replacing the registry. */
 const DATA: CameraAimAssistPresets = {
@@ -121,5 +122,32 @@ describe('CameraAimAssistPresetsPacket', () => {
 
         expect(new CameraAimAssistPresetsPacket().deserialize(stream)).toEqual(input);
         expect(stream.feof()).toBe(true);
+    });
+
+    describe.each([2193, 2225])('real Bedrock Dedicated Server capture at protocol %i', (protocolVersion) => {
+        /** The raw payload, with no packet header, so it is wrapped in the id header before decoding. */
+        const payload = capture(protocolVersion, 0x140);
+        const framed = Buffer.concat([Buffer.from([0xc0, 0x02]), payload]);
+
+        it('reads categories first, then presets, then the operation', () => {
+            const stream = new NetworkBinaryStream(framed);
+            const data = new CameraAimAssistPresetsPacket().deserialize(stream);
+
+            expect(stream.feof()).toBe(true);
+            expect(data.categories.map((category) => category.name)).toEqual([
+                'minecraft:empty_hand',
+                'minecraft:default',
+                expect.any(String)
+            ]);
+            expect(data.presets).toHaveLength(1);
+            expect(data.operation).toBe(CameraAimAssistPresetsOperation.ADD_TO_EXISTING);
+        });
+
+        it('encodes the decoded capture back to the same bytes', () => {
+            const data = new CameraAimAssistPresetsPacket().deserialize(new NetworkBinaryStream(framed));
+            const buffer = new CameraAimAssistPresetsPacket(data).serialize(new NetworkBinaryStream());
+
+            expect(Buffer.from(buffer).equals(framed)).toBe(true);
+        });
     });
 });

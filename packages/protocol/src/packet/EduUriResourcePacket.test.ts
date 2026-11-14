@@ -38,4 +38,22 @@ describe('EduUriResourcePacket', () => {
         expect([...buffer]).toEqual([0xaa, 0x01, 0x00, 0x00]);
         expect(new EduUriResourcePacket().deserialize(new NetworkBinaryStream(buffer))).toEqual(empty);
     });
+
+    it('writes the same bytes at protocols 2193 and 2225, which changed nothing in this packet', () => {
+        const encodeAt = (protocol: number): Buffer => {
+            const packet = new EduUriResourcePacket(DATA);
+            packet.codecProtocol = protocol;
+            return packet.serialize(new NetworkBinaryStream());
+        };
+
+        expect([...encodeAt(2193)]).toEqual([...BYTES]);
+        expect([...encodeAt(2225)]).toEqual([...BYTES]);
+    });
+
+    it('reads the hand-built buffer at protocol 2225', () => {
+        const packet = new EduUriResourcePacket();
+        packet.codecProtocol = 2225;
+
+        expect(packet.deserialize(new NetworkBinaryStream(BYTES))).toEqual(DATA);
+    });
 });

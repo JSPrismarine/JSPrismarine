@@ -12,11 +12,11 @@ export type RespawnPayload = PayloadOf<typeof respawnPacket>;
 /**
  * One step of the client-server respawn handshake.
  *
- * Protocol 2193 payload order: `Position` as three little-endian floats, `State` as one byte,
+ * Payload order at protocols 2193 and 2225: `Position` as three little-endian floats, `State` as one byte,
  * then `Player Runtime Id` as an `ActorRuntimeID` varuint64. The state values are defined by
  * `PlayerRespawnState` in the Minecraft data package.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/respawn-packet/
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/player-respawn-state/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/respawn-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/player-respawn-state/
  */
 export default class RespawnPacket extends NetworkPacket<RespawnPayload> {
     public get id(): number {

@@ -9,9 +9,9 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * Bound to the client, Education Edition only. The server sends it once while the level data
  * goes out at the start of a game, and again for every Code Builder command.
  *
- * Wire order at protocol 2193: URL as a varuint32 length prefixed UTF-8 string, then Should
+ * Wire order at protocols 2193 and 2225: URL as a varuint32 length prefixed UTF-8 string, then Should
  * open code builder as a boolean.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/code-builder-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/code-builder-packet/
  */
 export default class CodeBuilderPacket extends FieldNetworkPacket {
     /** URL of the Code Builder websocket server. */

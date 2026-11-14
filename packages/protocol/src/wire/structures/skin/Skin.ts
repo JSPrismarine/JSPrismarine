@@ -57,40 +57,8 @@ interface JWT {
 }
 
 /**
- * Which `SerializedSkin` layout a caller is reading or writing.
- *
- * Only one field has ever moved, so the layout is one flag rather than a protocol version:
- * protocol 2193 carries the PlayFab id inside the skin, at ordinal 1 between the id and the
- * resource patch, and protocol 2225 drops it from the skin and carries it on the enclosing
- * `PlayerListAddEntry` instead. Verified against the `SerializedSkin.json` schemas in Mojang's
- * v1.26.51 and v1.26.60 `metadata.zip`.
- */
-export interface SkinWireLayout {
-    /** Whether the skin itself carries the PlayFab id. True through 2193, false from 2225. */
-    readonly carriesPlayFabId: boolean;
-}
-
-/** The protocol 2193 `SerializedSkin` layout: the PlayFab id travels inside the skin. */
-export const SKIN_WIRE_2193: SkinWireLayout = { carriesPlayFabId: true };
-
-/** The protocol 2225 `SerializedSkin` layout: the PlayFab id has moved out to the entry. */
-export const SKIN_WIRE_2225: SkinWireLayout = { carriesPlayFabId: false };
-
-/**
- * A string field of the client data, or empty when the client did not send one.
- *
- * Every one of these is optional in practice: a client omits what does not apply to it, and
- * `PlayFabId` is absent for anyone the marketplace has never seen. Absent is not a broken skin
- * - it is an empty string - but reading it as one crashed the *player list*, which is built
- * from every player's skin, so one client without a PlayFab id took the list down for everyone.
- */
-const text = (value: unknown): string => (typeof value === 'string' ? value : '');
-
-/** The same, for the fields that arrive base64 encoded. */
-const decode = (value: unknown): string => Buffer.from(text(value), 'base64').toString();
-
-/**
- * The members of the docs' `persona::PieceType` enum, in wire order. The index is the value.
+ * The members of the docs' `persona::PieceType` enum at protocol 2193, in wire order. The index
+ * is the value.
  *
  * The same enum travels two ways in a `SerializedSkin`. A persona piece's `PieceType` is
  * `Enum-as-Value`, a uint32 of the index. A tint's key is not: the schema types it as the enum
@@ -101,9 +69,9 @@ const decode = (value: unknown): string => Buffer.from(text(value), 'base64').to
  * `persona_` prefix cut off, treats the player list as malformed and closes the connection.
  *
  * `Unknown` at 0 is new in 1.26.44; the members below it moved up by one then.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/persona-piece-type/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/persona-piece-type/
  */
-const PIECE_TYPE_NAMES = [
+const PIECE_TYPE_NAMES_2193 = [
     'Unknown',
     'Skeleton',
     'Body',
@@ -136,6 +104,49 @@ const PIECE_TYPE_NAMES = [
 ] as const;
 
 /**
+ * The same enum at protocol 2225: `CoCo` takes value 28 and `Unsupported` moves up to 29, so a
+ * value of 28 or 29 means something else than it did at 2193.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/persona-piece-type/
+ */
+const PIECE_TYPE_NAMES_2225 = [...PIECE_TYPE_NAMES_2193.slice(0, 28), 'CoCo', 'Unsupported'] as const;
+
+/**
+ * Which `SerializedSkin` layout a caller is reading or writing.
+ *
+ * Two things have moved between protocols 2193 and 2225. Protocol 2193 carries the PlayFab id
+ * inside the skin, at ordinal 1 between the id and the resource patch, and protocol 2225 drops
+ * it from the skin and carries it on the enclosing `PlayerListAddEntry` instead. And the
+ * `persona::PieceType` enum gained `CoCo` at 28, which pushes `Unsupported` to 29. Verified
+ * against the `SerializedSkin.json` schemas in Mojang's v1.26.51 and v1.26.60 `metadata.zip`
+ * and the 1.26.60 docs changelog.
+ */
+export interface SkinWireLayout {
+    /** Whether the skin itself carries the PlayFab id. True through 2193, false from 2225. */
+    readonly carriesPlayFabId: boolean;
+    /** The `persona::PieceType` members in value order at this protocol. */
+    readonly pieceTypeNames: readonly string[];
+}
+
+/** The protocol 2193 `SerializedSkin` layout: the PlayFab id travels inside the skin. */
+export const SKIN_WIRE_2193: SkinWireLayout = { carriesPlayFabId: true, pieceTypeNames: PIECE_TYPE_NAMES_2193 };
+
+/** The protocol 2225 `SerializedSkin` layout: the PlayFab id has moved out to the entry. */
+export const SKIN_WIRE_2225: SkinWireLayout = { carriesPlayFabId: false, pieceTypeNames: PIECE_TYPE_NAMES_2225 };
+
+/**
+ * A string field of the client data, or empty when the client did not send one.
+ *
+ * Every one of these is optional in practice: a client omits what does not apply to it, and
+ * `PlayFabId` is absent for anyone the marketplace has never seen. Absent is not a broken skin
+ * - it is an empty string - but reading it as one crashed the *player list*, which is built
+ * from every player's skin, so one client without a PlayFab id took the list down for everyone.
+ */
+const text = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+/** The same, for the fields that arrive base64 encoded. */
+const decode = (value: unknown): string => Buffer.from(text(value), 'base64').toString();
+
+/**
  * A piece type name with everything but its letters removed, so that the client data's
  * `persona_facial_hair`, the wire's `facialhair` and the docs' `FacialHair` all meet.
  */
@@ -145,31 +156,43 @@ const pieceTypeKey = (pieceType: string): string =>
         .replace(/^persona_/, '')
         .replaceAll('_', '');
 
-const PIECE_TYPE_IDS: ReadonlyMap<string, number> = new Map(
-    PIECE_TYPE_NAMES.map((name, id): [string, number] => [pieceTypeKey(name), id])
-);
+/** Each layout's name-to-value table, built once on first use. */
+const pieceTypeIdTables = new WeakMap<SkinWireLayout, ReadonlyMap<string, number>>();
+
+const pieceTypeIdTable = (layout: SkinWireLayout): ReadonlyMap<string, number> => {
+    let table = pieceTypeIdTables.get(layout);
+    if (table === undefined) {
+        table = new Map(layout.pieceTypeNames.map((name, id): [string, number] => [pieceTypeKey(name), id]));
+        pieceTypeIdTables.set(layout, table);
+    }
+
+    return table;
+};
 
 /**
  * The `persona::PieceType` value of a piece type, however it is spelled.
  *
  * Accepts the client data's `persona_*` names, the wire's lower-case member names and the
  * docs' member names. The hands are the one irregular case: `persona_hand` in the client
- * data, `Hands` in the enum. A name this server does not know is `Unknown`, 0.
+ * data, `Hands` in the enum. A name the layout's protocol does not know is `Unknown`, 0.
  * @param {string} pieceType - A piece type in any of those spellings.
+ * @param {SkinWireLayout} layout - The layout whose enum numbering applies.
  * @returns {number} The enum value.
  */
-const pieceTypeId = (pieceType: string): number => {
+const pieceTypeId = (pieceType: string, layout: SkinWireLayout): number => {
     const key = pieceTypeKey(pieceType);
-    return PIECE_TYPE_IDS.get(key === 'hand' ? 'hands' : key) ?? 0;
+    return pieceTypeIdTable(layout).get(key === 'hand' ? 'hands' : key) ?? 0;
 };
 
 /**
  * The string a `persona::PieceType` travels as where it is not `Enum-as-Value`: the member
  * name in lower case.
  * @param {string} pieceType - A piece type in any spelling {@link pieceTypeId} accepts.
- * @returns {string} The wire name, `unknown` for one this server does not know.
+ * @param {SkinWireLayout} layout - The layout whose enum numbering applies.
+ * @returns {string} The wire name, `unknown` for one this protocol does not know.
  */
-const pieceTypeWireName = (pieceType: string): string => PIECE_TYPE_NAMES[pieceTypeId(pieceType)]!.toLowerCase();
+const pieceTypeWireName = (pieceType: string, layout: SkinWireLayout): string =>
+    layout.pieceTypeNames[pieceTypeId(pieceType, layout)]!.toLowerCase();
 
 /** Every tint carries this many colors on the wire, whatever the client data listed. */
 const TINT_COLORS = 4;
@@ -357,7 +380,7 @@ export default class Skin {
      * A piece's type and pack id went out as strings; the type is a uint32 and the pack id a
      * 16-byte UUID. A tint's colors went out as a counted list of strings; they are exactly
      * four colors of four bytes each, with no count, under the piece type's lower-case member
-     * name (`facialhair`, not the client data's `facial_hair`; see {@link PIECE_TYPE_NAMES}).
+     * name (`facialhair`, not the client data's `facial_hair`; see {@link PIECE_TYPE_NAMES_2193}).
      */
     public networkSerialize(stream: BinaryStream, layout: SkinWireLayout = SKIN_WIRE_2193): void {
         NetworkUtil.writeString(stream, this.getId());
@@ -395,7 +418,7 @@ export default class Skin {
             stream.writeUnsignedVarInt(persona.getPieces().size);
             for (const piece of persona.getPieces()) {
                 NetworkUtil.writeString(stream, piece.getPieceId());
-                stream.writeUnsignedIntLE(pieceTypeId(piece.getPieceType()));
+                stream.writeUnsignedIntLE(pieceTypeId(piece.getPieceType(), layout));
                 packIdToUuid(piece.getPackId()).networkSerialize(stream);
                 stream.writeBoolean(piece.isDefault());
                 NetworkUtil.writeString(stream, piece.getProductId());
@@ -406,7 +429,7 @@ export default class Skin {
             // one it gave more is cut to four.
             stream.writeUnsignedVarInt(persona.getTintColors().size);
             for (const tint of persona.getTintColors()) {
-                NetworkUtil.writeString(stream, pieceTypeWireName(tint.getPieceType()));
+                NetworkUtil.writeString(stream, pieceTypeWireName(tint.getPieceType(), layout));
                 for (let index = 0; index < TINT_COLORS; index++) {
                     writeColor(stream, colorToArgb(tint.getColors()[index] ?? '#0'));
                 }
@@ -472,7 +495,7 @@ export default class Skin {
         const persona = new SkinPersona();
         for (let index = 0, count = stream.readUnsignedVarInt(); index < count; index++) {
             const pieceId = NetworkUtil.readString(stream);
-            const pieceType = PIECE_TYPE_NAMES[stream.readUnsignedIntLE()]?.toLowerCase() ?? 'unknown';
+            const pieceType = layout.pieceTypeNames[stream.readUnsignedIntLE()]?.toLowerCase() ?? 'unknown';
             const packId = UUID.networkDeserialize(stream).toString();
             const def = stream.readBoolean();
             const productId = NetworkUtil.readString(stream);

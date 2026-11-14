@@ -30,7 +30,10 @@ export interface LessonProgress {
  * the player reached.
  *
  * Protocol 2193 layout, in wire order: `Lesson Action` and `Score` as ZigZag varint32s,
- * then `Activity Id` as a string, a varuint32 byte length followed by UTF-8.
+ * then `Activity Id` as a string, a varuint32 byte length followed by UTF-8. Protocol 2225 leaves the
+ * layout unchanged.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/lesson-progress-packet/
  */
 export default class LessonProgressPacket extends NetworkPacket<LessonProgress> {
     public get id(): number {

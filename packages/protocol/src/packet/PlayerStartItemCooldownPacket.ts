@@ -19,12 +19,14 @@ export interface PlayerStartItemCooldown {
 /**
  * Starts a cooldown on an item category for the receiving player.
  *
- * Protocol 2193 layout, in wire order: `Item Category` as a varuint32 byte length followed by
- * UTF-8, then `Duration Ticks` as a ZigZag varint32.
+ * Layout at protocols 2193 and 2225, in wire order: `Item Category` as a varuint32 byte length
+ * followed by UTF-8, then `Duration Ticks` as a ZigZag varint32.
  *
  * The docs' summary says the player sends it, but it travels from the server to the client:
  * a Bedrock Dedicated Server sends it when a player uses an item with a cooldown, and the
  * client greys the category's slots out for the duration.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-start-item-cooldown-packet/
  */
 export default class PlayerStartItemCooldownPacket extends NetworkPacket<PlayerStartItemCooldown> {
     public get id(): number {

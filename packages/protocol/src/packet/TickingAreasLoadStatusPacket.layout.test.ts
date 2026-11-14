@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('01', 'hex');
 const payload = { preload: true };
 
-describe('the declarative TickingAreasLoadStatus layout', () => {
-    const layout = layoutAt(tickingAreasLoadStatusPacket, 2193);
+describe.each([2193, 2225] as const)('the declarative TickingAreasLoadStatus layout at protocol %i', (protocol) => {
+    const layout = layoutAt(tickingAreasLoadStatusPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();
@@ -22,5 +22,12 @@ describe('the declarative TickingAreasLoadStatus layout', () => {
 
     it('reads those bytes back', () => {
         expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
+    });
+
+    it('writes a cleared flag as one zero byte', () => {
+        const stream = new BinaryStream();
+        layout.encode(stream, { preload: false });
+
+        expect(stream.getBuffer()).toEqual(Buffer.from('00', 'hex'));
     });
 });

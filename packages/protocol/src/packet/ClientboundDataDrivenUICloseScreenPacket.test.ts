@@ -17,7 +17,7 @@ const ONE_SCREEN_BYTES = Buffer.from([
     ...[0x04, 0x03, 0x02, 0x01] // FormId 0x01020304, little-endian uint32
 ]);
 
-const ALL_SCREENS: ClientboundDataDrivenUICloseScreen = {};
+const ALL_SCREENS: ClientboundDataDrivenUICloseScreen = { formId: undefined };
 
 /** `ALL_SCREENS` on the wire: the header and an absent optional. */
 const ALL_SCREENS_BYTES = Buffer.from([
@@ -52,5 +52,20 @@ describe('ClientboundDataDrivenUICloseScreenPacket', () => {
 
         expect(new ClientboundDataDrivenUICloseScreenPacket().deserialize(stream)).toStrictEqual(ONE_SCREEN);
         expect(stream.feof()).toBe(true);
+    });
+
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i, which differ in no field', (protocol) => {
+        for (const [data, bytes] of [
+            [ONE_SCREEN, ONE_SCREEN_BYTES],
+            [ALL_SCREENS, ALL_SCREENS_BYTES]
+        ] as const) {
+            const writer = new ClientboundDataDrivenUICloseScreenPacket(data);
+            writer.codecProtocol = protocol;
+            expect([...writer.serialize(new NetworkBinaryStream())]).toEqual([...bytes]);
+
+            const reader = new ClientboundDataDrivenUICloseScreenPacket();
+            reader.codecProtocol = protocol;
+            expect(reader.deserialize(new NetworkBinaryStream(bytes))).toStrictEqual(data);
+        }
     });
 });

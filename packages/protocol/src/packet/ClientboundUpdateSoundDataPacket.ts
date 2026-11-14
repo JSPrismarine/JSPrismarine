@@ -1,81 +1,23 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { clientboundUpdateSoundDataPacket, SoundDataUpdateType } from '../wire/definitions/clientboundUpdateSoundData';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { ClientboundUpdateSoundDataPayload } from '../wire/definitions/clientboundUpdateSoundData';
 
-/**
- * Which change a sound update carries. The value is the alternative index on the wire: the
- * position in the schema's `oneOf` of `Stop`, `SetVolume`, `SetPitch`, `Fade`, `SeekTo`,
- * `Pause` and `Resume`.
- */
-export enum SoundDataUpdateType {
-    Stop = 0,
-    SetVolume = 1,
-    SetPitch = 2,
-    Fade = 3,
-    SeekTo = 4,
-    Pause = 5,
-    Resume = 6
-}
+export { SoundDataUpdateType };
+export type {
+    SoundDataFade,
+    SoundDataSeekTo,
+    SoundDataSetPitch,
+    SoundDataSetVolume,
+    SoundDataSignal,
+    SoundDataUpdate
+} from '../wire/definitions/clientboundUpdateSoundData';
 
-/** `Stop`, `Pause` or `Resume`: an update with no fields after the alternative index. */
-export interface SoundDataSignal {
-    type: SoundDataUpdateType.Stop | SoundDataUpdateType.Pause | SoundDataUpdateType.Resume;
-}
-
-/** Changes the playback volume of the sound identified by its server handle. */
-export interface SoundDataSetVolume {
-    type: SoundDataUpdateType.SetVolume;
-    /** `Volume`. */
-    volume: number;
-}
-
-/** Changes the playback pitch of the sound identified by its server handle. */
-export interface SoundDataSetPitch {
-    type: SoundDataUpdateType.SetPitch;
-    /** `Pitch`. */
-    pitch: number;
-}
-
-/** `Fade`: move the volume to a target over a duration. */
-export interface SoundDataFade {
-    type: SoundDataUpdateType.Fade;
-    /** `Duration` of the fade in seconds. */
-    duration: number;
-    /** `Target Volume` the fade ends at. */
-    targetVolume: number;
-}
-
-/** `SeekTo`: jump to a playback position. */
-export interface SoundDataSeekTo {
-    type: SoundDataUpdateType.SeekTo;
-    /** `Seconds` from the start of the sound. */
-    seconds: number;
-}
-
-/** A stop, volume, pitch, fade, seek, pause, or resume operation for a playing sound. */
-export type SoundDataUpdate =
-    SoundDataSignal | SoundDataSetVolume | SoundDataSetPitch | SoundDataFade | SoundDataSeekTo;
-
-/** The sound handle and seven control slots used to update active playback. */
-export interface ClientboundUpdateSoundData {
-    /** `Server Sound Handle`: the `ServerSoundHandle` a `PlaySoundPacket` or `RecordStartedPacket` gave the sound. */
-    serverSoundHandle: bigint;
-    /** `Stop`, the first update slot. */
-    stop: SoundDataUpdate;
-    /** `SetVolume`, the second update slot. */
-    setVolume: SoundDataUpdate;
-    /** `SetPitch`, the third update slot. */
-    setPitch: SoundDataUpdate;
-    /** `Fade`, the fourth update slot. */
-    fade: SoundDataUpdate;
-    /** `SeekTo`, the fifth update slot. */
-    seekTo: SoundDataUpdate;
-    /** `Pause`, the sixth update slot. */
-    pause: SoundDataUpdate;
-    /** `Resume`, the seventh and last update slot. */
-    resume: SoundDataUpdate;
-}
+/** The sound handle and the update to apply: seven slots up to protocol 2193, one `event` from 2225. */
+export type ClientboundUpdateSoundData = ClientboundUpdateSoundDataPayload;
 
 /**
  * Changes a sound the client is already playing, found by the handle the server gave it.
@@ -89,82 +31,24 @@ export interface ClientboundUpdateSoundData {
  *
  * A slot's name does not constrain what it holds: any slot may carry any alternative.
  * gophertunnel at protocol 2193 writes the same seven slots and reports that the client applies
- * only the last one. Protocol 2211 (1.26.60 preview 25) collapses the seven into a single
- * `Event` field and adds a `Type` byte to every alternative; neither is on the 2193 wire.
+ * only the last one.
+ *
+ * Protocol 2225 (1.26.60) replaces the seven slots with one `Event` field and adds a `Type`
+ * byte to every alternative. A payload carries the seven slots or `event`, whichever the
+ * session's protocol puts on the wire; the other fields are ignored on write and filled with
+ * `Stop` on read.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-update-sound-data-packet/
  */
 export default class ClientboundUpdateSoundDataPacket extends NetworkPacket<ClientboundUpdateSoundData> {
     public get id(): number {
         return PacketIdentifier.CLIENTBOUND_UPDATE_SOUND_DATA;
     }
 
-    private static writeUpdate(stream: NetworkBinaryStream, update: SoundDataUpdate): void {
-        stream.writeUnsignedVarInt(update.type);
-        switch (update.type) {
-            case SoundDataUpdateType.SetVolume:
-                stream.writeFloatLE(update.volume);
-                break;
-            case SoundDataUpdateType.SetPitch:
-                stream.writeFloatLE(update.pitch);
-                break;
-            case SoundDataUpdateType.Fade:
-                stream.writeFloatLE(update.duration);
-                stream.writeFloatLE(update.targetVolume);
-                break;
-            case SoundDataUpdateType.SeekTo:
-                stream.writeFloatLE(update.seconds);
-                break;
-            case SoundDataUpdateType.Stop:
-            case SoundDataUpdateType.Pause:
-            case SoundDataUpdateType.Resume:
-                break;
-        }
-    }
-
-    /**
-     * Reads one update slot.
-     * @throws when the alternative index names none of the seven alternatives.
-     */
-    private static readUpdate(stream: NetworkBinaryStream): SoundDataUpdate {
-        const type: SoundDataUpdateType = stream.readUnsignedVarInt();
-        switch (type) {
-            case SoundDataUpdateType.Stop:
-            case SoundDataUpdateType.Pause:
-            case SoundDataUpdateType.Resume:
-                return { type };
-            case SoundDataUpdateType.SetVolume:
-                return { type, volume: stream.readFloatLE() };
-            case SoundDataUpdateType.SetPitch:
-                return { type, pitch: stream.readFloatLE() };
-            case SoundDataUpdateType.Fade:
-                return { type, duration: stream.readFloatLE(), targetVolume: stream.readFloatLE() };
-            case SoundDataUpdateType.SeekTo:
-                return { type, seconds: stream.readFloatLE() };
-            default:
-                throw new Error(`Unknown sound data update alternative ${type}`);
-        }
-    }
-
     protected serializePayload(stream: NetworkBinaryStream, data: ClientboundUpdateSoundData): void {
-        stream.writeUnsignedLongLE(data.serverSoundHandle);
-        ClientboundUpdateSoundDataPacket.writeUpdate(stream, data.stop);
-        ClientboundUpdateSoundDataPacket.writeUpdate(stream, data.setVolume);
-        ClientboundUpdateSoundDataPacket.writeUpdate(stream, data.setPitch);
-        ClientboundUpdateSoundDataPacket.writeUpdate(stream, data.fade);
-        ClientboundUpdateSoundDataPacket.writeUpdate(stream, data.seekTo);
-        ClientboundUpdateSoundDataPacket.writeUpdate(stream, data.pause);
-        ClientboundUpdateSoundDataPacket.writeUpdate(stream, data.resume);
+        layoutAt(clientboundUpdateSoundDataPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ClientboundUpdateSoundData {
-        return {
-            serverSoundHandle: stream.readUnsignedLongLE(),
-            stop: ClientboundUpdateSoundDataPacket.readUpdate(stream),
-            setVolume: ClientboundUpdateSoundDataPacket.readUpdate(stream),
-            setPitch: ClientboundUpdateSoundDataPacket.readUpdate(stream),
-            fade: ClientboundUpdateSoundDataPacket.readUpdate(stream),
-            seekTo: ClientboundUpdateSoundDataPacket.readUpdate(stream),
-            pause: ClientboundUpdateSoundDataPacket.readUpdate(stream),
-            resume: ClientboundUpdateSoundDataPacket.readUpdate(stream)
-        };
+        return layoutAt(clientboundUpdateSoundDataPacket, this.codecProtocol).decode(stream);
     }
 }

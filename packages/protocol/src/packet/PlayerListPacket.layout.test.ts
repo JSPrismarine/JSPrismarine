@@ -7,6 +7,7 @@ import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './PlayerListPacket';
 import { playerListPacket } from '@jsprismarine/protocol/wire/definitions/playerList';
+import { capture, enumDumpMembers } from '../testing/evidence.test.helper';
 
 /**
  * The declarative layout must produce the same bytes as the classes it replaces, at both
@@ -129,5 +130,60 @@ describe('the declarative PlayerList layout against the packet class it replaces
             expect(body!.entries[0]!.getSkin()!.getPlayFabId()).toBe(PLAYFAB_ID);
             expect(body!.entries[0]!.getBuildPlatform()).toBe(BuildPlatform.WIN32);
         }
+    });
+});
+
+/** One enum's members from Mojang's pinned enum dump, the source of the `Add`/`Remove` and `BuildPlatform` numbers, as name to value. */
+const enumFromDump = (name: string): Record<string, number> =>
+    Object.fromEntries(enumDumpMembers(name).map((member) => [member.name, member.value]));
+
+describe('the layout against a real server capture', () => {
+    for (const version of [2193, 2225]) {
+        it(`re-encodes the captured 0x3f payload byte for byte at ${version}`, () => {
+            const bytes = capture(version, 0x3f);
+            const stream = new BinaryStream(bytes);
+            const read = layoutAt(playerListPacket, version).decode(stream);
+            expect(stream.feof()).toBe(true);
+
+            const encoded = new BinaryStream();
+            layoutAt(playerListPacket, version).encode(encoded, read);
+            expect(encoded.getBuffer()).toEqual(bytes);
+
+            const body = version === 2193 ? read.bodyWithPlayFabIdInSkin : read.bodyWithPlayFabIdOnEntry;
+            expect(body!.type).toBe(PlayerListAction.TYPE_ADD);
+            expect(body!.entries).toHaveLength(1);
+        });
+    }
+
+    it('opens the 2193 payload with the entry count, as the 1.26.60 page says, not a presence byte', () => {
+        // The 1.26.50 page marks `Entries` optional and the 1.26.60 page drops the mark. The
+        // capture at 2193 is entry count 1, variant selector 1 (Add), Action 0 (Add): no
+        // presence byte, so the mark was the docs' error and nothing is gated.
+        expect([...capture(2193, 0x3f).subarray(0, 3)]).toEqual([1, 1, 0]);
+        expect([...capture(2225, 0x3f).subarray(0, 3)]).toEqual([1, 1, 0]);
+    });
+});
+
+describe("the enums the entry carries, against Mojang's pinned enum dump", () => {
+    it('numbers the Action 0 for Add and 1 for Remove', () => {
+        // The 1.26.50 page prints both as 0; the dump and the 1.26.60 page agree on 0 and 1.
+        expect(enumFromDump('PlayerListPacketType')).toEqual({ Add: 0, Remove: 1 });
+        expect(PlayerListAction.TYPE_ADD).toBe(0);
+        expect(PlayerListAction.TYPE_REMOVE).toBe(1);
+    });
+
+    it("numbers Build Platform with the dump's gapped values, not the 1.26.50 page's positions", () => {
+        const dump = enumFromDump('BuildPlatform');
+        expect(dump.Google).toBe(BuildPlatform.GOOGLE);
+        expect(dump.iOS).toBe(BuildPlatform.IOS);
+        expect(dump.OSX).toBe(BuildPlatform.OSX);
+        expect(dump.Amazon).toBe(BuildPlatform.AMAZON);
+        expect(dump.Win32).toBe(BuildPlatform.WIN32);
+        expect(dump.Dedicated).toBe(BuildPlatform.DEDICATED);
+        expect(dump.Sony).toBe(BuildPlatform.SONY);
+        expect(dump.Nx).toBe(BuildPlatform.NINTENDO); // The dump names the Switch `Nx`.
+        expect(dump.Xbox).toBe(BuildPlatform.XBOX);
+        expect(dump.Linux).toBe(BuildPlatform.LINUX);
+        expect(dump.Unknown).toBe(BuildPlatform.UNKNOWN);
     });
 });

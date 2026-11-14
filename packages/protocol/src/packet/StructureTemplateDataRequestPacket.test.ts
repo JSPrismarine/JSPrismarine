@@ -8,6 +8,7 @@ import { AnimationMode, Mirror, StructureRotation } from '../structure/Structure
 import StructureTemplateDataRequestPacket, {
     StructureTemplateRequestOperation
 } from './StructureTemplateDataRequestPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 const SETTINGS: StructureSettings = {
     structurePaletteName: 'default',
@@ -42,15 +43,36 @@ const DATA = {
     requestedOperation: StructureTemplateRequestOperation.ExportFromSaveMode
 };
 
-describe('StructureTemplateDataRequestPacket', () => {
+describe.each([2193, 2225] as const)('StructureTemplateDataRequestPacket at protocol %i', (protocolVersion) => {
+    const context = { protocolVersion };
+
     it('encodes the name, position, settings, and operation in docs order', () => {
-        expect(new StructureTemplateDataRequestPacket(DATA).serialize(new NetworkBinaryStream())).toEqual(ENCODED);
+        expect(new StructureTemplateDataRequestPacket(DATA).serialize(new NetworkBinaryStream(), context)).toEqual(
+            ENCODED
+        );
     });
 
     it('decodes every settings field and consumes the whole buffer', () => {
         const stream = new NetworkBinaryStream(ENCODED);
 
-        expect(new StructureTemplateDataRequestPacket().deserialize(stream)).toEqual(DATA);
+        expect(new StructureTemplateDataRequestPacket().deserialize(stream, context)).toEqual(DATA);
         expect(stream.feof()).toBe(true);
+    });
+
+    it('numbers every Rotation alias as the 1.26.40 dump does', () => {
+        // The 1.26.50 page numbers `Clockwise90`, `Clockwise180` and `CounterClockwise90` as 4, 5
+        // and 6; the dump and the 1.26.60 page give 1, 2, 3.
+        const rotations = Object.fromEntries(enumDumpMembers('Rotation').map(({ name, value }) => [name, value]));
+
+        expect(rotations).toEqual({
+            None: StructureRotation.None,
+            Rotate90: StructureRotation.Rotate90,
+            Rotate180: StructureRotation.Rotate180,
+            Rotate270: StructureRotation.Rotate270,
+            Clockwise90: StructureRotation.Clockwise90,
+            Clockwise180: StructureRotation.Clockwise180,
+            CounterClockwise90: StructureRotation.CounterClockwise90
+        });
+        expect(Object.keys(rotations)).toHaveLength(7);
     });
 });

@@ -12,10 +12,10 @@ import type { ItemStackDescriptorData } from '../wire/structures/ItemStackDescri
  * This packet updates clients that did not submit the inventory request. Its item and optional
  * storage item are wire descriptors; the server converts game items before creating the packet.
  *
- * Protocol 2193 wire order: `Container Id` and `Slot` (varuint32), optional `Full Container
- * Name`, optional `Storage Item`, and a required `Item` descriptor. An empty slot still carries
- * the complete empty descriptor.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/inventory-slot-packet/
+ * Wire order at protocols 2193 and 2225: `Container Id` (uint8), `Slot` (varuint32), optional
+ * `Full Container Name`, optional `Storage Item`, and a required `Item` descriptor. An empty
+ * slot still carries the complete empty descriptor.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/inventory-slot-packet/
  */
 export default class InventorySlotPacket extends FieldNetworkPacket {
     /** `Container Id`; the player's own crafting grid is 124. */

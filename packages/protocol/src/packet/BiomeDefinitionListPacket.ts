@@ -24,7 +24,7 @@ import type { ProtocolContext } from '../ProtocolContext';
  * The wire layout is the `biomeDefinitionListPacket` definition in the protocol package.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/biome-definition-list-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/biome-definition-list-packet/
  */
 export default class BiomeDefinitionListPacket extends FieldNetworkPacket {
     /** Both fields as the network carries them, or `null` to use the connection's captured bytes. */

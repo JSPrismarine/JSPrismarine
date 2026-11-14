@@ -12,13 +12,13 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  *
  * **Bound To:** Client
  *
- * Protocol 2193 layout (docs id 17), in wire order:
+ * Protocol 2193 and 2225 layout (docs id 17, identical at both), in wire order:
  *
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
  * | Item Runtime ID | varuint64 | The item entity being taken |
  * | Actor Runtime ID | varuint64 | Who is taking it |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/take-item-actor-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/take-item-actor-packet/
  */
 export default class TakeItemActorPacket extends FieldNetworkPacket {
     /** Item Runtime ID, the item entity being taken. */

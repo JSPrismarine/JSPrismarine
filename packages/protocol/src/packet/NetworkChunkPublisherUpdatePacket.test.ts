@@ -1,8 +1,12 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
 import NetworkChunkPublisherUpdatePacket from './NetworkChunkPublisherUpdatePacket';
+import { networkChunkPublisherUpdatePacket } from '../wire/definitions/worldStatus';
+import { layoutAt } from '../wire/WireLayout';
 import type { NetworkChunkPublisherUpdatePayload } from './NetworkChunkPublisherUpdatePacket';
+import { capture } from '../testing/evidence.test.helper';
 
 const payload: NetworkChunkPublisherUpdatePayload = {
     position: { x: 1, y: -64, z: 3 },
@@ -55,5 +59,19 @@ describe('NetworkChunkPublisherUpdatePacket', () => {
         expect(new NetworkChunkPublisherUpdatePacket(payload).getId()).toBe(
             PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE
         );
+    });
+
+    it.each([2193, 2225])('round-trips the real server capture at protocol %i', (protocol) => {
+        const captured = capture(protocol, 0x79);
+        const layout = layoutAt(networkChunkPublisherUpdatePacket, protocol);
+        const stream = new BinaryStream(captured);
+        const decoded = layout.decode(stream);
+
+        expect(stream.feof()).toBe(true);
+        expect(decoded).toEqual({ position: { x: 0, y: 0, z: 0 }, radius: 64, savedChunks: [] });
+
+        const encoded = new BinaryStream();
+        layout.encode(encoded, decoded);
+        expect([...encoded.getBuffer()]).toEqual([...captured]);
     });
 });

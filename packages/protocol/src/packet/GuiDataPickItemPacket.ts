@@ -21,7 +21,7 @@ export interface GuiDataPickItem {
  *
  * Protocol 2193 layout: `Item Name` as a string, `Item Effect Name` as a string, then `Slot`
  * as a little-endian int32.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/gui-data-pick-item-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/gui-data-pick-item-packet/
  */
 export default class GuiDataPickItemPacket extends NetworkPacket<GuiDataPickItem> {
     public get id(): number {

@@ -1,3 +1,5 @@
+import BinaryStream from '@jsprismarine/binaryutils';
+import { setTimePacket, layoutAt } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 import SetTimePacket from './SetTimePacket';
 
@@ -23,5 +25,21 @@ describe('SetTimePacket', () => {
         packet.decode();
 
         expect(packet.getPacketData()).toEqual({ time: 6000 });
+    });
+});
+
+describe.each([2193, 2225])('the SetTimePacket layout at protocol %i', (protocol) => {
+    const layout = layoutAt(setTimePacket, protocol);
+
+    it.each([
+        [6000, [0xe0, 0x5d]],
+        [-6000, [0xdf, 0x5d]],
+        [0, [0x00]]
+    ])('round-trips a time of %i as a ZigZag varint32', (time, expected) => {
+        const stream = new BinaryStream();
+        layout.encode(stream, { time });
+
+        expect(stream.getBuffer()).toEqual(Buffer.from(expected));
+        expect(layout.decode(new BinaryStream(Buffer.from(expected)))).toEqual({ time });
     });
 });

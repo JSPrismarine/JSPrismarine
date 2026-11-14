@@ -27,7 +27,8 @@ const layout = () => layoutAt(cameraPresetsPacket, protocolVersion);
  * count, then one {@link CameraPreset} per entry (`Name`, `Inherit From`, the twenty optional
  * fields each behind a presence byte, `Apply Inherited Starting Rotation`, then the optional
  * `Starting Rotation`). The docs render the list as one `CameraPresets` object; the count is
- * what the client reads (gophertunnel and PocketMine agree).
+ * what a real server sends (`bedrock-data/src/jsp/v2193/wire/0xc6.bin`, identical at v2225).
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-presets-packet/}
  */
 export default class CameraPresetsPacket extends NetworkPacket<CameraPresetsPayload> {
     public get id(): number {

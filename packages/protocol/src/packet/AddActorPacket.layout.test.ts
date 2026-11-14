@@ -10,6 +10,7 @@ import { ActorLinkType } from '../wire/definitions/addActor';
 import AddActorPacket from './AddActorPacket';
 import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
 
+import { PassengerOfBlockEmoteType } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
 import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
 
 /**
@@ -121,5 +122,30 @@ describe('the declarative AddActor layout against the packet class it replaces',
         });
         expect(read.links[0]).toMatchObject({ targetA: 1n, targetB: 12n, type: ActorLinkType.Riding });
         expect(read.attributes[0]!.getName()).toBe('minecraft:health');
+    });
+
+    it('numbers the Passenger Block Data EmoteType as the docs do', () => {
+        expect(PassengerOfBlockEmoteType.Standing).toBe(0);
+        expect(PassengerOfBlockEmoteType.Riding).toBe(1);
+        expect(PassengerOfBlockEmoteType.Laying).toBe(2);
+    });
+
+    it('round-trips a Passenger Block Data at 2225 and leaves it absent at 2193', () => {
+        const riding: PassengerOfBlock = { ...passenger(), emoteType: PassengerOfBlockEmoteType.Laying };
+
+        const stream = new BinaryStream();
+        layoutAt(addActorPacket, 2225).encode(stream, { ...payload(), passengerOfBlock: riding });
+        const read = layoutAt(addActorPacket, 2225).decode(new BinaryStream(stream.getBuffer()));
+        expect(read.passengerOfBlock).toMatchObject({ rotation: 180, rotationLimit: 90, emoteType: 2 });
+
+        const older = new BinaryStream();
+        layoutAt(addActorPacket, 2193).encode(older, { ...payload(), passengerOfBlock: riding });
+        expect(older.getBuffer()).toEqual(
+            (() => {
+                const base = new BinaryStream();
+                layoutAt(addActorPacket, 2193).encode(base, payload());
+                return base.getBuffer();
+            })()
+        );
     });
 });

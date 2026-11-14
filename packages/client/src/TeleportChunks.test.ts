@@ -135,7 +135,8 @@ describe('a server teleport of a client that keeps reporting its old position', 
         session.registerHandler(MovePlayerPacket, {
             phases: ['login', 'play'],
             handle: (move) => {
-                if (move.mode === PositionMode.Teleport) teleportedTo = move.position;
+                if (move.mode === PositionMode.Teleport)
+                    teleportedTo = { x: move.position.getX(), y: move.position.getY(), z: move.position.getZ() };
             }
         });
 

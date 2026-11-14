@@ -15,7 +15,7 @@ export type PlayerFogPayload = PayloadOf<typeof playerFogPacket>;
  * The payload contains `Fog Stack` as a varuint32 count followed by that many identifiers.
  * The complete stack is sent each time; an empty list clears fog added by `/fog`. Identifiers
  * name definitions in the client's active resource packs, such as `minecraft:fog_ocean`.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-fog-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-fog-packet/
  */
 export default class PlayerFogPacket extends NetworkPacket<PlayerFogPayload> {
     public get id(): number {

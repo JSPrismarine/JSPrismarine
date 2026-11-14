@@ -1,7 +1,7 @@
 /**
  * The world clocks a server defines beyond the day-night cycle.
  *
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/sync-world-clocks-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
@@ -11,15 +11,22 @@ import { SyncWorldClocksDataType } from '../../packet/SyncWorldClocksPacket';
 import type { SyncWorldClocksData, TimeMarker, WorldClock, WorldClockState } from '../../packet/SyncWorldClocksPacket';
 import type { PayloadOf } from '../define';
 
+const optionalPeriod = t.optional(t.li32);
+
 const timeMarker = t.custom<TimeMarker>(
     'TimeMarkerData',
     (s, v) => {
         t.varuint64.write(s, v.id);
         t.string.write(s, v.name);
         t.varint32.write(s, v.time);
-        t.li32.write(s, v.period);
+        optionalPeriod.write(s, v.period);
     },
-    (s) => ({ id: t.varuint64.read(s), name: t.string.read(s), time: t.varint32.read(s), period: t.li32.read(s) })
+    (s) => ({
+        id: t.varuint64.read(s),
+        name: t.string.read(s),
+        time: t.varint32.read(s),
+        period: optionalPeriod.read(s)
+    })
 );
 
 const worldClock = t.custom<WorldClock>(

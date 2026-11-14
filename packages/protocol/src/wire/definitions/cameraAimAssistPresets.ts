@@ -1,6 +1,6 @@
 /**
  * The categories and presets the client uses to build its camera aim-assist registry.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-aim-assist-presets-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-aim-assist-presets-packet/}
  */
 import CameraAimAssistCategoryDefinition from '../../structure/CameraAimAssistCategoryDefinition';
 import CameraAimAssistPresetDefinition from '../../structure/CameraAimAssistPresetDefinition';

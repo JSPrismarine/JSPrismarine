@@ -1,4 +1,7 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
+import { layoutAt } from '../wire/WireLayout';
+import { stopSoundPacket } from '../wire/definitions/levelSoundEvent';
 import StopSoundPacket from './StopSoundPacket';
 
 describe('StopSoundPacket', () => {
@@ -28,5 +31,22 @@ describe('StopSoundPacket', () => {
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(encoded);
+    });
+
+    // The 1.26.50 and 1.26.60 pages print the same three fields, and neither changelog lists a change.
+    describe.each([2193, 2225])('the layout at protocol %i', (version) => {
+        const body = encoded.subarray(1);
+        const payload = { soundName: 'music', stopAllSounds: true, stopMusicLegacy: false };
+
+        it('writes the docs bytes', () => {
+            const stream = new BinaryStream();
+            layoutAt(stopSoundPacket, version).encode(stream, payload);
+
+            expect(stream.getBuffer()).toEqual(body);
+        });
+
+        it('reads the docs bytes back', () => {
+            expect(layoutAt(stopSoundPacket, version).decode(new BinaryStream(body))).toEqual(payload);
+        });
     });
 });

@@ -2,10 +2,13 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { itemRegistryPacket } from '../wire/definitions/itemRegistry';
+import { layoutAt } from '../wire/WireLayout';
 import { ItemVersion } from '../structure/ItemData';
 import ItemRegistryPacket from './ItemRegistryPacket';
 
 import type { ItemRegistryEntry } from './ItemRegistryPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /** Packet id 162 as a varuint. */
 const HEADER = [0xa2, 0x01];
@@ -113,5 +116,18 @@ describe('ItemRegistryPacket', () => {
         const bytes = new ItemRegistryPacket({ items: [] }).serialize(new NetworkBinaryStream());
 
         expect(bytes).toEqual(Buffer.from([...HEADER, 0x00]));
+    });
+
+    it.each([2193, 2225])('re-encodes the Bedrock Dedicated Server capture byte for byte at %i', (protocol) => {
+        const bytes = capture(protocol, 0xa2);
+        const layout = layoutAt(itemRegistryPacket, protocol);
+        const stream = new NetworkBinaryStream(bytes);
+        const payload = layout.decode(stream);
+        const encoded = new NetworkBinaryStream();
+        layout.encode(encoded, payload);
+
+        expect(payload.items.length).toBeGreaterThan(0);
+        expect(stream.feof()).toBe(true);
+        expect(encoded.getBuffer().equals(bytes)).toBe(true);
     });
 });

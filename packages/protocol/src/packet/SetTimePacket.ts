@@ -12,8 +12,8 @@ export type SetTimePayload = PayloadOf<typeof setTimePacket>;
 /**
  * Periodically synchronizes the current world time with the receiving client, including at login.
  *
- * Protocol 2193 carries one field: `Time`, a ZigZag varint32 containing the world tick.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-time-packet/
+ * Protocols 2193 and 2225 carry one field: `Time`, a ZigZag varint32 containing the world tick.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-time-packet/
  */
 export default class SetTimePacket extends NetworkPacket<SetTimePayload> {
     public get id(): number {

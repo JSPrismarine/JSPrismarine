@@ -19,7 +19,10 @@ export interface RemoveVolumeEntity {
  * Protocol 2193 layout, in wire order: `Entity Network Id` (varuint32), then `Dimension Type`
  * (ZigZag varint32).
  *
- * 1.26.70-preview.20 removes this packet and `AddVolumeEntityPacket`.
+ * Protocols 2193 and 2225 share this layout: the 1.26.60 page lists the same fields. 1.26.70-preview.20
+ * removes this packet and `AddVolumeEntityPacket`.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/remove-volume-entity-packet/
  */
 export default class RemoveVolumeEntityPacket extends NetworkPacket<RemoveVolumeEntity> {
     public get id(): number {

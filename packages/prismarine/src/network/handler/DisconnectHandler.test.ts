@@ -37,8 +37,8 @@ const harness = () => {
 const goodbye = (reason: number, message?: string): DisconnectPacket =>
     new DisconnectPacket(
         message === undefined
-            ? { reason, skipMessage: true }
-            : { reason, skipMessage: false, message, filteredMessage: '' }
+            ? { reason, messages: { skipMessage: true, message: '', filteredMessage: '' } }
+            : { reason, messages: { skipMessage: false, message, filteredMessage: '' } }
     );
 
 describe('DisconnectHandler', () => {

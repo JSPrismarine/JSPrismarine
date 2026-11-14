@@ -44,4 +44,27 @@ describe('MobArmorEquipmentPacket', () => {
         expect(packet.getPacketData()).toEqual(data);
         expect(packet.feof()).toBe(true);
     });
+
+    it.each([2193, 2225])('writes the same wire layout at protocol %i', (protocol) => {
+        const data = {
+            runtimeEntityId: 300n,
+            head: stack(0x0141, 1),
+            chest: air,
+            legs: air,
+            feet: stack(0x0200, 2),
+            body: air
+        };
+        const encoded = new MobArmorEquipmentPacket(data);
+        encoded.codecProtocol = protocol;
+        encoded.encode();
+
+        // Packet id 0x20, a varuint64 runtime id, then head, torso, legs, feet and body.
+        expect([...encoded.getBuffer().subarray(0, 3)]).toEqual([0x20, 0xac, 0x02]);
+
+        const decoded = new MobArmorEquipmentPacket(null, encoded.getBuffer());
+        decoded.codecProtocol = protocol;
+        decoded.decode();
+        expect(decoded.getPacketData()).toEqual(data);
+        expect(decoded.feof()).toBe(true);
+    });
 });

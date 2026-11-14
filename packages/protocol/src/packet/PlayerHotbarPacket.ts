@@ -16,7 +16,7 @@ export type PlayerHotbarPayload = PayloadOf<typeof playerHotbarPacket>;
  * `Should Select Slot` as a boolean. When the flag is false, the client receives the slot
  * without changing its current selection. The server also sends this packet when commands,
  * pick-block behavior, or join data choose a slot for the player.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-hotbar-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-hotbar-packet/
  */
 export default class PlayerHotbarPacket extends NetworkPacket<PlayerHotbarPayload> {
     public get id(): number {

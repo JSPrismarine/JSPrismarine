@@ -10,8 +10,8 @@ import { modalFormRequestPacket } from '../wire/definitions/forms';
  *
  * **Bound To:** Client
  *
- * Wire layout at protocol 2193: Form ID as a varuint32, then Form UI JSON as a string.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/modal-form-request-packet/
+ * Wire layout at protocols 2193 and 2225: Form ID as a varuint32, then Form UI JSON as a string.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/modal-form-request-packet/
  */
 export default class ModalFormRequestPacket extends FieldNetworkPacket {
     /** Identifies the form in the client's reply. */

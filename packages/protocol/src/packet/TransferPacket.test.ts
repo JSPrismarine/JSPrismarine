@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { transferPacket } from '../wire/definitions/transfer';
+import { layoutAt } from '../wire/WireLayout';
 import { netIdFor } from '../wire/versions/v2193';
 import UUID from '../wire/structures/UUID';
 import TransferPacket from './TransferPacket';
@@ -82,6 +84,19 @@ describe('TransferPacket', () => {
         expect(decoded.gatheringsConfig?.scenarioId).toBe('scenario-1');
         expect(decoded.gatheringsConfig?.serverId).toBeNull();
         expect(withConfig.feof()).toBe(true);
+    });
+
+    it.each([2193, 2225])('round-trips both transfer forms at protocol %i', (protocol) => {
+        const layout = layoutAt(transferPacket, protocol);
+        for (const [payload, bytes] of [
+            [WITHOUT_CONFIG, WITHOUT_CONFIG_BYTES],
+            [WITH_CONFIG, WITH_CONFIG_BYTES]
+        ] as const) {
+            const stream = new NetworkBinaryStream();
+            layout.encode(stream, payload);
+            expect(stream.getBuffer()).toEqual(bytes.subarray(1));
+            expect(layout.decode(new NetworkBinaryStream(bytes.subarray(1)))).toEqual(payload);
+        }
     });
 
     it('uses the protocol 2193 packet id', () => {

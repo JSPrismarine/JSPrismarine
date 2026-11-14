@@ -15,10 +15,10 @@ export enum PositionTrackingDBClientRequestAction {
  * that id points before it draws the needle. The server answers with a
  * `PositionTrackingDBServerBroadcastPacket` carrying the same id.
  *
- * Wire order at protocol 2193: Action as a uint8 (see
+ * Wire order at protocols 2193 and 2225 (unchanged between them): Action as a uint8 (see
  * {@link PositionTrackingDBClientRequestAction}), then Id as a `PositionTrackingId` (ZigZag
  * varint32).
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/position-tracking-dbclient-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/position-tracking-dbclient-request-packet/
  */
 export default class PositionTrackingDBClientRequestPacket extends FieldNetworkPacket {
     /** Action: the only value the client sends is Query. */

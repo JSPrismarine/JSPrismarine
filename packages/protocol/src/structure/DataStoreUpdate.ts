@@ -58,7 +58,7 @@ export interface DataStoreUpdateData {
  * Strings are a varuint32 byte length followed by UTF-8.
  *
  * The two counts replaced a single `Update Count` at 1.26.0.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/data-store-update/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/data-store-update/}
  */
 export default class DataStoreUpdate extends NetworkStructure implements DataStoreUpdateData {
     /**

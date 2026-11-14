@@ -1,7 +1,10 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { syncWorldClocksPacket } from '../wire/definitions/syncWorldClocks';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { SyncWorldClocksPayload } from '../wire/definitions/syncWorldClocks';
 
 /**
  * Which alternative of the `Data` variant a `SyncWorldClocksPacket` carries. The value is the
@@ -26,8 +29,14 @@ export interface TimeMarker {
     name: string;
     /** `Time` in ticks at which the marker fires, a ZigZag varint32. */
     time: number;
-    /** `Period` in ticks between two firings, a little-endian int32. */
-    period: number;
+    /**
+     * `Period` in ticks between two firings, an optional little-endian int32: a presence byte,
+     * then the value. `null` when absent. The 1.26.50 page prints it as plain, and the 1.26.60
+     * page as optional with the changelog row "is now optional"; Mojang's own note for that build
+     * says the docs were corrected to the engine's real optionality, so the presence byte is
+     * written at every protocol version (see `docs/research/protocol-2225-delta.md`).
+     */
+    period: number | null;
 }
 
 /** One `WorldClockData` of an `InitializeRegistryData`: a clock's full definition. */
@@ -82,10 +91,7 @@ export type SyncWorldClocksData =
       };
 
 /** The fields of a `SyncWorldClocksPacket`, in wire order. */
-export interface SyncWorldClocks {
-    /** `Data`, the one alternative this packet carries. */
-    data: SyncWorldClocksData;
-}
+export type SyncWorldClocks = SyncWorldClocksPayload;
 
 /**
  * Initializes and keeps in sync the world clocks a server defines beyond the day-night cycle.
@@ -96,136 +102,27 @@ export interface SyncWorldClocks {
  * `Time` (ZigZag varint32) and `IsPaused` (byte). `InitializeRegistryData` is a list of `Id`
  * (varuint64), `Name` (string), `Time` (ZigZag varint32), `IsPaused` (byte) and `TimeMarkers`,
  * each marker an `Id` (varuint64), `Name` (string), `Time` (ZigZag varint32) and `Period`
- * (little-endian int32). `AddTimeMarkerData` is `ClockId` (varuint64) then `TimeMarkers`.
+ * (optional little-endian int32). `AddTimeMarkerData` is `ClockId` (varuint64) then `TimeMarkers`.
  * `RemoveTimeMarkerData` is `ClockId` (varuint64) then `TimeMarkerIds`, each a varuint64.
  *
  * Mojang describes the packet as sent on join to initialize every clock, periodically to all
  * clients to keep them in sync, and whenever a clock's paused state changes or markers are
  * added or removed. The 1.26.51 schema also marks it "Currently disabled"; `SetTime` still
- * carries the day-night cycle on its own. The packet arrived at protocol 2193 and `Period`
- * becomes optional at 2207.
+ * carries the day-night cycle on its own. The packet arrived at protocol 2193. `Period`
+ * is optional at both protocol versions.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/sync-world-clocks-packet/
  */
 export default class SyncWorldClocksPacket extends NetworkPacket<SyncWorldClocks> {
     public get id(): number {
         return PacketIdentifier.SYNC_WORLD_CLOCKS;
     }
 
-    private static writeTimeMarkers(stream: NetworkBinaryStream, markers: TimeMarker[]): void {
-        stream.writeUnsignedVarInt(markers.length);
-        for (const marker of markers) {
-            stream.writeUnsignedVarLong(marker.id);
-            stream.writeString(marker.name);
-            stream.writeVarInt(marker.time);
-            stream.writeIntLE(marker.period);
-        }
-    }
-
-    private static readTimeMarkers(stream: NetworkBinaryStream): TimeMarker[] {
-        const markers: TimeMarker[] = [];
-        let count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            markers.push({
-                id: stream.readUnsignedVarLong(),
-                name: stream.readString(),
-                time: stream.readVarInt(),
-                period: stream.readIntLE()
-            });
-        }
-        return markers;
-    }
-
-    protected serializePayload(stream: NetworkBinaryStream, { data }: SyncWorldClocks): void {
-        stream.writeUnsignedVarInt(data.type);
-
-        switch (data.type) {
-            case SyncWorldClocksDataType.SyncState:
-                stream.writeUnsignedVarInt(data.clocks.length);
-                for (const clock of data.clocks) {
-                    stream.writeUnsignedVarLong(clock.clockId);
-                    stream.writeVarInt(clock.time);
-                    stream.writeBoolean(clock.isPaused);
-                }
-                break;
-
-            case SyncWorldClocksDataType.InitializeRegistry:
-                stream.writeUnsignedVarInt(data.clocks.length);
-                for (const clock of data.clocks) {
-                    stream.writeUnsignedVarLong(clock.id);
-                    stream.writeString(clock.name);
-                    stream.writeVarInt(clock.time);
-                    stream.writeBoolean(clock.isPaused);
-                    SyncWorldClocksPacket.writeTimeMarkers(stream, clock.timeMarkers);
-                }
-                break;
-
-            case SyncWorldClocksDataType.AddTimeMarker:
-                stream.writeUnsignedVarLong(data.clockId);
-                SyncWorldClocksPacket.writeTimeMarkers(stream, data.timeMarkers);
-                break;
-
-            case SyncWorldClocksDataType.RemoveTimeMarker:
-                stream.writeUnsignedVarLong(data.clockId);
-                stream.writeUnsignedVarInt(data.timeMarkerIds.length);
-                for (const id of data.timeMarkerIds) {
-                    stream.writeUnsignedVarLong(id);
-                }
-                break;
-        }
+    protected serializePayload(stream: NetworkBinaryStream, data: SyncWorldClocks): void {
+        layoutAt(syncWorldClocksPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): SyncWorldClocks {
-        const type = stream.readUnsignedVarInt();
-
-        switch (type) {
-            case SyncWorldClocksDataType.SyncState: {
-                const clocks: WorldClockState[] = [];
-                let count = stream.readUnsignedVarInt();
-                while (count-- > 0) {
-                    clocks.push({
-                        clockId: stream.readUnsignedVarLong(),
-                        time: stream.readVarInt(),
-                        isPaused: stream.readBoolean()
-                    });
-                }
-                return { data: { type, clocks } };
-            }
-
-            case SyncWorldClocksDataType.InitializeRegistry: {
-                const clocks: WorldClock[] = [];
-                let count = stream.readUnsignedVarInt();
-                while (count-- > 0) {
-                    clocks.push({
-                        id: stream.readUnsignedVarLong(),
-                        name: stream.readString(),
-                        time: stream.readVarInt(),
-                        isPaused: stream.readBoolean(),
-                        timeMarkers: SyncWorldClocksPacket.readTimeMarkers(stream)
-                    });
-                }
-                return { data: { type, clocks } };
-            }
-
-            case SyncWorldClocksDataType.AddTimeMarker:
-                return {
-                    data: {
-                        type,
-                        clockId: stream.readUnsignedVarLong(),
-                        timeMarkers: SyncWorldClocksPacket.readTimeMarkers(stream)
-                    }
-                };
-
-            case SyncWorldClocksDataType.RemoveTimeMarker: {
-                const clockId = stream.readUnsignedVarLong();
-                const timeMarkerIds: bigint[] = [];
-                let count = stream.readUnsignedVarInt();
-                while (count-- > 0) {
-                    timeMarkerIds.push(stream.readUnsignedVarLong());
-                }
-                return { data: { type, clockId, timeMarkerIds } };
-            }
-
-            default:
-                throw new Error(`Unknown SyncWorldClocksPacket data variant ${type}`);
-        }
+        return layoutAt(syncWorldClocksPacket, this.codecProtocol).decode(stream);
     }
 }

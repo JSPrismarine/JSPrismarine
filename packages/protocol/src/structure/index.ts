@@ -1,5 +1,6 @@
 import ActorLink from './ActorLink';
 import AttributeLayerData from './AttributeLayerData';
+import AttributeLayerData2225 from './AttributeLayerData2225';
 import AttributeLayerSettings from './AttributeLayerSettings';
 import BlockPos from './BlockPos';
 import CameraAimAssistCategoryDefinition from './CameraAimAssistCategoryDefinition';
@@ -51,6 +52,8 @@ import EnvironmentAttributeData, {
     FloatAttributeOperation
 } from './EnvironmentAttributeData';
 import type { AttributeValue, EnvironmentAttributeFields } from './EnvironmentAttributeData';
+import EnvironmentAttributeData2225, { AttributePayloadType } from './EnvironmentAttributeData2225';
+import type { AttributePayload, NoiseTransitionSettings, TransitionSettings } from './EnvironmentAttributeData2225';
 import Experiments from './Experiments';
 import FullContainerName from './FullContainerName';
 import ItemData, { ItemVersion } from './ItemData';
@@ -100,7 +103,9 @@ export {
     ActorLink,
     AttributeDataType,
     AttributeLayerData,
+    AttributeLayerData2225,
     AttributeLayerSettings,
+    AttributePayloadType,
     AimAssistTargetMode,
     BlockPos,
     BoolAttributeOperation,
@@ -132,6 +137,7 @@ export {
     EasingType,
     EduSharedUriResource,
     EnvironmentAttributeData,
+    EnvironmentAttributeData2225,
     Experiments,
     FloatAttributeOperation,
     FullContainerName,
@@ -176,6 +182,7 @@ export {
     isEasingFunction
 };
 export type {
+    AttributePayload,
     AttributeValue,
     CameraAimAssistDefinition,
     CameraAimAssistItemSetting,
@@ -198,6 +205,8 @@ export type {
     EasingFunction,
     EduSharedUriResourceData,
     EnvironmentAttributeFields,
+    NoiseTransitionSettings,
+    TransitionSettings,
     HeightMap,
     IngredientDescriptor,
     ItemInstanceUserDataConfig,

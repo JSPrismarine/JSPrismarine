@@ -20,8 +20,8 @@ const payload = {
     actionJson: 'héllo5'
 };
 
-describe('the declarative NpcDialogue layout', () => {
-    const layout = layoutAt(npcDialoguePacket, 2193);
+describe.each([2193, 2225])('the declarative NpcDialogue layout at protocol %i', (protocol) => {
+    const layout = layoutAt(npcDialoguePacket, protocol);
 
     it('writes the bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();

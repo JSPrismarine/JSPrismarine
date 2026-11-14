@@ -32,8 +32,12 @@ const NAME_TAG = 'item_tag';
  */
 export const ANY_META = 32767;
 
-/** What one slot accepts: a named item with an aux value, or a Bedrock item tag. */
-export type IngredientDescriptor = { kind: 'name'; name: string; meta: number } | { kind: 'tag'; tag: string };
+/** What one slot accepts: a named item with an aux value, a Bedrock item tag, or a Molang expression. */
+export type IngredientDescriptor =
+    | { kind: 'name'; name: string; meta: number }
+    | { kind: 'tag'; tag: string }
+    /** `version` is the raw `MolangVersion` int16, whose numbering differs between protocols. */
+    | { kind: 'molang'; expression: string; version: number };
 
 /** One slot, in the plain form a payload carries it. */
 export interface RecipeIngredientData {
@@ -93,6 +97,12 @@ export default class RecipeIngredient extends NetworkStructure {
                 stream.writeVarInt(this.descriptor.meta);
                 break;
 
+            case 'molang':
+                stream.writeString(NAME_MOLANG);
+                stream.writeString(this.descriptor.expression);
+                stream.writeShortLE(this.descriptor.version);
+                break;
+
             case 'tag':
                 stream.writeString(NAME_TAG);
                 stream.writeString(this.descriptor.tag);
@@ -107,8 +117,7 @@ export default class RecipeIngredient extends NetworkStructure {
      * Reads one slot, the mirror of {@link serialize}.
      *
      * Every shape is read, including the ones nothing here produces: an unread shape does not
-     * cost that ingredient, it costs the rest of the packet. A `molang` descriptor is stepped
-     * over rather than returned, because {@link IngredientDescriptor} has no molang kind.
+     * cost that ingredient, it costs the rest of the packet.
      * @throws {Error} When the variant or the descriptor name is one this does not know, since
      * either leaves the stream at an offset nothing after it can be read from.
      */
@@ -133,8 +142,7 @@ export default class RecipeIngredient extends NetworkStructure {
                 break;
 
             case NAME_MOLANG:
-                stream.readString(); // Tag Expression.
-                stream.readShortLE(); // Molang Version, an int16.
+                this.descriptor = { kind: 'molang', expression: stream.readString(), version: stream.readShortLE() };
                 break;
 
             case NAME_TAG:

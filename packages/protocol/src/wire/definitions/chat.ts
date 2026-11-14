@@ -3,12 +3,30 @@
  *
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
-import { TextPacketType } from '../../packet/TextPacket';
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
 import type { WireType } from '../fieldTypes';
+
+/**
+ * The docs' `TextPacketType`, the "Message Type" of a text packet. The values are the global
+ * ones the wire carries; member names are the docs' names in PascalCase.
+ */
+export enum TextPacketType {
+    Raw,
+    Chat,
+    Translate,
+    Popup,
+    JukeboxPopup,
+    Tip,
+    SystemMessage,
+    Whisper,
+    Announcement,
+    TextObjectWhisper,
+    TextObject,
+    TextObjectAnnouncement
+}
 
 /** The three shapes of the Body variant, as the docs name them. The value is the variant index on the wire. */
 const enum BodyVariant {
@@ -39,6 +57,15 @@ const variantOf = (type: TextPacketType): BodyVariant => {
         default:
             return BodyVariant.MessageOnly;
     }
+};
+
+/** Which optional text fields a message type's body variant carries on the wire. */
+export const textBodyCarries = (type: TextPacketType): { sourceName: boolean; parameters: boolean } => {
+    const variant = variantOf(type);
+    return {
+        sourceName: variant === BodyVariant.AuthorAndMessage,
+        parameters: variant === BodyVariant.MessageAndParams
+    };
 };
 
 /** The `Body` oneOf of a text packet: the variant index, the message type, and the variant's fields. */

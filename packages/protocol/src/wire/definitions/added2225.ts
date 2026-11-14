@@ -44,10 +44,15 @@ export enum CursorItemDragState {
     Stop = 1
 }
 
-/** `AudioContentPlaybackType`: which mixer the audio content plays through. */
+/**
+ * `AudioContentPlaybackType`: which mixer the audio content plays through.
+ *
+ * The 1.26.60 docs page serializes it as a string, so the members carry the C++ names it prints.
+ * No capture carries the value, so whether the wire spells it `Music` or lower case is unproven.
+ */
 export enum AudioContentPlaybackType {
-    Music = 0,
-    Sound = 1
+    Music = 'Music',
+    Sound = 'Sound'
 }
 
 /** `SignedAudioContent`: one compact JWT describing a piece of audio content. */
@@ -63,23 +68,26 @@ const signedAudioContent: WireType<SignedAudioContent> = t.custom(
     (stream) => ({ compactJwt: t.string.read(stream) })
 );
 
-/** `MatchmakingStateOptions`: who triggered the matchmaking the state belongs to. */
+/**
+ * `MatchmakingStateOptions`: who triggered the matchmaking the state belongs to. Both fields are
+ * optional in Mojang's 1.26.60 page, so each carries a presence byte; `null` is absent.
+ */
 export interface MatchmakingStateOptions {
-    /** `Triggering Player Name`. */
-    triggeringPlayerName: string;
-    /** `Triggered By Local Player`. */
-    triggeredByLocalPlayer: boolean;
+    /** `Triggering Player Name`, optional. */
+    triggeringPlayerName: string | null;
+    /** `Triggered By Local Player`, optional. */
+    triggeredByLocalPlayer: boolean | null;
 }
 
 const matchmakingStateOptions: WireType<MatchmakingStateOptions> = t.custom(
     'MatchmakingStateOptions',
     (stream, value) => {
-        t.string.write(stream, value.triggeringPlayerName);
-        t.bool.write(stream, value.triggeredByLocalPlayer);
+        t.optional(t.string).write(stream, value.triggeringPlayerName);
+        t.optional(t.bool).write(stream, value.triggeredByLocalPlayer);
     },
     (stream) => ({
-        triggeringPlayerName: t.string.read(stream),
-        triggeredByLocalPlayer: t.bool.read(stream)
+        triggeringPlayerName: t.optional(t.string).read(stream),
+        triggeredByLocalPlayer: t.optional(t.bool).read(stream)
     })
 );
 
@@ -193,9 +201,9 @@ export const clientboundStonecutterSetRecipePacket = definePacket('ClientboundSt
 
 /** The `SetPassengerOfBlockPacket` field list. */
 export const setPassengerOfBlockPacket = definePacket('SetPassengerOfBlockPacket', {
-    /** [0] `Passenger`, an `ActorUniqueID`. */
+    /** [0] `PassengerActorUniqueID`, an `ActorUniqueID`. */
     passenger: t.varint64,
-    /** [1] `PassengerOfBlockData`, optional. */
+    /** [1] `PassengerOfBlockData`, an optional `PassengerOfBlockArguments`. */
     passengerOfBlockData: passengerOfBlock
 });
 
@@ -211,8 +219,8 @@ export const clientboundPlayAudioContentPacket = definePacket('ClientboundPlayAu
     sharedMetadata: signedAudioContent,
     /** [1] `Playback Content`. */
     playbackContent: signedAudioContent,
-    /** [2] `Playback Type`; see {@link AudioContentPlaybackType}. */
-    playbackType: t.uint8,
+    /** [2] `Playback Type`, an `AudioContentPlaybackType` serialized as a string; see {@link AudioContentPlaybackType}. */
+    playbackType: t.string,
     /** [3] `Play Sound`, a whole `PlaySoundPacketPayload`. */
     playSound
 });

@@ -103,7 +103,10 @@ describe('LoginSequence steps', () => {
         const result = login.run();
 
         await transport.deliver(
-            new DisconnectPacket({ reason: DisconnectReason.UNKNOWN, skipMessage: false, message: 'go away' })
+            new DisconnectPacket({
+                reason: DisconnectReason.UNKNOWN,
+                messages: { skipMessage: false, message: 'go away', filteredMessage: '' }
+            })
         );
         await expect(result).rejects.toThrow(/Disconnected by the server: go away/);
 

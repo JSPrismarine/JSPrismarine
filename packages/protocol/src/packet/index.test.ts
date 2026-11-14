@@ -25,7 +25,7 @@ describe('the packet index', () => {
         const experiment: ExperimentToggle = { name: 'data_driven_items', enabled: true };
         const uuid: WireUUID = { mostSignificantBits: 1n, leastSignificantBits: 2n };
         const block: BlockProperty = { name: 'minecraft:red_shrub', definition: Buffer.alloc(0) };
-        const gathering: GatheringJoinInfo = { experienceId: uuid };
+        const gathering: GatheringJoinInfo = { experienceId: uuid, experienceName: 'lobby', creatorId: 'creator' };
         const join: ServerJoinInformation = { gathering };
 
         expect([position.y, rule.type, experiment.enabled, block.name, join.gathering?.experienceId]).toEqual([

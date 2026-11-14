@@ -1,11 +1,14 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { movePlayerPacket } from '../wire/definitions/movement';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { MovePlayerPayload } from '../wire/definitions/movement';
 
 /**
  * `Position Mode`, which tells the client how to apply this move.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-player-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/move-player-packet/
  */
 export enum PositionMode {
     /** Ordinary movement. Clients also send this mode to the server. */
@@ -18,34 +21,12 @@ export enum PositionMode {
     OnlyHeadRot
 }
 
-/** A player's position, rotation, movement mode, and input tick. */
-export interface MovePlayer {
-    /** The player being moved, or the sending player for a server-bound packet. */
-    runtimeEntityId: bigint;
-    /** The player's predicted world position after this movement update. */
-    position: { x: number; y: number; z: number };
-    /** Pitch in degrees. */
-    pitch: number;
-    /** Body yaw in degrees. */
-    yaw: number;
-    /** Head yaw in degrees, usually the same as `yaw`. */
-    headYaw: number;
-    /** How the receiving client should apply this move. */
-    mode: PositionMode;
-    /** Whether the player is touching the ground. */
-    onGround: boolean;
-    /** The riding actor; has no meaning in a client-bound packet. */
-    ridingEntityRuntimeId: bigint;
-    /** The docs' Teleportation Cause. Present only when `mode` is {@link PositionMode.Teleport}. */
-    teleportCause?: number;
-    /**
-     * The docs' Source Actor Type: the actor type that caused the teleport. The name is
-     * historical. Present only when `mode` is {@link PositionMode.Teleport}.
-     */
-    teleportItemId?: number;
-    /** The client input tick this movement corresponds to. */
-    tick: bigint;
-}
+/**
+ * A player's position, rotation, movement mode, and input tick.
+ *
+ * `teleportData` is the docs' Teleport Data: `null` unless `mode` is {@link PositionMode.Teleport}.
+ */
+export type MovePlayer = MovePlayerPayload;
 
 /**
  * Where a player is, as the server tells a client.
@@ -58,13 +39,15 @@ export interface MovePlayer {
  * Teleport Data is an optional with a presence byte of its own, which the client only sets
  * when Position Mode is Teleport. When present it is Teleportation Cause and Source Actor
  * Type, both int32 LE. A reader that skips the presence byte takes it for the first byte of
- * the tick.
+ * the tick. The wire layout lives in the declarative definition this class walks. The encoder
+ * sets the presence byte from the mode, so it is 0x01 exactly for a teleport. The decoder takes
+ * the byte as it finds it and reads Teleport Data whenever it is set, whatever the mode says.
  *
  * A client has not moved with one of these since 1.21.80, and protocol 818 removed the
  * movement mode that did. It sends `PlayerAuthInput` every tick and receives this. Both
  * directions are still read and written: the client package reads the server's teleports, and
  * the server decodes a client's one to drop it.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-player-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/move-player-packet/
  */
 export default class MovePlayerPacket extends NetworkPacket<MovePlayer> {
     public get id(): number {
@@ -72,55 +55,15 @@ export default class MovePlayerPacket extends NetworkPacket<MovePlayer> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: MovePlayer): void {
-        stream.writeUnsignedVarLong(data.runtimeEntityId);
-
-        stream.writeFloatLE(data.position.x);
-        stream.writeFloatLE(data.position.y);
-        stream.writeFloatLE(data.position.z);
-        stream.writeFloatLE(data.pitch);
-        stream.writeFloatLE(data.yaw);
-        stream.writeFloatLE(data.headYaw);
-
-        stream.writeByte(data.mode);
-        stream.writeBoolean(data.onGround);
-        stream.writeUnsignedVarLong(data.ridingEntityRuntimeId);
-
-        // Teleport Data is an optional with a presence byte of its own, written on every move.
-        const teleporting = data.mode === PositionMode.Teleport;
-        stream.writeBoolean(teleporting);
-        if (teleporting) {
-            stream.writeIntLE(data.teleportCause ?? 0);
-            stream.writeIntLE(data.teleportItemId ?? 0);
-        }
-
-        stream.writeUnsignedVarLong(data.tick);
+        // The docs say Teleport Data is "Present only when Position Mode is Teleport", so the
+        // mode decides the presence byte. Teleport Data on any other mode never reaches the wire,
+        // and a teleport that carries none writes zeros for both fields.
+        const teleportData =
+            data.mode === PositionMode.Teleport ? (data.teleportData ?? { cause: 0, sourceActorType: 0 }) : null;
+        layoutAt(movePlayerPacket, this.codecProtocol).encode(stream, { ...data, teleportData });
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): MovePlayer {
-        const runtimeEntityId = stream.readUnsignedVarLong();
-        const position = { x: stream.readFloatLE(), y: stream.readFloatLE(), z: stream.readFloatLE() };
-        const pitch = stream.readFloatLE();
-        const yaw = stream.readFloatLE();
-        const headYaw = stream.readFloatLE();
-        const mode: PositionMode = stream.readByte();
-        const onGround = stream.readBoolean();
-        const ridingEntityRuntimeId = stream.readUnsignedVarLong();
-
-        const teleport = stream.readBoolean()
-            ? { teleportCause: stream.readIntLE(), teleportItemId: stream.readIntLE() }
-            : {};
-
-        return {
-            runtimeEntityId,
-            position,
-            pitch,
-            yaw,
-            headYaw,
-            mode,
-            onGround,
-            ridingEntityRuntimeId,
-            ...teleport,
-            tick: stream.readUnsignedVarLong()
-        };
+        return layoutAt(movePlayerPacket, this.codecProtocol).decode(stream);
     }
 }

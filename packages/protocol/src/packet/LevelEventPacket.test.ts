@@ -17,6 +17,16 @@ describe('LevelEventPacket', () => {
         expect(new LevelEventPacket(DATA).serialize(new NetworkBinaryStream())).toEqual(BYTES);
     });
 
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocolVersion) => {
+        const packet = new LevelEventPacket(DATA);
+        packet.codecProtocol = protocolVersion;
+        expect(packet.serialize(new NetworkBinaryStream())).toEqual(BYTES);
+
+        const reader = new LevelEventPacket();
+        reader.codecProtocol = protocolVersion;
+        expect(reader.deserialize(new NetworkBinaryStream(BYTES))).toEqual(DATA);
+    });
+
     it('reads every field to the end of the packet', () => {
         const stream = new NetworkBinaryStream(BYTES);
 

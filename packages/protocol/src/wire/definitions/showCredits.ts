@@ -1,7 +1,7 @@
 /**
  * Starts the credits for a player or reports that the player finished watching them. The
  * packet carries the player runtime id and credits state.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/show-credits-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/show-credits-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

@@ -1,7 +1,7 @@
 /**
  * Closes a connection with a disconnect reason and an optional pair of displayed messages.
  * The selector determines whether the packet carries the message strings.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/disconnect-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/disconnect-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
@@ -51,8 +51,9 @@ const disconnectMessages: WireType<DisconnectMessages> = t.custom(
 export const disconnectPacket = definePacket('DisconnectPacket', {
     /**
      * `Reason`: a `DisconnectFailReason`, which is `DisconnectReason` in `@jsprismarine/minecraft`.
-     * Members run from `Unknown` (0) to `UnsupportedTransport` (149). The client maps it to the
-     * error code on its disconnect screen.
+     * Members run from `Unknown` (0) to `UnsupportedTransport` (149) at protocol 2193 and to
+     * `SubClientLoginNotBound` (150) at 2225. The wire is the same at both: only the enum grew.
+     * The client maps it to the error code on its disconnect screen.
      */
     reason: t.varint32,
     /** `Skip Message` and, unless it is set, the two message strings. */

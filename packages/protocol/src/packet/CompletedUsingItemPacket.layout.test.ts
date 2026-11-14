@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('d4fe8feefeff', 'hex');
 const payload = { itemId: -300, itemUseMethod: -70001 };
 
-describe('the declarative CompletedUsingItem layout', () => {
-    const layout = layoutAt(completedUsingItemPacket, 2193);
+describe.each([2193, 2225])('the declarative CompletedUsingItem layout at protocol %i', (protocol) => {
+    const layout = layoutAt(completedUsingItemPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

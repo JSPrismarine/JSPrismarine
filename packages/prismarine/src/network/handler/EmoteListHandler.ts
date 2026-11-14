@@ -18,10 +18,13 @@ export default class EmoteListHandler implements ConnectionLaneHandler<EmoteList
      * for the sender.
      */
     public handle(packet: EmoteListPacket, { session, log }: SessionContext): void {
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle an EmoteListPacket without decoded data');
+
         // `Runtime id` names whose emotes these are, and a client only equips its own.
-        if (packet.runtimeId !== session.runtimeId) {
+        if (data.runtimeId !== session.runtimeId) {
             log.debug(
-                `${session.identity.name} sent an EmoteList for runtime id ${packet.runtimeId}, dropped`,
+                `${session.identity.name} sent an EmoteList for runtime id ${data.runtimeId}, dropped`,
                 'EmoteListHandler/handle'
             );
         }

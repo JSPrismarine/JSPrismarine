@@ -1,14 +1,13 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { clientboundControlSchemeSetPacket } from '../wire/definitions/clientboundControlSchemeSet';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
-import type { ControlScheme } from '../structure/CameraPreset';
+import type { ClientboundControlSchemeSetPayload } from '../wire/definitions/clientboundControlSchemeSet';
 
 /** The fields of a `ClientboundControlSchemeSetPacket`, in wire order. */
-export interface ClientboundControlSchemeSet {
-    /** `Control Scheme` the client switches to. */
-    controlScheme: ControlScheme;
-}
+export type ClientboundControlSchemeSet = ClientboundControlSchemeSetPayload;
 
 /**
  * Tells the client which control scheme to use, usually alongside a custom camera. The
@@ -16,7 +15,9 @@ export interface ClientboundControlSchemeSet {
  *
  * Protocol 2193 layout: `Control Scheme` as one byte holding a {@link ControlScheme} value,
  * the same enum a `CameraPreset` carries (0 `locked_player_relative_strafe` through
- * 4 `player_relative_strafe`).
+ * 4 `player_relative_strafe`). Protocol 2225 prints the same layout.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-control-scheme-set-packet/
  */
 export default class ClientboundControlSchemeSetPacket extends NetworkPacket<ClientboundControlSchemeSet> {
     public get id(): number {
@@ -24,12 +25,10 @@ export default class ClientboundControlSchemeSetPacket extends NetworkPacket<Cli
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ClientboundControlSchemeSet): void {
-        stream.writeByte(data.controlScheme);
+        layoutAt(clientboundControlSchemeSetPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ClientboundControlSchemeSet {
-        const controlScheme: ControlScheme = stream.readByte();
-
-        return { controlScheme };
+        return layoutAt(clientboundControlSchemeSetPacket, this.codecProtocol).decode(stream);
     }
 }

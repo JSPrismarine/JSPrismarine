@@ -8,7 +8,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  *
  * Wire layout at protocol 2193: Pos X, Pos Y, and Pos Z as int32 LE (not a varint block
  * position), Slot Index as a uint8, then Is Disabled as a boolean.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-toggle-crafter-slot-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-toggle-crafter-slot-request-packet/
  */
 export default class PlayerToggleCrafterSlotRequestPacket extends FieldNetworkPacket {
     public posX = 0;

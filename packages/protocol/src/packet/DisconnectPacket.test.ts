@@ -15,34 +15,39 @@ const UNKNOWN_WITHOUT_MESSAGE = [0x00, 0x01];
 /** Reason `UnsupportedTransport` (149, ZigZag 298), the last member at 2193, takes two varint bytes. */
 const UNSUPPORTED_TRANSPORT_WITHOUT_MESSAGE = [0xaa, 0x02, 0x01];
 
+const withMessage = (message: string, filteredMessage = ''): Disconnect['messages'] => ({
+    skipMessage: false,
+    message,
+    filteredMessage
+});
+const skipped: Disconnect['messages'] = { skipMessage: true, message: '', filteredMessage: '' };
+
 const encode = (data: Disconnect) => [...new DisconnectPacket(data).serialize(new NetworkBinaryStream()).subarray(1)];
 
 describe('DisconnectPacket', () => {
     it('writes the reason as a ZigZag varint and both strings after a false Skip Message', () => {
         const payload = encode({
             reason: DisconnectReason.KICKED,
-            skipMessage: false,
-            message: 'Bye',
-            filteredMessage: ''
+            messages: withMessage('Bye')
         });
 
         expect(payload).toEqual(KICKED_WITH_MESSAGE);
     });
 
     it('writes a true Skip Message and nothing after it', () => {
-        const payload = encode({ reason: DisconnectReason.UNKNOWN, skipMessage: true });
+        const payload = encode({ reason: DisconnectReason.UNKNOWN, messages: skipped });
 
         expect(payload).toEqual(UNKNOWN_WITHOUT_MESSAGE);
     });
 
     it('spreads a reason past 63 over two varint bytes', () => {
-        const payload = encode({ reason: DisconnectReason.UNSUPPORTED_TRANSPORT, skipMessage: true });
+        const payload = encode({ reason: DisconnectReason.UNSUPPORTED_TRANSPORT, messages: skipped });
 
         expect(payload).toEqual(UNSUPPORTED_TRANSPORT_WITHOUT_MESSAGE);
     });
 
-    it('writes empty strings for messages that were left out', () => {
-        const payload = encode({ reason: DisconnectReason.UNKNOWN, skipMessage: false });
+    it('writes empty strings for messages that are empty', () => {
+        const payload = encode({ reason: DisconnectReason.UNKNOWN, messages: withMessage('') });
 
         expect(payload).toEqual([0x00, 0x00, 0x00, 0x00]);
     });
@@ -51,12 +56,7 @@ describe('DisconnectPacket', () => {
         const stream = new NetworkBinaryStream(Buffer.from([HEADER, ...KICKED_WITH_MESSAGE]));
         const data = new DisconnectPacket().deserialize(stream);
 
-        expect(data).toEqual({
-            reason: DisconnectReason.KICKED,
-            skipMessage: false,
-            message: 'Bye',
-            filteredMessage: ''
-        });
+        expect(data).toEqual({ reason: DisconnectReason.KICKED, messages: withMessage('Bye') });
         expect(stream.feof()).toBe(true);
     });
 
@@ -64,7 +64,7 @@ describe('DisconnectPacket', () => {
         const stream = new NetworkBinaryStream(Buffer.from([HEADER, ...UNSUPPORTED_TRANSPORT_WITHOUT_MESSAGE]));
         const data = new DisconnectPacket().deserialize(stream);
 
-        expect(data).toEqual({ reason: DisconnectReason.UNSUPPORTED_TRANSPORT, skipMessage: true });
+        expect(data).toEqual({ reason: DisconnectReason.UNSUPPORTED_TRANSPORT, messages: skipped });
         expect(stream.feof()).toBe(true);
     });
 
@@ -73,7 +73,7 @@ describe('DisconnectPacket', () => {
         const stream = new NetworkBinaryStream(Buffer.from([HEADER, 0x46, 0x02]));
         const data = new DisconnectPacket().deserialize(stream);
 
-        expect(data).toEqual({ reason: DisconnectReason.OUTDATED_CLIENT, skipMessage: true });
+        expect(data).toEqual({ reason: DisconnectReason.OUTDATED_CLIENT, messages: skipped });
         expect(stream.feof()).toBe(true);
     });
 });

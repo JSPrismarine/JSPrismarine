@@ -20,8 +20,8 @@ const payload = {
     filteredTitleMessage: 'hi'
 };
 
-describe('the declarative SetTitle layout', () => {
-    const layout = layoutAt(setTitlePacket, 2193);
+describe.each([2193, 2225])('the declarative SetTitle layout at protocol %i', (protocol) => {
+    const layout = layoutAt(setTitlePacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

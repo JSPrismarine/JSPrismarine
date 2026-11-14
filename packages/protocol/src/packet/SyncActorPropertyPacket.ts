@@ -10,11 +10,11 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * Bound to the client. Actor properties are the replacement Mojang intends for synched actor
  * data, and this packet carries the ones flagged for client sync.
  *
- * Wire order at protocol 2193: Property Data as one network NBT compound and nothing else.
+ * Wire order at protocol 2193 and 2225: Property Data as one network NBT compound and nothing else.
  * The compound holds `type`, the actor identifier, and `properties`, a list of property
  * definitions flagged for client sync. Each definition carries its name, type, and enum values
  * or numeric range when applicable.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/sync-actor-property-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/sync-actor-property-packet/
  */
 export default class SyncActorPropertyPacket extends FieldNetworkPacket {
     /** Property Data: the actor type and its synced properties. */

@@ -6,7 +6,7 @@
  * `Cloud Height` (ordinal 6) and `Render Clouds` (ordinal 7), verified against the v1.26.60
  * `metadata.zip` (`DimensionDefinition.json`) side by side with the v1.26.51 one, which ends
  * at `Default Biome` (ordinal 5). Nothing before them changed.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/dimension-definition/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/dimension-definition/}
  */
 import { definePacket, gated } from '../define';
 import * as t from '../fieldTypes';

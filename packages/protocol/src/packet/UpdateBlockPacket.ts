@@ -34,7 +34,7 @@ export enum UpdateBlockFlagsType {
  *
  * **Bound To:** Client
  *
- * Protocol 2193 layout (docs id 21), in wire order:
+ * Protocol 2193 and 2225 layout (docs id 21, unchanged between 1.26.50 and 1.26.60), in wire order:
  *
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
@@ -45,7 +45,7 @@ export enum UpdateBlockFlagsType {
  *
  * The height is signed like the other two coordinates. It was a varuint32 until 1.26.10, when
  * every `NetworkBlockPosition` in the protocol became a `BlockPos`.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-block-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/update-block-packet/
  */
 export default class UpdateBlockPacket extends FieldNetworkPacket {
     public x = 0;

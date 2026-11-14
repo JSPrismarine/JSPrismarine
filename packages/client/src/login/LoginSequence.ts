@@ -314,7 +314,7 @@ export default class LoginSequence {
     }
 
     private onDisconnect(disconnect: Disconnect): void {
-        this.fail(new Error(`Disconnected by the server: ${disconnect.message ?? 'no reason given'}`));
+        this.fail(new Error(`Disconnected by the server: ${disconnect.messages.message || 'no reason given'}`));
     }
 
     private fail(error: Error): void {

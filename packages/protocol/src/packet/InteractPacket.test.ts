@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
 import InteractPacket, { InteractAction } from './InteractPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 /**
  * The packet as the client writes it under protocol 2193: header, Action as a uint8, Target
@@ -33,6 +34,28 @@ const decode = (buffer: Buffer): InteractPacket => {
 describe('network', () => {
     describe('packet', () => {
         describe('InteractPacket', () => {
+            it("numbers the actions as the pinned game dump does, 3 to 6 rather than the 1.26.50 page's 1 to 4", () => {
+                // No Bedrock Dedicated Server capture of this packet exists, so the dump is the
+                // executable evidence; the 1.26.60 page and its changelog agree with it.
+                const expected = Object.entries(InteractAction)
+                    .filter((entry): entry is [string, number] => typeof entry[1] === 'number')
+                    .map(([name, value]) => ({ name, value }));
+
+                expect(enumDumpMembers('InteractPacket::Action')).toEqual(expected);
+                expect(enumDumpMembers('InteractPacketPayload::Action')).toEqual(expected);
+            });
+
+            it.each([2193, 2225])('writes the same bytes at protocol %i', (protocol) => {
+                const packet = new InteractPacket();
+                packet.codecProtocol = protocol;
+                packet.action = InteractAction.OpenInventory;
+                packet.target = 300n;
+                packet.position = null;
+                packet.encode();
+
+                expect([...packet.getBuffer()]).toEqual([0x21, 0x06, 0xac, 0x02, 0x00]);
+            });
+
             it('reads action, target and a present position, then stops at the end', () => {
                 const packet = decode(clientBytes(4, 300n, new Vector3(1.5, 64, -3.5)));
 

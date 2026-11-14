@@ -1,3 +1,4 @@
+import { availableCommandsPacket } from '../wire/definitions/availableCommands';
 import { formatWireValue } from '../wire/formatWireValue';
 import { CommandChainedSubcommand } from '../wire/structures/CommandChainedSubcommand';
 import CommandData from '../wire/structures/CommandData';
@@ -8,24 +9,20 @@ import CommandParameter, {
     CommandParameterType,
     CommandParameterTypeFlag
 } from '../wire/structures/CommandParameter';
+import { layoutAt } from '../wire/WireLayout';
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
-const readString = (packet: FieldNetworkPacket): string => packet.read(packet.readUnsignedVarInt()).toString('utf8');
-
-const writeString = (packet: FieldNetworkPacket, value: string): void => {
-    const encoded = Buffer.from(value, 'utf8');
-    packet.writeUnsignedVarInt(encoded.byteLength);
-    packet.write(encoded);
-};
+import type { AvailableCommandsPayload } from '../wire/definitions/availableCommands';
 
 /**
  * The name protocol 2193 writes a command's `Permission Level` under.
  *
  * The docs type `CommandPermissionLevel` is a `uint8` where it carries `Enum-as-Value`
  * (`AddPlayerPacket`, `UpdateAbilitiesPacket`) and a string here, where it does not. The names
- * are lower case on the wire; gophertunnel's `commandPermissionToString` at 2193 writes them
- * that way and the docs page prints the member names in CamelCase. A level outside the table
- * is `unknown`, which the client's own table also falls back to.
+ * are lower case on the wire; the docs page prints the member names in CamelCase, but a real
+ * server's payload (`bedrock-data/src/jsp/v2193/wire/0x4c.bin` and its `v2225` twin) carries
+ * `gamedirectors`, and `AvailableCommandsPacket.test.ts` reads those fixtures. A level outside
+ * the table is `unknown`, which the client's own table also falls back to.
  * @param {number} level - The permission level, 0 (`Any`) to 5 (`Internal`).
  * @returns {string} The name the client reads.
  */
@@ -49,7 +46,9 @@ const PARSE_SYMBOL_INDEX_MASK = 0xffff;
  * - `Post Fixes`: strings, the suffixes a `Postfix` parameter points at.
  * - `Enum Data`: `Name` (string) then `Values`, a list of `uint32` indices into `Enum Values`.
  *   Fixed four bytes each; the width no longer depends on how many values there are.
- * - `Chained Subcommand Data`: `Name` (string) then a list of `{first, second}` varuint pairs.
+ * - `Chained Subcommand Data`: `Name` (string) then a list of `{first, second}` varuint pairs:
+ *   the keyword's index in `Chained Subcommand Values` and the index in `Enum Data` of the
+ *   enum that holds that keyword.
  * - `Commands`: `Name`, `Description`, `Flags` (uint16), `Permission Level` (string, see
  *   {@link commandPermissionToString}), `Alias Enum` (int32 index into `Enum Data`, -1 when
  *   the command has no aliases), `CommandData Chained Subcommand Indexes` (uint32 list),
@@ -61,7 +60,8 @@ const PARSE_SYMBOL_INDEX_MASK = 0xffff;
  *
  * A `Parse Symbol` is a {@link CommandParameterType} word for a plain parameter. An enum
  * parameter gets `Enum` or `SoftEnum` ORed with `Valid` and the enum's index in its own table
- * (hard enums, soft enums and chained subcommands are numbered separately); a postfixed one
+ * (hard enums, soft enums and chained subcommands are numbered separately); a chained
+ * subcommand gets `Chained` ORed with `Valid` and its table's index; a postfixed one
  * gets `Postfix` and the index into `Post Fixes`. The flag bits and type ids live in
  * `CommandParameter.ts`.
  *
@@ -157,47 +157,104 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
         // symbols written below always point at something in the packet.
         this.enumConstraints.forEach((constraint) => appendEnum(constraint.getEnum()));
 
-        this.writeUnsignedVarInt(enumValueIndexes.size);
-        enumValueIndexes.forEach((_index: number, enumValue: string) => {
-            writeString(this, enumValue);
+        // Each chained keyword's enum: the first hard enum, among the parameters that lead an
+        // overload ending in a chained subcommand, that lists the keyword. `/execute` has one
+        // enum per keyword (`Option_As`, `Option_If_Unless`) as the overload's first parameter.
+        const keywordEnums: Map<string, number> = new Map();
+        this.commandData.forEach((commandData) => {
+            commandData.overloads.forEach((overload) => {
+                if (!overload.some((parameter) => parameter.chainedSubcommand !== null)) return;
+                overload.forEach((parameter) => {
+                    const index = parameter.enum?.soft === false ? enumIndexes.get(parameter.enum.name) : undefined;
+                    if (index === undefined) return;
+                    parameter.enum?.values.forEach((value) => {
+                        if (!keywordEnums.has(value)) keywordEnums.set(value, index);
+                    });
+                });
+            });
         });
 
-        this.writeUnsignedVarInt(chainedValueIndexes.size);
-        chainedValueIndexes.forEach((_index: number, value: string) => {
-            writeString(this, value);
-        });
-
-        this.writeUnsignedVarInt(postfixIndexes.size);
-        postfixIndexes.forEach((_index: number, postfix: string) => {
-            writeString(this, postfix);
-        });
-
-        this.writeUnsignedVarInt(enums.length);
-        enums.forEach((_enum: CommandEnum) => {
-            this.writeEnum(_enum, enumValueIndexes);
-        });
-
-        this.writeUnsignedVarInt(chainedSubcommands.length);
-        chainedSubcommands.forEach((table: CommandChainedSubcommand) => {
-            this.writeChainedSubcommand(table, chainedValueIndexes);
-        });
-
-        this.writeUnsignedVarInt(this.commandData.length);
-        this.commandData.forEach((data: CommandData) => {
-            this.writeCommandData(data, enumIndexes, softEnumIndexes, postfixIndexes, chainedSubcommandIndexes);
-        });
-
-        // The collected list, not `this.softEnums`: a soft enum that only a parameter refers to
+        // The collected lists, not `this.softEnums`: a soft enum that only a parameter refers to
         // was given an index above, and the client needs an entry at that index.
-        this.writeUnsignedVarInt(softEnums.length);
-        softEnums.forEach((_enum: CommandEnum) => {
-            this.writeSoftEnum(_enum);
-        });
+        const payload: AvailableCommandsPayload = {
+            enumValues: [...enumValueIndexes.keys()],
+            chainedSubcommandValues: [...chainedValueIndexes.keys()],
+            postfixes: [...postfixIndexes.keys()],
+            enums: enums.map(({ name, values }) => ({
+                name,
+                // The count written is the number of indices that follow, so a value missing from
+                // the table cannot leave the client reading the next field as an index.
+                values: values.flatMap((value) => {
+                    const index = enumValueIndexes.get(value);
+                    return index === undefined ? [] : [index];
+                })
+            })),
+            chainedSubcommands: chainedSubcommands.map(({ name, values }) => ({
+                name,
+                values: values.flatMap((value) => {
+                    const index = chainedValueIndexes.get(value);
+                    // `second` is the `Enum Data` index of the keyword's own enum. A keyword no
+                    // overload's enum names has none, and repeats its own index.
+                    return index === undefined ? [] : [{ first: index, second: keywordEnums.get(value) ?? index }];
+                })
+            })),
+            commands: this.commandData.map((data) => ({
+                name: data.commandName,
+                description: data.commandDescription,
+                flags: data.flags,
+                permissionLevel: commandPermissionToString(data.permission),
+                // `Alias Enum` is a signed index; -1 says the command has none.
+                aliasEnum: data.aliases === null ? -1 : (enumIndexes.get(data.aliases.name) ?? -1),
+                chainedSubcommandIndexes: data.chainedSubcommands.flatMap((table) => {
+                    const index = chainedSubcommandIndexes.get(table.name);
+                    return index === undefined ? [] : [index];
+                }),
+                overloads: data.overloads.map((overload) => ({
+                    // Mojang's own data marks an overload as chaining exactly when it ends in a
+                    // chained subcommand, so the flag is read off the parameters rather than
+                    // stored a second time where the two could disagree.
+                    isChaining: overload.some((parameter) => parameter.chainedSubcommand !== null),
+                    parameters: overload.map((parameter) => {
+                        let type: number = parameter.paramType;
+                        let flags: number = parameter.flags;
+                        if (parameter.chainedSubcommand !== null) {
+                            // The word a real server writes for a chained subcommand: `Chained` and
+                            // `Valid` over the table's index, with `EnumAsChainedCommand` in the options.
+                            type =
+                                CommandParameterTypeFlag.Chained |
+                                CommandParameterTypeFlag.Valid |
+                                (chainedSubcommandIndexes.get(parameter.chainedSubcommand.name) ?? 0);
+                            flags |= CommandParameterFlags.ENUM_AS_CHAINED_COMMAND;
+                        } else if (parameter.enum !== null) {
+                            type = parameter.enum.soft
+                                ? CommandParameterTypeFlag.SoftEnum |
+                                  CommandParameterTypeFlag.Valid |
+                                  (softEnumIndexes.get(parameter.enum.name) ?? 0)
+                                : CommandParameterTypeFlag.Enum |
+                                  CommandParameterTypeFlag.Valid |
+                                  (enumIndexes.get(parameter.enum.name) ?? 0);
+                        } else if (parameter.postfix !== null) {
+                            type = CommandParameterTypeFlag.Postfix | (postfixIndexes.get(parameter.postfix) ?? 0);
+                        }
 
-        this.writeUnsignedVarInt(this.enumConstraints.length);
-        this.enumConstraints.forEach((constraint: CommandEnumConstraint) => {
-            this.writeEnumConstraint(constraint, enumIndexes, enumValueIndexes);
-        });
+                        return {
+                            name: parameter.paramName,
+                            parseSymbol: type >>> 0,
+                            isOptional: parameter.isOptional,
+                            options: flags
+                        };
+                    })
+                }))
+            })),
+            softEnums: softEnums.map(({ name, values }) => ({ name, options: values })),
+            constraints: this.enumConstraints.map((constraint) => ({
+                enumValueSymbol: enumValueIndexes.get(constraint.getAffectedValue()) ?? 0,
+                enumSymbol: enumIndexes.get(constraint.getEnum().name) ?? 0,
+                constraintIndices: constraint.getConstraints()
+            }))
+        };
+
+        layoutAt(availableCommandsPacket, this.codecProtocol).encode(this, payload);
     }
 
     /**
@@ -212,91 +269,70 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
      * @throws {Error} when a parameter or constraint names an index outside its table.
      */
     public decodePayload(): void {
-        const enumValues: string[] = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            enumValues.push(readString(this));
-        }
+        const read = layoutAt(availableCommandsPacket, this.codecProtocol).decode(this);
+        const { enumValues, chainedSubcommandValues: chainedValues, postfixes } = read;
 
-        const chainedValues: string[] = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            chainedValues.push(readString(this));
-        }
-
-        const postfixes: string[] = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            postfixes.push(readString(this));
-        }
-
-        const enums: CommandEnum[] = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            const name = readString(this);
-            const values: string[] = [];
-            for (let j = 0, indices = this.readUnsignedVarInt(); j < indices; j++) {
-                const index = this.readUnsignedIntLE();
+        const enums: CommandEnum[] = read.enums.map(({ name, values: indices }) => {
+            const values = indices.map((index) => {
                 const value = enumValues[index];
                 if (value === undefined)
                     throw new Error(`Enum ${formatWireValue(name)} points at missing enum value ${index}`);
-                values.push(value);
-            }
-            enums.push(Object.assign(new CommandEnum(), { name, values, soft: false }));
-        }
+                return value;
+            });
+            return Object.assign(new CommandEnum(), { name, values, soft: false });
+        });
 
-        const chainedSubcommands: CommandChainedSubcommand[] = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            const name = readString(this);
-            const values: string[] = [];
-            for (let j = 0, pairs = this.readUnsignedVarInt(); j < pairs; j++) {
-                const first = this.readUnsignedVarInt();
-                this.readUnsignedVarInt(); // `second`, the same index again.
-                const value = chainedValues[first];
-                if (value === undefined)
-                    throw new Error(`Subcommand ${formatWireValue(name)} points at missing value ${first}`);
-                values.push(value);
+        const chainedSubcommands: CommandChainedSubcommand[] = read.chainedSubcommands.map(
+            ({ name, values: pairs }) => {
+                // `second`, the keyword's enum, is read past: the encoder rebuilds it from the overloads.
+                const values = pairs.map(({ first }) => {
+                    const value = chainedValues[first];
+                    if (value === undefined)
+                        throw new Error(`Subcommand ${formatWireValue(name)} points at missing value ${first}`);
+                    return value;
+                });
+                return Object.assign(new CommandChainedSubcommand(), { name, values });
             }
-            chainedSubcommands.push(Object.assign(new CommandChainedSubcommand(), { name, values }));
-        }
+        );
 
         // Parameters naming a soft enum, to resolve once the Soft Enums table is read below.
         const pendingSoftEnums: { parameter: CommandParameter; index: number }[] = [];
 
-        this.commandData = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+        this.commandData = read.commands.map((command) => {
             const data = new CommandData();
-            data.commandName = readString(this);
-            data.commandDescription = readString(this);
-            data.flags = this.readUnsignedShortLE();
-            data.permission = commandPermissionFromString(readString(this));
+            data.commandName = command.name;
+            data.commandDescription = command.description;
+            data.flags = command.flags;
+            data.permission = commandPermissionFromString(command.permissionLevel);
+            data.aliases = command.aliasEnum === -1 ? null : (enums[command.aliasEnum] ?? null);
 
-            const aliasIndex = this.readIntLE();
-            data.aliases = aliasIndex === -1 ? null : (enums[aliasIndex] ?? null);
-
-            data.chainedSubcommands = [];
-            for (let j = 0, indices = this.readUnsignedVarInt(); j < indices; j++) {
-                const index = this.readUnsignedIntLE();
+            data.chainedSubcommands = command.chainedSubcommandIndexes.map((index) => {
                 const table = chainedSubcommands[index];
                 if (table === undefined) {
                     throw new Error(
                         `Command ${formatWireValue(data.commandName)} points at missing subcommand table ${index}`
                     );
                 }
-                data.chainedSubcommands.push(table);
-            }
+                return table;
+            });
 
-            data.overloads = [];
-            for (let j = 0, overloads = this.readUnsignedVarInt(); j < overloads; j++) {
-                this.readBoolean(); // isChaining, derived from the parameters on encode.
-
-                const overload: CommandParameter[] = [];
-                for (let k = 0, parameters = this.readUnsignedVarInt(); k < parameters; k++) {
-                    const paramName = readString(this);
-                    const type = this.readUnsignedIntLE();
-                    const isOptional = this.readBoolean();
-                    const options = this.readByte();
-
+            // `isChaining` is read past: the encoder derives it from the parameters.
+            data.overloads = command.overloads.map(({ parameters }) =>
+                parameters.map(({ name: paramName, parseSymbol: type, isOptional, options }) => {
                     const parameter = new CommandParameter({ paramName, isOptional, flags: options });
                     const index = type & PARSE_SYMBOL_INDEX_MASK;
 
-                    if (type & CommandParameterTypeFlag.SoftEnum) {
+                    if (type & CommandParameterTypeFlag.Chained) {
+                        const table = chainedSubcommands[index];
+                        if (table === undefined) {
+                            throw new Error(
+                                `Parameter ${formatWireValue(paramName)} points at missing subcommand table ${index}`
+                            );
+                        }
+                        parameter.chainedSubcommand = table;
+                        // The encoder re-adds the flag from `chainedSubcommand`.
+                        parameter.flags = options & ~CommandParameterFlags.ENUM_AS_CHAINED_COMMAND;
+                    } else if (type & CommandParameterTypeFlag.SoftEnum) {
                         pendingSoftEnums.push({ parameter, index });
                     } else if (type & CommandParameterTypeFlag.Enum) {
                         if (options & CommandParameterFlags.ENUM_AS_CHAINED_COMMAND) {
@@ -336,23 +372,16 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                         parameter.paramType = word;
                     }
 
-                    overload.push(parameter);
-                }
-                data.overloads.push(overload);
-            }
+                    return parameter;
+                })
+            );
 
-            this.commandData.push(data);
-        }
+            return data;
+        });
 
-        this.softEnums = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            const name = readString(this);
-            const values: string[] = [];
-            for (let j = 0, options = this.readUnsignedVarInt(); j < options; j++) {
-                values.push(readString(this));
-            }
-            this.softEnums.push(Object.assign(new CommandEnum(), { name, values, soft: true }));
-        }
+        this.softEnums = read.softEnums.map(({ name, options }) =>
+            Object.assign(new CommandEnum(), { name, values: options, soft: true })
+        );
         for (const { parameter, index } of pendingSoftEnums) {
             const found = this.softEnums[index];
             if (found === undefined) {
@@ -363,7 +392,6 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
             parameter.enum = found;
         }
 
-        this.enumConstraints = [];
         // Each constrained enum's value to its first offset, built once on the enum's first
         // constraint. Searching the enum's values per constraint made a packet with many
         // values and many constraints cost their product.
@@ -379,153 +407,15 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
             }
             return offsetsOf.get(value) ?? -1;
         };
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            const valueIndex = this.readUnsignedIntLE(); // Enum Value Symbol.
-            const enumIndex = this.readUnsignedIntLE(); // Enum Symbol.
-
-            const constraints: number[] = [];
-            for (let j = 0, indices = this.readUnsignedVarInt(); j < indices; j++) {
-                constraints.push(this.readByte());
-            }
-
-            const constrained = enums[enumIndex];
-            const value = enumValues[valueIndex];
+        this.enumConstraints = read.constraints.map(({ enumValueSymbol, enumSymbol, constraintIndices }) => {
+            const constrained = enums[enumSymbol];
+            const value = enumValues[enumValueSymbol];
             if (constrained === undefined || value === undefined) {
-                throw new Error(`A constraint points at missing enum ${enumIndex} or value ${valueIndex}`);
+                throw new Error(`A constraint points at missing enum ${enumSymbol} or value ${enumValueSymbol}`);
             }
-            this.enumConstraints.push(
-                new CommandEnumConstraint(constrained, offsetOf(constrained, value), constraints)
-            );
-        }
+            return new CommandEnumConstraint(constrained, offsetOf(constrained, value), constraintIndices);
+        });
 
         this.hardcodedEnums = enums;
-    }
-
-    /**
-     * One `Enum Data` entry: the name, then each value's index in `Enum Values` as a uint32.
-     *
-     * Four bytes per index regardless of the table's size. Before 1.21.130 the width followed
-     * the number of enum values (one byte under 256, two under 65536); the docs for 2193 list
-     * the field as `array<uint32>` and gophertunnel has read it as `Uint32` since that release.
-     * The count written is the number of indices that follow, so a value missing from the
-     * table cannot leave the client reading the next field as an index.
-     */
-    private writeEnum({ name, values }: CommandEnum, enumValueMap: Map<string, number>): void {
-        const indices = values.flatMap((value) => {
-            const index = enumValueMap.get(value);
-            return index === undefined ? [] : [index];
-        });
-
-        writeString(this, name);
-        this.writeUnsignedVarInt(indices.length);
-        indices.forEach((index) => this.writeUnsignedIntLE(index));
-    }
-
-    /**
-     * One `Chained Subcommand Data` entry: the name, then a `{first, second}` varuint pair per
-     * keyword.
-     *
-     * Mojang's schema names the two members and defines neither. The only datum the table has
-     * per entry is the keyword, so its index in `Chained Subcommand Values` goes in both, which
-     * is what `@jsprismarine/commands` builds and what gophertunnel reads back.
-     */
-    private writeChainedSubcommand(
-        { name, values }: CommandChainedSubcommand,
-        chainedValueIndexes: Map<string, number>
-    ): void {
-        const indices = values.flatMap((value) => {
-            const index = chainedValueIndexes.get(value);
-            return index === undefined ? [] : [index];
-        });
-
-        writeString(this, name);
-        this.writeUnsignedVarInt(indices.length);
-        indices.forEach((index) => {
-            this.writeUnsignedVarInt(index);
-            this.writeUnsignedVarInt(index);
-        });
-    }
-
-    private writeCommandData(
-        data: CommandData,
-        enumIndexes: Map<string, number>,
-        softEnumIndexes: Map<string, number>,
-        postfixIndexes: Map<string, number>,
-        chainedSubcommandIndexes: Map<string, number>
-    ): void {
-        writeString(this, data.commandName);
-        writeString(this, data.commandDescription);
-        this.writeUnsignedShortLE(data.flags);
-        writeString(this, commandPermissionToString(data.permission));
-
-        // `Alias Enum` is a signed index; -1 says the command has none.
-        this.writeIntLE(data.aliases === null ? -1 : (enumIndexes.get(data.aliases.name) ?? -1));
-
-        const chainedIndices = data.chainedSubcommands.flatMap((table) => {
-            const index = chainedSubcommandIndexes.get(table.name);
-            return index === undefined ? [] : [index];
-        });
-        this.writeUnsignedVarInt(chainedIndices.length);
-        chainedIndices.forEach((index) => this.writeUnsignedIntLE(index));
-
-        this.writeUnsignedVarInt(data.overloads.length);
-        data.overloads.forEach((overload) => {
-            // Mojang's own data marks an overload as chaining exactly when it ends in a
-            // chained subcommand, so the flag is read off the parameters rather than stored
-            // a second time where the two could disagree.
-            this.writeBoolean(overload.some((parameter) => parameter.chainedSubcommand !== null));
-            this.writeUnsignedVarInt(overload.length);
-
-            overload.forEach((parameter) => {
-                writeString(this, parameter.paramName);
-
-                let type: number = parameter.paramType;
-                let flags: number = parameter.flags;
-                if (parameter.chainedSubcommand !== null) {
-                    // A chained subcommand carries the enum flags over its own index space.
-                    // `EnumAsChainedCommand` is what tells the client which space it is in.
-                    type =
-                        CommandParameterTypeFlag.Enum |
-                        CommandParameterTypeFlag.Valid |
-                        (chainedSubcommandIndexes.get(parameter.chainedSubcommand.name) ?? 0);
-                    flags |= CommandParameterFlags.ENUM_AS_CHAINED_COMMAND;
-                } else if (parameter.enum !== null) {
-                    type = parameter.enum.soft
-                        ? CommandParameterTypeFlag.SoftEnum |
-                          CommandParameterTypeFlag.Valid |
-                          (softEnumIndexes.get(parameter.enum.name) ?? 0)
-                        : CommandParameterTypeFlag.Enum |
-                          CommandParameterTypeFlag.Valid |
-                          (enumIndexes.get(parameter.enum.name) ?? 0);
-                } else if (parameter.postfix !== null) {
-                    type = CommandParameterTypeFlag.Postfix | (postfixIndexes.get(parameter.postfix) ?? 0);
-                }
-
-                this.writeUnsignedIntLE(type >>> 0);
-                this.writeBoolean(parameter.isOptional);
-                this.writeByte(flags);
-            });
-        });
-    }
-
-    private writeSoftEnum(_enum: CommandEnum): void {
-        writeString(this, _enum.name);
-        this.writeUnsignedVarInt(_enum.values.length);
-        _enum.values.forEach((value: string) => {
-            writeString(this, value);
-        });
-    }
-
-    private writeEnumConstraint(
-        constraint: CommandEnumConstraint,
-        enumIndexes: Map<string, number>,
-        enumValueIndexes: Map<string, number>
-    ): void {
-        this.writeUnsignedIntLE(enumValueIndexes.get(constraint.getAffectedValue()) ?? 0);
-        this.writeUnsignedIntLE(enumIndexes.get(constraint.getEnum().name) ?? 0);
-        this.writeUnsignedVarInt(constraint.getConstraints().length);
-        constraint.getConstraints().forEach((v) => {
-            this.writeByte(v);
-        });
     }
 }

@@ -7,8 +7,8 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
 /**
  * Where an entity now is, as the server tells a client.
  *
- * The payload is one `MoveActorAbsoluteData`. Protocol 2193 wire order, with the docs' field
- * names: `ActorRuntimeID` (varuint64), `Header` (uint8, the flags below), `Position` (three
+ * The payload is one `MoveActorAbsoluteData`, the same at protocols 2193 and 2225. Wire order, with
+ * the docs' field names: `ActorRuntimeID` (varuint64), `Header` (uint8, the flags below), `Position` (three
  * little-endian floats), then `Rotation X`, `Rotation Y` and `Rotation Y Head`, each one byte
  * holding the angle as a 256th of a turn.
  *
@@ -17,7 +17,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * 0x02, force move local entity 0x04, force completion 0x08.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-actor-absolute-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/move-actor-absolute-packet/
  */
 export default class MoveActorAbsolutePacket extends FieldNetworkPacket {
     /** The entity is standing on something, rather than falling. */

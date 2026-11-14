@@ -1,13 +1,13 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { purchaseReceiptPacket } from '../wire/definitions/purchaseReceipt';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { PurchaseReceiptPayload } from '../wire/definitions/purchaseReceipt';
 
 /** The store purchase receipts the client reports to the server. */
-export interface PurchaseReceipt {
-    /** One string receipt for each purchase the client reports. */
-    purchaseReceipts: string[];
-}
+export type PurchaseReceipt = PurchaseReceiptPayload;
 
 /**
  * Store receipts sent by a client after a purchase or after login when its entitlements are
@@ -15,7 +15,7 @@ export interface PurchaseReceipt {
  *
  * Protocol 2193 layout: `Purchase Receipts` as a varuint32 count followed by that many
  * varuint32-length-prefixed UTF-8 strings.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/purchase-receipt-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/purchase-receipt-packet/
  */
 export default class PurchaseReceiptPacket extends NetworkPacket<PurchaseReceipt> {
     public get id(): number {
@@ -23,19 +23,10 @@ export default class PurchaseReceiptPacket extends NetworkPacket<PurchaseReceipt
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: PurchaseReceipt): void {
-        stream.writeUnsignedVarInt(data.purchaseReceipts.length);
-        for (const receipt of data.purchaseReceipts) {
-            stream.writeString(receipt);
-        }
+        layoutAt(purchaseReceiptPacket, this.codecProtocol).encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): PurchaseReceipt {
-        const count = stream.readUnsignedVarInt();
-        const purchaseReceipts: string[] = [];
-        for (let index = 0; index < count; index++) {
-            purchaseReceipts.push(stream.readString());
-        }
-
-        return { purchaseReceipts };
+        return layoutAt(purchaseReceiptPacket, this.codecProtocol).decode(stream);
     }
 }

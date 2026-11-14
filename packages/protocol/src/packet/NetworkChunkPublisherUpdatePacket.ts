@@ -32,7 +32,7 @@ export type NetworkChunkPublisherUpdatePayload = Omit<WirePayload, 'savedChunks'
  * The list contains chunks the server will build for a client that generates terrain itself.
  * An empty list is intentional for ordinary server-generated terrain; the client treats a
  * provided list as the complete set rather than adding each update to the previous one.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/network-chunk-publisher-update-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/network-chunk-publisher-update-packet/
  */
 export default class NetworkChunkPublisherUpdatePacket extends NetworkPacket<NetworkChunkPublisherUpdatePayload> {
     public get id(): number {

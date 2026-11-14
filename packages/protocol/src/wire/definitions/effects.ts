@@ -2,8 +2,8 @@
  * Client visual effects that are not actor metadata: a full-screen texture animation and a
  * named particle effect attached to an actor or placed at a position. Field names and order
  * follow each packet's docs page.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/on-screen-texture-animation-packet/
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/spawn-particle-effect-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/on-screen-texture-animation-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/spawn-particle-effect-packet/
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
@@ -44,8 +44,10 @@ export const spawnParticleEffectPacket = definePacket('SpawnParticleEffectPacket
     effectName: t.string,
     /**
      * `Molang Variables`: the JSON map the client reads the effect's variables from, left out
-     * in almost every case. The docs mark the field present at 2193 and optional from 2207,
-     * but gophertunnel writes the presence byte at 2193 and a client reads one.
+     * in almost every case. The 1.26.50 page prints the field plain and the 1.26.60 page
+     * optional; Mojang's note says that change corrects the documentation, so the presence
+     * byte is on the wire at both protocol versions.
+     * See `docs/research/protocol-2225-delta.md`.
      */
     molangVariables: t.optional(t.string)
 });

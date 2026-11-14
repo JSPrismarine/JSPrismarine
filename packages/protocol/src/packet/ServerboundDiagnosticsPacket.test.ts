@@ -14,7 +14,12 @@ const u64 = (value: bigint): Buffer => {
 };
 const str = (value: string): Buffer => Buffer.concat([Buffer.from([value.length]), Buffer.from(value, 'utf8')]);
 
-describe('ServerboundDiagnosticsPacket', () => {
+const PRESENT = Buffer.from([0x01]);
+const ABSENT = Buffer.from([0x00]);
+
+// The packet is unchanged on the wire between the two versions this package speaks.
+describe.each([2193, 2225])('ServerboundDiagnosticsPacket at protocol %i', (protocolVersion) => {
+    const context = { protocolVersion };
     // Header: id 315 as LEB128 is 0xbb 0x02.
     const header = Buffer.from([0xbb, 0x02]);
 
@@ -37,15 +42,18 @@ describe('ServerboundDiagnosticsPacket', () => {
             str('minecraft:zombie'),
             u64(1000n),
             Buffer.from([0x32]), // 50 percent
+            PRESENT,
             f32(1),
             f32(64),
             f32(-3),
+            PRESENT,
             str('overworld'),
             Buffer.from([0x01]), // one SystemDiagnosticTimingInfo
             str('Physics'),
             u64(7n),
             u64(2000n),
             Buffer.from([0x19]), // 25 percent
+            PRESENT, // SystemCategories present
             Buffer.from([0x01]), // one SystemCategory
             str('Simulation'),
             u64(7n),
@@ -57,7 +65,7 @@ describe('ServerboundDiagnosticsPacket', () => {
             u64(1n)
         ]);
         const packet = new ServerboundDiagnosticsPacket(buffer);
-        packet.decode();
+        packet.decode(context);
 
         expect(packet.avgFps).toBe(60);
         expect(packet.avgServerSimTickTimeMs).toBe(1.5);
@@ -89,12 +97,13 @@ describe('ServerboundDiagnosticsPacket', () => {
         expect(packet.feof()).toBe(true);
     });
 
-    it('decodes empty lists as five zero counts', () => {
+    it('decodes empty lists as zero counts and an absent category list', () => {
         const buffer = Buffer.concat([header, Buffer.alloc(9 * 4), Buffer.from([0, 0, 0, 0, 0])]);
         const packet = new ServerboundDiagnosticsPacket(buffer);
-        packet.decode();
+        packet.decode(context);
 
         expect(packet.memoryCategoryValues).toEqual([]);
+        expect(packet.systemCategories).toBeNull();
         expect(packet.whiskerScopes).toEqual([]);
         expect(packet.feof()).toBe(true);
     });
@@ -103,17 +112,57 @@ describe('ServerboundDiagnosticsPacket', () => {
         const packet = new ServerboundDiagnosticsPacket();
         packet.avgFps = 30;
         packet.systemCategories = [{ categoryName: 'A', systemIndex: 1n }];
-        packet.encode();
+        packet.encode(context);
 
         const expected = Buffer.concat([
             header,
             f32(30),
             Buffer.alloc(8 * 4),
-            Buffer.from([0, 0, 0, 0x01]),
+            Buffer.from([0, 0, 0]),
+            PRESENT,
+            Buffer.from([0x01]),
             str('A'),
             u64(1n),
             Buffer.from([0])
         ]);
         expect(packet.getBuffer()).toEqual(expected);
+    });
+
+    it('reads an entity without a position or dimension, and round-trips it', () => {
+        const buffer = Buffer.concat([
+            header,
+            Buffer.alloc(9 * 4),
+            Buffer.from([0x00]), // no MemoryCategoryValues
+            Buffer.from([0x01]), // one EntityDiagnosticTimingInfo
+            str('Zombie'),
+            str('minecraft:zombie'),
+            u64(1000n),
+            Buffer.from([0x32]),
+            ABSENT, // Position
+            ABSENT, // Dimension
+            Buffer.from([0x00, 0x00, 0x00]) // no systems, absent categories, no scopes
+        ]);
+        const packet = new ServerboundDiagnosticsPacket(buffer);
+        packet.decode(context);
+
+        expect(packet.entityDiagnostics).toEqual([
+            {
+                displayName: 'Zombie',
+                entity: 'minecraft:zombie',
+                timeInNs: 1000n,
+                percentOfTotal: 50,
+                position: null,
+                dimension: null
+            }
+        ]);
+        expect(packet.systemCategories).toBeNull();
+
+        const again = new ServerboundDiagnosticsPacket();
+        Object.assign(again, {
+            entityDiagnostics: packet.entityDiagnostics,
+            systemCategories: packet.systemCategories
+        });
+        again.encode(context);
+        expect(again.getBuffer()).toEqual(buffer);
     });
 });

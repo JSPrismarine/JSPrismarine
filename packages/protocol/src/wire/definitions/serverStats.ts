@@ -8,9 +8,9 @@ import type { PayloadOf } from '../define';
 
 /** The `ServerStatsPacket` field list. */
 export const serverStatsPacket = definePacket('ServerStatsPacket', {
-    /** `ServerTime`, how long the server spent on its last tick. */
+    /** `ServerTime`, a little-endian 32-bit float. The docs give no unit. */
     serverTime: t.lf32,
-    /** `NetworkTime`, how long the server spent on networking in its last tick. */
+    /** `NetworkTime`, a little-endian 32-bit float. The docs give no unit. */
     networkTime: t.lf32
 });
 

@@ -11,8 +11,9 @@ const BYTES = Buffer.from('17ff', 'hex');
 
 const payload = { radius: -12, maxRadius: 255 };
 
-describe('the declarative RequestChunkRadius layout', () => {
-    const layout = layoutAt(requestChunkRadiusPacket, 2193);
+// The 1.26.50 and 1.26.60 docs list the same two fields, and the 1.26.60 changelog records no change.
+describe.each([2193, 2225])('the declarative RequestChunkRadius layout at protocol %i', (protocol) => {
+    const layout = layoutAt(requestChunkRadiusPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

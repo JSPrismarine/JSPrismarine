@@ -9,10 +9,10 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * Vanilla only sends it from a test command. The card is looked up by XUID, so the client
  * shows nothing for a player who is not signed in to Xbox Live.
  *
- * Wire order at protocol 2193: `Player XUID` as a string.
+ * Wire order at protocols 2193 and 2225: `Player XUID` as a string.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/show-profile-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/show-profile-packet/
  */
 export default class ShowProfilePacket extends FieldNetworkPacket {
     /** The Xbox Live id of the player whose profile the client opens. */

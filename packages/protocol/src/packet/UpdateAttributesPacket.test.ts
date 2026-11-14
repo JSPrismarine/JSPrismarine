@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Attribute, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import UpdateAttributesPacket from './UpdateAttributesPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 /**
  * The bytes are written by hand in the order protocol 2193 documents for `UpdateAttributesPacket`:
@@ -214,5 +215,27 @@ describe('UpdateAttributesPacket', () => {
 
         expect(varuint()).toBe(0n); // Tick.
         expect(offset).toBe(buffer.byteLength);
+    });
+
+    // `0x1d.bin` is the payload a real Bedrock Dedicated Server sent at each version, without the
+    // packet id. The layout is the same at both: Mojang's 1.26.50 and 1.26.60 pages agree.
+    it.each([2193, 2225])('re-encodes the Bedrock Dedicated Server capture at protocol %i byte for byte', (version) => {
+        const payload = capture(version, 0x1d);
+        const wire = Buffer.concat([Buffer.from([HEADER]), payload]);
+
+        const decoded = new UpdateAttributesPacket(wire);
+        decoded.codecProtocol = version;
+        decoded.decode();
+        expect(decoded.feof()).toBe(true);
+        expect(decoded.attributes.length).toBeGreaterThan(0);
+
+        const encoded = new UpdateAttributesPacket();
+        encoded.codecProtocol = version;
+        encoded.runtimeEntityId = decoded.runtimeEntityId;
+        encoded.attributes = decoded.attributes;
+        encoded.tick = decoded.tick;
+        encoded.encode();
+
+        expect(encoded.getBuffer()).toEqual(wire);
     });
 });

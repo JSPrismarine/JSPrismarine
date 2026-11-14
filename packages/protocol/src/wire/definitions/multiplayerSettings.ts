@@ -1,7 +1,7 @@
 /**
  * `MultiplayerSettingsPacket`: A change to the multiplayer settings of an Education Edition
  * session.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/multiplayer-settings-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/multiplayer-settings-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

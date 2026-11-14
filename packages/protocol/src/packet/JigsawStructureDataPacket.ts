@@ -21,7 +21,7 @@ import type { ProtocolContext } from '../ProtocolContext';
  * The wire layout is the `jigsawStructureDataPacket` definition in the protocol package.
  *
  * **Bound To:** Client
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/jigsaw-structure-data-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/jigsaw-structure-data-packet/
  */
 export default class JigsawStructureDataPacket extends FieldNetworkPacket {
     /** The rules as network NBT, or `null` to use the connection's captured bytes. */

@@ -3,7 +3,7 @@
  *
  * One big-endian int32, unusual on a wire that is otherwise little-endian and varint-heavy; the
  * docs carry it as `int32 (BE)` and every implementation agrees.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/PlayStatus.html}
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/play-status-packet/
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

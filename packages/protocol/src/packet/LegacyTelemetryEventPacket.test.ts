@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import BinaryStream from '@jsprismarine/binaryutils';
+import { layoutAt } from '../wire/WireLayout';
+import { legacyTelemetryEventPacket } from '../wire/definitions/legacyTelemetryEvent';
 import LegacyTelemetryEventPacket, {
     LegacyTelemetryEventDataOrdinal,
     LegacyTelemetryEventType
 } from './LegacyTelemetryEventPacket';
+import type { LegacyTelemetryEventData } from './LegacyTelemetryEventPacket';
 
 describe('LegacyTelemetryEventPacket', () => {
     // Header 0x41. Actor 5 zigzags to 10, the event type MobKilled (4) to 8, Use Player ID
@@ -160,5 +164,171 @@ describe('LegacyTelemetryEventPacket', () => {
         const packet = new LegacyTelemetryEventPacket(Buffer.from([0x41, 0x02, 0x3c, 0x00, 0x16]));
 
         expect(() => packet.decode()).toThrow(/alternative 22/);
+    });
+});
+
+/** One event per alternative of the Event Data oneOf, with its hand-computed wire bytes. */
+const alternatives: ReadonlyArray<{
+    name: string;
+    eventType: LegacyTelemetryEventType;
+    data: LegacyTelemetryEventData;
+    hex: string;
+}> = [
+    {
+        name: 'Achievement',
+        eventType: LegacyTelemetryEventType.Achievement,
+        data: { ordinal: 0, achievementId: 7 },
+        hex: '0007'
+    },
+    {
+        name: 'Interaction',
+        eventType: LegacyTelemetryEventType.Interaction,
+        data: {
+            ordinal: 1,
+            interactedEntityId: -3n,
+            interactionType: 2,
+            interactionActorType: 63,
+            interactionActorVariant: -1,
+            interactionActorColor: 4
+        },
+        hex: '0105027e0104'
+    },
+    {
+        name: 'PortalCreated',
+        eventType: LegacyTelemetryEventType.PortalCreated,
+        data: { ordinal: 2, dimensionId: 1 },
+        hex: '0202'
+    },
+    {
+        name: 'PortalUsed',
+        eventType: LegacyTelemetryEventType.PortalUsed,
+        data: { ordinal: 3, sourceDimensionId: 0, targetDimensionId: 2 },
+        hex: '030004'
+    },
+    {
+        name: 'MobKilled',
+        eventType: LegacyTelemetryEventType.MobKilled,
+        data: {
+            ordinal: 4,
+            instigatorActorId: 7n,
+            targetActorId: 9n,
+            instigatorChildActorType: 1,
+            damageSource: 2,
+            tradeTier: -1,
+            traderName: 'ab'
+        },
+        hex: '040e12020401026162'
+    },
+    {
+        name: 'CauldronUsed',
+        eventType: LegacyTelemetryEventType.CauldronUsed,
+        data: { ordinal: 5, contentsColor: 300, contentsType: -1, fillLevel: 6 },
+        hex: '05ac02ffff0600'
+    },
+    {
+        name: 'PlayerDied',
+        eventType: LegacyTelemetryEventType.PlayerDied,
+        data: { ordinal: 6, instigatorActorId: -1, instigatorMobVariant: 2, damageSource: 3, diedInRaid: true },
+        hex: '0601040601'
+    },
+    {
+        name: 'BossKilled',
+        eventType: LegacyTelemetryEventType.BossKilled,
+        data: { ordinal: 7, bossActorId: 1n, partySize: 4, bossType: 5 },
+        hex: '0702080a'
+    },
+    {
+        name: 'SlashCommand',
+        eventType: LegacyTelemetryEventType.SlashCommand,
+        data: { ordinal: 8, successCount: 1, errorCount: 0, commandName: 'say', errorList: 'x' },
+        hex: '080200037361790178'
+    },
+    {
+        name: 'MobBorn',
+        eventType: LegacyTelemetryEventType.MobBorn,
+        data: { ordinal: 9, bornBabyEntityType: 5, bornBabyEntityVariant: 1, bornBabyColor: 14 },
+        hex: '090a020e'
+    },
+    {
+        name: 'POICauldronUsed',
+        eventType: LegacyTelemetryEventType.POICauldronUsed,
+        data: { ordinal: 10, blockInteractionType: 9, itemId: 300 },
+        hex: '0a092c01'
+    },
+    {
+        name: 'ComposterUsed',
+        eventType: LegacyTelemetryEventType.ComposterUsed,
+        data: { ordinal: 11, blockInteractionType: 19, itemId: -2 },
+        hex: '0b13feff'
+    },
+    { name: 'BellUsed', eventType: LegacyTelemetryEventType.BellUsed, data: { ordinal: 12, itemId: 1 }, hex: '0c0100' },
+    {
+        name: 'ActorDefinition',
+        eventType: LegacyTelemetryEventType.ActorDefinition,
+        data: { ordinal: 13, eventName: 'hi' },
+        hex: '0d026869'
+    },
+    {
+        name: 'RaidUpdate',
+        eventType: LegacyTelemetryEventType.RaidUpdate,
+        data: { ordinal: 14, currentWave: 2, totalWaves: 5, success: false },
+        hex: '0e040a00'
+    },
+    {
+        name: 'TargetBlockHit',
+        eventType: LegacyTelemetryEventType.TargetBlockHit,
+        data: { ordinal: 15, redstoneLevel: 15 },
+        hex: '0f1e'
+    },
+    {
+        name: 'PiglinBarter',
+        eventType: LegacyTelemetryEventType.PiglinBarter,
+        data: { ordinal: 16, itemId: 3, wasTargetingBarteringPlayer: true },
+        hex: '100601'
+    },
+    {
+        name: 'PlayerWaxedOrUnwaxedCopper',
+        eventType: LegacyTelemetryEventType.PlayerWaxedOrUnwaxedCopper,
+        data: { ordinal: 17, playerWaxedOrUnwaxedCopperBlockId: 100 },
+        hex: '11c801'
+    },
+    {
+        name: 'CodeBuilderRuntimeAction',
+        eventType: LegacyTelemetryEventType.CodeBuilderRuntimeAction,
+        data: { ordinal: 18, codeBuilderRuntimeAction: 'go' },
+        hex: '1202676f'
+    },
+    {
+        name: 'CodeBuilderScoreboard',
+        eventType: LegacyTelemetryEventType.CodeBuilderScoreboard,
+        data: { ordinal: 19, objectiveName: 'o', score: -2 },
+        hex: '13016f03'
+    },
+    {
+        name: 'ItemUsed',
+        eventType: LegacyTelemetryEventType.ItemUsed,
+        data: { ordinal: 20, itemId: 300, itemAux: -1, useMethod: 2, count: 3 },
+        hex: '142c01ffffffff0200000003000000'
+    },
+    { name: 'Empty', eventType: LegacyTelemetryEventType.HoneyHarvested, data: { ordinal: 21 }, hex: '15' }
+];
+
+describe.each([2193, 2225])('the declarative LegacyTelemetryEvent layout at protocol %i', (protocol) => {
+    const layout = layoutAt(legacyTelemetryEventPacket, protocol);
+
+    it.each(alternatives)('round-trips the $name alternative as the spec lays it out', ({ eventType, data, hex }) => {
+        // Target Actor ID 5 zigzags to 0x0a, Use Player ID is set, and the Event Type zigzags.
+        const expected = Buffer.concat([
+            Buffer.from([0x0a]),
+            Buffer.from([eventType * 2]),
+            Buffer.from([0x01]),
+            Buffer.from(hex, 'hex')
+        ]);
+        const payload = { targetActorId: 5n, eventType, usePlayerId: true, eventData: data };
+
+        const stream = new BinaryStream();
+        layout.encode(stream, payload);
+        expect(stream.getBuffer()).toEqual(expected);
+        expect(layout.decode(new BinaryStream(expected))).toEqual(payload);
     });
 });

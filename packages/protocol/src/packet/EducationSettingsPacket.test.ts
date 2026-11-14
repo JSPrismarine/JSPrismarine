@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import NetworkBinaryStream from '../NetworkBinaryStream';
+import { educationSettingsPacket } from '../wire/definitions/educationSettings';
+import { layoutAt } from '../wire/WireLayout';
 import EducationSettingsPacket from './EducationSettingsPacket';
+
+import type { EducationSettings } from './EducationSettingsPacket';
 
 const ENCODED = Buffer.concat([
     Buffer.from([0x89, 0x01]), // Header: id 137 as LEB128.
@@ -21,57 +26,86 @@ const ENCODED = Buffer.concat([
     Buffer.from('y', 'utf8') // Display Name "y".
 ]);
 
+const EMPTY: EducationSettings = {
+    codeBuilderDefaultUri: '',
+    codeBuilderTitle: '',
+    canResizeCodeBuilder: false,
+    disableLegacyTitleBar: false,
+    postProcessFilter: '',
+    screenshotBorderResourcePath: '',
+    canModifyBlocks: undefined,
+    codeBuilderOverrideUri: undefined,
+    hasQuiz: false,
+    externalLinkSettings: undefined
+};
+
 describe('EducationSettingsPacket', () => {
     it('encodes the three optionals with the deprecated boolean between the last two', () => {
-        const packet = Object.assign(new EducationSettingsPacket(), {
+        const buffer = new EducationSettingsPacket({
+            ...EMPTY,
             codeBuilderDefaultUri: 'u',
             codeBuilderTitle: 't',
             canResizeCodeBuilder: true,
             canModifyBlocks: true,
             codeBuilderOverrideUri: 'o',
             externalLinkSettings: { url: 'x', displayName: 'y' }
-        });
-        packet.encode();
+        }).serialize(new NetworkBinaryStream());
 
-        expect(packet.getBuffer()).toEqual(ENCODED);
+        expect(buffer).toEqual(ENCODED);
     });
 
     it('decodes every field and consumes the whole buffer', () => {
-        const packet = new EducationSettingsPacket(ENCODED);
-        packet.decode();
+        const stream = new NetworkBinaryStream(ENCODED);
+        const data = new EducationSettingsPacket().deserialize(stream);
 
-        expect(packet.codeBuilderDefaultUri).toBe('u');
-        expect(packet.codeBuilderTitle).toBe('t');
-        expect(packet.canResizeCodeBuilder).toBe(true);
-        expect(packet.disableLegacyTitleBar).toBe(false);
-        expect(packet.postProcessFilter).toBe('');
-        expect(packet.screenshotBorderResourcePath).toBe('');
-        expect(packet.canModifyBlocks).toBe(true);
-        expect(packet.codeBuilderOverrideUri).toBe('o');
-        expect(packet.hasQuiz).toBe(false);
-        expect(packet.externalLinkSettings).toEqual({ url: 'x', displayName: 'y' });
-        expect(packet.feof()).toBe(true);
+        expect(data).toEqual({
+            codeBuilderDefaultUri: 'u',
+            codeBuilderTitle: 't',
+            canResizeCodeBuilder: true,
+            disableLegacyTitleBar: false,
+            postProcessFilter: '',
+            screenshotBorderResourcePath: '',
+            canModifyBlocks: true,
+            codeBuilderOverrideUri: 'o',
+            hasQuiz: false,
+            externalLinkSettings: { url: 'x', displayName: 'y' }
+        });
+        expect(stream.feof()).toBe(true);
     });
 
     it('encodes an empty packet as ten bytes, one per field with every optional absent', () => {
-        const packet = new EducationSettingsPacket();
-        packet.encode();
+        const buffer = new EducationSettingsPacket(EMPTY).serialize(new NetworkBinaryStream());
 
-        expect(packet.getBuffer()).toEqual(
-            Buffer.from([0x89, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-        );
+        expect(buffer).toEqual(Buffer.from([0x89, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
     });
 
     it('decodes absent optionals without reading into the fields after them', () => {
-        const packet = new EducationSettingsPacket(
+        const stream = new NetworkBinaryStream(
             Buffer.from([0x89, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00])
         );
-        packet.decode();
+        const data = new EducationSettingsPacket().deserialize(stream);
 
-        expect(packet.canModifyBlocks).toBeUndefined();
-        expect(packet.codeBuilderOverrideUri).toBeUndefined();
-        expect(packet.hasQuiz).toBe(true);
-        expect(packet.externalLinkSettings).toBeUndefined();
-        expect(packet.feof()).toBe(true);
+        expect(data.canModifyBlocks).toBeUndefined();
+        expect(data.codeBuilderOverrideUri).toBeUndefined();
+        expect(data.hasQuiz).toBe(true);
+        expect(data.externalLinkSettings).toBeUndefined();
+        expect(stream.feof()).toBe(true);
+    });
+
+    it.each([2193, 2225])('writes the same three presence bytes at protocol %i', (protocol) => {
+        const stream = new NetworkBinaryStream();
+        layoutAt(educationSettingsPacket, protocol).encode(stream, {
+            ...EMPTY,
+            canModifyBlocks: true,
+            codeBuilderOverrideUri: 'o',
+            externalLinkSettings: { url: 'x', displayName: 'y' }
+        });
+
+        expect(stream.getBuffer()).toEqual(
+            Buffer.concat([
+                Buffer.alloc(6), // Six empty strings and false booleans.
+                Buffer.from([0x01, 0x01, 0x01, 0x01, 0x6f, 0x00, 0x01, 0x01, 0x78, 0x01, 0x79])
+            ])
+        );
     });
 });

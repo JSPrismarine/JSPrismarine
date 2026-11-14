@@ -44,8 +44,8 @@ const entries: ScorePacketEntry[] = [
     }
 ];
 
-describe('the declarative SetScore layout', () => {
-    const layout = layoutAt(setScorePacket, 2193);
+describe.each([2193, 2225])('the declarative SetScore layout at protocol %i', (protocol) => {
+    const layout = layoutAt(setScorePacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

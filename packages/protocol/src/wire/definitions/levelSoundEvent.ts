@@ -3,8 +3,8 @@
  * `PlaySoundPacket` names an audio resource and position, `LevelSoundEventPacket` describes an
  * event such as a block break or mob step, and `StopSoundPacket` cancels playback by name.
  * Field names and order follow each packet's docs page.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/play-sound-packet/
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-sound-event-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/play-sound-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/level-sound-event-packet/
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/stop-sound-packet/
  */
 import { definePacket } from '../define';
@@ -84,7 +84,10 @@ export const levelSoundEventPacket = definePacket('LevelSoundEventPacket', {
     disableRelativeVolume: t.bool,
     /** `Actor Unique Id`: a little-endian int64, not a varint. -1 for the world's own. */
     entityUniqueId: t.li64,
-    /** `Fire At Position`: where a projectile sound was fired from, behind a presence byte. */
+    /**
+     * `Fire At Position`: where a projectile sound was fired from, behind a presence byte.
+     * The `0x7b.bin` captures at v2193 and v2225 carry that byte.
+     */
     fireAtPosition: t.optional(t.vec3)
 });
 

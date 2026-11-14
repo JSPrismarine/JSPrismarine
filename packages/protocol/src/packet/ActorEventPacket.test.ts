@@ -1,13 +1,31 @@
 import { Vector3 } from '@jsprismarine/math';
 import { ActorEvent } from '@jsprismarine/minecraft';
+import { ActorEvent as ActorEvent2193 } from '@jsprismarine/minecraft/generated/v2193/ActorEvent';
+import { ActorEvent as ActorEvent2225 } from '@jsprismarine/minecraft/generated/v2225/ActorEvent';
 import { describe, expect, it } from 'vitest';
 
 import { PacketIdentifier } from '../PacketIdentifier';
 import ActorEventPacket from './ActorEventPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 describe('network', () => {
     describe('packet', () => {
         describe('ActorEventPacket', () => {
+            it.each([
+                ['2193', ActorEvent2193],
+                ['2225', ActorEvent2225]
+            ])('numbers the events at protocol %s the way the pinned game dump does', (_protocol, generated) => {
+                // The generated enum renames two members (`HURT`, `DEATH`); every value must still match.
+                const aliases: Record<string, string> = { HURT: 'HURT_ANIMATION', DEATH: 'DEATH_ANIMATION' };
+                const dump = enumDumpMembers('ActorEvent');
+
+                expect(dump).toHaveLength(61);
+                for (const { name, value } of dump) {
+                    // A numeric enum maps its values back to their member names.
+                    expect(generated[value], name).toBe(aliases[name] ?? name);
+                }
+            });
+
             it('writes the four fields in docs order, with an absent Fire At Position', () => {
                 const packet = new ActorEventPacket();
                 packet.runtimeEntityId = 300n;

@@ -1,6 +1,6 @@
 /**
  * `NpcRequestPacket`: What a player did with an NPC, sent when they interact with one or edit it.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/npc-request-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/npc-request-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

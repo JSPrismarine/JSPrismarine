@@ -50,3 +50,25 @@ describe('ClientCacheBlobStatusPacket', () => {
         expect(packet.getBuffer()).toEqual(Buffer.from([0x87, 0x01, 0x00, 0x00]));
     });
 });
+
+describe('ClientCacheBlobStatusPacket at each protocol version', () => {
+    const bytes = Buffer.from([
+        0x87, 0x01, 0x02, 0x01, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01, 0x02, 0x01,
+        0, 0, 0, 0, 0, 0
+    ]);
+
+    it.each([2193, 2225])('round-trips the same bytes at protocol %i', (protocolVersion) => {
+        const packet = new ClientCacheBlobStatusPacket(bytes);
+        packet.codecProtocol = protocolVersion;
+        packet.decode();
+        expect(packet.missingIds).toEqual([1n, 0xffffffffffffffffn]);
+        expect(packet.foundIds).toEqual([0x0102n]);
+
+        const out = new ClientCacheBlobStatusPacket();
+        out.codecProtocol = protocolVersion;
+        out.missingIds = packet.missingIds;
+        out.foundIds = packet.foundIds;
+        out.encode();
+        expect(out.getBuffer()).toEqual(bytes);
+    });
+});

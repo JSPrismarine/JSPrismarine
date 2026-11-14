@@ -219,14 +219,14 @@ describe('traveling through a nether portal on a real server', () => {
         if (move === undefined) throw new Error('no move');
         expect(move.mode).toBe(PositionMode.Teleport);
         expect(move.runtimeEntityId).toBe(client.getStartGame()!.runtimeEntityId);
-        expect(move.position.x).toBeCloseTo(change.position.getX());
-        expect(move.position.y).toBeCloseTo(change.position.getY());
-        expect(move.position.z).toBeCloseTo(change.position.getZ());
+        expect(move.position.getX()).toBeCloseTo(change.position.getX());
+        expect(move.position.getY()).toBeCloseTo(change.position.getY());
+        expect(move.position.getZ()).toBeCloseTo(change.position.getZ());
         expect(indexOf(PacketIdentifier.MOVE_PLAYER)).toBeGreaterThan(firstNetherChunk);
 
         // Both carry the eyes the server holds, and the feet below them stand in the portal
         // the trip built rather than in its obsidian floor.
-        expect(move.position.y).toBeCloseTo(player.getPosition().getY());
+        expect(move.position.getY()).toBeCloseTo(player.getPosition().getY());
         const underfoot = await player
             .getWorld()
             .getBlock(

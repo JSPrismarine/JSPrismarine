@@ -3,6 +3,7 @@ import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import LevelSoundEventPacket from './LevelSoundEventPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 describe('LevelSoundEventPacket', () => {
     // One Buffer per docs field, in wire order.
@@ -103,4 +104,24 @@ describe('LevelSoundEventPacket', () => {
         expect(packet.fireAtPosition).toBeNull();
         expect(packet.feof()).toBe(true);
     });
+
+    // Both docs pages print `Fire At Position` plain at 2193 and optional at 2225; Mojang's
+    // 1.26.60 note says the optional marker is the page being corrected, not a wire change.
+    // The captures show the presence byte at both versions.
+    for (const protocolVersion of [2193, 2225]) {
+        it(`round-trips the Bedrock Dedicated Server capture, presence byte included, at ${protocolVersion}`, () => {
+            const captured = capture(protocolVersion, 0x7b);
+            const bytes = Buffer.concat([Buffer.from([0x7b]), captured]);
+
+            const packet = new LevelSoundEventPacket(bytes);
+            packet.codecProtocol = protocolVersion;
+            packet.decode();
+            expect(packet.feof()).toBe(true);
+            expect(packet.fireAtPosition).toBeNull();
+
+            packet.codecProtocol = protocolVersion;
+            packet.encode();
+            expect(packet.getBuffer()).toEqual(bytes);
+        });
+    }
 });

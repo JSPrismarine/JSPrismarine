@@ -1,12 +1,16 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { BuildPlatform, CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 import { Metadata, MetadataFlag } from '../wire/structures/Metadata';
 import { SyncedProperties } from '../wire/structures/SyncedProperties';
 import UUID from '../wire/structures/UUID';
+import { startGamePacket } from '../wire/definitions/startGame';
+import { layoutAt } from '../wire/WireLayout';
 import type { AddPlayerPayload } from '../wire/definitions/addPlayer';
 import type { PassengerOfBlock } from '../wire/structures/PassengerOfBlock';
 import AddPlayerPacket from './AddPlayerPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 const air = { id: 0, stackSize: 0, auxValue: 0, stackNetId: null, blockRuntimeId: 0, userData: Buffer.alloc(0) };
 
@@ -199,5 +203,39 @@ describe('AddPlayerPacket', () => {
                 beforeDeviceId.subarray(beforeDeviceId.byteLength - trailingDeviceAndPlatform)
             ])
         );
+    });
+
+    it('writes the passenger block data fields in the documented order and widths in protocol 2225', () => {
+        const passenger: PassengerOfBlock = {
+            blockPosition: new Vector3(1, -60, 2),
+            offset: new Vector3(0.25, 0, -0.25),
+            rotation: 180,
+            rotationLimit: 90,
+            emoteType: 2
+        };
+        const packet = new AddPlayerPacket(payload({ passengerOfBlock: passenger }));
+        packet.codecProtocol = 2225;
+        packet.encode();
+
+        const expected = Buffer.concat([
+            // Presence byte, then BlockPos as three signed varints (ZigZag 1, -60, 2).
+            Buffer.from([0x01, 0x02, 0x77, 0x04]),
+            // Offset Vec3, Rotation and RotationLimit as little-endian floats, EmoteType as a byte.
+            Buffer.from([0x00, 0x00, 0x80, 0x3e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xbe]),
+            Buffer.from([0x00, 0x00, 0x34, 0x43, 0x00, 0x00, 0xb4, 0x42, 0x02]),
+            Buffer.from([0x06, 0x64, 0x65, 0x76, 0x69, 0x63, 0x65]),
+            Buffer.from([0xff, 0xff, 0xff, 0xff])
+        ]);
+        expect(packet.getBuffer().subarray(packet.getBuffer().byteLength - expected.byteLength)).toEqual(expected);
+    });
+
+    it.each([2193, 2225])('uses the game type numbering the real server sends at protocol %i', (protocol) => {
+        // The 1.26.50 docs list Survival 1 and Default 4; the real server's StartGame fixture
+        // carries the engine's values (Default 5, Survival 0), and AddPlayer shares `GameType`.
+        const startGame = layoutAt(startGamePacket, protocol).decode(new BinaryStream(capture(protocol, 0x0b)));
+        expect(startGame.gamemode).toBe(Gametype.DEFAULT);
+        expect(startGame.worldGamemode).toBe(Gametype.SURVIVAL);
+        expect(Gametype.DEFAULT).toBe(5);
+        expect(Gametype.SURVIVAL).toBe(0);
     });
 });

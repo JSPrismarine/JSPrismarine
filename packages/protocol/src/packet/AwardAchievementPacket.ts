@@ -1,7 +1,10 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { awardAchievementPacket } from '../wire/definitions/awardAchievement';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { AwardAchievementPayload } from '../wire/definitions/awardAchievement';
 
 /**
  * A `MinecraftEventing::AchievementIds` member, the game's numbering for its achievements.
@@ -9,7 +12,8 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
  * The values are the ones the wire carries, from Mojang's enum datagen and the protocol site's
  * 1.26.60-preview.21 changelog. The 1.26.51 type page numbers the members 0 to 81 in list
  * order; that is a rendering artifact, not the wire value. The numbering has gaps where
- * achievements were retired.
+ * achievements were retired. The pinned enums.html backs the numbers 7 to 117; the numbers 118
+ * to 127 come from the 1.26.60 type page alone.
  */
 export enum AchievementId {
     ChestFullOfCobblestone = 7,
@@ -93,38 +97,33 @@ export enum AchievementId {
     GettingAnUpgrade = 123,
     MonsterHunter = 124,
     Diamonds = 125,
-    PlethoraOfCats = 126
+    PlethoraOfCats = 126,
+    /** Added in protocol 2225 (1.26.60); protocol 2193 has no such achievement. */
+    WhatGoesAroundComesAround = 127
 }
 
 /** The fields of an `AwardAchievementPacket`, in wire order. */
-export interface AwardAchievement {
-    /**
-     * `AchievementID`: which achievement to award. The docs type it as a bare int32; the
-     * numbers are the {@link AchievementId} members the telemetry `Achievement` event also
-     * uses, and gophertunnel calls them unknown, so a value outside the enum passes through.
-     */
-    achievementId: AchievementId;
-}
+export type AwardAchievement = AwardAchievementPayload;
 
 /**
  * Awards one achievement to the receiving player.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/award-achievement-packet/
  *
  * Protocol 2193 layout: `AchievementID` as a little-endian int32, four bytes, not a varint.
  * Achievements only exist on platform-signed worlds, so a dedicated server sending this does
  * nothing visible on a client that joined over LAN or a server list entry.
  */
-export default class AwardAchievementPacket extends NetworkPacket<AwardAchievement> {
+export default class AwardAchievementPacket extends NetworkPacket<AwardAchievementPayload> {
     public get id(): number {
         return PacketIdentifier.AWARD_ACHIEVEMENT;
     }
 
-    protected serializePayload(stream: NetworkBinaryStream, data: AwardAchievement): void {
-        stream.writeIntLE(data.achievementId);
+    protected serializePayload(stream: NetworkBinaryStream, data: AwardAchievementPayload): void {
+        layoutAt(awardAchievementPacket, this.codecProtocol).encode(stream, data);
     }
 
-    protected deserializePayload(stream: NetworkBinaryStream): AwardAchievement {
-        const achievementId: AchievementId = stream.readIntLE();
-
-        return { achievementId };
+    protected deserializePayload(stream: NetworkBinaryStream): AwardAchievementPayload {
+        return layoutAt(awardAchievementPacket, this.codecProtocol).decode(stream);
     }
 }

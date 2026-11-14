@@ -31,10 +31,12 @@ describe('the declarative SetActorMotion layout', () => {
         expected.writeFloatLE(packet.motion.getZ());
         expected.writeUnsignedVarLong(packet.tick);
 
-        const stream = new BinaryStream();
-        layoutAt(setActorMotionPacket, 2193).encode(stream, payloadOf(packet));
+        for (const protocol of [2193, 2225]) {
+            const stream = new BinaryStream();
+            layoutAt(setActorMotionPacket, protocol).encode(stream, payloadOf(packet));
 
-        expect(stream.getBuffer()).toEqual(expected.getBuffer());
+            expect(stream.getBuffer()).toEqual(expected.getBuffer());
+        }
     });
 
     it('round-trips through the packet class and consumes the payload', () => {

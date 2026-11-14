@@ -4,6 +4,7 @@ import NetworkBinaryStream from '../NetworkBinaryStream';
 import ResourcePacksInfoPacket from './ResourcePacksInfoPacket';
 
 import type { ResourcePacksInfo } from './ResourcePacksInfoPacket';
+import { capture } from '../testing/evidence.test.helper';
 
 const DATA: ResourcePacksInfo = {
     resourcePackRequired: true,
@@ -11,7 +12,7 @@ const DATA: ResourcePacksInfo = {
     hasScripts: true,
     forceDisableVibrantVisuals: true,
     worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
-    packs: [
+    resourcePackEntries: [
         {
             id: {
                 uuidMostSignificant: 0x0102030405060708n,
@@ -60,7 +61,7 @@ const NO_PACKS: ResourcePacksInfo = {
     hasScripts: false,
     forceDisableVibrantVisuals: false,
     worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
-    packs: []
+    resourcePackEntries: []
 };
 
 /** `NO_PACKS` on the wire: the header, four flag bytes, 16 zero uuid bytes, an empty version, a zero count. */
@@ -102,5 +103,32 @@ describe('ResourcePacksInfoPacket', () => {
 
         expect(data).toEqual(DATA);
         expect(stream.feof()).toBe(true);
+    });
+
+    describe.each([2193, 2225])('against the Bedrock Dedicated Server capture at protocol %i', (protocol) => {
+        const captured = capture(protocol, 0x06);
+        const withHeader = Buffer.concat([Buffer.from([0x06]), captured]);
+
+        it('reads the captured payload to its end', () => {
+            const packet = new ResourcePacksInfoPacket();
+            packet.codecProtocol = protocol;
+            const stream = new NetworkBinaryStream(withHeader);
+            const data = packet.deserialize(stream);
+
+            expect(data.worldTemplate.version).toBe('0.0.0');
+            expect(data.resourcePackEntries).toEqual([]);
+            expect(stream.feof()).toBe(true);
+        });
+
+        it('writes the captured bytes back', () => {
+            const packet = new ResourcePacksInfoPacket();
+            packet.codecProtocol = protocol;
+            const data = packet.deserialize(new NetworkBinaryStream(withHeader));
+
+            const again = new ResourcePacksInfoPacket(data);
+            again.codecProtocol = protocol;
+
+            expect([...again.serialize(new NetworkBinaryStream())]).toEqual([...withHeader]);
+        });
     });
 });

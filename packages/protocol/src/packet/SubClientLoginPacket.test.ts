@@ -26,4 +26,14 @@ describe('SubClientLoginPacket', () => {
             /1 unread bytes/
         );
     });
+
+    it.each([2193, 2225])('writes and reads the same bytes at protocol %i', (protocol) => {
+        const packet = new SubClientLoginPacket(DATA);
+        packet.codecProtocol = protocol;
+        expect(packet.serialize(new NetworkBinaryStream())).toEqual(BYTES);
+
+        const reader = new SubClientLoginPacket();
+        reader.codecProtocol = protocol;
+        expect(reader.deserialize(new NetworkBinaryStream(BYTES))).toEqual(DATA);
+    });
 });

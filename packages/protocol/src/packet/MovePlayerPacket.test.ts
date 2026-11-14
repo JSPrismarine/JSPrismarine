@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Vector3 } from '@jsprismarine/math';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import MovePlayerPacket, { PositionMode } from './MovePlayerPacket';
@@ -38,19 +39,34 @@ const wire = (mode: PositionMode, teleport?: { cause: number; sourceActorType: n
 
 const normal: MovePlayer = {
     runtimeEntityId: 42n,
-    position: { x: 1.5, y: 64.25, z: -3.75 },
+    position: new Vector3(1.5, 64.25, -3.75),
     pitch: 12.5,
     yaw: -45,
     headYaw: 30,
     mode: PositionMode.Normal,
     onGround: true,
     ridingEntityRuntimeId: 9n,
+    teleportData: null,
     tick: 300n
 };
 
-const teleport: MovePlayer = { ...normal, mode: PositionMode.Teleport, teleportCause: 3, teleportItemId: 7 };
+const teleport: MovePlayer = {
+    ...normal,
+    mode: PositionMode.Teleport,
+    teleportData: { cause: 3, sourceActorType: 7 }
+};
 
-const encode = (data: MovePlayer): Buffer => new MovePlayerPacket(data).serialize(new NetworkBinaryStream());
+const encode = (data: MovePlayer, protocol?: number): Buffer => {
+    const packet = new MovePlayerPacket(data);
+    if (protocol !== undefined) packet.codecProtocol = protocol;
+    return packet.serialize(new NetworkBinaryStream());
+};
+
+const decode = (buffer: Buffer, protocol: number): MovePlayer => {
+    const packet = new MovePlayerPacket();
+    packet.codecProtocol = protocol;
+    return packet.deserialize(new NetworkBinaryStream(buffer));
+};
 
 describe('MovePlayerPacket', () => {
     it('writes a normal move with an absent Teleport Data before the tick', () => {
@@ -80,7 +96,38 @@ describe('MovePlayerPacket', () => {
         const data = new MovePlayerPacket().deserialize(stream);
 
         expect(data).toEqual(normal);
-        expect(data).not.toHaveProperty('teleportCause');
+        expect(data.teleportData).toBeNull();
         expect(stream.feof()).toBe(true);
+    });
+
+    // The 1.26.50 and 1.26.60 pages describe the packet identically, so both versions share one layout.
+    describe.each([2193, 2225])('at protocol %i', (protocol) => {
+        it('round-trips a normal move and a teleport byte for byte', () => {
+            expect(encode(normal, protocol)).toEqual(wire(PositionMode.Normal));
+            expect(encode(teleport, protocol)).toEqual(wire(PositionMode.Teleport, { cause: 3, sourceActorType: 7 }));
+            expect(decode(wire(PositionMode.Normal), protocol)).toEqual(normal);
+            expect(decode(wire(PositionMode.Teleport, { cause: 3, sourceActorType: 7 }), protocol)).toEqual(teleport);
+        });
+
+        it('leaves Teleport Data off the wire when the mode is not Teleport', () => {
+            const stray: MovePlayer = { ...normal, teleportData: { cause: 3, sourceActorType: 7 } };
+
+            expect(encode(stray, protocol)).toEqual(wire(PositionMode.Normal));
+        });
+
+        it('writes zeros for a teleport that carries no Teleport Data', () => {
+            const bare: MovePlayer = { ...teleport, teleportData: null };
+
+            expect(encode(bare, protocol)).toEqual(wire(PositionMode.Teleport, { cause: 0, sourceActorType: 0 }));
+        });
+
+        it('reads Teleport Data by its presence byte, whatever the mode says', () => {
+            const odd = decode(wire(PositionMode.Normal, { cause: 3, sourceActorType: 7 }), protocol);
+
+            expect(odd.mode).toBe(PositionMode.Normal);
+            expect(odd.teleportData).toEqual({ cause: 3, sourceActorType: 7 });
+            expect(odd.tick).toBe(300n);
+            expect(decode(wire(PositionMode.Teleport), protocol).teleportData).toBeNull();
+        });
     });
 });

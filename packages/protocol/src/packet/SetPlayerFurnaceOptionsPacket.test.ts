@@ -37,6 +37,22 @@ describe('SetPlayerFurnaceOptionsPacket', () => {
         expect([...buffer]).toEqual([...BYTES]);
     });
 
+    it.each([2193, 2225])(
+        'writes and reads the same bytes at protocol %i, which 1.26.60 left unchanged',
+        (protocol) => {
+            const packet = new SetPlayerFurnaceOptionsPacket(DATA);
+            packet.codecProtocol = protocol;
+            expect([...packet.serialize(new NetworkBinaryStream())]).toEqual([...BYTES]);
+
+            const reader = new SetPlayerFurnaceOptionsPacket();
+            reader.codecProtocol = protocol;
+            const stream = new NetworkBinaryStream(BYTES);
+
+            expect(reader.deserialize(stream)).toEqual(DATA);
+            expect(stream.feof()).toBe(true);
+        }
+    );
+
     it('reads a hand-built buffer to its end', () => {
         const stream = new NetworkBinaryStream(BYTES);
         const data = new SetPlayerFurnaceOptionsPacket().deserialize(stream);

@@ -43,7 +43,7 @@ const ORIGIN_NAME_BY_TYPE = new Map(Object.entries(ORIGIN_NAMES).map(([name, typ
  * Wire order at protocol 2193: `Type` string, `UUID` as two uint64 LE halves with the most
  * significant first, `RequestId` string, `PlayerId` int64 LE. All four are always present;
  * `PlayerId` is not conditional on the origin.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/command-origin-data/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/command-origin-data/
  */
 export default class CommandOriginData {
     /** `Type`: who or what issued the command. A client's own commands carry `Player`. */

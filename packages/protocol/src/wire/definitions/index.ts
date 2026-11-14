@@ -159,11 +159,185 @@ import { updateClientInputLocksPacket } from './updateClientInputLocks';
 import { animateEntityPacket } from './animateEntity';
 import { unlockedRecipesPacket } from './unlockedRecipes';
 import { serverboundLoadingScreenPacket } from './serverboundLoadingScreen';
+import { addPaintingPacket } from './addPainting';
+import { addVolumeEntityPacket } from './addVolumeEntity';
+import { anvilDamagePacket } from './anvilDamage';
+import { availableCommandsPacket } from './availableCommands';
+import { awardAchievementPacket } from './awardAchievement';
+import { blockEventPacket } from './blockEvent';
+import { blockPickRequestPacket } from './blockPickRequest';
+import { bookEditPacket } from './bookEdit';
+import { cameraAimAssistPacket } from './cameraAimAssist';
+import { cameraAimAssistActorPriorityPacket } from './cameraAimAssistActorPriority';
+import { cameraInstructionPacket } from './cameraInstruction';
+import { clientCacheBlobStatusPacket } from './clientCacheBlobStatus';
+import { clientCacheMissResponsePacket } from './clientCacheMissResponse';
+import { clientMovementPredictionSyncPacket } from './clientMovementPredictionSync';
+import { clientboundAttributeLayerSyncPacket } from './clientboundAttributeLayerSync';
+import { clientboundControlSchemeSetPacket } from './clientboundControlSchemeSet';
+import { clientboundDataDrivenUICloseScreenPacket } from './clientboundDataDrivenUICloseScreen';
+import { clientboundDataDrivenUIShowScreenPacket } from './clientboundDataDrivenUIShowScreen';
+import { clientboundDataStorePacket } from './clientboundDataStore';
+import { clientboundDebugRendererPacket } from './clientboundDebugRenderer';
+import { clientboundMapItemDataPacket } from './clientboundMapItemData';
+import { clientboundTextureShiftPacket } from './clientboundTextureShift';
+import { clientboundUpdateSoundDataPacket } from './clientboundUpdateSoundData';
+import { commandBlockUpdatePacket } from './commandBlockUpdate';
+import { containerRegistryCleanupPacket } from './containerRegistryCleanup';
+import { correctPlayerMovePredictionPacket } from './correctPlayerMovePrediction';
+import { craftingDataPacket } from './craftingData';
+import { creativeContentPacket } from './creativeContent';
+import { deathInfoPacket } from './deathInfo';
+import { dimensionDataPacket } from './dimensionData';
+import { eduUriResourcePacket } from './eduUriResource';
+import { educationSettingsPacket } from './educationSettings';
+import { emoteListPacket } from './emoteList';
+import { featureRegistryPacket } from './featureRegistry';
+import { gameTestRequestPacket } from './gameTestRequest';
+import { graphicsOverrideParameterPacket } from './graphicsOverrideParameter';
+import { itemRegistryPacket } from './itemRegistry';
+import { itemStackRequestPacket } from './itemStackRequest';
+import { itemStackResponsePacket } from './itemStackResponse';
+import { labTablePacket } from './labTable';
+import { lecternUpdatePacket } from './lecternUpdate';
+import { legacyTelemetryEventPacket } from './legacyTelemetryEvent';
+import { levelEventPacket } from './levelEvent';
+import { locatorBarPacket } from './locatorBar';
+import { loginPacket } from './login';
+import { mapInfoRequestPacket } from './mapInfoRequest';
+import { mobArmorEquipmentPacket } from './mobArmorEquipment';
+import { motionPredictionHintsPacket } from './motionPredictionHints';
+import { moveActorDeltaPacket } from './moveActorDelta';
+import { movementEffectPacket } from './movementEffect';
+import { openSignPacket } from './openSign';
+import { partyChangedPacket } from './partyChanged';
+import { photoTransferPacket } from './photoTransfer';
+import { playerArmorDamagePacket } from './playerArmorDamage';
+import { playerAuthInputPacket } from './playerAuthInput';
+import { playerEnchantOptionsPacket } from './playerEnchantOptions';
+import { playerLocationPacket } from './playerLocation';
+import { playerUpdateEntityOverridesPacket } from './playerUpdateEntityOverrides';
+import { playerVideoCapturePacket } from './playerVideoCapture';
+import { positionTrackingDBServerBroadcastPacket } from './positionTrackingDBServerBroadcast';
+import { primitiveShapesPacket } from './primitiveShapes';
+import { purchaseReceiptPacket } from './purchaseReceipt';
+import { recordStartedPacket } from './recordStarted';
+import { sendPartyDestinationCookiePacket } from './sendPartyDestinationCookie';
+import { serverPlayerPostMovePositionPacket } from './serverPlayerPostMovePosition';
+import { serverPresenceInfoPacket } from './serverPresenceInfo';
+import { serverStoreInfoPacket } from './serverStoreInfo';
+import { serverboundDataDrivenScreenClosedPacket } from './serverboundDataDrivenScreenClosed';
+import { serverboundDataStorePacket } from './serverboundDataStore';
+import { serverboundDiagnosticsPacket } from './serverboundDiagnostics';
+import { serverboundPackSettingChangePacket } from './serverboundPackSettingChange';
+import { setHudPacket } from './setHud';
+import { setPlayerFurnaceOptionsPacket } from './setPlayerFurnaceOptions';
+import { showStoreOfferPacket } from './showStoreOffer';
+import { spawnExperienceOrbPacket } from './spawnExperienceOrb';
+import { structureBlockUpdatePacket } from './structureBlockUpdate';
+import { structureTemplateDataRequestPacket } from './structureTemplateDataRequest';
+import { structureTemplateDataResponsePacket } from './structureTemplateDataResponse';
+import { subChunkPacket } from './subChunk';
+import { subChunkRequestPacket } from './subChunkRequest';
+import { subClientLoginPacket } from './subClientLogin';
+import { transferPacket } from './transfer';
+import { updateBlockSyncedPacket } from './updateBlockSynced';
+import { updateClientOptionsPacket } from './updateClientOptions';
+import { updateEquipPacket } from './updateEquip';
+import { updateSoftEnumPacket } from './updateSoftEnum';
+import { updateTradePacket } from './updateTrade';
 import type { PacketDefinition } from '../define';
 
 /** The declaratively defined packets, keyed by packet name. */
 export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
     [
+        addPaintingPacket,
+        addVolumeEntityPacket,
+        anvilDamagePacket,
+        availableCommandsPacket,
+        awardAchievementPacket,
+        blockEventPacket,
+        blockPickRequestPacket,
+        bookEditPacket,
+        cameraAimAssistPacket,
+        cameraAimAssistActorPriorityPacket,
+        cameraInstructionPacket,
+        clientCacheBlobStatusPacket,
+        clientCacheMissResponsePacket,
+        clientMovementPredictionSyncPacket,
+        clientboundAttributeLayerSyncPacket,
+        clientboundControlSchemeSetPacket,
+        clientboundDataDrivenUICloseScreenPacket,
+        clientboundDataDrivenUIShowScreenPacket,
+        clientboundDataStorePacket,
+        clientboundDebugRendererPacket,
+        clientboundMapItemDataPacket,
+        clientboundTextureShiftPacket,
+        clientboundUpdateSoundDataPacket,
+        commandBlockUpdatePacket,
+        containerRegistryCleanupPacket,
+        correctPlayerMovePredictionPacket,
+        craftingDataPacket,
+        creativeContentPacket,
+        deathInfoPacket,
+        dimensionDataPacket,
+        eduUriResourcePacket,
+        educationSettingsPacket,
+        emoteListPacket,
+        featureRegistryPacket,
+        gameTestRequestPacket,
+        graphicsOverrideParameterPacket,
+        itemRegistryPacket,
+        itemStackRequestPacket,
+        itemStackResponsePacket,
+        labTablePacket,
+        lecternUpdatePacket,
+        legacyTelemetryEventPacket,
+        levelEventPacket,
+        locatorBarPacket,
+        loginPacket,
+        mapInfoRequestPacket,
+        mobArmorEquipmentPacket,
+        motionPredictionHintsPacket,
+        moveActorDeltaPacket,
+        movementEffectPacket,
+        openSignPacket,
+        partyChangedPacket,
+        photoTransferPacket,
+        playerArmorDamagePacket,
+        playerAuthInputPacket,
+        playerEnchantOptionsPacket,
+        playerLocationPacket,
+        playerUpdateEntityOverridesPacket,
+        playerVideoCapturePacket,
+        positionTrackingDBServerBroadcastPacket,
+        primitiveShapesPacket,
+        purchaseReceiptPacket,
+        recordStartedPacket,
+        sendPartyDestinationCookiePacket,
+        serverPlayerPostMovePositionPacket,
+        serverPresenceInfoPacket,
+        serverStoreInfoPacket,
+        serverboundDataDrivenScreenClosedPacket,
+        serverboundDataStorePacket,
+        serverboundDiagnosticsPacket,
+        serverboundPackSettingChangePacket,
+        setHudPacket,
+        setPlayerFurnaceOptionsPacket,
+        showStoreOfferPacket,
+        spawnExperienceOrbPacket,
+        structureBlockUpdatePacket,
+        structureTemplateDataRequestPacket,
+        structureTemplateDataResponsePacket,
+        subChunkPacket,
+        subChunkRequestPacket,
+        subClientLoginPacket,
+        transferPacket,
+        updateBlockSyncedPacket,
+        updateClientOptionsPacket,
+        updateEquipPacket,
+        updateSoftEnumPacket,
+        updateTradePacket,
         actorEventPacket,
         addActorPacket,
         addItemActorPacket,

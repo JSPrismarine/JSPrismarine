@@ -163,6 +163,7 @@ const u32 = (value: number): number[] => [
 // literals so the test does not trust the constants it is checking.
 const VALID = 0x100000;
 const ENUM = 0x200000;
+const CHAINED = 0x8000000;
 const POSTFIX = 0x1000000;
 const SOFT_ENUM = 0x4000000;
 
@@ -372,15 +373,16 @@ describe('AvailableCommandsPacket', () => {
         const decoded = readBack(encode(packet));
 
         expect(decoded.chainedSubcommandValues).toEqual(['as', 'if', 'unless', 'run']);
-        // Mojang's schema names the pair `first` and `second` and defines neither. The only
-        // datum the table has per entry is the keyword, so its index goes in both.
+        // `first` is the keyword's index; `second` is the `Enum Data` index of the enum that
+        // holds it: `OPTION_AS` is enum 0, `OPTION_IF_UNLESS` 1 (so `if` and `unless` share it)
+        // and `OPTION_RUN` 3, after `OPTION_ENTITY`.
         expect(decoded.chainedSubcommands).toEqual([
             {
                 name: 'EXECUTECHAINEDOPTION_0',
                 values: [
                     { index: 0, value: 0 },
                     { index: 1, value: 1 },
-                    { index: 2, value: 2 },
+                    { index: 2, value: 1 },
                     { index: 3, value: 3 }
                 ]
             }
@@ -389,17 +391,17 @@ describe('AvailableCommandsPacket', () => {
         const [written] = decoded.commands;
         expect(written?.chainedSubcommandOffsets).toEqual([0]);
         expect(written?.overloads.map(({ chaining }) => chaining)).toEqual([true, true, false]);
-        // A chained parameter indexes `Chained Subcommand Data`, not `Enum Data`, with the
-        // same enum flags. `EnumAsChainedCommand` is the bit that tells the two apart.
+        // A chained parameter indexes `Chained Subcommand Data`, not `Enum Data`: a real server
+        // writes `0x8100000` and the `EnumAsChainedCommand` option for it.
         expect(written?.overloads[0]?.parameters[2]).toEqual({
             name: 'chainedCommand',
-            type: ENUM | VALID | 0,
+            type: CHAINED | VALID | 0,
             optional: false,
             options: 4
         });
         expect(written?.overloads[1]?.parameters[3]).toEqual({
             name: 'chainedCommand',
-            type: ENUM | VALID | 0,
+            type: CHAINED | VALID | 0,
             optional: true,
             options: 4
         });
@@ -459,7 +461,10 @@ describe('AvailableCommandsPacket', () => {
             for (const overload of command.overloads) {
                 for (const parameter of overload.parameters) {
                     const index = parameter.type & 0xffff;
-                    if (parameter.type & ENUM) {
+                    if (parameter.type & CHAINED) {
+                        expect(parameter.type & VALID).toBe(VALID);
+                        expect(index).toBeLessThan(decoded.chainedSubcommands.length);
+                    } else if (parameter.type & ENUM) {
                         expect(parameter.type & VALID).toBe(VALID);
                         expect(index).toBeLessThan(decoded.enums.length);
                     } else if (parameter.type & SOFT_ENUM) {

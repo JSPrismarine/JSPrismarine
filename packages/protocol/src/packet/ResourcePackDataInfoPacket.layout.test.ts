@@ -19,8 +19,8 @@ const payload = {
     packType: 6
 };
 
-describe('the declarative ResourcePackDataInfo layout', () => {
-    const layout = layoutAt(resourcePackDataInfoPacket, 2193);
+describe.each([2193, 2225])('the declarative ResourcePackDataInfo layout at protocol %i', (protocol) => {
+    const layout = layoutAt(resourcePackDataInfoPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

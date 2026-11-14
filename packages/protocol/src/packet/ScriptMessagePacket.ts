@@ -16,12 +16,14 @@ export interface ScriptMessage {
 /**
  * A custom message between the client's and the server's scripts.
  *
- * Protocol 2193 layout, in wire order: `Message Id` then `Message Value`, each a varuint32
+ * Protocol 2193 and 2225 layout (identical), in wire order: `Message Id` then `Message Value`, each a varuint32
  * byte length followed by UTF-8.
  *
  * Either side may send it. It carries what the Script API calls a script event: a server
  * script's `sendScriptEvent` call, or the `/scriptevent` command, surfaces on the other side as
  * a `scriptEventReceive` with this id and value.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/script-message-packet/
  */
 export default class ScriptMessagePacket extends NetworkPacket<ScriptMessage> {
     public get id(): number {

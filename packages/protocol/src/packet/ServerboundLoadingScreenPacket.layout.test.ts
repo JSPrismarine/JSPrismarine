@@ -16,8 +16,8 @@ const CASES = [
     }
 ];
 
-describe('the declarative ServerboundLoadingScreen layout', () => {
-    const layout = layoutAt(serverboundLoadingScreenPacket, 2193);
+describe.each([2193, 2225])('the declarative ServerboundLoadingScreen layout at %i', (protocol) => {
+    const layout = layoutAt(serverboundLoadingScreenPacket, protocol);
 
     for (const { branch, bytes, payload } of CASES) {
         it(`writes the bytes the hand-written serializer wrote ${branch}`, () => {

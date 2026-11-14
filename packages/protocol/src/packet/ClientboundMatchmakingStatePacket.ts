@@ -10,6 +10,7 @@ import type { MatchmakingStateOptions } from '../wire/definitions/added2225';
  * declarative definition, read off Mojang's v1.26.60 release schemas. A codec older than 2225
  * has no id for it, so only a 2225 session ever builds one.
  *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-matchmaking-state-packet/
  * @see `docs/research/protocol-2225-added-packets.md`
  */
 export default class ClientboundMatchmakingStatePacket extends FieldNetworkPacket {

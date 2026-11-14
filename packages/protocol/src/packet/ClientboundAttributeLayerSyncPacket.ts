@@ -1,67 +1,62 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
 import AttributeLayerData from '../structure/AttributeLayerData';
-import AttributeLayerSettings from '../structure/AttributeLayerSettings';
+import AttributeLayerData2225 from '../structure/AttributeLayerData2225';
 import EnvironmentAttributeData from '../structure/EnvironmentAttributeData';
+import EnvironmentAttributeData2225 from '../structure/EnvironmentAttributeData2225';
+import {
+    AttributeLayerSyncDataType,
+    clientboundAttributeLayerSyncPacket
+} from '../wire/definitions/clientboundAttributeLayerSync';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type {
+    AttributeLayerSyncData,
+    AttributeLayerSyncData2225
+} from '../wire/definitions/clientboundAttributeLayerSync';
 
-/**
- * Which alternative of the `Data` variant a `ClientboundAttributeLayerSyncPacket` carries. The
- * value is the alternative's index in the schema's `oneOf`, written as the varuint32 selector
- * on the wire.
- */
-export enum AttributeLayerSyncDataType {
-    /** `UpdateAttributeLayersData`: full layer definitions, sent on join and when a layer is added. */
-    UpdateAttributeLayers = 0,
-    /** `UpdateAttributeLayerSettingsData`: new settings for one layer. */
-    UpdateAttributeLayerSettings = 1,
-    /** `UpdateEnvironmentAttributesData`: attributes of one layer that changed or were added. */
-    UpdateEnvironmentAttributes = 2,
-    /** `RemoveEnvironmentAttributesData`: attribute names removed from one layer. */
-    RemoveEnvironmentAttributes = 3
-}
-
-/** The `Data` variant of a `ClientboundAttributeLayerSyncPacket`. `type` picks the alternative and its fields. */
-export type AttributeLayerSyncData =
-    | {
-          type: AttributeLayerSyncDataType.UpdateAttributeLayers;
-          /** `Attribute Layers`, one `AttributeLayerData` per layer. */
-          attributeLayers: AttributeLayerData[];
-      }
-    | {
-          type: AttributeLayerSyncDataType.UpdateAttributeLayerSettings;
-          /** `Attribute Layer Name`, at most 128 characters. */
-          attributeLayerName: string;
-          /** `Attribute Layer Dimension`: 0 for the Overworld, 1 for the Nether, 2 for the End, custom ones from 1000. */
-          attributeLayerDimension: number;
-          /** `Attributes Layer Settings` (the docs' spelling), the layer's new settings. */
-          attributeLayerSettings: AttributeLayerSettings;
-      }
-    | {
-          type: AttributeLayerSyncDataType.UpdateEnvironmentAttributes;
-          /** `Attribute Layer Name`, at most 128 characters. */
-          attributeLayerName: string;
-          /** `Attribute Layer Dimension`: 0 for the Overworld, 1 for the Nether, 2 for the End, custom ones from 1000. */
-          attributeLayerDimension: number;
-          /** `Attributes` that changed or were added, one `EnvironmentAttributeData` each. */
-          attributes: EnvironmentAttributeData[];
-      }
-    | {
-          type: AttributeLayerSyncDataType.RemoveEnvironmentAttributes;
-          /** `Attribute Layer Name`, at most 128 characters. */
-          attributeLayerName: string;
-          /** `Attribute Layer Dimension`: 0 for the Overworld, 1 for the Nether, 2 for the End, custom ones from 1000. */
-          attributeLayerDimension: number;
-          /** `Attributes` removed from the layer, each an attribute name of at most 128 characters. */
-          attributes: string[];
-      };
+export { AttributeLayerSyncDataType };
+export type { AttributeLayerSyncData, AttributeLayerSyncData2225 };
 
 /** The fields of a `ClientboundAttributeLayerSyncPacket`, in wire order. */
 export interface ClientboundAttributeLayerSync {
-    /** `Data`, the one alternative this packet carries. */
-    data: AttributeLayerSyncData;
+    /**
+     * `Data`, the one alternative this packet carries. Build its layers and attributes from the
+     * structures of the protocol the packet is sent at: `AttributeLayerData` and
+     * `EnvironmentAttributeData` up to 2193, `AttributeLayerData2225` and
+     * `EnvironmentAttributeData2225` from 2225.
+     */
+    data: AttributeLayerSyncData | AttributeLayerSyncData2225;
 }
+
+/**
+ * Whether the data's layers and attributes are the 2193 structures. The alternatives that carry
+ * neither, and empty lists, read the same at both layouts, so they satisfy this and
+ * {@link isData2225} alike.
+ */
+const isData2193 = (data: ClientboundAttributeLayerSync['data']): data is AttributeLayerSyncData => {
+    switch (data.type) {
+        case AttributeLayerSyncDataType.UpdateAttributeLayers:
+            return data.attributeLayers.every((layer) => layer instanceof AttributeLayerData);
+        case AttributeLayerSyncDataType.UpdateEnvironmentAttributes:
+            return data.attributes.every((attribute) => attribute instanceof EnvironmentAttributeData);
+        default:
+            return true;
+    }
+};
+
+/** Whether the data's layers and attributes are the 2225 structures; see {@link isData2193}. */
+const isData2225 = (data: ClientboundAttributeLayerSync['data']): data is AttributeLayerSyncData2225 => {
+    switch (data.type) {
+        case AttributeLayerSyncDataType.UpdateAttributeLayers:
+            return data.attributeLayers.every((layer) => layer instanceof AttributeLayerData2225);
+        case AttributeLayerSyncDataType.UpdateEnvironmentAttributes:
+            return data.attributes.every((attribute) => attribute instanceof EnvironmentAttributeData2225);
+        default:
+            return true;
+    }
+};
 
 /**
  * Syncs the server's environment attribute layers (fog, lighting and similar per-dimension
@@ -77,11 +72,19 @@ export interface ClientboundAttributeLayerSync {
  * `Attributes` as a list of {@link EnvironmentAttributeData}, and
  * `RemoveEnvironmentAttributesData` with `Attributes` as a list of strings.
  *
+ * Protocol 2225 keeps the selector, the three other alternatives and `AttributeLayerSettings`,
+ * and reworks the two structures: `AttributeLayerData` drops `NoiseName` and lists
+ * {@link AttributeLayerData2225} and {@link EnvironmentAttributeData2225}, whose attributes
+ * carry a `Payload` variant in place of the 2193 transition fields.
+ *
  * Mojang merged four earlier drafts (`ClientboundAttributeLayerPacket`,
  * `ClientboundAttributeLayerSettingsPacket`, `ClientboundEnvironmentAttributeUpdatePacket`
- * and `ClientboundEnvironmentAttributeRemovePacket`) into this one variant. The 1.26.51
- * schema marks the packet "Currently disabled", so no release client has been seen to
- * handle it. Protocol 2207 restructures `EnvironmentAttributeData` and drops `NoiseName`.
+ * and `ClientboundEnvironmentAttributeRemovePacket`) into this one variant. The docs mark the
+ * packet "Currently disabled", so no release client has been seen to handle it. The wire layout
+ * lives in `clientboundAttributeLayerSync.ts`'s declarative definition, which this class walks
+ * at the protocol version stamped on it.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-attribute-layer-sync-packet/
+ * @throws when the payload carries the structures of the other protocol layout than the one stamped on the packet.
  */
 export default class ClientboundAttributeLayerSyncPacket extends NetworkPacket<ClientboundAttributeLayerSync> {
     public get id(): number {
@@ -89,77 +92,22 @@ export default class ClientboundAttributeLayerSyncPacket extends NetworkPacket<C
     }
 
     protected serializePayload(stream: NetworkBinaryStream, { data }: ClientboundAttributeLayerSync): void {
-        stream.writeUnsignedVarInt(data.type);
-
-        switch (data.type) {
-            case AttributeLayerSyncDataType.UpdateAttributeLayers:
-                stream.writeUnsignedVarInt(data.attributeLayers.length);
-                for (const layer of data.attributeLayers) layer.serialize(stream);
-                break;
-
-            case AttributeLayerSyncDataType.UpdateAttributeLayerSettings:
-                stream.writeString(data.attributeLayerName);
-                stream.writeVarInt(data.attributeLayerDimension);
-                data.attributeLayerSettings.serialize(stream);
-                break;
-
-            case AttributeLayerSyncDataType.UpdateEnvironmentAttributes:
-                stream.writeString(data.attributeLayerName);
-                stream.writeVarInt(data.attributeLayerDimension);
-                stream.writeUnsignedVarInt(data.attributes.length);
-                for (const attribute of data.attributes) attribute.serialize(stream);
-                break;
-
-            case AttributeLayerSyncDataType.RemoveEnvironmentAttributes:
-                stream.writeString(data.attributeLayerName);
-                stream.writeVarInt(data.attributeLayerDimension);
-                stream.writeUnsignedVarInt(data.attributes.length);
-                for (const name of data.attributes) stream.writeString(name);
-                break;
-        }
+        // The layout writes whichever of the two gated fields the stamped version admits; the other one is ignored.
+        layoutAt(clientboundAttributeLayerSyncPacket, this.codecProtocol).encode(stream, {
+            dataUntil2225: isData2193(data) ? data : null,
+            dataSince2225: isData2225(data) ? data : null
+        });
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ClientboundAttributeLayerSync {
-        const type = stream.readUnsignedVarInt();
+        const { dataUntil2225, dataSince2225 } = layoutAt(
+            clientboundAttributeLayerSyncPacket,
+            this.codecProtocol
+        ).decode(stream);
 
-        switch (type) {
-            case AttributeLayerSyncDataType.UpdateAttributeLayers: {
-                const attributeLayers: AttributeLayerData[] = [];
-                let count = stream.readUnsignedVarInt();
-                while (count-- > 0) attributeLayers.push(AttributeLayerData.deserialize(stream));
-                return { data: { type, attributeLayers } };
-            }
-
-            case AttributeLayerSyncDataType.UpdateAttributeLayerSettings:
-                return {
-                    data: {
-                        type,
-                        attributeLayerName: stream.readString(),
-                        attributeLayerDimension: stream.readVarInt(),
-                        attributeLayerSettings: AttributeLayerSettings.deserialize(stream)
-                    }
-                };
-
-            case AttributeLayerSyncDataType.UpdateEnvironmentAttributes: {
-                const attributeLayerName = stream.readString();
-                const attributeLayerDimension = stream.readVarInt();
-                const attributes: EnvironmentAttributeData[] = [];
-                let count = stream.readUnsignedVarInt();
-                while (count-- > 0) attributes.push(EnvironmentAttributeData.deserialize(stream));
-                return { data: { type, attributeLayerName, attributeLayerDimension, attributes } };
-            }
-
-            case AttributeLayerSyncDataType.RemoveEnvironmentAttributes: {
-                const attributeLayerName = stream.readString();
-                const attributeLayerDimension = stream.readVarInt();
-                const attributes: string[] = [];
-                let count = stream.readUnsignedVarInt();
-                while (count-- > 0) attributes.push(stream.readString());
-                return { data: { type, attributeLayerName, attributeLayerDimension, attributes } };
-            }
-
-            default:
-                throw new Error(`Unknown ClientboundAttributeLayerSyncPacket data variant ${type}`);
-        }
+        // The gated field the version leaves off the wire decodes as its `null` fallback.
+        const data = dataUntil2225 ?? dataSince2225;
+        if (data === null) throw new Error('The layout read no Data variant');
+        return { data };
     }
 }

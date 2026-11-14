@@ -1,7 +1,7 @@
 /**
  * `RequestAbilityPacket`: The client asking to change one of its own abilities, such as toggling
  * flight.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-ability-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/request-ability-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

@@ -1,22 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
-import CameraSplineDefinition from '../structure/CameraSplineDefinition';
-import Vec3 from '../structure/Vec3';
 import CameraSplinePacket from './CameraSplinePacket';
 
 import type { CameraSplines } from './CameraSplinePacket';
 
 const DATA: CameraSplines = {
     splines: [
-        new CameraSplineDefinition(
-            'ns:pan',
-            1,
-            undefined,
-            [new Vec3(1, 2, 3)],
-            [{ progress: 1, time: 1, easing: 'out_quad' }],
-            []
-        )
+        {
+            name: 'ns:pan',
+            totalTime: 1,
+            splineType: 'catmullrom',
+            controlPoints: [{ x: 1, y: 2, z: 3 }],
+            progressKeyFrames: [{ progress: 1, time: 1, easing: 'out_quad' }],
+            rotationKeyFrames: []
+        }
     ]
 };
 
@@ -26,7 +24,7 @@ const BYTES = Buffer.from([
     0x01, // Camera Data Splines count, a varuint32
     ...[0x06, ...Buffer.from('ns:pan', 'utf8')], // name "ns:pan"
     ...[0x00, 0x00, 0x80, 0x3f], // total_time 1, little-endian float
-    0x00, // spline_type absent
+    ...[0x0a, ...Buffer.from('catmullrom', 'utf8')], // spline_type, a bare string
     0x01, // control_points count
     ...[0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x40, 0x40], // position (1, 2, 3)
     0x01, // progress_key_frames count

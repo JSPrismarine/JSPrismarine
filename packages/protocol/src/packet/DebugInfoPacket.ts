@@ -12,7 +12,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * Wire order at protocol 2193: Actor Id as an `ActorUniqueID` (ZigZag varint64), then Data as
  * a varuint32 length prefixed byte string. Mojang's page types Data as a string, so the
  * bytes are not required to be text.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/debug-info-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/debug-info-packet/
  */
 export default class DebugInfoPacket extends FieldNetworkPacket {
     /** Actor Id: the actor the debug data describes. */

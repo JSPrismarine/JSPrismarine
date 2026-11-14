@@ -1,13 +1,17 @@
+import { clientCacheMissResponsePacket } from '../wire/definitions/clientCacheMissResponse';
+import { layoutAt } from '../wire/WireLayout';
+
 import FieldNetworkPacket from '../FieldNetworkPacket';
+import type { ClientCacheMissResponsePayload } from '../wire/definitions/clientCacheMissResponse';
 
-/** One chunk blob and the hash the client files it under. */
-export interface MissingBlobData {
-    /** XXHash64 of the payload as a little endian uint64, matching a hash the client reported as missing. */
-    blobId: bigint;
-
-    /** Sub chunk or biome data, the same bytes the chunk packet would otherwise have carried. */
-    blobData: Buffer;
-}
+/**
+ * One chunk blob and the hash the client files it under.
+ *
+ * `blobId` is the XXHash64 of the payload as a little endian uint64, matching a hash the client
+ * reported as missing. `blobData` is the sub chunk or biome data the chunk packet would
+ * otherwise have carried.
+ */
+export type MissingBlobData = ClientCacheMissResponsePayload['blobs'][number];
 
 /**
  * The blobs a client said it did not have, sent in answer to `ClientCacheBlobStatusPacket`.
@@ -27,7 +31,7 @@ export interface MissingBlobData {
  *
  * The server answers misses for cached request-mode sub chunks with this packet. The same
  * packet also supports the older LevelChunk blob layout.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-miss-response-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/client-cache-miss-response-packet/
  * @see https://mojang.github.io/bedrock-protocol-docs/guides/client-cache-miss-response-packet-validation/
  */
 export default class ClientCacheMissResponsePacket extends FieldNetworkPacket {
@@ -36,23 +40,11 @@ export default class ClientCacheMissResponsePacket extends FieldNetworkPacket {
 
     /** Reads every hash and its payload. */
     public decodePayload(): void {
-        this.blobs = [];
-
-        let count = this.readUnsignedVarInt();
-        while (count-- > 0) {
-            const blobId = this.readUnsignedLongLE();
-            this.blobs.push({ blobId, blobData: this.read(this.readUnsignedVarInt()) });
-        }
+        Object.assign(this, layoutAt(clientCacheMissResponsePacket, this.codecProtocol).decode(this));
     }
 
     /** Writes every hash and its payload. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.blobs.length);
-
-        for (const blob of this.blobs) {
-            this.writeUnsignedLongLE(blob.blobId);
-            this.writeUnsignedVarInt(blob.blobData.byteLength);
-            this.write(blob.blobData);
-        }
+        layoutAt(clientCacheMissResponsePacket, this.codecProtocol).encode(this, this);
     }
 }

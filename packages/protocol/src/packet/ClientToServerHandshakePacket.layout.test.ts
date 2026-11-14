@@ -9,8 +9,8 @@ import { layoutAt } from '../wire/WireLayout';
  * to keep doing: one stray byte here and the first encrypted batch is a byte long, which a
  * client reads as a packet it does not know.
  */
-describe('the declarative ClientToServerHandshake layout', () => {
-    const layout = layoutAt(clientToServerHandshakePacket, 2193);
+describe.each([2193, 2225])('the declarative ClientToServerHandshake layout at protocol %i', (protocol) => {
+    const layout = layoutAt(clientToServerHandshakePacket, protocol);
 
     it('writes the no bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();

@@ -19,19 +19,21 @@ import type { WireType } from '../fieldTypes';
 export interface FullContainerNameData {
     /** `Container Name`: a `ContainerUiId`. */
     containerId: number;
-    /** `Dynamic ID`: absent unless several containers of the kind are open at once. */
+    /** `Dynamic ID`: a `uint32`, absent unless several containers of the kind are open at once. */
     dynamicId: number | null;
 }
 
-const optionalDynamicId = t.optional(t.li32);
+const optionalDynamicId = t.optional(t.lu32);
 
 /**
  * `FullContainerName`: the container name byte, then an optional dynamic id.
  *
- * Whether the dynamic id travels is decided by the container, not by the protocol version,
- * so the branch lives in this wire type's reader and writer rather than in a gate. The two
- * inventory packets differ in how they carry this - one behind its own presence byte, one
- * not - which is why it is a named type rather than two inline fields.
+ * The 1.26.50 page prints `Dynamic ID` as a plain uint32 and the 1.26.60 page as optional. The
+ * presence byte is on the wire at both protocol versions, so it is not a gate: Mojang's note for
+ * that docs change says it corrects the documented optionality, and the `0x31.bin` captures at
+ * v2193 and v2225 carry the byte. The two inventory packets differ in how they carry this - one
+ * behind its own presence byte, one not - which is why it is a named type rather than two
+ * inline fields.
  */
 export const fullContainerName: WireType<FullContainerNameData> = t.custom(
     'FullContainerName',
@@ -113,14 +115,13 @@ export type MobEquipmentPayload = PayloadOf<typeof mobEquipmentPacket>;
 /**
  * The `InventorySlotPacket` field list.
  *
- * `Container Id` and `Slot` are varuint32s, not the uint8 the docs page types the first as:
- * gophertunnel's `inventory_slot.go` and PocketMine both read a varuint here. `Full Container
- * Name` and `Storage Item` are each an optional; `Item` is not, and an emptied slot travels
- * as a whole empty stack rather than a bare zero.
+ * `Container Id` is a uint8 and `Slot` a varuint32, as both docs pages type them. `Full
+ * Container Name` and `Storage Item` are each an optional; `Item` is not, and an emptied slot
+ * travels as a whole empty stack rather than a bare zero.
  */
 export const inventorySlotPacket = definePacket('InventorySlotPacket', {
     /** `Container Id`: the window the slot is in; the player's own UI is 124. */
-    windowId: t.varuint32,
+    windowId: t.uint8,
     /** `Slot`: in the client's numbering. */
     inventorySlot: t.varuint32,
     /** `Full Container Name`: which container of which kind the slot belongs to. */

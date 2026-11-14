@@ -21,7 +21,9 @@ export interface EditorNetwork {
  *
  * Protocol 2193 layout, in wire order: `Route To Manager` as one byte, then
  * `Raw Variant Name` and `Raw Variant Data` as strings, each a varuint32 byte length followed
- * by UTF-8.
+ * by UTF-8. Protocol 2225 is identical.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/editor-network-packet/
  */
 export default class EditorNetworkPacket extends NetworkPacket<EditorNetwork> {
     public get id(): number {

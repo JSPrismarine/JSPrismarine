@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('010768c3a96c6c6f310768c3a96c6c6f32', 'hex');
 const payload = { succeeded: true, error: 'héllo1', testName: 'héllo2' };
 
-describe('the declarative GameTestResults layout', () => {
-    const layout = layoutAt(gameTestResultsPacket, 2193);
+describe.each([2193, 2225])('the declarative GameTestResults layout at protocol %i', (protocol) => {
+    const layout = layoutAt(gameTestResultsPacket, protocol);
 
     it('writes the bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();

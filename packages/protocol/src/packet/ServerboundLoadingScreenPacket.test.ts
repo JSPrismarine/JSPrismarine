@@ -4,6 +4,7 @@ import NetworkBinaryStream from '../NetworkBinaryStream';
 import ServerboundLoadingScreenPacket, { ServerboundLoadingScreenPacketType } from './ServerboundLoadingScreenPacket';
 
 import type { ServerboundLoadingScreen } from './ServerboundLoadingScreenPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 const WITHOUT_ID: ServerboundLoadingScreen = {
     loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen,
@@ -35,5 +36,15 @@ describe('ServerboundLoadingScreenPacket', () => {
         expect(withoutId.feof()).toBe(true);
         expect(new ServerboundLoadingScreenPacket().deserialize(withId)).toEqual(WITH_ID);
         expect(withId.feof()).toBe(true);
+    });
+
+    it('numbers the packet type as the pinned enum dump does', () => {
+        const dump = Object.fromEntries(
+            enumDumpMembers('ServerboundLoadingScreenPacketType').map(({ name, value }) => [name, value])
+        );
+
+        expect(dump.Unknown).toBe(ServerboundLoadingScreenPacketType.Unknown);
+        expect(dump.StartLoadingScreen).toBe(ServerboundLoadingScreenPacketType.StartLoadingScreen);
+        expect(dump.EndLoadingScreen).toBe(ServerboundLoadingScreenPacketType.EndLoadingScreen);
     });
 });

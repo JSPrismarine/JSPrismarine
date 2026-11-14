@@ -1,6 +1,6 @@
 import NetworkStructure from '../NetworkStructure';
 
-import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * The offset of one sub chunk from a batch's center, counted in sub chunks: `Subchunk Offset
@@ -20,14 +20,14 @@ export default class SubChunkPosOffset extends NetworkStructure {
     }
 
     /** Writes X, Y, then Z, each a signed byte. */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         stream.writeSignedByte(this.x);
         stream.writeSignedByte(this.y);
         stream.writeSignedByte(this.z);
     }
 
     /** Reads X, Y, then Z, each a signed byte. */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         this.x = stream.readSignedByte();
         this.y = stream.readSignedByte();
         this.z = stream.readSignedByte();

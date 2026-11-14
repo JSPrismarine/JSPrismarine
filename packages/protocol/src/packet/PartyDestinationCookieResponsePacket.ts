@@ -16,8 +16,10 @@ export interface PartyDestinationCookieResponse {
 /**
  * The client's answer to a `SendPartyDestinationCookiePacket`.
  *
- * Protocol 2193 layout, in wire order: `cookie` as a string (a varuint32 byte length followed
- * by UTF-8), then `accepted` as one byte.
+ * Layout at protocols 2193 and 2225, in wire order: `cookie` as a string (a varuint32 byte length
+ * followed by UTF-8), then `accepted` as one byte.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/party-destination-cookie-response-packet/
  */
 export default class PartyDestinationCookieResponsePacket extends NetworkPacket<PartyDestinationCookieResponse> {
     public get id(): number {

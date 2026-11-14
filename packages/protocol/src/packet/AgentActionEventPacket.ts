@@ -11,6 +11,8 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
  * Numbered as the client writes it, from 1. Mojang's rendered page lists the members from 0,
  * which is a display artifact: the datagen snapshot, gophertunnel, and PocketMine all start at
  * `Attack` = 1, and the 1.26.60 preview changelog "moves" every member up by one to match.
+ * `AgentActionEventPacket.test.ts` checks these values against the pinned 1.26.40 `enums.html`
+ * in `packages/minecraft/datagen/snapshot`.
  */
 export enum AgentActionType {
     ATTACK = 1,

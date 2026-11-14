@@ -107,9 +107,7 @@ export default class ClientConnection extends MinecraftSession {
     ): Promise<void> {
         const packet = new DisconnectPacket({
             reason: code,
-            skipMessage: hideReason,
-            message: reason,
-            filteredMessage: ''
+            messages: { skipMessage: hideReason, message: reason, filteredMessage: '' }
         });
 
         // The goodbye is queued first and the player taken off after it, and the caller waits

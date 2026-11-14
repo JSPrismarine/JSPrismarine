@@ -158,7 +158,9 @@ const readOptional = <T>(stream: BinaryStream, read: () => T): T | undefined =>
 
 /**
  * `Server Configuration Join Info`, presence byte included: `null` writes the single byte
- * saying there is none, and each of the three parts is optional behind its own byte.
+ * saying there is none, and each of the three parts is optional behind its own byte. Inside
+ * `gatheringsConfig` the docs mark only `worldId`, `worldName`, `targetId`, `scenarioId` and
+ * `serverId` optional; `experienceId`, `experienceName` and `creatorId` are always written.
  */
 const serverJoinInformation = t.custom<ServerJoinInformation | null>(
     'optional<ServerJoinInformation>',
@@ -169,11 +171,11 @@ const serverJoinInformation = t.custom<ServerJoinInformation | null>(
         stream.writeBoolean(join.gathering !== undefined);
         if (join.gathering !== undefined) {
             const gathering = join.gathering;
-            writeOptional(stream, gathering.experienceId, (id) => wireUuid.write(stream, id));
-            writeOptional(stream, gathering.experienceName, (name) => t.string.write(stream, name));
+            wireUuid.write(stream, gathering.experienceId);
+            t.string.write(stream, gathering.experienceName);
             writeOptional(stream, gathering.worldId, (id) => wireUuid.write(stream, id));
             writeOptional(stream, gathering.worldName, (name) => t.string.write(stream, name));
-            writeOptional(stream, gathering.creatorId, (id) => t.string.write(stream, id));
+            t.string.write(stream, gathering.creatorId);
             writeOptional(stream, gathering.targetId, (id) => wireUuid.write(stream, id));
             writeOptional(stream, gathering.scenarioId, (id) => t.string.write(stream, id));
             writeOptional(stream, gathering.serverId, (id) => t.string.write(stream, id));
@@ -195,15 +197,20 @@ const serverJoinInformation = t.custom<ServerJoinInformation | null>(
 
         const join: ServerJoinInformation = {};
         if (stream.readBoolean()) {
-            const gathering: GatheringJoinInfo = {};
-            gathering.experienceId = readOptional(stream, () => wireUuid.read(stream));
-            gathering.experienceName = readOptional(stream, () => t.string.read(stream));
-            gathering.worldId = readOptional(stream, () => wireUuid.read(stream));
-            gathering.worldName = readOptional(stream, () => t.string.read(stream));
-            gathering.creatorId = readOptional(stream, () => t.string.read(stream));
-            gathering.targetId = readOptional(stream, () => wireUuid.read(stream));
-            gathering.scenarioId = readOptional(stream, () => t.string.read(stream));
-            gathering.serverId = readOptional(stream, () => t.string.read(stream));
+            const experienceId = wireUuid.read(stream);
+            const experienceName = t.string.read(stream);
+            const worldId = readOptional(stream, () => wireUuid.read(stream));
+            const worldName = readOptional(stream, () => t.string.read(stream));
+            const creatorId = t.string.read(stream);
+            const targetId = readOptional(stream, () => wireUuid.read(stream));
+            const scenarioId = readOptional(stream, () => t.string.read(stream));
+            const serverId = readOptional(stream, () => t.string.read(stream));
+            const gathering: GatheringJoinInfo = { experienceId, experienceName, creatorId };
+            if (worldId !== undefined) gathering.worldId = worldId;
+            if (worldName !== undefined) gathering.worldName = worldName;
+            if (targetId !== undefined) gathering.targetId = targetId;
+            if (scenarioId !== undefined) gathering.scenarioId = scenarioId;
+            if (serverId !== undefined) gathering.serverId = serverId;
             join.gathering = gathering;
         }
 

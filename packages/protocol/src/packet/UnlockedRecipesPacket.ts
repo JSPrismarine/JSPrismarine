@@ -37,7 +37,9 @@ export interface UnlockedRecipes {
  * Protocol 2193 layout, in wire order: `Packet Type` as a little-endian uint32 holding an
  * {@link UnlockedRecipesType}, then `Unlocked Recipes List` as a varuint32 count followed by
  * one string per recipe. Strings are a varuint32 byte length followed by UTF-8. The type is the
- * one field in this packet that is not a varint.
+ * one field in this packet that is not a varint. Protocol 2225 leaves the layout unchanged.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/unlocked-recipes-packet/
  */
 export default class UnlockedRecipesPacket extends NetworkPacket<UnlockedRecipes> {
     public get id(): number {

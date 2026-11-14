@@ -1,7 +1,7 @@
 /**
  * `PlayerToggleCrafterSlotRequestPacket`: The client enabling or disabling one slot of a crafter
  * block.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-toggle-crafter-slot-request-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-toggle-crafter-slot-request-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

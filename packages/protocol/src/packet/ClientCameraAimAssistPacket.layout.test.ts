@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 const bytes = Buffer.from('0768c3a96c6c6f30c701', 'hex');
 const payload = { cameraPresetId: 'héllo0', action: 199, allowAimAssist: true };
 
-describe('the declarative ClientCameraAimAssist layout', () => {
-    const layout = layoutAt(clientCameraAimAssistPacket, 2193);
+describe.each([2193, 2225])('the declarative ClientCameraAimAssist layout at protocol %i', (protocol) => {
+    const layout = layoutAt(clientCameraAimAssistPacket, protocol);
 
     it('writes the bytes the hand-written serializer wrote', () => {
         const stream = new BinaryStream();

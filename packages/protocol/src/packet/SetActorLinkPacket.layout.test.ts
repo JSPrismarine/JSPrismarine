@@ -17,8 +17,8 @@ const payload = {
     }
 };
 
-describe('the declarative SetActorLink layout', () => {
-    const layout = layoutAt(setActorLinkPacket, 2193);
+describe.each([2193, 2225])('the declarative SetActorLink layout at protocol %i', (protocol) => {
+    const layout = layoutAt(setActorLinkPacket, protocol);
 
     it('writes the bytes the hand-written encoder wrote', () => {
         const stream = new BinaryStream();

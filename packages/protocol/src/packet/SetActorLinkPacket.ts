@@ -16,12 +16,12 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * known to the clients that receive it: a player who sees the pair later needs the link in
  * the `AddActorPacket` or `AddPlayerPacket` that spawns them.
  *
- * Protocol 2193 layout (docs id 41), in wire order:
+ * Protocol 2193 and 2225 layout (docs id 41, unchanged between 1.26.50 and 1.26.60), in wire order:
  *
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
  * | Link | ActorLink | See {@link ActorLink} |
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-actor-link-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/set-actor-link-packet/
  */
 export default class SetActorLinkPacket extends FieldNetworkPacket {
     /** Link, the riding relationship to set or clear. */

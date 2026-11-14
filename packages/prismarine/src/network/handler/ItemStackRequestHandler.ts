@@ -1403,10 +1403,12 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
      */
     private describe(slot: number, item: Item | null, inventory: HumanInventory): ItemStackResponseSlotInfo {
         return {
+            requestedSlot: slot,
             slot,
             count: item?.getAmount() ?? 0,
             itemStackId: item ? inventory.assignStackNetworkId(item) : 0,
             customName: '',
+            redactedCustomName: null,
             durabilityCorrection: 0
         };
     }

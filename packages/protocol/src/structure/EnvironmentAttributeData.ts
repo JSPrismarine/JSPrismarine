@@ -130,6 +130,63 @@ const valueOf = (members: NumericEnum, name: string, label: string): number => {
     return value;
 };
 
+/** Writes one attribute value variant: a varuint32 selector, then the alternative's fields. */
+export function writeAttributeValue(stream: NetworkBinaryStream, attribute: AttributeValue): void {
+    stream.writeUnsignedVarInt(attribute.type);
+    switch (attribute.type) {
+        case AttributeDataType.Bool:
+            stream.writeBoolean(attribute.value);
+            stream.writeString(nameOf(BoolAttributeOperation, attribute.operation, 'BoolAttributeOperation'));
+            break;
+
+        case AttributeDataType.Float:
+            stream.writeFloatLE(attribute.value);
+            stream.writeString(nameOf(FloatAttributeOperation, attribute.operation, 'FloatAttributeOperation'));
+            stream.writeBoolean(attribute.constraintMin !== undefined);
+            if (attribute.constraintMin !== undefined) stream.writeFloatLE(attribute.constraintMin);
+            stream.writeBoolean(attribute.constraintMax !== undefined);
+            if (attribute.constraintMax !== undefined) stream.writeFloatLE(attribute.constraintMax);
+            break;
+
+        case AttributeDataType.Color:
+            stream.writeUnsignedIntLE(attribute.value);
+            stream.writeString(nameOf(ColorAttributeOperation, attribute.operation, 'ColorAttributeOperation'));
+            break;
+    }
+}
+
+/**
+ * Reads one attribute value variant.
+ * @throws when the selector or an operation name matches no known member.
+ */
+export function readAttributeValue(stream: NetworkBinaryStream): AttributeValue {
+    const type = stream.readUnsignedVarInt();
+    switch (type) {
+        case AttributeDataType.Bool: {
+            const value = stream.readBoolean();
+            const operation = valueOf(BoolAttributeOperation, stream.readString(), 'BoolAttributeOperation');
+            return { type, value, operation };
+        }
+
+        case AttributeDataType.Float: {
+            const value = stream.readFloatLE();
+            const operation = valueOf(FloatAttributeOperation, stream.readString(), 'FloatAttributeOperation');
+            const constraintMin = stream.readBoolean() ? stream.readFloatLE() : undefined;
+            const constraintMax = stream.readBoolean() ? stream.readFloatLE() : undefined;
+            return { type, value, operation, constraintMin, constraintMax };
+        }
+
+        case AttributeDataType.Color: {
+            const value = stream.readUnsignedIntLE();
+            const operation = valueOf(ColorAttributeOperation, stream.readString(), 'ColorAttributeOperation');
+            return { type, value, operation };
+        }
+
+        default:
+            throw new Error(`Unknown attribute value alternative ${type}`);
+    }
+}
+
 /**
  * One `EnvironmentAttributeData`: a named environment attribute of an attribute layer, with
  * the transition it may be in the middle of. `ClientboundAttributeLayerSyncPacket` carries a
@@ -200,72 +257,20 @@ export default class EnvironmentAttributeData extends NetworkStructure implement
         this.noiseAlignment = fields.noiseAlignment;
     }
 
-    private static writeAttributeValue(stream: NetworkBinaryStream, attribute: AttributeValue): void {
-        stream.writeUnsignedVarInt(attribute.type);
-        switch (attribute.type) {
-            case AttributeDataType.Bool:
-                stream.writeBoolean(attribute.value);
-                stream.writeString(nameOf(BoolAttributeOperation, attribute.operation, 'BoolAttributeOperation'));
-                break;
-
-            case AttributeDataType.Float:
-                stream.writeFloatLE(attribute.value);
-                stream.writeString(nameOf(FloatAttributeOperation, attribute.operation, 'FloatAttributeOperation'));
-                stream.writeBoolean(attribute.constraintMin !== undefined);
-                if (attribute.constraintMin !== undefined) stream.writeFloatLE(attribute.constraintMin);
-                stream.writeBoolean(attribute.constraintMax !== undefined);
-                if (attribute.constraintMax !== undefined) stream.writeFloatLE(attribute.constraintMax);
-                break;
-
-            case AttributeDataType.Color:
-                stream.writeUnsignedIntLE(attribute.value);
-                stream.writeString(nameOf(ColorAttributeOperation, attribute.operation, 'ColorAttributeOperation'));
-                break;
-        }
-    }
-
-    private static readAttributeValue(stream: NetworkBinaryStream): AttributeValue {
-        const type = stream.readUnsignedVarInt();
-        switch (type) {
-            case AttributeDataType.Bool: {
-                const value = stream.readBoolean();
-                const operation = valueOf(BoolAttributeOperation, stream.readString(), 'BoolAttributeOperation');
-                return { type, value, operation };
-            }
-
-            case AttributeDataType.Float: {
-                const value = stream.readFloatLE();
-                const operation = valueOf(FloatAttributeOperation, stream.readString(), 'FloatAttributeOperation');
-                const constraintMin = stream.readBoolean() ? stream.readFloatLE() : undefined;
-                const constraintMax = stream.readBoolean() ? stream.readFloatLE() : undefined;
-                return { type, value, operation, constraintMin, constraintMax };
-            }
-
-            case AttributeDataType.Color: {
-                const value = stream.readUnsignedIntLE();
-                const operation = valueOf(ColorAttributeOperation, stream.readString(), 'ColorAttributeOperation');
-                return { type, value, operation };
-            }
-
-            default:
-                throw new Error(`Unknown attribute value alternative ${type}`);
-        }
-    }
-
     private static writeOptionalAttributeValue(stream: NetworkBinaryStream, attribute?: AttributeValue): void {
         stream.writeBoolean(attribute !== undefined);
-        if (attribute !== undefined) EnvironmentAttributeData.writeAttributeValue(stream, attribute);
+        if (attribute !== undefined) writeAttributeValue(stream, attribute);
     }
 
     private static readOptionalAttributeValue(stream: NetworkBinaryStream): AttributeValue | undefined {
-        return stream.readBoolean() ? EnvironmentAttributeData.readAttributeValue(stream) : undefined;
+        return stream.readBoolean() ? readAttributeValue(stream) : undefined;
     }
 
     /** Writes every field in the order the docs list them. */
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeString(this.attributeName);
         EnvironmentAttributeData.writeOptionalAttributeValue(stream, this.fromAttribute);
-        EnvironmentAttributeData.writeAttributeValue(stream, this.attribute);
+        writeAttributeValue(stream, this.attribute);
         EnvironmentAttributeData.writeOptionalAttributeValue(stream, this.toAttribute);
         stream.writeUnsignedIntLE(this.currentTransitionTicks);
         stream.writeUnsignedIntLE(this.totalTransitionTicks);
@@ -282,7 +287,7 @@ export default class EnvironmentAttributeData extends NetworkStructure implement
     public deserialize(stream: NetworkBinaryStream): void {
         this.attributeName = stream.readString();
         this.fromAttribute = EnvironmentAttributeData.readOptionalAttributeValue(stream);
-        this.attribute = EnvironmentAttributeData.readAttributeValue(stream);
+        this.attribute = readAttributeValue(stream);
         this.toAttribute = EnvironmentAttributeData.readOptionalAttributeValue(stream);
         this.currentTransitionTicks = stream.readUnsignedIntLE();
         this.totalTransitionTicks = stream.readUnsignedIntLE();

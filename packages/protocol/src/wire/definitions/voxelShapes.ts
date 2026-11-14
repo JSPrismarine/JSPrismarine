@@ -1,7 +1,7 @@
 /**
  * The voxel collision shapes and name-to-handle map clients use to resolve block collision
  * geometry. Shapes without names remain addressable by their handles.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/voxel-shapes-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/voxel-shapes-packet/}
  */
 import SerializableVoxelShape from '../../structure/SerializableVoxelShape';
 import { definePacket } from '../define';

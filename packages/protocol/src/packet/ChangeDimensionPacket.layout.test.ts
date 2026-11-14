@@ -33,8 +33,12 @@ const cases: readonly { branch: string; bytes: Buffer; payload: ChangeDimensionP
     }
 ];
 
-describe('the declarative ChangeDimension layout', () => {
-    const layout = layoutAt(changeDimensionPacket, 2193);
+/**
+ * The 1.26.60 changelog's "Loading Screen Id is now optional" corrects the docs rather than the
+ * wire (`docs/research/protocol-2225-delta.md`), so both versions carry the presence byte.
+ */
+describe.each([2193, 2225])('the declarative ChangeDimension layout at %i', (version) => {
+    const layout = layoutAt(changeDimensionPacket, version);
 
     for (const { branch, bytes, payload } of cases) {
         it(`writes the bytes the hand-written encoder wrote ${branch}`, () => {

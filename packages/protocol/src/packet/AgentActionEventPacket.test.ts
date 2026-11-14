@@ -4,6 +4,7 @@ import NetworkBinaryStream from '../NetworkBinaryStream';
 import AgentActionEventPacket, { AgentActionType } from './AgentActionEventPacket';
 
 import type { AgentActionEvent } from './AgentActionEventPacket';
+import { enumDumpMembers } from '../testing/evidence.test.helper';
 
 const DATA: AgentActionEvent = {
     requestId: 'req-1',
@@ -56,5 +57,29 @@ describe('AgentActionEventPacket', () => {
 
         expect(data).toEqual(ATTACK);
         expect(stream.feof()).toBe(true);
+    });
+
+    it('numbers AgentActionType as the pinned Mojang enums.html does, from 1 at every protocol', () => {
+        // The pinned 1.26.40 enums.html that datagen keeps, which Mojang generated from the game.
+        // No Bedrock Dedicated Server capture of this packet exists, so this is the executable
+        // evidence for numbering from 1 where the 1.26.50 docs page lists 0.
+        const values = enumDumpMembers('AgentActionType').map(({ name, value }) => [name, value] as const);
+        const compact = (name: string): string => name.replaceAll('_', '').toLowerCase();
+        const ours = Object.entries(AgentActionType)
+            .filter((entry): entry is [string, number] => typeof entry[1] === 'number')
+            .map(([name, value]) => [compact(name), value] as const);
+
+        expect(values.length).toBeGreaterThan(0);
+        expect(values.map(([name, value]) => [compact(name), value])).toEqual(ours);
+    });
+
+    it('writes the same bytes at 2193 and 2225, which differ in no field', () => {
+        const at = (protocol: number): number[] => {
+            const packet = new AgentActionEventPacket(DATA);
+            packet.codecProtocol = protocol;
+            return [...packet.serialize(new NetworkBinaryStream())];
+        };
+
+        expect(at(2225)).toEqual(at(2193));
     });
 });

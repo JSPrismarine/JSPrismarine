@@ -17,8 +17,8 @@ const CASES = [
     { branch: 'for a negative version', bytes: Buffer.from('ffffffff', 'hex'), payload: { protocolVersion: -1 } }
 ];
 
-describe('the declarative RequestNetworkSettings layout', () => {
-    const layout = layoutAt(requestNetworkSettingsPacket, 2193);
+describe.each([2193, 2225])('the declarative RequestNetworkSettings layout at protocol %i', (protocol) => {
+    const layout = layoutAt(requestNetworkSettingsPacket, protocol);
 
     for (const { branch, bytes, payload } of CASES) {
         it(`writes the bytes the hand-written encoder wrote ${branch}`, () => {

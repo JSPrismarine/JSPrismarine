@@ -8,19 +8,21 @@ import { describe, expect, it } from 'vitest';
  * offset.
  */
 describe('the declarative ServerSettingsRequest layout', () => {
-    const layout = layoutAt(serverSettingsRequestPacket, 2193);
+    describe.each([2193, 2225])('at protocol %i', (version) => {
+        const layout = layoutAt(serverSettingsRequestPacket, version);
 
-    it('writes the no bytes the hand-written encoder wrote', () => {
-        const stream = new BinaryStream();
-        layout.encode(stream, {});
+        it('writes the no bytes the hand-written encoder wrote', () => {
+            const stream = new BinaryStream();
+            layout.encode(stream, {});
 
-        expect(stream.getWriteIndex()).toBe(0);
-    });
+            expect(stream.getWriteIndex()).toBe(0);
+        });
 
-    it('reads an empty payload without consuming anything', () => {
-        const stream = new BinaryStream(Buffer.from('ff', 'hex'));
+        it('reads an empty payload without consuming anything', () => {
+            const stream = new BinaryStream(Buffer.from('ff', 'hex'));
 
-        expect(layout.decode(stream)).toEqual({});
-        expect(stream.getReadIndex()).toBe(0);
+            expect(layout.decode(stream)).toEqual({});
+            expect(stream.getReadIndex()).toBe(0);
+        });
     });
 });

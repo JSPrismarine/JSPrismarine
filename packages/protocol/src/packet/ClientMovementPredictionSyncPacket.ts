@@ -1,8 +1,13 @@
-import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
-import FieldNetworkPacket from '../FieldNetworkPacket';
+import NetworkPacket from '../NetworkPacket';
+import { PacketIdentifier } from '../PacketIdentifier';
+import { clientMovementPredictionSyncPacket } from '../wire/definitions/clientMovementPredictionSync';
+import { layoutAt } from '../wire/WireLayout';
 
-/** Most bytes an actor flag bit set needs: seven flag bits per byte, `ActorFlags.COUNT` flags. */
-const MAX_FLAG_BYTES = Math.ceil(ActorFlags.COUNT / 7);
+import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { ClientMovementPredictionSyncPayload } from '../wire/definitions/clientMovementPredictionSync';
+
+/** The movement inputs the client predicts an actor with. */
+export type ClientMovementPredictionSync = ClientMovementPredictionSyncPayload;
 
 /**
  * The client's view of the movement inputs it predicts with, sent after it has applied a
@@ -17,90 +22,25 @@ const MAX_FLAG_BYTES = Math.ceil(ActorFlags.COUNT / 7);
  * gophertunnel reads at 2193.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/client-movement-prediction-sync-packet/
  */
-export default class ClientMovementPredictionSyncPacket extends FieldNetworkPacket {
-    /** Actor flag bits, bit `n` set when `ActorFlags` member `n` is on. */
-    public actorFlags = 0n;
-
-    public boundingBoxScale = 0;
-    public boundingBoxWidth = 0;
-    public boundingBoxHeight = 0;
-    public movementSpeed = 0;
-    public underwaterMovementSpeed = 0;
-    public lavaMovementSpeed = 0;
-    public jumpStrength = 0;
-    public health = 0;
-    public hunger = 0;
-    public frictionModifier = 0;
-    public bounciness = 0;
-    public airDragModifier = 0;
-
-    /** Unique id of the actor the client is predicting, normally its own player. */
-    public actorUniqueId = 0n;
-
-    public actorFlyingState = false;
-
-    /** Reads the flag bit set, the twelve floats, the unique id, and the flying flag. */
-    public decodePayload(): void {
-        this.actorFlags = this.readFlagBits();
-        this.boundingBoxScale = this.readFloatLE();
-        this.boundingBoxWidth = this.readFloatLE();
-        this.boundingBoxHeight = this.readFloatLE();
-        this.movementSpeed = this.readFloatLE();
-        this.underwaterMovementSpeed = this.readFloatLE();
-        this.lavaMovementSpeed = this.readFloatLE();
-        this.jumpStrength = this.readFloatLE();
-        this.health = this.readFloatLE();
-        this.hunger = this.readFloatLE();
-        this.frictionModifier = this.readFloatLE();
-        this.bounciness = this.readFloatLE();
-        this.airDragModifier = this.readFloatLE();
-        this.actorUniqueId = this.readVarLong();
-        this.actorFlyingState = this.readBoolean();
-    }
-
-    /** Writes the fields in the same order. */
-    public encodePayload(): void {
-        this.writeFlagBits(this.actorFlags);
-        this.writeFloatLE(this.boundingBoxScale);
-        this.writeFloatLE(this.boundingBoxWidth);
-        this.writeFloatLE(this.boundingBoxHeight);
-        this.writeFloatLE(this.movementSpeed);
-        this.writeFloatLE(this.underwaterMovementSpeed);
-        this.writeFloatLE(this.lavaMovementSpeed);
-        this.writeFloatLE(this.jumpStrength);
-        this.writeFloatLE(this.health);
-        this.writeFloatLE(this.hunger);
-        this.writeFloatLE(this.frictionModifier);
-        this.writeFloatLE(this.bounciness);
-        this.writeFloatLE(this.airDragModifier);
-        this.writeVarLong(this.actorUniqueId);
-        this.writeBoolean(this.actorFlyingState);
-    }
-
-    /**
-     * Reads the actor flag bit set.
-     *
-     * Each byte carries seven flag bits, low bits first, and a high continuation bit. The
-     * loop stops at the first byte without the continuation bit or throws once more bytes
-     * arrive than `ActorFlags.COUNT` flags can need.
-     */
-    private readFlagBits(): bigint {
-        let bits = 0n;
-        for (let index = 0; index < MAX_FLAG_BYTES; index++) {
-            const byte = this.readByte();
-            bits |= BigInt(byte & 0x7f) << BigInt(index * 7);
-            if ((byte & 0x80) === 0) return bits;
+export default class ClientMovementPredictionSyncPacket extends NetworkPacket<ClientMovementPredictionSync> {
+    /** Accepts payload data for sending or an encoded buffer for decoding. */
+    public constructor(packetData?: ClientMovementPredictionSync | Buffer | null, buffer?: Buffer) {
+        if (Buffer.isBuffer(packetData)) {
+            super(null, packetData);
+        } else {
+            super(packetData ?? null, buffer);
         }
-
-        throw new Error(`Actor flag bit set runs past ${MAX_FLAG_BYTES} bytes`);
     }
 
-    private writeFlagBits(bits: bigint): void {
-        let rest = bits;
-        do {
-            const group = Number(rest & 0x7fn);
-            rest >>= 7n;
-            this.writeByte(rest > 0n ? group | 0x80 : group);
-        } while (rest > 0n);
+    public get id(): number {
+        return PacketIdentifier.CLIENT_MOVEMENT_PREDICTION_SYNC;
+    }
+
+    protected serializePayload(stream: NetworkBinaryStream, data: ClientMovementPredictionSync): void {
+        layoutAt(clientMovementPredictionSyncPacket, this.codecProtocol).encode(stream, data);
+    }
+
+    protected deserializePayload(stream: NetworkBinaryStream): ClientMovementPredictionSync {
+        return layoutAt(clientMovementPredictionSyncPacket, this.codecProtocol).decode(stream);
     }
 }

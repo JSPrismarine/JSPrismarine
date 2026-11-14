@@ -3,7 +3,7 @@
  * structure that `StartGamePacket` uses for the initial world settings.
  *
  * The `GameRule` structure and its codecs are shared with `StartGamePacket`.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/game-rules-changed-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/game-rules-changed-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';

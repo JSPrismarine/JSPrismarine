@@ -19,8 +19,14 @@ export default class PartyChangedHandler implements ConnectionLaneHandler<PartyC
     /** Checks the id length, then logs whether the player joined, leads or left a party. */
     public handle(packet: PartyChangedPacket, { session, log }: SessionContext): void {
         const name = session.identity.name;
-        const partyInfo = packet.getPacketData()?.partyInfo;
-        if (partyInfo === undefined) throw new Error('Cannot handle a PartyChangedPacket without decoded data');
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a PartyChangedPacket without decoded data');
+
+        const partyInfo = data.partyInfo;
+        if (partyInfo === null) {
+            log.debug(`${name} left its party. Parties are not tracked`, 'PartyChangedHandler/handle');
+            return;
+        }
 
         if (partyInfo.partyId.length > MAX_PARTY_ID_LENGTH) {
             log.verbose(

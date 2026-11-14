@@ -1,4 +1,4 @@
-import type { NetworkBinaryStream } from '../';
+import type BinaryStream from '@jsprismarine/binaryutils';
 import NetworkStructure from '../NetworkStructure';
 import ServerWaypointPayload from './ServerWaypointPayload';
 import UUID from './UUID';
@@ -41,16 +41,18 @@ export default class LocatorBarWaypointPayload extends NetworkStructure {
     }
 
     /** Writes the handle, the payload, then the action byte. */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         this.groupHandle.serialize(stream);
         this.payload.serialize(stream);
         stream.writeByte(this.action);
     }
 
     /** Reads the handle, the payload, then the action byte. */
-    public deserialize(stream: NetworkBinaryStream): void {
-        this.groupHandle = UUID.deserialize(stream);
-        this.payload = ServerWaypointPayload.deserialize(stream);
+    public deserialize(stream: BinaryStream): void {
+        this.groupHandle = new UUID(0n, 0n);
+        this.groupHandle.deserialize(stream);
+        this.payload = new ServerWaypointPayload();
+        this.payload.deserialize(stream);
         this.action = stream.readByte();
     }
 }
