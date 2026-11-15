@@ -2130,7 +2130,8 @@ export class DataDrivenGenerator implements Generator {
                         ...(blending === undefined ? {} : { blending })
                     } satisfies TerrainTaskInput
                 },
-                urgency
+                // Asked again: the request may have been promoted while the plans were laid out.
+                this.dependentUrgency(pipeline, cx, cz, TERRAIN_READ_RADIUS)
             );
             if (stagePool === undefined) this.poolAnswered = true;
             else this.stagePoolAnswered = true;
@@ -2195,7 +2196,8 @@ export class DataDrivenGenerator implements Generator {
                         dimension: pipeline.dimension.bedrockId,
                         input
                     },
-                    urgency
+                    // Asked again: the request may have been promoted while the plans were laid out.
+                    this.dependentUrgency(pipeline, chunk.chunkX, chunk.chunkZ, FEATURE_READ_RADIUS)
                 );
                 this.stagePoolAnswered = true;
                 patches = unpackFeaturePatches(result.payload);
@@ -2260,10 +2262,11 @@ export class DataDrivenGenerator implements Generator {
                     },
                     urgency
                 );
+                // Only an answer from a worker shows the pool works; an empty candidate list asks none.
+                this.stagePoolAnswered = true;
                 return structureStartPlansFromWorker(planned.payload);
             }
         );
-        this.stagePoolAnswered = true;
         structures.installPlans(plans);
         return plans;
     }
