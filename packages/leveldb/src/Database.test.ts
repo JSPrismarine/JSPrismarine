@@ -460,6 +460,35 @@ describe('leveldb', () => {
                 await reopened.close();
             });
 
+            it('deletes on open a table the manifest does not name, and keeps the ones it does', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                db.put(key('kept'), key('v'));
+                await db.close();
+
+                // What a crash between writing a table and naming it in the manifest leaves.
+                fs.writeFileSync(path.join(directory, '009999.ldb'), Buffer.alloc(64));
+                fs.writeFileSync(path.join(directory, '009998.sst'), Buffer.alloc(64));
+
+                const reopened = await Database.open(directory);
+                expect(fs.readdirSync(directory).filter((name) => name.startsWith('00999'))).toEqual([]);
+                expect(reopened.get(key('kept'))?.toString()).toBe('v');
+                await reopened.close();
+            });
+
+            it('leaves stray tables alone when opened read-only', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                db.put(key('kept'), key('v'));
+                await db.close();
+                fs.writeFileSync(path.join(directory, '009999.ldb'), Buffer.alloc(64));
+
+                const reader = await Database.open(directory, { readOnly: true });
+                await reader.close();
+
+                expect(fs.existsSync(path.join(directory, '009999.ldb'))).toBe(true);
+            });
+
             it('keeps deletions across a reopen', async () => {
                 const directory = scratch();
                 const first = await Database.open(directory);
