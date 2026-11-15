@@ -24,6 +24,30 @@ describe('BlockUpdateScheduler', () => {
     });
 });
 
+describe('BlockUpdateScheduler by chunk', () => {
+    it('knows which chunks hold a waiting position as they are queued, taken and restored', () => {
+        const scheduler = new BlockUpdateScheduler();
+        scheduler.schedule(1, 64, 1, 10);
+        scheduler.schedule(-1, 64, 33, 10, 5);
+
+        expect(scheduler.hasPendingInChunk(0, 0)).toBe(true);
+        expect(scheduler.hasPendingInChunk(-1, 2)).toBe(true);
+        expect(scheduler.hasPendingInChunk(1, 0)).toBe(false);
+
+        scheduler.due(11);
+        expect(scheduler.hasPendingInChunk(0, 0)).toBe(false);
+        expect(scheduler.hasPendingInChunk(-1, 2)).toBe(true);
+
+        scheduler.restore(1, 64, 1, 20);
+        expect(scheduler.hasPendingInChunk(0, 0)).toBe(true);
+        scheduler.restore(1, 64, 1, null);
+        expect(scheduler.hasPendingInChunk(0, 0)).toBe(false);
+
+        scheduler.clear();
+        expect(scheduler.hasPendingInChunk(-1, 2)).toBe(false);
+    });
+});
+
 describe('BlockUpdateScheduler changes', () => {
     it('reports each position queued, moved earlier and taken off, and restoring them reaches the same queue in the same order', () => {
         const live = new BlockUpdateScheduler();

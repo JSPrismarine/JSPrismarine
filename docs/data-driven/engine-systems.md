@@ -222,9 +222,10 @@ pops sugar cane and a big dripleaf that Java leaves standing. A stack that decla
 
 A freshly generated chunk settles before anything it destroys drops. Generation leaves fluid to
 tick where Java's post-processing does, and while that water moves, what the world's own block
-updates, scheduled ticks and random ticks destroy in the chunk leaves nothing on the ground. The
-chunk settles until it and its eight neighbors are loaded with no fluid tick queued, or until a
-player, a command or an entity writes a block in it.
+updates, scheduled ticks and random ticks destroy in the chunk leaves nothing on the ground. When
+that water, or an update it sets off, writes a block in another loaded chunk, that chunk settles
+too. A chunk stops settling once it and its eight neighbors are loaded with no fluid tick and no
+block update queued, or when a player or a command writes a block in it.
 
 ## Fire
 

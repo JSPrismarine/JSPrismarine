@@ -663,6 +663,16 @@ export class World implements Service {
     /** True while {@link runBlockUpdates} runs; see {@link systemsRunning}. */
     private blockUpdatesRunning = false;
 
+    /** The position {@link runBlockUpdates} is updating now; see {@link activeSystemPosition}. */
+    private activeBlockUpdate: { readonly x: number; readonly z: number } | undefined;
+
+    /**
+     * True while the world tick runs. A write made outside it is somebody acting on the world, a
+     * player or a command, which ends a chunk's settling; one inside it, a falling block landing
+     * included, is the world moving by itself.
+     */
+    private worldTickRunning = false;
+
     /**
      * The light engine and the two scheduled tick lists.
      *
@@ -1033,9 +1043,11 @@ export class World implements Service {
         // Installs the log's readers, so the sink reads this tick when it seals.
         this.blockLog();
         store.beginTick();
+        this.worldTickRunning = true;
         try {
             this.tickWorld(tick);
         } finally {
+            this.worldTickRunning = false;
             store.sealTick(this.tickHeader());
         }
         // A unit of this tick may have failed to undo, which stops the actor loop without a throw:
@@ -2750,10 +2762,7 @@ export class World implements Service {
         notifyNeighbors: boolean
     ): boolean {
         if (y < chunk.getMinY() || y > chunk.getMaxY()) return false;
-        // Somebody acting on a settling chunk ends its settling, so what they set off drops as usual.
-        if (this.settling !== undefined && !this.systemsRunning()) {
-            this.settling.delete(Chunk.packXZ(chunk.getX(), chunk.getZ()));
-        }
+        if (this.settling !== undefined && this.settling.size > 0) this.followSettling(chunk, x, z);
 
         // Idempotent, which matters more than it looks: physics re-examines positions constantly,
         // and a write that changed nothing would still cost a packet to every player and another
@@ -3285,9 +3294,12 @@ export class World implements Service {
         const outer = this.blockUpdatesRunning;
         this.blockUpdatesRunning = true;
         try {
-            for (const { x, y, z } of this.blockUpdates.due(this.getTicks()))
-                this.physics.update(x, y, z, this.getTicks());
+            for (const update of this.blockUpdates.due(this.getTicks())) {
+                this.activeBlockUpdate = update;
+                this.physics.update(update.x, update.y, update.z, this.getTicks());
+            }
         } finally {
+            this.activeBlockUpdate = undefined;
             this.blockUpdatesRunning = outer;
         }
     }
@@ -3359,8 +3371,22 @@ export class World implements Service {
      * leaves nothing on the ground: the world's own systems are running and the chunk still settles.
      */
     private isSettlingDrop(block: ContentPosition): boolean {
-        if (this.settling === undefined || this.settling.size === 0 || !this.systemsRunning()) return false;
-        return this.settling.has(Chunk.packXZ(Math.floor(block.x) >> 4, Math.floor(block.z) >> 4));
+        const settling = this.settling;
+        if (settling === undefined || settling.size === 0 || !this.systemsRunning()) return false;
+        if (settling.has(Chunk.packXZ(Math.floor(block.x) >> 4, Math.floor(block.z) >> 4))) return true;
+        // The block a settling chunk's water washes away across the border, before the write that
+        // carries the settling over; see {@link followSettling}.
+        const at = this.activeSystemPosition();
+        return at !== undefined && settling.has(Chunk.packXZ(at.x >> 4, at.z >> 4));
+    }
+
+    /**
+     * Where the world's own systems are acting now: the block update or the scheduled tick being
+     * run. A write or a drop then is that position's doing, which is how settling follows a
+     * cascade across a chunk border.
+     */
+    private activeSystemPosition(): { readonly x: number; readonly z: number } | undefined {
+        return this.activeBlockUpdate ?? this.systems?.activeTickPosition();
     }
 
     /**
@@ -3374,7 +3400,8 @@ export class World implements Service {
 
     /**
      * Ends the settling of each chunk whose generated fluid has stopped moving: it and its eight
-     * neighbors are loaded and none has a fluid tick queued. A neighbor that is not loaded yet may
+     * neighbors are loaded and none has a fluid tick or a block update queued, which is the gravel
+     * and the plants the water disturbed still finding their feet. A neighbor that is not loaded yet may
      * still pour into it, so an edge chunk keeps settling until the chunks around it have loaded
      * and settled too. Checked every {@link SETTLED_CHECK_INTERVAL} ticks rather than every tick.
      * The world tick calls it after the scheduled tick lists.
@@ -3390,11 +3417,49 @@ export class World implements Service {
             for (let dx = -1; dx <= 1 && settled; dx++) {
                 for (let dz = -1; dz <= 1 && settled; dz++) {
                     if (fluidTicks.hasTicksInChunk(x + dx, z + dz)) settled = false;
+                    else if (this.blockUpdates.hasPendingInChunk(x + dx, z + dz)) settled = false;
                     else if ((dx !== 0 || dz !== 0) && this.getLoadedChunk(x + dx, z + dz) === null) settled = false;
                 }
             }
             if (settled) settling.delete(index);
         }
+    }
+
+    /**
+     * Keeps settling where it belongs as a block is written in a chunk.
+     *
+     * Somebody acting on a settling chunk from outside the world tick, a player or a command, ends
+     * its settling, so what they set off drops as usual.
+     * A scheduled tick or a block update of a settling chunk that writes into another chunk carries
+     * the settling with it: generated water reaching a chunk that settled before the water got
+     * there settles it again, so a cascade across several chunks drops nothing on the way.
+     */
+    private followSettling(chunk: Chunk, x: number, z: number): void {
+        const settling = this.settling;
+        if (settling === undefined) return;
+        const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
+        if (!this.worldTickRunning && !this.systemsRunning()) {
+            settling.delete(index);
+            return;
+        }
+        if (!this.systemsRunning()) return;
+        if (!settling.has(index)) {
+            const at = this.activeSystemPosition();
+            if (at === undefined || !settling.has(Chunk.packXZ(at.x >> 4, at.z >> 4))) return;
+            this.markChunkSettling(chunk.getX(), chunk.getZ());
+        }
+        // The write queues updates for the blocks around it, which on an edge are the next chunk's.
+        const localX = x & 0xf;
+        const localZ = z & 0xf;
+        if (localX === 0) this.settleLoadedChunk(chunk.getX() - 1, chunk.getZ());
+        if (localX === 15) this.settleLoadedChunk(chunk.getX() + 1, chunk.getZ());
+        if (localZ === 0) this.settleLoadedChunk(chunk.getX(), chunk.getZ() - 1);
+        if (localZ === 15) this.settleLoadedChunk(chunk.getX(), chunk.getZ() + 1);
+    }
+
+    /** Settles a neighbor a settling write reaches across a border, when it is loaded. */
+    private settleLoadedChunk(chunkX: number, chunkZ: number): void {
+        if (this.getLoadedChunk(chunkX, chunkZ) !== null) this.markChunkSettling(chunkX, chunkZ);
     }
 
     /**
