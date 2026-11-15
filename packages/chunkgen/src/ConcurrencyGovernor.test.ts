@@ -41,6 +41,43 @@ describe('ConcurrencyGovernor', () => {
         expect(governor.observe({ latenessMs: 1 }, 3400)).toBe(3);
     });
 
+    it('counts a stall once, not the ticks that catch up on it', () => {
+        const governor = new ConcurrencyGovernor({ max: 8, initial: 8 });
+
+        // A 300 ms stall, then the ticker running the ticks it owes back to back.
+        expect(governor.observe({ latenessMs: 300 }, 0)).toBe(4);
+        let now = 300;
+        for (const latenessMs of [255, 210, 165, 120, 75, 30]) {
+            now += 5;
+            expect(governor.observe({ latenessMs }, now)).toBe(4);
+        }
+
+        // A second stall is pressure again.
+        expect(governor.observe({ latenessMs: 1 }, 400)).toBe(4);
+        expect(governor.observe({ latenessMs: 120 }, 500)).toBe(2);
+    });
+
+    it('counts a late tick only while the server thread has been busy', () => {
+        const governor = new ConcurrencyGovernor({ max: 8, initial: 8 });
+
+        // A burst on a thread that was mostly waiting: fewer workers would not shorten it.
+        expect(governor.observe({ latenessMs: 200, utilization: 0.45 }, 0)).toBe(8);
+        expect(governor.observe({ latenessMs: 1, utilization: 0.45 }, 100)).toBe(8);
+        // The same on a thread busy most of the time is load that more chunks would add to.
+        expect(governor.observe({ latenessMs: 200, utilization: 0.9 }, 200)).toBe(4);
+        // The bar is the one it was built with.
+        const strict = new ConcurrencyGovernor({ max: 8, initial: 8, busyUtilization: 0.4 });
+        expect(strict.observe({ latenessMs: 200, utilization: 0.45 }, 0)).toBe(4);
+    });
+
+    it('still cuts while ticks stay late, which is a server that cannot keep up', () => {
+        const governor = new ConcurrencyGovernor({ max: 8, initial: 8 });
+
+        expect(governor.observe({ latenessMs: 80, utilization: 1 }, 0)).toBe(4);
+        expect(governor.observe({ latenessMs: 85, utilization: 1 }, 50)).toBe(2);
+        expect(governor.observe({ latenessMs: 90, utilization: 1 }, 100)).toBe(1);
+    });
+
     it('treats a throttled control group as pressure before any tick is late', () => {
         const governor = new ConcurrencyGovernor({ max: 6, initial: 6 });
 
