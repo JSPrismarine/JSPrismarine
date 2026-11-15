@@ -3771,11 +3771,19 @@ export class World implements Service {
         if (candidates.length === 0) return;
 
         this.dataEntities().persist();
-        const saveContext = this.chunkSaveContext();
+        let saveContext = this.chunkSaveContext();
+        let contextTick = this.getTicks();
         // Saved one after another, and each saved chunk then waits for the input step to take it
         // out, so a batch leaves at the next step rather than one chunk a tick.
         const leaving: Promise<void>[] = [];
         for (const chunk of candidates) {
+            // A save the level holds settles in this turn, but one that reaches the database
+            // waits on it, and a tick can run meanwhile: its fluid ticks and entities moved on.
+            if (this.getTicks() !== contextTick) {
+                this.dataEntities().persist();
+                saveContext = this.chunkSaveContext();
+                contextTick = this.getTicks();
+            }
             const { left } = await this.unloadChunk(chunk, saveContext);
             // Handled now, not after the loop: an input step can reject one chunk's leave while a
             // later chunk's save still waits, and nothing would be listening for it yet.
