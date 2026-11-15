@@ -103,6 +103,7 @@ import { GenerationQueue } from './GenerationQueue';
 import { urgencyAround } from './urgencyAround';
 import type { BedrockSection, BedrockSectionsInput } from './bedrockSections';
 import { buildBedrockSections, isBedrockSections } from './bedrockSections';
+import { carveColumn } from './carveColumn';
 import { GenerationRegion, isOptionalFluidTickList } from './GenerationRegion';
 import type {
     GenerationRegionOptions,
@@ -677,18 +678,6 @@ interface BiomeDecoration {
     /** The indices into {@link StepFeatures} the biome contributes, per decoration step. */
     readonly indicesByStep: readonly (readonly number[])[];
 }
-
-/** Java's `#minecraft:uncarvable`, the blocks a carver may not open. Bedrock is its one member. */
-const UNCARVABLE = 'minecraft:uncarvable';
-
-/** What a carver leaves behind. Java's carvers write cave air rather than ordinary air. */
-const CAVE_AIR = 'minecraft:cave_air';
-
-/** The two blocks whose removal makes a carver re-run the surface rule under the column. */
-const CARVE_RESURFACES_BELOW = new Set(['minecraft:grass_block', 'minecraft:mycelium']);
-
-/** The exact block a carver re-surfaces, which is not the `#minecraft:dirt` tag. */
-const DIRT = 'minecraft:dirt';
 
 /** How many entries each small per-chunk cache keeps, such as a chunk's biome palette. */
 const GENERATION_CACHE_SIZE = 128;
@@ -2495,17 +2484,8 @@ export class DataDrivenGenerator implements Generator {
     /**
      * Runs the cave and canyon carvers and opens what they marked.
      *
-     * Java replaces a carved block with the aquifer's fluid state, falling back to cave air
-     * when the aquifer leaves the position open. `carver/cave.json` reaches `y: 180`, so a
-     * tunnel can be marked where the terrain never put a block; Java's write is a no-op there
-     * and this skips it, because a cave-air block standing in the sky would raise the region's
-     * column ceiling and the surface pass reads that ceiling.
-     *
-     * Each marked column is walked downward, because the re-surfacing below carries a latch
-     * down the column: once the carve has taken a grass block or mycelium out of the column,
-     * every dirt block it then exposes gets the material rule run on it again. Without that
-     * step a cave mouth leaves bare dirt under the sky, and `patch_grass_plain` happily grows
-     * short grass on it, because `#minecraft:dirt` supports vegetation in Java too.
+     * The carvers only mark a mask, as Java 26.3's do; {@link carveColumn} opens each marked
+     * column the way `NoiseBasedChunkGenerator.applyCarvingMask` does.
      */
     private carve(
         cx: number,
@@ -2527,48 +2507,16 @@ export class DataDrivenGenerator implements Generator {
             output: mask
         });
 
-        mask.visit((localX, localZ, bottomY, topY) => {
-            const x = cx * 16 + localX;
-            const z = cz * 16 + localZ;
-            let tookGrass = false;
-
-            for (let y = topY; y >= bottomY; y--) {
-                // Java 26.3's `applyCarvingMask` opens a marked block only where the blender's
-                // filter allows it; see `Blender.carvingFilter`.
-                if (filter !== undefined && !filter(localX, y, localZ)) continue;
-                const existing = region.stateAt(x, y, z);
-                if (pipeline.oracle.isAir(existing)) continue;
-                // Java skips `#minecraft:uncarvable` and nothing else. Water is carved like
-                // any other block and the aquifer decides what goes back in its place.
-                if (pipeline.oracle.hasTag(existing, UNCARVABLE)) continue;
-                if (CARVE_RESURFACES_BELOW.has(existing.name)) tookGrass = true;
-
-                const fluid = sampler.aquifer.computeSubstance(x, y, z, 0);
-                region.writeName(x, y, z, fluid ?? CAVE_AIR);
-                // Java's `WorldCarver.carveBlock` marks a carved fluid the aquifer asked to update.
-                if (
-                    fluid !== undefined &&
-                    sampler.aquifer.shouldScheduleFluidUpdate() &&
-                    pipeline.oracle.fluid(region.stateAt(x, y, z)) !== 'empty'
-                ) {
-                    region.scheduleFluidTick(x, y, z);
-                }
-
-                if (!tookGrass || region.stateAt(x, y - 1, z).name !== DIRT) continue;
-
-                // Java asks the carved block's own fluid state, which is empty for the air the
-                // aquifer hands back above the water table, so reading the write back is the
-                // honest test.
-                const hasFluid = pipeline.oracle.fluid(region.stateAt(x, y, z)) !== 'empty';
-                const material = surface.topMaterial(x, y - 1, z, hasFluid);
-                if (material === undefined) continue;
-                region.writeName(x, y - 1, z, material);
-                // Java marks the re-surfaced block too when the material it chose holds fluid.
-                if (pipeline.oracle.fluid(region.stateAt(x, y - 1, z)) !== 'empty') {
-                    region.scheduleFluidTick(x, y - 1, z);
-                }
-            }
-        });
+        const column = {
+            region,
+            aquifer: sampler.aquifer,
+            oracle: pipeline.oracle,
+            surface,
+            ...(filter === undefined ? {} : { filter })
+        };
+        mask.visit((localX, localZ, bottomY, topY) =>
+            carveColumn(column, cx * 16 + localX, cz * 16 + localZ, bottomY, topY)
+        );
     }
 
     private chunkKey(chunkX: number, chunkZ: number): string {
