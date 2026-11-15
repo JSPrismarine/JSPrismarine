@@ -5,12 +5,14 @@ import { standAt, waitTicks } from '../scenario.mts';
 import type { Scenario } from '../scenario.mts';
 
 /**
- * A water source the seed 1234 Overworld's carver leaves marked for post-processing, with cave air
- * beside it. Found by generating the chunks around spawn with the server's own generator: chunk
- * (-38, 3) holds 3669 marks among its 121 neighbors, and this one borders air inside the chunk.
+ * A water source the seed 1234 Overworld leaves marked for post-processing, with cave air beside
+ * it. Found by generating the chunks around (-38, 3) with the server's own generator: 29 chunks
+ * held 690 marks and only a handful bordered air, since an aquifer keeps a barrier between its
+ * water and a cave. Two marked sources border this pocket, this one and (-584, 16, 10), over solid
+ * ground, so the water that reaches it becomes a source of its own: Java's infinite water rule.
  */
-const SOURCE = { x: -594, y: 40, z: 61 };
-const BESIDE = { x: -595, y: 40, z: 61 };
+const SOURCE = { x: -585, y: 16, z: 11 };
+const BESIDE = { x: -584, y: 16, z: 11 };
 
 const BLOCK_REPLY = /Found the block at|The block is |The \w+ state does not match|That chunk is not loaded/;
 
@@ -40,8 +42,8 @@ export const generatedFluidFlow: Scenario = {
         await waitTicks(server, 40);
 
         const beside = server.waitForLine(BLOCK_REPLY, 10_000);
-        server.command(`testforblock ${BESIDE.x} ${BESIDE.y} ${BESIDE.z} minecraft:flowing_water`);
+        server.command(`testforblock ${BESIDE.x} ${BESIDE.y} ${BESIDE.z} minecraft:water`);
         assert.match(await beside, /Found the block at/, 'the marked water never flowed into the cave air beside it');
-        log('the marked water flowed into the cave beside it once its chunk loaded');
+        log('the marked water flowed into the air beside it and settled into a new source');
     }
 };
