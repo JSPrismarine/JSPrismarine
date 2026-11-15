@@ -686,7 +686,7 @@ export class Level {
 
         return {
             format: 'jsprismarine-replay-initial-state',
-            version: 2,
+            version: 3,
             level: {
                 name: this.name,
                 seed: this.seed.toString(),
@@ -700,6 +700,9 @@ export class Level {
             activeContentFingerprint,
             randomState: this.server.getReplayRandomState(),
             loadedWorldDigests: this.replayWorldDigests(),
+            settlingChunks: [...this.worlds()]
+                .map((world) => [world.getDimension().id, world.settlingChunks()] as const)
+                .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
             storageBoundary: {
                 provider: this.provider.constructor.name,
                 kind: 'provider-snapshot',
@@ -716,6 +719,9 @@ export class Level {
     /** Verifies a matching initial boundary and restores only its random streams. */
     public restoreReplayRandomState(manifest: ReplayInitialStateManifest): void {
         serializeReplayInitialStateManifest(manifest);
+        // Before the digests are compared, which cover them.
+        const settling = new Map(manifest.settlingChunks);
+        for (const world of this.worlds()) world.restoreSettlingChunks(settling.get(world.getDimension().id) ?? []);
         const currentInputs = this.replayInputFingerprints();
         const currentGameRules = [...this.gameRuleManager.getGameRules()]
             .map(([name, [value, editable]]) => ({ name, value, editable }))

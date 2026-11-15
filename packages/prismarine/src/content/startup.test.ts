@@ -135,4 +135,25 @@ describe('the server building its content at startup', () => {
         expect(Buffer.from(manifest.storageBoundary.snapshot, 'base64')).not.toHaveLength(0);
         await expect(() => server.shutdown()).not.toThrow();
     }, 60_000);
+
+    it('carries the chunks still settling across a replay boundary', async () => {
+        vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, '/nowhere/bedrock');
+        vi.stubEnv(PACK_STACK_ENV.vanillaDatapack, '/nowhere/java');
+
+        const server = await bootstrap('replay-settling');
+        const world = server.getWorldManager().getDefaultWorld();
+        const level = world.getLevel();
+        world.markChunkSettling(3, -2);
+        const manifest = await level.captureReplayInitialState();
+        expect(manifest.settlingChunks).toContainEqual([world.getDimension().id, world.settlingChunks()]);
+
+        // A world restored from the snapshot reads its chunks as stored ones, so none is settling.
+        world['settling']?.clear();
+        level.restoreReplayRandomState(
+            deserializeReplayInitialStateManifest(serializeReplayInitialStateManifest(manifest))
+        );
+
+        expect(world.isChunkSettling(3, -2)).toBe(true);
+        await expect(() => server.shutdown()).not.toThrow();
+    }, 60_000);
 });
