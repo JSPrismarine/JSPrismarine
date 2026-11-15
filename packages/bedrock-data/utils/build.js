@@ -63,10 +63,19 @@ for (const name of ['block_definitions', 'required_item_list']) {
     }
 }
 
+/**
+ * The generator's own files. A target older than either was written by an earlier generator,
+ * which may have read other inputs: the tables used to come from a CloudburstMC download, and a
+ * checkout that built them then would otherwise keep them, newer than every capture, after the
+ * generator stopped reading it.
+ */
+const generatorFiles = [new URL(import.meta.url).pathname, new URL('./joinPayloads.ts', import.meta.url).pathname];
+
 const isUpToDate = (sources, target) => {
     const generated = fs.statSync(target, { throwIfNoEntry: false });
     return (
-        generated !== undefined && [sources].flat().every((source) => generated.mtimeMs >= fs.statSync(source).mtimeMs)
+        generated !== undefined &&
+        [sources, generatorFiles].flat().every((source) => generated.mtimeMs >= fs.statSync(source).mtimeMs)
     );
 };
 
