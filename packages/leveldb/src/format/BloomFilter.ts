@@ -40,6 +40,16 @@ export const createBloomFilter2 = (keys: readonly Buffer[], bitsPerKey = DEFAULT
 };
 
 /**
+ * The size {@link createBloomFilter2} gives a filter of `keyCount` keys.
+ *
+ * @param keyCount - Keys the filter indexes.
+ * @param bitsPerKey - Filter size per key, as passed to {@link createBloomFilter2}.
+ * @returns The filter's length in bytes, its probe count byte included.
+ */
+export const bloomFilter2MaxSize = (keyCount: number, bitsPerKey = DEFAULT_BITS_PER_KEY): number =>
+    keyCount === 0 ? 0 : Math.ceil(Math.max(MINIMUM_FILTER_BITS, keyCount * bitsPerKey) / 8) + 1;
+
+/**
  * Whether the filter can contain `key`; malformed filters conservatively return true.
  *
  * @param key - The user key to check.

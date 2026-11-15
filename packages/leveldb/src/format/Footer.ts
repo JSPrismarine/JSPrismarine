@@ -16,6 +16,9 @@ export const readBlockHandle = (reader: ByteReader): BlockHandle => ({
     size: Number(reader.varint64())
 });
 
+/** The compression type byte and masked CRC-32C that follow every block in a table. */
+export const BLOCK_TRAILER_LENGTH = 5;
+
 /**
  * The last 48 bytes of every table: the two block handles, zero padding out to 40 bytes, then an
  * 8 byte magic number. The fixed size is what lets a reader find the index without scanning, so

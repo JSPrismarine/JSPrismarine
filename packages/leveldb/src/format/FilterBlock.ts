@@ -1,4 +1,4 @@
-import { bloomFilter2MayContain, createBloomFilter2 } from './BloomFilter';
+import { bloomFilter2MaxSize, bloomFilter2MayContain, createBloomFilter2 } from './BloomFilter';
 import { ByteWriter } from '../util/ByteWriter';
 
 const FILTER_BASE_LOG2 = 11;
@@ -34,6 +34,19 @@ export class FilterBlockBuilder {
      */
     public addKey(key: Buffer): void {
         this.keys.push(Buffer.from(key));
+    }
+
+    /**
+     * An upper bound on what {@link finish} returns once the table's data ends at `dataEnd`, with
+     * `extraKeys` more keys still to come.
+     *
+     * @param dataEnd - The table offset the last data block will end at.
+     * @param extraKeys - Keys not yet added that the bound has to cover.
+     */
+    public maxFinishedSize(dataEnd: number, extraKeys = 0): number {
+        const pending = this.keys.length + extraKeys;
+        const segments = Math.max(this.filterOffsets.length, Math.floor(dataEnd / FILTER_BASE_BYTES)) + 1;
+        return this.output.length + bloomFilter2MaxSize(pending) + segments * 4 + 5;
     }
 
     /** Finishes the filter bytes, offset array, array start, and base-log parameter. */

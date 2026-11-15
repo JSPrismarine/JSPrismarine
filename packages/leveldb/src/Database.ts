@@ -29,6 +29,7 @@ import {
     parseInternalKey
 } from './format/InternalKey';
 import { WriteBatch } from './format/WriteBatch';
+import { mergeSorted } from './util/mergeSorted';
 import { decodeVersionEdit, encodeVersionEdit } from './db/VersionEdit';
 import { resolveOptions } from './DatabaseOptions';
 import type { DatabaseOptions, ResolvedOptions, WriteOptions } from './DatabaseOptions';
@@ -873,29 +874,6 @@ export class Database {
     /** For diagnostics: how many files sit at each level. */
     public get levelSizes(): number[] {
         return Array.from({ length: MAX_LEVELS }, (_, level) => this.versions.files(level).length);
-    }
-}
-
-/** Merges pre-sorted iterators into one sorted stream. */
-function* mergeSorted<T>(sources: Array<Iterator<T>>, compare: (a: T, b: T) => number): IterableIterator<T> {
-    const heads = sources.map((source) => source.next());
-
-    for (;;) {
-        let best = -1;
-        let bestHead: IteratorYieldResult<T> | null = null;
-        for (let i = 0; i < heads.length; i++) {
-            const head = heads[i]!;
-            if (head.done) continue;
-            if (bestHead === null || compare(head.value, bestHead.value) < 0) {
-                best = i;
-                bestHead = head;
-            }
-        }
-
-        if (bestHead === null) return;
-
-        yield bestHead.value;
-        heads[best] = sources[best]!.next();
     }
 }
 

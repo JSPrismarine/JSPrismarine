@@ -3,7 +3,7 @@ import { crc32cUpdate, mask } from '../util/Crc32c';
 import { findShortSuccessor, findShortestSeparator } from '../util/Comparator';
 import { BlockBuilder } from './BlockBuilder';
 import { ByteWriter } from '../util/ByteWriter';
-import { encodeFooter, writeBlockHandle } from './Footer';
+import { BLOCK_TRAILER_LENGTH, FOOTER_LENGTH, encodeFooter, writeBlockHandle } from './Footer';
 import type { BlockHandle } from './Footer';
 import { BLOOM_FILTER2_META_KEY, FilterBlockBuilder } from './FilterBlock';
 
@@ -67,6 +67,35 @@ export class TableBuilder {
 
     public get size(): number {
         return this.output.length + this.dataBlock.estimatedSize;
+    }
+
+    /**
+     * An upper bound on the length {@link finish} would return after one more {@link add} of
+     * `key` and `value`.
+     *
+     * Compression never makes a block bigger, because a block that does not shrink is stored raw,
+     * so the bound takes every block at its uncompressed size. That lets a compaction cut its
+     * output files at a size cap without building any of them twice.
+     *
+     * @param key - The key the next add would write.
+     * @param value - The value the next add would write.
+     */
+    public maxFinishedSizeWith(key: Buffer, value: Buffer): number {
+        const keyLength = Math.max(key.byteLength, this.lastKey.byteLength);
+        // Three varint32 headers and a possible restart point.
+        const dataEnd =
+            this.output.length +
+            this.dataBlock.estimatedSize +
+            MAX_ENTRY_OVERHEAD +
+            key.byteLength +
+            value.byteLength +
+            BLOCK_TRAILER_LENGTH;
+        // The pending block's index entry and the last block's, each a key, a handle and a restart.
+        const index = this.indexBlock.estimatedSize + 2 * (MAX_ENTRY_OVERHEAD + keyLength + MAX_HANDLE_LENGTH);
+        const filter = this.filterBlock.maxFinishedSize(dataEnd, 1);
+        const metaIndex = MAX_ENTRY_OVERHEAD + BLOOM_FILTER2_META_KEY.length + MAX_HANDLE_LENGTH + 8;
+
+        return dataEnd + index + filter + metaIndex + 3 * BLOCK_TRAILER_LENGTH + FOOTER_LENGTH;
     }
 
     public add(key: Buffer, value: Buffer): void {
@@ -140,6 +169,11 @@ export class TableBuilder {
         return this.output.finish();
     }
 }
+
+/** Three varint32 headers of at most five bytes each, plus a restart offset. */
+const MAX_ENTRY_OVERHEAD = 3 * 5 + 4;
+/** Two varint64s of at most ten bytes each. */
+const MAX_HANDLE_LENGTH = 20;
 
 const identityFilterKey = (key: Buffer): Buffer => key;
 
