@@ -67,8 +67,15 @@ export const createBiomeCellMemo = (resolver: BiomeResolver): BiomeCellMemo => {
     return {
         resolve: (quartX, quartY, quartZ) => {
             const slot = slotOf(quartX, quartY, quartZ);
-            if (filled[slot] === 1 && keyX[slot] === quartX && keyY[slot] === quartY && keyZ[slot] === quartZ) {
-                return values[slot] as string;
+            const cached = values[slot];
+            if (
+                cached !== undefined &&
+                filled[slot] === 1 &&
+                keyX[slot] === quartX &&
+                keyY[slot] === quartY &&
+                keyZ[slot] === quartZ
+            ) {
+                return cached;
             }
 
             const biome = resolver(quartX, quartY, quartZ);
