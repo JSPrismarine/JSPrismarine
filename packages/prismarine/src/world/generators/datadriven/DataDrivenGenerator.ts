@@ -131,7 +131,7 @@ import type {
     StructureStartPlanEntry
 } from './javaStructureStarts';
 import { StructureStartSource } from './javaStructureStarts';
-import { StructureStartPlanBroker, structureStartOwnerOf } from './javaStructurePlanBroker';
+import { StructureStartPlanBroker, structureStartKeyOf, structureStartOwnerOf } from './javaStructurePlanBroker';
 import { createStructureTemplateStore } from './javaStructureTemplatePiece';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
@@ -883,6 +883,8 @@ export class DataDrivenGenerator implements Generator {
 
     /** Workers for independent statuses, all fed by this generator's shared holder map. */
     private stagePool: GenerationTransport | undefined;
+    /** The candidate starts each structure-start task lays out, by its input, so a later request can promote it. */
+    private readonly structureStartTaskKeys = new WeakMap<object, ReadonlySet<string>>();
 
     /**
      * The workers that build whole chunks, or undefined when they are built on this thread.
@@ -2247,18 +2249,33 @@ export class DataDrivenGenerator implements Generator {
         const structures = pipeline.structures;
         if (structures === undefined || !this.stageWorkersBuildStructures()) return undefined;
 
+        const wanted = structures.candidatesForRegion(cx, cz, cx, cz);
+        // Another chunk may already be laying out one of these starts in a lower band, and the
+        // broker hands this request that same pending plan, so the task moves up to this band.
+        if (urgency !== 'idle') {
+            const keys = new Set(wanted.map(structureStartKeyOf));
+            pool.promote((task) => {
+                if (task.status !== 'structure_starts' || typeof task.input !== 'object' || task.input === null)
+                    return false;
+                const laidOut = this.structureStartTaskKeys.get(task.input);
+                return laidOut !== undefined && [...laidOut].some((key) => keys.has(key));
+            }, urgency);
+        }
+
         const plans = await pipeline.structurePlanBroker.plansFor(
-            structures.candidatesForRegion(cx, cz, cx, cz),
+            wanted,
             // Owners only batch the misses here: any stage worker can build any start.
             (candidate) => structureStartOwnerOf(candidate, pool.workers),
             async (_owner, candidates) => {
+                const input = { ...this.taskInput(pipeline), candidates };
+                this.structureStartTaskKeys.set(input, new Set(candidates.map(structureStartKeyOf)));
                 const planned = await pool.run(
                     {
                         status: 'structure_starts',
                         chunkX: cx,
                         chunkZ: cz,
                         dimension: pipeline.dimension.bedrockId,
-                        input: { ...this.taskInput(pipeline), candidates }
+                        input
                     },
                     urgency
                 );
