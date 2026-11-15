@@ -1091,7 +1091,7 @@ export default class LevelDB extends BaseProvider {
                 batch.put(
                     key(ChunkTag.Data3D),
                     encodeData3D(
-                        { heightmap: chunk.heightmap(), palettes: chunk.getBiomes().toSectionIds() },
+                        { heightmap: chunk.heightmap(), palettes: chunk.getBiomes().sectionsToEncode() },
                         dimension
                     )
                 )

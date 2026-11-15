@@ -38,7 +38,11 @@ export const encodePersistentStorage = (storage: ReadonlyBlockStorage, stream: B
     // Low bit 0: this palette is NBT, not runtime ids.
     stream.writeByte(bitsPerBlock << 1);
 
-    if (bitsPerBlock > 0) {
+    const packed = bitsPerBlock > 0 ? storage.getPackedIndexWords(bitsPerBlock) : undefined;
+    if (packed !== undefined) {
+        // A finalized section already holds its indices in this layout.
+        for (let word = 0; word < packed.length; word++) stream.writeIntLE(packed[word]! | 0);
+    } else if (bitsPerBlock > 0) {
         const blocksPerWord = Math.floor(32 / bitsPerBlock);
         const wordCount = Math.ceil(BLOCKS_PER_SUBCHUNK / blocksPerWord);
 
