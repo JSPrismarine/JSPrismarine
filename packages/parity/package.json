@@ -32,6 +32,7 @@
         "@jsprismarine/blocks": "workspace:*",
         "@jsprismarine/commands": "workspace:*",
         "@jsprismarine/content": "workspace:*",
+        "@jsprismarine/engine-systems": "workspace:*",
         "@jsprismarine/entities": "workspace:*",
         "@jsprismarine/entity-brains": "workspace:*",
         "@jsprismarine/features": "workspace:*",
