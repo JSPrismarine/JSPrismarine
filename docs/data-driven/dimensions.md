@@ -133,7 +133,7 @@ spawn search and the preload (`startRegion: 'deferred'`); the trip that built it
 its traveler stands in, and a spawn is searched for only when something asks for one. The cost of
 the first trip into a lazy dimension is then the destination's pipeline build on top of those
 chunks; a noise stem's `RandomState` costs between 55 and 134 ms per settings and seed. Every
-noise stem of a server shares one worker pool of `min(6, cores - 2)` threads, so an eager Nether
+noise stem of a server shares one worker pool of `cores - <!-- fact:generation.reservedCores -->1<!-- /fact -->` threads, so an eager Nether
 does not add a second pool, only its start region's chunks.
 
 A player's record says which dimension it was written in, so a player who logged out in a lazy

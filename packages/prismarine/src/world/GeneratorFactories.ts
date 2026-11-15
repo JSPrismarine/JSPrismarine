@@ -40,8 +40,8 @@ export interface GeneratorBuildContext {
     /**
      * How many worker threads the generator may start.
      *
-     * Defaults to the host's share, `min(6, cores - 2)`. Zero keeps generation on the calling
-     * thread, which is what a test wants and what a host too small for a worker gets anyway.
+     * Defaults to the host's share, every core but the server's (`chunkWorkerCount`). Zero keeps
+     * generation on the calling thread, which is what a test wants and what a single-core host gets.
      * The noise factory shares one pool between every stem it builds, so the first stem's value
      * sizes it and later ones are not read.
      */

@@ -34,7 +34,7 @@ const inlineSettingsId = (dimensionType: string): string => `jsprismarine:inline
  * The first stem built opens the generator from the context's registries, with a pool of
  * worker threads sized by the context's `workers` or the core count. Every stem after that,
  * the Nether's and the End's included, gets a view of the same generator keyed by its settings,
- * its biome source and its dimension, so a server runs one pool of `min(6, cores - 2)` workers
+ * its biome source and its dimension, so a server runs one pool of {@link chunkWorkerCount} workers
  * rather than one per dimension. The stem's `settings` names a `worldgen/noise_settings`
  * document or carries one inline; the inline form travels under a private id. A host that
  * cannot run workers generates on the server thread and says so once.
