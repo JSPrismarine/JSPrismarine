@@ -32,7 +32,10 @@ export const createGenerationPipeline = (setup) => {
             blocks[0] = task.chunkX;
             blocks[1] = task.chunkZ;
             blocks[2] = setup?.seed ?? 0;
-            blocks[3] = Number(task.input ?? 0);
+            // A number, or an object whose `value` is one, as a task with a reusable part sends it.
+            blocks[3] = Number(
+                typeof task.input === 'object' && task.input !== null ? task.input.value : (task.input ?? 0)
+            );
 
             return {
                 payload: { status: task.status, threadId, built, blocks: blocks.buffer },

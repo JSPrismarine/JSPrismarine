@@ -21,6 +21,7 @@ import type { GenerationTransport } from './GenerationTransport';
 import { compiledHostCommand, HostedGenerationPool } from './HostedGenerationPool';
 import { decodeShared, encodeShared } from './hostProtocol';
 import { GENERATION_HOST_ROLE } from './hostRole';
+import { reusableInput } from './reusableInput';
 
 const FAKE_PIPELINE = fileURLToPath(new URL('../test/fakePipeline.mjs', import.meta.url));
 
@@ -100,6 +101,32 @@ describe('HostedGenerationPool', () => {
         expect(bytesOf(await pending)).toEqual(expected);
         expect(hosted.hostPid).not.toBe(firstPid);
         expect(hosted.usingFallback).toBe(false);
+    }, 60_000);
+
+    it('hands the worker a reusable part every time, and sends it again to a replacement host', async () => {
+        const hosted = track(new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
+        const task = (chunkX: number) => ({
+            status: 'terrain' as const,
+            chunkX,
+            chunkZ: 0,
+            dimension: 0,
+            input: { value: reusableInput('tile', 5) }
+        });
+
+        // Sent with its value, then by its key alone.
+        expect(bytesOf(await hosted.run(task(1)))[3]).toBe(5);
+        expect(bytesOf(await hosted.run(task(2)))[3]).toBe(5);
+
+        const firstPid = hosted.hostPid!;
+        process.kill(firstPid, 'SIGKILL');
+        await vi.waitFor(() => expect(hosted.hostPid).not.toBe(firstPid));
+
+        // The replacement holds nothing, so the value goes again.
+        expect(bytesOf(await hosted.run(task(3)))[3]).toBe(5);
+        expect(hosted.hostPid).not.toBe(firstPid);
+        // The in-process pool takes the marker's value too.
+        const local = track(new GenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
+        expect(bytesOf(await local.run(task(4)))[3]).toBe(5);
     }, 60_000);
 
     it('runs a task submitted during a restart once on the replacement', async () => {
