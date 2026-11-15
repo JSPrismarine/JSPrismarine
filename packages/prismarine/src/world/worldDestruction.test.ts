@@ -214,6 +214,8 @@ const fixturePalette = (): BlockPalette =>
 interface Fixture {
     world: World;
     chunk: Chunk;
+    /** The chunk east of {@link chunk}, empty, for what crosses the border. */
+    east: Chunk;
     spawned: StoreActor[];
     /** The world's game rules, by the name they were set under. A test writes into it. */
     rules: Map<string, GameRuleEntry>;
@@ -226,11 +228,15 @@ const liveWorld = (
     entityRuntimes: EntityRuntimes
 ): Fixture => {
     const chunk = new Chunk(0, 0);
+    const east = new Chunk(1, 0);
     const spawned: StoreActor[] = [];
     const rules = new Map<string, GameRuleEntry>();
 
     const world: World = Object.assign(Object.create(World.prototype), {
-        chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
+        chunks: new Map([
+            [Chunk.packXZ(0, 0), chunk],
+            [Chunk.packXZ(1, 0), east]
+        ]),
         level: fakeLevel({
             spawn: new Vector3(8, 64, 8),
             gameRules: stub<GameRuleManager>({
@@ -282,7 +288,7 @@ const liveWorld = (
 
     world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
     collectAddedActors(spawned);
-    return { world, chunk, spawned, rules };
+    return { world, chunk, east, spawned, rules };
 };
 
 /** Runs the world's scheduled block and fluid ticks. */
@@ -309,6 +315,7 @@ const place = (
 describe('a block the world destroyed', () => {
     let world: World;
     let chunk: Chunk;
+    let east: Chunk;
     let spawned: StoreActor[];
     let rules: Map<string, GameRuleEntry>;
     let content: ServerContent;
@@ -317,7 +324,7 @@ describe('a block the world destroyed', () => {
     beforeEach(() => {
         let built: ServerContent | undefined;
         const entityRuntimes = new EntityRuntimes();
-        ({ world, chunk, spawned, rules } = liveWorld(
+        ({ world, chunk, east, spawned, rules } = liveWorld(
             () => built,
             () => random,
             entityRuntimes
@@ -530,6 +537,26 @@ describe('a block the world destroyed', () => {
             expect(drops()).toEqual([]);
             // Its neighbors were never loaded, so water could still pour in from them.
             expect(world.isChunkSettling(0, 0)).toBe(true);
+        });
+
+        it('carries its settling into a chunk the water flows into, so the cascade drops nothing', () => {
+            // The trough again, across the border at x 16, with the torch on the far side.
+            for (let x = 12; x <= 20; x += 1) {
+                place(x < 16 ? chunk : east, { x, y: 63, z: 8 }, 'minecraft:stone');
+                place(x < 16 ? chunk : east, { x, y: 64, z: 7 }, 'minecraft:stone');
+                place(x < 16 ? chunk : east, { x, y: 64, z: 9 }, 'minecraft:stone');
+            }
+            place(chunk, { x: 13, y: 64, z: 8 }, 'minecraft:stone');
+            place(east, { x: 17, y: 64, z: 8 }, 'minecraft:torch', { torch_facing_direction: 'top' });
+            place(chunk, { x: 14, y: 64, z: 8 }, 'minecraft:water', { liquid_depth: 0 });
+            // The water's chunk settles; the one east of it had settled before the water got there.
+            world.markChunkSettling(0, 0);
+            world.getSystems().ticks.list('fluid').schedule({ x: 14, y: 64, z: 8 }, 'minecraft:water', 1);
+            runTicks(world, 60);
+
+            expect(world.loadedBlockAt(17, 64, 8)?.name).toBe('minecraft:flowing_water');
+            expect(drops()).toEqual([]);
+            expect(world.isChunkSettling(1, 0)).toBe(true);
         });
 
         it('drops as usual once somebody writes a block in the chunk', () => {

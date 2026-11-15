@@ -420,6 +420,18 @@ describe('world chunk requests', () => {
             expect(world.isChunkSettling(2, 2)).toBe(true);
         });
 
+        it('waits for the block updates a neighbor still has queued', async () => {
+            const world = testWorld(generating());
+            await loadAround(world, 2);
+
+            // A write queues updates around it, as a fluid's or a falling block's does.
+            world.setLoadedBlockRuntimeId(20, 64, 20, BlockRuntimeIds.getByName('minecraft:stone'), 0);
+            world.releaseSettledChunks(20);
+
+            expect(world.isChunkSettling(0, 0)).toBe(true);
+            expect(world.isChunkSettling(-1, -1)).toBe(false);
+        });
+
         it('looks only every twentieth tick', async () => {
             const world = testWorld(generating());
             await loadAround(world, 1);

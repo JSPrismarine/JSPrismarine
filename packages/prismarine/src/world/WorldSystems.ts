@@ -188,6 +188,9 @@ export class WorldSystems {
     /** True while {@link tick} runs; see {@link isRunning}. */
     private running = false;
 
+    /** The position of the scheduled tick running now; see {@link activeTickPosition}. */
+    private activeTick: BlockPosition | undefined;
+
     /** The active light columns, separate from chunks which are merely loaded in memory. */
     private readonly litChunks = new Map<string, { readonly x: number; readonly z: number }>();
 
@@ -342,6 +345,27 @@ export class WorldSystems {
         return this.running === true;
     }
 
+    /**
+     * Where the scheduled tick that is running now stands, or undefined between ticks. A write
+     * made then is that tick's doing, which is how the world follows a settling chunk's water
+     * across a chunk border.
+     */
+    public activeTickPosition(): BlockPosition | undefined {
+        return this.activeTick;
+    }
+
+    /** Runs one scheduled tick's handler with its position recorded; see {@link activeTickPosition}. */
+    private runAt(at: BlockPosition, handler: ((at: BlockPosition) => void) | undefined): void {
+        if (handler === undefined) return;
+        const outer = this.activeTick;
+        this.activeTick = at;
+        try {
+            handler(at);
+        } finally {
+            this.activeTick = outer;
+        }
+    }
+
     /** The body of {@link tick}. */
     private runTick(currentTick: number): WorldSystemsReport {
         this.prepareLighting();
@@ -360,10 +384,10 @@ export class WorldSystems {
                     // by the current block because queued ticks can name a previous
                     // source or flowing state.
                     if (this.ticks.list('block').hasScheduledTick(tick.at, contentType)) return;
-                    contentHandler?.(tick.at);
+                    this.runAt(tick.at, contentHandler);
                     return;
                 }
-                contentHandler?.(tick.at);
+                this.runAt(tick.at, contentHandler);
             },
             SCHEDULED_TICK_BUDGET_PER_TICK
         );

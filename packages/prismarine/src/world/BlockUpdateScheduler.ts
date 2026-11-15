@@ -1,5 +1,5 @@
-import { blockPositionKey } from './positionKeys';
-import type { BlockPositionKey } from './positionKeys';
+import { blockPositionKey, coordinatePairKey } from './positionKeys';
+import type { BlockPositionKey, CoordinatePairKey } from './positionKeys';
 
 /**
  * Positions whose block should be given a chance to react, and when.
@@ -73,6 +73,9 @@ export class BlockUpdateScheduler {
     /** Earliest due tick, allowing an all-future queue to return without scanning. */
     private earliestDue = Number.POSITIVE_INFINITY;
 
+    /** How many pending positions each chunk holds, by {@link coordinatePairKey}. */
+    private readonly pendingByChunk = new Map<CoordinatePairKey, number>();
+
     /**
      * Hears each change in the order it happens. The world sets it to its change log;
      * {@link BlockUpdateScheduler.restore} does not report to it.
@@ -96,6 +99,7 @@ export class BlockUpdateScheduler {
         if (existing && existing.at <= at) return;
 
         this.pending.set(key, { at, update: { x, y, z } });
+        if (existing === undefined) this.count(x, z, 1);
         this.observer?.(x, y, z, existing?.at ?? null, at);
 
         if (Number.isNaN(at)) this.earliestDue = Number.NEGATIVE_INFINITY;
@@ -126,14 +130,28 @@ export class BlockUpdateScheduler {
      */
     public restore(x: number, y: number, z: number, dueTick: number | null): void {
         const key = blockPositionKey(x, y, z);
-        if (dueTick === null) this.pending.delete(key);
-        else this.pending.set(key, { at: dueTick, update: { x, y, z } });
+        const existed = this.pending.has(key);
+        if (dueTick === null) {
+            if (this.pending.delete(key)) this.count(x, z, -1);
+        } else {
+            this.pending.set(key, { at: dueTick, update: { x, y, z } });
+            if (!existed) this.count(x, z, 1);
+        }
         this.recomputeEarliestDue();
     }
 
     /** How many positions are waiting. */
     public size(): number {
         return this.pending.size;
+    }
+
+    /**
+     * Whether any position inside one chunk is waiting.
+     * @param {number} chunkX - The chunk's x, in chunks.
+     * @param {number} chunkZ - The chunk's z, in chunks.
+     */
+    public hasPendingInChunk(chunkX: number, chunkZ: number): boolean {
+        return (this.pendingByChunk.get(coordinatePairKey(chunkX, chunkZ)) ?? 0) > 0;
     }
 
     /**
@@ -150,6 +168,7 @@ export class BlockUpdateScheduler {
     public clear(): void {
         for (const { at, update } of this.pending.values()) this.observer?.(update.x, update.y, update.z, at, null);
         this.pending.clear();
+        this.pendingByChunk.clear();
         this.earliestDue = Number.POSITIVE_INFINITY;
     }
 
@@ -169,6 +188,7 @@ export class BlockUpdateScheduler {
 
             ready.push(entry.update);
             this.pending.delete(key);
+            this.count(entry.update.x, entry.update.z, -1);
             this.observer?.(entry.update.x, entry.update.y, entry.update.z, entry.at, null);
 
             if (ready.length >= BLOCK_UPDATE_BUDGET_PER_TICK) {
@@ -184,6 +204,14 @@ export class BlockUpdateScheduler {
         }
 
         return ready;
+    }
+
+    /** Moves a chunk's pending count by one position at block x and z. */
+    private count(x: number, z: number, by: number): void {
+        const key = coordinatePairKey(x >> 4, z >> 4);
+        const next = (this.pendingByChunk.get(key) ?? 0) + by;
+        if (next <= 0) this.pendingByChunk.delete(key);
+        else this.pendingByChunk.set(key, next);
     }
 
     /** Re-scans only after the current earliest due tick has left the queue. */
