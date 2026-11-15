@@ -82,7 +82,11 @@ const compileLayout = (
     const decodedFields = fields.map(
         (field, index) => '[' + JSON.stringify(field.key) + ']: ' + readerNames[index] + '(stream)'
     );
-    const fallbackFields = absent.map(([key], index) => '[' + JSON.stringify(key) + ']: ' + fallbackNames[index]);
+    // An array fallback is copied per decode, so a caller filling one payload's list leaves the next empty.
+    const fallbackFields = absent.map(
+        ([key, fallback], index) =>
+            '[' + JSON.stringify(key) + ']: ' + fallbackNames[index] + (Array.isArray(fallback) ? '.slice()' : '')
+    );
     const decoderSource =
         'return function decode(stream) { "use strict"; return { ' +
         [...decodedFields, ...fallbackFields].join(',') +
@@ -153,7 +157,8 @@ const resolve = (definition: PacketDefinition, protocolVersion: number, useCompi
                     });
                 };
                 for (const { key, of } of frozenFields) set(key, of.read(stream));
-                for (const [key, fallback] of frozenAbsent) set(key, fallback);
+                for (const [key, fallback] of frozenAbsent)
+                    set(key, Array.isArray(fallback) ? fallback.slice() : fallback);
                 return payload;
             })
         // The walker is type-erased internally; the definition's field map carries the real
