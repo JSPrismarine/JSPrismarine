@@ -107,7 +107,10 @@ export interface StageOptions {
     unpacked: string;
     /** Directory the copy is made in. Created if it does not exist. */
     root: string;
-    /** `server.properties` values on top of {@link COMMON_PROPERTIES}. */
+    /**
+     * `server.properties` values on top of {@link COMMON_PROPERTIES}. The archive decides the
+     * transport, so a `transport` key here is refused.
+     */
     properties?: Record<string, string>;
     /** Level name, and so the world directory. Defaults to `jsp-capture`. */
     levelName?: string;
@@ -124,6 +127,10 @@ export interface StageOptions {
  * freshly generated world.
  */
 export const stageServer = async (options: StageOptions): Promise<StagedServer> => {
+    // StagedServer.transport tells the client how to dial, so an override would leave it wrong.
+    if (options.properties?.transport !== undefined) {
+        throw new Error('stageServer chooses the transport from the archive; drop the transport property');
+    }
     const levelName = options.levelName ?? 'jsp-capture';
     const root = options.root;
     const marker = join(root, STAGE_MARKER);

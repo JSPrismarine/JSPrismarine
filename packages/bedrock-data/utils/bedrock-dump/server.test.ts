@@ -106,6 +106,13 @@ describe('stageServer', () => {
         expect(staged.worldDirectory).toBe(join(staged.root, 'worlds', 'reference'));
     });
 
+    it('refuses a transport property, since the archive decides the transport', async () => {
+        const unpacked = await fakeArchive(join(workspace, 'unpacked'));
+        await expect(
+            stageServer({ unpacked, root: join(workspace, 'run'), properties: { transport: 'nethernet' } })
+        ).rejects.toThrow('drop the transport property');
+    });
+
     it('reuses the copy on a second run and starts the world again', async () => {
         const unpacked = await fakeArchive(join(workspace, 'unpacked'));
         const first = await stageServer({ unpacked, root: join(workspace, 'run') });
