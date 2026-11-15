@@ -58,6 +58,9 @@ export default class Fleet {
 
     private startedAt = 0;
     private finishedAt = 0;
+    private stopped = false;
+    /** Ends each wait still pending: a ramp delay, or the run's duration. */
+    private readonly pendingWaits: Set<() => void> = new Set();
 
     public constructor(private readonly options: FleetOptions) {
         this.logger = options.logger ?? new Logger('error');
@@ -108,7 +111,8 @@ export default class Fleet {
         const spacingMs = perSecond > 0 ? 1000 / perSecond : 0;
 
         const attempts = this.bots.map(async (bot, index) => {
-            if (spacingMs > 0) await new Promise((resolve) => setTimeout(resolve, index * spacingMs));
+            if (spacingMs > 0) await this.wait(index * spacingMs);
+            if (this.stopped) return;
 
             try {
                 await bot.connect();
@@ -117,25 +121,55 @@ export default class Fleet {
             } catch (error: unknown) {
                 const reason = error instanceof Error ? error.message : String(error);
                 this.failures.set(reason, (this.failures.get(reason) ?? 0) + 1);
+            } finally {
+                // A bot still dialing when the fleet stopped had nothing to disconnect yet.
+                if (this.stopped) bot.disconnect();
             }
         });
 
         await Promise.all(attempts);
     }
 
-    /** Lets the fleet run for a while, then stops it. */
+    /**
+     * Lets the fleet run for a while, then stops it. {@link Fleet.stop} ends the run early, and
+     * a run on a stopped fleet returns at once.
+     */
     public async run(durationMs: number): Promise<void> {
-        await new Promise((resolve) => setTimeout(resolve, durationMs));
+        await this.wait(durationMs);
         this.stop();
     }
 
+    /**
+     * Disconnects every bot, ends a pending {@link Fleet.run} and leaves bots that have not
+     * started connecting unconnected. Only the first call sets the end of the run.
+     */
     public stop(): void {
-        this.finishedAt = performance.now();
+        if (!this.stopped) {
+            this.stopped = true;
+            this.finishedAt = performance.now();
+        }
+
+        for (const finish of this.pendingWaits) finish();
         for (const bot of this.bots) bot.disconnect();
     }
 
+    /** Resolves after `ms`, or as soon as the fleet stops, and clears its timer either way. */
+    private wait(ms: number): Promise<void> {
+        if (this.stopped) return Promise.resolve();
+
+        return new Promise((resolve) => {
+            const finish = () => {
+                clearTimeout(timer);
+                this.pendingWaits.delete(finish);
+                resolve();
+            };
+            const timer = setTimeout(finish, ms);
+            this.pendingWaits.add(finish);
+        });
+    }
+
     public report(): FleetReport {
-        const finishedAt = this.finishedAt === 0 ? performance.now() : this.finishedAt;
+        const finishedAt = this.stopped ? this.finishedAt : performance.now();
 
         const rtt = new Samples();
         const traffic = { bytesSent: 0, bytesReceived: 0, packetsSent: 0, packetsReceived: 0 };
