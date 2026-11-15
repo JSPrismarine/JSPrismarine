@@ -15,7 +15,9 @@
  * it to emit `minecraft:collision_box` for blocks that never collide, fixed
  * partial shapes, and state-varying shapes.
  */
+import { collisionBox } from './components';
 import table from './tables/blockGeometry';
+import type { BlockState } from './types';
 
 /** What a liquid reaching a block does, as Bedrock's `liquidReactionOnTouch` names it. */
 export type LiquidReaction =
@@ -179,3 +181,45 @@ export const isWashedAway = (identifier: string): boolean => {
     const reaction = bedrockLiquidReactionOf(identifier);
     return reaction !== undefined && reaction !== 'blocking';
 };
+
+/** The shape of an ordinary cube, which is what a block with no collision box component has. */
+export const FULL_CUBE_SHAPE: readonly BedrockCollisionBox[] = [[0, 0, 0, 1, 1, 1]];
+
+/**
+ * The collision boxes of one resolved block state, normalized to its cell.
+ *
+ * Read from the state's `minecraft:collision_box`, which the vanilla overlay fills from the same
+ * capture {@link bedrockCollisionTopOf} reads, so a slab is half a cell, a carpet a sixteenth and
+ * a fence one and a half cells tall. A box may reach past its cell, as a fence's does. A box with
+ * no size on every axis does not collide, matching how the `solid` flag reads the component.
+ * @param state - The resolved state.
+ * @returns The boxes, ordered min X/Y/Z then max X/Y/Z; empty for a block nothing collides with.
+ * @example
+ * ```typescript
+ * collisionShapeOf(blocks.types.get('minecraft:stone_slab')!.state()); // [[0, 0, 0, 1, 0.5, 1]]
+ * ```
+ */
+export const collisionShapeOf = (state: Pick<BlockState, 'content'>): readonly BedrockCollisionBox[] => {
+    const component = state.content.params(collisionBox);
+    if (component === undefined || component === true) return FULL_CUBE_SHAPE;
+    if (component === false) return [];
+    const boxes = Array.isArray(component) ? component : [component];
+    return boxes.flatMap(({ origin, size }) => {
+        if (size.every((side: number) => side === 0)) return [];
+        const minX = (origin[0] + 8) / 16;
+        const minY = origin[1] / 16;
+        const minZ = (origin[2] + 8) / 16;
+        return [[minX, minY, minZ, minX + size[0] / 16, minY + size[1] / 16, minZ + size[2] / 16] as const];
+    });
+};
+
+/**
+ * Whether a shape fills its whole cell, which is what Java's `isCollisionShapeFullBlock` asks.
+ * @param shape - Boxes normalized to the cell.
+ * @returns Whether one box covers the cell.
+ */
+export const isFullCubeShape = (shape: readonly BedrockCollisionBox[]): boolean =>
+    shape.some(
+        ([minX, minY, minZ, maxX, maxY, maxZ]) =>
+            minX <= 0 && minY <= 0 && minZ <= 0 && maxX >= 1 && maxY >= 1 && maxZ >= 1
+    );
