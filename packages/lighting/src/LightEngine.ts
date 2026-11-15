@@ -348,6 +348,9 @@ export class LightEngine {
         for (let sectionY = (top - 1) >> 4; sectionY >= this.view.minY >> 4; sectionY--) {
             const hint = hintAt(sectionY);
             if (hint?.allTransparent && !hint.mayEmit) continue;
+            // Under the height, a section that emits nothing has nothing left to find: most of a
+            // column is stone, and this is what keeps a chunk load from reading all of it.
+            if (hint?.mayEmit === false && height !== this.view.minY) continue;
 
             const fromY = Math.max(this.view.minY, sectionY << 4);
             const toY = Math.min(top, (sectionY + 1) << 4);
@@ -355,7 +358,10 @@ export class LightEngine {
                 const block = this.view.blockAt(x, y, z);
                 if (block === undefined) continue;
 
-                if (!hint?.allTransparent && height === this.view.minY && block.lightDampening > 0) height = y + 1;
+                if (!hint?.allTransparent && height === this.view.minY && block.lightDampening > 0) {
+                    height = y + 1;
+                    if (hint?.mayEmit === false) break;
+                }
 
                 if (hint?.mayEmit !== false && block.lightEmission > 0) {
                     this.write(BLOCK_LAYER, column, x, y, z, this.sourceLevel(BLOCK_LAYER, block));
