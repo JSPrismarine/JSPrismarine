@@ -1,4 +1,4 @@
-import { BatchCodec, EncryptionCodec, NetworkBinaryStream } from '@jsprismarine/protocol';
+import { BatchCodec, EncryptionCodec } from '@jsprismarine/protocol';
 import { EventEmitter } from 'node:events';
 import { SendPriority } from './ITransport';
 
@@ -145,12 +145,14 @@ export default class ClientSession extends EventEmitter {
 
     /**
      * Serializes a packet, batches it and hands it to the transport.
-     * @param packet - a packet already carrying its data.
+     * @param packet - a packet carrying its typed payload, or a field packet with its fields set.
      * @param priority - IMMEDIATE for anything the handshake is waiting on.
      */
     public async send(packet: NetworkPacket<any>, priority: SendPriority = SendPriority.NORMAL): Promise<void> {
-        const stream = new NetworkBinaryStream();
-        const encoded = packet.serialize(stream);
+        // A field packet keeps its body in fields rather than a typed payload, so it writes
+        // itself through `encodeTransient`. The bytes are a view over the packet's own buffer,
+        // which the codec copies into the batch before this call yields.
+        const encoded = packet.encodeTransient();
 
         const sending = this.codec.encodeAsync([encoded]).then((batch) => {
             this.transport.send(this.encryption?.encrypt(batch) ?? batch, priority);
