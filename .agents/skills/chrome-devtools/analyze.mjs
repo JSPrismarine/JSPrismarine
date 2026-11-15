@@ -428,6 +428,12 @@ const compare = (leftPath, rightPath, options) => {
     if (left.meta && right.meta && left.meta.workload?.description !== right.meta.workload?.description) {
         console.log('WARNING: the captures ran different workloads, so their numbers do not compare.');
     }
+    const settings = (meta) => JSON.stringify(meta?.server?.effective);
+    if (left.meta && right.meta && settings(left.meta) !== settings(right.meta)) {
+        console.log(
+            `WARNING: the servers ran with different settings, so their numbers do not compare.\n  A: ${settings(left.meta)}\n  B: ${settings(right.meta)}`
+        );
+    }
 
     console.log(`\n${'Overview'.padEnd(34)} ${'A'.padStart(12)} ${'B'.padStart(12)} ${'B-A'.padStart(9)}`);
     row('profiles merged', left.profiles, right.profiles, 0);

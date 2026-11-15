@@ -45,8 +45,8 @@ indicative, with the load average and command beside them.
    node .agents/skills/chrome-devtools/analyze.mjs compare jsp/profiles/loop/baseline jsp/profiles/loop/after
    ```
 
-   The comparison is usable when it prints no different-workload warning and neither capture
-   printed a load-average warning. Otherwise capture both sides again at a quieter moment. A share that moves less than run-to-run noise is no result:
+   The comparison is usable when it warns about neither different workloads nor different server
+   settings, and neither capture printed a load-average warning. Otherwise capture both sides again at a quieter moment. A share that moves less than run-to-run noise is no result:
    capture the baseline twice and compare it with itself to see that noise.
 7. **Report** the counts that moved, the indicative shares with their load averages, the commands
    from each `meta.json`, and the capture paths.
