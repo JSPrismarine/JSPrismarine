@@ -108,6 +108,10 @@ export class Database {
     private backgroundFlushError: Error | null = null;
     private bytesWritten = 0;
     private closed = false;
+    /** Scans still running, which keep the tables they may read on disk and open. */
+    private activeScans = 0;
+    /** Tables a compaction replaced while a scan was running, deleted once none is. */
+    private readonly retiredTables: number[] = [];
 
     private constructor(directory: string, options: ResolvedOptions) {
         this.directory = directory;
@@ -247,6 +251,9 @@ export class Database {
         this.log?.close();
         this.log = null;
 
+        // A scan abandoned without being finished never releases what it held.
+        this.activeScans = 0;
+        this.retireTables([]);
         for (const { file } of this.tables.values()) file.close();
         this.tables.clear();
 
@@ -299,54 +306,94 @@ export class Database {
     }
 
     public *keys(range: KeyRange = {}): IterableIterator<Buffer> {
-        for (const [key] of this.entries(range)) yield key;
+        for (const [key] of this.scan(range)) yield Buffer.from(key);
     }
 
     /**
      * Every live key and value in order.
      *
-     * A merge across the memtable and every table, taking the newest version of each user key and
-     * dropping the ones whose newest version is a deletion.
+     * A merge across the memtables and the tables, taking the newest version of each user key and
+     * dropping the ones whose newest version is a deletion. The scan reads the database as it was
+     * at its first entry: writes made while it runs do not show up in it, and tables a compaction
+     * replaces stay on disk until the scan ends.
      */
     public *entries(range: KeyRange = {}): IterableIterator<[Buffer, Buffer]> {
+        for (const [userKey, value] of this.scan(range)) yield [Buffer.from(userKey), Buffer.from(value)];
+    }
+
+    /** The internal-key merge behind {@link entries}, yielding views its caller copies. */
+    private *scan(range: KeyRange): IterableIterator<[Buffer, Buffer]> {
         this.assertOpen();
+        this.activeScans++;
 
-        const sources: Array<Iterator<{ internalKey: Buffer; value: Buffer | null }>> = [
-            this.memtable.iterate()[Symbol.iterator]()
-        ];
-        if (this.immutableMemtable !== null) {
-            sources.push(this.immutableMemtable.iterate()[Symbol.iterator]());
-        }
+        try {
+            const inRange = (file: FileMetaData): boolean =>
+                (range.gte === undefined || compareBytewise(extractUserKey(file.largest), range.gte) >= 0) &&
+                (range.lt === undefined || compareBytewise(extractUserKey(file.smallest), range.lt) < 0);
+            const start = range.gte === undefined ? null : lookupKey(range.gte, MAX_SEQUENCE);
 
-        for (const { file } of this.versions.allFiles()) {
-            sources.push(this.tableEntries(file)[Symbol.iterator]());
-        }
+            // The memtables are copied so that a write during the scan cannot shift entries under it.
+            const sources: Array<Iterator<{ internalKey: Buffer; value: Buffer | null }>> = [
+                [...this.memtable.iterate()][Symbol.iterator]()
+            ];
+            if (this.immutableMemtable !== null) {
+                sources.push([...this.immutableMemtable.iterate()][Symbol.iterator]());
+            }
 
-        let previousUserKey: Buffer | null = null;
+            // Level 0 files overlap, so each is a source of its own. Every deeper level is one sorted
+            // run, read a file at a time.
+            for (const file of this.versions.files(0)) {
+                if (inRange(file)) sources.push(this.tableEntries([file], start)[Symbol.iterator]());
+            }
 
-        for (const { internalKey, value } of mergeSorted(sources, (a, b) =>
-            compareInternalKeys(a.internalKey, b.internalKey)
-        )) {
-            const userKey = extractUserKey(internalKey);
+            for (let level = 1; level < MAX_LEVELS; level++) {
+                const files = this.versions.files(level).filter(inRange);
+                if (files.length > 0) sources.push(this.tableEntries(files, start)[Symbol.iterator]());
+            }
 
-            // Sources are ordered newest-first per user key, so the first sighting wins and every
-            // later one is a superseded version.
-            if (previousUserKey !== null && compareBytewise(previousUserKey, userKey) === 0) continue;
+            let previousUserKey: Buffer | null = null;
 
-            previousUserKey = Buffer.from(userKey);
+            for (const { internalKey, value } of mergeSorted(sources, (a, b) =>
+                compareInternalKeys(a.internalKey, b.internalKey)
+            )) {
+                const userKey = extractUserKey(internalKey);
 
-            if (range.gte !== undefined && compareBytewise(userKey, range.gte) < 0) continue;
-            if (range.lt !== undefined && compareBytewise(userKey, range.lt) >= 0) return;
-            if (value === null) continue;
+                // Sources are ordered newest-first per user key, so the first sighting wins and every
+                // later one is a superseded version.
+                if (previousUserKey !== null && compareBytewise(previousUserKey, userKey) === 0) continue;
 
-            yield [Buffer.from(userKey), Buffer.from(value)];
+                previousUserKey = userKey;
+
+                if (range.gte !== undefined && compareBytewise(userKey, range.gte) < 0) continue;
+                if (range.lt !== undefined && compareBytewise(userKey, range.lt) >= 0) return;
+                if (value === null) continue;
+
+                yield [userKey, value];
+            }
+        } finally {
+            // A scan resumed after `close` finds the count already cleared.
+            if (this.activeScans > 0 && --this.activeScans === 0) this.retireTables([]);
         }
     }
 
-    private *tableEntries(file: FileMetaData): IterableIterator<{ internalKey: Buffer; value: Buffer | null }> {
-        for (const entry of this.table(file).entries({ useCache: false })) {
-            const { type } = parseInternalKey(entry.key);
-            yield { internalKey: entry.key, value: type === ValueType.Deletion ? null : entry.value };
+    /**
+     * The entries of a sorted run of tables, one table at a time, from `start` when given.
+     *
+     * @param files - Tables in key order whose ranges do not overlap.
+     * @param start - The internal key to seek the first table to.
+     */
+    private *tableEntries(
+        files: readonly FileMetaData[],
+        start: Buffer | null
+    ): IterableIterator<{ internalKey: Buffer; value: Buffer | null }> {
+        for (const file of files) {
+            const table = this.table(file);
+            const entries =
+                start === null ? table.entries({ useCache: false }) : table.seekFrom(start, { useCache: false });
+            for (const entry of entries) {
+                const { type } = parseInternalKey(entry.key);
+                yield { internalKey: entry.key, value: type === ValueType.Deletion ? null : entry.value };
+            }
         }
     }
 
@@ -758,7 +805,6 @@ export class Database {
             throw error;
         }
 
-        for (const file of inputs) this.dropTable(file.number);
         this.versions.assertSortedRuns();
     }
 
@@ -798,7 +844,21 @@ export class Database {
         this.writeManifest(updatedVersions);
         this.versions = updatedVersions;
 
-        for (const [, number] of edit.deletedFiles ?? []) {
+        this.retireTables((edit.deletedFiles ?? []).map(([, number]) => number));
+    }
+
+    /**
+     * Closes and deletes tables the current version no longer names, or holds them until the last
+     * running scan ends, since a scan may still read them.
+     *
+     * @param numbers - Tables just dropped from the version.
+     */
+    private retireTables(numbers: readonly number[]): void {
+        this.retiredTables.push(...numbers);
+        if (this.activeScans > 0) return;
+
+        for (const number of this.retiredTables.splice(0)) {
+            this.dropTable(number);
             try {
                 fs.unlinkSync(path.join(this.directory, tableFileName(number)));
             } catch {

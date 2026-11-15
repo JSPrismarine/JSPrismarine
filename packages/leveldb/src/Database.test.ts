@@ -180,6 +180,68 @@ describe('leveldb', () => {
                 expect([...db.entries()].map(([k, v]) => `${k}=${v}`)).toEqual(['a=from memory', 'c=from memory']);
                 await db.close();
             });
+            it('reads the database as it was when the scan started', async () => {
+                const db = await Database.open(scratch());
+                db.put(key('a'), key('1'));
+                db.put(key('c'), key('1'));
+                db.put(key('e'), key('1'));
+
+                const scan = db.keys();
+                const seen = [scan.next().value];
+                db.put(key('b'), key('2'));
+                db.put(key('d'), key('2'));
+                db.del(key('e'));
+                for (const k of { [Symbol.iterator]: () => scan }) seen.push(k);
+
+                expect(seen.map(String)).toEqual(['a', 'c', 'e']);
+                await db.close();
+            });
+
+            it('opens one table per sorted level at a time', async () => {
+                const db = await Database.open(scratch(), { l0CompactionTrigger: 1, maxFileSize: 4 * 1024 });
+                const keys = chunkKeys(400);
+                for (const [i, k] of keys.entries()) {
+                    db.put(k, Buffer.alloc(256, i));
+                    if (i % 100 === 99) await db.flush();
+                }
+                await db.close();
+
+                const reopened = await Database.open(Reflect.get(db, 'directory'));
+                const levels = reopened.levelSizes;
+                expect(levels.slice(1).reduce((total, files) => total + files, 0)).toBeGreaterThan(5);
+
+                const scan = reopened.keys();
+                scan.next();
+                const tables = Reflect.get(reopened, 'tables');
+                if (!(tables instanceof Map)) throw new Error('Database table map is unavailable');
+                expect(tables.size).toBe(levels[0]! + levels.slice(1).filter((files) => files > 0).length);
+                scan.return?.(undefined);
+
+                expect([...reopened.keys({ gte: keys[390], lt: keys[395] })].map(String)).toEqual(
+                    keys.slice(390, 395).map(String)
+                );
+                await reopened.close();
+            });
+
+            it('finishes a scan that a compaction overtook', async () => {
+                const db = await Database.open(scratch(), { l0CompactionTrigger: 2 });
+                const keys = chunkKeys(300);
+                for (const [i, k] of keys.entries()) {
+                    db.put(k, Buffer.alloc(256, i));
+                    if (i % 100 === 99) await db.flush();
+                }
+
+                // The scan has opened every table by its first entry, then a compaction replaces them.
+                const scan = db.keys();
+                const seen = [scan.next().value];
+                db.put(key('zzz'), key('v'));
+                await db.flush();
+                expect(db.stats.level0Files).toBe(0);
+
+                for (const k of { [Symbol.iterator]: () => scan }) seen.push(k);
+                expect(seen.map(String)).toEqual(keys.map(String));
+                await db.close();
+            });
         });
 
         describe('persistence', () => {
