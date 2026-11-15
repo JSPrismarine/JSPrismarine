@@ -251,6 +251,36 @@ describe('lake', () => {
     });
 });
 
+describe('spring_feature', () => {
+    const waterSpring = {
+        type: 'minecraft:spring_feature',
+        state: { Name: 'minecraft:water', Properties: { falling: 'true' } },
+        requires_block_below: true,
+        rock_count: 4,
+        hole_count: 1,
+        valid_blocks: ['minecraft:stone']
+    };
+
+    it('ticks the fluid it opens in a wall, which is what starts the stream', () => {
+        const world = stoneWorld();
+        world.fill({ x: 0, y: 30, z: 0 }, { x: 0, y: 30, z: 1 }, blockState('minecraft:air'));
+        world.clearWrites();
+
+        expect(build(waterSpring).place(world, new WorldgenRandom(1n), { x: 0, y: 30, z: 0 })).toBe(true);
+        expect(world.getBlock({ x: 0, y: 30, z: 0 }).name).toBe('minecraft:water');
+        expect(world.fluidTicks).toEqual([{ x: 0, y: 30, z: 0 }]);
+    });
+
+    it('asks for no tick where it does not open', () => {
+        const world = stoneWorld();
+        world.fill({ x: 0, y: 30, z: 0 }, { x: 0, y: 30, z: 0 }, blockState('minecraft:air'));
+        world.clearWrites();
+
+        expect(build(waterSpring).place(world, new WorldgenRandom(1n), { x: 0, y: 30, z: 0 })).toBe(false);
+        expect(world.fluidTicks).toEqual([]);
+    });
+});
+
 describe('geode', () => {
     const amethystGeode = {
         type: 'minecraft:geode',
@@ -289,6 +319,33 @@ describe('geode', () => {
         };
         expect(spread('minecraft:smooth_basalt')).toBeGreaterThanOrEqual(spread('minecraft:calcite'));
         expect(spread('minecraft:calcite')).toBeGreaterThanOrEqual(spread('minecraft:amethyst_block'));
+    });
+
+    it('ticks the fluid beside its crack, as Java lets the water it opens onto flow in', () => {
+        let ticked = 0;
+        for (let seed = 1n; seed <= 40n; seed++) {
+            // Stone around the geode, and water on every side past its sample points, where the
+            // crack comes out through the shell.
+            const world = stoneWorld();
+            for (const [from, to] of [
+                [-16, -7],
+                [7, 16]
+            ] as const) {
+                world.fill({ x: from, y: 0, z: -16 }, { x: to, y: 30, z: 16 }, WATER);
+                world.fill({ x: -16, y: 0, z: from }, { x: 16, y: 30, z: to }, WATER);
+            }
+            world.clearWrites();
+            const wasWater = (position: { x: number; z: number }) =>
+                Math.max(Math.abs(position.x), Math.abs(position.z)) >= 7;
+            if (!build(amethystGeode).place(world, new WorldgenRandom(seed), { x: 0, y: 14, z: 0 })) continue;
+
+            // A later crack block or amethyst bud can still take a ticked position or the air
+            // beside it, which Java's order allows too; the tick then finds no fluid. What holds
+            // is that every tick is asked for the water the crack opened onto.
+            for (const position of world.fluidTicks) expect(wasWater(position)).toBe(true);
+            ticked += world.fluidTicks.length;
+        }
+        expect(ticked).toBeGreaterThan(0);
     });
 
     it('refuses to start where too many sample points are invalid', () => {

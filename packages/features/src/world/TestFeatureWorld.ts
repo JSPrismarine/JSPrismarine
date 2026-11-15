@@ -113,6 +113,8 @@ export class TestFeatureWorld implements FeatureWorld {
     public readonly blocks: BlockOracle;
     /** Every successful write in the order it happened. */
     public readonly writes: { position: BlockPos; state: BlockState }[] = [];
+    /** Every fluid tick a feature asked for, in the order it asked. */
+    public readonly fluidTicks: BlockPos[] = [];
 
     private readonly store = new Map<string, BlockState>();
     private readonly biomes = new Map<string, string>();
@@ -138,6 +140,11 @@ export class TestFeatureWorld implements FeatureWorld {
         this.store.set(posKey(position), state);
         this.writes.push({ position, state });
         return true;
+    }
+
+    /** @inheritDoc */
+    public scheduleFluidTick(position: BlockPos): void {
+        this.fluidTicks.push({ x: position.x, y: position.y, z: position.z });
     }
 
     /** @inheritDoc */

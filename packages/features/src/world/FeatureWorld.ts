@@ -145,6 +145,15 @@ export interface FeatureWorld {
      * Optional, because entities belong to the server rather than to world generation.
      */
     spawnEntity?(identifier: string, position: BlockPos, options?: EntitySpawnOptions): void;
+    /**
+     * Asks for the fluid at a position to be ticked as soon as the world runs, Java's
+     * `WorldGenLevel.scheduleTick` with a fluid and no delay. A spring starts its stream this way,
+     * and a geode's crack lets the fluid beside it in.
+     *
+     * Optional, because ticks belong to the server rather than to world generation. A world that
+     * cannot schedule one leaves the fluid standing until something else disturbs it.
+     */
+    scheduleFluidTick?(position: BlockPos): void;
 }
 
 /**
