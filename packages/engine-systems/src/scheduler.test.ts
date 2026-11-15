@@ -340,10 +340,13 @@ describe('a chunk leaving the tick list', () => {
                 .map((tick) => tick.type)
                 .sort()
         ).toEqual(['minecraft:lava', 'minecraft:water']);
+        expect(list.hasTicksInChunk(0, 0)).toBe(true);
+        expect(list.hasTicksInChunk(5, 5)).toBe(false);
         expect(list.clearChunk(0, 0)).toBe(2);
 
         expect(list.count()).toBe(2);
         expect(list.ticksInChunk(0, 0)).toEqual([]);
+        expect(list.hasTicksInChunk(0, 0)).toBe(false);
         expect(list.hasScheduledTick(at(1, 64, 1), 'minecraft:water')).toBe(false);
         expect(list.snapshot().map((tick) => tick.at)).toEqual([at(-1, 64, 0), at(16, 64, 0)]);
 

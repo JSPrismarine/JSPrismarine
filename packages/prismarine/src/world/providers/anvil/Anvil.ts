@@ -139,7 +139,10 @@ export default class Anvil extends BaseProvider {
         config?: WorldConfig,
         options?: ChunkRequestOptions
     ): Promise<Chunk> {
-        return generator.generateChunk(cx, cz, seed, config, options);
+        // Nothing is read back yet, so every chunk this provider hands out is a generated one.
+        const chunk = await generator.generateChunk(cx, cz, seed, config, options);
+        chunk.markFreshlyGenerated();
+        return chunk;
     }
     public async writeChunk(_chunk: Chunk): Promise<void> {
         // TODO.

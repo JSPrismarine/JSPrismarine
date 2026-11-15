@@ -705,6 +705,7 @@ export default class LevelDB extends BaseProvider {
         if (this.read(key(ChunkTag.Version)) === null && this.read(key(ChunkTag.LegacyVersion)) === null) {
             generator.useStoredChunks?.(this.storedChunks(dimension));
             const chunk = await generator.generateChunk(cx, cz, seed, config, options);
+            chunk.markFreshlyGenerated();
             if (this.readPendingEntities(this.read(pendingEntitiesKey), chunk)) chunk.markChanged();
             return chunk;
         }

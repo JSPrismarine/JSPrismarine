@@ -229,6 +229,12 @@ export default class Chunk {
     private readonly pendingFluidTicks: PendingFluidTick[] = [];
 
     /**
+     * Set by a provider that generated this chunk rather than reading it, and taken by the world
+     * the chunk enters: a freshly generated chunk settles, see `World.settlingChunks`.
+     */
+    private freshlyGenerated = false;
+
+    /**
      * The serialized form, kept until blocks, block entities, or biomes change.
      *
      * Ten players standing in the same area used to cost ten identical serialisations of
@@ -964,6 +970,22 @@ export default class Chunk {
      */
     public takePendingFluidTicks(): PendingFluidTick[] {
         return this.pendingFluidTicks.splice(0, this.pendingFluidTicks.length);
+    }
+
+    /** Records that a provider generated this chunk rather than reading it from storage. */
+    public markFreshlyGenerated(): void {
+        this.freshlyGenerated = true;
+    }
+
+    /**
+     * Whether a provider generated this chunk for the load that is entering it, and forgets it, so
+     * a chunk object that stays in memory across an unload and a reload settles once.
+     * @returns {boolean} True the first time it is asked after {@link markFreshlyGenerated}.
+     */
+    public takeFreshlyGenerated(): boolean {
+        const generated = this.freshlyGenerated;
+        this.freshlyGenerated = false;
+        return generated;
     }
 
     public getBlockEntities(): IterableIterator<BlockEntity> {

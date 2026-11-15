@@ -123,6 +123,9 @@ const isLiquidRuntimeId = (runtimeId: number): boolean => {
 
 /** How far out to look for dry land, and how coarsely, before giving up. */
 const SPAWN_SEARCH_RADIUS = 256;
+
+/** How many ticks apart the world looks for freshly generated chunks that have settled. */
+const SETTLED_CHECK_INTERVAL = 20;
 const SPAWN_SEARCH_STEP = 8;
 
 /**
@@ -648,6 +651,19 @@ export class World implements Service {
     private readonly physics: BlockPhysics;
 
     /**
+     * Freshly generated chunks still settling, by {@link Chunk.packXZ} index: the fluid their
+     * generation left to tick is still moving. While a chunk settles, what the world's own systems
+     * destroy in it drops nothing, so terrain settling into place does not litter the ground. A
+     * player, a command or an entity writing a block in the chunk ends it, and so does the chunk
+     * and its eight neighbors being loaded with no fluid tick left; see {@link releaseSettledChunks}.
+     * Built on first use, as {@link portalIndex} is.
+     */
+    private settling: Map<number, { readonly x: number; readonly z: number }> | undefined;
+
+    /** True while {@link runBlockUpdates} runs; see {@link systemsRunning}. */
+    private blockUpdatesRunning = false;
+
+    /**
      * The light engine and the two scheduled tick lists.
      *
      * Built here rather than lazily so the content adapter's `ticks` group has something to
@@ -1145,6 +1161,7 @@ export class World implements Service {
         const endSystemsProfile = startProfile?.(`World.systems:${this.name}`);
         try {
             this.systems.tick(this.getTicks());
+            this.releaseSettledChunks(tick);
             this.getRaidManager()?.tick();
         } finally {
             endSystemsProfile?.();
@@ -1796,7 +1813,10 @@ export class World implements Service {
 
         // After the chunk is in the map: the engine reads the blocks back through the world.
         this.measured('chunk-lighting', () => this.systems.onChunkLoaded(x, z));
-        this.measured('chunk-fluids', () => this.schedulePendingFluidTicks(chunk));
+        this.measured('chunk-fluids', () => {
+            if (chunk.takeFreshlyGenerated()) this.markChunkSettling(x, z);
+            this.schedulePendingFluidTicks(chunk);
+        });
 
         return this.measured('chunk-entities', () => {
             const discarded = this.createStoredEntities(chunk);
@@ -2730,6 +2750,10 @@ export class World implements Service {
         notifyNeighbors: boolean
     ): boolean {
         if (y < chunk.getMinY() || y > chunk.getMaxY()) return false;
+        // Somebody acting on a settling chunk ends its settling, so what they set off drops as usual.
+        if (this.settling !== undefined && !this.systemsRunning()) {
+            this.settling.delete(Chunk.packXZ(chunk.getX(), chunk.getZ()));
+        }
 
         // Idempotent, which matters more than it looks: physics re-examines positions constantly,
         // and a write that changed nothing would still cost a packet to every player and another
@@ -3258,7 +3282,14 @@ export class World implements Service {
      * runs the same updates as a fast one and ticks slower, so a replay agrees with live play.
      */
     private runBlockUpdates(): void {
-        for (const { x, y, z } of this.blockUpdates.due(this.getTicks())) this.physics.update(x, y, z, this.getTicks());
+        const outer = this.blockUpdatesRunning;
+        this.blockUpdatesRunning = true;
+        try {
+            for (const { x, y, z } of this.blockUpdates.due(this.getTicks()))
+                this.physics.update(x, y, z, this.getTicks());
+        } finally {
+            this.blockUpdatesRunning = outer;
+        }
     }
 
     /**
@@ -3319,7 +3350,71 @@ export class World implements Service {
      * @param {Array} contents - what to drop, as for {@link World.dropContents}.
      */
     public dropFromBlock(block: ContentPosition, contents: Array<Block | Item | null>): void {
+        if (this.isSettlingDrop(block)) return;
         this.spillFromBlock(block, contents);
+    }
+
+    /**
+     * Whether a block's drop at a position is the world settling a freshly generated chunk, which
+     * leaves nothing on the ground: the world's own systems are running and the chunk still settles.
+     */
+    private isSettlingDrop(block: ContentPosition): boolean {
+        if (this.settling === undefined || this.settling.size === 0 || !this.systemsRunning()) return false;
+        return this.settling.has(Chunk.packXZ(Math.floor(block.x) >> 4, Math.floor(block.z) >> 4));
+    }
+
+    /**
+     * Whether the world's own systems are running: its block updates, its scheduled tick lists or
+     * its random ticks. A write made then is the world moving by itself; any other write is somebody
+     * acting on it.
+     */
+    private systemsRunning(): boolean {
+        return this.blockUpdatesRunning || this.systems?.isRunning() === true;
+    }
+
+    /**
+     * Ends the settling of each chunk whose generated fluid has stopped moving: it and its eight
+     * neighbors are loaded and none has a fluid tick queued. A neighbor that is not loaded yet may
+     * still pour into it, so an edge chunk keeps settling until the chunks around it have loaded
+     * and settled too. Checked every {@link SETTLED_CHECK_INTERVAL} ticks rather than every tick.
+     * The world tick calls it after the scheduled tick lists.
+     * @param {number} tick - The tick being run.
+     */
+    public releaseSettledChunks(tick: number): void {
+        const settling = this.settling;
+        if (settling === undefined || settling.size === 0 || tick % SETTLED_CHECK_INTERVAL !== 0) return;
+
+        const fluidTicks = this.systems.ticks.list('fluid');
+        for (const [index, { x, z }] of settling) {
+            let settled = true;
+            for (let dx = -1; dx <= 1 && settled; dx++) {
+                for (let dz = -1; dz <= 1 && settled; dz++) {
+                    if (fluidTicks.hasTicksInChunk(x + dx, z + dz)) settled = false;
+                    else if ((dx !== 0 || dz !== 0) && this.getLoadedChunk(x + dx, z + dz) === null) settled = false;
+                }
+            }
+            if (settled) settling.delete(index);
+        }
+    }
+
+    /**
+     * Starts a chunk's settling. The chunk loader calls it for a chunk a provider generated
+     * rather than read; see {@link settling}.
+     * @param {number} chunkX - The chunk's x, in chunks.
+     * @param {number} chunkZ - The chunk's z, in chunks.
+     */
+    public markChunkSettling(chunkX: number, chunkZ: number): void {
+        if (this.settling === undefined) this.settling = new Map();
+        this.settling.set(Chunk.packXZ(chunkX, chunkZ), { x: chunkX, z: chunkZ });
+    }
+
+    /**
+     * Whether a freshly generated chunk is still settling; see {@link settling}.
+     * @param {number} chunkX - The chunk's x, in chunks.
+     * @param {number} chunkZ - The chunk's z, in chunks.
+     */
+    public isChunkSettling(chunkX: number, chunkZ: number): boolean {
+        return this.settling?.has(Chunk.packXZ(chunkX, chunkZ)) ?? false;
     }
 
     /** {@link World.dropFromBlock} for a caller that cannot wait, which writes before it returns. */
@@ -3736,6 +3831,7 @@ export class World implements Service {
 
     /** Takes a chunk out of memory and out of everything that indexes it. */
     private dropChunk(chunk: Chunk, index: number): void {
+        this.settling?.delete(index);
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         this.changes.chunkLeft(chunk.getX(), chunk.getZ());
         this.chunks.delete(index);

@@ -506,6 +506,48 @@ describe('a block the world destroyed', () => {
         });
     });
 
+    describe('by the water of a freshly generated chunk still settling', () => {
+        /** The stream test's trough, with the torch the water reaches first. */
+        const trough = (): void => {
+            for (let x = 6; x <= 12; x += 1) {
+                place(chunk, { x, y: 63, z: 8 }, 'minecraft:stone');
+                place(chunk, { x, y: 64, z: 7 }, 'minecraft:stone');
+                place(chunk, { x, y: 64, z: 9 }, 'minecraft:stone');
+            }
+            place(chunk, { x: 7, y: 64, z: 8 }, 'minecraft:stone');
+            place(chunk, { x: 9, y: 64, z: 8 }, 'minecraft:torch', { torch_facing_direction: 'top' });
+        };
+
+        it('washes the torch away and leaves nothing on the ground', () => {
+            trough();
+            // What generation leaves: the water in place and a tick Java's post-processing asks for.
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:water', { liquid_depth: 0 });
+            world.markChunkSettling(0, 0);
+            world.getSystems().ticks.list('fluid').schedule({ x: 8, y: 64, z: 8 }, 'minecraft:water', 1);
+            runTicks(world, 40);
+
+            expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:flowing_water');
+            expect(drops()).toEqual([]);
+            // Its neighbors were never loaded, so water could still pour in from them.
+            expect(world.isChunkSettling(0, 0)).toBe(true);
+        });
+
+        it('drops as usual once somebody writes a block in the chunk', () => {
+            trough();
+            world.markChunkSettling(0, 0);
+
+            // A write from outside the world's own systems, as a player placing the water makes.
+            content.world.blockWorld
+                .at(DIMENSION)
+                .setBlock({ x: 8, y: 64, z: 8 }, 'minecraft:water', { liquid_depth: 0 });
+            expect(world.isChunkSettling(0, 0)).toBe(false);
+            runTicks(world, 40);
+
+            expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:flowing_water');
+            expect(drops()).toEqual([{ identifier: 'minecraft:torch', count: 1 }]);
+        });
+    });
+
     describe('by the water a waterlogged block holds', () => {
         /** The trough the stream test uses, with a waterlogged fence where its source stood. */
         const waterloggedTrough = (): void => {

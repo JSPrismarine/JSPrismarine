@@ -375,6 +375,62 @@ describe('world chunk requests', () => {
         expect(world.loadedLiquidAt(38, 64, 54)).toBeUndefined();
     });
 
+    describe('settling a freshly generated chunk', () => {
+        /** A provider that generates every chunk it is asked for, as one with no stored chunks does. */
+        const generating = (pendingAt?: { x: number; z: number }) =>
+            vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
+                const chunk = new Chunk(x, z, new Map(), Dimensions.Overworld);
+                if (pendingAt !== undefined && pendingAt.x === x && pendingAt.z === z) {
+                    chunk.setBlockRuntimeId(4, 64, 4, BlockRuntimeIds.getByName('minecraft:water'));
+                    chunk.getPendingFluidTicks().push({ x: x * 16 + 4, y: 64, z: z * 16 + 4, delay: 0 });
+                }
+                chunk.markFreshlyGenerated();
+                return chunk;
+            });
+
+        const loadAround = async (world: World, radius: number): Promise<void> => {
+            const loads: Promise<Chunk>[] = [];
+            for (let x = -radius; x <= radius; x++)
+                for (let z = -radius; z <= radius; z++) loads.push(world.getChunk(x, z));
+            await Promise.all(loads);
+        };
+
+        it('settles a generated chunk, and not one read from storage', async () => {
+            const world = testWorld(generating());
+            await world.getChunk(0, 0);
+            expect(world.isChunkSettling(0, 0)).toBe(true);
+
+            const stored = testWorld(async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld));
+            await stored.getChunk(0, 0);
+            expect(stored.isChunkSettling(0, 0)).toBe(false);
+        });
+
+        it('ends once the chunk and its eight neighbors are loaded with no fluid tick left', async () => {
+            const world = testWorld(generating({ x: 1, z: 0 }));
+            await loadAround(world, 2);
+
+            world.releaseSettledChunks(20);
+
+            // Every neighbor loaded and quiet.
+            expect(world.isChunkSettling(-1, -1)).toBe(false);
+            // A neighbor still has generated water to tick, which may yet pour across the border.
+            expect(world.isChunkSettling(0, 0)).toBe(true);
+            expect(world.isChunkSettling(1, 0)).toBe(true);
+            // On the edge of what is loaded, with neighbors that may yet load and pour into it.
+            expect(world.isChunkSettling(2, 2)).toBe(true);
+        });
+
+        it('looks only every twentieth tick', async () => {
+            const world = testWorld(generating());
+            await loadAround(world, 1);
+
+            world.releaseSettledChunks(19);
+            expect(world.isChunkSettling(0, 0)).toBe(true);
+            world.releaseSettledChunks(20);
+            expect(world.isChunkSettling(0, 0)).toBe(false);
+        });
+    });
+
     it('lets a later caller try again after a request failed', async () => {
         let attempt = 0;
         const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
