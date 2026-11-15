@@ -2,6 +2,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 
 import { minSubChunk, subChunkCount } from '../Dimension';
 import type { DimensionType } from '../DimensionType';
+import type { PackedBiomePalette } from './biomePalette';
 import { packBiomePalette } from './biomePalette';
 
 /**
@@ -71,6 +72,8 @@ export type ReadonlyChunkBiomes = Pick<
 export class ChunkBiomes implements ReadonlyChunkBiomes {
     private readonly dimension: DimensionType;
     private readonly sections: PackedSection[];
+    /** Each mixed section's palette and words, with the column revision they were packed at. */
+    private readonly packed: ({ readonly revision: number; readonly palette: PackedBiomePalette } | undefined)[] = [];
     private revision = 0;
 
     /**
@@ -188,13 +191,25 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
     }
 
     /**
-     * Every sub chunk's biomes, bottom section first, without the copy {@link toSectionIds} makes.
+     * Every sub chunk's biomes, bottom section first: the id of a uniform section, and a mixed
+     * section's palette and packed words.
      *
-     * For an encoder that reads them before it returns: the arrays are this column's own, and a
-     * later write changes them.
+     * A mixed section is packed once until the column next changes, so the save and every chunk
+     * send of an unchanged column share one packing.
      */
-    public sectionsToEncode(): readonly (number | ArrayLike<number>)[] {
-        return this.sections;
+    public sectionsToEncode(): readonly (number | PackedBiomePalette)[] {
+        return this.sections.map((section, index) =>
+            typeof section === 'number' ? section : this.pack(index, section)
+        );
+    }
+
+    private pack(index: number, section: Uint16Array): PackedBiomePalette {
+        const cached = this.packed[index];
+        if (cached !== undefined && cached.revision === this.revision) return cached.palette;
+
+        const palette = packBiomePalette(section);
+        this.packed[index] = { revision: this.revision, palette };
+        return palette;
     }
 
     /** Every sub chunk's biomes, bottom section first. */
@@ -237,7 +252,8 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
     ): void {
         for (let index = 0; index < sectionCount; index++) {
             const section = firstSectionIndex + index - minSubChunk(this.dimension);
-            writeNetworkPalette(this.sections[section] ?? PLAINS_BIOME, stream);
+            const biomes = this.sections[section] ?? PLAINS_BIOME;
+            writeNetworkPalette(typeof biomes === 'number' ? biomes : this.pack(section, biomes), stream);
         }
     }
 
@@ -354,7 +370,7 @@ const packSection = (section: Int32Array): PackedSection => {
  * A single-biome section writes the header and the one id and no word data, which is what the
  * zero bit width means.
  */
-const writeNetworkPalette = (biomes: number | ArrayLike<number>, stream: BinaryStream): void => {
+const writeNetworkPalette = (biomes: number | PackedBiomePalette, stream: BinaryStream): void => {
     if (typeof biomes === 'number') {
         // No word data and no palette count: the single id follows the header on its own.
         stream.writeByte(1);
@@ -362,7 +378,7 @@ const writeNetworkPalette = (biomes: number | ArrayLike<number>, stream: BinaryS
         return;
     }
 
-    const { palette, bitsPerBlock, words } = packBiomePalette(biomes);
+    const { palette, bitsPerBlock, words } = biomes;
     stream.writeByte((bitsPerBlock << 1) | 1);
 
     if (bitsPerBlock === 0) {

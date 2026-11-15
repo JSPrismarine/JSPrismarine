@@ -69,6 +69,21 @@ describe('world', () => {
             expect(mixed).toHaveLength(4096);
         });
 
+        it('packs a mixed section once until the column changes', () => {
+            const biomes = new ChunkBiomes(Dimensions.Overworld);
+            biomes.set(1, 70, 2, JUNGLE);
+            const first = biomes.sectionsToEncode()[8];
+            biomes.networkSerialize(new BinaryStream(), 24);
+
+            expect(typeof first).toBe('object');
+            expect(biomes.sectionsToEncode()[8]).toBe(first);
+
+            biomes.set(1, 71, 2, JUNGLE);
+            const repacked = biomes.sectionsToEncode()[8];
+            expect(repacked).not.toBe(first);
+            expect(repacked).toEqual(expect.objectContaining({ palette: [PLAINS_BIOME, JUNGLE], bitsPerBlock: 1 }));
+        });
+
         it('takes a whole section as one id', () => {
             const biomes = new ChunkBiomes(Dimensions.Overworld);
             biomes.setSection(4, DESERT);

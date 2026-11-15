@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 
+import type { PackedBiomePalette } from '../../chunk/biomePalette';
 import { packBiomePalette } from '../../chunk/biomePalette';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import type { BiomeSection } from '../../chunk/ChunkBiomes';
@@ -37,7 +38,7 @@ export interface Biomes {
     palettes: BiomeSection[];
 }
 
-const writePalette = (biomes: number | ArrayLike<number>, stream: BinaryStream): void => {
+const writePalette = (biomes: number | ArrayLike<number> | PackedBiomePalette, stream: BinaryStream): void => {
     if (typeof biomes === 'number') {
         // Zero bits per block: no word data, and a palette holding the one id.
         stream.writeByte(0);
@@ -46,7 +47,7 @@ const writePalette = (biomes: number | ArrayLike<number>, stream: BinaryStream):
         return;
     }
 
-    const { palette, bitsPerBlock, words } = packBiomePalette(biomes);
+    const { palette, bitsPerBlock, words } = 'words' in biomes ? biomes : packBiomePalette(biomes);
     stream.writeByte(bitsPerBlock << 1);
     for (const word of words) stream.writeIntLE(word | 0);
     stream.writeIntLE(palette.length);
@@ -112,11 +113,14 @@ const readPalette = (stream: BinaryStream, below: BiomeSection | null): BiomeSec
 
 /**
  * Encodes a `Data3D` record.
- * @param biomes - The heightmap and one section per sub chunk; the sections are read before this
- *   returns, so they can be a column's own arrays.
+ * @param biomes - The heightmap and one section per sub chunk, each an id, its ids or a section
+ *   `ChunkBiomes.sectionsToEncode` already packed.
  */
 export const encodeData3D = (
-    biomes: { readonly heightmap: ArrayLike<number>; readonly palettes: readonly (number | ArrayLike<number>)[] },
+    biomes: {
+        readonly heightmap: ArrayLike<number>;
+        readonly palettes: readonly (number | ArrayLike<number> | PackedBiomePalette)[];
+    },
     dimension: DimensionType
 ): Buffer => {
     const stream = new BinaryStream();
