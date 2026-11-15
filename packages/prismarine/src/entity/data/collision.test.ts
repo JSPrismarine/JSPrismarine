@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { NavigationView } from '@jsprismarine/entity-goals';
 
-import type { BedrockCollisionBox } from '@jsprismarine/blocks';
-import { FULL_CUBE_SHAPE } from '@jsprismarine/blocks';
+import type { BedrockCollisionBox } from '@jsprismarine/blocks/geometry';
+import { FULL_CUBE_SHAPE } from '@jsprismarine/blocks/geometry';
 
 import type { BodyBlocks, BoxBounds, CellShape } from './collision';
 import {
@@ -13,6 +13,7 @@ import {
     hasLineOfSight,
     isSupported,
     landingY,
+    stepUp,
     sweepAxis
 } from './collision';
 
@@ -183,6 +184,38 @@ describe('mob bodies against partial shapes', () => {
 
     it('finds where a falling body lands on a fence post', () => {
         expect(landingY({ x: 0.5, y: 2, z: 0.5 }, box, bodyBlocks(FENCE_POST), 1)).toBe(1.5);
+    });
+});
+
+describe('stepUp', () => {
+    const box = { width: 0.6, height: 1.7 };
+    /** A carpet at the cell east of the origin, and stone overhead at `ceiling`. */
+    const carpetUnder = (ceiling: number): BodyBlocks => ({
+        collisionAt: ({ x, y, z }) => (x === 1 && y === 0 && z === 0 ? CARPET : y === ceiling ? FULL_CUBE_SHAPE : []),
+        blockAt: () => undefined
+    });
+    const walk = (blocks: BodyBlocks) => {
+        const canOccupy = (at: { x: number; y: number; z: number }) => bodyCanOccupy(at, box, blocks);
+        const from = { x: 0.6, y: 0, z: 0.5 };
+        const proposed = { x: 0.9, y: 0, z: 0.5 };
+        return stepUp(from, proposed, from, 0.6, canOccupy);
+    };
+
+    it('steps a walker onto a carpet in the open', () => {
+        expect(walk(carpetUnder(10)).x).toBeCloseTo(0.9, 9);
+    });
+
+    it('steps onto a carpet under a ceiling too low for the full step', () => {
+        // Feet at 0 and a 1.7-block body leave 0.3 of head room under stone at y 2.
+        expect(walk(carpetUnder(2)).x).toBeCloseTo(0.9, 9);
+    });
+
+    it('stays put against a full block', () => {
+        const wall: BodyBlocks = {
+            collisionAt: ({ x, y, z }) => (x === 1 && y === 0 && z === 0 ? FULL_CUBE_SHAPE : []),
+            blockAt: () => undefined
+        };
+        expect(walk(wall).x).toBe(0.6);
     });
 });
 
