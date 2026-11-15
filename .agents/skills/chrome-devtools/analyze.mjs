@@ -386,7 +386,7 @@ const side = (path, { thread, lines, categories, minMs }) => {
         merged.spanS = profile.spanMs / 1000;
         merged.stretches25 = stretches.filter((stretch) => stretch.us >= 25_000).length;
         merged.stretches50 = stretches.filter((stretch) => stretch.us >= 50_000).length;
-        merged.longestMs = Math.round(Math.max(0, ...stretches.map((stretch) => stretch.us)) / 1000);
+        merged.longestMs = Math.round(stretches.reduce((longest, stretch) => Math.max(longest, stretch.us), 0) / 1000);
     }
     merged.profiles = profiles.length;
     merged.meta = readMeta(path);
