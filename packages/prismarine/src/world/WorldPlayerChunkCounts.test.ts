@@ -41,7 +41,7 @@ const worldWith = (
             unload: () => false,
             runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
         }),
-        systems: { onChunkUnloaded: () => {}, ticks: new TickScheduler() },
+        systems: { onChunkUnloaded: () => {}, isLightFlooding: () => false, ticks: new TickScheduler() },
         dimension: Dimensions.Overworld,
         server: { invalidateEntityBlockCaches: () => {}, getLogger: () => ({ error: vi.fn() }) }
     });

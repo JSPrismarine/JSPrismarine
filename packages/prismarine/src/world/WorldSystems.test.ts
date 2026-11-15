@@ -461,6 +461,22 @@ describe('world', () => {
                 expect(systems.lighting.pending.queued).toBe(0);
             });
 
+            it('answers a read in settled light without running a flood queued elsewhere', () => {
+                const { blocks, systemsOf } = worldOf();
+                const systems = systemsOf();
+
+                systems.onChunkLoaded(0, 0);
+                systems.lighting.flush();
+                blocks.set(key(8 + 16 * 4, 40, 8), GLOWSTONE);
+                systems.onChunkLoaded(4, 0);
+                const queued = systems.lighting.pending.queued;
+                expect(queued).toBeGreaterThan(0);
+
+                // Chunk 4 is far beyond the reach of chunk 0's light, so the read waits on none of it.
+                systems.getSkyLight(8, 40, 8);
+                expect(systems.lighting.pending.queued).toBe(queued);
+            });
+
             it('stops the flood at an opaque block', () => {
                 const { blocks, systemsOf } = worldOf();
                 const systems = systemsOf();

@@ -3134,6 +3134,9 @@ export class World implements Service {
         for (const chunk of this.simulationChunks(playerChunkRefCounts)) {
             const x = chunk.getX();
             const z = chunk.getZ();
+            // Java ticks a chunk only once its light is done; a random tick on a chunk still
+            // flooding would also make its light reads run the flood inside the tick.
+            if (this.systems.isLightFlooding(x, z)) continue;
             const sections = chunk.getRandomTickSections();
             if (sections.length > 0) visited.push({ x, z, sections });
         }

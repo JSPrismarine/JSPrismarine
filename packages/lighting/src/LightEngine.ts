@@ -77,8 +77,16 @@ const OFFSET_Y = [0, 0, 0, 0, -1, 1] as const;
  */
 export class LightEngine {
     private readonly columns = new Map<number, LightColumn>();
-    private readonly increaseQueues = [new LightQueue(), new LightQueue()] as const;
-    private readonly decreaseQueues = [new LightQueue(), new LightQueue()] as const;
+    /** Queued nodes of all four queues by chunk column; see {@link LightEngine.isSettledAround}. */
+    private readonly queuedByColumn = new Map<number, number>();
+    private readonly increaseQueues = [
+        new LightQueue(this.queuedByColumn),
+        new LightQueue(this.queuedByColumn)
+    ] as const;
+    private readonly decreaseQueues = [
+        new LightQueue(this.queuedByColumn),
+        new LightQueue(this.queuedByColumn)
+    ] as const;
     private readonly awaitingChunks = new Set<number>();
 
     public constructor(private readonly view: BlockLightView) {}
@@ -91,6 +99,30 @@ export class LightEngine {
     /** The work the engine still has to do. {@link LightEngine.flush} returns the same numbers. */
     public get pending(): LightQueueDepth {
         return { queued: this.queuedNodes, deferred: this.awaitingChunks.size };
+    }
+
+    /**
+     * Whether a lit chunk's light is still moving: it or a neighbor has a node queued. Light
+     * reaches at most fifteen blocks, so queued work further away cannot change it.
+     *
+     * Java only ticks a chunk once its `light` status is done; this is the same question asked
+     * of a chunk this engine floods behind a per-tick budget. An unlit chunk is not flooding.
+     */
+    public isFloodingAround(chunkX: number, chunkZ: number): boolean {
+        if (!this.columns.has(columnKeyOf(chunkX, chunkZ)) || this.queuedByColumn.size === 0) return false;
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                if (this.queuedByColumn.has(columnKeyOf(chunkX + dx, chunkZ + dz))) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether a chunk has been lit and its light is final; see {@link LightEngine.isFloodingAround}.
+     */
+    public isSettledAround(chunkX: number, chunkZ: number): boolean {
+        return this.columns.has(columnKeyOf(chunkX, chunkZ)) && !this.isFloodingAround(chunkX, chunkZ);
     }
 
     /**
