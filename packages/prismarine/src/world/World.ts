@@ -3892,12 +3892,15 @@ export class World implements Service {
         return true;
     }
 
-    /** Whether every fluid tick the chunk has queued now is one its save wrote. */
+    /**
+     * Whether the chunk's queued fluid ticks are exactly the ones its save wrote: none queued since,
+     * and none of the written ones run since, which a reload would schedule a second time.
+     */
     private fluidTicksSaved(chunk: Chunk, saved: readonly FluidTickToSave[]): boolean {
         const queued = this.systems.ticks.list('fluid').ticksInChunk(chunk.getX(), chunk.getZ());
-        if (queued.length === 0) return true;
         const written = new Set(saved.map((tick) => `${tick.x},${tick.y},${tick.z},${tick.triggerTick}`));
-        return queued.every((tick) => written.has(`${tick.at.x},${tick.at.y},${tick.at.z},${tick.triggerTick}`));
+        const queuedKeys = new Set(queued.map((tick) => `${tick.at.x},${tick.at.y},${tick.at.z},${tick.triggerTick}`));
+        return queuedKeys.size === written.size && [...queuedKeys].every((key) => written.has(key));
     }
 
     /**
