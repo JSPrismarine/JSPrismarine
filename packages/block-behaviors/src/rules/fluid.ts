@@ -297,13 +297,44 @@ const slopeDistance = (
     return lowest;
 };
 
+/**
+ * The world with each position's block and liquid read once, for a search that writes nothing.
+ *
+ * The slope search visits the same few dozen cells many times over, and each visit reads a cell
+ * and its neighbors again. Java's `FlowingFluid.getSpread` keeps the same per-search cache of
+ * block states.
+ */
+const searchView = (world: WorldActions): WorldActions => {
+    const blocks = new Map<string, HookBlock | undefined>();
+    const liquids = new Map<string, HookBlock | undefined>();
+    const remembered = (
+        cache: Map<string, HookBlock | undefined>,
+        at: BlockPosition,
+        read: (at: BlockPosition) => HookBlock | undefined
+    ): HookBlock | undefined => {
+        const key = `${at.x},${at.y},${at.z}`;
+        if (cache.has(key)) return cache.get(key);
+        const block = read(at);
+        cache.set(key, block);
+        return block;
+    };
+    const getLiquid = world.getLiquid;
+    // The prototype keeps every other action the host's world answers, bound to the host as before.
+    const view: WorldActions = Object.create(world);
+    view.getBlock = (at) => remembered(blocks, at, (position) => world.getBlock(position));
+    if (getLiquid !== undefined)
+        view.getLiquid = (at) => remembered(liquids, at, (position) => getLiquid.call(world, position));
+    return view;
+};
+
 /** Finds the lowest-scoring horizontal routes toward holes below the fluid. */
 const fluidSpreadDirections = (
-    world: WorldActions,
+    host: WorldActions,
     at: BlockPosition,
     kind: LiquidState['kind'],
     dimension: string
 ): Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, LiquidState> => {
+    const world = searchView(host);
     const rates = ratesFor(kind, dimension);
     const result = new Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, LiquidState>();
     const holeCache = new Map<string, boolean>();
