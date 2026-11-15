@@ -26,6 +26,8 @@ const pad = (number: number): string => String(number).padStart(6, '0');
 
 /** Vanilla writes `.ldb`; upstream LevelDB used to write `.sst` and still reads both. */
 export const tableFileName = (number: number): string => `${pad(number)}.ldb`;
+/** The name upstream LevelDB gave tables before 1.14, which it still opens when `.ldb` is missing. */
+export const legacyTableFileName = (number: number): string => `${pad(number)}.sst`;
 export const logFileName = (number: number): string => `${pad(number)}.log`;
 export const manifestFileName = (number: number): string => `MANIFEST-${pad(number)}`;
 export const tempFileName = (number: number): string => `${pad(number)}.dbtmp`;

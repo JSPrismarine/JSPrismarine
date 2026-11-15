@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
     CURRENT_FILE_NAME,
     FileKind,
+    legacyTableFileName,
     LOCK_FILE_NAME,
     logFileName,
     manifestFileName,
@@ -37,6 +38,7 @@ describe('leveldb', () => {
             // What upstream LevelDB called tables before it switched to .ldb. Databases that old
             // still occur, and a reader that ignores them silently loses whole levels.
             expect(parseFileName('000009.sst')).toEqual({ kind: FileKind.Table, number: 9 });
+            expect(parseFileName(legacyTableFileName(9))).toEqual({ kind: FileKind.Table, number: 9 });
         });
 
         it('recognizes the info logs, which are not numbered', () => {

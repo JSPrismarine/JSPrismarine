@@ -3,7 +3,8 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
 
-import { AppendFile, TableFile, replaceFileAtomically, writeFileSynced } from './db/Storage';
+import { AppendFile, openTableFile, removeTableFile, replaceFileAtomically, writeFileSynced } from './db/Storage';
+import type { TableFile } from './db/Storage';
 import { BYTEWISE_COMPARATOR, compareBytewise } from './util/Comparator';
 import { CorruptionError } from './Errors';
 import {
@@ -401,7 +402,7 @@ export class Database {
         const cached = this.tables.get(file.number);
         if (cached) return cached.reader;
 
-        const handle = new TableFile(path.join(this.directory, tableFileName(file.number)));
+        const handle = openTableFile(this.directory, file.number);
         const reader = new TableReader(handle, compareInternalKeys, {
             fileNumber: file.number,
             blockCache: this.blockCache
@@ -860,9 +861,9 @@ export class Database {
         for (const number of this.retiredTables.splice(0)) {
             this.dropTable(number);
             try {
-                fs.unlinkSync(path.join(this.directory, tableFileName(number)));
+                removeTableFile(this.directory, number);
             } catch {
-                // Already gone. Not worth failing a compaction over.
+                // Left behind; the next open deletes a table the manifest does not name.
             }
         }
     }

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { legacyTableFileName, tableFileName } from '../util/FileNames';
 import type { TableSource } from '../format/TableReader';
 
 /**
@@ -263,6 +264,35 @@ const fsync = (descriptor: number): Promise<void> =>
  * A table backed by a file descriptor rather than a Buffer, so opening a database does not read
  * every table into memory. The reader above it caches the blocks it decompresses.
  */
+/**
+ * Opens table `number` in `directory` under its `.ldb` name, or under the `.sst` name older
+ * LevelDB wrote, as upstream's table cache does.
+ *
+ * @param directory - The database directory.
+ * @param number - The table's file number.
+ */
+export const openTableFile = (directory: string, number: number): TableFile => {
+    try {
+        return new TableFile(path.join(directory, tableFileName(number)));
+    } catch (error) {
+        if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
+        return new TableFile(path.join(directory, legacyTableFileName(number)));
+    }
+};
+
+/**
+ * Deletes table `number` under either of its names, ignoring one that is already gone.
+ *
+ * @param directory - The database directory.
+ * @param number - The table's file number.
+ */
+export const removeTableFile = (directory: string, number: number): void => {
+    for (const name of [tableFileName(number), legacyTableFileName(number)]) {
+        fs.rmSync(path.join(directory, name), { force: true });
+    }
+};
+
+/** A table file held open for reading, so each block read is one positioned read on its descriptor. */
 export class TableFile implements TableSource {
     private readonly descriptor: number;
     public readonly size: number;
