@@ -46,9 +46,11 @@ export interface CapturedBlockState {
 }
 
 /**
- * Reads a captured block state out of the compound the creative catalog
- * carries, which is a plain little endian NBT blob holding `name`, `states`
- * and `network_id`.
+ * Reads a captured block state out of a plain little endian NBT compound
+ * holding `network_id` and, when the capture recorded them, `name` and
+ * `states`. The creative catalog carries `network_id` alone, because
+ * `CreativeContentPacket` names a block by nothing else, so its states read
+ * back with an empty name and no states.
  *
  * @param blockStates - The compound, or the base64 the catalog stores.
  */
@@ -57,7 +59,7 @@ export const readCapturedBlockState = (blockStates: Buffer | string): CapturedBl
     const compound = NBTTagCompound.readFromStream(new BinaryStream(buffer), ByteOrder.LITTLE_ENDIAN);
     const states: Record<string, BlockStateValue> = {};
 
-    for (const [key, value] of compound.getCompound('states', true)?.entries() ?? []) {
+    for (const [key, value] of compound.getCompound('states', false)?.entries() ?? []) {
         // Tag wrappers from `@jsprismarine/nbt` share only `getValue`, and
         // the catalog writes a state as a byte, an int or a string. The byte
         // becomes a boolean so that rewriting it produces a byte again; kept
