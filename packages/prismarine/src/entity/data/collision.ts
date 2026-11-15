@@ -1,5 +1,5 @@
-import type { BedrockCollisionBox } from '@jsprismarine/blocks';
-import { FULL_CUBE_SHAPE, isFullCubeShape } from '@jsprismarine/blocks';
+import type { BedrockCollisionBox } from '@jsprismarine/blocks/geometry';
+import { FULL_CUBE_SHAPE, isFullCubeShape } from '@jsprismarine/blocks/geometry';
 import type { NavigationView } from '@jsprismarine/entity-goals';
 import type { EntityPosition } from '@jsprismarine/entities';
 
@@ -230,6 +230,31 @@ export const moveOnAxis = (
     }
 
     return moved;
+};
+
+/**
+ * Java's `Entity.collide` step: when a ledge stops a walker, the same horizontal move is tried with
+ * the feet raised as high as `maxStep` and the head room allow, and kept when it goes further.
+ * Gravity then settles the feet onto the ledge's real top.
+ * @param from - Where the move started.
+ * @param proposed - Where the move was headed.
+ * @param blocked - Where the move stopped without a step.
+ * @param maxStep - The highest the feet rise, in blocks.
+ * @returns The stepped position, or `blocked` when stepping gets no further.
+ */
+export const stepUp = (
+    from: EntityPosition,
+    proposed: EntityPosition,
+    blocked: EntityPosition,
+    maxStep: number,
+    canOccupy: (position: EntityPosition) => boolean
+): EntityPosition => {
+    const raised = moveOnAxis(from, from.y + maxStep, 'y', canOccupy);
+    if (raised.y === from.y) return blocked;
+    let stepped = moveOnAxis(raised, proposed.x, 'x', canOccupy);
+    stepped = moveOnAxis(stepped, proposed.z, 'z', canOccupy);
+    const reached = (at: EntityPosition) => Math.hypot(at.x - from.x, at.z - from.z);
+    return reached(stepped) > reached(blocked) + 1e-9 ? stepped : blocked;
 };
 
 /**

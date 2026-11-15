@@ -26,7 +26,7 @@ import type { MobEquipmentSet, MobEquipmentSlot } from '../equipment';
 import { MOB_EQUIPMENT_SLOTS, NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
 import { liveFactsOf } from './facts';
-import { moveOnAxis } from './collision';
+import { moveOnAxis, stepUp } from './collision';
 import { ObservedMap, ObservedSet, WatchedSet } from './observedCollections';
 import { entityEyePosition } from './position';
 import { walkStride } from './travel';
@@ -853,25 +853,6 @@ export class MobBody {
     }
 
     /**
-     * Java's `Entity.collide` step: when a ledge stops a walker, the same move is tried with the
-     * feet raised by up to {@link MAX_UP_STEP}, and kept when it goes further. Gravity then settles
-     * the feet onto the ledge's real top.
-     */
-    private stepUp(
-        from: EntityPosition,
-        proposed: EntityPosition,
-        blocked: EntityPosition,
-        canOccupy: (position: EntityPosition) => boolean
-    ): EntityPosition {
-        const raised = { ...from, y: from.y + MAX_UP_STEP };
-        if (!canOccupy(raised)) return blocked;
-        let stepped = moveOnAxis(raised, proposed.x, 'x', canOccupy);
-        stepped = moveOnAxis(stepped, proposed.z, 'z', canOccupy);
-        const reached = (at: EntityPosition) => Math.hypot(at.x - from.x, at.z - from.z);
-        return reached(stepped) > reached(blocked) + 1e-9 ? stepped : blocked;
-    }
-
-    /**
      * Turns the body toward a position on the horizontal plane and leaves the pitch alone, as
      * Java's `MoveControl` turns a walker: where the head points is the look control's business.
      */
@@ -984,7 +965,7 @@ export class MobBody {
             resolved = moveOnAxis(resolved, proposed.x, 'x', options.canOccupy);
             resolved = moveOnAxis(resolved, proposed.z, 'z', options.canOccupy);
             if (!options.allowVertical && !this.airborne && (resolved.x !== proposed.x || resolved.z !== proposed.z))
-                resolved = this.stepUp(from, proposed, resolved, options.canOccupy);
+                resolved = stepUp(from, proposed, resolved, MAX_UP_STEP, options.canOccupy);
 
             this.position = resolved;
         }
