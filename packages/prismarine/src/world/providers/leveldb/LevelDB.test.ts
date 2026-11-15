@@ -993,6 +993,30 @@ describe('world', () => {
                 await database.close();
             });
 
+            it('keeps the fluid tick of water in the liquid layer', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+
+                const chunk = buildChunk();
+                chunk.setBlockRuntimeId(2, 70, 3, id('minecraft:stone'));
+                chunk.setBlockRuntimeId(2, 70, 3, id('minecraft:water'), 1);
+                await provider.writeChunk(
+                    chunk,
+                    createChunkSaveContext(Dimensions.Overworld.bedrockId, [], () => 0, {
+                        currentTick: 0,
+                        byChunk: new Map([[Chunk.packXZ(0, 0), [{ x: 2, y: 70, z: 3, triggerTick: 5 }]]])
+                    })
+                );
+                await provider.disable();
+
+                const reopened = harness(worldPath);
+                await reopened.provider.enable();
+                const restored = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
+                expect(restored.takePendingFluidTicks()).toEqual([{ x: 2, y: 70, z: 3, delay: 5 }]);
+                await reopened.provider.disable();
+            });
+
             it('leaves a PendingTicks record alone when the save does not say what is scheduled', async () => {
                 const worldPath = scratch();
                 const { provider } = harness(worldPath);
