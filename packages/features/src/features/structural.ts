@@ -96,6 +96,9 @@ const GEODE_NOISE = new NormalNoise({
     amplitudeModifiers: [1]
 });
 
+/** Java's `Direction.values()` order, which is the order `GeodeFeature` looks around a crack in. */
+const GEODE_CRACK_NEIGHBORS = ['down', 'up', 'north', 'south', 'west', 'east'] as const satisfies readonly Direction[];
+
 /**
  * An amethyst geode, Java's `geode`.
  *
@@ -171,6 +174,11 @@ export const geode = (config: GeodeConfig): ConfiguredFeature =>
 
             if (shouldGenerateCrack && crack >= crackSize) {
                 safeSet(position, AIR);
+                // Java's `GeodeFeature` ticks any fluid beside the crack, so what it opens onto flows in.
+                for (const direction of GEODE_CRACK_NEIGHBORS) {
+                    const neighbor = relative(position, direction);
+                    if (world.blocks.fluid(world.getBlock(neighbor)) !== 'empty') world.scheduleFluidTick?.(neighbor);
+                }
             } else if (shell >= innermostBlockLayer) {
                 const useAlternate = random.nextFloat() < config.useAlternateLayer0Chance;
                 const provider = useAlternate ? config.alternateInnerLayerProvider : config.innerLayerProvider;

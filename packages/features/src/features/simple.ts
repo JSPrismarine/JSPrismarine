@@ -610,6 +610,8 @@ export const springFeature = (
 
         if (rocks !== rockCount || holes !== holeCount) return false;
         world.setBlock(origin, fluid);
+        // Java's `SpringFeature` ticks the fluid it placed at once, which is what starts the stream.
+        world.scheduleFluidTick?.(origin);
         return true;
     });
 
