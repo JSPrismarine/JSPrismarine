@@ -104,7 +104,8 @@ import { urgencyAround } from './urgencyAround';
 import type { BedrockSection, BedrockSectionsInput } from './bedrockSections';
 import { buildBedrockSections, isBedrockSections } from './bedrockSections';
 import { carveColumn } from './carveColumn';
-import { GenerationRegion, isOptionalFluidTickList } from './GenerationRegion';
+import { GenerationRegion } from './GenerationRegion';
+import { unpackFeaturePatches } from './featurePatchWire';
 import type {
     GenerationRegionOptions,
     GenerationRegionPayload,
@@ -753,38 +754,6 @@ const EMPTY_TEMPLATES: TemplateSource = {
 const identifiersOf = (value: unknown): readonly string[] => {
     if (typeof value === 'string') return [value];
     return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
-};
-
-/** Narrows a worker result at the untyped message boundary. */
-const featurePatchesFromWorker = (value: unknown): readonly RegionChunkPatch[] => {
-    if (
-        !Array.isArray(value) ||
-        !value.every(
-            (patch) =>
-                typeof patch === 'object' &&
-                patch !== null &&
-                'chunkX' in patch &&
-                typeof patch.chunkX === 'number' &&
-                'chunkZ' in patch &&
-                typeof patch.chunkZ === 'number' &&
-                'blocks' in patch &&
-                Array.isArray(patch.blocks) &&
-                'blockEntityRemovals' in patch &&
-                Array.isArray(patch.blockEntityRemovals) &&
-                'blockEntities' in patch &&
-                Array.isArray(patch.blockEntities) &&
-                'entitySpawns' in patch &&
-                Array.isArray(patch.entitySpawns) &&
-                isOptionalFluidTickList('fluidTicks' in patch ? patch.fluidTicks : undefined) &&
-                'structureBlocks' in patch &&
-                Array.isArray(patch.structureBlocks)
-        )
-    ) {
-        throw new TypeError('A feature worker returned an invalid patch list.');
-    }
-
-    // The structural check above is the runtime boundary for a result produced by our worker.
-    return value as RegionChunkPatch[];
 };
 
 const isPosition = (value: unknown): value is { readonly x: number; readonly y: number; readonly z: number } =>
@@ -2229,7 +2198,7 @@ export class DataDrivenGenerator implements Generator {
                     urgency
                 );
                 this.stagePoolAnswered = true;
-                patches = featurePatchesFromWorker(result.payload);
+                patches = unpackFeaturePatches(result.payload);
             } catch (error: unknown) {
                 if (!this.abandonStagePool(error)) throw error;
                 patches = this.featurePatchesFor(chunk.chunkX, chunk.chunkZ, tiles, pipeline, blending);

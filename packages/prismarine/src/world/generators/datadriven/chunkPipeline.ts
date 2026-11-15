@@ -37,6 +37,7 @@ import type { GenerationRegionPayload } from './GenerationRegion';
 import { SharedTerrainTileStore } from './SharedTerrainTileStore';
 import type { OldChunkRecord } from './javaBlending';
 import { hasValidBlending } from './javaBlending';
+import { packFeaturePatches } from './featurePatchWire';
 
 /**
  * What a worker is handed once, to build its generator from.
@@ -323,8 +324,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                     );
                 }
 
-                return {
-                    payload: generator.buildFeatureTile(
+                return packFeaturePatches(
+                    generator.buildFeatureTile(
                         task.chunkX,
                         task.chunkZ,
                         BigInt(task.input.seed),
@@ -332,9 +333,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                         task.input,
                         task.input.blending,
                         task.input.structureStartPlans
-                    ),
-                    transferList: []
-                };
+                    )
+                );
             }
 
             // The block pass of a chunk's translation, which reads no generator state at all.
