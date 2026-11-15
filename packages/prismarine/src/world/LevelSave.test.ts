@@ -554,6 +554,18 @@ describe('a chunk that unloads with fluid still due to move', () => {
         expect(overworld['leaveChunk'](chunk, [{ x: 35, y: 100, z: 3, triggerTick: due }])).toBe(true);
         await level.disable();
     });
+
+    it('stays loaded when a tick its save wrote has run since', async () => {
+        const { level, overworld } = await harness('fluid-ticks-spent');
+        await level.save();
+        const chunk = overworld.getLoadedChunk(2, 0)!;
+        const spent = { x: 35, y: 100, z: 3, triggerTick: overworld.getTicks() - 1 };
+
+        // The record holds a tick no longer queued, so a reload would run it again.
+        expect(overworld['leaveChunk'](chunk, [spent])).toBe(false);
+        expect(overworld.getLoadedChunk(2, 0)).toBe(chunk);
+        await level.disable();
+    });
 });
 
 describe('a pass whose encode fails', () => {
