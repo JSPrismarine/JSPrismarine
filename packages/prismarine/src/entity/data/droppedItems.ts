@@ -18,6 +18,7 @@
  * tick by tick: gravity, then the move, then drag, sideways and on the ground stronger than in the
  * air. A fall from rest covers 0.04, 0.0792, 0.1176 blocks. The numbers are the definition's.
  */
+import type { BedrockCollisionBox } from '@jsprismarine/blocks';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';
 import type { ComponentStateRecord } from '@jsprismarine/entities/componentState';
@@ -29,7 +30,7 @@ import { DamageCause, damageCauseOf } from '../DamageCause';
 import { HAZARD_DAMAGE, HAZARD_INTERVAL, VOID_DEPTH } from '../Environment';
 import { sameDrop } from '../equipment';
 import { hazardOf } from '../ai/BlockView';
-import type { BoxBounds, CellSolidity } from './collision';
+import type { BoxBounds, CellShape } from './collision';
 import { boundsHitSolid, closestOpenFace, sweepAxis } from './collision';
 import type { DataEntity } from './DataEntity';
 import type { SpawnOptions } from './scene';
@@ -284,8 +285,11 @@ export interface DroppedItemsHost {
     byId(id: number): DataEntity | undefined;
     /** Dropped stacks within a horizontal radius, in ascending runtime id order. */
     itemsWithin(x: number, z: number, radius: number): readonly DataEntity[];
-    /** Whether the block at a position is solid, or undefined when its chunk is not loaded. */
-    solidAt(position: EntityPosition): boolean | undefined;
+    /**
+     * The collision boxes of the block at a position, normalized to its cell, or undefined when its
+     * chunk is not loaded.
+     */
+    collisionAt(position: EntityPosition): readonly BedrockCollisionBox[] | undefined;
     /** The block at a position, or undefined when its chunk is not loaded. */
     blockAt(position: EntityPosition): string | undefined;
     /** The players of the dimension this tick, in the order the world holds them. */
@@ -436,10 +440,11 @@ export class DroppedItems {
      * Moves the item one tick, in the order BDS does: gravity, then the move, then drag.
      *
      * Its collision box moves as Java's `Entity.move` moves one: up or down first, then along x and
-     * then z, each stopped flush against the first solid block in the way. Falling, it comes to rest
-     * on top of the first solid block below; rising, it stops under a ceiling. A stack whose box is
-     * inside a solid block, because it was dropped there or a block was placed on it, is pushed out
-     * through the nearest open face instead, as Java's `ItemEntity` does.
+     * then z, each stopped flush against the first block collision box in the way. Falling, it comes
+     * to rest on the block's real shape: half a block up on a bottom slab, a sixteenth up on a
+     * carpet, a block and a half up on a fence. Rising, it stops under a ceiling. A stack whose box
+     * overlaps a block's shape, because it was dropped there or a block was placed on it, is pushed
+     * out through the nearest face that is not a full cube instead, as Java's `ItemEntity` does.
      *
      * An item that would read a block of a chunk that is not loaded waits where it is, with the
      * speed it has, and writes nothing, so the probe never loads a chunk. An item at rest writes
@@ -457,7 +462,7 @@ export class DroppedItems {
         const feet = position.y - tuning.positionOffset;
         const bounds = boxAt(position.x, feet, position.z);
 
-        const stuck = boundsHitSolid(bounds, this.solidCell);
+        const stuck = boundsHitSolid(bounds, this.cellShape);
         if (stuck === undefined) return;
         if (stuck) {
             this.pushOut(entity, tuning, { x: position.x, y: feet + height / 2, z: position.z });
@@ -466,7 +471,7 @@ export class DroppedItems {
 
         if (motion.x === 0 && motion.y === 0 && motion.z === 0) {
             const probe = -tuning.groundProbe;
-            const below = sweepAxis(bounds, 'y', probe, this.solidCell);
+            const below = sweepAxis(bounds, 'y', probe, this.cellShape);
             if (below !== feet + probe) return;
         }
 
@@ -474,20 +479,20 @@ export class DroppedItems {
         let motionY = motion.y - tuning.gravity;
         let motionZ = motion.z;
 
-        const nextFeet = sweepAxis(bounds, 'y', motionY, this.solidCell);
+        const nextFeet = sweepAxis(bounds, 'y', motionY, this.cellShape);
         if (nextFeet === undefined) return;
         const blockedY = nextFeet !== feet + motionY;
         const landed = blockedY && motionY < 0;
         if (blockedY) motionY = 0;
 
-        const minX = sweepAxis(boxAt(position.x, nextFeet, position.z), 'x', motionX, this.solidCell);
+        const minX = sweepAxis(boxAt(position.x, nextFeet, position.z), 'x', motionX, this.cellShape);
         if (minX === undefined) return;
         let x = position.x + motionX;
         if (minX !== bounds.min.x + motionX) {
             x = minX + half;
             motionX = 0;
         }
-        const minZ = sweepAxis(boxAt(x, nextFeet, position.z), 'z', motionZ, this.solidCell);
+        const minZ = sweepAxis(boxAt(x, nextFeet, position.z), 'z', motionZ, this.cellShape);
         if (minZ === undefined) return;
         let z = position.z + motionZ;
         if (minZ !== bounds.min.z + motionZ) {
@@ -515,7 +520,7 @@ export class DroppedItems {
      * @param center - The middle of the stack's box, which picks the face.
      */
     private pushOut(entity: DataEntity, tuning: ItemTuning, center: EntityPosition): void {
-        const face = closestOpenFace(center, this.solidCell);
+        const face = closestOpenFace(center, this.cellShape);
         if (face === undefined) return;
         const motion = entity.body.velocity;
         const kept = { x: motion.x * 0.75, y: (motion.y - tuning.gravity) * 0.75, z: motion.z * 0.75 };
@@ -530,8 +535,7 @@ export class DroppedItems {
             min: { x: next.x - width / 2, y: feet, z: next.z - width / 2 },
             max: { x: next.x + width / 2, y: feet + height, z: next.z + width / 2 }
         };
-        if (boundsHitSolid(ends, (cell) => (this.solidCell(cell) === undefined ? undefined : false)) === undefined)
-            return;
+        if (boundsHitSolid(ends, (cell) => (this.cellShape(cell) === undefined ? undefined : [])) === undefined) return;
         entity.position = next;
         entity.body.velocity = {
             x: pushed.x * tuning.airDrag,
@@ -541,12 +545,12 @@ export class DroppedItems {
     }
 
     /**
-     * Whether a block cell stops an item, or undefined when its chunk is not loaded. Above and
+     * The collision boxes of a block cell, or undefined when its chunk is not loaded. Above and
      * below the dimension's blocks is open, so a stack falls into the void.
      */
-    private readonly solidCell: CellSolidity = (cell) => {
-        if (cell.y < this.host.minY() || cell.y >= this.host.maxY()) return false;
-        return this.host.solidAt(cell);
+    private readonly cellShape: CellShape = (cell) => {
+        if (cell.y < this.host.minY() || cell.y >= this.host.maxY()) return [];
+        return this.host.collisionAt(cell);
     };
 
     /**

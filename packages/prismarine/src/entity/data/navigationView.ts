@@ -7,6 +7,8 @@
  * or not. The three liquids are named, because being water or lava is a fact
  * about those four identifiers and nothing else.
  */
+import type { BedrockCollisionBox } from '@jsprismarine/blocks';
+import { collisionShapeOf } from '@jsprismarine/blocks';
 import type { NavigationView } from '@jsprismarine/entity-goals';
 import type { EntityPosition } from '@jsprismarine/entities';
 
@@ -57,9 +59,18 @@ interface CachedChunkBlocks {
     readonly cells: Map<number, CachedBlock>;
 }
 
+/** The path finder's block view, with the block shapes entity physics collides with. */
+export interface EntityBlockView extends NavigationView {
+    /**
+     * The collision boxes of the block at a position, normalized to its cell, or undefined
+     * outside the loaded world. A box may reach past the cell, as a fence's does.
+     */
+    collisionAt(position: EntityPosition): readonly BedrockCollisionBox[] | undefined;
+}
+
 /** The path finder's block view and the cache control the owning runtime needs. */
 export interface CachedNavigationView {
-    readonly view: NavigationView;
+    readonly view: EntityBlockView;
     /** Whether loaded chunk identities and revisions make reads safe to retain between ticks. */
     readonly persistsAcrossTicks: boolean;
     /** Drops all cached reads, or just the reads for one changed or unloaded chunk. */
@@ -257,7 +268,23 @@ export const navigationViewOf = (
     interface RuntimeBlockFacts {
         readonly identifier: string | undefined;
         readonly solid: boolean | undefined;
+        readonly shape: readonly BedrockCollisionBox[] | undefined;
     }
+
+    /** Each content state's collision boxes, kept for the content build they came from. */
+    let shapes:
+        { states: ServerContent['blocks']['states']; byId: Map<number, readonly BedrockCollisionBox[]> } | undefined;
+    const shapeOfContentId = (contentId: number): readonly BedrockCollisionBox[] | undefined => {
+        const states = content().blocks.states;
+        if (shapes?.states !== states) shapes = { states, byId: new Map() };
+        const cached = shapes.byId.get(contentId);
+        if (cached !== undefined) return cached;
+        const state = states[contentId];
+        if (state === undefined) return undefined;
+        const shape = collisionShapeOf(state);
+        shapes.byId.set(contentId, shape);
+        return shape;
+    };
 
     /** Facts decoded once for each chunk runtime id and current content build. */
     let runtimeFacts: { blocks: ServerContent['blocks']; byRuntimeId: Map<number, RuntimeBlockFacts> } | undefined;
@@ -270,7 +297,7 @@ export const navigationViewOf = (
         const state = BlockRuntimeIds.getState(runtimeId);
         let facts: RuntimeBlockFacts;
         if (state === null) {
-            facts = { identifier: undefined, solid: undefined };
+            facts = { identifier: undefined, solid: undefined, shape: undefined };
         } else {
             const identifier = state.name;
             const palette = built.blocks.palette;
@@ -285,7 +312,8 @@ export const navigationViewOf = (
             }
             facts = {
                 identifier,
-                solid: contentId === undefined ? undefined : built.blocks.table.solid[contentId] === 1
+                solid: contentId === undefined ? undefined : built.blocks.table.solid[contentId] === 1,
+                shape: contentId === undefined ? undefined : shapeOfContentId(contentId)
             };
         }
 
@@ -313,6 +341,18 @@ export const navigationViewOf = (
         return solid;
     };
 
+    /** The collision boxes of the block at a position, or undefined outside the loaded world. */
+    const collisionAt = (position: EntityPosition): readonly BedrockCollisionBox[] | undefined => {
+        const block = blockAt(position);
+        if (block === NO_BLOCK) return undefined;
+        if (typeof block === 'number') return factsForRuntimeId(block).shape;
+
+        const palette = content().blocks.palette;
+        if (!palette.entry(block.identifier)) return undefined;
+        const contentId = palette.runtimeId(block.identifier, block.states);
+        return contentId === undefined ? undefined : shapeOfContentId(contentId);
+    };
+
     const identifierAt = (position: EntityPosition): string | undefined => {
         if (
             !persistsAcrossTicks &&
@@ -334,6 +374,7 @@ export const navigationViewOf = (
     return {
         view: {
             blockAt: identifierAt,
+            collisionAt,
             isSolid: (position) => solidAt(position) === true,
             // A liquid is not solid, so this is the same question asked the other way round; an
             // unloaded block is impassable, which stops a path from being planned off the edge of

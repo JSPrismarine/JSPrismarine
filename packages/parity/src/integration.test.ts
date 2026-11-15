@@ -1046,6 +1046,105 @@ describeFamily(
             expect(slimeMatches).toBe(true);
         });
 
+        it(
+            'rests dropped items and mobs on the real shape of slabs, carpets, snow and fences',
+            { timeout: 180_000 },
+            () => {
+                const { runtime, world } = realStack();
+                // Away from the other fixtures of the cached world; each block sits on nothing, at y 63.
+                const z = 500;
+                // Bedrock's snow `height` 1 is two layers, Java's `layers` 2, which both edition's shapes
+                // make an eighth of a block tall; a single layer has no collision in either.
+                const tops: readonly (readonly [identifier: string, states: Record<string, number>, top: number])[] = [
+                    ['minecraft:stone', {}, 1],
+                    ['minecraft:oak_slab', {}, 0.5],
+                    ['minecraft:white_carpet', {}, 0.0625],
+                    ['minecraft:snow_layer', { height: 1 }, 0.125],
+                    ['minecraft:oak_fence', {}, 1.5]
+                ];
+
+                /** Where a stack dropped above the block comes to rest, as a height over the block's cell. */
+                const itemRest = (x: number): number => {
+                    const item = runtime.droppedItems.spawn(
+                        { x: x + 0.5, y: 67, z: z + 0.5 },
+                        {
+                            stack: { name: 'minecraft:cobblestone', count: 1 }
+                        }
+                    );
+                    if (item === undefined) throw new Error('the vanilla stack declares no minecraft:item');
+                    for (let tick = 1; tick <= 60; tick += 1) runtime.tick(tick);
+                    const rest = item.position.y;
+                    runtime.remove(item.id, 'parity shape check complete');
+                    return rest;
+                };
+
+                tops.forEach(([identifier, states], index) =>
+                    world.world.blocks.set({ x: index * 4, y: 63, z }, { identifier, states })
+                );
+                const onStone = itemRest(0);
+                const cases = tops.map(([identifier, , top], index) => {
+                    const rest = index === 0 ? onStone : itemRest(index * 4);
+                    // A stack is reported a fixed offset above its feet; stone's rest names that offset.
+                    const measured = rest - onStone + 1;
+                    return { identifier, top, measured, matches: Math.abs(measured - top) < 1e-6 };
+                });
+
+                const zombie = runtime.spawn('minecraft:zombie', { x: 4.5, y: 66, z: z + 0.5 });
+                if (zombie === undefined) throw new Error('the vanilla stack declares no minecraft:zombie');
+                for (let tick = 1; tick <= 60; tick += 1) runtime.tick(tick);
+                const zombieFeet = zombie.position.y;
+                runtime.remove(zombie.id, 'parity shape check complete');
+
+                // A walker meets a row of bottom slabs on a stone floor and steps up onto them.
+                const walkZ = 520;
+                for (let x = 595; x <= 620; x += 1) {
+                    world.setBlock({ x, y: 63, z: walkZ }, 'minecraft:stone');
+                    if (x >= 605) world.setBlock({ x, y: 64, z: walkZ }, 'minecraft:oak_slab');
+                }
+                const walker = runtime.spawn('minecraft:zombie', { x: 600.5, y: 64, z: walkZ + 0.5 });
+                if (walker === undefined) throw new Error('the vanilla stack declares no minecraft:zombie');
+                let jumped = false;
+                for (let tick = 1; tick <= 80; tick += 1) {
+                    walker.body.moveTo({ x: 615.5, y: 65, z: walkZ + 0.5 }, 1);
+                    runtime.tick(tick);
+                    if (walker.body.velocity.y > 0) jumped = true;
+                }
+                const walkerAt = walker.position;
+                runtime.remove(walker.id, 'parity shape check complete');
+                const steppedUp = !jumped && walkerAt.x > 606 && Math.abs(walkerAt.y - 64.5) < 1e-6;
+
+                reportParityCases(FAMILIES.integrationEntityRuntime, import.meta.filename, [
+                    ...cases.map(({ identifier, matches }) => ({
+                        id: `minecraft:item/rests-on:${identifier}`,
+                        title: 'minecraft:item',
+                        context: `Java ItemEntity collides with the ${identifier} collision shape`,
+                        status: matches ? ('passed' as const) : ('failed' as const)
+                    })),
+                    {
+                        id: 'minecraft:zombie/rests-on:minecraft:stone_slab',
+                        title: 'minecraft:zombie',
+                        context: 'Java LivingEntity collides with a bottom slab half a block up',
+                        status: Math.abs(zombieFeet - 63.5) < 1e-6 ? 'passed' : 'failed'
+                    },
+                    {
+                        id: 'minecraft:zombie/steps-onto:minecraft:oak_slab',
+                        title: 'minecraft:zombie',
+                        context: "Java's step_height 0.6 walks a mob onto a bottom slab without a jump",
+                        status: steppedUp ? 'passed' : 'failed'
+                    }
+                ]);
+                expect(cases.map(({ identifier, measured }) => [identifier, measured])).toEqual(
+                    tops.map(([identifier, , top]) => [identifier, expect.closeTo(top, 6)])
+                );
+                expect(zombieFeet).toBeCloseTo(63.5, 6);
+                expect({ jumped, x: walkerAt.x > 606, y: walkerAt.y }).toEqual({
+                    jumped: false,
+                    x: true,
+                    y: expect.closeTo(64.5, 6)
+                });
+            }
+        );
+
         it('ticks the Java piglin brain without selecting Bedrock goals', { timeout: 180_000 }, () => {
             const { runtime } = realStack();
             const piglin = runtime.spawn('minecraft:piglin', { x: 0.5, y: 64.5, z: 0.5 });
