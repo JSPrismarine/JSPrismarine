@@ -478,6 +478,35 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
     );
 
     it(
+        'fills each terrain tile of a view once when the view is requested nearest first',
+        async () => {
+            // The order a player session drains its view in: nearest first, which jumps between
+            // the four sides of each ring, so the tiles one chunk reads were built many requests ago.
+            const radius = 5;
+            const view: [number, number][] = [];
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dz = -radius; dz <= radius; dz++)
+                    if (dx * dx + dz * dz <= radius * radius) view.push([dx, dz]);
+            }
+            view.sort(([ax, az], [bx, bz]) => ax * ax + az * az - (bx * bx + bz * bz));
+
+            const fills = new Map<string, number>();
+            const generator = new DataDrivenGenerator({
+                registries,
+                carve: false,
+                structures: false,
+                onTerrainTileBuild: (_dimension, _seed, cx, cz) =>
+                    fills.set(`${cx},${cz}`, (fills.get(`${cx},${cz}`) ?? 0) + 1)
+            });
+            for (const [x, z] of view) await generator.generateChunk(x, z, SEED);
+            generator.stopGenerating();
+
+            expect([...fills].filter(([, count]) => count > 1)).toEqual([]);
+        },
+        CHUNK_TIMEOUT * 4
+    );
+
+    it(
         'refuses a request made after the shutdown, for a world it had never been asked about',
         async () => {
             const registries = loadJavaWorldgenRegistries(sources!);

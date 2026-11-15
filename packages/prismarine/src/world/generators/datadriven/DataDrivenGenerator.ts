@@ -690,8 +690,20 @@ const CARVE_RESURFACES_BELOW = new Set(['minecraft:grass_block', 'minecraft:myce
 /** The exact block a carver re-surfaces, which is not the `#minecraft:dirt` tag. */
 const DIRT = 'minecraft:dirt';
 
-/** How many chunk holders the generator keeps alive past the run that built them. */
+/** How many entries each small per-chunk cache keeps, such as a chunk's biome palette. */
 const GENERATION_CACHE_SIZE = 128;
+
+/**
+ * How many chunk holders the generator keeps alive past the run that built them.
+ *
+ * A player's view is requested nearest first, which visits each ring's four sides in turn, so
+ * the holders a later chunk reads are spread around the whole frontier rather than beside the
+ * last request. At view distance 10, 317 chunks generated inline at seed 1234 ran 4654 terrain
+ * fills and 1964 feature passes with 128 holders, and 501 and 405 with 512: every tile once.
+ * 1024 ran the same 501 and 405. The 512 cost about 110 MiB more heap, which is one terrain tile
+ * a holder once {@link GenerationChunk.recordChunk} lets the merged region go.
+ */
+const RETAINED_HOLDERS = 512;
 
 /** How far from a chunk a requested chunk can be and still read that chunk's terrain tile. */
 const TERRAIN_READ_RADIUS = 2;
@@ -2279,7 +2291,7 @@ export class DataDrivenGenerator implements Generator {
      *
      * A run releases its whole neighborhood when it finishes, which is what makes the reference
      * count correct and would also make every chunk rebuild its twenty-five terrain tiles. The
-     * oldest holders go when the count passes {@link GENERATION_CACHE_SIZE}. Dropping one costs a
+     * oldest holders go when the count passes {@link RETAINED_HOLDERS}. Dropping one costs a
      * rebuild and nothing else, because every status is a pure function of the seed and the
      * position now; the LRU this replaces dropped cross-chunk writes instead.
      */
@@ -2298,7 +2310,7 @@ export class DataDrivenGenerator implements Generator {
             }
         }
 
-        while (pipeline.retained.size > GENERATION_CACHE_SIZE) {
+        while (pipeline.retained.size > RETAINED_HOLDERS) {
             const oldest = pipeline.retained.entries().next().value;
             if (oldest === undefined) return;
 
