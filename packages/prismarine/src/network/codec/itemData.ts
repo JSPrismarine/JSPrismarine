@@ -21,9 +21,11 @@
  */
 import { item_components, item_table } from '@jsprismarine/bedrock-data';
 import { item_table as item_table_2225 } from '@jsprismarine/bedrock-data/v2225';
+import { item_table as item_table_2259 } from '@jsprismarine/bedrock-data/v2259';
 
 import { protocolVersion as protocol2193 } from '@jsprismarine/protocol/wire/versions/v2193';
 import { protocolVersion as protocol2225 } from '@jsprismarine/protocol/wire/versions/v2225';
+import { protocolVersion as protocol2259 } from '@jsprismarine/protocol/wire/versions/v2259';
 
 import type { ItemTypeEntry } from '@jsprismarine/bedrock-data';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
@@ -54,9 +56,13 @@ export const itemData2193: ProtocolItemData = itemDataOver(protocol2193, item_ta
 /** Protocol 2225's item data, captured from a Bedrock Dedicated Server 1.26.60.6. */
 export const itemData2225: ProtocolItemData = itemDataOver(protocol2225, item_table_2225);
 
+/** The Minecraft Preview protocol 2259's item data, captured from a Bedrock Dedicated Server 1.26.70.24. */
+export const itemData2259: ProtocolItemData = itemDataOver(protocol2259, item_table_2259);
+
 const byProtocol = new Map<number, ProtocolItemData>([
     [itemData2193.protocolVersion, itemData2193],
-    [itemData2225.protocolVersion, itemData2225]
+    [itemData2225.protocolVersion, itemData2225],
+    [itemData2259.protocolVersion, itemData2259]
 ]);
 
 /**

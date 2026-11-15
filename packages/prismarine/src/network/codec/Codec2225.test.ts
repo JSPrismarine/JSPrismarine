@@ -20,7 +20,7 @@ import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Codec2193 from './Codec2193';
 import Codec2225 from './Codec2225';
-import { codecForProtocol, latestCodec } from './CodecRegistry';
+import { advertisedCodec, codecForProtocol } from './CodecRegistry';
 import { packetIds as packetIds2193 } from '@jsprismarine/protocol/wire/versions/v2193';
 import { addedPacketIds } from '@jsprismarine/protocol/wire/versions/v2225';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -39,11 +39,11 @@ const roundTrip = <T extends NetworkPacket>(packet: T): T => {
 
 describe('network/codec', () => {
     describe('Codec2225', () => {
-        it('speaks protocol 2225 for 1.26.60, and the registry names it the latest', () => {
+        it('speaks protocol 2225 for 1.26.60, and the registry advertises it', () => {
             expect(Codec2225.protocolVersion).toBe(2225);
             expect(Codec2225.minecraftVersions).toStrictEqual(['1.26.60', '1.26.61', '1.26.62']);
             expect(codecForProtocol(2225)).toBe(Codec2225);
-            expect(latestCodec).toBe(Codec2225);
+            expect(advertisedCodec).toBe(Codec2225);
         });
 
         it('carries the 2193 table plus the eight packets 1.26.60 added, renumbering nothing', () => {
