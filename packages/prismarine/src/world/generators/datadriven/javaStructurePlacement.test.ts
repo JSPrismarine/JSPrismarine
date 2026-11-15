@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { candidateChunksIn, chooseStructure, createTagExpander, loadStructureSets } from './javaStructurePlacement';
+import {
+    CandidateChunkMemo,
+    candidateChunksIn,
+    chooseStructure,
+    createTagExpander,
+    loadStructureSets
+} from './javaStructurePlacement';
 
 const spread = (overrides: Record<string, unknown> = {}) => ({
     placement: { type: 'minecraft:random_spread', spacing: 32, separation: 8, salt: 10387312, ...overrides },
@@ -167,5 +173,53 @@ describe('createTagExpander', () => {
     it('answers nothing for a reference this server does not carry', () => {
         expect([...createTagExpander(tags)('#minecraft:missing')]).toEqual([]);
         expect([...createTagExpander(tags)(undefined)]).toEqual([]);
+    });
+});
+
+describe('CandidateChunkMemo', () => {
+    const common = { salt: 16842397, frequencyReductionMethod: 'default', locateOffset: [0, 0, 0] } as const;
+    const mineshafts = {
+        ...common,
+        type: 'minecraft:random_spread',
+        spacing: 1,
+        separation: 0,
+        frequency: 0.004,
+        spreadType: 'linear'
+    } as const;
+    const villages = { ...mineshafts, spacing: 34, separation: 8, frequency: 1, salt: 10387312 } as const;
+    const strongholds = {
+        ...common,
+        type: 'minecraft:concentric_rings',
+        distance: 32,
+        spread: 3,
+        count: 128
+    } as const;
+    const window = (x: number, z: number) => ({
+        minChunkX: x - 8,
+        minChunkZ: z - 8,
+        maxChunkX: x + 8,
+        maxChunkZ: z + 8
+    });
+
+    it('answers what an unremembered scan answers, in the same order', () => {
+        const memo = new CandidateChunkMemo(1234n);
+        for (const placement of [mineshafts, villages, strongholds]) {
+            for (let x = -300; x <= 300; x += 37) {
+                for (let z = -200; z <= 200; z += 53) {
+                    expect(memo.in(placement, window(x, z))).toEqual(candidateChunksIn(placement, 1234n, window(x, z)));
+                }
+            }
+        }
+    });
+
+    it('draws only the regions a moved window has not asked before', () => {
+        const memo = new CandidateChunkMemo(1234n);
+
+        memo.in(mineshafts, window(0, 0));
+        expect(memo.regionsDrawn).toBe(17 * 17);
+
+        memo.in(mineshafts, window(0, 0));
+        memo.in(mineshafts, window(1, 0));
+        expect(memo.regionsDrawn).toBe(17 * 17 + 17);
     });
 });
