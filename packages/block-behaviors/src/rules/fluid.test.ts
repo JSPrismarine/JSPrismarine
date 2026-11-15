@@ -4,6 +4,7 @@ import { createVoxelWorld } from '../voxelWorld';
 import {
     applyLavaWaterReaction,
     depthStep,
+    fluidNeighborChanged,
     LAVA_SPREAD_TICKS,
     lavaWaterProduct,
     MAX_LIQUID_DEPTH,
@@ -130,5 +131,81 @@ describe('applyLavaWaterReaction', () => {
 
         expect(applyLavaWaterReaction(world, world.block(source))).toBeUndefined();
         expect(world.identifierAt(source)).toBe('minecraft:lava');
+    });
+});
+
+describe('water held by a waterlogged block', () => {
+    const SLAB = 'minecraft:stone_block_slab';
+
+    /**
+     * A world whose stone is the only full cube, which is what the server's light-dampening rule
+     * answers for a slab: the double's own fallback would call a slab a cube and wall its water in.
+     */
+    const slabWorld = () => {
+        const world = createVoxelWorld().overworld;
+        floorUnder(world);
+        return Object.assign(world, {
+            isFullCube: (block: { identifier: string }) => block.identifier === 'minecraft:stone'
+        });
+    };
+
+    it('spreads its water into the air beside it as a source does', () => {
+        const world = slabWorld();
+        world.set(source, SLAB);
+        world.setLiquid(source, 'minecraft:water');
+
+        const result = spreadLiquid(world, { ...world.block(source), identifier: 'minecraft:water', states: {} });
+
+        expect(result.sides).toEqual(['north', 'south', 'west', 'east']);
+        expect(world.identifierAt({ x: 1, y: 1, z: 0 })).toBe('minecraft:flowing_water');
+        expect(world.stateAt({ x: 1, y: 1, z: 0 }, 'liquid_depth')).toBe(1);
+        // The block keeps its own place; only the air around it took water.
+        expect(world.identifierAt(source)).toBe(SLAB);
+    });
+
+    it('is not entered or replaced by flowing water beside it', () => {
+        const world = slabWorld();
+        world.set(source, 'minecraft:water');
+        world.set({ x: 1, y: 1, z: 0 }, SLAB);
+        world.setLiquid({ x: 1, y: 1, z: 0 }, 'minecraft:water');
+
+        const result = spreadLiquid(world, world.block(source));
+
+        expect(result.sides).not.toContain('east');
+        expect(world.identifierAt({ x: 1, y: 1, z: 0 })).toBe(SLAB);
+    });
+
+    it('counts as a source neighbor, so it feeds the water beside it', () => {
+        const world = slabWorld();
+        const between = { x: 1, y: 1, z: 0 };
+        world.set(source, SLAB);
+        world.setLiquid(source, 'minecraft:water');
+        world.set({ x: 2, y: 1, z: 0 }, 'minecraft:water');
+        world.set(between, 'minecraft:flowing_water', { liquid_depth: 1 });
+
+        // Two sources beside it over solid ground: Java's `getNewLiquid` makes it a source too.
+        spreadLiquid(world, world.block(between));
+
+        expect(world.identifierAt(between)).toBe('minecraft:water');
+    });
+
+    it('schedules its water when a neighbor changes', () => {
+        const world = slabWorld();
+        world.set(source, SLAB);
+        world.setLiquid(source, 'minecraft:water');
+
+        fluidNeighborChanged(world, { ...world.block(source), identifier: 'minecraft:water', states: {} });
+
+        expect(world.scheduled).toEqual([{ position: source, delay: WATER_SPREAD_TICKS }]);
+    });
+
+    it('turns lava beside it into obsidian', () => {
+        const world = slabWorld();
+        world.set({ x: 1, y: 1, z: 0 }, SLAB);
+        world.setLiquid({ x: 1, y: 1, z: 0 }, 'minecraft:water');
+        world.set(source, 'minecraft:lava');
+
+        expect(applyLavaWaterReaction(world, world.block(source))).toBe('east');
+        expect(world.identifierAt(source)).toBe('minecraft:obsidian');
     });
 });

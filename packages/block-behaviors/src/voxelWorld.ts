@@ -85,6 +85,8 @@ export class VoxelDimension implements WorldActions {
     public readonly notified: BlockPosition[] = [];
 
     private readonly blocks = new Map<string, StoredBlock>();
+    /** The second storage layer, which holds a waterlogged block's water. */
+    private readonly liquids = new Map<string, StoredBlock>();
     private readonly unloaded = new Set<string>();
     private readonly blockData = new Map<string, BlockEntityData>();
     private readonly power = new Map<string, number>();
@@ -101,6 +103,19 @@ export class VoxelDimension implements WorldActions {
 
     /** @param name - The dimension identifier blocks in it report. */
     public constructor(public readonly name: string) {}
+
+    /** Puts a liquid in a position's second layer, the way Bedrock waterlogs a block. */
+    public setLiquid(position: BlockPosition, identifier: string, states: BlockStates = {}): void {
+        if (identifier === AIR) this.liquids.delete(keyOf(position));
+        else this.liquids.set(keyOf(position), { identifier, states });
+    }
+
+    /** The liquid in a position's second layer, or undefined when it holds none or is not loaded. */
+    public getLiquid(position: BlockPosition): HookBlock | undefined {
+        if (this.unloaded.has(keyOf(position))) return undefined;
+        const liquid = this.liquids.get(keyOf(position));
+        return liquid && { ...liquid, position, dimension: this.name };
+    }
 
     /** Puts a block in the world without running any behavior. */
     public set(position: BlockPosition, identifier: string, states: BlockStates = {}): void {
