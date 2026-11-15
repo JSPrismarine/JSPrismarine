@@ -292,15 +292,27 @@ export const REFERENCES = {
         }
     },
 
-    /** The vanilla Bedrock behavior pack, which carries the 129 entity definitions. */
+    /** The vanilla Bedrock behavior pack, which carries the 129 entity definitions and the biome files. */
     bedrockBehaviorPack: {
         id: 'bedrock-behavior-pack',
         kind: 'fetched',
-        holds: "Mojang's 129 vanilla entity definitions",
+        holds: "Mojang's 129 vanilla entity definitions and the vanilla biome files",
         howToGet: 'run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`',
         locate: () =>
             firstMatching(join(FETCH_CACHE, 'bedrock-samples'), 3, (path) =>
                 existsSync(join(path, 'behavior_pack', 'entities'))
+            )
+    },
+
+    /** Mojang's vanilla data modules in `bedrock-samples`, which list every item with its numeric id. */
+    bedrockVanillaData: {
+        id: 'bedrock-vanilla-data',
+        kind: 'fetched',
+        holds: "Mojang's vanilla item list with each item's numeric id",
+        howToGet: 'run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`',
+        locate: () =>
+            firstMatching(join(FETCH_CACHE, 'bedrock-samples'), 3, (path) =>
+                existsSync(join(path, 'metadata', 'vanilladata_modules', 'mojang-items.json'))
             )
     },
 

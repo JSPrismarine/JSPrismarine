@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
@@ -14,9 +14,8 @@ import { GENERATION_CORPUS_PATH, REFERENCES, REFERENCE_WORLD_PATH, pinnedJavaDat
 /**
  * Loaders for the reference data the repository already carries: the captures under
  * `packages/bedrock-data/src/jsp/` and `packages/minecraft/datagen/snapshot/`, both keyed by
- * protocol version, and the
- * CloudburstMC dumps in the resources submodule. Every loader reads a committed file, so the
- * suite needs no network and no server.
+ * protocol version, and the fetched `bedrock-samples` checkout, whose loaders take the path its
+ * entry in `references.ts` located. No loader needs a network or a server.
  *
  * A comparison that needs reference data gets a loader here rather than reading the file
  * itself, and a loader that reads something a clean checkout may not have gets an entry in
@@ -87,18 +86,28 @@ export const loadRequiredItemListAt = (protocolVersion: number): Record<string, 
 export const bedrockCaptureAt = (protocolVersion: number, file: string): string =>
     join(bedrockDataRoot, 'src/jsp', `v${protocolVersion}`, file);
 
-/** One item as the submodule's `runtime_item_states.json` dump records it. */
-export interface RuntimeItemState {
+/** One item as Mojang's `mojang-items.json` vanilla data module lists it. */
+export interface MojangItem {
     name: string;
-    id: number;
-    version: number;
-    componentBased: boolean;
+    /** The numeric id Mojang publishes beside the name, which the item registry should agree with. */
+    rawId: number;
 }
 
-/** Reads the independent item dump from the resources submodule (CloudburstMC, 1.26.50). */
-export const loadRuntimeItemStates = (): RuntimeItemState[] =>
-    // Parsed JSON boundary, shape documented above.
-    readJson(join(bedrockDataRoot, 'src/resources/runtime_item_states.json')) as RuntimeItemState[];
+/**
+ * Reads the item list Mojang publishes in `bedrock-samples`, under
+ * `metadata/vanilladata_modules/mojang-items.json`. It lists the items a player handles and
+ * leaves out the item forms of blocks, so it is a subset of the registry, measured from the
+ * game by a different route than the capture.
+ *
+ * @param samplesRoot - The `bedrock-samples` checkout, from `REFERENCES.bedrockVanillaData`.
+ */
+export const loadMojangItems = (samplesRoot: string): MojangItem[] => {
+    // Parsed JSON boundary; only the two fields read here are typed.
+    const module = readJson(join(samplesRoot, 'metadata/vanilladata_modules/mojang-items.json')) as {
+        data_items: { name: string; raw_id: number }[];
+    };
+    return module.data_items.map(({ name, raw_id }) => ({ name, rawId: raw_id }));
+};
 
 /** Where the `packets` pass of `dump:bedrock` records the `AvailableActorIdentifiersPacket` payload. */
 export const ACTOR_IDENTIFIERS_CAPTURE = 'wire/0x77.bin';
@@ -136,16 +145,40 @@ export const loadActorIdentifiers = (): ActorIdentifier[] => {
     return identifiers;
 };
 
-/** One biome from the submodule's `biome_definitions.json` dump. */
-export interface BiomeDefinition {
+/** The climate one vanilla biome file declares. */
+export interface BiomeClimate {
     temperature: number;
     downfall: number;
 }
 
-/** Reads the biome definitions dump from the resources submodule. */
-export const loadBiomeDefinitions = (): Record<string, BiomeDefinition> =>
-    // Parsed JSON boundary; only the fields the comparisons read are typed.
-    readJson(join(bedrockDataRoot, 'src/resources/biome_definitions.json')) as Record<string, BiomeDefinition>;
+/**
+ * Reads the climate of every vanilla biome from the behavior pack Mojang publishes in
+ * `bedrock-samples`: one `behavior_pack/biomes/<name>.biome.json` per biome, each declaring
+ * `minecraft:climate`. Keyed by the biome's identifier.
+ *
+ * @param samplesRoot - The `bedrock-samples` checkout, from `REFERENCES.bedrockBehaviorPack`.
+ */
+export const loadBehaviorPackBiomes = (samplesRoot: string): Record<string, BiomeClimate> => {
+    const directory = join(samplesRoot, 'behavior_pack/biomes');
+    const biomes: Record<string, BiomeClimate> = {};
+    for (const file of readdirSync(directory).filter((name) => name.endsWith('.json'))) {
+        // Parsed JSON boundary; only the identifier and the climate are typed.
+        const biome = (
+            readJson(join(directory, file)) as {
+                'minecraft:biome': {
+                    description: { identifier: string };
+                    components: { 'minecraft:climate'?: Partial<BiomeClimate> };
+                };
+            }
+        )['minecraft:biome'];
+        const climate = biome.components['minecraft:climate'] ?? {};
+        biomes[biome.description.identifier] = {
+            temperature: climate.temperature ?? Number.NaN,
+            downfall: climate.downfall ?? Number.NaN
+        };
+    }
+    return biomes;
+};
 
 /** One biome as the captured `BiomeDefinitionListPacket` payload carries it. */
 export interface NetworkBiome {
