@@ -450,3 +450,35 @@ describe('LightEngine section hints', () => {
         expect(reads()).toBeLessThanOrEqual(256 * (16 + 1 + 16));
     });
 });
+
+describe('LightEngine column lookups', () => {
+    it('looks a column up again only when a flood crosses into another chunk', () => {
+        const view = skyWorld();
+        for (let x = 0; x <= 15; x++) {
+            for (let z = 0; z <= 15; z++) view.place(x, 4, z, STONE);
+        }
+        view.place(8, 6, 8, GLOWSTONE);
+        const engine = new LightEngine(view);
+        const columns: Map<number, unknown> = Reflect.get(engine, 'columns');
+        let lookups = 0;
+        const get = columns.get.bind(columns);
+        const has = columns.has.bind(columns);
+        columns.get = (key) => {
+            lookups++;
+            return get(key);
+        };
+        columns.has = (key) => {
+            lookups++;
+            return has(key);
+        };
+
+        engine.onChunkLoaded(0, 0);
+        lookups = 0;
+        const { processed } = settle(engine);
+
+        // Each node reads its own column and six neighbors'. Within one chunk that is one lookup,
+        // plus one each time a neighbor lies across the border, which no loaded column holds.
+        expect(processed).toBeGreaterThan(1000);
+        expect(lookups).toBeLessThan(processed);
+    });
+});

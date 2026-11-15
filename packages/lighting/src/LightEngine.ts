@@ -77,6 +77,14 @@ const OFFSET_Y = [0, 0, 0, 0, -1, 1] as const;
  */
 export class LightEngine {
     private readonly columns = new Map<number, LightColumn>();
+    /**
+     * The column {@link LightEngine.columnAt} found last. A flood step's six neighbors are almost
+     * always in the chunk it is already in, and a column key is too wide to be a small integer,
+     * so a lookup by key builds a heap number each time.
+     */
+    private lastChunkX = Number.NaN;
+    private lastChunkZ = Number.NaN;
+    private lastColumn: LightColumn | undefined;
     /** Queued nodes of all four queues by chunk column; see {@link LightEngine.isSettledAround}. */
     private readonly queuedByColumn = new Map<number, number>();
     private readonly increaseQueues = [
@@ -175,6 +183,7 @@ export class LightEngine {
             skySections: new Map()
         };
         this.columns.set(key, column);
+        this.forgetLastColumn();
 
         const baseX = chunkX * CHUNK_SIZE;
         const baseZ = chunkZ * CHUNK_SIZE;
@@ -211,6 +220,7 @@ export class LightEngine {
      */
     public onChunkUnloaded(chunkX: number, chunkZ: number): void {
         this.columns.delete(columnKeyOf(chunkX, chunkZ));
+        this.forgetLastColumn();
     }
 
     /**
@@ -286,7 +296,21 @@ export class LightEngine {
     }
 
     private columnAt(x: number, z: number): LightColumn | undefined {
-        return this.columns.get(columnKeyOf(chunkOf(x), chunkOf(z)));
+        const chunkX = chunkOf(x);
+        const chunkZ = chunkOf(z);
+        if (chunkX === this.lastChunkX && chunkZ === this.lastChunkZ) return this.lastColumn;
+
+        const column = this.columns.get(columnKeyOf(chunkX, chunkZ));
+        this.lastChunkX = chunkX;
+        this.lastChunkZ = chunkZ;
+        this.lastColumn = column;
+        return column;
+    }
+
+    private forgetLastColumn(): void {
+        this.lastChunkX = Number.NaN;
+        this.lastChunkZ = Number.NaN;
+        this.lastColumn = undefined;
     }
 
     private heightAt(column: LightColumn, x: number, z: number): number {
@@ -601,14 +625,13 @@ export class LightEngine {
     private crossable(x: number, y: number, z: number): BlockLightProperties | undefined {
         if (y < this.view.minY || y >= this.view.maxY) return undefined;
 
-        const key = columnKeyOf(chunkOf(x), chunkOf(z));
-        if (!this.columns.has(key)) {
-            this.awaitingChunks.add(key);
+        if (this.columnAt(x, z) === undefined) {
+            this.awaitingChunks.add(columnKeyOf(chunkOf(x), chunkOf(z)));
             return undefined;
         }
 
         const block = this.view.blockAt(x, y, z);
-        if (block === undefined) this.awaitingChunks.add(key);
+        if (block === undefined) this.awaitingChunks.add(columnKeyOf(chunkOf(x), chunkOf(z)));
 
         return block;
     }
