@@ -521,7 +521,18 @@ export class DroppedItems {
         const kept = { x: motion.x * 0.75, y: (motion.y - tuning.gravity) * 0.75, z: motion.z * 0.75 };
         const pushed = { ...kept, [face.axis]: face.step * CLOSEST_SPACE_PUSH };
         const position = entity.position;
-        entity.position = { x: position.x + pushed.x, y: position.y + pushed.y, z: position.z + pushed.z };
+        const next = { x: position.x + pushed.x, y: position.y + pushed.y, z: position.z + pushed.z };
+        // The push moves through blocks, so only whether every cell it ends in is loaded is asked:
+        // a stack that would end in a chunk that is not loaded waits, as the sweep in `move` does.
+        const { width, height } = entity.facts.box;
+        const feet = next.y - tuning.positionOffset;
+        const ends = {
+            min: { x: next.x - width / 2, y: feet, z: next.z - width / 2 },
+            max: { x: next.x + width / 2, y: feet + height, z: next.z + width / 2 }
+        };
+        if (boundsHitSolid(ends, (cell) => (this.solidCell(cell) === undefined ? undefined : false)) === undefined)
+            return;
+        entity.position = next;
         entity.body.velocity = {
             x: pushed.x * tuning.airDrag,
             y: pushed.y * tuning.airDrag,

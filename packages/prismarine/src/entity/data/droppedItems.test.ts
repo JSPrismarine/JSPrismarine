@@ -199,6 +199,19 @@ describe('dropped items in the store', () => {
             expect(item.position.y).toBe(SURFACE + OFFSET);
         });
 
+        it('waits in the block it lies in when the push would carry it into a chunk that is not loaded', () => {
+            const fixture = fixtureOf({ unloadedFromX: 2 });
+            fixture.world.setBlock({ x: 0, y: SURFACE, z: 0 }, 'minecraft:stone');
+            // Pushed out along z, but carried along x by the speed it keeps, into x = 2.
+            const item = drop(fixture, 0.5, SURFACE + 0.3, 0.1, { motion: { x: 2, y: 0, z: 0 } });
+            const at = item.position;
+
+            step(fixture);
+
+            expect(item.position).toEqual(at);
+            expect(item.body.velocity).toEqual({ x: 2, y: 0, z: 0 });
+        });
+
         it('waits where it is over a chunk that is not loaded, and loads nothing', () => {
             const fixture = fixtureOf({ unloadedFromX: 1 });
             const item = drop(fixture, 0.5, SURFACE + 2, 0.5, { motion: { x: 0.6, y: 0.1, z: 0 } });
