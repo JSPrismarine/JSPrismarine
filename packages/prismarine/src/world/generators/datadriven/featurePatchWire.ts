@@ -7,8 +7,8 @@
  * the receiving thread copies buffers instead of decoding thousands of objects.
  */
 import { isRecord } from '../../../utils/isRecord';
-import type { RegionBlock, RegionBlockPosition, RegionBlockWrite, RegionChunkPatch } from './GenerationRegion';
-import { isOptionalFluidTickList } from './GenerationRegion';
+import type { RegionBlock, RegionBlockPosition, RegionChunkPatch } from './GenerationRegion';
+import { forEachBlockWrite, isOptionalFluidTickList, PackedBlockWrites } from './GenerationRegion';
 
 /** One chunk's patch, packed. */
 export interface PackedRegionChunkPatch extends Omit<RegionChunkPatch, 'blocks' | 'structureBlocks'> {
@@ -53,19 +53,25 @@ export const packFeaturePatches = (
         const palette: RegionBlock[] = [];
         const slotOf = new Map<RegionBlock, number>();
         const writeBlocks = new Uint32Array(blocks.length);
-        for (const [index, { block }] of blocks.entries()) {
+        const writePositions = new Int32Array(blocks.length * 3);
+        let index = 0;
+        forEachBlockWrite(blocks, (x, y, z, block) => {
             let slot = slotOf.get(block);
             if (slot === undefined) {
                 slot = palette.push(block) - 1;
                 slotOf.set(block, slot);
             }
             writeBlocks[index] = slot;
-        }
+            writePositions[index * 3] = x;
+            writePositions[index * 3 + 1] = y;
+            writePositions[index * 3 + 2] = z;
+            index++;
+        });
 
         const packed = {
             ...rest,
             palette,
-            writePositions: packPositions(blocks).buffer,
+            writePositions: writePositions.buffer,
             writeBlocks: writeBlocks.buffer,
             structureBlocks: packPositions(structureBlocks).buffer
         };
@@ -90,7 +96,7 @@ const isPackedPatch = (patch: unknown): patch is PackedRegionChunkPatch =>
     isOptionalFluidTickList(patch.fluidTicks);
 
 /**
- * Rebuilds the patches a feature worker packed.
+ * Rebuilds the patches a feature worker packed, keeping their block writes packed.
  * @param value - The worker's payload, which crossed a boundary the compiler cannot follow.
  * @throws TypeError when the payload is not a packed patch list, or a write names a block the
  *   palette does not hold.
@@ -100,20 +106,10 @@ export const unpackFeaturePatches = (value: unknown): RegionChunkPatch[] => {
         throw new TypeError('A feature worker returned an invalid patch list.');
     }
 
-    return value.map(({ palette, writePositions, writeBlocks, structureBlocks, ...rest }) => {
-        const positions = new Int32Array(writePositions);
-        const slots = new Uint32Array(writeBlocks);
-        const blocks: RegionBlockWrite[] = [];
-        for (let index = 0; index < slots.length; index++) {
-            const block = palette[slots[index]!];
-            if (block === undefined) throw new TypeError('A feature worker wrote a block its palette does not hold.');
-            blocks.push({
-                x: positions[index * 3]!,
-                y: positions[index * 3 + 1]!,
-                z: positions[index * 3 + 2]!,
-                block
-            });
-        }
-        return { ...rest, blocks, structureBlocks: unpackPositions(structureBlocks) };
-    });
+    // Kept packed: the region applies them as they are, so no write becomes an object of its own.
+    return value.map(({ palette, writePositions, writeBlocks, structureBlocks, ...rest }) => ({
+        ...rest,
+        blocks: new PackedBlockWrites(palette, new Int32Array(writePositions), new Uint32Array(writeBlocks)),
+        structureBlocks: unpackPositions(structureBlocks)
+    }));
 };

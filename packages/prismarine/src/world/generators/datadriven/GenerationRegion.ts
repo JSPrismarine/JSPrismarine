@@ -227,6 +227,57 @@ export interface RegionBlockWrite {
     readonly block: RegionBlock;
 }
 
+/**
+ * A patch's block writes as they cross a worker boundary: x, y and z of each write in one typed
+ * array and its block as a slot in a palette of the distinct blocks, in write order.
+ *
+ * Applied as they are, so a patch that arrived from a worker is never spelled out as one object
+ * per write.
+ */
+export class PackedBlockWrites {
+    /**
+     * @param palette - The distinct blocks the writes place.
+     * @param positions - x, y and z for each write.
+     * @param slots - Each write's slot in `palette`.
+     * @throws TypeError when the arrays disagree on the count or a slot is outside the palette.
+     */
+    public constructor(
+        public readonly palette: readonly RegionBlock[],
+        public readonly positions: Int32Array,
+        public readonly slots: Uint32Array
+    ) {
+        if (positions.length !== slots.length * 3) throw new TypeError('A packed write list has a position per write');
+        for (const slot of slots) {
+            if (slot >= palette.length) throw new TypeError('A packed write names a block its palette does not hold');
+        }
+    }
+
+    /** How many writes there are. */
+    public get length(): number {
+        return this.slots.length;
+    }
+
+    /** Calls `visit` for each write in order. */
+    public forEach(visit: (x: number, y: number, z: number, block: RegionBlock) => void): void {
+        const { palette, positions, slots } = this;
+        for (let index = 0; index < slots.length; index++) {
+            visit(positions[index * 3]!, positions[index * 3 + 1]!, positions[index * 3 + 2]!, palette[slots[index]!]!);
+        }
+    }
+}
+
+/** A patch's block writes, one record each or packed as a worker sends them. */
+export type RegionBlockWrites = readonly RegionBlockWrite[] | PackedBlockWrites;
+
+/** Calls `visit` for each of a patch's block writes in order, in either form. */
+export const forEachBlockWrite = (
+    writes: RegionBlockWrites,
+    visit: (x: number, y: number, z: number, block: RegionBlock) => void
+): void => {
+    if (writes instanceof PackedBlockWrites) writes.forEach(visit);
+    else for (const write of writes) visit(write.x, write.y, write.z, write.block);
+};
+
 /** A block position in world coordinates. */
 export interface RegionBlockPosition {
     readonly x: number;
@@ -257,7 +308,7 @@ export const isOptionalFluidTickList = (value: unknown): value is readonly Regio
 export interface RegionChunkPatch {
     readonly chunkX: number;
     readonly chunkZ: number;
-    readonly blocks: readonly RegionBlockWrite[];
+    readonly blocks: RegionBlockWrites;
     readonly blockEntityRemovals: readonly RegionBlockEntityRemoval[];
     readonly blockEntities: readonly RegionBlockEntity[];
     readonly entitySpawns: readonly RegionEntitySpawn[];
@@ -947,20 +998,20 @@ export class GenerationRegion {
             const index = this.indexOf(removal.x, removal.y, removal.z);
             if (index !== -1 && !kept.has(index)) this.blockEntities.delete(index);
         }
-        for (const write of patch.blocks) {
-            if (isKept(write.x, write.y, write.z)) continue;
+        forEachBlockWrite(patch.blocks, (x, y, z, block) => {
+            if (isKept(x, y, z)) return;
             // A patch was drawn against terrain that did not hold the blocks another chunk's
             // trees put here, so its grass and leaf litter believe this spot is air. Java's
             // ground cover only goes where the block is replaceable; it must not erase a trunk.
             if (
-                write.block.bedrock === undefined &&
-                this.isGroundCover(write.block.java) &&
-                !this.isOpenSpace(this.stateAt(write.x, write.y, write.z))
+                block.bedrock === undefined &&
+                this.isGroundCover(block.java) &&
+                !this.isOpenSpace(this.stateAt(x, y, z))
             )
-                continue;
-            if (write.block.bedrock === undefined) this.write(write.x, write.y, write.z, write.block.java);
-            else this.writeBedrock(write.x, write.y, write.z, write.block.bedrock);
-        }
+                return;
+            if (block.bedrock === undefined) this.write(x, y, z, block.java);
+            else this.writeBedrock(x, y, z, block.bedrock);
+        });
         for (const blockEntity of patch.blockEntities) {
             if (isKept(blockEntity.x, blockEntity.y, blockEntity.z)) continue;
             this.attachBlockEntity({ x: blockEntity.x, y: blockEntity.y, z: blockEntity.z }, blockEntity.request);

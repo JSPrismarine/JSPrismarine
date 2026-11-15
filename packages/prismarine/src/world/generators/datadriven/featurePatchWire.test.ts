@@ -2,7 +2,8 @@ import { serialize, deserialize } from 'node:v8';
 
 import { describe, expect, it } from 'vitest';
 
-import type { RegionBlock, RegionChunkPatch } from './GenerationRegion';
+import type { RegionBlock, RegionBlockWrite, RegionBlockWrites, RegionChunkPatch } from './GenerationRegion';
+import { forEachBlockWrite, PackedBlockWrites } from './GenerationRegion';
 import { packFeaturePatches, unpackFeaturePatches } from './featurePatchWire';
 
 const STONE: RegionBlock = { java: { name: 'minecraft:stone', properties: {} } };
@@ -27,12 +28,30 @@ const patch = (writes: number): RegionChunkPatch => ({
     ]
 });
 
+/** A patch's writes spelled out, whichever form they are in. */
+const writesOf = (writes: RegionBlockWrites): RegionBlockWrite[] => {
+    const spelled: RegionBlockWrite[] = [];
+    forEachBlockWrite(writes, (x, y, z, block) => spelled.push({ x, y, z, block }));
+    return spelled;
+};
+
 describe('featurePatchWire', () => {
     it('round trips a patch list through the process channel serialization', () => {
         const patches = [patch(1000), patch(0)];
         const { payload } = packFeaturePatches(patches);
 
-        expect(unpackFeaturePatches(deserialize(serialize(payload)))).toEqual(patches);
+        const unpacked = unpackFeaturePatches(deserialize(serialize(payload)));
+
+        // The writes stay packed; spelled out, they are the ones that went in, in order.
+        for (const each of unpacked) expect(each.blocks).toBeInstanceOf(PackedBlockWrites);
+        expect(unpacked.map((each) => ({ ...each, blocks: writesOf(each.blocks) }))).toEqual(patches);
+    });
+
+    it('packs writes that are already packed, as a patch passed on again is', () => {
+        const once = unpackFeaturePatches(packFeaturePatches([patch(30)]).payload);
+        const twice = unpackFeaturePatches(packFeaturePatches(once).payload);
+
+        expect(twice.map((each) => writesOf(each.blocks))).toEqual([patch(30).blocks]);
     });
 
     it('carries one palette entry per distinct block, however many writes there are', () => {
