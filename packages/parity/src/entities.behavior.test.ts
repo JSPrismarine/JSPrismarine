@@ -5,6 +5,7 @@ import { TRIGGER_COMPONENTS, evaluateFilter } from '@jsprismarine/entities';
 import { entitiesTable } from '@jsprismarine/mapping/tables';
 import { javaEntityTypeToBedrock, javaIdentifierToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
 import { parseBiomeTags } from '@jsprismarine/prismarine/content/biomeTags';
+import { fallsUnderGravity } from '@jsprismarine/prismarine/entity/data/gravity';
 import { breathe } from '@jsprismarine/prismarine/entity/playerBreath';
 import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponents';
 import { land, trackFall } from '@jsprismarine/prismarine/entity/playerFall';
@@ -20,6 +21,7 @@ import { unpackVanillaDatapack } from './javaDatapack.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { serverContent } from './serverStack.ts';
+import { loadVanillaEntityTypes } from './vanillaEntities.ts';
 
 /** One mob Java's biome can spawn naturally: the biome, the mob, and the category that gates its cap. */
 interface NaturalSpawn {
@@ -399,6 +401,30 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             return hooks.has('onTick')
                 ? undefined
                 : 'the server never runs minecraft:mob_effect, so nothing is poisoned';
+        }
+    },
+    {
+        name: 'flying-gravity',
+        java: 'A flying mob that hovers in place stays in the air, and a parrot flutters down when it stops flying.',
+        reference:
+            "Java FlyingMob.travel (ghast, phantom), Bat.aiStep, and FlyingMoveControl's hoversInPlace (true for the bee, allay and wither, false for the parrot); issue #2643",
+        subjects: () =>
+            [
+                'minecraft:ghast',
+                'minecraft:happy_ghast',
+                'minecraft:phantom',
+                'minecraft:bat',
+                'minecraft:bee',
+                'minecraft:allay',
+                'minecraft:wither',
+                'minecraft:parrot'
+            ].flatMap((javaId) => mappedEntity(javaId, javaId === 'minecraft:parrot' ? 'falls' : 'hovers') ?? []),
+        idOf: (subject) => subject.javaId,
+        covers: (subject) => subject.javaId,
+        run: (subject) => {
+            const falls = fallsUnderGravity(loadVanillaEntityTypes().spawn(subject.bedrock));
+            if (falls === (subject.tag === 'falls')) return undefined;
+            return falls ? 'gravity pulls it down while it hovers' : 'it hangs in the air where Java lets it fall';
         }
     },
     {
