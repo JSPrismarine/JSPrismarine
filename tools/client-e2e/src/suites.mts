@@ -4,6 +4,7 @@ import { chat } from './scenarios/chat.mts';
 import { spectatorPickup } from './scenarios/spectator-pickup.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
 import { itemDropPickup } from './scenarios/item-drop-pickup.mts';
+import { itemRestShape } from './scenarios/item-rest-shape.mts';
 import { fallingBlockWater } from './scenarios/falling-block-water.mts';
 import { farmland } from './scenarios/farmland.mts';
 import { furnace } from './scenarios/furnace.mts';
@@ -87,6 +88,7 @@ export const suites: ScenarioSuite[] = [
             miningDrops,
             spectatorPickup,
             itemDropPickup,
+            itemRestShape,
             edgeChunkBlockChange,
             subChunkBlockChanges,
             teleport,
