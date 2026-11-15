@@ -219,8 +219,8 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       '@scriptc/threads':
-        specifier: 0.4.13
-        version: 0.4.13
+        specifier: 0.4.14
+        version: 0.4.14
       '@turbo/gen':
         specifier: 2.11.11
         version: 2.11.11(@types/node@26.6.6)
@@ -259,7 +259,7 @@ importers:
         version: 2.6.1
       tsc-ts:
         specifier: 0.1.5
-        version: 0.1.5(@scriptc/threads@0.4.13)
+        version: 0.1.5(@scriptc/threads@0.4.14)
       tsx:
         specifier: 4.23.15
         version: 4.23.15
@@ -1583,7 +1583,7 @@ importers:
         version: 2.9.0
       tsc-ts:
         specifier: 0.1.5
-        version: 0.1.5(@scriptc/threads@0.4.13)
+        version: 0.1.5(@scriptc/threads@0.4.14)
       tsx:
         specifier: 4.23.15
         version: 4.23.15
@@ -3129,8 +3129,8 @@ packages:
   '@scriptc/runtime-win32-x64-msvc@0.4.13':
     resolution: {integrity: sha512-VrChWgkXtkFvpdRQRT3Yyc/PrfBmToRTuQtpRRwMhJAeO0DyyPoDMKwVEzuJfQmDt839A3Yi+kNdND1xtcgCGA==}
 
-  '@scriptc/threads@0.4.13':
-    resolution: {integrity: sha512-5F9215TlVByRepdZAm01DJFWdGCxERbjSoIVuM3rCsSlEIEQuWZKRtufoCPz5ncqDUcLmE0DdSbqTJKE6m+XeQ==}
+  '@scriptc/threads@0.4.14':
+    resolution: {integrity: sha512-iZZV9MdHLg1Jg+d3MfTxb5lL6vRLikMkvXQ33lH7LbaNYlYyJPL27Zwc3tJPfRG4LZ4R/SG2ExFpap2IX2Wr8A==}
     engines: {node: '>=24.0.0'}
 
   '@sec-ant/readable-stream@0.4.1':
@@ -6269,7 +6269,7 @@ snapshots:
   '@scriptc/runtime-win32-x64-msvc@0.4.13':
     optional: true
 
-  '@scriptc/threads@0.4.13': {}
+  '@scriptc/threads@0.4.14': {}
 
   '@sec-ant/readable-stream@0.4.1': {}
 
@@ -8027,9 +8027,9 @@ snapshots:
     dependencies:
       lodash: 4.18.1
 
-  tsc-ts@0.1.5(@scriptc/threads@0.4.13):
+  tsc-ts@0.1.5(@scriptc/threads@0.4.14):
     optionalDependencies:
-      '@scriptc/threads': 0.4.13
+      '@scriptc/threads': 0.4.14
       '@tsc-ts/darwin-arm64': 0.1.5
       '@tsc-ts/darwin-x64': 0.1.5
       '@tsc-ts/linux-arm64-gnu': 0.1.5
