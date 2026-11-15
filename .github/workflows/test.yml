@@ -90,6 +90,7 @@ jobs:
         outputs:
             unit: ${{ steps.size.outputs.unit || '[1,2,3,4]' }}
             real_data: ${{ steps.size.outputs.real_data || '[1,2,3,4]' }}
+            bedrock_server: ${{ steps.size.outputs.bedrock_server || 'true' }}
         steps:
             # - uses: useblacksmith/checkout@v1
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -125,6 +126,10 @@ jobs:
                   real_data=$(wc -l < "$RUNNER_TEMP/real-data.txt")
                   echo "unit=$(shards "$unit" 300 unit)" >> "$GITHUB_OUTPUT"
                   echo "real_data=$(shards "$real_data" 15 real-data)" >> "$GITHUB_OUTPUT"
+                  # The Bedrock Dedicated Server suite runs when the diff reaches it, LevelDB included.
+                  mapfile -t bds < <(git grep -l "'bedrock-server'" -- ':(glob)**/*.test.*')
+                  bds_files=$(pnpm exec vitest list --filesOnly --changed="$BASE" "${bds[@]}" | wc -l)
+                  echo "bedrock_server=$([ "$bds_files" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
     # The unit suite runs in up to four shards, each on its own runner with a share of the test files.
     # Each shard writes a blob report holding its results and its coverage, and `tests` merges
@@ -489,6 +494,43 @@ jobs:
                   path: .vitest
                   include-hidden-files: true
                   retention-days: 1
+
+    # Suites tagged `bedrock-server` boot the pinned Bedrock Dedicated Server and check what we
+    # read and write against what it reads and writes, LevelDB first. They take minutes, so they
+    # run in this job of their own rather than in a real-data shard, on the same prepared data,
+    # whenever a pull request's diff reaches them and on every push to master.
+    bedrock-server:
+        name: 🧱 Bedrock Dedicated Server suites
+        needs: [changes, plan, real-data-setup]
+        if: ${{ needs.changes.outputs.code == 'true' && needs.plan.outputs.bedrock_server == 'true' }}
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        steps:
+            # - uses: useblacksmith/checkout@v1
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: Restore the prepared data
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ needs.real-data-setup.outputs.key }}
+                  fail-on-cache-miss: true
+
+            # Sets JSP_BDS_PATH, and fails when the server is missing rather than letting the suite
+            # skip.
+            - name: 🔑 Resolve the real-data environment
+              run: node scripts/real-data-env.mts --github-env
+
+            - name: 🧪 Test
+              env:
+                  JSP_BEDROCK_SERVER_TESTS: '1'
+              run: |
+                  mapfile -t files < <(git grep -l "'bedrock-server'" -- ':(glob)**/*.test.*')
+                  pnpm exec vitest run --tagsFilter='bedrock-server' "${files[@]}"
 
     # The one real-data result branch rules see: the shards merged into one set of results, one
     # JUnit file and one coverage report, uploaded to Codecov as the unit ones are.
