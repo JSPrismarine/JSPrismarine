@@ -1,23 +1,30 @@
-/** Verifies each mined block's item reaches the client before the next block is mined. */
+/**
+ * Verifies each mined block's item reaches the client before the next block is mined, and lies in
+ * the open rather than inside the block above it.
+ */
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
 import { lookTo, sleep, vec3 } from '../scenario.mts';
 
-/** Counts item actors visible to the client. */
-const itemActorCount = (state: Record<string, unknown>): number => {
+/** The item actors visible to the client. */
+const itemActors = (state: Record<string, unknown>): Record<string, unknown>[] => {
     const actors = state.actors;
     assert.ok(Array.isArray(actors), 'state.actors is an array');
 
     return actors.filter(
-        (actor) => typeof actor === 'object' && actor !== null && 'type' in actor && actor.type === 'minecraft:item'
-    ).length;
+        (actor): actor is Record<string, unknown> =>
+            typeof actor === 'object' && actor !== null && 'type' in actor && actor.type === 'minecraft:item'
+    );
 };
+
+/** Counts item actors visible to the client. */
+const itemActorCount = (state: Record<string, unknown>): number => itemActors(state).length;
 
 /** Checks each break on the live client before sending another mining action. */
 export const miningDrops: Scenario = {
     name: 'mining-drops',
-    description: 'each mined block drops an item before the following block is mined',
+    description: 'each mined block drops an item, below the block over it, before the following block is mined',
     run: async ({ server, client, log }) => {
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 120_000);
         const feet = vec3(await client.state(), 'feet');
@@ -39,6 +46,9 @@ export const miningDrops: Scenario = {
             }
             const previousDrops = 0;
             server.command(`setblock ${x} ${y - 1} ${z} minecraft:stone`);
+            // A ceiling, as in a tunnel or a vein: the drop pops upward into it, and used to be put
+            // on top of it, out of sight inside the wall until that block was mined too.
+            server.command(`setblock ${x} ${y + 1} ${z} minecraft:stone`);
             server.command(`setblock ${x} ${y} ${z} ${block}`);
             await sleep(250);
 
@@ -64,6 +74,13 @@ export const miningDrops: Scenario = {
                 visibleDrops > previousDrops,
                 `mining ${block} produced ${visibleDrops - previousDrops} visible item actors before the next block`
             );
+
+            // Long enough for the upward pop to meet the ceiling and the drop to fall back.
+            await sleep(1_000);
+            for (const drop of itemActors(await client.state())) {
+                const [, dropY] = vec3(drop, 'position');
+                assert.ok(dropY < y + 1, `the ${block} drop is at y ${dropY}, inside the ceiling at ${y + 1}`);
+            }
         }
 
         log('each block produced a visible item before the next break');
