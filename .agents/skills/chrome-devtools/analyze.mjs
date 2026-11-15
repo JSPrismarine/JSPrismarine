@@ -16,7 +16,8 @@ const DEFAULT_CATEGORIES = join(dirname(fileURLToPath(import.meta.url)), 'catego
 const HELP = `Usage: ${SCRIPT} <command> <profile> [options]
 
 <profile> is a .cpuprofile file or a capture directory from profile.mjs, which reads its
-main.cpuprofile (or, with --thread workers, every worker-N.cpuprofile merged).
+main.cpuprofile (or, with --thread workers, every worker-N.cpuprofile merged). stretches follows
+one thread's timeline, so with several worker profiles it needs one worker-N.cpuprofile file.
 
 Commands:
   summary <profile>              Busy, idle and GC shares, then the top functions by self and
@@ -163,6 +164,47 @@ export const readProfile = (file, { lines = true } = {}) => {
     };
 };
 
+/**
+ * Several profiles read as one for reports that add up sampled time: node IDs become
+ * `<profile index>:<node ID>`, and samples, totals and gaps are summed. The span is the longest
+ * profile's, since worker threads sample side by side. The result has no `raw` or `weights`,
+ * because the profiles' timelines do not interleave into one.
+ */
+export const mergeProfiles = (profiles) => {
+    if (profiles.length === 1) return profiles[0];
+    const owners = new Map();
+    const counts = new Map();
+    const label = new Map();
+    profiles.forEach((profile, index) => {
+        for (const [id, count] of profile.counts) {
+            const key = `${index}:${id}`;
+            owners.set(key, [profile, id]);
+            counts.set(key, count);
+            label.set(key, profile.label.get(id));
+        }
+    });
+    const sum = (read) => profiles.reduce((total, profile) => total + read(profile), 0);
+    return {
+        file: profiles.map((profile) => profile.file).join(', '),
+        profiles: profiles.length,
+        label,
+        counts,
+        stack: (key) => {
+            const [profile, id] = owners.get(key);
+            return profile.stack(id);
+        },
+        isIdle: (key) => {
+            const [profile, id] = owners.get(key);
+            return profile.isIdle(id);
+        },
+        samples: sum((profile) => profile.samples),
+        total: sum((profile) => profile.total),
+        idle: sum((profile) => profile.idle),
+        gaps: { count: sum((profile) => profile.gaps.count), us: sum((profile) => profile.gaps.us) },
+        spanMs: profiles.reduce((longest, profile) => Math.max(longest, profile.spanMs), 0)
+    };
+};
+
 /** Sampled time with each function as the leaf frame. */
 export const selfCounts = (profile) => {
     const result = new Map();
@@ -247,8 +289,9 @@ const overviewLine = (profile) => {
     const shares = ['(idle)', '(program)', '(garbage collector)']
         .map((name) => `${name} ${percent(self.get(name) ?? 0, profile.total)}%`)
         .join('  ');
+    const merged = profile.profiles > 1 ? `${profile.profiles} profiles merged, ` : '';
     return (
-        `${profile.samples} samples over ${(profile.spanMs / 1000).toFixed(1)} s, busy ${percent(profile.total - profile.idle, profile.total)}%  ${shares}\n` +
+        `${merged}${profile.samples} samples over ${(profile.spanMs / 1000).toFixed(1)} s, busy ${percent(profile.total - profile.idle, profile.total)}%  ${shares}\n` +
         `sampling gaps >= ${GAP_US / 1000} ms: ${profile.gaps.count}, ${(profile.gaps.us / 1000).toFixed(0)} ms in total`
     );
 };
@@ -344,8 +387,12 @@ const stacks = (profile, pattern, { depth, top }) => {
     }
 };
 
-const categoriesReport = (profile, categories, minMs) => {
-    const counts = categoryCounts(profile, categories, minMs);
+/** Busy time by category, added up across the profiles. */
+const categoriesReport = (profiles, categories, minMs) => {
+    const counts = new Map();
+    for (const profile of profiles) {
+        for (const [name, count] of categoryCounts(profile, categories, minMs)) add(counts, name, count);
+    }
     const sum = [...counts.values()].reduce((total, count) => total + count, 0);
     console.log(minMs > 0 ? `Busy time in stretches >= ${minMs} ms, by category` : 'Busy time by category');
     for (const [name, count] of ranked(counts)) {
@@ -537,28 +584,34 @@ const main = () => {
     const needs = (count, usage) => {
         if (args.length !== count) throw new Error(`usage: ${SCRIPT} ${command} ${usage}`);
     };
-    const one = () => {
+    const profiles = () =>
+        profileFiles(args[0], values.thread).map((file) => readProfile(file, { lines: values.lines ?? true }));
+    /** The profile for reports that add up sampled time: worker profiles merge into one. */
+    const merged = () => mergeProfiles(profiles());
+    /** The profile for a report that follows one thread's timeline. */
+    const timeline = () => {
         const files = profileFiles(args[0], values.thread);
-        if (files.length > 1)
-            console.log(`(reading ${files[0]}; compare merges worker profiles, other commands read one)`);
+        if (files.length > 1) {
+            throw new Error(`${command} follows one thread's timeline; pass one profile file, such as ${files[0]}`);
+        }
         return readProfile(files[0], { lines: values.lines ?? true });
     };
 
     switch (command) {
         case 'summary':
             needs(1, '<profile>');
-            summary(one(), { top: number('top', 40), filter });
+            summary(merged(), { top: number('top', 40), filter });
             break;
         case 'functions': {
             needs(1, '<profile>');
-            const profile = one();
+            const profile = merged();
             const counts = values.by === 'self' ? selfCounts(profile) : inclusiveCounts(profile);
             printRanked(counts, profile.total, { top: number('top', 40), filter });
             break;
         }
         case 'stretches':
             needs(1, '<profile>');
-            stretchesReport(one(), {
+            stretchesReport(timeline(), {
                 minMs: number('min-ms', 25),
                 top: number('top', 15),
                 show: number('show', 5),
@@ -567,19 +620,19 @@ const main = () => {
             break;
         case 'subtree':
             needs(2, '<profile> <regex>');
-            subtree(one(), new RegExp(args[1]), { top: number('top', 30) });
+            subtree(merged(), new RegExp(args[1]), { top: number('top', 30) });
             break;
         case 'callers':
             needs(2, '<profile> <regex>');
-            callers(one(), new RegExp(args[1]), { depth: number('depth', 3), top: number('top', 15) });
+            callers(merged(), new RegExp(args[1]), { depth: number('depth', 3), top: number('top', 15) });
             break;
         case 'stacks':
             needs(2, '<profile> <regex>');
-            stacks(one(), new RegExp(args[1]), { depth: number('depth', 14), top: number('top', 8) });
+            stacks(merged(), new RegExp(args[1]), { depth: number('depth', 14), top: number('top', 8) });
             break;
         case 'categories':
             needs(1, '<profile>');
-            categoriesReport(one(), readCategories(values.categories), number('min-ms', 0));
+            categoriesReport(profiles(), readCategories(values.categories), number('min-ms', 0));
             break;
         case 'compare':
             needs(2, '<a> <b>');
