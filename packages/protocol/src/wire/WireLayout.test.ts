@@ -134,6 +134,17 @@ describe('a wire layout', () => {
         });
     });
 
+    it.each([true, false])('gives each decoded payload its own absent list (compiled: %s)', (useCompiler) => {
+        const definition = definePacket('LaterListPacket', {
+            later: gated<number[]>(since(9999, 'a version nothing speaks yet'), t.list(t.varuint32), [])
+        });
+        const layout = layoutAt(definition, PROTOCOL_2225, useCompiler);
+
+        layout.decode(new BinaryStream(Buffer.alloc(0))).later.push(1);
+
+        expect(layout.decode(new BinaryStream(Buffer.alloc(0))).later).toEqual([]);
+    });
+
     it('round-trips the combinators', () => {
         const spec = definePacket('CombinatorPacket', {
             names: t.list(t.string),
