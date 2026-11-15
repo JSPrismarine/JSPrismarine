@@ -175,6 +175,56 @@
                 "minecraftVersion": "1.26.40",
                 "networkProtocolVersion": 2168
             }
+        },
+        "2259": {
+            "$comment": [
+                "Minecraft Preview 1.26.70.24, BDS preview 1.26.70.24: a preview protocol. The server",
+                "negotiates it but advertises the newest release, and it is replaced, not kept beside, when",
+                "the next preview or the 1.26.70 release lands. Like 2225 it has no `blocks` entry: the",
+                "palette is captured from the BDS preview and that capture does not reproduce yet.",
+                "",
+                "See `docs/research/protocol-2259-delta.md` for what 2259 changed on the wire."
+            ],
+            "schemas": {
+                "$comment": [
+                    "The 1.26.70-preview.24 schemas. They carry `x-enum-binary-value` themselves, so `values`",
+                    "points back at the same asset. The release tag says `preview`; every schema inside",
+                    "declares `x-protocol-version` 2259, which is what decides.",
+                    "",
+                    "sha256 measured on download, 2026-11-15."
+                ],
+                "repo": "Mojang/bedrock-protocol-docs",
+                "release": "v1.26.70-preview.24",
+                "asset": "metadata.zip",
+                "sha256": "25894ed1d026410cf504b9cae9703068368424ca819c9af73d72c6fd9229ccc4",
+                "minecraftVersion": "1.26.70.24",
+                "networkProtocolVersion": 2259,
+                "values": {
+                    "release": "v1.26.70-preview.24",
+                    "asset": "metadata.zip",
+                    "sha256": "25894ed1d026410cf504b9cae9703068368424ca819c9af73d72c6fd9229ccc4",
+                    "networkProtocolVersion": 2259
+                },
+                "schemaNames": {
+                    "SharedTypes::Legacy::LevelSoundEvent": "LevelSoundEvent",
+                    "SetTitlePacket::TitleType": "SetTitlePacket_TitleType"
+                }
+            },
+            "source": {
+                "$comment": [
+                    "The same frozen 1.26.40 `enums.html` 2193 reads, for the same six enums no release",
+                    "ships a schema for. It is not a 1.26.60 document and there will not be one: Mojang",
+                    "stopped publishing `enums.html` after 1.26.40. Any enum filled from here is a 1.26.40",
+                    "answer carried forward, which is recorded in the generated file's `Source:` line."
+                ],
+                "repo": "Mojang/bedrock-protocol-docs",
+                "ref": "0e00fe80f4f3c71572ff6429de40146d1f4412fc",
+                "branch": "automated/1.26.40",
+                "path": "html/enums.html",
+                "sha256": "9b293f41d51947868cb84035eea46cc371e53271c57fbb5400c52d4b8605eb70",
+                "minecraftVersion": "1.26.40",
+                "networkProtocolVersion": 2168
+            }
         }
     },
     "thresholds": {
