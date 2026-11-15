@@ -2,6 +2,7 @@
 import { createInterface } from 'node:readline';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { isRecord, messageText, waitForOpen } from './cdpClient.mjs';
 
 const HELP = `Usage:
   node .agents/skills/chrome-devtools/cdp.mjs connect --url <inspector-ws-url>
@@ -14,8 +15,6 @@ call sends one request and exits after its response. Use connect for debugger se
 Use saveTo in connect requests, or --output with call, to save command results and profiles.
 The call timeout defaults to 30 seconds; --timeout-ms 0 waits without a timeout.
 `;
-
-const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 const writeJson = (value) => process.stdout.write(`${JSON.stringify(value)}\n`);
 
@@ -91,43 +90,6 @@ const parseArguments = () => {
     }
 
     return { mode, endpoint, method, params, timeoutMs, outputPath };
-};
-
-const waitForOpen = (socket) =>
-    new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-            socket.close(1000, 'connection timed out');
-            finish(new Error('Timed out connecting to the inspector WebSocket'));
-        }, 10_000);
-        const cleanup = () => {
-            clearTimeout(timer);
-            socket.removeEventListener('open', onOpen);
-            socket.removeEventListener('error', onError);
-            socket.removeEventListener('close', onClose);
-        };
-        const finish = (error) => {
-            cleanup();
-            if (error) reject(error);
-            else resolve();
-        };
-        const onOpen = () => finish();
-        const onError = () => finish(new Error('Could not connect to the inspector WebSocket'));
-        const onClose = ({ code, reason }) =>
-            finish(new Error(`Inspector WebSocket closed before connecting (${code}: ${reason})`));
-
-        socket.addEventListener('open', onOpen, { once: true });
-        socket.addEventListener('error', onError, { once: true });
-        socket.addEventListener('close', onClose, { once: true });
-    });
-
-const messageText = async (data) => {
-    if (typeof data === 'string') return data;
-    if (data instanceof ArrayBuffer) return Buffer.from(data).toString('utf8');
-    if (ArrayBuffer.isView(data)) {
-        return Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString('utf8');
-    }
-    if (data instanceof Blob) return data.text();
-    throw new Error('Inspector sent an unsupported WebSocket message');
 };
 
 const saveArtifact = async (outputPath, method, response, snapshotChunks = []) => {
