@@ -767,6 +767,7 @@ export class EntityRuntime implements EntityScene {
             tick: () => this.store.tick,
             blockAt: (at) => this.world.blocks.get(at),
             runtimeIdAt: (at) => this.world.blocks.runtimeIdAt?.(at),
+            collisionAt: (at) => this.navigation().collisionAt(at),
             levelEvent: (at, event, data) => this.host.levelEvent?.(at, event, data),
             damage: (intent) => this.damage(intent),
             heal: (id, amount) => this.heal(id, amount),
