@@ -7,6 +7,8 @@ import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
 import type { ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
 import { DEFAULT_WORLD_PRESET } from './normalizeWorldData';
 import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
+import { DEFAULT_FLUID_REPLACEMENT } from '../content/world/fluidReplacement';
+import type { FluidReplacement } from '../content/world/fluidReplacement';
 
 import { Difficulty, getGametypeName, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 
@@ -73,6 +75,8 @@ const COMMENTS = {
     'proximity-broadcast': 'Whether positional packets only go to players near them. Turn off only to debug.',
     'server-authoritative-block-breaking':
         'Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client.',
+    'fluid-replacement':
+        "Which edition decides what flowing water and lava wash away: java follows Java's #minecraft:washed_away_by_fluids tag and keeps out of waterloggable blocks, bedrock follows each block's Bedrock liquid reaction.",
     'entity-tracking-hysteresis': "Chunks past view distance before an entity leaves a player's screen.",
     'entity-tracking-interval': 'Ticks between entity visibility passes, at least 1.',
     'online-mode': 'Whether players must be signed in to Xbox Live.',
@@ -159,6 +163,7 @@ const DEFAULTS = {
     'chunk-send-budget-ms': 5,
     'proximity-broadcast': true,
     'server-authoritative-block-breaking': true,
+    'fluid-replacement': DEFAULT_FLUID_REPLACEMENT,
     'entity-tracking-hysteresis': 2,
     'entity-tracking-interval': 4,
     'online-mode': true,
@@ -260,6 +265,7 @@ export class Config {
     private chunkSendBudgetMs: number = DEFAULTS['chunk-send-budget-ms'];
     private proximityBroadcast: boolean = DEFAULTS['proximity-broadcast'];
     private serverAuthoritativeBlockBreaking: boolean = DEFAULTS['server-authoritative-block-breaking'];
+    private fluidReplacement: string = DEFAULTS['fluid-replacement'];
     private entityTrackingHysteresis: number = DEFAULTS['entity-tracking-hysteresis'];
     private entityTrackingInterval: number = DEFAULTS['entity-tracking-interval'];
     private onlineMode: boolean = DEFAULTS['online-mode'];
@@ -385,6 +391,7 @@ export class Config {
             'server-authoritative-block-breaking',
             DEFAULTS['server-authoritative-block-breaking']
         );
+        this.fluidReplacement = read('fluid-replacement', DEFAULTS['fluid-replacement']);
         this.entityTrackingHysteresis = read('entity-tracking-hysteresis', DEFAULTS['entity-tracking-hysteresis']);
         this.entityTrackingInterval = read('entity-tracking-interval', DEFAULTS['entity-tracking-interval']);
         this.onlineMode = read('online-mode', DEFAULTS['online-mode']);
@@ -699,6 +706,24 @@ export class Config {
      */
     public getServerAuthoritativeBlockBreaking(): boolean {
         return this.serverAuthoritativeBlockBreaking;
+    }
+
+    /**
+     * Which edition decides what a flowing fluid destroys.
+     *
+     * `java`, the default, follows Java 26.3's `FlowingFluid.canHoldFluid`: a fluid washes away
+     * what `#minecraft:washed_away_by_fluids` lists and keeps out of every waterloggable block.
+     * `bedrock` follows each block's Bedrock `liquidReactionOnTouch`. Any other value is treated
+     * as the default.
+     *
+     * @returns `java` or `bedrock`
+     */
+    public getFluidReplacement(): FluidReplacement {
+        return this.fluidReplacement === 'bedrock'
+            ? 'bedrock'
+            : this.fluidReplacement === 'java'
+              ? 'java'
+              : DEFAULT_FLUID_REPLACEMENT;
     }
 
     /**

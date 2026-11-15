@@ -166,8 +166,16 @@ const isFullCube = (world: WorldActions, block: HookBlock | undefined): boolean 
 const canPassThroughWall = (world: WorldActions, from: BlockPosition, to: BlockPosition): boolean =>
     !isFullCube(world, world.getBlock(from)) && !isFullCube(world, world.getBlock(to));
 
+/** What a fluid does to a block, by the host's rule when it has one and Bedrock's data otherwise. */
+const liquidReaction = (world: WorldActions, block: HookBlock) =>
+    world.liquidReactionOf?.(block) ?? bedrockLiquidReactionOf(block.identifier);
+
 /** Whether a fluid is allowed to occupy a block's cell. */
-const canFluidOccupy = (block: HookBlock | undefined): boolean => block !== undefined && isWashedAway(block.identifier);
+const canFluidOccupy = (world: WorldActions, block: HookBlock | undefined): boolean => {
+    if (block === undefined) return false;
+    const reaction = liquidReaction(world, block);
+    return reaction !== undefined && reaction !== 'blocking';
+};
 
 /** Whether the fluid already at a position can be replaced from this direction. */
 const canBeReplacedWith = (
@@ -237,13 +245,15 @@ const canMaybePassThrough = (
     to: BlockPosition,
     kind: LiquidState['kind']
 ): boolean =>
-    !isSourceBlockOf(world, to, kind) && canFluidOccupy(world.getBlock(to)) && canPassThroughWall(world, from, to);
+    !isSourceBlockOf(world, to, kind) &&
+    canFluidOccupy(world, world.getBlock(to)) &&
+    canPassThroughWall(world, from, to);
 
 /** Whether fluid at this position has an opening to fall through. */
 const isHole = (world: WorldActions, at: BlockPosition, kind: LiquidState['kind']): boolean => {
     const belowAt = offset(at, 'down');
     if (!canPassThroughWall(world, at, belowAt)) return false;
-    return fluidAt(world, belowAt)?.kind === kind || canFluidOccupy(world.getBlock(belowAt));
+    return fluidAt(world, belowAt)?.kind === kind || canFluidOccupy(world, world.getBlock(belowAt));
 };
 
 /** Searches sideways for the nearest hole, without doubling back. */
@@ -368,7 +378,7 @@ const spreadTo = (
     }
 
     if (existing !== undefined && !isAir(existing.identifier) && !isLiquid(existing.identifier)) {
-        const reaction = bedrockLiquidReactionOf(existing.identifier);
+        const reaction = liquidReaction(world, existing);
         const rolled = world.destroyBlock?.(at, { drops: reaction !== 'broken' }) ?? false;
         if (reaction === 'popped' && !rolled) world.dropItem(at, { identifier: existing.identifier, count: 1 });
     }
@@ -443,7 +453,7 @@ export interface SpreadResult {
 /** Whether a fluid can replace a block at a new depth. */
 export const canFlowInto = (world: WorldActions, position: BlockPosition, liquid: string, depth: number): boolean => {
     const block = world.getBlock(position);
-    if (!canFluidOccupy(block) || block === undefined) return false;
+    if (block === undefined || !canFluidOccupy(world, block)) return false;
     const existing = liquidStateOf(block);
     if (existing === undefined) return true;
     if (isLava(liquid) !== (existing.kind === 'lava')) return true;

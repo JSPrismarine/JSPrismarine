@@ -131,6 +131,8 @@ export interface ConfigFile {
     'proximity-broadcast'?: boolean;
     /** Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client. */
     'server-authoritative-block-breaking'?: boolean;
+    /** Which edition decides what flowing water and lava wash away. */
+    'fluid-replacement'?: 'java' | 'bedrock';
     /** Chunks past view distance before an entity leaves a player's screen. @minimum 0 */
     'entity-tracking-hysteresis'?: number;
     /** Ticks between entity visibility passes. @asType integer @minimum 1 */
@@ -211,6 +213,7 @@ export const CONFIG_KEY_ORDER = [
     'chunk-send-budget-ms',
     'proximity-broadcast',
     'server-authoritative-block-breaking',
+    'fluid-replacement',
     'entity-tracking-hysteresis',
     'entity-tracking-interval',
     'online-mode',

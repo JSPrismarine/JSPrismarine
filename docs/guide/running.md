@@ -372,7 +372,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->38<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->39<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
@@ -396,6 +396,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `chunk-send-budget-ms`                | How long each tick may spend sending chunks, out of its 50 ms.                                                                                                                                                                                                                                                                                      |
 | `proximity-broadcast`                 | Whether positional packets only go to players near them. Turn off only to debug.                                                                                                                                                                                                                                                                    |
 | `server-authoritative-block-breaking` | Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client.                                                                                                                                                                                                                                           |
+| `fluid-replacement`                   | Which edition decides what flowing water and lava wash away: java follows Java's #minecraft:washed_away_by_fluids tag and keeps out of waterloggable blocks, bedrock follows each block's Bedrock liquid reaction.                                                                                                                                  |
 | `entity-tracking-hysteresis`          | Chunks past view distance before an entity leaves a player's screen.                                                                                                                                                                                                                                                                                |
 | `entity-tracking-interval`            | Ticks between entity visibility passes, at least 1.                                                                                                                                                                                                                                                                                                 |
 | `online-mode`                         | Whether players must be signed in to Xbox Live.                                                                                                                                                                                                                                                                                                     |
