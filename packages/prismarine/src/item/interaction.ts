@@ -32,7 +32,6 @@ import { blockFromContent } from '../block/Block';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { showEnchantingTable } from '../enchantment/enchantingTable';
 import { blockContainerOf } from '../inventory/blockContainers';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { isRespawnBlock, respawnBlockWorksIn } from '../world/RespawnPoint';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { fillContainerLoot } from '../inventory/containerLoot';
@@ -342,22 +341,6 @@ const placeBlock = (
 };
 
 /**
- * Writes a count into the hand slot.
- *
- * Through {@link Item.withCount}, so what is left keeps the stack network id the client knows it
- * by. A count of zero empties the slot rather than leaving an entry of nothing in it.
- */
-const setHeldCount = (player: InteractingPlayer, count: number): void => {
-    const inventory = player.getInventory();
-    const slot = inventory.getHandSlotIndex();
-    const held = inventory.getEntry(slot);
-    if (held === null) return;
-
-    if (count > 0) inventory.setItemInHand(new ContainerEntry({ item: held.getItem().withCount(count), count }));
-    else inventory.removeItem(slot);
-};
-
-/**
  * Puts the stack a behavior handed back into the hand, for a result that names the item held.
  *
  * This is the one carry-back for every hook result: without it bone meal, a fire charge, a spawn
@@ -366,7 +349,7 @@ const setHeldCount = (player: InteractingPlayer, count: number): void => {
 const putBackStack = (player: InteractingPlayer, stack: ItemStack | undefined): void => {
     const held = player.getInventory().getItemInHand();
     if (stack === undefined || stack.identifier !== held.getName()) return;
-    setHeldCount(player, stack.count);
+    player.getInventory().setHandCount(stack.count);
 };
 
 /** Sends a player their inventory, without holding up the click that changed it. */
@@ -384,7 +367,7 @@ const spendHeldItem = (player: InteractingPlayer): void => {
     const inventory = player.getInventory();
     const held = inventory.getEntry(inventory.getHandSlotIndex());
     if (held === null) return;
-    setHeldCount(player, held.getCount() - 1);
+    inventory.setHandCount(held.getCount() - 1);
 };
 
 /**

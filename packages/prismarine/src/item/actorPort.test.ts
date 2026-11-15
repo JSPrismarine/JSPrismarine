@@ -270,6 +270,48 @@ describe('the item actor port', () => {
         expect(inventory.getItemInHand().getDurability()).toBe(shears.getMaxDurability() - 3);
     });
 
+    const feeding = (count: number) => {
+        const recorded = recording();
+        const inventory = new HumanInventory();
+        inventory.setItem(
+            0,
+            new ContainerEntry({ item: new Item({ name: 'minecraft:wheat' }).withCount(count), count })
+        );
+        const player = sessionOnPrototype(
+            {
+                getPosition: () => Position.fromVector3(new Vector3(1.5, 65, 1.5), stub<World>()),
+                gamemode: Gametype.SURVIVAL,
+                getInventory: () => inventory,
+                getServer: () => stub<Server>({ getContent: () => testContent() })
+            },
+            { runtimeId: 7n, actor: { getPosition: () => new Vector3(1.5, 65, 1.5) } }
+        );
+        const port = createItemActorPort({
+            world: () => worldDouble(player, recorded, stub<StoreActor>()),
+            entities: entityAccess(),
+            level: clock(),
+            interactWithEntity: () => ({ accepted: true, consumeItem: true })
+        });
+        port.duringInteraction(SOURCE, { identifier: 'minecraft:cow', runtimeId: 9 }, () =>
+            port.interactWithEntity(SOURCE)
+        );
+        return inventory;
+    };
+
+    it('empties the hand when an interaction uses its last item', () => {
+        const inventory = feeding(1);
+
+        expect(inventory.isEmpty(0)).toBe(true);
+    });
+
+    it('gives the stack left after an interaction the count its slot holds', () => {
+        const inventory = feeding(3);
+
+        expect(inventory.getEntry(0)?.getCount()).toBe(2);
+        // The wire writes the item's own count, so the two have to agree.
+        expect(inventory.getItemInHand().getAmount()).toBe(2);
+    });
+
     it('wears the held tool by writing a worn copy into the hand slot', () => {
         const recorded = recording();
         const inventory = new HumanInventory();
