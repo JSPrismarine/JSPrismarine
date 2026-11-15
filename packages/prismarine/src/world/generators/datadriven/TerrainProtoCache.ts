@@ -16,8 +16,9 @@ const RECORD_MAGIC = 'jsprismarine-terrain-proto';
 // Bump when the record header or serialized region shape changes. 2: a tile carries the fluid
 // ticks its terrain marked, which a record written before had dropped.
 const RECORD_SCHEMA_VERSION = 2;
-// Bump when the terrain status algorithm changes without a record-shape change.
-const GENERATOR_VERSION = 1;
+// Bump when the terrain status algorithm changes without a record-shape change. 2: a carver
+// leaves an aquifer barrier where it is, where a tile written before had opened it.
+const GENERATOR_VERSION = 2;
 const STATUS = 'terrain';
 const CACHE_FILE = /^terrain-[a-f0-9]{64}\.bin$/;
 // Writes between full directory scans. Between them the budget is tracked in memory, since
