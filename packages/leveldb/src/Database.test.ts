@@ -15,12 +15,16 @@ import { VersionSet } from './db/VersionSet';
 import { TableBuilder } from './format/TableBuilder';
 import {
     ValueType,
+    compareInternalKeys,
     encodeInternalKey,
     extractUserKey,
     findShortInternalSuccessor,
     findShortestInternalSeparator
 } from './format/InternalKey';
 import { tableFileName } from './util/FileNames';
+import { FOOTER_LENGTH, decodeFooter } from './format/Footer';
+import { BlockReader } from './format/BlockReader';
+import { decompress } from './compression/Compression';
 import type { FileMetaData } from './db/VersionEdit';
 
 /**
@@ -487,6 +491,41 @@ describe('leveldb', () => {
                 await reader.close();
 
                 expect(fs.existsSync(path.join(directory, '009999.ldb'))).toBe(true);
+            });
+
+            it('reads tables written at another block size, and rewrites them at its own', async () => {
+                const directory = scratch();
+                const keys = chunkKeys(200);
+                const small = await Database.open(directory, { blockSize: 512 });
+                for (const [i, k] of keys.entries()) small.put(k, Buffer.alloc(64, i));
+                await small.close();
+
+                const dataBlocks = (): number[] =>
+                    fs
+                        .readdirSync(directory)
+                        .filter((name) => name.endsWith('.ldb'))
+                        .map((name) => {
+                            const table = fs.readFileSync(path.join(directory, name));
+                            const { indexHandle } = decodeFooter(table.subarray(table.byteLength - FOOTER_LENGTH));
+                            const type = table.readUInt8(indexHandle.offset + indexHandle.size);
+                            const index = decompress(
+                                type === CompressionType.ZlibRaw ? CompressionType.ZlibRaw : CompressionType.None,
+                                table.subarray(indexHandle.offset, indexHandle.offset + indexHandle.size)
+                            );
+                            return [...new BlockReader(index, compareInternalKeys).entries()].length;
+                        });
+                expect(dataBlocks()).toEqual([expect.any(Number)]);
+                expect(dataBlocks()[0]).toBeGreaterThan(10);
+
+                const reopened = await Database.open(directory, { l0CompactionTrigger: 1 });
+                for (const [i, k] of keys.entries()) expect(reopened.get(k)).toEqual(Buffer.alloc(64, i));
+                reopened.put(key('zzz'), key('v'));
+                await reopened.flush();
+
+                // Every table a compaction wrote holds its few KiB in one block of the default size.
+                expect(dataBlocks().every((blocks) => blocks === 1)).toBe(true);
+                expect([...reopened.keys()]).toHaveLength(201);
+                await reopened.close();
             });
 
             it('keeps deletions across a reopen', async () => {
