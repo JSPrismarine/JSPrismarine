@@ -7,8 +7,9 @@
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/level-sound-event-packet/
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/stop-sound-packet/
  */
-import { definePacket } from '../define';
+import { definePacket, gated } from '../define';
 import * as t from '../fieldTypes';
+import { SINCE_2259 } from '../wireGates';
 
 import type { PayloadOf } from '../define';
 import type { Vec3Like } from '../fieldTypes';
@@ -50,7 +51,14 @@ export const playSoundPacket = definePacket('PlaySoundPacket', {
     /** `Server Sound Handle`: optional little-endian uint64 for a later stop request. */
     soundHandle: t.optional(t.lu64),
     /** `Playback Position Seconds`: optional starting point inside the sound. */
-    playbackPositionSeconds: t.optional(t.lf32)
+    playbackPositionSeconds: t.optional(t.lf32),
+    /** `Start Delay Seconds` from protocol 2259: an optional wait before the sound starts. */
+    startDelaySeconds: gated<number | null>(SINCE_2259, t.optional(t.lf32), null),
+    /**
+     * `Attach Options` from protocol 2259: an optional `SoundAttachOptions`, whose one field is
+     * the runtime id of the actor the sound follows.
+     */
+    attachToActorRuntimeId: gated<bigint | null>(SINCE_2259, t.optional(t.varuint64), null)
 });
 
 /** Plays a named sound at a position with volume, pitch, and optional playback controls. */

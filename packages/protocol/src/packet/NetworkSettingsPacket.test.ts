@@ -11,7 +11,8 @@ const DATA: NetworkSettings = {
     compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
     clientThrottlingEnabled: true,
     clientThrottleThreshold: 200,
-    clientThrottleScalar: 0.5
+    clientThrottleScalar: 0.5,
+    sctpRecoveryProfile: 0
 };
 
 /** `DATA` on the wire, header byte included, in the order the docs list the fields. */

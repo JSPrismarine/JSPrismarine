@@ -79,6 +79,8 @@ export interface ServerJoinInformation {
     gathering?: GatheringJoinInfo;
     storeEntryPoint?: { storeId: string; storeName: string };
     presence?: { richPresenceId?: string };
+    /** `managedChat`, from protocol 2259: whether the world uses Mojang's managed chat service. */
+    managedChat?: { enabled: boolean };
 }
 
 /**

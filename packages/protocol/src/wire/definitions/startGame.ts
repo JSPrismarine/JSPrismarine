@@ -24,9 +24,9 @@
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 
 import { GameRuleType } from '../../packet/GameRuleType';
-import { definePacket, gated } from '../define';
+import { definePacket, gated, versioned } from '../define';
 import * as t from '../fieldTypes';
-import { SINCE_2225 } from '../wireGates';
+import { SINCE_2225, SINCE_2259, UNTIL_2259 } from '../wireGates';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type {
@@ -161,69 +161,84 @@ const readOptional = <T>(stream: BinaryStream, read: () => T): T | undefined =>
  * saying there is none, and each of the three parts is optional behind its own byte. Inside
  * `gatheringsConfig` the docs mark only `worldId`, `worldName`, `targetId`, `scenarioId` and
  * `serverId` optional; `experienceId`, `experienceName` and `creatorId` are always written.
+ *
+ * Protocol 2259 added a fourth optional part, `managedChat`, whose one `Enabled` boolean
+ * carries a default and so travels without a presence byte of its own; `carriesManagedChat`
+ * picks the layout.
  */
-const serverJoinInformation = t.custom<ServerJoinInformation | null>(
-    'optional<ServerJoinInformation>',
-    (stream, join) => {
-        stream.writeBoolean(join !== null);
-        if (join === null) return;
+const serverJoinInformationWith = (carriesManagedChat: boolean) =>
+    t.custom<ServerJoinInformation | null>(
+        carriesManagedChat ? 'optional<ServerJoinInformation[2259]>' : 'optional<ServerJoinInformation>',
+        (stream, join) => {
+            stream.writeBoolean(join !== null);
+            if (join === null) return;
 
-        stream.writeBoolean(join.gathering !== undefined);
-        if (join.gathering !== undefined) {
-            const gathering = join.gathering;
-            wireUuid.write(stream, gathering.experienceId);
-            t.string.write(stream, gathering.experienceName);
-            writeOptional(stream, gathering.worldId, (id) => wireUuid.write(stream, id));
-            writeOptional(stream, gathering.worldName, (name) => t.string.write(stream, name));
-            t.string.write(stream, gathering.creatorId);
-            writeOptional(stream, gathering.targetId, (id) => wireUuid.write(stream, id));
-            writeOptional(stream, gathering.scenarioId, (id) => t.string.write(stream, id));
-            writeOptional(stream, gathering.serverId, (id) => t.string.write(stream, id));
+            stream.writeBoolean(join.gathering !== undefined);
+            if (join.gathering !== undefined) {
+                const gathering = join.gathering;
+                wireUuid.write(stream, gathering.experienceId);
+                t.string.write(stream, gathering.experienceName);
+                writeOptional(stream, gathering.worldId, (id) => wireUuid.write(stream, id));
+                writeOptional(stream, gathering.worldName, (name) => t.string.write(stream, name));
+                t.string.write(stream, gathering.creatorId);
+                writeOptional(stream, gathering.targetId, (id) => wireUuid.write(stream, id));
+                writeOptional(stream, gathering.scenarioId, (id) => t.string.write(stream, id));
+                writeOptional(stream, gathering.serverId, (id) => t.string.write(stream, id));
+            }
+
+            stream.writeBoolean(join.storeEntryPoint !== undefined);
+            if (join.storeEntryPoint !== undefined) {
+                t.string.write(stream, join.storeEntryPoint.storeId);
+                t.string.write(stream, join.storeEntryPoint.storeName);
+            }
+
+            stream.writeBoolean(join.presence !== undefined);
+            if (join.presence !== undefined) {
+                writeOptional(stream, join.presence.richPresenceId, (id) => t.string.write(stream, id));
+            }
+
+            if (carriesManagedChat)
+                writeOptional(stream, join.managedChat, ({ enabled }) => t.bool.write(stream, enabled));
+        },
+        (stream) => {
+            if (!stream.readBoolean()) return null;
+
+            const join: ServerJoinInformation = {};
+            if (stream.readBoolean()) {
+                const experienceId = wireUuid.read(stream);
+                const experienceName = t.string.read(stream);
+                const worldId = readOptional(stream, () => wireUuid.read(stream));
+                const worldName = readOptional(stream, () => t.string.read(stream));
+                const creatorId = t.string.read(stream);
+                const targetId = readOptional(stream, () => wireUuid.read(stream));
+                const scenarioId = readOptional(stream, () => t.string.read(stream));
+                const serverId = readOptional(stream, () => t.string.read(stream));
+                const gathering: GatheringJoinInfo = { experienceId, experienceName, creatorId };
+                if (worldId !== undefined) gathering.worldId = worldId;
+                if (worldName !== undefined) gathering.worldName = worldName;
+                if (targetId !== undefined) gathering.targetId = targetId;
+                if (scenarioId !== undefined) gathering.scenarioId = scenarioId;
+                if (serverId !== undefined) gathering.serverId = serverId;
+                join.gathering = gathering;
+            }
+
+            if (stream.readBoolean()) {
+                join.storeEntryPoint = { storeId: t.string.read(stream), storeName: t.string.read(stream) };
+            }
+
+            if (stream.readBoolean()) {
+                join.presence = { richPresenceId: readOptional(stream, () => t.string.read(stream)) };
+            }
+
+            if (carriesManagedChat && stream.readBoolean()) join.managedChat = { enabled: t.bool.read(stream) };
+
+            return join;
         }
+    );
 
-        stream.writeBoolean(join.storeEntryPoint !== undefined);
-        if (join.storeEntryPoint !== undefined) {
-            t.string.write(stream, join.storeEntryPoint.storeId);
-            t.string.write(stream, join.storeEntryPoint.storeName);
-        }
-
-        stream.writeBoolean(join.presence !== undefined);
-        if (join.presence !== undefined) {
-            writeOptional(stream, join.presence.richPresenceId, (id) => t.string.write(stream, id));
-        }
-    },
-    (stream) => {
-        if (!stream.readBoolean()) return null;
-
-        const join: ServerJoinInformation = {};
-        if (stream.readBoolean()) {
-            const experienceId = wireUuid.read(stream);
-            const experienceName = t.string.read(stream);
-            const worldId = readOptional(stream, () => wireUuid.read(stream));
-            const worldName = readOptional(stream, () => t.string.read(stream));
-            const creatorId = t.string.read(stream);
-            const targetId = readOptional(stream, () => wireUuid.read(stream));
-            const scenarioId = readOptional(stream, () => t.string.read(stream));
-            const serverId = readOptional(stream, () => t.string.read(stream));
-            const gathering: GatheringJoinInfo = { experienceId, experienceName, creatorId };
-            if (worldId !== undefined) gathering.worldId = worldId;
-            if (worldName !== undefined) gathering.worldName = worldName;
-            if (targetId !== undefined) gathering.targetId = targetId;
-            if (scenarioId !== undefined) gathering.scenarioId = scenarioId;
-            if (serverId !== undefined) gathering.serverId = serverId;
-            join.gathering = gathering;
-        }
-
-        if (stream.readBoolean()) {
-            join.storeEntryPoint = { storeId: t.string.read(stream), storeName: t.string.read(stream) };
-        }
-
-        if (stream.readBoolean()) {
-            join.presence = { richPresenceId: readOptional(stream, () => t.string.read(stream)) };
-        }
-
-        return join;
-    }
+const serverJoinInformation = versioned(
+    [UNTIL_2259, serverJoinInformationWith(false)],
+    [SINCE_2259, serverJoinInformationWith(true)]
 );
 
 /** `Edu Shared Uri Resource`: a button name and a link uri. */

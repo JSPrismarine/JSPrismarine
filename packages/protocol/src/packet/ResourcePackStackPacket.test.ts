@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import Experiments from '../structure/Experiments';
-import { resourcePackStackPacket } from '../wire/definitions/resourcePacks';
+import { EditorPackType, resourcePackStackPacket } from '../wire/definitions/resourcePacks';
 import { layoutAt } from '../wire/WireLayout';
 import ResourcePackStackPacket from './ResourcePackStackPacket';
 
@@ -37,7 +37,7 @@ const ONE_PACK_ONE_EXPERIMENT_DATA: ResourcePackStack = {
     gameVersion: '*',
     experiments: [{ name: 'x', enabled: true }],
     experimentsAlreadyEnabled: true,
-    includeEditorPacks: false
+    editorPackTypes: EditorPackType.None
 };
 
 const EMPTY_STACK_DATA: ResourcePackStack = {
@@ -46,7 +46,7 @@ const EMPTY_STACK_DATA: ResourcePackStack = {
     gameVersion: '*',
     experiments: [],
     experimentsAlreadyEnabled: false,
-    includeEditorPacks: false
+    editorPackTypes: EditorPackType.None
 };
 
 const encode = (data: ResourcePackStack): Buffer =>
@@ -79,6 +79,28 @@ describe('ResourcePackStackPacket', () => {
 
         expect(data).toEqual(ONE_PACK_ONE_EXPERIMENT_DATA);
         expect(stream.feof()).toBe(true);
+    });
+
+    it('carries editor pack flags as a byte from protocol 2259, and as a boolean before it', () => {
+        const flags = EditorPackType.Core | EditorPackType.Annotation;
+        const at = (protocolVersion: number): Buffer => {
+            const stream = new NetworkBinaryStream();
+            layoutAt(resourcePackStackPacket, protocolVersion).encode(stream, {
+                ...EMPTY_STACK_DATA,
+                editorPackTypes: flags
+            });
+            return stream.getBuffer();
+        };
+
+        expect(at(2259).at(-1)).toBe(flags);
+        expect(at(2225).at(-1)).toBe(1);
+        expect(at(2259).byteLength).toBe(at(2225).byteLength);
+        expect(layoutAt(resourcePackStackPacket, 2259).decode(new NetworkBinaryStream(at(2259))).editorPackTypes).toBe(
+            flags
+        );
+        expect(layoutAt(resourcePackStackPacket, 2225).decode(new NetworkBinaryStream(at(2225))).editorPackTypes).toBe(
+            EditorPackType.Core
+        );
     });
 
     // Raw payloads a real Bedrock Dedicated Server sent, one per protocol version.

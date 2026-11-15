@@ -9,9 +9,10 @@
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/structure-block-update-packet/
  */
 import type { AnimationMode, Mirror, StructureRotation } from '../../structure/StructureSettings';
-import { definePacket } from '../define';
+import { definePacket, gated } from '../define';
 import * as t from '../fieldTypes';
 import { blockPosStructure, vec3Structure } from '../structureTypes';
+import { SINCE_2259 } from '../wireGates';
 
 import type { PayloadOf } from '../define';
 
@@ -102,7 +103,9 @@ export const structureBlockUpdatePacket = definePacket('StructureBlockUpdatePack
     /** `Trigger`: whether to run the structure block immediately. */
     trigger: t.bool,
     /** `Is Waterlogged`: whether placed blocks are waterlogged. */
-    isWaterlogged: t.bool
+    isWaterlogged: t.bool,
+    /** `KeepStructureVoid` from protocol 2259: whether a save keeps the structure void blocks. */
+    keepStructureVoid: gated(SINCE_2259, t.bool, false)
 });
 
 /** Payload carried by `StructureBlockUpdatePacket`. */

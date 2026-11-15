@@ -3,9 +3,10 @@
  * respawn progress. Field names and order follow each packet's docs page.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
-import { definePacket } from '../define';
+import { definePacket, gated } from '../define';
 import * as t from '../fieldTypes';
 import { vector3 } from '../structureTypes';
+import { SINCE_2259 } from '../wireGates';
 
 /** The `SetTimePacket` field list: the world tick as one ZigZag varint. */
 export const setTimePacket = definePacket('SetTimePacket', {
@@ -106,8 +107,20 @@ export const networkSettingsPacket = definePacket('NetworkSettingsPacket', {
     /** `Client Throttle Threshold`. */
     clientThrottleThreshold: t.uint8,
     /** `Client Throttle Scalar`. */
-    clientThrottleScalar: t.lf32
+    clientThrottleScalar: t.lf32,
+    /**
+     * `SCTP Recovery Profile` from protocol 2259: how quickly NetherNet's SCTP layer
+     * retransmits. A client rejects the packet without it, or with a value it does not know.
+     */
+    sctpRecoveryProfile: gated<SctpRecoveryProfile>(SINCE_2259, t.uint8, 0)
 });
+
+/** `SctpRecoveryProfile`, the uint8 `NetworkSettingsPacket` carries from protocol 2259. */
+export enum SctpRecoveryProfile {
+    Default = 0,
+    Fast = 1,
+    Balanced = 2
+}
 
 /** The `UpdateAdventureSettingsPacket` field list. */
 export const updateAdventureSettingsPacket = definePacket('UpdateAdventureSettingsPacket', {

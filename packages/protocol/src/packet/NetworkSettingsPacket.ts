@@ -1,6 +1,6 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import { networkSettingsPacket } from '../wire/definitions/worldStatus';
+import { networkSettingsPacket, SctpRecoveryProfile } from '../wire/definitions/worldStatus';
 import { layoutAt } from '../wire/WireLayout';
 
 import type { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
@@ -35,6 +35,11 @@ export interface NetworkSettings {
     clientThrottleThreshold: number;
     /** `Client Throttle Scalar`: how hard it throttles once it does. */
     clientThrottleScalar: number;
+    /**
+     * `SCTP Recovery Profile`, on the wire from protocol 2259. Omitted, it writes `Default`;
+     * read from an older protocol, it is `Default`.
+     */
+    sctpRecoveryProfile?: SctpRecoveryProfile;
 }
 
 /**
@@ -55,7 +60,10 @@ export default class NetworkSettingsPacket extends NetworkPacket<NetworkSettings
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: NetworkSettings): void {
-        layoutAt(networkSettingsPacket, this.codecProtocol).encode(stream, data);
+        layoutAt(networkSettingsPacket, this.codecProtocol).encode(stream, {
+            ...data,
+            sctpRecoveryProfile: data.sctpRecoveryProfile ?? SctpRecoveryProfile.Default
+        });
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): NetworkSettings {

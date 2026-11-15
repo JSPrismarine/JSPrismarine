@@ -59,3 +59,13 @@ export const UNTIL_2207_SUB_CHUNK_RESULTS = until(
     2207,
     'renumbered SubChunkRequestResult values at protocol 2207 (Minecraft 1.26.60-preview.21)'
 );
+
+/**
+ * Protocol 2259 (Minecraft Preview 1.26.70.24) appended or inserted fields; see
+ * `docs/research/protocol-2259-delta.md`. A gate is a lower bound, so the release that replaces
+ * this preview keeps every field it admits unless that release moves the field again.
+ */
+export const SINCE_2259 = since(2259, 'added at protocol 2259 (Minecraft Preview 1.26.70.24)');
+
+/** The other half of a layout change at 2259: the field as it travelled up to 2225. */
+export const UNTIL_2259 = until(2259, 'superseded at protocol 2259 (Minecraft Preview 1.26.70.24)');

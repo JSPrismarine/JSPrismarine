@@ -8,6 +8,12 @@ import {
     packetIds as packetIds2225,
     protocolVersion as protocolVersion2225
 } from './wire/versions/v2225';
+import {
+    minecraftVersions as minecraftVersions2259,
+    packetIds as packetIds2259,
+    preview as preview2259,
+    protocolVersion as protocolVersion2259
+} from './wire/versions/v2259';
 
 /** Metadata shared by every codec for one Bedrock protocol version. */
 export interface ProtocolVersionDefinition {
@@ -35,5 +41,11 @@ export const ProtocolVersions = {
         protocolVersion: protocolVersion2225,
         minecraftVersions: minecraftVersions2225,
         ids: packetIds2225
+    },
+    v2259: {
+        protocolVersion: protocolVersion2259,
+        minecraftVersions: minecraftVersions2259,
+        ids: packetIds2259,
+        preview: preview2259
     }
 } as const satisfies Record<string, ProtocolVersionDefinition>;

@@ -43,7 +43,8 @@ describe('CommandBlockUpdatePacket', () => {
             filteredName: '',
             trackOutput: true,
             tickDelay: 20,
-            executeOnFirstTick: false
+            executeOnFirstTick: false,
+            lastOutputIsRawMessage: false
         });
         expect(stream.feof()).toBe(true);
     });
@@ -77,7 +78,8 @@ describe('CommandBlockUpdatePacket', () => {
             filteredName: '',
             trackOutput: true,
             tickDelay: 20,
-            executeOnFirstTick: false
+            executeOnFirstTick: false,
+            lastOutputIsRawMessage: false
         });
 
         expect(packet.serialize(new NetworkBinaryStream())).toEqual(
@@ -102,7 +104,8 @@ describe('CommandBlockUpdatePacket at each supported protocol', () => {
             filteredName: '',
             trackOutput: false,
             tickDelay: -2,
-            executeOnFirstTick: true
+            executeOnFirstTick: true,
+            lastOutputIsRawMessage: false
         };
         const entity: CommandBlockUpdate = { ...block, target: { isBlock: false, targetRuntimeId: 300n } };
 

@@ -3,9 +3,10 @@
  *
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
-import { definePacket } from '../define';
+import { definePacket, versioned } from '../define';
 import * as t from '../fieldTypes';
 import { commandOriginData } from '../structureTypes';
+import { SINCE_2259, UNTIL_2259 } from '../wireGates';
 
 import type { PayloadOf } from '../define';
 import type { WireType } from '../fieldTypes';
@@ -83,11 +84,17 @@ export interface CommandOutputMessage {
 
     /** The values filled into the translation's placeholders. */
     parameters: string[];
+
+    /**
+     * `Raw Message` from protocol 2259: literal text the client shows as is. Absent, the client
+     * reads `messageId` as before; an earlier protocol never carries it.
+     */
+    rawMessage?: string;
 }
 
 const parameterList = t.list(t.string);
 
-/** `CommandOutputMessage`: the message id, whether it succeeded, and its placeholder values. */
+/** `CommandOutputMessage` before protocol 2259: the message id, whether it succeeded, and its placeholder values. */
 export const commandOutputMessage: WireType<CommandOutputMessage> = t.custom(
     'CommandOutputMessage',
     (stream, value) => {
@@ -100,6 +107,25 @@ export const commandOutputMessage: WireType<CommandOutputMessage> = t.custom(
         successful: t.bool.read(stream),
         parameters: parameterList.read(stream)
     })
+);
+
+const rawMessage = t.optional(t.string);
+
+/**
+ * `CommandOutputMessage` from protocol 2259: the earlier layout, then `Raw Message`, optional
+ * behind a presence byte.
+ */
+export const commandOutputMessage2259: WireType<CommandOutputMessage> = t.custom(
+    'CommandOutputMessage[2259]',
+    (stream, value) => {
+        commandOutputMessage.write(stream, value);
+        rawMessage.write(stream, value.rawMessage ?? null);
+    },
+    (stream) => {
+        const message = commandOutputMessage.read(stream);
+        const raw = rawMessage.read(stream);
+        return raw === null ? message : { ...message, rawMessage: raw };
+    }
 );
 
 /**
@@ -117,7 +143,10 @@ export const commandOutputPacket = definePacket('CommandOutputPacket', {
     /** `Success Count`: a function may run one command many times. */
     successCount: t.lu32,
     /** `Output Messages`: the lines to show, in order. */
-    outputMessages: t.list(commandOutputMessage),
+    outputMessages: versioned(
+        [UNTIL_2259, t.list(commandOutputMessage)],
+        [SINCE_2259, t.list(commandOutputMessage2259)]
+    ),
     /** `Data Set`: absent on all but a `DataSet` output. */
     dataSet: t.optional(t.string)
 });

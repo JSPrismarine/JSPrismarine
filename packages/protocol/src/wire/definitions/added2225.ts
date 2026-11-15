@@ -18,9 +18,10 @@
  *
  * @see `docs/research/protocol-2225-added-packets.md` for the provenance and the full tables.
  */
-import { definePacket } from '../define';
+import { definePacket, versioned } from '../define';
 import * as t from '../fieldTypes';
-import { passengerOfBlock } from '../structureTypes';
+import { passengerOfBlock, passengerOfBlock2259 } from '../structureTypes';
+import { SINCE_2259, UNTIL_2259 } from '../wireGates';
 
 import type { PayloadOf } from '../define';
 import type { WireType } from '../fieldTypes';
@@ -142,9 +143,14 @@ export interface PlaySoundPayload {
     serverSoundHandle: bigint | null;
     /** `Playback Position Seconds`, or `null` when absent. */
     playbackPositionSeconds: number | null;
+    /** `Start Delay Seconds` from protocol 2259; absent or `null` writes no delay. */
+    startDelaySeconds?: number | null;
+    /** `Attach Options` from protocol 2259: the runtime id of the actor the sound follows. */
+    attachToActorRuntimeId?: bigint | null;
 }
 
-const playSound: WireType<PlaySoundPayload> = t.custom(
+/** `PlaySoundPacketPayload` in the layout before protocol 2259, which lacks the last two fields. */
+const playSound2225: WireType<PlaySoundPayload> = t.custom(
     'PlaySoundPacketPayload',
     (stream, value) => {
         t.string.write(stream, value.name);
@@ -167,6 +173,26 @@ const playSound: WireType<PlaySoundPayload> = t.custom(
         playbackPositionSeconds: t.optional(t.lf32).read(stream)
     })
 );
+
+/**
+ * `PlaySoundPacketPayload` from protocol 2259: the 2225 layout, then `Start Delay Seconds` and
+ * `Attach Options`, each optional behind its own presence byte.
+ */
+const playSound2259: WireType<PlaySoundPayload> = t.custom(
+    'PlaySoundPacketPayload[2259]',
+    (stream, value) => {
+        playSound2225.write(stream, value);
+        t.optional(t.lf32).write(stream, value.startDelaySeconds ?? null);
+        t.optional(t.varuint64).write(stream, value.attachToActorRuntimeId ?? null);
+    },
+    (stream) => ({
+        ...playSound2225.read(stream),
+        startDelaySeconds: t.optional(t.lf32).read(stream),
+        attachToActorRuntimeId: t.optional(t.varuint64).read(stream)
+    })
+);
+
+const playSound = versioned([UNTIL_2259, playSound2225], [SINCE_2259, playSound2259]);
 
 /** The `ClientboundMatchmakingStatePacket` field list. */
 export const clientboundMatchmakingStatePacket = definePacket('ClientboundMatchmakingStatePacket', {
@@ -204,7 +230,7 @@ export const setPassengerOfBlockPacket = definePacket('SetPassengerOfBlockPacket
     /** [0] `PassengerActorUniqueID`, an `ActorUniqueID`. */
     passenger: t.varint64,
     /** [1] `PassengerOfBlockData`, an optional `PassengerOfBlockArguments`. */
-    passengerOfBlockData: passengerOfBlock
+    passengerOfBlockData: versioned([UNTIL_2259, passengerOfBlock], [SINCE_2259, passengerOfBlock2259])
 });
 
 /** The `ServerboundCursorItemDragPacket` field list. */

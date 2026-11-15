@@ -51,7 +51,8 @@ describe.each([2193, 2225] as const)('StructureBlockUpdatePacket at protocol %i'
             redstoneSaveMode: StructureRedstoneSaveMode.SavesToDisk
         },
         trigger: true,
-        isWaterlogged: false
+        isWaterlogged: false,
+        keepStructureVoid: false
     };
 
     it('decodes every editor field and consumes the whole buffer', () => {
