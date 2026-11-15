@@ -55,5 +55,11 @@ them. Databases
 predating the modern chunk formats are rejected rather than guessed at — open such a world in the
 game once and let it convert.
 
-Never open a database the game has open. `Database.open` takes the `LOCK` file to make that
-loud rather than silently corrupting.
+A test in `@jsprismarine/bedrock-data` checks this against the pinned Bedrock Dedicated Server in
+both directions: the server writes a world we read, loads a world we wrote, and saves over it for
+us to read again.
+
+Never open a database the game has open. `Database.open` takes the `LOCK` file, which turns a
+second JSPrismarine server, or Minecraft on Windows, into a loud error rather than a corrupted
+world. Bedrock Dedicated Server on Linux takes no lock at all, so nothing can tell that it has a
+world open.
