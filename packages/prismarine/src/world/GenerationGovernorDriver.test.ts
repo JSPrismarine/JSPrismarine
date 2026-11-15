@@ -48,10 +48,10 @@ describe('GenerationGovernorDriver', () => {
             recorder.record(sample(tick++, latenessMs));
         };
 
-        // Calm: starts at half of the seven background slots and climbs one step per second.
+        // Calm: starts at half of the eight background slots and climbs one step per second.
         for (let index = 0; index < 30; index++) step(1);
-        expect(limits[0]).toBe(3);
-        expect(driver.active).toBe(4);
+        expect(limits[0]).toBe(4);
+        expect(driver.active).toBe(5);
 
         // A burst of late ticks cuts it sharply.
         for (let index = 0; index < 3; index++) step(120);
@@ -61,7 +61,7 @@ describe('GenerationGovernorDriver', () => {
         // Recovery is slow: the hold-off passes, then one step per calm second.
         for (let index = 0; index < 120; index++) step(1);
         expect(driver.active).toBeGreaterThan(1);
-        expect(driver.active).toBeLessThanOrEqual(7);
+        expect(driver.active).toBeLessThanOrEqual(8);
     });
 
     it('treats growth of the control group throttle counter as pressure', () => {
@@ -108,7 +108,7 @@ describe('GenerationGovernorDriver', () => {
         present = true;
         now += 50;
         recorder.record(sample(1, 1));
-        expect(limits).toEqual([2]);
+        expect(limits).toEqual([3]);
     });
 
     it('lifts the limit when closed', () => {
@@ -145,7 +145,7 @@ describe('GenerationGovernorDriver', () => {
 
         now += 50;
         recorder.record(sample(0, 1));
-        expect(first.limits).toEqual([2]);
+        expect(first.limits).toEqual([3]);
 
         // The generator abandoned its pool and opened another.
         current = second.control;
