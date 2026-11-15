@@ -283,6 +283,32 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     },
     {
+        name: 'grass-spread',
+        java: 'A grass or mycelium block in light 9 or more makes four attempts at a random block within one across, three below and one above, and spreads onto dirt there.',
+        reference: 'Java SpreadingSnowyBlock randomTick and canPropagate; issue #3092',
+        subjects: () => named('minecraft:grass_block', 'minecraft:mycelium'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            const target = { x: ORIGIN.x + 1, y: ORIGIN.y - 1, z: ORIGIN.z + 1 };
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.dimension.set(target, 'minecraft:dirt');
+            harness.dimension.setLight({ ...ORIGIN, y: ORIGIN.y + 1 }, 15);
+            harness.dimension.setLight({ ...target, y: target.y + 1 }, 15);
+            // Java's three nextInt draws of an attempt: 0.9 gives +1 across, 0.5 gives -1 down.
+            harness.dimension.queueRandom(...Array.from({ length: 4 }, () => [0.9, 0.5, 0.9]).flat());
+            harness.randomTick(ORIGIN);
+            if (harness.dimension.identifierAt(target) !== subject.bedrock) {
+                return 'it did not spread onto the dirt one across and one below';
+            }
+            return undefined;
+        },
+        classify: () => ({
+            kind: 'deferred',
+            reason: 'The soil family tries only the six face neighbors, at 1/4 each and light 4, so grass never reaches a diagonal or a block below or above it.'
+        })
+    },
+    {
         name: 'growing-plant-head',
         java: 'A growing plant head younger than 25 grows one block in its direction on a random tick, into the block its plant grows into, and its body does not grow.',
         reference:
