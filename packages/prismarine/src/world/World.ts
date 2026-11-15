@@ -3,6 +3,7 @@ import { GameRules } from './GameRuleManager';
 
 import { createHash } from 'node:crypto';
 import type { Hash } from 'node:crypto';
+import { setImmediate as yieldEventLoop } from 'node:timers/promises';
 
 import { Vector3 } from '@jsprismarine/math';
 import BinaryStream from '@jsprismarine/binaryutils';
@@ -3768,7 +3769,11 @@ export class World implements Service {
         // Saved one after another, and each saved chunk then waits for the input step to take it
         // out, so a batch leaves at the next step rather than one chunk a tick.
         const leaving: Promise<void>[] = [];
-        for (const chunk of candidates) {
+        for (const [index, chunk] of candidates.entries()) {
+            // A save that does not reach the database settles in microtasks, which would encode
+            // the whole batch in one turn and hold the tick for all of it. One save a turn lets a
+            // tick and the network run between them.
+            if (index > 0) await yieldEventLoop();
             const { left } = await this.unloadChunk(chunk, saveContext);
             // Handled now, not after the loop: an input step can reject one chunk's leave while a
             // later chunk's save still waits, and nothing would be listening for it yet.

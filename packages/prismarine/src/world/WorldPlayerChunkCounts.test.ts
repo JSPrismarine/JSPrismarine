@@ -296,6 +296,35 @@ describe('world player chunk counts', () => {
         expect(world.getLoadedChunk(20, 0)).not.toBeNull();
     });
 
+    it('saves one chunk of an unload batch per turn of the event loop', async () => {
+        const saved: number[] = [];
+        const world = worldWith(
+            [
+                [20, 0],
+                [21, 0],
+                [22, 0]
+            ],
+            true,
+            async (chunk) => {
+                saved.push(chunk.getX());
+                chunk.markSaved();
+            }
+        );
+        world['players'].set(1, playerAt(world, 0, 0));
+        for (const x of [20, 21, 22]) world.getLoadedChunk(x, 0)?.markChanged();
+
+        const unloading = world['unloadDistantChunks']();
+        // Every microtask the first save queued, and nothing a later turn would run.
+        for (let step = 0; step < 50; step++) await Promise.resolve();
+        expect(saved).toEqual([20]);
+
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(saved).toEqual([20, 21]);
+
+        await unloading;
+        expect(saved).toEqual([20, 21, 22]);
+    });
+
     it('keeps a chunk a ticket holds, and unloads it once the ticket is released', async () => {
         const world = worldWith(
             [
