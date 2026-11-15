@@ -195,9 +195,9 @@ describe('world', () => {
             const spawn = sent.find((packet) => packet instanceof AddItemActorPacket)!;
             const data = spawn.getPacketData();
             if (data === null) throw new Error('AddItemActorPacket has no payload');
-            // Outside it and the stack visibly sits inside the neighboring block. The 0.125 is
-            // how far above where it lies BDS reports an item.
-            expect([data.position.getX(), data.position.getY(), data.position.getZ()]).toEqual([10.5, 64.625, -19.5]);
+            // Outside it and the stack visibly sits inside the neighboring block. This is the
+            // position the item reports; it lies 0.125 lower, as BDS reports an item.
+            expect([data.position.getX(), data.position.getY(), data.position.getZ()]).toEqual([10.5, 64.5, -19.5]);
             expect([data.motion.getX(), data.motion.getY(), data.motion.getZ()]).toEqual([0, 0.2, 0]);
         });
 
@@ -307,7 +307,7 @@ describe('world', () => {
             expect(dropped).toHaveLength(2);
             for (const entity of dropped) {
                 expect([entity.getPosition().getX(), entity.getFeetY(), entity.getPosition().getZ()]).toEqual([
-                    3.5, 70.5, -3.5
+                    3.5, 70.375, -3.5
                 ]);
                 expect(entity.getMotion().getY()).toBe(0.2);
             }

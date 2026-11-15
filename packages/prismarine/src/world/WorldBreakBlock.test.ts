@@ -238,12 +238,11 @@ describe('world', () => {
             const [drop] = world.spawned;
             expect(drop.getType()).toBe('minecraft:item');
             expect(drop.getItem()!.getItem().getName()).toBe('minecraft:oak_log');
-            // Within the middle 70% of the block on each axis, reported 0.125 higher, and pushed
-            // out a little sideways and 0.2 up: what a Bedrock Dedicated Server 1.26.52 did
-            // with 18 drops.
+            // Reported within the middle 70% of the block on each axis, and pushed out a little
+            // sideways and 0.2 up: what a Bedrock Dedicated Server 1.26.52 did with 18 drops.
             const at = drop.getPosition();
             expect(at.getX()).toBeCloseTo(10.15);
-            expect(at.getY()).toBeCloseTo(64.85 + 0.125);
+            expect(at.getY()).toBeCloseTo(64.85);
             expect(at.getZ()).toBeCloseTo(-19.5);
             const motion = drop.getMotion();
             expect([motion.getX(), motion.getY(), motion.getZ()]).toEqual([-0.1, 0.2, 0.1]);
