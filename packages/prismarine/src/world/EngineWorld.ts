@@ -73,7 +73,7 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
         sectionRuntimeIds: (origin) => {
             const section = world.getLoadedChunk(origin.x >> 4, origin.z >> 4)?.getSubChunk(origin.y >> 4);
             if (section === null || section === undefined) return undefined;
-            return (at) => section.getBlockRuntimeId(at.x & 15, at.y & 15, at.z & 15);
+            return (x, y, z) => section.getBlockRuntimeId(x & 15, y & 15, z & 15);
         },
         getBlockByRuntimeId: (runtimeId) => blockCache.get(runtimeId).block,
         isRandomlyTickingRuntimeId: (runtimeId) => blockCache.get(runtimeId).randomTicking,

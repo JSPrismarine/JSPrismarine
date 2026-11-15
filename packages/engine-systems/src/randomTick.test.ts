@@ -121,9 +121,9 @@ describe('runRandomTicks', () => {
             isRandomlyTickingRuntimeId: (runtimeId) => runtimeId === 1,
             sectionRuntimeIds: () => {
                 sectionLookups++;
-                return (at) => {
-                    reads.push(positionKey(at));
-                    return runtimeIdAt(at);
+                return (x, y, z) => {
+                    reads.push(positionKey({ x, y, z }));
+                    return runtimeIdAt({ x, y, z });
                 };
             }
         };
