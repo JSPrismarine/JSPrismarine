@@ -378,3 +378,75 @@ describe('LightEngine topOfColumn', () => {
         expect(engine.getBlockLight(4, 6, 4)).toBe(0);
     });
 });
+
+describe('LightEngine section hints', () => {
+    /** Stone from the floor to y 47 under open sky, with a lantern in a pocket at y 0 and water on top. */
+    const scene = (): TestBlockLightView => {
+        const view = new TestBlockLightView({ minY: -64, maxY: 128 });
+        for (let x = 0; x <= 15; x++) {
+            for (let z = 0; z <= 15; z++) {
+                for (let y = -64; y <= 47; y++) view.place(x, y, z, STONE);
+            }
+        }
+        view.place(5, 0, 5, AIR);
+        view.place(5, 1, 5, LANTERN);
+        view.place(9, 48, 9, WATER);
+        return view;
+    };
+
+    /** The scene's view with the section hints a server gives, counting the block reads the engine makes. */
+    const hinted = (view: TestBlockLightView): { readonly view: TestBlockLightView; readonly reads: () => number } => {
+        let reads = 0;
+        const counting: TestBlockLightView = Object.assign(Object.create(view), {
+            blockAt: (x: number, y: number, z: number) => {
+                reads++;
+                return view.blockAt(x, y, z);
+            },
+            sectionHintAt: (chunkX: number, sectionY: number, chunkZ: number) => {
+                let mayEmit = false;
+                let allTransparent = true;
+                for (let x = chunkX * 16; x < chunkX * 16 + 16; x++) {
+                    for (let z = chunkZ * 16; z < chunkZ * 16 + 16; z++) {
+                        for (let y = sectionY * 16; y < sectionY * 16 + 16; y++) {
+                            const block = view.blockAt(x, y, z) ?? AIR;
+                            if (block.lightEmission > 0) mayEmit = true;
+                            if (block.lightDampening > 0) allTransparent = false;
+                        }
+                    }
+                }
+                return { mayEmit, allTransparent };
+            }
+        });
+        return { view: counting, reads: () => reads };
+    };
+
+    const levels = (view: TestBlockLightView): number[] => {
+        const engine = new LightEngine(view);
+        engine.onChunkLoaded(0, 0);
+        settle(engine);
+        const out: number[] = [];
+        for (const [x, z] of [
+            [5, 5],
+            [9, 9],
+            [0, 15]
+        ] as const) {
+            for (let y = -64; y < 64; y++) out.push(engine.getBlockLight(x, y, z), engine.getSkyLight(x, y, z));
+        }
+        return out;
+    };
+
+    it('lights a chunk the same as a view without hints', () => {
+        expect(levels(hinted(scene()).view)).toEqual(levels(scene()));
+    });
+
+    it('stops reading a column below its height in sections that emit nothing', () => {
+        const { view, reads } = hinted(scene());
+        const engine = new LightEngine(view);
+        engine.onChunkLoaded(0, 0);
+
+        // Per column: the water section from its top (no blocker there but one column), one block
+        // of stone under it where the height is found, and the section that holds the lantern.
+        // Without the skip it is all 128 blocks from y 63 to the floor.
+        expect(reads()).toBeLessThanOrEqual(256 * (16 + 1 + 16));
+    });
+});
