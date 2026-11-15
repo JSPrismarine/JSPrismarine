@@ -148,12 +148,18 @@ describe('the server building its content at startup', () => {
         expect(manifest.settlingChunks).toContainEqual([world.getDimension().id, world.settlingChunks()]);
 
         // A world restored from the snapshot reads its chunks as stored ones, so none is settling.
-        world['settling']?.clear();
+        world.restoreSettlingChunks([]);
         level.restoreReplayRandomState(
             deserializeReplayInitialStateManifest(serializeReplayInitialStateManifest(manifest))
         );
 
         expect(world.isChunkSettling(3, -2)).toBe(true);
+
+        // A manifest that is not this level's changes nothing.
+        world.restoreSettlingChunks([]);
+        const foreign = { ...manifest, level: { ...manifest.level, name: 'another' } };
+        expect(() => level.restoreReplayRandomState(foreign)).toThrow('does not match');
+        expect(world.settlingChunks()).toEqual([]);
         await expect(() => server.shutdown()).not.toThrow();
     }, 60_000);
 });
