@@ -140,10 +140,15 @@ const dataCase = (record: ReportedParityCase, repoRoot: string, parityRoot: stri
     ...(record.runtimeSupport === undefined ? {} : { runtimeSupport: record.runtimeSupport })
 });
 
+/** Whether `id` is the annotated id itself or one of its aspect rows. */
+const isAnnotatedBy = (id: string, annotation: string): boolean => id === annotation || id.startsWith(`${annotation}/`);
+
 const mergedParityCases = (records: readonly ReportedParityCase[]): ReportedParityCase[] => {
     const merged = new Map<string, ReportedParityCase>();
+    const annotations = records.filter((record) => record.annotates === true);
 
     for (const record of records) {
+        if (record.annotates === true) continue;
         const key = `${record.family}\0${record.id}`;
         const current = merged.get(key);
         if (current === undefined) {
@@ -164,7 +169,25 @@ const mergedParityCases = (records: readonly ReportedParityCase[]): ReportedPari
         });
     }
 
-    return [...merged.values()];
+    let rows = [...merged.values()];
+    for (const annotation of annotations) {
+        const annotates = (row: ReportedParityCase): boolean =>
+            row.family === annotation.family && isAnnotatedBy(row.id, annotation.id);
+        if (!rows.some(annotates)) {
+            // Nothing else lists the identifier, so the annotation is its only row.
+            const { annotates: _annotates, ...row } = annotation;
+            rows.push(row);
+            continue;
+        }
+        const support = annotation.runtimeSupport;
+        if (support === undefined) continue;
+        rows = rows.map((row) =>
+            annotates(row) && (row.runtimeSupport === undefined || row.runtimeSupport.status === 'not checked')
+                ? { ...row, runtimeSupport: support }
+                : row
+        );
+    }
+    return rows;
 };
 
 const referenceParts = (reference: string, revision: string): readonly TrackerReferencePart[] => {

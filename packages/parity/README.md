@@ -40,10 +40,21 @@ scenario in [`src/behaviorScenarios.ts`](src/behaviorScenarios.ts) states one Ja
 Java subjects it covers from Java's own data (a tag, a component, a registry), runs each through the
 server's real handlers, and returns what differed.
 
-- A block, item or entity a scenario reached reads as one row: passed when every scenario that
-  reached it agreed with Java, failed when one did not.
-- One no scenario reached is **not measured**. It is not a pass: nothing compared its behavior with
-  Java, so it stays in the tracker's denominator until a scenario covers it.
+- Each block, item or entity has one row per behavior **aspect**, and the aspects come from data:
+  - an entity's are the components its server definition declares, in its base components and
+    component groups, apart from presentation, network and hitbox components, event triggers and
+    `minecraft:is_*` state markers;
+  - an item's are the Java components it carries, apart from the ones every item carries and the
+    ones that only change how it looks, plus placing its block when it names one;
+  - a block's are its drops when Java gives it a loot table, its random tick when Java random-ticks
+    it, and the behavior of its server family when that family is more than a plain block.
+- A scenario names the aspects it compares (`aspects`). An aspect row passes when every scenario
+  that compared it agreed with Java, and fails when one did not. A scenario that compares an
+  aspect the data did not list adds that row.
+- An aspect no scenario compared is **not measured**. It is not a pass: nothing compared that
+  behavior with Java, so it stays in the tracker's denominator until a scenario covers it. A cow
+  whose breeding food matches Java is not a finished cow while its panic, leash, loot and
+  movement rows are unmeasured.
 - A difference is recorded in [`goldens/behavior-gaps.json`](goldens/behavior-gaps.json) as a
   `defect`, a `deferred` gap or an `intentional` edition difference, each with its reason. The allow
   list reads that file and `checkAllowList` fails both ways, so a new difference fails the suite and
@@ -233,6 +244,12 @@ lets you find a subject such as `minecraft:blaze` even when one Vitest test comp
 in a loop. A `not measured:` marker remains visible when reference data is missing, while
 intentional differences, deferred work, and known defects appear as separate entries. File paths
 and issue references in those entries link to their source.
+
+The tracker's headline, the behavior score, counts only the families that compare the server
+with Java. `integration.entity-coverage` (every entity declaration spawns and ticks),
+`integration.block-behaviors` and the worldgen corpus rows compare the server with itself, so
+their rows appear on the tracker but stay out of that score. `isBehaviorFamily` in
+[`src/dashboard/trackerProgress.ts`](src/dashboard/trackerProgress.ts) holds the list.
 
 The entity coverage summary reports aggregate component counts and runtime results. Per-entity
 component counts and identifiers for unimplemented components, registered components without

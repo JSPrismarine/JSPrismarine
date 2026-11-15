@@ -62,6 +62,13 @@ export interface BehaviorScenario<Subject> {
      * mob's behavior, and returns undefined.
      */
     readonly covers?: (subject: Subject) => string | undefined;
+    /**
+     * The behavior aspects of the covered identifier this row compares, such as an entity
+     * component (`minecraft:breedable`) or a block's `random-tick`. A row evidences only these
+     * aspects, so one passing scenario cannot stand in for an identifier's other behavior.
+     * Absent means the scenario's own name.
+     */
+    readonly aspects?: (subject: Subject) => readonly string[];
     /** Reports a row only when it differs, for a guard that should catch a wrong answer without scoring every right one. */
     readonly guard?: boolean;
     /** Runs the scenario for one subject and returns what differed from Java, if anything. */
@@ -87,6 +94,8 @@ export interface ScenarioRow {
     readonly gap: BehaviorGap | undefined;
     /** The Java identifier this row evidences the behavior of, if any. */
     readonly covers: string | undefined;
+    /** The aspects of the covered identifier this row compares. */
+    readonly aspects: readonly string[];
     /** Whether the row is a guard, which the tracker lists only when it differs. */
     readonly guard: boolean;
 }
@@ -115,6 +124,7 @@ export const runScenarios = <Subject>(scenarios: readonly BehaviorScenario<Subje
                 context: `${scenario.name}: ${scenario.java}`,
                 difference,
                 covers: scenario.covers === undefined ? scenario.idOf(subject) : scenario.covers(subject),
+                aspects: scenario.aspects?.(subject) ?? [scenario.name],
                 guard: scenario.guard === true,
                 gap:
                     difference === undefined
@@ -187,25 +197,42 @@ export const measureScenarios = (
     return rows;
 };
 
+/** One behavior an identifier has that full parity has to compare with Java. */
+export interface BehaviorAspect {
+    /** Stable aspect id, such as `minecraft:breedable` or `random-tick`. */
+    readonly id: string;
+    /** What comparing this aspect with Java means, for the tracker row's context. */
+    readonly description: string;
+}
+
 /**
- * Reports one row per Java identifier: measured when scenarios evidence it, not measured when none does.
+ * Reports one row per behavior aspect of each Java identifier: measured when a scenario compares
+ * that aspect, not measured when none does.
  *
- * A block, item or entity with no scenario is not a pass: nothing compared its behavior with
- * Java, so it stays in the tracker's denominator until a scenario reaches it. One with
- * scenarios passes only when every scenario that reached it passed.
+ * An identifier's aspects come from data (the components an entity declares, the Java components
+ * an item carries, whether a block random-ticks), so an identifier is complete only when every
+ * one of its behaviors has been compared. A scenario that passes for one aspect says nothing about
+ * the others, which stay not measured and keep the identifier out of the passing count. A row
+ * that compares an aspect the data did not list adds that aspect rather than vanishing.
+ *
+ * An identifier with no listed aspects and no scenario reads as one not-measured row, so it stays
+ * in the tracker's denominator until something compares it.
  * @param family - The family the identifiers belong to.
  * @param sourceFile - The test file, for the tracker's source link.
  * @param universe - Every Java identifier whose behavior the family should account for.
  * @param rows - The scenario rows already run for the family.
  * @param context - What full parity would mean for one of these identifiers.
- * @returns How many identifiers no scenario reached.
+ * @param aspectsOf - The behavior aspects one identifier has. Absent reports one row per
+ *   identifier, keyed by the identifier alone.
+ * @returns How many aspect rows no scenario reached.
  */
 export const reportCoverage = (
     family: Family,
     sourceFile: string,
     universe: readonly string[],
     rows: readonly ScenarioRow[],
-    context: string | ((identifier: string) => string)
+    context: string | ((identifier: string) => string),
+    aspectsOf?: (identifier: string) => readonly BehaviorAspect[]
 ): number => {
     const byIdentifier = new Map<string, ScenarioRow[]>();
     for (const row of rows) {
@@ -214,32 +241,47 @@ export const reportCoverage = (
     }
 
     let uncovered = 0;
+    const record = (id: string, identifier: string, rowContext: string, covering: readonly ScenarioRow[]) => {
+        const base = { id, title: identifier, context: rowContext };
+        if (covering.length === 0) {
+            uncovered += 1;
+            return { ...base, status: 'not measured' as const };
+        }
+        const failed = covering.filter((row) => trackerStatusOf(row) !== 'passed');
+        const evidence = `${covering.length} scenario${covering.length === 1 ? '' : 's'}: ${[...new Set(covering.map((row) => row.id.split(':')[0]))].join(', ')}`;
+        return failed.length === 0
+            ? { ...base, status: 'passed' as const, details: evidence }
+            : {
+                  ...base,
+                  // One defect makes the aspect a defect; it is only deferred when every difference is.
+                  status: failed.some((row) => trackerStatusOf(row) === 'defect')
+                      ? ('defect' as const)
+                      : ('deferred' as const),
+                  details: failed.map((row) => `${row.id.split(':')[0]}: ${row.difference}`).join('; ')
+              };
+    };
+
     reportParityCases(
         family,
         sourceFile,
-        universe.map((identifier) => {
+        universe.flatMap((identifier) => {
             const covering = byIdentifier.get(identifier) ?? [];
-            const base = {
-                id: `runtime-behavior:${identifier}`,
-                title: identifier,
-                context: typeof context === 'string' ? context : context(identifier)
-            };
-            if (covering.length === 0) {
-                uncovered += 1;
-                return { ...base, status: 'not measured' as const };
+            const whole = typeof context === 'string' ? context : context(identifier);
+            if (aspectsOf === undefined) return [record(`runtime-behavior:${identifier}`, identifier, whole, covering)];
+
+            const aspects = new Map(aspectsOf(identifier).map((aspect) => [aspect.id, aspect.description]));
+            for (const row of covering) {
+                for (const aspect of row.aspects) if (!aspects.has(aspect)) aspects.set(aspect, row.context);
             }
-            const failed = covering.filter((row) => trackerStatusOf(row) !== 'passed');
-            const evidence = `${covering.length} scenario${covering.length === 1 ? '' : 's'}: ${[...new Set(covering.map((row) => row.id.split(':')[0]))].join(', ')}`;
-            return failed.length === 0
-                ? { ...base, status: 'passed' as const, details: evidence }
-                : {
-                      ...base,
-                      // One defect makes the Java thing a defect; it is only deferred when every difference is.
-                      status: failed.some((row) => trackerStatusOf(row) === 'defect')
-                          ? ('defect' as const)
-                          : ('deferred' as const),
-                      details: failed.map((row) => `${row.id.split(':')[0]}: ${row.difference}`).join('; ')
-                  };
+            if (aspects.size === 0) return [record(`runtime-behavior:${identifier}`, identifier, whole, covering)];
+            return [...aspects].map(([aspect, description]) =>
+                record(
+                    `runtime-behavior:${identifier}/${aspect}`,
+                    identifier,
+                    `${aspect}: ${description}`,
+                    covering.filter((row) => row.aspects.includes(aspect))
+                )
+            );
         })
     );
     return uncovered;

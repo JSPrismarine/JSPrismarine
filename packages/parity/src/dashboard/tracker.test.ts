@@ -141,41 +141,55 @@ describe('parity tracker data', () => {
         expect(tracker.cases[3]).toMatchObject({ status: 'deferred' });
     });
 
-    it('merges measured entity runtime support into the not-measured behavior row', () => {
+    it("attaches an annotation's runtime support to every aspect row of its entity", () => {
         const tracker = buildTrackerData(report, [], repositoryRoot, parityRoot, {}, [
             {
                 family: FAMILIES.entitiesBehavior,
-                id: 'runtime-behavior:minecraft:ender_dragon',
-                title: 'minecraft:ender_dragon',
-                context: 'Complete Java entity behavior parity is not measured.',
-                status: 'not measured',
-                sourceFile: 'packages/parity/src/runtime-behavior-coverage.test.ts',
-                runtimeSupport: {
-                    status: 'not checked',
-                    details: 'Runtime source data is unavailable.'
-                }
+                id: 'runtime-behavior:minecraft:cow/minecraft:breedable',
+                title: 'minecraft:cow',
+                context: 'minecraft:breedable',
+                status: 'passed',
+                sourceFile: 'packages/parity/src/entities.behavior.test.ts'
             },
             {
                 family: FAMILIES.entitiesBehavior,
-                id: 'runtime-behavior:minecraft:ender_dragon',
-                title: 'minecraft:ender_dragon',
+                id: 'runtime-behavior:minecraft:cow/minecraft:behavior.panic',
+                title: 'minecraft:cow',
+                context: 'minecraft:behavior.panic',
+                status: 'not measured',
+                sourceFile: 'packages/parity/src/entities.behavior.test.ts'
+            },
+            {
+                family: FAMILIES.entitiesBehavior,
+                id: 'runtime-behavior:minecraft:cow',
+                title: 'minecraft:cow',
                 status: 'not measured',
                 sourceFile: 'packages/parity/src/integration.test.ts',
-                runtimeSupport: {
-                    status: 'partial',
-                    details: 'Spawnable with unresolved component declarations.'
-                }
+                runtimeSupport: { status: 'spawnable', details: 'Spawns and ticks.' },
+                annotates: true
+            },
+            {
+                family: FAMILIES.entitiesBehavior,
+                id: 'runtime-behavior:minecraft:marker',
+                title: 'minecraft:marker',
+                status: 'not measured',
+                sourceFile: 'packages/parity/src/integration.test.ts',
+                runtimeSupport: { status: 'unrepresentable', details: 'Bedrock has no marker.' },
+                annotates: true
             }
         ]);
 
-        const dragonCases = tracker.cases.filter(({ title }) => title === 'minecraft:ender_dragon');
-        expect(dragonCases).toHaveLength(1);
-        expect(dragonCases[0]).toMatchObject({
-            family: FAMILIES.entitiesBehavior,
-            status: 'not measured',
-            context: 'Complete Java entity behavior parity is not measured.',
-            sourceFile: 'packages/parity/src/integration.test.ts',
-            runtimeSupport: { status: 'partial', details: 'Spawnable with unresolved component declarations.' }
+        const cow = tracker.cases.filter(({ title }) => title === 'minecraft:cow');
+        expect(cow.map(({ status }) => status).toSorted()).toEqual(['not measured', 'passed']);
+        expect(cow.every(({ runtimeSupport }) => runtimeSupport?.status === 'spawnable')).toBe(true);
+        // An annotation nothing else lists stays visible as its own not-measured row.
+        expect(tracker.cases.filter(({ title }) => title === 'minecraft:marker')).toMatchObject([
+            { status: 'not measured', runtimeSupport: { status: 'unrepresentable' } }
+        ]);
+        expect(tracker.families.find(({ id }) => id === FAMILIES.entitiesBehavior)).toMatchObject({
+            checks: 3,
+            passed: 1,
+            notMeasured: 2
         });
     });
 
@@ -255,6 +269,11 @@ describe('parity tracker data', () => {
         expect(isBehaviorFamily('registry.items-2225')).toBe(false);
         expect(isBehaviorFamily('integration.tags')).toBe(false);
         expect(isBehaviorFamily('integration.spawning')).toBe(true);
+        // Checks that compare the server with itself rather than with Java stay out of the headline.
+        expect(isBehaviorFamily('integration.entity-coverage')).toBe(false);
+        expect(isBehaviorFamily('integration.block-behaviors')).toBe(false);
+        expect(isBehaviorFamily('worldgen.corpus')).toBe(false);
+        expect(isBehaviorFamily('worldgen.determinism')).toBe(false);
         expect(isBehaviorFamily('blocks.properties')).toBe(false);
 
         expect(

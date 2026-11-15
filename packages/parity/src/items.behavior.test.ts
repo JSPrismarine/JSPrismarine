@@ -20,7 +20,7 @@ import { blockFromContent } from '@jsprismarine/prismarine/block/Block';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import { expect, it } from 'vitest';
 
-import type { BehaviorScenario } from './behaviorScenarios.ts';
+import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
@@ -43,6 +43,57 @@ const javaItems = (): readonly ItemSubject[] =>
     Object.entries(itemTypesTable.items).flatMap(([bedrock, row]) => [
         { javaId: row.java, bedrock, components: row.components }
     ]);
+
+/**
+ * Java components that only change how an item looks: its glint and the marks it draws on a map.
+ * The parity claim excludes rendered presentation (category 1 of docs/data-driven/parity.md).
+ */
+const PRESENTATION_COMPONENTS: ReadonlySet<string> = new Set([
+    'minecraft:enchantment_glint_override',
+    'minecraft:map_decorations'
+]);
+
+let componentIndex:
+    | {
+          readonly shared: ReadonlySet<string>;
+          readonly byJavaId: ReadonlyMap<string, Readonly<Record<string, unknown>>>;
+      }
+    | undefined;
+
+/** The components every Java item carries, and each item's components by its Java id. */
+const itemComponentIndex = () => {
+    if (componentIndex !== undefined) return componentIndex;
+    const items = javaItems();
+    componentIndex = {
+        shared: new Set(
+            Object.keys(items[0]?.components ?? {}).filter((component) =>
+                items.every((item) => component in item.components)
+            )
+        ),
+        byJavaId: new Map(items.map((item) => [item.javaId, item.components]))
+    };
+    return componentIndex;
+};
+
+/**
+ * The behaviors one Java item has that full parity has to compare with Java: each Java component
+ * it carries by default, and placing its block when it names one.
+ *
+ * Components every item carries (its stack size, name, model, animations, attribute modifiers and
+ * repair cost) are left out: they hold the generic item behavior, which is not this item's own,
+ * and counting them would add every item's row for one shared rule.
+ */
+const itemAspects = (javaId: string): readonly BehaviorAspect[] => {
+    const { shared, byJavaId } = itemComponentIndex();
+    const aspects = Object.keys(byJavaId.get(javaId) ?? {})
+        .filter((component) => !shared.has(component) && !PRESENTATION_COMPONENTS.has(component))
+        .sort()
+        .map((component) => ({ id: component, description: `what ${component} does, against Java` }));
+    if (javaId in blocksTable.blocks && javaId !== 'minecraft:air') {
+        aspects.push({ id: 'places-block', description: 'placing the block it names, against Java' });
+    }
+    return aspects;
+};
 
 const withComponent = (component: string): readonly ItemSubject[] =>
     javaItems().filter((item) => component in item.components);
@@ -110,6 +161,7 @@ const javaTagIncludes = (blocks: unknown, javaId: string): boolean => {
 const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     {
         name: 'food-feeds',
+        aspects: () => ['minecraft:food'],
         java: 'Eating a food restores the nutrition and saturation its `minecraft:food` component declares.',
         reference: 'Java Consumable.onConsume and FoodProperties',
         subjects: () => withComponent('minecraft:food'),
@@ -129,6 +181,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'food-refused-when-full',
+        aspects: () => ['minecraft:food'],
         java: 'A full hunger bar refuses food unless the item can always be eaten.',
         reference: 'Java Consumable.canConsume and FoodProperties.canAlwaysEat',
         subjects: () => withComponent('minecraft:food'),
@@ -150,6 +203,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'tool-mining-speed',
+        aspects: () => ['minecraft:tool'],
         java: 'A tool mines each block at the speed of the first rule whose block set contains it, else its default.',
         reference: 'Java Tool.getMiningSpeed',
         subjects: () => withComponent('minecraft:tool'),
@@ -183,6 +237,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'tool-correct-for-drops',
+        aspects: () => ['minecraft:tool'],
         java: 'A block drops its loot only when the first rule that states a verdict for it calls the tool correct.',
         reference: 'Java Tool.isCorrectForDrops',
         subjects: () => withComponent('minecraft:tool'),
@@ -212,6 +267,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'spawn-egg-spawns-mob',
+        aspects: () => ['minecraft:entity_data'],
         java: 'A spawn egg spawns the mob its `minecraft:entity_data` names.',
         reference: 'Java SpawnEggItem and the data/minecraft/items entity_data component',
         subjects: () => withComponent('minecraft:entity_data').filter((item) => item.javaId.endsWith('_spawn_egg')),
@@ -249,6 +305,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'mining-damages-tool',
+        aspects: () => ['minecraft:max_damage'],
         java: 'Breaking a block with hardness above zero costs a tool the durability its `damage_per_block` names.',
         reference: 'Java Tool.damagePerBlock and ItemStack.mineBlock',
         subjects: () => withComponent('minecraft:tool').filter((item) => 'minecraft:max_damage' in item.components),
@@ -271,6 +328,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'consume-applies-effects',
+        aspects: () => ['minecraft:consumable'],
         java: 'Finishing a consumable applies the status effects its `apply_effects` consume effects name, with their duration and amplifier.',
         reference: 'Java ApplyStatusEffectsConsumeEffect',
         subjects: () =>
@@ -306,6 +364,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'use-cooldown',
+        aspects: () => ['minecraft:use_cooldown'],
         java: 'Using an item with `minecraft:use_cooldown` starts a cooldown of that many seconds.',
         reference: 'Java UseCooldown.apply',
         subjects: () => withComponent('minecraft:use_cooldown'),
@@ -333,6 +392,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'block-item-places',
+        aspects: () => ['places-block'],
         java: 'An item named for a block places that block when used on another block.',
         reference: 'Java BlockItem.place',
         subjects: () =>
@@ -350,6 +410,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'equips-on-use',
+        aspects: () => ['minecraft:equippable'],
         java: 'Using a swappable wearable puts it in the slot its `minecraft:equippable` component names.',
         reference: 'Java Equippable.swapWithEquipmentSlot',
         subjects: () =>
@@ -382,7 +443,8 @@ describeFamily(
                 import.meta.filename,
                 Object.keys(itemsTable.items).sort((left, right) => left.localeCompare(right, 'en')),
                 rows,
-                "No scenario compares this item's Java use, durability, combat or inventory behavior with the server."
+                "No scenario compares this item's Java use, durability, combat or inventory behavior with the server.",
+                itemAspects
             );
             expect(rows.length).toBeGreaterThan(0);
             expect(Object.keys(itemsTable.items)).toContain('minecraft:diamond_pickaxe');

@@ -32,6 +32,11 @@ export interface ParityTrackerRecord {
     readonly details?: string;
     /** Entity runtime support, separate from the comparison status. */
     readonly runtimeSupport?: TrackerRuntimeSupport;
+    /**
+     * Whether this record only annotates the rows under its id (`<id>` and `<id>/<aspect>`)
+     * with its runtime support. It becomes a row of its own only when no such row exists.
+     */
+    readonly annotates?: boolean;
 }
 
 /** Builds a searchable parity record from the result of one data comparison. */

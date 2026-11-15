@@ -1884,7 +1884,7 @@ describeFamily(
                 comparison.cases.map(({ identifier, components, gaps, runtimeSupport }) => ({
                     id: identifier,
                     title: identifier,
-                    context: `Declared entity components: ${components.join(', ')}`,
+                    context: `Resolves, spawns and ticks in the runtime, which is not a comparison with Java. Declared entity components: ${components.join(', ')}`,
                     status: gaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
                     runtimeSupport,
                     ...(gaps.length === 0 ? {} : { details: gaps.join('; ') })
@@ -1897,7 +1897,8 @@ describeFamily(
                     id: `runtime-behavior:${identifier}`,
                     title: identifier,
                     status: 'not measured',
-                    runtimeSupport
+                    runtimeSupport,
+                    annotates: true
                 }))
             );
 

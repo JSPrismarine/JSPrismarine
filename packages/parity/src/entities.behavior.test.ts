@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { evaluateFilter } from '@jsprismarine/entities';
+import { TRIGGER_COMPONENTS, evaluateFilter } from '@jsprismarine/entities';
 import { entitiesTable } from '@jsprismarine/mapping/tables';
 import { javaEntityTypeToBedrock, javaIdentifierToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
 import { parseBiomeTags } from '@jsprismarine/prismarine/content/biomeTags';
@@ -13,7 +13,7 @@ import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPla
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { expect, it } from 'vitest';
 
-import type { BehaviorScenario } from './behaviorScenarios.ts';
+import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { unpackVanillaDatapack } from './javaDatapack.ts';
@@ -175,6 +175,49 @@ const firstDrowning = (): { readonly ticks: number; readonly damage: number } =>
     return { ticks: Number.POSITIVE_INFINITY, damage: 0 };
 };
 
+/**
+ * Components an entity declares that carry no server-decided behavior to compare with Java: the
+ * network, rendering, sound and hitbox data the parity claim excludes (categories 1 and 5 of
+ * docs/data-driven/parity.md), and the event wiring whose effects are the other components' aspects.
+ */
+const PRESENTATION_COMPONENTS: ReadonlySet<string> = new Set([
+    'minecraft:ambient_sound_interval',
+    'minecraft:body_rotation_always_follows_head',
+    'minecraft:body_rotation_blocked',
+    'minecraft:collision_box',
+    'minecraft:conditional_bandwidth_optimization',
+    'minecraft:custom_hit_test',
+    'minecraft:free_camera_controlled',
+    'minecraft:is_hidden_when_invisible',
+    'minecraft:movement_sound_distance_offset',
+    'minecraft:renders_when_invisible',
+    'minecraft:rotation_axis_aligned',
+    'minecraft:rotation_locked_to_vehicle',
+    ...TRIGGER_COMPONENTS
+]);
+
+/**
+ * The behaviors one Java entity has that full parity has to compare with Java: every component
+ * its server definition declares, in its base components and its component groups, but the
+ * presentation ones and the `minecraft:is_*` state markers, which only record a state another
+ * component's behavior sets. An engine entity with no declared components has one aspect, its
+ * engine behavior.
+ */
+const entityAspects = (javaId: string): readonly BehaviorAspect[] => {
+    const mapping = javaEntityTypeToBedrock(javaId);
+    if (mapping.kind !== 'mapped') return [];
+    const declared = serverContent().entities.registry.get(mapping.bedrock)?.declaredComponents ?? [];
+    const aspects = declared
+        .filter((component) => !PRESENTATION_COMPONENTS.has(component) && !component.startsWith('minecraft:is_'))
+        .map((component) => ({
+            id: component,
+            description: `what ${component} does for this entity, against Java`
+        }));
+    return aspects.length > 0
+        ? aspects
+        : [{ id: 'engine', description: "this engine entity's behavior, against Java" }];
+};
+
 const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
         name: 'breeding-food',
@@ -182,6 +225,7 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         reference: 'Java Animal.isFood and the data/minecraft/tags/item/*_food tags; issue #2911',
         subjects: () => BREEDING_FOOD.flatMap(([javaId, tag]) => mappedEntity(javaId, tag) ?? []),
         idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:breedable'],
         run: (subject) => {
             const content = serverContent();
             const java = new Set(
@@ -214,6 +258,7 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             ),
         idOf: (subject) => `${subject.tag}/${subject.javaId}`,
         covers: (subject) => subject.javaId,
+        aspects: () => ['minecraft:type_family'],
         run: (subject) => {
             const family = FAMILY_BY_TAG.find(([tag]) => tag === subject.tag)?.[1] ?? '';
             const families = componentValues(subject.bedrock, 'minecraft:type_family').flatMap((value) =>
@@ -236,6 +281,7 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         // The other mobs are checked for a wrong burn, but only the tagged ones count as covered for sunlight behavior.
         guard: true,
         covers: (subject) => (subject.tag === 'burns' ? subject.javaId : undefined),
+        aspects: () => ['minecraft:burns_in_daylight'],
         run: (subject) => {
             const burns = componentValues(subject.bedrock, 'minecraft:burns_in_daylight').length > 0;
             if (subject.tag === 'burns' && !burns) return 'Java burns it in daylight; the server does not';
@@ -253,6 +299,7 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         },
         idOf: (subject) => subject.javaId,
         covers: (subject) => subject.javaId,
+        aspects: () => ['minecraft:breathable'],
         run: (subject) => {
             const breathable = componentValues(subject.bedrock, 'minecraft:breathable');
             const underwater = breathable.some(
@@ -268,6 +315,7 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         subjects: () => ['minecraft:player'].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
         covers: (subject) => subject.javaId,
+        aspects: () => ['minecraft:health'],
         run: (subject) => {
             // The resolved type, because the overlay applies when types resolve and leaves the
             // pack's file as it shipped.
@@ -289,6 +337,7 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         subjects: () => ['minecraft:player'].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
         covers: (subject) => subject.javaId,
+        aspects: () => ['minecraft:breathable', 'minecraft:exhaustion_values', 'fall-damage'],
         run: (subject) => {
             const differences: string[] = [];
 
@@ -339,6 +388,7 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         reference: 'Java Pufferfish.touch, which adds MobEffects.POISON to the player',
         subjects: () => ['minecraft:pufferfish'].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:mob_effect'],
         run: (subject) => {
             const effects = componentValues(subject.bedrock, 'minecraft:mob_effect').map((value) =>
                 field(value, 'mob_effect')
@@ -359,6 +409,9 @@ const entityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         subjects: () => ['minecraft:item', 'minecraft:eye_of_ender'].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
         covers: (subject) => subject.javaId,
+        aspects: (subject) => [
+            subject.javaId === 'minecraft:item' ? 'jsprismarine:item' : 'jsprismarine:eye_of_ender_signal'
+        ],
         run: (subject) => {
             const component =
                 subject.javaId === 'minecraft:item' ? 'jsprismarine:item' : 'jsprismarine:eye_of_ender_signal';
@@ -454,7 +507,8 @@ describeFamily(
                 (identifier) =>
                     identifier === 'minecraft:villager'
                         ? 'Villager profession and job-site behavior, trade restocking, player gossip, farming, and village or raid lifecycle are not compared with Java.'
-                        : "No scenario compares this entity's Java AI, movement, combat or lifecycle behavior with the server."
+                        : "No scenario compares this entity's Java AI, movement, combat or lifecycle behavior with the server.",
+                entityAspects
             );
             expect(rows.length).toBeGreaterThan(0);
         });

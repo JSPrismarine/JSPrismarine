@@ -214,11 +214,14 @@ const percentage = trackerProgressPercent;
                 game identifier, behavior, family, or source file.
             </p>
             <p>
-                The headline counts the families that run the server against Java rules: block, item and entity
-                behavior, gameplay, integration and world generation. Data tables are counted in the second figure, so
-                twelve thousand registry rows cannot hide a block that does nothing. Each percentage uses listed
-                comparisons, including not-measured, deferred, and known-defect rows; intentional differences are
-                excluded. A block, item or entity no scenario reached is not measured, not passing.
+                The headline counts the families that compare the server with Java rules: block, item and entity
+                behavior, gameplay, entity runtime, spawning, and world generation against Java's own output. Data
+                tables, and checks that compare the server with itself (every entity spawning and ticking, the
+                generation corpus), are counted in the second figure, so twelve thousand registry rows cannot hide a
+                block that does nothing. Each percentage uses listed comparisons, including not-measured, deferred, and
+                known-defect rows; intentional differences are excluded. Every block, item and entity is listed once per
+                behavior it has, such as each component an entity declares, and a behavior no scenario compared with
+                Java is not measured, not passing.
             </p>
         </details>
 

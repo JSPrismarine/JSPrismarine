@@ -5,16 +5,17 @@ import { performPull, performPush, planPush } from '@jsprismarine/block-behavior
 import { spreadLiquid } from '@jsprismarine/block-behaviors/rules/fluid';
 import { isFullCube } from '@jsprismarine/engine-systems';
 import { blockProperties } from '@jsprismarine/blocks/components';
-import { behaviorFor } from '@jsprismarine/blocks';
+import { DEFAULT_BLOCK_BEHAVIOR, behaviorFor } from '@jsprismarine/blocks';
 import { bedrockBlockEntityDyeIndexOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blocksTable } from '@jsprismarine/mapping/tables';
 import { blockLootTableOf } from '@jsprismarine/prismarine/block/blockLoot';
 import { DYE_INDEX_FIELD } from '@jsprismarine/prismarine/blockentity/contentRecord';
 import { expect, it } from 'vitest';
 
-import type { BehaviorScenario } from './behaviorScenarios.ts';
+import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
+import { loadJavaBlockProperties } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { serverContent } from './serverStack.ts';
@@ -145,7 +146,7 @@ const FAMILY_BY_TAG: readonly (readonly [string, string])[] = [
     ['minecraft:logs', 'jsprismarine:log']
 ];
 
-const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
+const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
     {
         name: 'family-matches-java-group',
         java: 'Every block in a Java behavior tag (doors, crops, saplings, small flowers, and so on) runs the matching server behavior family.',
@@ -159,6 +160,9 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
                     .map((subject) => ({ ...subject, expectedFamily: family }))
             ),
         idOf: (subject) => subject.javaId,
+        // Which family a block runs is not its behavior, so a right answer evidences nothing.
+        guard: true,
+        covers: () => undefined,
         run: (subject) => {
             const actual = behaviorFor(subject.bedrock);
             return actual === subject.expectedFamily
@@ -849,6 +853,57 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     }
 ];
+/** The scenarios that compare what a block does on a random tick; every other one compares its family's behavior. */
+const RANDOM_TICK_SCENARIOS: ReadonlySet<string> = new Set([
+    'copper-oxidizes',
+    'crop-growth',
+    'grass-spread',
+    'growing-plant-head',
+    'ice-melts-in-light',
+    'leaves-decay',
+    'sapling-grows-tree',
+    'stalk-grows-upward'
+]);
+
+/** The aspect a block scenario compares, unless it names its own. */
+const aspectOfScenario = (name: string): string =>
+    name === 'breaking-drops-loot' ? 'drops' : RANDOM_TICK_SCENARIOS.has(name) ? 'random-tick' : 'behavior';
+
+const scenarios: readonly BehaviorScenario<BlockSubject>[] = blockScenarios.map((scenario) => ({
+    ...scenario,
+    aspects: scenario.aspects ?? (() => [aspectOfScenario(scenario.name)])
+}));
+
+/**
+ * The behaviors one Java block has that full parity has to compare with Java: what breaking it
+ * drops when Java gives it a loot table, what a random tick does when Java random-ticks any of its
+ * states, and the behavior of its server family when that family is more than a plain block.
+ */
+let javaBlockProperties: ReturnType<typeof loadJavaBlockProperties> | undefined;
+
+const blockAspects = (javaId: string): readonly BehaviorAspect[] => {
+    javaBlockProperties ??= loadJavaBlockProperties();
+    const aspects: BehaviorAspect[] = [];
+    const lootTable = `minecraft:blocks/${javaId.replace('minecraft:', '')}`;
+    if (serverContent().definitions.lootTablesJava.has(lootTable)) {
+        aspects.push({ id: 'drops', description: `what breaking it drops, against Java's ${lootTable}` });
+    }
+    const java = javaBlockProperties[javaId];
+    const ticks =
+        java?.base.randomTick === true ||
+        Object.values(java?.stateOverrides ?? {}).some((state) => state.randomTick === true);
+    if (ticks) aspects.push({ id: 'random-tick', description: 'what a random tick does to it, against Java' });
+    const mapping = javaBlockStateToBedrock(javaId);
+    const family = mapping.kind === 'mapped' ? behaviorFor(mapping.bedrock.name) : DEFAULT_BLOCK_BEHAVIOR;
+    if (family !== DEFAULT_BLOCK_BEHAVIOR) {
+        aspects.push({
+            id: 'behavior',
+            description: `its placement, update and interaction behavior (${family}), against Java`
+        });
+    }
+    return aspects;
+};
+
 const REFERENCES_NEEDED = [
     REFERENCES.javaBlockRegistry,
     REFERENCES.bedrockBehaviorPack,
@@ -886,7 +941,8 @@ describeFamily(FAMILIES.blocksBehavior, REFERENCES_NEEDED, () => {
             import.meta.filename,
             Object.keys(blocksTable.blocks).sort((left, right) => left.localeCompare(right, 'en')),
             rows,
-            "No scenario compares this block's Java placement, update, ticking, interaction or block-entity behavior with the server."
+            "No scenario compares this block's Java placement, update, ticking, interaction or block-entity behavior with the server.",
+            blockAspects
         );
         expect(rows.length).toBeGreaterThan(0);
     });

@@ -27,15 +27,19 @@ export const trackerPrimaryProgressPercent = (passed: number, tracked: number): 
 };
 
 /**
- * The families that measure what the server does in play, as opposed to whether a table it
- * ships matches a reference table.
+ * The families that compare what the server does in play with what Java does, as opposed to
+ * whether a table it ships matches a reference table.
  *
  * One registry comparison alone holds twelve thousand rows, so a headline over every row mostly
- * reports how well the data tables agree. The behavior score counts only these families, and
- * leaves out the tag and client payload comparisons, which are data tables read through the server.
+ * reports how well the data tables agree. The behavior score counts only these families. It
+ * leaves out the tag and client payload comparisons, which are data tables read through the
+ * server, and the checks that compare the server with itself rather than with Java: every entity
+ * declaration spawning and ticking (`integration.entity-coverage`), block behaviors writing states
+ * the catalog accepts (`integration.block-behaviors`), and the generation corpus this server
+ * recorded (`worldgen.corpus`, `worldgen.features`, `worldgen.structures`, `worldgen.determinism`).
  */
 const BEHAVIOR_FAMILY_PATTERN =
-    /^(?:blocks\.behavior|items\.behavior|entities\.behavior|gameplay\..+|integration\.(?:block-behaviors|entity-.+|spawning)|worldgen\..+)$/;
+    /^(?:blocks\.behavior|items\.behavior|entities\.behavior|gameplay\..+|integration\.(?:entity-runtime|spawning)|worldgen\.(?:biomes|spawn|terrain|dimensions|blending))$/;
 
 /** Whether a family measures runtime behavior rather than a data table. */
 export const isBehaviorFamily = (family: string): boolean => BEHAVIOR_FAMILY_PATTERN.test(family);

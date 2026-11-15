@@ -95,7 +95,8 @@ const isParityCase = (value: unknown): value is ReportedParityCase =>
     isTrackerStatus(value.status) &&
     typeof value.sourceFile === 'string' &&
     (value.context === undefined || typeof value.context === 'string') &&
-    (value.details === undefined || typeof value.details === 'string');
+    (value.details === undefined || typeof value.details === 'string') &&
+    (value.annotates === undefined || typeof value.annotates === 'boolean');
 const measurements = readFileSync(progressPath, 'utf-8')
     .split(/\r?\n/)
     .filter((line) => line !== '')
