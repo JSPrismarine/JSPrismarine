@@ -603,6 +603,7 @@ export class GenerationPool {
     /** How many `soon` and `idle` tasks may be with workers at once; undefined means no limit. */
     private backgroundLimit: number | undefined;
     private runningBackground = 0;
+    private runningImmediate = 0;
 
     /**
      * Why this process cannot run workers, or undefined when it can.
@@ -696,11 +697,23 @@ export class GenerationPool {
         }
     }
 
-    /** Whether the background limit leaves room for one more `soon` or `idle` task. */
+    /**
+     * Whether the background limit leaves room for one more `soon` or `idle` task.
+     *
+     * While an `immediate` task is with a worker or waiting for one, background work keeps one
+     * worker clear of it, so the next chunk a player waits on starts as soon as a worker is
+     * free rather than behind a background task that started in the meantime. With nobody
+     * waiting, that worker is lent to the background: reserving it then idled a two-worker pool
+     * half the time a player spent walking into new terrain.
+     */
     private backgroundRoom(band: GenerationPriority): boolean {
-        return (
-            band === 'immediate' || this.backgroundLimit === undefined || this.runningBackground < this.backgroundLimit
-        );
+        if (band === 'immediate') return true;
+
+        let limit = this.backgroundLimit ?? Number.POSITIVE_INFINITY;
+        if (this.runningImmediate > 0 || this.waiting.get('immediate')!.length > 0) {
+            limit = Math.min(limit, Math.max(1, this.options.workers - 1));
+        }
+        return this.runningBackground < limit;
     }
 
     /** How many workers are up. Zero once the pool has been shut down. */
@@ -840,7 +853,8 @@ export class GenerationPool {
         backlogWaitMs: number
     ): Promise<GenerationResult> {
         this.running++;
-        if (priority !== 'immediate') this.runningBackground++;
+        if (priority === 'immediate') this.runningImmediate++;
+        else this.runningBackground++;
         const dispatchedAt = this.now();
         const result = this.runner.run(task);
         this.observeWorkerExits();
@@ -859,7 +873,8 @@ export class GenerationPool {
                       })
             });
             this.observeWorkerExits();
-            if (priority !== 'immediate') this.runningBackground--;
+            if (priority === 'immediate') this.runningImmediate--;
+            else this.runningBackground--;
             this.release();
         };
         // `finally` on its own would make the caller wait for the release, and a rejection here
@@ -889,7 +904,11 @@ export class GenerationPool {
         this.running--;
         if (this.closed) return;
 
-        this.startNext();
+        // More than one slot can open at once: an `immediate` task finishing frees its own and
+        // lifts the hold it put on background work.
+        while (this.running < this.capacity && this.startNext()) {
+            // Each started task takes a slot; the loop ends when the slots or the backlog do.
+        }
     }
 
     /**

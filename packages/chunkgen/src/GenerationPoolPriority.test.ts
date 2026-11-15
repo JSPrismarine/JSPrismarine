@@ -342,3 +342,44 @@ describe('GenerationPool background limit', () => {
         await Promise.all([first, second, third]);
     });
 });
+
+describe('the worker an immediate task keeps clear', () => {
+    it('lends every worker to background work while nobody waits on a chunk', async () => {
+        const { pool, runner } = open(2, 3);
+        pool.setBackgroundLimit(2);
+
+        for (let chunkX = 0; chunkX < 4; chunkX++) void ask(pool, chunkX, 'soon');
+        await settle();
+
+        expect(startedXs(runner)).toEqual([0, 1]);
+    });
+
+    it('starts no background task into the last worker while an immediate task is outstanding', async () => {
+        const { pool, runner } = open(2, 3);
+        pool.setBackgroundLimit(2);
+
+        void ask(pool, 0, 'soon');
+        void ask(pool, 1, 'soon');
+        void ask(pool, 2, 'soon');
+        void ask(pool, 3, 'soon');
+        await settle();
+        expect(startedXs(runner)).toEqual([0, 1]);
+
+        // A player's chunk arrives with both workers busy. It takes the staged slot, and the
+        // background holds itself to one worker until the player's chunk is done.
+        void ask(pool, 10, 'immediate');
+        await settle();
+        expect(startedXs(runner)).toEqual([0, 1, 10]);
+
+        runner.finishOne();
+        await settle();
+        runner.finishOne();
+        await settle();
+        expect(startedXs(runner)).toEqual([0, 1, 10, 2]);
+
+        // The immediate task finishing lifts the hold, and the background fills both workers.
+        runner.finishOne();
+        await settle();
+        expect(startedXs(runner)).toEqual([0, 1, 10, 2, 3]);
+    });
+});
