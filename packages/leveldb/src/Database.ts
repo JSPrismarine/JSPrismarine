@@ -165,6 +165,7 @@ export class Database {
         // the new one. Without this an open leaks a log file, and a world a developer restarts
         // all day ends up with hundreds of empty ones to read past.
         this.discardStaleLogs(this.versions.logNumber);
+        this.discardOrphanTables();
     }
 
     private readManifest(): void {
@@ -909,6 +910,25 @@ export class Database {
                 fs.unlinkSync(path.join(this.directory, name));
             } catch {
                 // Left behind; harmless, since recovery only replays what the manifest names.
+            }
+        }
+    }
+
+    /**
+     * Deletes tables the manifest does not name. A crash between writing a table and naming it in
+     * the manifest leaves one behind, as does an interrupted compaction, and upstream LevelDB
+     * deletes them on open the same way. Runs only at open, when no table is being written.
+     */
+    private discardOrphanTables(): void {
+        const live = new Set(this.versions.allFiles().map(({ file }) => file.number));
+        for (const name of fs.readdirSync(this.directory)) {
+            const parsed = parseFileName(name);
+            if (parsed?.kind !== FileKind.Table || parsed.number === undefined || live.has(parsed.number)) continue;
+
+            try {
+                fs.unlinkSync(path.join(this.directory, name));
+            } catch {
+                // Left behind; tried again on the next open.
             }
         }
     }
