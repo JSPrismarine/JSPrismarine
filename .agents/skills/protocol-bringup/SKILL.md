@@ -12,6 +12,19 @@ decisions and measurements are in [docs/research/protocol-2225-delta.md](../../.
 and [docs/research/bedrock-data-pipeline.md](../../../docs/research/bedrock-data-pipeline.md).
 Read both before starting.
 
+**A preview protocol** (a Minecraft Preview build, there to be ready when its release ships)
+takes the same steps with these differences:
+
+- Set `export const preview = true` in its `wire/versions/v<N>.ts` and `preview` on its
+  `ProtocolVersions` entry, and `"preview": true` on its `sources.json` BDS pin. Pin the BDS from
+  Mojang's `bin-linux-preview` channel; Bedrock-OSS/BDS-Versions lists it under `linux_preview`.
+- Keep one preview only. A new preview replaces the previous one: delete the old version's
+  codec, version file, pins and data rather than keeping them beside it. The registry refuses a
+  second preview, or a preview older than a release.
+- Add no `cinnabar.json` pin: cinnabar speaks releases only, and step 6 is the validation.
+- When the release ships, drop `preview` everywhere and add the cinnabar pin. The `SINCE_<N>`
+  gates stay, since a gate is a lower bound.
+
 Work the steps in order; each later step consumes the one before it. Commit each completed,
 validated slice (commit-discipline skill) and add Changesets per [docs/guide/versioning.md](../../../docs/guide/versioning.md).
 
@@ -77,7 +90,7 @@ deferred.
   `minecraftVersion`, `serverVersion`, the `bin-linux` zip URL, Mojang's sha1 from
   [Bedrock-OSS/BDS-Versions](https://github.com/Bedrock-OSS/BDS-Versions), and the sha256 and
   size measured on download. Then `pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol <N>`.
-- Pin the cinnabar commit that speaks N in `tools/client-e2e/cinnabar.json` with
+- For a release, pin the cinnabar commit that speaks N in `tools/client-e2e/cinnabar.json` with
   `"transports": ["nethernet"]`: new protocols run over NetherNet only, and only older ones keep
   RakNet. The "Version pin" section of `tools/client-e2e/README.md` describes the entry.
 - Add N to the `PROTOCOLS` map in `packages/client/src/Client.ts` with its Minecraft version

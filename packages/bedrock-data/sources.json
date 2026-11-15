@@ -59,6 +59,22 @@
                 "sha1": "9a4e462342d393af7f990205e932de4a64936c7c",
                 "sha256": "cbbd5414fa6a310353ed1fc76a0ba691c3fd1ea852fd04bb76764ee4c1afdb98",
                 "sizeInBytes": 98094690
+            },
+            "2259": {
+                "$comment": [
+                    "Minecraft Preview 1.26.70.24, from the `bin-linux-preview` channel. The server negotiates",
+                    "this protocol but advertises the newest release, and cinnabar does not test it; it is",
+                    "brought up and checked with `pnpm run bringup --protocol 2259`. Replaced, not kept",
+                    "beside, when the next preview or the 1.26.70 release lands. sha256 measured and sha1",
+                    "confirmed against Bedrock-OSS/BDS-Versions on 2026-11-15."
+                ],
+                "preview": true,
+                "minecraftVersion": "1.26.70.24",
+                "serverVersion": "1.26.70.24",
+                "url": "https://www.minecraft.net/bedrockdedicatedserver/bin-linux-preview/bedrock-server-1.26.70.24.zip",
+                "sha1": "bddb3c781059c578db4e56aa958c30c985554ab9",
+                "sha256": "1b0606bc9bf65be6ba14180c407339e9ba9acd9816240a4da328714556decc8a",
+                "sizeInBytes": 101731477
             }
         }
     },
