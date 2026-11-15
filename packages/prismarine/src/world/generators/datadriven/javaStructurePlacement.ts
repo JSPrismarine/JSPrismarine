@@ -93,6 +93,91 @@ export const candidateChunksIn = (placement: StructurePlacement, seed: bigint, r
     }
 };
 
+/** How many regions {@link CandidateChunkMemo} keeps before it starts over. */
+const MEMO_LIMIT = 1 << 17;
+
+/**
+ * {@link candidateChunksIn} with each region's answer remembered.
+ *
+ * A region's candidate is fixed by the seed, and the windows neighboring chunks scan overlap
+ * almost entirely: a set spaced one chunk apart, such as the mineshafts, asks the same 289
+ * regions of every chunk around it, and each answer is two seeded draws. The memo asks each
+ * region once.
+ */
+export class CandidateChunkMemo {
+    private readonly regions = new Map<RandomSpreadPlacement, Map<string, ChunkPosition | null>>();
+    private readonly rings = new Map<StructurePlacement, readonly ChunkPosition[]>();
+    private size = 0;
+    private asked = 0;
+
+    public constructor(private readonly seed: bigint) {}
+
+    /** How many random spread regions this memo has drawn a candidate for, for profiling. */
+    public get regionsDrawn(): number {
+        return this.asked;
+    }
+
+    /** The same chunks, in the same order, as {@link candidateChunksIn} returns. */
+    public in(placement: StructurePlacement, range: ChunkRange): ChunkPosition[] {
+        if (placement.type === 'minecraft:random_spread') return this.spread(placement, range);
+
+        let all = this.rings.get(placement);
+        if (all === undefined) {
+            all = candidateChunksIn(placement, this.seed, {
+                minChunkX: Number.NEGATIVE_INFINITY,
+                minChunkZ: Number.NEGATIVE_INFINITY,
+                maxChunkX: Number.POSITIVE_INFINITY,
+                maxChunkZ: Number.POSITIVE_INFINITY
+            });
+            this.rings.set(placement, all);
+        }
+        return all.filter((chunk) => inRange(range, chunk));
+    }
+
+    private spread(placement: RandomSpreadPlacement, range: ChunkRange): ChunkPosition[] {
+        if (this.size >= MEMO_LIMIT) {
+            this.regions.clear();
+            this.size = 0;
+        }
+        let byRegion = this.regions.get(placement);
+        if (byRegion === undefined) {
+            byRegion = new Map();
+            this.regions.set(placement, byRegion);
+        }
+
+        const candidates: ChunkPosition[] = [];
+        const minRegionX = Math.floor(range.minChunkX / placement.spacing);
+        const maxRegionX = Math.floor(range.maxChunkX / placement.spacing);
+        const minRegionZ = Math.floor(range.minChunkZ / placement.spacing);
+        const maxRegionZ = Math.floor(range.maxChunkZ / placement.spacing);
+        for (let regionX = minRegionX; regionX <= maxRegionX; regionX++) {
+            for (let regionZ = minRegionZ; regionZ <= maxRegionZ; regionZ++) {
+                const key = `${regionX},${regionZ}`;
+                let chunk = byRegion.get(key);
+                if (chunk === undefined) {
+                    chunk = regionCandidate(placement, this.seed, regionX, regionZ);
+                    byRegion.set(key, chunk);
+                    this.size++;
+                    this.asked++;
+                }
+                if (chunk !== null && inRange(range, chunk)) candidates.push(chunk);
+            }
+        }
+        return candidates;
+    }
+}
+
+/** The chunk a random spread region offers, or null when the placement's rules reject it. */
+const regionCandidate = (
+    placement: RandomSpreadPlacement,
+    seed: bigint,
+    regionX: number,
+    regionZ: number
+): ChunkPosition | null => {
+    const chunk = potentialStructureChunk(placement, seed, regionX * placement.spacing, regionZ * placement.spacing);
+    return isStructureChunk(placement, seed, chunk.x, chunk.z) ? chunk : null;
+};
+
 /**
  * Every chunk a search from one chunk may find a structure of this set in.
  *
@@ -168,16 +253,8 @@ const spreadCandidates = (placement: RandomSpreadPlacement, seed: bigint, range:
 
     for (let regionX = minRegionX; regionX <= maxRegionX; regionX++) {
         for (let regionZ = minRegionZ; regionZ <= maxRegionZ; regionZ++) {
-            const chunk = potentialStructureChunk(
-                placement,
-                seed,
-                regionX * placement.spacing,
-                regionZ * placement.spacing
-            );
-            if (!inRange(range, chunk)) continue;
-            if (!isStructureChunk(placement, seed, chunk.x, chunk.z)) continue;
-
-            candidates.push(chunk);
+            const chunk = regionCandidate(placement, seed, regionX, regionZ);
+            if (chunk !== null && inRange(range, chunk)) candidates.push(chunk);
         }
     }
 

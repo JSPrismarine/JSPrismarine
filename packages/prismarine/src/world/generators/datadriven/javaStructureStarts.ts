@@ -23,7 +23,7 @@ import type { TerrainAdaptation } from './javaStructureBeard';
 import { terrainAdaptationOf } from './javaStructureBeard';
 import type { NamedStructureSet } from './javaStructurePlacement';
 import {
-    candidateChunksIn,
+    CandidateChunkMemo,
     chooseStructure,
     createTagExpander,
     loadStructureSets,
@@ -193,6 +193,7 @@ export class StructureStartSource {
     private readonly pools = new Map<string, TemplatePool | undefined>();
     private readonly starts = new Map<string, StructureStart | null>();
     private readonly startsByChunk = new Map<string, readonly StructureStart[]>();
+    private readonly candidates: CandidateChunkMemo;
 
     /** The structures of each step, in registry order, which is the order Java seeds them in. */
     private readonly byStep = new Map<DecorationStep, string[]>();
@@ -201,6 +202,7 @@ export class StructureStartSource {
     private readonly unbuilt = new Set<string>();
 
     public constructor(private readonly options: StructureStartOptions) {
+        this.candidates = new CandidateChunkMemo(options.seed);
         const expand = createTagExpander(options.registries.biomeTags);
         const biomeCache = new Map<string, ReadonlySet<string>>();
 
@@ -272,7 +274,7 @@ export class StructureStartSource {
         };
         const candidates: StructureStartCandidate[] = [];
         for (const named of this.sets) {
-            for (const candidate of candidateChunksIn(named.set.placement, this.options.seed, range)) {
+            for (const candidate of this.candidates.in(named.set.placement, range)) {
                 candidates.push({ set: named.id, chunkX: candidate.x, chunkZ: candidate.z });
             }
         }
@@ -390,7 +392,7 @@ export class StructureStartSource {
 
         const found: StructureStart[] = [];
         for (const named of this.sets) {
-            for (const candidate of candidateChunksIn(named.set.placement, this.options.seed, range)) {
+            for (const candidate of this.candidates.in(named.set.placement, range)) {
                 const start = this.startAt(named, candidate.x, candidate.z);
                 if (start !== null && boxTouchesChunk(start.boundingBox, chunkX, chunkZ)) found.push(start);
             }
