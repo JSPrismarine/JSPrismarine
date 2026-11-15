@@ -13,8 +13,9 @@ import { isOptionalFluidTickList } from './GenerationRegion';
 import type { GenerationRegionPayload } from './GenerationRegion';
 
 const RECORD_MAGIC = 'jsprismarine-terrain-proto';
-// Bump when the record header or serialized region shape changes.
-const RECORD_SCHEMA_VERSION = 1;
+// Bump when the record header or serialized region shape changes. 2: a tile carries the fluid
+// ticks its terrain marked, which a record written before had dropped.
+const RECORD_SCHEMA_VERSION = 2;
 // Bump when the terrain status algorithm changes without a record-shape change.
 const GENERATOR_VERSION = 1;
 const STATUS = 'terrain';
