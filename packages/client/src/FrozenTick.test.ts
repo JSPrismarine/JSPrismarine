@@ -17,21 +17,6 @@ const MAX_JOIN_TICKS = 120;
 const SWINGING_TICKS = 3;
 const ANIMATE_ID = new AnimatePacket().getId();
 
-/**
- * An arm swing the test client can send. `ClientSession.send` serializes only packets with a
- * typed payload, and `AnimatePacket` keeps its body in fields (#3019), so this one writes itself through
- * its field encoder. It keeps the name its id is looked up by.
- */
-class SwingPacket extends AnimatePacket {
-    public override getName(): string {
-        return 'AnimatePacket';
-    }
-
-    public override serialize(): Buffer {
-        return this.encodeTransient();
-    }
-}
-
 const nextTurn = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
 let cleanup: (() => Promise<void>) | undefined;
@@ -144,7 +129,7 @@ describe('a frozen tick', () => {
             if (id === ANIMATE_ID) swings.push(server.getTick());
         });
         const swing = async (): Promise<void> => {
-            const packet = new SwingPacket();
+            const packet = new AnimatePacket();
             packet.action = AnimateAction.Swing;
             packet.runtimeEntityId = swingerId;
             await swinger.getSession().send(packet);

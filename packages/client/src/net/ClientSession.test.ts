@@ -10,6 +10,7 @@ import {
     TextPacket,
     TextPacketType
 } from '@jsprismarine/protocol';
+import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
 import { describe, expect, it, vi } from 'vitest';
 import { ShowCreditsPacket } from '../Credits';
 import { FakeTransport } from '../testing/fakeTransport.test.helper';
@@ -111,6 +112,23 @@ describe('ClientSession compression state', () => {
 
         expect(session.isCompressionEnabled()).toBe(true);
         expect(transport.sent[1]![1]).toBe(PacketCompressionAlgorithm.ZLIB);
+    });
+});
+
+describe('ClientSession sending', () => {
+    it('sends a packet that keeps its body in fields', async () => {
+        const { transport, session } = newSession();
+        const swing = new AnimatePacket();
+        swing.action = AnimateAction.Swing;
+        swing.runtimeEntityId = 7n;
+
+        await session.send(swing);
+
+        const [sent] = BatchCodec.uncompressed().decode(transport.sent[0]!);
+        const read = new AnimatePacket(sent);
+        read.decode();
+        expect(read.action).toBe(AnimateAction.Swing);
+        expect(read.runtimeEntityId).toBe(7n);
     });
 });
 
