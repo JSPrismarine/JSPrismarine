@@ -215,11 +215,30 @@ export const collisionShapeOf = (state: Pick<BlockState, 'content'>): readonly B
 
 /**
  * Whether a shape fills its whole cell, which is what Java's `isCollisionShapeFullBlock` asks.
+ *
+ * The boxes together decide it, so two half blocks side by side fill the cell. The cell is cut
+ * at every box face inside it, and each piece must lie in some box.
  * @param shape - Boxes normalized to the cell.
- * @returns Whether one box covers the cell.
+ * @returns Whether the boxes cover the cell.
  */
-export const isFullCubeShape = (shape: readonly BedrockCollisionBox[]): boolean =>
-    shape.some(
-        ([minX, minY, minZ, maxX, maxY, maxZ]) =>
-            minX <= 0 && minY <= 0 && minZ <= 0 && maxX >= 1 && maxY >= 1 && maxZ >= 1
+export const isFullCubeShape = (shape: readonly BedrockCollisionBox[]): boolean => {
+    if (shape.length === 0) return false;
+    /** The cuts along one axis: the cell's faces and every box face between them. */
+    const cuts = (low: 0 | 1 | 2, high: 3 | 4 | 5): number[] =>
+        [...new Set([0, 1, ...shape.flatMap((box) => [box[low], box[high]]).filter((cut) => cut > 0 && cut < 1)])].sort(
+            (left, right) => left - right
+        );
+    const [xs, ys, zs] = [cuts(0, 3), cuts(1, 4), cuts(2, 5)];
+    /** The middle of each piece between two neighboring cuts. */
+    const middles = (at: number[]): number[] => at.slice(1).map((cut, index) => (cut + (at[index] ?? cut)) / 2);
+    return middles(xs).every((x) =>
+        middles(ys).every((y) =>
+            middles(zs).every((z) =>
+                shape.some(
+                    ([minX, minY, minZ, maxX, maxY, maxZ]) =>
+                        minX <= x && x <= maxX && minY <= y && y <= maxY && minZ <= z && z <= maxZ
+                )
+            )
+        )
     );
+};

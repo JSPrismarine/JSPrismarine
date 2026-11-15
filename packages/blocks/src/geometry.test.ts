@@ -153,4 +153,19 @@ describe('isFullCubeShape', () => {
         expect(isFullCubeShape([[0, 0, 0, 1, 0.5, 1]])).toBe(false);
         expect(isFullCubeShape([])).toBe(false);
     });
+
+    it('counts boxes that fill the cell together, and not ones that leave a gap', () => {
+        expect(
+            isFullCubeShape([
+                [0, 0, 0, 0.5, 1, 1],
+                [0.5, 0, 0, 1, 1, 1]
+            ])
+        ).toBe(true);
+        expect(
+            isFullCubeShape([
+                [0, 0, 0, 0.5, 1, 1],
+                [0.5, 0, 0, 1, 0.5, 1]
+            ])
+        ).toBe(false);
+    });
 });
