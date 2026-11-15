@@ -21,7 +21,7 @@ import {
 } from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
-import { basename, dirname, join, relative, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -896,6 +896,17 @@ const run = async (options) => {
     if (!options.out) throw new Error('run needs --out <dir>');
     const out = resolve(options.out);
     if (existsSync(join(out, 'meta.json'))) throw new Error(`${out} already holds a capture; choose another --out`);
+    // Cleanup deletes the session directory, and with it a capture written inside it.
+    if (options.session !== undefined && !options['keep-session']) {
+        const session = resolve(options.session);
+        const fromSession = relative(session, out);
+        if (!(fromSession === '..' || fromSession.startsWith(`..${sep}`) || isAbsolute(fromSession))) {
+            throw new Error(
+                `--out ${out} is inside --session ${session}, which run deletes when it finishes; ` +
+                    'choose an --out outside it or pass --keep-session'
+            );
+        }
+    }
     const dir = resolve(options.session ?? mkdtempSync(join(os.tmpdir(), 'jsp-profile-')));
 
     // Cleanup stops and deletes only a session this run launched. When start refuses a
