@@ -305,6 +305,10 @@
             "jsprismarine:dist": "./dist/entity/data/EntityRuntime.js",
             "default": "./src/entity/data/EntityRuntime.ts"
         },
+        "./entity/data/gravity": {
+            "jsprismarine:dist": "./dist/entity/data/gravity.js",
+            "default": "./src/entity/data/gravity.ts"
+        },
         "./entity/data/host": {
             "jsprismarine:dist": "./dist/entity/data/host.js",
             "default": "./src/entity/data/host.ts"

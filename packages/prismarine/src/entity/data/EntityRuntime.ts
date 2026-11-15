@@ -114,6 +114,7 @@ import {
 } from '../equipment';
 import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf, PLAYER_BOX } from './facts';
+import { fallsUnderGravity } from './gravity';
 import type { EntityFacts } from './facts';
 import {
     bodyCanOccupy,
@@ -1862,7 +1863,7 @@ export class EntityRuntime implements EntityScene {
         const bounciness = instance.componentParams('minecraft:bounciness');
         const componentFacts: RuntimeComponentFacts = {
             componentToken,
-            hasGravity: physicsRecord?.hasGravity === true,
+            hasGravity: fallsUnderGravity(instance),
             hasCollision: physicsRecord === undefined || physicsRecord.hasCollision !== false,
             canStandOnPowderSnow: instance.hasComponent('minecraft:can_stand_on_powder_snow'),
             usesUniformAirDrag: instance.hasComponent('minecraft:uses_uniform_air_drag'),

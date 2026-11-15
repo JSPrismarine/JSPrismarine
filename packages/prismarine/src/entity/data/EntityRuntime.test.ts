@@ -399,6 +399,8 @@ describe('EntityRuntime', () => {
                                 'minecraft:type_family': { family: ['after'] },
                                 'minecraft:physics': { has_gravity: true, has_collision: false },
                                 'minecraft:navigation.fly': {},
+                                // A parrot's flight, which still falls; a hovering flyer would not.
+                                'minecraft:movement.fly': {},
                                 'minecraft:can_fly': {}
                             }
                         },
@@ -440,6 +442,46 @@ describe('EntityRuntime', () => {
             expect(changedProfile.kind).toBe('fly');
             expect(changedProfile).not.toBe(initialProfile);
             expect(entity.position.y).toBeLessThan(initialY);
+        });
+    });
+
+    describe('gravity', () => {
+        const flyer = (components: Record<string, unknown>) =>
+            entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:flyer': {
+                        components: {
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:collision_box': { width: 1, height: 1 },
+                            'minecraft:physics': {},
+                            'minecraft:can_fly': {},
+                            ...components
+                        }
+                    }
+                }
+            ).runtime;
+        const aloft = { x: 0, y: FLOOR_Y + 10, z: 0 };
+
+        it('keeps a flyer that hovers in place in the air, as a ghast', () => {
+            const runtime = flyer({ 'minecraft:navigation.float': {} });
+            const ghast = runtime.spawn('jsprismarine:flyer', aloft);
+            if (ghast === undefined) throw new Error('the fixture declares no flyer');
+
+            runtime.tick(20);
+
+            expect(ghast.position.y).toBe(aloft.y);
+        });
+
+        it('lets a flyer with movement.fly flutter down, as a parrot', () => {
+            const runtime = flyer({ 'minecraft:navigation.fly': {}, 'minecraft:movement.fly': {} });
+            const parrot = runtime.spawn('jsprismarine:flyer', aloft);
+            if (parrot === undefined) throw new Error('the fixture declares no flyer');
+
+            runtime.tick(20);
+
+            expect(parrot.position.y).toBeLessThan(aloft.y);
         });
     });
 
