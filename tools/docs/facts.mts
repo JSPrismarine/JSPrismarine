@@ -168,6 +168,23 @@ function generationFacts() {
     return { 'generation.reservedCores': reserved };
 }
 
+/** What the `fluid-replacement` setting and chunk settling run on, read from the code that decides them. */
+function fluidFacts() {
+    const replacement = sourceText('packages/prismarine/src/content/world/fluidReplacement.ts');
+    const fallback = /export const DEFAULT_FLUID_REPLACEMENT: FluidReplacement = '([a-z]+)';/.exec(replacement)?.[1];
+    const tag = /export const WASHED_AWAY_BY_FLUIDS = '([a-z:_]+)';/.exec(replacement)?.[1];
+    const reach = /const SETTLING_REACH = (\d+);/.exec(sourceText('packages/prismarine/src/world/World.ts'))?.[1];
+    if (fallback === undefined || tag === undefined || reach === undefined) {
+        throw new Error('The docs facts no longer find the fluid replacement default, its tag or SETTLING_REACH.');
+    }
+    const side = Number(reach) * 2 + 1;
+    return {
+        'fluidReplacement.default': fallback,
+        'fluidReplacement.tag': `#${tag}`,
+        'settling.neighbors': String(side * side - 1)
+    };
+}
+
 /** A source file the facts below quote, read as text. */
 const sourceText = (...segments: string[]) => readFileSync(path.join(repoRoot, ...segments), 'utf8');
 
@@ -578,6 +595,7 @@ export async function loadFacts(): Promise<Facts> {
             ...leveldbFacts(),
             ...tickBudgetFacts(),
             ...generationFacts(),
+            ...fluidFacts(),
             ...replicationFacts(),
             ...blendingFacts(),
             ...parityFamilyFacts(),

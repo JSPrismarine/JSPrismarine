@@ -126,6 +126,9 @@ const SPAWN_SEARCH_RADIUS = 256;
 
 /** How many ticks apart the world looks for freshly generated chunks that have settled. */
 const SETTLED_CHECK_INTERVAL = 20;
+
+/** How many chunks out a settling chunk waits for its neighbors to be loaded and quiet. */
+const SETTLING_REACH = 1;
 const SPAWN_SEARCH_STEP = 8;
 
 /**
@@ -3424,8 +3427,8 @@ export class World implements Service {
         const fluidTicks = this.systems.ticks.list('fluid');
         for (const [index, { x, z }] of settling) {
             let settled = true;
-            for (let dx = -1; dx <= 1 && settled; dx++) {
-                for (let dz = -1; dz <= 1 && settled; dz++) {
+            for (let dx = -SETTLING_REACH; dx <= SETTLING_REACH && settled; dx++) {
+                for (let dz = -SETTLING_REACH; dz <= SETTLING_REACH && settled; dz++) {
                     if (fluidTicks.hasTicksInChunk(x + dx, z + dz)) settled = false;
                     else if (this.blockUpdates.hasPendingInChunk(x + dx, z + dz)) settled = false;
                     else if ((dx !== 0 || dz !== 0) && this.getLoadedChunk(x + dx, z + dz) === null) settled = false;

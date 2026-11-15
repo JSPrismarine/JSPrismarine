@@ -213,18 +213,18 @@ it is a source and cobblestone when it is flowing, lava falling into water becom
 over soul soil next to blue ice becomes basalt.
 
 What a flowing fluid may enter, and destroy with its drop, is the one place the two editions part
-ways, so the `fluid-replacement` setting picks one. `java` follows Java 26.3's
-`FlowingFluid.canHoldFluid`: a fluid washes away the blocks `#minecraft:washed_away_by_fluids`
+ways, so the `fluid-replacement` setting picks one, <!-- fact:fluidReplacement.default -->`java`<!-- /fact --> by default. `java` follows Java 26.3's
+`FlowingFluid.canHoldFluid`: a fluid washes away the blocks <!-- fact:fluidReplacement.tag -->`#minecraft:washed_away_by_fluids`<!-- /fact -->
 lists, and keeps out of every waterloggable block, since its `canPlaceLiquid` takes only a still
 water source. `bedrock` follows each block's Bedrock `liquidReactionOnTouch`, under which water
-pops sugar cane and a big dripleaf that Java leaves standing. A stack that declares no
-`#minecraft:washed_away_by_fluids` falls back to the Bedrock reactions either way.
+pops sugar cane that Java leaves standing. A stack that declares no
+<!-- fact:fluidReplacement.tag -->`#minecraft:washed_away_by_fluids`<!-- /fact --> falls back to the Bedrock reactions either way.
 
 A freshly generated chunk settles before anything it destroys drops. Generation leaves fluid to
 tick where Java's post-processing does, and while that water moves, what the world's own block
 updates, scheduled ticks and random ticks destroy in the chunk leaves nothing on the ground. When
 that water, or an update it sets off, writes a block in another loaded chunk, that chunk settles
-too. A chunk stops settling once it and its eight neighbors are loaded with no fluid tick and no
+too. A chunk stops settling once it and its <!-- fact:settling.neighbors -->8<!-- /fact --> neighbors are loaded with no fluid tick and no
 block update queued, or when a player or a command writes a block in it.
 
 ## Fire
