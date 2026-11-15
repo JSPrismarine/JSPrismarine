@@ -1,10 +1,4 @@
-import {
-    ValueType,
-    compareInternalKeys,
-    encodeInternalKey,
-    extractUserKey,
-    parseInternalKey
-} from '../format/InternalKey';
+import { ValueType, compareInternalKeys, encodeInternalKey, extractUserKey } from '../format/InternalKey';
 import { compareBytewise } from '../util/Comparator';
 
 export interface MemTableEntry {
@@ -92,17 +86,6 @@ export class MemTable {
         if (this.entries.length === 0) return null;
 
         return { smallest: this.entries[0]!.internalKey, largest: this.entries.at(-1)!.internalKey };
-    }
-
-    /** The highest sequence number in the table, for restoring `lastSequence` after a replay. */
-    public maxSequence(): bigint {
-        let max = 0n;
-        for (const entry of this.entries) {
-            const { sequence } = parseInternalKey(entry.internalKey);
-            if (sequence > max) max = sequence;
-        }
-
-        return max;
     }
 }
 

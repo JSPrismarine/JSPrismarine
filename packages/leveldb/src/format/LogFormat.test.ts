@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CorruptionError } from '../Errors';
 import { LOG_BLOCK_SIZE, LOG_HEADER_SIZE, LogWriter, frameLogRecord, readLogRecords } from './LogFormat';
+import type { LogCorruption } from './LogFormat';
 import { ValueType, encodeInternalKey } from './InternalKey';
 import { WriteBatch } from './WriteBatch';
 
@@ -140,6 +141,59 @@ describe('leveldb', () => {
 
                 expect(() => [...readLogRecords(bytes)]).toThrow(CorruptionError);
             });
+
+            describe('with a reporter, as log replay reads', () => {
+                const read = (bytes: Buffer) => {
+                    const reports: LogCorruption[] = [];
+                    const records = [...readLogRecords(bytes, (report) => reports.push(report))].map(String);
+                    return { records, reports };
+                };
+
+                it('drops the rest of the block a bad checksum is in, and reads on from the next', () => {
+                    const writer = new LogWriter();
+                    writer.append(Buffer.from('lost with its block'));
+                    writer.append(Buffer.from('also in the first block'));
+                    writer.append(Buffer.alloc(LOG_BLOCK_SIZE, 0x61));
+                    writer.append(Buffer.from('in a later block'));
+                    const bytes = writer.finish();
+                    bytes.writeUInt8(bytes.readUInt8(LOG_HEADER_SIZE) ^ 0xff, LOG_HEADER_SIZE);
+
+                    const { records, reports } = read(bytes);
+
+                    // The big record began in the damaged block, so its later fragments go too.
+                    expect(records).toEqual(['in a later block']);
+                    expect(reports[0]).toEqual({ bytes: LOG_BLOCK_SIZE, reason: 'checksum mismatch' });
+                    expect(reports.slice(1).map((report) => report.reason)).toEqual([
+                        'missing start of fragmented record(2)'
+                    ]);
+                });
+
+                it('drops the rest of the block when a length runs past it', () => {
+                    const writer = new LogWriter();
+                    writer.append(Buffer.from('lost'));
+                    writer.append(Buffer.alloc(LOG_BLOCK_SIZE, 0x62));
+                    writer.append(Buffer.from('kept'));
+                    const bytes = writer.finish();
+                    bytes.writeUInt16LE(0xffff, 4);
+
+                    const { records, reports } = read(bytes);
+
+                    expect(records).toEqual(['kept']);
+                    expect(reports[0]).toEqual({ bytes: LOG_BLOCK_SIZE, reason: 'bad record length' });
+                });
+
+                it('still ends quietly at a tail cut short', () => {
+                    const writer = new LogWriter();
+                    writer.append(Buffer.from('complete'));
+                    writer.append(Buffer.alloc(200, 0x66));
+                    const bytes = writer.finish();
+
+                    expect(read(bytes.subarray(0, bytes.byteLength - 100))).toEqual({
+                        records: ['complete'],
+                        reports: []
+                    });
+                });
+            });
         });
     });
 
@@ -197,6 +251,23 @@ describe('leveldb', () => {
 
         it('refuses a batch shorter than its own header', () => {
             expect(() => WriteBatch.decode(Buffer.alloc(4))).toThrow(CorruptionError);
+        });
+
+        it('decodes the operations before damage, as log replay applies them', () => {
+            const encoded = new WriteBatch()
+                .put(Buffer.from('a'), Buffer.from('1'))
+                .put(Buffer.from('b'), Buffer.from('2'))
+                .encode(5n);
+            // The second operation's type byte: 12 header bytes, then 1 + 2 + 2 for the first put.
+            encoded.writeUInt8(9, 12 + 5);
+
+            const decoded = WriteBatch.decodePrefix(encoded);
+
+            expect(decoded?.sequence).toBe(5n);
+            expect(decoded?.count).toBe(2);
+            expect(decoded?.batch.entries().map((operation) => String(operation.key))).toEqual(['a']);
+            expect(decoded?.damage).toBe('unknown WriteBatch tag');
+            expect(WriteBatch.decodePrefix(Buffer.alloc(4))).toBeNull();
         });
 
         it('refuses an unknown operation type', () => {

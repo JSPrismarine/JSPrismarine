@@ -4,13 +4,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CompressionType } from './compression/Compression';
 import { Database } from './Database';
 import { DatabaseLockedError } from './Errors';
 import { WriteBatch } from './format/WriteBatch';
-import { readLogRecords } from './format/LogFormat';
+import { LOG_BLOCK_SIZE, readLogRecords } from './format/LogFormat';
+import type { CorruptionReport } from './DatabaseOptions';
 import { VersionSet } from './db/VersionSet';
 import { TableBuilder } from './format/TableBuilder';
 import {
@@ -301,6 +302,61 @@ describe('leveldb', () => {
                 for (const k of keys) expect(reopened.get(k)).toBeNull();
                 await reopened.close();
                 await crashed.close();
+            });
+
+            it('opens a world whose log is damaged, keeps what lies outside the damage, and reports it', async () => {
+                // Bedrock opens such a world and loses only the damaged block's writes, so this
+                // must open it too rather than refuse.
+                const directory = scratch();
+                const crashed = await Database.open(directory);
+                crashed.put(key('damaged'), key('lost'));
+                crashed.put(key('filler'), Buffer.alloc(40 * 1024, 1));
+                crashed.put(key('after'), key('kept'));
+
+                const copy = scratch();
+                for (const name of fs.readdirSync(directory)) {
+                    if (name !== 'LOCK') fs.copyFileSync(path.join(directory, name), path.join(copy, name));
+                }
+                await crashed.close();
+                const log = fs.readdirSync(copy).find((name) => name.endsWith('.log'))!;
+                const bytes = fs.readFileSync(path.join(copy, log));
+                // A byte of the first record's payload, so its checksum no longer matches.
+                bytes.writeUInt8(bytes.readUInt8(20) ^ 0xff, 20);
+                fs.writeFileSync(path.join(copy, log), bytes);
+
+                const reports: CorruptionReport[] = [];
+                const reopened = await Database.open(copy, { onCorruption: (report) => reports.push(report) });
+
+                expect(reopened.get(key('damaged'))).toBeNull();
+                expect(reopened.get(key('after'))).toEqual(key('kept'));
+                expect(reports).toContainEqual({ file: log, bytes: LOG_BLOCK_SIZE, reason: 'checksum mismatch' });
+                await reopened.close();
+            });
+
+            it('warns on the console about damage it skipped when no reporter is given', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                db.put(key('damaged'), key('lost'));
+                const copy = scratch();
+                for (const name of fs.readdirSync(directory)) {
+                    if (name !== 'LOCK') fs.copyFileSync(path.join(directory, name), path.join(copy, name));
+                }
+                await db.close();
+                const log = fs.readdirSync(copy).find((name) => name.endsWith('.log'))!;
+                const bytes = fs.readFileSync(path.join(copy, log));
+                bytes.writeUInt8(bytes.readUInt8(20) ^ 0xff, 20);
+                fs.writeFileSync(path.join(copy, log), bytes);
+
+                const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+                try {
+                    const reopened = await Database.open(copy);
+                    await reopened.close();
+                    expect(warn).toHaveBeenCalledWith(
+                        expect.stringContaining(`damaged bytes of ${log} (checksum mismatch)`)
+                    );
+                } finally {
+                    warn.mockRestore();
+                }
             });
 
             it('syncs one write when asked, and none by default', async () => {

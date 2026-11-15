@@ -35,6 +35,22 @@ export interface DatabaseOptions {
      * {@link WriteOptions.sync}.
      */
     sync?: boolean;
+    /**
+     * Told about each damaged stretch of a log that opening the database skipped. Bedrock opens
+     * such a world the same way, losing only the writes in that stretch, so this reports rather
+     * than refuses. Defaults to `console.warn`.
+     */
+    onCorruption?: (report: CorruptionReport) => void;
+}
+
+/** A damaged stretch of a log that recovery skipped, and the writes lost with it. */
+export interface CorruptionReport {
+    /** The log file's name inside the database directory. */
+    file: string;
+    /** Bytes of the log, or of one batch in it, that were not applied. */
+    bytes: number;
+    /** What was wrong, in upstream LevelDB's words. */
+    reason: string;
 }
 
 /** How one {@link Database.write} or {@link Database.commit} reaches the disk. */
@@ -61,5 +77,13 @@ export const resolveOptions = (options: DatabaseOptions = {}): ResolvedOptions =
     compression: options.compression ?? CompressionType.ZlibRaw,
     compressionLevel: options.compressionLevel ?? zlib.constants.Z_DEFAULT_COMPRESSION,
     l0CompactionTrigger: options.l0CompactionTrigger ?? 4,
-    sync: options.sync ?? false
+    sync: options.sync ?? false,
+    onCorruption: options.onCorruption ?? warnCorruption
 });
+
+const warnCorruption = (report: CorruptionReport): void => {
+    console.warn(
+        `LevelDB skipped ${report.bytes} damaged bytes of ${report.file} (${report.reason}); ` +
+            'the writes in them are lost, as they are when the game opens this world.'
+    );
+};

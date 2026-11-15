@@ -62,6 +62,46 @@ export class WriteBatch {
         return writer.finish();
     }
 
+    /**
+     * Decodes as much of a batch as is well formed, as upstream LevelDB's log replay applies a
+     * damaged batch: every operation before the damage, then nothing more.
+     *
+     * @param encoded - One log record.
+     * @returns The sequence and count the header declares, the operations read, and what stopped
+     *   the read when it stopped early. A record too short for the header has neither.
+     */
+    public static decodePrefix(encoded: Buffer): {
+        sequence: bigint;
+        count: number;
+        batch: WriteBatch;
+        damage: string | null;
+    } | null {
+        if (encoded.byteLength < 12) return null;
+
+        const reader = new ByteReader(encoded);
+        const sequence = reader.u64();
+        const count = reader.u32();
+        const batch = new WriteBatch();
+
+        try {
+            while (!reader.exhausted) {
+                const type = reader.u8();
+                if (type === ValueType.Value) {
+                    const key = Buffer.from(reader.lengthPrefixed());
+                    batch.put(key, Buffer.from(reader.lengthPrefixed()));
+                } else if (type === ValueType.Deletion) {
+                    batch.del(Buffer.from(reader.lengthPrefixed()));
+                } else {
+                    return { sequence, count, batch, damage: 'unknown WriteBatch tag' };
+                }
+            }
+        } catch {
+            return { sequence, count, batch, damage: 'bad WriteBatch Put or Delete' };
+        }
+
+        return { sequence, count, batch, damage: batch.count === count ? null : 'WriteBatch has wrong count' };
+    }
+
     public static decode(encoded: Buffer): { sequence: bigint; batch: WriteBatch } {
         if (encoded.byteLength < 12) {
             throw new CorruptionError(`Write batch is ${encoded.byteLength} bytes, the header alone is 12`);

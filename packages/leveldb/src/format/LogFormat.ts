@@ -116,66 +116,125 @@ export class LogWriter {
     }
 }
 
+/** A stretch of a log a reader skipped because it was damaged. */
+export interface LogCorruption {
+    /** How many bytes of the log, or of a record being reassembled, were dropped. */
+    bytes: number;
+    /** What was wrong, in upstream LevelDB's words. */
+    reason: string;
+}
+
 /**
- * Reassembles records. A truncated tail - the normal state of a log after a crash - ends the
- * iteration rather than throwing; a bad checksum in the middle of the file does throw, because
- * that is real corruption rather than an interrupted write.
+ * Reassembles records, following upstream LevelDB's `log::Reader` case for case.
+ *
+ * A tail cut short, which is what a crash during an append leaves, ends the iteration quietly
+ * either way. What differs is damage before the tail. Without `onCorruption` it throws, which is
+ * right for the manifest: upstream refuses to open a database whose manifest is damaged. With
+ * it, the damage is reported and skipped the way upstream skips it while replaying a log: a bad
+ * checksum or an impossible length drops the rest of its 32 KiB block, a fragment out of
+ * sequence is dropped on its own, and reading carries on. That is how Bedrock opens such a world,
+ * losing only the writes in the damaged stretch.
+ *
+ * @param data - The whole log file.
+ * @param onCorruption - Told about each skipped stretch. Absent, the first one throws.
+ * @throws {CorruptionError} When `onCorruption` is absent and the log is damaged before its tail.
  */
-export function* readLogRecords(data: Buffer): IterableIterator<Buffer> {
-    let offset = 0;
+export function* readLogRecords(
+    data: Buffer,
+    onCorruption?: (corruption: LogCorruption) => void
+): IterableIterator<Buffer> {
+    const report =
+        onCorruption ??
+        ((corruption: LogCorruption): void => {
+            throw new CorruptionError(`Log is damaged: ${corruption.reason} (${corruption.bytes} bytes)`);
+        });
+
     let pending: Buffer[] = [];
+    let pendingBytes = 0;
+    let fragmented = false;
 
-    while (offset + LOG_HEADER_SIZE <= data.byteLength) {
-        const blockRemaining = LOG_BLOCK_SIZE - (offset % LOG_BLOCK_SIZE);
-        if (blockRemaining < LOG_HEADER_SIZE) {
-            offset += blockRemaining;
-            continue;
-        }
+    const dropPending = (reason: string): void => {
+        if (fragmented && pendingBytes > 0) report({ bytes: pendingBytes, reason });
+        pending = [];
+        pendingBytes = 0;
+        fragmented = false;
+    };
 
-        const storedCrc = data.readUInt32LE(offset);
-        const length = data.readUInt16LE(offset + 4);
-        const type = data.readUInt8(offset + 6);
+    for (let blockStart = 0; blockStart < data.byteLength; blockStart += LOG_BLOCK_SIZE) {
+        const blockEnd = Math.min(blockStart + LOG_BLOCK_SIZE, data.byteLength);
+        // Upstream knows it reached the end when a read returns less than a whole block.
+        const lastBlock = blockEnd - blockStart < LOG_BLOCK_SIZE;
+        let offset = blockStart;
 
-        if (type === LogRecordType.Zero && length === 0 && storedCrc === 0) {
-            // Zero padding at a block tail.
-            offset += blockRemaining;
-            continue;
-        }
+        // A block tail shorter than a header is padding; at the end of the file, a cut header.
+        while (blockEnd - offset >= LOG_HEADER_SIZE) {
+            const storedCrc = data.readUInt32LE(offset);
+            const length = data.readUInt16LE(offset + 4);
+            const type = data.readUInt8(offset + 6);
+            const payloadStart = offset + LOG_HEADER_SIZE;
 
-        const payloadStart = offset + LOG_HEADER_SIZE;
-        if (payloadStart + length > data.byteLength) return;
-
-        const payload = data.subarray(payloadStart, payloadStart + length);
-        const computed = crc32cUpdate(payload, crc32cUpdate(Buffer.from([type])));
-        if (computed !== unmask(storedCrc)) {
-            throw new CorruptionError(`Log record checksum mismatch at offset ${offset}`);
-        }
-
-        offset = payloadStart + length;
-
-        switch (type) {
-            case LogRecordType.Full:
-                if (pending.length > 0) throw new CorruptionError('Full log record interrupted a fragmented one');
-                yield payload;
+            if (payloadStart + length > blockEnd) {
+                // In the last block this is a record whose append never finished.
+                if (lastBlock) return;
+                report({ bytes: blockEnd - offset, reason: 'bad record length' });
+                dropPending('error in middle of record');
                 break;
-            case LogRecordType.First:
-                if (pending.length > 0) throw new CorruptionError('Log record started before the previous one ended');
-                pending = [payload];
+            }
+
+            // Zeroes where a header should be: space preallocated and never written. Upstream
+            // skips the rest of the block without calling it corruption.
+            if (type === LogRecordType.Zero && length === 0) {
+                dropPending('error in middle of record');
                 break;
-            case LogRecordType.Middle:
-                if (pending.length === 0) throw new CorruptionError('Log fragment with no record to continue');
-                pending.push(payload);
+            }
+
+            const payload = data.subarray(payloadStart, payloadStart + length);
+            if (crc32cUpdate(payload, crc32cUpdate(Buffer.from([type]))) !== unmask(storedCrc)) {
+                report({ bytes: blockEnd - offset, reason: 'checksum mismatch' });
+                dropPending('error in middle of record');
                 break;
-            case LogRecordType.Last:
-                if (pending.length === 0) throw new CorruptionError('Log fragment ended a record that never started');
-                pending.push(payload);
-                yield Buffer.concat(pending);
-                pending = [];
-                break;
-            default:
-                throw new CorruptionError(`Log record has unknown type ${type}`);
+            }
+
+            offset = payloadStart + length;
+
+            switch (type) {
+                case LogRecordType.Full:
+                    if (fragmented) dropPending('partial record without end(1)');
+                    yield payload;
+                    break;
+                case LogRecordType.First:
+                    if (fragmented) dropPending('partial record without end(2)');
+                    pending = [payload];
+                    pendingBytes = payload.byteLength;
+                    fragmented = true;
+                    break;
+                case LogRecordType.Middle:
+                    if (!fragmented) {
+                        report({ bytes: payload.byteLength, reason: 'missing start of fragmented record(1)' });
+                        break;
+                    }
+                    pending.push(payload);
+                    pendingBytes += payload.byteLength;
+                    break;
+                case LogRecordType.Last:
+                    if (!fragmented) {
+                        report({ bytes: payload.byteLength, reason: 'missing start of fragmented record(2)' });
+                        break;
+                    }
+                    pending.push(payload);
+                    yield Buffer.concat(pending);
+                    pending = [];
+                    pendingBytes = 0;
+                    fragmented = false;
+                    break;
+                default:
+                    report({ bytes: payload.byteLength + pendingBytes, reason: `unknown record type ${type}` });
+                    pending = [];
+                    pendingBytes = 0;
+                    fragmented = false;
+            }
         }
     }
 
-    // A record whose fragments ran out mid-file is an interrupted write. Stop, do not throw.
+    // A record whose fragments ran out at the end of the file is an interrupted write.
 }

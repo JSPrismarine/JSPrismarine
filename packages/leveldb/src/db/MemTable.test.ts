@@ -96,16 +96,6 @@ describe('leveldb', () => {
             expect(new MemTable().empty).toBe(true);
         });
 
-        it('reports the highest sequence it holds, for restoring it after a replay', () => {
-            const table = new MemTable();
-            table.add(key('a'), 5n, ValueType.Value, key('v'));
-            table.add(key('b'), 12n, ValueType.Value, key('v'));
-            table.add(key('c'), 7n, ValueType.Value, key('v'));
-
-            expect(table.maxSequence()).toBe(12n);
-            expect(new MemTable().maxSequence()).toBe(0n);
-        });
-
         it('grows its reported size as entries arrive', () => {
             const table = new MemTable();
             expect(table.size).toBe(0);
