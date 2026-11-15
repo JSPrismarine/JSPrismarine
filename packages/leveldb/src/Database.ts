@@ -17,6 +17,7 @@ import {
 } from './util/FileNames';
 import { DirectoryLock } from './db/DirectoryLock';
 import { LogWriter, frameLogRecord, readLogRecords } from './format/LogFormat';
+import type { LogCorruption } from './format/LogFormat';
 import { MemTable } from './db/MemTable';
 import { MAX_LEVELS, VersionSet } from './db/VersionSet';
 import { TableReader } from './format/TableReader';
@@ -213,14 +214,29 @@ export class Database {
             .filter((entry) => entry.parsed?.kind === FileKind.Log && (entry.parsed.number ?? 0) >= from)
             .sort((a, b) => (a.parsed!.number ?? 0) - (b.parsed!.number ?? 0));
 
+        // Damage is skipped and reported rather than refused, as upstream replays a log when
+        // `paranoid_checks` is off, which is how Bedrock opens a world.
+        let replayed = this.versions.lastSequence;
         for (const { name } of logs) {
-            for (const record of readLogRecords(fs.readFileSync(path.join(this.directory, name)))) {
-                this.applyBatch(WriteBatch.decode(record));
+            const report = (corruption: LogCorruption): void =>
+                this.options.onCorruption({ file: name, ...corruption });
+            for (const record of readLogRecords(fs.readFileSync(path.join(this.directory, name)), report)) {
+                const decoded = WriteBatch.decodePrefix(record);
+                if (decoded === null) {
+                    report({ bytes: record.byteLength, reason: 'log record too small' });
+                    continue;
+                }
+
+                this.applyBatch(decoded);
+                if (decoded.damage !== null) report({ bytes: record.byteLength, reason: decoded.damage });
+
+                // The header's count, not the operations read: a later batch's sequence follows it.
+                const last = decoded.sequence + BigInt(Math.max(decoded.count, decoded.batch.count)) - 1n;
+                if (last > replayed) replayed = last;
             }
         }
 
-        const replayed = this.memtable.maxSequence();
-        if (replayed > this.versions.lastSequence) this.versions.lastSequence = replayed;
+        this.versions.lastSequence = replayed;
     }
 
     private applyBatch({ sequence, batch }: { sequence: bigint; batch: WriteBatch }): void {
