@@ -39,6 +39,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockStateValue } from '../block/state/BlockState';
 import { destroyBlock } from './blockDestroy';
 import { takeBlockEntity } from './blockMove';
+import { DEFAULT_FLUID_REPLACEMENT } from '../content/world/fluidReplacement';
 import { timeOfDay } from './DayCycle';
 import { Dimensions, dimensionByName } from './DimensionType';
 import { maxY } from './Dimension';
@@ -238,7 +239,8 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
             if (spawn === null) throw new Error(`the ${dimension} world has not found its spawn point yet`);
             return { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() };
         },
-        gameRule: (name) => gameRuleValue(live().getGameRuleManager(), name)
+        gameRule: (name) => gameRuleValue(live().getGameRuleManager(), name),
+        fluidReplacement: () => live().getServer().getConfig().getFluidReplacement?.() ?? DEFAULT_FLUID_REPLACEMENT
     };
 
     const blocks: WorldBlockGroup = {

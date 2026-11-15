@@ -68,6 +68,29 @@ describe('spreadLiquid', () => {
         expect(spreadLiquid(world, world.block(source)).sides).toEqual(['north', 'south', 'west']);
     });
 
+    it("washes a block away by Bedrock's reaction when the host names no rule", () => {
+        const world = createVoxelWorld().overworld;
+        floorUnder(world);
+        world.set(source, 'minecraft:water');
+        world.set({ x: 1, y: 1, z: 0 }, 'minecraft:torch');
+
+        expect(spreadLiquid(world, world.block(source)).sides).toContain('east');
+        expect(world.identifierAt({ x: 1, y: 1, z: 0 })).toBe('minecraft:flowing_water');
+    });
+
+    it("leaves a block the host's rule says dams the water", () => {
+        const world = Object.assign(createVoxelWorld().overworld, {
+            liquidReactionOf: (block: { identifier: string }) =>
+                block.identifier === 'minecraft:torch' ? ('blocking' as const) : undefined
+        });
+        floorUnder(world);
+        world.set(source, 'minecraft:water');
+        world.set({ x: 1, y: 1, z: 0 }, 'minecraft:torch');
+
+        expect(spreadLiquid(world, world.block(source)).sides).not.toContain('east');
+        expect(world.identifierAt({ x: 1, y: 1, z: 0 })).toBe('minecraft:torch');
+    });
+
     it('reaches three blocks of overworld lava, which is the doubled step', () => {
         const world = createVoxelWorld().overworld;
         floorUnder(world);

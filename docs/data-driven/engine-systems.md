@@ -212,6 +212,14 @@ default, which is why water is infinite and lava is not. Lava touching water bec
 it is a source and cobblestone when it is flowing, lava falling into water becomes stone, and lava
 over soul soil next to blue ice becomes basalt.
 
+What a flowing fluid may enter, and destroy with its drop, is the one place the two editions part
+ways, so the `fluid-replacement` setting picks one. `java` follows Java 26.3's
+`FlowingFluid.canHoldFluid`: a fluid washes away the blocks `#minecraft:washed_away_by_fluids`
+lists, and keeps out of every waterloggable block, since its `canPlaceLiquid` takes only a still
+water source. `bedrock` follows each block's Bedrock `liquidReactionOnTouch`, under which water
+pops sugar cane and a big dripleaf that Java leaves standing. A stack that declares no
+`#minecraft:washed_away_by_fluids` falls back to the Bedrock reactions either way.
+
 ## Fire
 
 Fire is `FireBlock.tick` and `FireBlock.checkBurnOut`, implemented by `portalFamily` in

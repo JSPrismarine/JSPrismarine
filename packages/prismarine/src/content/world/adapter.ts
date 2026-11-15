@@ -40,6 +40,8 @@ import type {
     SourceState
 } from '@jsprismarine/item-behaviors';
 
+import type { FluidReplacement } from './fluidReplacement';
+
 export type { BlockDestroyOptions, BlockEntityData, BlockProperties, Difficulty, RandomSource, TickKind, Weather };
 
 /** An integer block position in world coordinates, within one dimension. */
@@ -263,6 +265,11 @@ export interface ContentLevelFacts {
      *   each caller says what it does without one.
      */
     gameRule(name: string): boolean | number | undefined;
+    /**
+     * Which edition decides what a flowing fluid destroys, the server's `fluid-replacement`
+     * setting. Absent where no server config stands behind the level, which takes the default.
+     */
+    fluidReplacement?(): FluidReplacement;
 }
 
 /**

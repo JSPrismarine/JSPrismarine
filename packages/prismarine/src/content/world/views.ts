@@ -25,7 +25,6 @@ import {
 } from '@jsprismarine/engine-systems';
 import type { BlockRef, WorldAccess } from '@jsprismarine/engine-systems';
 import type { BlockTickPriority } from '@jsprismarine/block-behaviors';
-import { bedrockBlockStateToJava, bedrockBlockToJava } from '@jsprismarine/mapping';
 import type { EntityActuator, EntityInstance } from '@jsprismarine/entities';
 import type { BrainWorld } from '@jsprismarine/entity-brains';
 import type { GoalWorld } from '@jsprismarine/entity-goals';
@@ -39,6 +38,8 @@ import { liquidOf } from '../../world/physics/BlockRules';
 
 import type { ServerContent } from '../ServerContent';
 import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
+import { hasBlockTag } from './blockTags';
+import { DEFAULT_FLUID_REPLACEMENT, liquidReactionOf } from './fluidReplacement';
 import { CONTENT_AREAS, notWired } from './notWired';
 import {
     FIRE_SPREAD_RADIUS,
@@ -163,17 +164,6 @@ const flammabilityOf = (content: ServerContent, block: HookBlock): BlockFlammabi
     return { igniteOdds: component.catchChanceModifier, burnOdds: component.destroyChanceModifier };
 };
 
-/** Reads Java block tags through the state-aware Bedrock-to-Java mapping. */
-const hasBlockTag = (content: ServerContent, block: HookBlock, tag: string): boolean | undefined => {
-    // A stack that never loaded the tag cannot answer for it; see `WorldActions.hasBlockTag`.
-    if (!content.tags.has('block', tag)) return undefined;
-
-    if (content.tags.includes('block', tag, block.identifier)) return true;
-    const mapped = bedrockBlockStateToJava(block.identifier, block.states);
-    const javaIdentifiers = mapped.kind === 'mapped' ? [mapped.java.name] : bedrockBlockToJava(block.identifier);
-    return javaIdentifiers.some((identifier) => content.tags.includes('block', tag, identifier));
-};
-
 const blockActionsByAdapter = new WeakMap<ServerWorldAdapter, BlockWorldActions>();
 
 /** `WorldActions` as `@jsprismarine/block-behaviors` declares it, for one dimension. */
@@ -224,6 +214,8 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         lightDampeningOf: (block) => lightDampeningOf(content(), block),
         flammabilityOf: (block) => flammabilityOf(content(), block),
         hasBlockTag: (block, tag) => hasBlockTag(content(), block, tag),
+        liquidReactionOf: (block) =>
+            liquidReactionOf(content(), block, adapter.level.fluidReplacement?.() ?? DEFAULT_FLUID_REPLACEMENT),
         hasSturdyTopFace: (block) => engineHasSturdyTopFace(engineWorld.getBlock(block.position)),
         isFullCube: (block) => engineIsFullCube(engineWorld.getBlock(block.position)),
         fluidSourceConversion: (kind) => {

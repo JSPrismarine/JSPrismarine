@@ -15,7 +15,8 @@ import type {
     BlockPosition,
     BlockStateValue,
     HookActor,
-    HookBlock
+    HookBlock,
+    LiquidReaction
 } from '@jsprismarine/blocks';
 import { blockProperties } from '@jsprismarine/blocks';
 
@@ -194,6 +195,14 @@ export interface WorldActions {
      *   rather than read every block as being outside it.
      */
     hasBlockTag?(block: HookBlock, tag: string): boolean | undefined;
+    /**
+     * What flowing water or lava does to the block: dams against it, washes it away with its drop,
+     * destroys it outright, or shares its cell. A host answers by the rule its server is set to
+     * follow; without one, Bedrock's own `liquidReactionOnTouch` data decides.
+     *
+     * @returns Undefined when the host cannot say, which falls back to the Bedrock data as well.
+     */
+    liquidReactionOf?(block: HookBlock): LiquidReaction | undefined;
     /** Whether this block has a sturdy top face, when the host can report its collision shape. */
     hasSturdyTopFace?(block: HookBlock): boolean;
     /** Whether this block fills its cell with a full cube collision shape. */

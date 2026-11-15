@@ -167,6 +167,23 @@ describe('config', () => {
             expect(invalid.getInvalidChunkHost()).toBe('elsewhere');
         });
 
+        it("follows Java's rule for what a flowing fluid destroys unless told to follow Bedrock's", async () => {
+            expect(config.getFluidReplacement()).toBe('java');
+
+            for (const [configured, expected] of [
+                ['"java"', 'java'],
+                ['"bedrock"', 'bedrock'],
+                ['"pocket"', 'java']
+            ] as const) {
+                writeFileSync(path.join(configDirectory, 'config.json'), `{"fluid-replacement":${configured}}`);
+
+                const reconfigured = new Config();
+                await reconfigured.enable();
+
+                expect(reconfigured.getFluidReplacement(), configured).toBe(expected);
+            }
+        });
+
         it('should have online mode enabled by default', () => {
             expect(config.getOnlineMode()).toBe(true);
         });
