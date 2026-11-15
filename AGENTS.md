@@ -175,6 +175,11 @@ by biome, `/locate`, or portals between dimensions.
   and calls `console.warn` locally. Assert data-derived relationships and runtime outcomes instead of exact inventory counts;
   use exact counts only when the count itself is an externally specified behavior or protocol
   contract.
+- After changing `packages/leveldb`, run the suite that checks it against the pinned Bedrock
+  Dedicated Server in both directions:
+  `JSP_BEDROCK_SERVER_TESTS=1 pnpm exec vitest run packages/bedrock-data/utils/bedrock-dump/leveldbCompat.test.ts`.
+  It needs the pinned server that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
+  fetches, and takes several minutes. CI runs it in its own job.
 - When package exports or published behavior change, check the built package from a consumer context.
   Workspace resolution alone does not verify the published package contract.
 - After an edit, run `pnpm exec vitest run --since-last-run` to test only what the edit affects.
