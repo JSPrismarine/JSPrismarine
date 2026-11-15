@@ -407,8 +407,8 @@ jobs:
                   go-version: 'stable'
                   cache: false
 
-            # The cloudburst data pack that `pnpm install` fetches, shared with other runs.
-            # The cinnabar build uses a separate cache outside the workspace.
+            # The pinned downloads the steps below fetch, shared with other runs. The cinnabar
+            # build uses a separate cache outside the workspace.
             - name: Cache the fetched sources
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:

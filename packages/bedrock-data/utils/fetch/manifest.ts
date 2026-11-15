@@ -58,31 +58,12 @@ export interface BdsData {
     versions: Record<string, BdsVersion>;
 }
 
-/** One pinned CloudburstMC/Data archive: the game data for a single protocol version. */
-export interface CloudburstVersion extends PinnedArchive {
-    /** The Minecraft version the dump was taken from, such as `1.26.51`. */
-    minecraftVersion: string;
-    commit: string;
-}
-
-/** The `cloudburstData` section: one archive per Bedrock protocol version. */
-export interface CloudburstData {
-    repo: string;
-    /** The protocol version used when a caller does not ask for one. */
-    defaultProtocolVersion: number;
-    /** The files the fetch unpacks, by name at the archive root. */
-    extract: string[];
-    /** Pinned archives keyed by protocol version, as decimal strings. */
-    versions: Record<string, CloudburstVersion>;
-}
-
 interface SourcesManifest {
     bds: BdsData;
     bedrockSamples: PinnedArchive & { tag: string; commit: string };
     javaServer: PinnedArchive & { version: string; sha1: string };
     geyserMappings: PinnedArchive & { commit: string };
     vanillaMcdoc: PinnedArchive & { commit: string };
-    cloudburstData: CloudburstData;
 }
 
 const readManifest = async (manifestPath: string): Promise<SourcesManifest> =>
@@ -133,50 +114,18 @@ export const bdsDescriptor = (data: BdsData, protocolVersion?: number): SourceDe
     };
 };
 
-/** The `<source>` cache segment the CloudburstMC/Data archives live under. */
-export const CLOUDBURST_SOURCE_NAME = 'cloudburst-data';
-
-/** Reads the `cloudburstData` section of `sources.json`. */
-export const loadCloudburstData = async (manifestPath: string): Promise<CloudburstData> =>
-    (await readManifest(manifestPath)).cloudburstData;
-
 /**
- * Resolves the protocol version a caller asked for against the manifest,
- * falling back to `defaultProtocolVersion`.
+ * Reads a `--protocol <n>` argument, as the fetch scripts accept it.
  *
- * @throws Error naming the pinned protocol versions when the requested one is
- * not among them.
+ * @throws Error when the flag is present without a number.
  */
-export const selectCloudburstVersion = (
-    data: CloudburstData,
-    protocolVersion?: number
-): { protocolVersion: number; version: CloudburstVersion } => {
-    const wanted = protocolVersion ?? data.defaultProtocolVersion;
-    const version = data.versions[String(wanted)];
-    if (version === undefined) {
-        const pinned = Object.keys(data.versions).join(', ');
-        throw new Error(`sources.json pins no CloudburstMC/Data archive for protocol ${wanted}; pinned: ${pinned}`);
-    }
-    return { protocolVersion: wanted, version };
-};
-
-/**
- * The descriptor for one protocol version's CloudburstMC/Data archive. Each
- * version caches under its own `v<protocol>` directory, so several Bedrock
- * versions' data coexist without colliding.
- */
-export const cloudburstDescriptor = (data: CloudburstData, protocolVersion?: number): SourceDescriptor => {
-    const { protocolVersion: resolved, version } = selectCloudburstVersion(data, protocolVersion);
-    return {
-        name: CLOUDBURST_SOURCE_NAME,
-        version: `v${resolved}`,
-        url: version.url,
-        hash: { algorithm: 'sha256', value: version.sha256 },
-        unpack: true,
-        fileName: `Data-${version.commit}.zip`,
-        envOverride: 'JSP_CLOUDBURST_DATA_PATH',
-        extract: data.extract
-    };
+export const parseProtocolArgument = (argv: readonly string[]): number | undefined => {
+    const index = argv.indexOf('--protocol');
+    if (index < 0) return undefined;
+    const value = Number(argv[index + 1]);
+    if (!Number.isInteger(value))
+        throw new Error('--protocol needs a Bedrock protocol version, such as --protocol 2193');
+    return value;
 };
 
 /**
@@ -184,9 +133,8 @@ export const cloudburstDescriptor = (data: CloudburstData, protocolVersion?: num
  * source. The Java server jar is pinned by Mojang's own sha1 (which is also
  * the object name in its URL); everything else by sha256.
  *
- * The two per-protocol sources are not here, because which version to fetch
- * is the caller's choice: use {@link bdsDescriptor} and
- * {@link cloudburstDescriptor}.
+ * The Bedrock Dedicated Server is not here, because which protocol version to
+ * fetch is the caller's choice: use {@link bdsDescriptor}.
  */
 export const loadSourceDescriptors = async (manifestPath: string): Promise<SourceDescriptor[]> => {
     const manifest = await readManifest(manifestPath);

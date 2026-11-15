@@ -2,8 +2,8 @@
 
 Copies of files from other projects, committed here rather than pulled in at build time.
 
-Each one exists because the `resources/` submodule, https://github.com/CloudburstMC/Data, does not
-carry it. The submodule is the primary source; nothing belongs here that it already has.
+Each one exists because no Bedrock Dedicated Server capture under `src/jsp/` carries it: the
+server never sends it to a client. Nothing belongs here that a capture already has.
 
 ## `item_tags.json`
 

@@ -90,7 +90,6 @@ reviews:
         - "!**/coverage/**"
         - "!**/dist/**"
         - "!packages/bedrock-data/src/generated/**"
-        - "!packages/bedrock-data/src/resources/**"
         - "!pnpm-lock.yaml"
     path_instructions:
         - path: .github/common/**
@@ -127,9 +126,9 @@ reviews:
               written; do not ask to update them.
         - path: packages/bedrock-data/**
           instructions: >-
-              src/generated/ is output of utils/build.js and src/resources/ links to a pinned
-              CloudburstMC/Data download; changes belong in the generator or its inputs. Check the
-              pinned versions, the cache and fetch scripts, and the generated data's consumers.
+              src/generated/ is output of utils/build.js, whose inputs are the Bedrock Dedicated
+              Server captures under src/jsp/; changes belong in the generator or its inputs. Check
+              the pinned versions, the cache and fetch scripts, and the generated data's consumers.
         - path: packages/parity/**
           instructions: >-
               The parity suite exercises public behavior through real data fixtures. Check that each
@@ -385,10 +384,6 @@ knowledge_base:
               applyTo: .agents/**,AGENTS.md
     # Keep upstream context focused on sources this repository consumes.
     linked_repositories:
-        - repository: CloudburstMC/Data
-          instructions: >-
-              Pinned Bedrock data download that packages/bedrock-data generates from. Consult when
-              reviewing generated data, palettes, or item and block mappings.
         - repository: Mojang/bedrock-samples
           instructions: >-
               Vanilla Bedrock behavior and resource packs fetched by ensure:bedrock-pack. Consult

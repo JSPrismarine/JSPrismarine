@@ -11,7 +11,7 @@
  */
 import { join } from 'node:path';
 
-import { cacheRoot, packageDir } from './cloudburst.ts';
+import { cacheRoot, packageDir } from './paths.ts';
 import { sourceCachePath } from './fetch.ts';
 import { bdsDescriptor, loadBdsData } from './manifest.ts';
 

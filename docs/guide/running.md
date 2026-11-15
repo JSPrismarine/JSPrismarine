@@ -97,11 +97,9 @@ tools through `pnpm dlx` (or `pnpx`) rather than `npx`.
 *   1.2 A JDK 25 or newer, to run the default overworld. See
     [World generation data](#13-world-generation-data) below for what it is for and how to skip it.
 
-The Bedrock resources are a pinned download, verified by hash and cached under
-`node_modules/.cache/jsprismarine/`. You don't need to fetch it yourself:
-`pnpm install`, `pnpm run dev` and the bedrock-data build all fetch it when it
-is missing. Offline from a cold cache, point `JSP_CLOUDBURST_DATA_PATH` at a
-local CloudburstMC/Data checkout.
+The Bedrock item, block and creative menu tables ship in the repository as
+captures of the pinned Bedrock Dedicated Server, so `pnpm install` generates
+them without a download.
 
 #### 1.3 World generation data
 

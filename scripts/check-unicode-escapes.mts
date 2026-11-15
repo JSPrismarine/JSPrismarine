@@ -16,7 +16,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 
 /** File endings this check never reads, either binary or generated data. */
 const SKIPPED =
-    /\.(png|ico|jpg|jpeg|gif|woff2?|ttf|nbt|dat|bin|blob|zip|gz|lock)$|^packages\/bedrock-data\/src\/(resources|generated|jsp)\//;
+    /\.(png|ico|jpg|jpeg|gif|woff2?|ttf|nbt|dat|bin|blob|zip|gz|lock)$|^packages\/bedrock-data\/src\/(generated|jsp)\//;
 
 const ESCAPE = /\\u(?:\{([0-9a-fA-F]{1,6})\}|([0-9a-fA-F]{4}))/g;
 

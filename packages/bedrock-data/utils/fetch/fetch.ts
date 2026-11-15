@@ -31,7 +31,7 @@ const UNPACKED_DIR = 'unpacked';
  * so a change to the layout cannot leave a reader looking at the old one.
  *
  * @param descriptor - The source, from one of `manifest.ts`'s descriptor builders.
- * @param cacheRoot - The shared cache root, usually `cacheRoot` from `cloudburst.ts`.
+ * @param cacheRoot - The shared cache root, usually `cacheRoot` from `paths.ts`.
  */
 export const sourceCachePath = (descriptor: SourceDescriptor, cacheRoot: string): string => {
     const versionDir = join(cacheRoot, descriptor.name, descriptor.version);

@@ -21,7 +21,6 @@
             "!**/dist",
             "!**/coverage",
             "!**/.turbo",
-            "!packages/bedrock-data/src/resources",
             "!packages/bedrock-data/src/generated",
             "!packages/bedrock-data/src/jsp",
             "!packages/minecraft/src/generated",

@@ -32,9 +32,8 @@ export interface SerializableCells {
  * 2. `Y Coordinates`: the same along Y.
  * 3. `Z Coordinates`: the same along Z.
  *
- * `packages/bedrock-data/src/resources/voxel_shapes.json` lists the vanilla shapes under
- * `shapes` with these fields in camel case, so one entry maps onto the constructor
- * parameters as they are.
+ * `packages/bedrock-data/src/jsp/v<protocol>/wire/0x151.bin`, the `VoxelShapesPacket` a Bedrock
+ * Dedicated Server sent, holds the vanilla shapes in this layout.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/types/voxel-shapes-serializable-voxel-shape/}
  */
 export default class SerializableVoxelShape extends NetworkStructure {
