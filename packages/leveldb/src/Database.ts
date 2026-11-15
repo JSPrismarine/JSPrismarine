@@ -3,7 +3,14 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
 
-import { AppendFile, openTableFile, removeTableFile, replaceFileAtomically, writeFileSynced } from './db/Storage';
+import {
+    AppendFile,
+    openTableFile,
+    removeTableFile,
+    replaceFileAtomically,
+    syncDirectory,
+    writeFileSynced
+} from './db/Storage';
 import type { TableFile } from './db/Storage';
 import { BYTEWISE_COMPARATOR, compareBytewise } from './util/Comparator';
 import { CorruptionError } from './Errors';
@@ -69,6 +76,12 @@ export interface DatabaseStats {
     blockCache: BlockCacheStats;
 }
 
+/**
+ * How long the manifest may grow before the next edit starts a fresh one holding a snapshot.
+ * Upstream LevelDB stops reusing a manifest at the same size.
+ */
+export const MANIFEST_ROLL_BYTES = 2 * 1024 * 1024;
+
 export interface KeyRange {
     gte?: Buffer;
     lt?: Buffer;
@@ -78,11 +91,11 @@ export interface KeyRange {
  * A LevelDB database, able to read and write the ones Minecraft: Bedrock Edition keeps its worlds
  * in.
  *
- * The one deliberate departure from upstream: we read manifests the game wrote, but never append
- * to one. After recovery a fresh `MANIFEST-<n>` holding a full snapshot is written and `CURRENT`
- * repointed at it. Upstream does the same whenever it decides the manifest wants replacing; doing
- * it unconditionally bounds manifest growth and means the only VersionEdit encoding that has to
- * be exactly right is the one a round-trip test covers.
+ * The manifest works as upstream's does. Opening for writing starts a fresh `MANIFEST-<n>` that
+ * holds a snapshot of the current version and repoints `CURRENT` at it. Every flush and compaction
+ * then appends one edit to that manifest and syncs it once. Once the manifest passes
+ * {@link MANIFEST_ROLL_BYTES} the next edit starts a fresh one, so reopening never replays an
+ * unbounded history.
  */
 export class Database {
     private readonly directory: string;
@@ -95,6 +108,13 @@ export class Database {
     private memtable = new MemTable();
     private immutableMemtable: MemTable | null = null;
     private log: AppendFile | null = null;
+    /** The manifest edits are appended to, or null until the next edit writes a fresh one. */
+    private manifest: AppendFile | null = null;
+    /**
+     * Why the manifest could not be rolled back after a failed edit. The manifest may then name
+     * tables that were never installed, so they are kept, and every later write is refused.
+     */
+    private manifestFailure: Error | null = null;
     /**
      * Why a commit's log append failed. The memtable holds that batch and the log does not, so
      * nothing written after it could be trusted to replay, and every later write is refused.
@@ -256,8 +276,9 @@ export class Database {
         if (this.closed) return;
 
         // Flushed before the door shuts, not after: `flush` refuses to run on a closed database.
+        // After a manifest failure the log keeps what the memtable holds, and replays it on open.
         if (!this.options.readOnly) {
-            await this.flush();
+            if (this.manifestFailure === null) await this.flush();
             await this.settleCommits();
             this.log?.sync();
         }
@@ -268,6 +289,7 @@ export class Database {
 
         this.log?.close();
         this.log = null;
+        this.closeManifest();
 
         // A scan abandoned without being finished never releases what it held.
         this.activeScans = 0;
@@ -612,6 +634,11 @@ export class Database {
                 cause: this.commitFailure
             });
         }
+        if (this.manifestFailure !== null) {
+            throw new Error('The manifest could not record a change, so the database refuses further writes', {
+                cause: this.manifestFailure
+            });
+        }
         if (this.backgroundFlushError !== null) {
             const error = this.backgroundFlushError;
             this.backgroundFlushError = null;
@@ -641,6 +668,14 @@ export class Database {
     /** Turns the memtable into a table off-thread, then compacts any level over its size budget. */
     public flush(): Promise<void> {
         this.assertWritable();
+        // A flush or compaction would allocate table numbers the manifest may already name.
+        if (this.manifestFailure !== null) {
+            return Promise.reject(
+                new Error('The manifest could not record a change, so the database refuses to flush', {
+                    cause: this.manifestFailure
+                })
+            );
+        }
         if (this.flushPromise !== null) {
             this.flushRequested = true;
             return this.flushPromise;
@@ -742,7 +777,7 @@ export class Database {
             }
             this.immutableMemtable = null;
             if (hadOpenLog && this.log === null) this.openLog();
-            fs.rmSync(tablePath, { force: true });
+            if (this.manifestFailure === null) fs.rmSync(tablePath, { force: true });
             throw error;
         }
     }
@@ -817,8 +852,8 @@ export class Database {
             });
         } catch (error) {
             // The input tables remain authoritative until CURRENT names the replacement manifest.
-            for (const [, file] of result.outputs) {
-                fs.rmSync(path.join(this.directory, tableFileName(file.number)), { force: true });
+            if (this.manifestFailure === null) {
+                for (const [, file] of result.outputs) removeTableFile(this.directory, file.number);
             }
             throw error;
         }
@@ -849,17 +884,60 @@ export class Database {
     }
 
     /**
-     * Applies an edit and rewrites the manifest to match.
+     * Applies an edit and records it in the manifest: appended and synced once, or as part of a
+     * fresh snapshot when there is no manifest to append to or it has grown past
+     * {@link MANIFEST_ROLL_BYTES}.
      *
      * The tables the edit adds are already on disk and fsynced by the time this runs, and the
      * files it removes are only unlinked afterwards - so at no point does the manifest name a file
-     * that is missing.
+     * that is missing. A crash during the append leaves a cut record at the manifest's end, which
+     * recovery stops at, so the database reopens at the version before this edit.
      */
     private applyAndPersist(edit: VersionEdit): void {
         const updatedVersions = new VersionSet();
         updatedVersions.applyEdit(this.versions.snapshot(BYTEWISE_COMPARATOR));
         updatedVersions.applyEdit(edit);
-        this.writeManifest(updatedVersions);
+
+        const manifest = this.manifest;
+        if (manifest === null || manifest.length >= MANIFEST_ROLL_BYTES) {
+            this.writeManifest(updatedVersions);
+        } else {
+            // Every edit carries the counters, as upstream's do, so replaying any prefix of the
+            // manifest restores numbers no file has used yet.
+            const framed = frameLogRecord(
+                encodeVersionEdit({
+                    ...edit,
+                    logNumber: updatedVersions.logNumber,
+                    previousLogNumber: updatedVersions.previousLogNumber,
+                    nextFileNumber: updatedVersions.nextFileNumber,
+                    lastSequence: updatedVersions.lastSequence
+                }),
+                manifest.length
+            );
+            // Each new table was synced, but not the directory entry naming it. Without this a
+            // power loss can keep the manifest's edit and lose the table it names. A rewrite of
+            // CURRENT syncs the directory as part of the rename, so only an append needs it.
+            if ((edit.newFiles ?? []).length > 0) syncDirectory(this.directory);
+            try {
+                manifest.append(framed.parts);
+                manifest.sync();
+            } catch (error) {
+                // Some of the edit may have reached the file, naming tables the caller is about
+                // to delete. A fresh manifest of the version before it takes over from that one.
+                this.closeManifest();
+                try {
+                    this.writeManifest(this.versions);
+                } catch (rollbackError) {
+                    // CURRENT may name an edit that did land, so its tables have to stay, and
+                    // nothing more can be recorded. Upstream stops writing the same way.
+                    this.manifestFailure ??=
+                        rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError));
+                }
+                throw error;
+            }
+            this.bytesWritten += framed.length;
+        }
+
         this.versions = updatedVersions;
 
         this.retireTables((edit.deletedFiles ?? []).map(([, number]) => number));
@@ -875,8 +953,14 @@ export class Database {
         this.retiredTables.push(...numbers);
         if (this.activeScans > 0) return;
 
+        // The edit retiring them is already recorded, so nothing here may fail the caller, who
+        // would otherwise treat that edit as never made.
         for (const number of this.retiredTables.splice(0)) {
-            this.dropTable(number);
+            try {
+                this.dropTable(number);
+            } catch {
+                // The descriptor is abandoned; the table is no longer read through it.
+            }
             try {
                 removeTableFile(this.directory, number);
             } catch {
@@ -885,6 +969,7 @@ export class Database {
         }
     }
 
+    /** Writes a fresh manifest holding a snapshot of `versions`, points `CURRENT` at it and keeps it open. */
     private writeManifest(versions: VersionSet = this.versions): void {
         const number = versions.allocateFileNumber();
         const writer = new LogWriter();
@@ -894,13 +979,33 @@ export class Database {
         const manifest = writer.finish();
         const current = Buffer.from(`${name}\n`);
         writeFileSynced(path.join(this.directory, name), manifest);
-        replaceFileAtomically(path.join(this.directory, CURRENT_FILE_NAME), current);
-        this.bytesWritten += manifest.byteLength + current.byteLength;
+        try {
+            replaceFileAtomically(path.join(this.directory, CURRENT_FILE_NAME), current);
+            this.bytesWritten += manifest.byteLength + current.byteLength;
+            this.closeManifest();
+            this.manifest = new AppendFile(path.join(this.directory, name));
+        } catch (error) {
+            // CURRENT may already name the new manifest, and with it tables the caller would
+            // otherwise delete as never installed. Keep them, and record nothing more.
+            this.manifestFailure ??= error instanceof Error ? error : new Error(String(error));
+            throw error;
+        }
 
         try {
             this.discardStaleManifests(number);
         } catch {
             // Cleanup is best-effort after CURRENT has been atomically switched to this manifest.
+        }
+    }
+
+    /** Lets go of the manifest. A failed close is ignored: nothing more is appended through it either way. */
+    private closeManifest(): void {
+        try {
+            this.manifest?.close();
+        } catch {
+            // The handle is abandoned, which is all a failure path needs of it.
+        } finally {
+            this.manifest = null;
         }
     }
 
@@ -953,9 +1058,9 @@ export class Database {
         const cached = this.tables.get(number);
         if (!cached) return;
 
-        cached.file.close();
         this.tables.delete(number);
         this.blockCache.deleteFile(number);
+        cached.file.close();
     }
 
     public get stats(): DatabaseStats {

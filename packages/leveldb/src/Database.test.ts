@@ -7,12 +7,13 @@ import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CompressionType } from './compression/Compression';
-import { Database } from './Database';
+import { Database, MANIFEST_ROLL_BYTES } from './Database';
 import { DatabaseLockedError } from './Errors';
 import { WriteBatch } from './format/WriteBatch';
 import { LOG_BLOCK_SIZE, readLogRecords } from './format/LogFormat';
 import type { CorruptionReport } from './DatabaseOptions';
 import { VersionSet } from './db/VersionSet';
+import { AppendFile } from './db/Storage';
 import { TableBuilder } from './format/TableBuilder';
 import {
     ValueType,
@@ -631,6 +632,111 @@ describe('leveldb', () => {
                 await db.close();
             });
 
+            it('appends each flush to the open manifest and syncs it once', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory, { l0CompactionTrigger: 2 });
+                const manifest = Reflect.get(db, 'manifest');
+                if (!(manifest instanceof AppendFile)) throw new Error('Database manifest is unavailable');
+                let syncs = 0;
+                const sync = manifest.sync.bind(manifest);
+                manifest.sync = () => {
+                    syncs++;
+                    sync();
+                };
+                const current = fs.readFileSync(path.join(directory, 'CURRENT'), 'utf8');
+                const recordsBefore = [...readLogRecords(fs.readFileSync(path.join(directory, current.trim())))].length;
+
+                // Three flushes, and a compaction once two tables sit in level 0.
+                for (const round of [0, 1, 2]) {
+                    for (const k of chunkKeys(20)) db.put(k, key(`round ${round}`));
+                    await db.flush();
+                }
+
+                expect(fs.readFileSync(path.join(directory, 'CURRENT'), 'utf8')).toBe(current);
+                const records = [...readLogRecords(fs.readFileSync(path.join(directory, current.trim())))].length;
+                expect(records - recordsBefore).toBe(syncs);
+                expect(syncs).toBeGreaterThanOrEqual(4);
+                await db.close();
+
+                const reopened = await Database.open(directory);
+                for (const k of chunkKeys(20)) expect(reopened.get(k)).toEqual(key('round 2'));
+                await reopened.close();
+            });
+
+            it('syncs the directory before an appended edit names a new table', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                const manifest = Reflect.get(db, 'manifest');
+                if (!(manifest instanceof AppendFile)) throw new Error('Database manifest is unavailable');
+                const events: string[] = [];
+                const append = manifest.append.bind(manifest);
+                manifest.append = (parts) => {
+                    events.push('append');
+                    append(parts);
+                };
+                const openSync = fs.openSync;
+                const opened = vi.spyOn(fs, 'openSync').mockImplementation((file, ...rest) => {
+                    if (file === directory) events.push('directory');
+                    return openSync(file, ...rest);
+                });
+
+                try {
+                    db.put(key('k'), key('v'));
+                    await db.flush();
+                } finally {
+                    opened.mockRestore();
+                }
+
+                expect(events).toEqual(['directory', 'append']);
+                await db.close();
+            });
+
+            it('keeps a committed compaction when closing a replaced table fails', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory, { l0CompactionTrigger: 2 });
+                db.put(key('a'), key('1'));
+                await db.flush();
+                expect(db.get(key('a'))).toEqual(key('1'));
+                const tables = Reflect.get(db, 'tables');
+                if (!(tables instanceof Map)) throw new Error('Database table map is unavailable');
+                for (const { file } of tables.values()) {
+                    file.close = () => {
+                        throw new Error('close failed');
+                    };
+                }
+
+                db.put(key('b'), key('2'));
+                await db.flush();
+
+                expect(db.levelSizes[0]).toBe(0);
+                expect([...db.entries()].map(([k, v]) => `${k}=${v}`)).toEqual(['a=1', 'b=2']);
+                await db.close();
+                const reopened = await Database.open(directory);
+                expect([...reopened.entries()].map(([k, v]) => `${k}=${v}`)).toEqual(['a=1', 'b=2']);
+                await reopened.close();
+            });
+
+            it('starts a fresh manifest once the open one passes its size limit', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                const manifest = Reflect.get(db, 'manifest');
+                if (!(manifest instanceof AppendFile)) throw new Error('Database manifest is unavailable');
+                const before = fs.readFileSync(path.join(directory, 'CURRENT'), 'utf8').trim();
+                Reflect.set(manifest, 'written', MANIFEST_ROLL_BYTES);
+
+                db.put(key('k'), key('v'));
+                await db.flush();
+
+                const after = fs.readFileSync(path.join(directory, 'CURRENT'), 'utf8').trim();
+                expect(after).not.toBe(before);
+                expect(fs.readdirSync(directory).filter((name) => name.startsWith('MANIFEST-'))).toEqual([after]);
+                await db.close();
+
+                const reopened = await Database.open(directory);
+                expect(reopened.get(key('k'))).toEqual(key('v'));
+                await reopened.close();
+            });
+
             it('leaves exactly one manifest and one CURRENT pointing at it', async () => {
                 const directory = scratch();
                 const db = await Database.open(directory);
@@ -712,21 +818,61 @@ describe('leveldb', () => {
                 await db.close();
             });
 
+            it('keeps a failed edit and refuses writes when the manifest cannot be rolled back', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory, { writeBufferSize: 1024 * 1024 });
+                const manifest = Reflect.get(db, 'manifest');
+                if (!(manifest instanceof AppendFile)) throw new Error('Database manifest is unavailable');
+                manifest.sync = () => {
+                    throw new Error('manifest write failed');
+                };
+                // Replacing CURRENT fails too: its temporary name is taken by a directory.
+                fs.mkdirSync(path.join(directory, 'CURRENT.dbtmp'));
+                fs.writeFileSync(path.join(directory, 'CURRENT.dbtmp', 'blocker'), '');
+
+                db.put(key('first'), key('v'));
+                await expect(db.flush()).rejects.toThrow('manifest write failed');
+
+                // The appended edit landed and names this table, so it has to stay.
+                expect(fs.readdirSync(directory).filter((name) => name.endsWith('.ldb'))).toHaveLength(1);
+                expect(() => db.put(key('second'), key('v'))).toThrow(/refuses further writes/);
+                await expect(db.flush()).rejects.toThrow(/refuses to flush/);
+                await db.close();
+
+                fs.rmSync(path.join(directory, 'CURRENT.dbtmp'), { recursive: true });
+                const reopened = await Database.open(directory);
+                expect(reopened.get(key('first'))).toEqual(key('v'));
+                await reopened.close();
+            });
+
             it('restores the open log when installing a flushed table fails', async () => {
                 const directory = scratch();
                 const db = await Database.open(directory, { writeBufferSize: 1024 * 1024 });
-                const writeManifest = Reflect.get(db, 'writeManifest');
-                if (typeof writeManifest !== 'function') throw new Error('Database manifest writer is unavailable');
-                Reflect.set(db, 'writeManifest', () => {
+                const manifest = Reflect.get(db, 'manifest');
+                if (!(manifest instanceof AppendFile)) throw new Error('Database manifest is unavailable');
+                manifest.sync = () => {
                     throw new Error('manifest write failed');
-                });
+                };
+                // Closing the failed manifest fails as well, which must not skip the rollback.
+                const close = manifest.close.bind(manifest);
+                manifest.close = () => {
+                    close();
+                    throw new Error('close failed');
+                };
+                const current = () => fs.readFileSync(path.join(directory, 'CURRENT'), 'utf8');
+                const before = current();
 
                 db.put(key('first'), key('before failed flush'));
                 await expect(db.flush()).rejects.toThrow('manifest write failed');
 
+                // The appended edit may have landed, so a fresh manifest of the version before it
+                // replaces the manifest it went to.
+                expect(current()).not.toBe(before);
+                expect(fs.existsSync(path.join(directory, before.trim()))).toBe(false);
+
                 expect(db.get(key('first'))).toEqual(key('before failed flush'));
                 expect(db.stats.totalFiles).toBe(0);
-                Reflect.set(db, 'writeManifest', writeManifest);
+                // The next edit starts a fresh manifest rather than appending after a failed one.
                 db.put(key('second'), key('after failed flush'));
                 await db.flush();
 
