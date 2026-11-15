@@ -282,11 +282,27 @@ export const bedrockBlockStateToJava = (
 
     const sources = sourcesOf();
     const index = block.first + offsetOf(block, states);
+    const known = mappedStates[index];
+    if (known !== undefined) return known;
+
     const javaId = sources.javaIds[sources.blocks[index] ?? -1];
     if (javaId === undefined) return { kind: 'unknown', bedrockId };
 
-    return { kind: 'mapped', java: { name: javaId, properties: propertiesOf(javaId, sources.states[index]!) } };
+    const java = Object.freeze({
+        name: javaId,
+        properties: Object.freeze(propertiesOf(javaId, sources.states[index]!))
+    });
+    const mapped = Object.freeze({ kind: 'mapped' as const, java });
+    mappedStates[index] = mapped;
+    return mapped;
 };
+
+/**
+ * Each palette state's answer from {@link bedrockBlockStateToJava}, frozen and shared. A fluid
+ * search or a tag check asks about the same few states thousands of times a tick, and the answer
+ * for a palette index never changes.
+ */
+const mappedStates: JavaMappingResult[] = [];
 
 /**
  * Every Java 26.3 block that some state of a Bedrock block maps from, in alphabetical order.
