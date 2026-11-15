@@ -4,16 +4,12 @@ import {
     block_definitions as blocks2225,
     item_table as item_table_2225
 } from '@jsprismarine/bedrock-data/v2225';
-import BinaryStream from '@jsprismarine/binaryutils';
-import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
-import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
-import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
-import { itemDataForProtocol } from '@jsprismarine/prismarine/network/codec/itemData';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
 import { bedrockCaptureAt, loadRequiredItemListAt } from './goldens.ts';
+import { itemRegistrySentAt } from './itemRegistrySent.ts';
 import { reportParityProgress } from './progress.ts';
 import { parityCase, reportParityCases } from './trackerCases.ts';
 
@@ -196,30 +192,7 @@ describe(FAMILIES.registryItems2225, () => {
      * why it is asserted against the capture rather than against the export.
      */
     describe('what a session is actually sent', () => {
-        const sentAt = (protocolVersion: number): Map<string, number> => {
-            const packet = new ItemRegistryPacket();
-            packet.encode({ protocolVersion, itemData: itemDataForProtocol(protocolVersion) });
-
-            const stream = new BinaryStream(packet.getBuffer());
-            expect(stream.readUnsignedVarInt()).toBe(netIdFor('ItemRegistryPacket'));
-
-            const sent = new Map<string, number>();
-            for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
-                const length = stream.readUnsignedVarInt();
-                const name = stream.read(length).toString('utf-8');
-                const runtimeId = stream.readShortLE();
-                stream.readBoolean();
-                stream.readVarInt();
-                // The positional component compound, read past rather than parsed.
-                const reader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
-                reader.setUseVarint(true);
-                reader.parse();
-                sent.set(name, runtimeId);
-            }
-
-            expect(stream.feof()).toBe(true);
-            return sent;
-        };
+        const sentAt = itemRegistrySentAt;
 
         it('sends a 2225 session the numbering vanilla 1.26.60 sends', () => {
             const sent = sentAt(2225);
