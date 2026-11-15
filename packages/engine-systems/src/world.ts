@@ -169,7 +169,7 @@ export interface WorldAccess {
      * draw is looked up through {@link getBlockRuntimeId}.
      * @param origin - The section's lowest corner.
      */
-    sectionRuntimeIds?(origin: BlockPosition): ((at: BlockPosition) => number) | undefined;
+    sectionRuntimeIds?(origin: BlockPosition): ((x: number, y: number, z: number) => number) | undefined;
     /**
      * Whether the stored block state at one position receives random ticks.
      * Hosts that translate state names for engine behavior can answer from their native state.

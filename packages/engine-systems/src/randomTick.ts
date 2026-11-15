@@ -59,6 +59,15 @@ export class BlockRandomPositions {
     }
 
     /**
+     * The next draw as Java's one number: x in bits 0 to 3, z in bits 8 to 11 and y in bits 16
+     * to 19, for a caller that reads the offsets without keeping a position.
+     */
+    nextValue(): number {
+        this.state = (Math.imul(this.state, 3) + 1013904223) | 0;
+        return this.state >> 2;
+    }
+
+    /**
      * The next position inside one section.
      *
      * @param originX - The section's lowest x.
@@ -67,8 +76,7 @@ export class BlockRandomPositions {
      * @param yMask - The y mask, which `tickChunk` passes as 15.
      */
     next(originX: number, originY: number, originZ: number, yMask = 15): BlockPosition {
-        this.state = (Math.imul(this.state, 3) + 1013904223) | 0;
-        const value = this.state >> 2;
+        const value = this.nextValue();
         return {
             x: originX + (value & 15),
             y: originY + ((value >> 16) & yMask),
@@ -131,17 +139,25 @@ export const runRandomTicks = (
     for (const section of sections) {
         // Found once for the section's draws rather than once a draw.
         const sectionReader = world.sectionRuntimeIds?.(section);
-        for (const at of drawSectionPositions(positions, section, tickSpeed)) {
+        for (let draw = 0; draw < tickSpeed; draw++) {
+            // The same draw as `next`, kept as numbers: most positions hold a block that does not
+            // tick, and only one that does becomes a position object.
+            const value = positions.nextValue();
+            const x = section.x + (value & 15);
+            const y = section.y + ((value >> 16) & 15);
+            const z = section.z + ((value >> 8) & 15);
             let block: BlockRef;
             if (
                 runtimeIdAt !== undefined &&
                 blockByRuntimeId !== undefined &&
                 runtimeIdTakesRandomTicks !== undefined
             ) {
-                const runtimeId = sectionReader === undefined ? runtimeIdAt.call(world, at) : sectionReader(at);
+                const runtimeId =
+                    sectionReader === undefined ? runtimeIdAt.call(world, { x, y, z }) : sectionReader(x, y, z);
                 if (runtimeId === undefined || !runtimeIdTakesRandomTicks.call(world, runtimeId)) continue;
                 block = blockByRuntimeId.call(world, runtimeId);
             } else {
+                const at = { x, y, z };
                 // Keep hosts' native palette filter so non-ticking blocks skip block conversion.
                 const takesTick = world.isRandomlyTicking?.(at);
                 if (takesTick === false) continue;
@@ -150,7 +166,7 @@ export const runRandomTicks = (
             }
             ticked++;
             // The filter already resolved this state; dispatching it avoids a second chunk read.
-            run(at, block);
+            run({ x, y, z }, block);
         }
     }
     return ticked;
