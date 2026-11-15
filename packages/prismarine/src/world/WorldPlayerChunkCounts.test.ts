@@ -296,33 +296,26 @@ describe('world player chunk counts', () => {
         expect(world.getLoadedChunk(20, 0)).not.toBeNull();
     });
 
-    it('saves one chunk of an unload batch per turn of the event loop', async () => {
+    it('saves at most four distant chunks a tick, all before the tick hands back the event loop', async () => {
         const saved: number[] = [];
-        const world = worldWith(
-            [
-                [20, 0],
-                [21, 0],
-                [22, 0]
-            ],
-            true,
-            async (chunk) => {
-                saved.push(chunk.getX());
-                chunk.markSaved();
-            }
-        );
+        const positions = [20, 21, 22, 23, 24, 25].map((x) => [x, 0] as const);
+        const world = worldWith(positions, true, async (chunk) => {
+            saved.push(chunk.getX());
+            chunk.markSaved();
+        });
         world['players'].set(1, playerAt(world, 0, 0));
-        for (const x of [20, 21, 22]) world.getLoadedChunk(x, 0)?.markChanged();
+        for (const [x] of positions) world.getLoadedChunk(x, 0)?.markChanged();
+        Object.assign(world, { closing: false, unloading: null });
 
-        const unloading = world['unloadDistantChunks']();
-        // Every microtask the first save queued, and nothing a later turn would run.
+        world['beginDistantChunkUnloads']();
+        // Microtasks only: a host of any speed has saved the batch before a timer could run a tick.
         for (let step = 0; step < 50; step++) await Promise.resolve();
-        expect(saved).toEqual([20]);
+        expect(saved).toHaveLength(4);
 
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        expect(saved).toEqual([20, 21]);
-
-        await unloading;
-        expect(saved).toEqual([20, 21, 22]);
+        await world['unloading'];
+        world['beginDistantChunkUnloads']();
+        await world['unloading'];
+        expect(saved).toHaveLength(6);
     });
 
     it('keeps a chunk a ticket holds, and unloads it once the ticket is released', async () => {
