@@ -46,6 +46,18 @@ export const BLOCK_STATE_VERSION = (majorVersion << 24) | (minorVersion << 16) |
  * separate mapping table to keep in step.
  */
 export const encodePaletteEntry = (runtimeId: number, stream: BinaryStream): void => {
+    const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+    writer.setUseVarint(false);
+    writer.writeCompound(paletteEntryCompound(runtimeId));
+};
+
+/**
+ * The `{name, states, version}` compound for a runtime id, which a palette entry is and a pending
+ * tick's `blockState` is too.
+ *
+ * @throws When no registered block produces the runtime id, or its block has no state schema.
+ */
+export const paletteEntryCompound = (runtimeId: number): NBTTagCompound => {
     const state = BlockRuntimeIds.getState(runtimeId);
     if (state === null) {
         throw new Error(`Cannot write runtime id ${runtimeId}: no registered block produces it`);
@@ -56,10 +68,7 @@ export const encodePaletteEntry = (runtimeId: number, stream: BinaryStream): voi
 
     const compound = state.toNBT(schema.getPropertyTypes());
     compound.addValue('version', new Types.NumberVal(BLOCK_STATE_VERSION));
-
-    const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
-    writer.setUseVarint(false);
-    writer.writeCompound(compound);
+    return compound;
 };
 
 /**

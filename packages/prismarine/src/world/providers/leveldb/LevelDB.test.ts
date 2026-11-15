@@ -39,6 +39,7 @@ import {
     encodeChunkGenerationKey
 } from './ChunkGenerationRecord';
 import { GENERATION_DATA_VERSION } from '@jsprismarine/worldgen/blending/generationVersion';
+import { createChunkSaveContext } from '../ChunkSaveContext';
 import { parseLevelStem } from '@jsprismarine/worldgen';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../../Server';
@@ -935,6 +936,82 @@ describe('world', () => {
                     }
                 }
 
+                await reopened.provider.disable();
+            });
+
+            it("keeps a chunk's scheduled fluid ticks in its PendingTicks record across a reload", async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+
+                const chunk = buildChunk();
+                chunk.setBlockRuntimeId(2, 70, 3, id('minecraft:water'));
+                chunk.setBlockRuntimeId(5, 70, 5, id('minecraft:stone'));
+                const context = createChunkSaveContext(Dimensions.Overworld.bedrockId, [], () => 0, {
+                    currentTick: 100,
+                    byChunk: new Map([
+                        [
+                            Chunk.packXZ(0, 0),
+                            [
+                                { x: 2, y: 70, z: 3, triggerTick: 105 },
+                                // The water there has gone, so the tick would do nothing; it is not kept.
+                                { x: 5, y: 70, z: 5, triggerTick: 101 }
+                            ]
+                        ]
+                    ])
+                });
+                await provider.writeChunk(chunk, context);
+                await provider.disable();
+
+                const reopened = harness(worldPath);
+                await reopened.provider.enable();
+                const restored = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
+                expect(restored.takePendingFluidTicks()).toEqual([{ x: 2, y: 70, z: 3, delay: 5 }]);
+                // Changed, so the next save writes the record again once the tick has run.
+                expect(restored.getHasChanged()).toBe(true);
+
+                // Saved again with nothing scheduled, the record goes.
+                await reopened.provider.writeChunk(
+                    restored,
+                    createChunkSaveContext(Dimensions.Overworld.bedrockId, [], () => 0, {
+                        currentTick: 200,
+                        byChunk: new Map()
+                    })
+                );
+                await reopened.provider.disable();
+                const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                const recordKey = encodeChunkKey({
+                    x: 0,
+                    z: 0,
+                    dimension: Dimensions.Overworld.bedrockId,
+                    tag: ChunkTag.PendingTicks
+                });
+                expect(database.get(recordKey)).toBeNull();
+                await database.close();
+            });
+
+            it('leaves a PendingTicks record alone when the save does not say what is scheduled', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+
+                const chunk = buildChunk();
+                chunk.setBlockRuntimeId(2, 70, 3, id('minecraft:lava'));
+                await provider.writeChunk(
+                    chunk,
+                    createChunkSaveContext(Dimensions.Overworld.bedrockId, [], () => 0, {
+                        currentTick: 0,
+                        byChunk: new Map([[Chunk.packXZ(0, 0), [{ x: 2, y: 70, z: 3, triggerTick: 30 }]]])
+                    })
+                );
+                chunk.setBlockRuntimeId(1, 70, 1, id('minecraft:stone'));
+                await provider.writeChunk(chunk);
+                await provider.disable();
+
+                const reopened = harness(worldPath);
+                await reopened.provider.enable();
+                const restored = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
+                expect(restored.takePendingFluidTicks()).toEqual([{ x: 2, y: 70, z: 3, delay: 30 }]);
                 await reopened.provider.disable();
             });
 
