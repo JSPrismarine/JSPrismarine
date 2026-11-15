@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 import {
     assertActorIdentifiers,
@@ -69,7 +70,7 @@ for (const name of ['block_definitions', 'required_item_list']) {
  * checkout that built them then would otherwise keep them, newer than every capture, after the
  * generator stopped reading it.
  */
-const generatorFiles = [new URL(import.meta.url).pathname, new URL('./joinPayloads.ts', import.meta.url).pathname];
+const generatorFiles = [fileURLToPath(import.meta.url), fileURLToPath(new URL('./joinPayloads.ts', import.meta.url))];
 
 const isUpToDate = (sources, target) => {
     const generated = fs.statSync(target, { throwIfNoEntry: false });
