@@ -17,6 +17,11 @@ export interface ProtocolVersionDefinition {
     readonly minecraftVersions: readonly string[];
     /** Packet class name to wire id for this version. */
     readonly ids: Readonly<Record<string, number>>;
+    /**
+     * Whether this version is a Minecraft preview. A server negotiates a preview with clients
+     * that announce it, but advertises only release versions.
+     */
+    readonly preview?: boolean;
 }
 
 /** Wire definitions supported by this package, oldest protocol version first. */
