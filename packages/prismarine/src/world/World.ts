@@ -473,7 +473,11 @@ interface DropStart {
  * 1.26.52 drops one.
  *
  * Measured over 18 drops: each appeared somewhere in the middle 70% of the block on every axis
- * and left with a push of up to 0.1 a tick sideways and 0.2 upward.
+ * and left with a push of up to 0.1 a tick sideways and 0.2 upward. Where it appeared is the
+ * position the client was sent, which is where the item reports itself, so the stack itself lies
+ * the definition's `position_offset` lower and its box stays inside the block it left, as Java's
+ * `Block.popResource` keeps it. Taken as where it lies, a stack from the top of the range would
+ * start with its box in the block above.
  * @param {ContentPosition} block - the block the stack leaves.
  * @param {Random} random - the source of chance, rolled five times.
  * @returns {DropStart} where the stack lies and its speed.
@@ -483,7 +487,7 @@ const popOut = (block: ContentPosition, random: Random): DropStart => {
     const push = (): number => random() * 0.2 - 0.1;
     const position = new Vector3(block.x + within(), block.y + within(), block.z + within());
 
-    return { position, motion: new Vector3(push(), 0.2, push()) };
+    return { position, reported: true, motion: new Vector3(push(), 0.2, push()) };
 };
 
 export interface WorldData {
