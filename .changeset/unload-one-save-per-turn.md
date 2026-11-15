@@ -2,4 +2,4 @@
 '@jsprismarine/prismarine': patch
 ---
 
-Save one chunk of an unload batch per turn of the event loop. A batch of eight chunks was encoded in a single turn, which held the server tick for up to a second while a player moved.
+Write and unload at most four distant chunks a tick, down from eight. The whole batch is encoded in the tick's own turn, so a smaller batch holds the tick for half as long while a player moves.

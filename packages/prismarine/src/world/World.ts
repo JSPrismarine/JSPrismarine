@@ -3,7 +3,6 @@ import { GameRules } from './GameRuleManager';
 
 import { createHash } from 'node:crypto';
 import type { Hash } from 'node:crypto';
-import { setImmediate as yieldEventLoop } from 'node:timers/promises';
 
 import { Vector3 } from '@jsprismarine/math';
 import BinaryStream from '@jsprismarine/binaryutils';
@@ -238,8 +237,15 @@ interface ChunkLoad extends ChunkLoadState {
     readonly chunk: Promise<Chunk>;
 }
 
-/** How many chunks one tick may write and unload after players move away. */
-const CHUNK_UNLOAD_BATCH_SIZE = 8;
+/**
+ * How many chunks one tick may write and unload after players move away.
+ *
+ * A save the level holds for its next pass settles in microtasks, so the whole batch is encoded
+ * in the tick's own turn of the event loop. Spreading it over a turn per chunk would let a tick
+ * run between two saves and make when a chunk leaves depend on the host's speed; a small batch
+ * per tick keeps the encoding short and the order the same everywhere.
+ */
+const CHUNK_UNLOAD_BATCH_SIZE = 4;
 
 /**
  * How far from a player the world simulates, in chunks.
@@ -3769,11 +3775,7 @@ export class World implements Service {
         // Saved one after another, and each saved chunk then waits for the input step to take it
         // out, so a batch leaves at the next step rather than one chunk a tick.
         const leaving: Promise<void>[] = [];
-        for (const [index, chunk] of candidates.entries()) {
-            // A save that does not reach the database settles in microtasks, which would encode
-            // the whole batch in one turn and hold the tick for all of it. One save a turn lets a
-            // tick and the network run between them.
-            if (index > 0) await yieldEventLoop();
+        for (const chunk of candidates) {
             const { left } = await this.unloadChunk(chunk, saveContext);
             // Handled now, not after the loop: an input step can reject one chunk's leave while a
             // later chunk's save still waits, and nothing would be listening for it yet.
