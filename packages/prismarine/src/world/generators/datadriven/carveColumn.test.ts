@@ -34,7 +34,7 @@ const aquifer = (byY: Readonly<Record<number, string | undefined>>, scheduleAt: 
 
 const FLUIDS: Readonly<Record<string, 'water' | 'lava'>> = { 'minecraft:water': 'water', 'minecraft:lava': 'lava' };
 
-const context = (region: GenerationRegion, water: Aquifer, topMaterials: string[] = []): CarveColumnContext => ({
+const context = (region: GenerationRegion, water: Aquifer): CarveColumnContext => ({
     region,
     aquifer: water,
     oracle: {
@@ -44,10 +44,7 @@ const context = (region: GenerationRegion, water: Aquifer, topMaterials: string[
         fluid: (state: BlockState) => FLUIDS[state.name] ?? 'empty'
     },
     surface: {
-        topMaterial: (_x, y) => {
-            topMaterials.push(`${y}`);
-            return 'minecraft:grass_block';
-        }
+        topMaterial: () => 'minecraft:grass_block'
     }
 });
 
@@ -78,14 +75,14 @@ describe('carveColumn', () => {
         region.writeName(1, 14, 1, 'minecraft:grass_block');
         region.writeName(1, 13, 1, 'minecraft:stone');
         region.writeName(1, 12, 1, 'minecraft:dirt');
-        const resurfaced: string[] = [];
 
         // The grass block stays as a barrier, but Java reads it before the aquifer, so the latch holds.
-        carveColumn(context(region, aquifer({ 14: undefined }), resurfaced), 1, 1, 12, 14);
+        carveColumn(context(region, aquifer({ 14: undefined })), 1, 1, 13, 14);
 
         expect(region.stateAt(1, 14, 1).name).toBe('minecraft:grass_block');
         expect(region.stateAt(1, 13, 1).name).toBe('minecraft:air');
-        expect(resurfaced).toEqual(['12']);
+        // The dirt under the opened block takes the biome's top material.
+        expect(region.stateAt(1, 12, 1).name).toBe('minecraft:grass_block');
     });
 
     it('never opens an uncarvable block', () => {
