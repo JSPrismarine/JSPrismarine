@@ -27,7 +27,7 @@ describe('onInterrupt', () => {
         onInterrupt(stop);
 
         const [listener] = added(before);
-        listener!();
+        listener!('SIGINT');
 
         expect(stop).toHaveBeenCalledOnce();
         expect(added(before)).toEqual([]);
