@@ -291,6 +291,22 @@ export default class HumanInventory extends Inventory {
     }
 
     /**
+     * Resizes the stack in the hand, as using some of it does.
+     *
+     * The item is resized with the slot, because the wire writes the item's count and not the
+     * slot's. A count of zero empties the slot rather than leaving an entry of nothing in it, which
+     * the server would go on treating as occupied while the client draws it empty.
+     * @param count - How many the hand holds afterwards.
+     */
+    public setHandCount(count: number): void {
+        const held = this.getEntry(this.handSlot);
+        if (held === null) return;
+
+        if (count > 0) this.setItemInHand(new ContainerEntry({ item: held.getItem().withCount(count), count }));
+        else this.removeItem(this.handSlot);
+    }
+
+    /**
      * Returns the item in the player hand.
      *
      * Through the entry, so what comes back is an item and not a `Block` cast to look like
