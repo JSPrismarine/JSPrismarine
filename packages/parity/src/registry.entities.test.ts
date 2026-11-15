@@ -1,16 +1,12 @@
 import { entity_identifiers, item_table } from '@jsprismarine/bedrock-data';
 import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
 import { checkAllowList } from './allowlist.ts';
-import { loadActorIdentifiers } from './goldens.ts';
+import { ACTOR_IDENTIFIERS_CAPTURE, bedrockCapture, loadActorIdentifiers } from './goldens.ts';
 import { reportParityProgress } from './progress.ts';
 import { reportParityCases } from './trackerCases.ts';
-
-const require = createRequire(import.meta.url);
 
 /**
  * Checks the actor list the server advertises in `AvailableActorIdentifiersPacket`: the payload
@@ -24,8 +20,7 @@ const require = createRequire(import.meta.url);
 const compareEntities = (): string[] => {
     const gaps: string[] = [];
 
-    const bedrockDataRoot = dirname(require.resolve('@jsprismarine/bedrock-data/package.json'));
-    const golden = readFileSync(join(bedrockDataRoot, 'src/resources/entity_identifiers.dat'));
+    const golden = readFileSync(bedrockCapture(ACTOR_IDENTIFIERS_CAPTURE));
     if (!entity_identifiers.equals(golden)) gaps.push('payload');
 
     const identifiers = loadActorIdentifiers();

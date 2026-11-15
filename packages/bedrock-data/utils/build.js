@@ -1,9 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import zlib from 'node:zlib';
 
-import { ensureCloudburstData } from './fetch/cloudburst.ts';
+import {
+    assertActorIdentifiers,
+    JOIN_PACKET_IDS,
+    readCreativeContent,
+    readItemRegistry,
+    readWirePayload
+} from './joinPayloads.ts';
 
 /**
  * The Bedrock captures live under `src/jsp/v<protocol>/`, one directory per protocol version,
@@ -37,11 +42,7 @@ const capturedProtocolVersions = fs
  * Each becomes `src/generated/<name>.json` holding the bytes as base64, which `src/index.ts`
  * hands back as a Buffer. A `.nbt` or `.dat` file cannot be an import on its own.
  */
-const files = [
-    'resources/entity_identifiers.dat',
-    `${jsp}/jigsaw_structure_data.nbt`,
-    `${jsp}/biome_definitions_network.nbt`
-];
+const files = [`${jsp}/jigsaw_structure_data.nbt`, `${jsp}/biome_definitions_network.nbt`];
 
 const force = process.argv.includes('--force');
 
@@ -74,12 +75,15 @@ const requireSource = (file) => {
     if (fs.existsSync(source)) return source;
 
     console.error(
-        `Missing ${file}. The bedrock-data resources are a pinned download linked to src/resources; run ` +
-            '`pnpm --filter @jsprismarine/bedrock-data run fetch:cloudburst`, or set JSP_CLOUDBURST_DATA_PATH ' +
-            'to a local CloudburstMC/Data checkout when working offline.'
+        `Missing src/${file}. Every input of this generator is a capture committed under src/jsp/; ` +
+            'capture a missing version with `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock ' +
+            '--pass packets --protocol <n>`.'
     );
     process.exit(1);
 };
+
+/** The file `dump:bedrock` records one packet's payload in, relative to `src/`. */
+const wireFile = (directory, id) => `${directory}/wire/0x${id.toString(16).padStart(2, '0')}.bin`;
 
 /**
  * The same conversion for every other captured version, under `src/generated/v<protocol>/`.
@@ -123,27 +127,73 @@ for (const file of files) {
     fs.writeFileSync(target, JSON.stringify({ data }, null, 0));
 }
 
+// The actor list, as `AvailableActorIdentifiersPacket` carried it. A server replays the payload
+// verbatim, so it is copied as it came, once it is known to be the one compound it should be.
+const actorSource = requireSource(wireFile(jsp, JOIN_PACKET_IDS.availableActorIdentifiers));
+const actorTarget = path.resolve('src/generated/entity_identifiers.json');
+if (force || !isUpToDate(actorSource, actorTarget)) {
+    console.log('Generating entity_identifiers.json...');
+    const data = assertActorIdentifiers(fs.readFileSync(actorSource)).toString('base64');
+    fs.writeFileSync(actorTarget, JSON.stringify({ data }, null, 0));
+}
+
+/** The base64 little endian compound `{ network_id }` the catalog carries a block state as. */
+const blockStatesOf = (blockRuntimeId) => {
+    const name = Buffer.from('network_id');
+    const compound = Buffer.alloc(3 + 3 + name.byteLength + 4 + 1);
+    let offset = compound.writeUInt8(10, 0); // TAG_Compound with an empty name
+    offset = compound.writeUInt16LE(0, offset);
+    offset = compound.writeUInt8(3, offset); // TAG_Int
+    offset = compound.writeUInt16LE(name.byteLength, offset);
+    offset += name.copy(compound, offset);
+    offset = compound.writeInt32LE(blockRuntimeId, offset);
+    compound.writeUInt8(0, offset); // TAG_End
+    return compound.toString('base64');
+};
+
 // The creative menu entries are heterogeneous (some carry block states, some NBT), which
 // TypeScript infers as any[] when the JSON is imported directly. A generated module with an
 // explicit type gives the data a shape that every consumer, including ahead-of-time
 // compilation, can work with.
 //
-// The upstream field names are not kept: `id` is an item name and is called `name` here,
-// `damage` is the aux value every other part of this package calls `meta`, and `block_state_b64`
-// is `block_states` on an entry and `icon_block_states` on a group.
-const creativeSource = requireSource('resources/creative_items.json');
+// The source is the `CreativeContentPacket` a server sent, read against the `ItemRegistryPacket`
+// of the same capture for the names its numbers stand for. An entry's block is the hashed block
+// runtime id the packet carries, which is all a client resolves it by.
+const creativeSource = requireSource(wireFile(jsp, JOIN_PACKET_IDS.creativeContent));
+const registrySource = requireSource(wireFile(jsp, JOIN_PACKET_IDS.itemRegistry));
 const creativeTarget = path.resolve('src/generated/creativeitems.ts');
-if (force || !isUpToDate(creativeSource, creativeTarget)) {
+if (force || !isUpToDate([creativeSource, registrySource], creativeTarget)) {
     console.log('Generating creativeitems.ts...');
-    const { groups, items } = JSON.parse(fs.readFileSync(creativeSource, 'utf8'));
+    const names = new Map(readItemRegistry(fs.readFileSync(registrySource)).map((item) => [item.runtimeId, item.name]));
+    // The empty stack is id 0, which the registry does not name: `minecraft:air` is -158 there.
+    const nameOf = ({ runtimeId }) => {
+        if (runtimeId === 0) return 'minecraft:air';
+        const name = names.get(runtimeId);
+        if (name === undefined)
+            throw new Error(`CreativeContentPacket names item ${runtimeId}, which the registry does not`);
+        return name;
+    };
+    const content = readCreativeContent(fs.readFileSync(creativeSource));
+    const categories = ['construction', 'nature', 'equipment', 'items', 'none'];
 
-    const groupBody = groups
-        .map(({ name, category, icon }) => {
-            const group = { name, category, icon: icon.id };
-            if (icon.block_state_b64 !== undefined) group.icon_block_states = icon.block_state_b64;
-            return `    ${JSON.stringify(group)}`;
-        })
-        .join(',\n');
+    const groups = content.groups.map(({ category, name, icon }) => {
+        const group = { name, category: categories[category - 1], icon: nameOf(icon) };
+        if (group.category === undefined) throw new Error(`Creative group ${name} has category ${category}`);
+        if (icon.blockRuntimeId !== 0) group.icon_block_states = blockStatesOf(icon.blockRuntimeId);
+        return group;
+    });
+
+    const items = content.entries.map(({ creativeNetId, item, group }, index) => {
+        if (creativeNetId !== index + 1) throw new Error(`Creative entry ${index} has net id ${creativeNetId}`);
+        if (item.count !== 1) throw new Error(`Creative entry ${index} is a stack of ${item.count}`);
+        const entry = { id: nameOf(item), groupId: group };
+        if (item.meta !== 0) entry.damage = item.meta;
+        if (item.blockRuntimeId !== 0) entry.block_state_b64 = blockStatesOf(item.blockRuntimeId);
+        if (item.nbt !== undefined) entry.nbt_b64 = item.nbt.toString('base64');
+        return entry;
+    });
+
+    const groupBody = groups.map((group) => `    ${JSON.stringify(group)}`).join(',\n');
 
     // One helper call per entry instead of a 2000-element object literal: TypeScript
     // gives up on the union such a literal implies, while each call has the exact type.
@@ -165,7 +215,7 @@ if (force || !isUpToDate(creativeSource, creativeTarget)) {
     fs.writeFileSync(
         creativeTarget,
         [
-            '// Generated from resources/creative_items.json by utils/build.js. Do not edit.',
+            `// Generated from src/${wireFile(jsp, JOIN_PACKET_IDS.creativeContent)} by utils/build.js. Do not edit.`,
             '',
             '/** One heading of the creative menu, with the item the client draws beside it. */',
             'export interface CreativeGroupEntry {',
@@ -176,8 +226,9 @@ if (force || !isUpToDate(creativeSource, creativeTarget)) {
             '    /** The item name shown beside the heading. */',
             '    icon: string;',
             '    /**',
-            '     * The block state the icon shows, as base64 little-endian NBT whose `network_id` is the',
-            '     * hashed block runtime id vanilla puts on the wire. Absent when the icon is not a block.',
+            '     * The block state the icon shows, as a base64 little-endian NBT compound holding one',
+            '     * `network_id`: the hashed block runtime id vanilla puts on the wire. Absent when the icon',
+            '     * is not a block.',
             '     */',
             '    icon_block_states?: string;',
             '}',
@@ -188,9 +239,9 @@ if (force || !isUpToDate(creativeSource, creativeTarget)) {
             '    /** Which of {@link creative_groups} the entry is filed under, by index. */',
             '    group: number;',
             '    /**',
-            '     * The block state the entry places, as base64 little-endian NBT whose `network_id` is the',
-            '     * hashed block runtime id vanilla puts on the wire. Absent when the entry is not a block,',
-            '     * which includes the item form of doors, beds and hanging signs.',
+            '     * The block state the entry places, as a base64 little-endian NBT compound holding one',
+            '     * `network_id`: the hashed block runtime id vanilla puts on the wire. Absent when the entry',
+            '     * is not a block, which includes the item form of doors, beds and hanging signs.',
             '     */',
             '    block_states?: string;',
             '    meta?: number;',
@@ -223,28 +274,27 @@ if (force || !isUpToDate(creativeSource, creativeTarget)) {
 }
 
 /**
- * Joins one version's captured item list with the `Item Version` column the capture tool does
- * not record.
+ * Joins one version's captured item list with the `Item Version` column it does not record.
  *
  * `required_item_list.json` is what the server sent a joining client: every name and the
- * number it travels as. `Item Version` is not in `ItemRegistryPacket`, so it comes from the
- * CloudburstMC dump of the same Bedrock version. The join refuses to produce anything when
- * the two disagree on a name, an id or the component flag: a table whose versions came from
- * a different item list than its ids would put the wrong number on the wire without anything
+ * number it travels as. The version comes from the `ItemRegistryPacket` payload of the same
+ * capture, which carries it beside each name. The join refuses to produce anything when the
+ * two disagree on a name, an id or the component flag: a table whose versions came from a
+ * different item list than its ids would put the wrong number on the wire without anything
  * noticing.
  */
-const joinItemTable = (itemListFile, itemStatesFile) => {
+const joinItemTable = (itemListFile, registryFile) => {
     const captured = JSON.parse(fs.readFileSync(itemListFile, 'utf8'));
-    const dumped = JSON.parse(fs.readFileSync(itemStatesFile, 'utf8'));
+    const registry = readItemRegistry(fs.readFileSync(registryFile));
 
     const versions = new Map();
-    for (const { name, id, version, componentBased } of dumped) {
+    for (const { name, runtimeId, version, componentBased } of registry) {
         const entry = captured[name];
         if (entry === undefined) {
-            throw new Error(`runtime_item_states.json names ${name}, which required_item_list.json does not`);
+            throw new Error(`ItemRegistryPacket names ${name}, which required_item_list.json does not`);
         }
-        if (entry.runtime_id !== id || entry.component_based !== componentBased) {
-            throw new Error(`runtime_item_states.json and required_item_list.json disagree on ${name}`);
+        if (entry.runtime_id !== runtimeId || entry.component_based !== componentBased) {
+            throw new Error(`ItemRegistryPacket and required_item_list.json disagree on ${name}`);
         }
         versions.set(name, version);
     }
@@ -253,7 +303,7 @@ const joinItemTable = (itemListFile, itemStatesFile) => {
         Object.entries(captured).map(([name, entry]) => {
             const version = versions.get(name);
             if (version === undefined) {
-                throw new Error(`required_item_list.json names ${name}, which runtime_item_states.json does not`);
+                throw new Error(`required_item_list.json names ${name}, which ItemRegistryPacket does not`);
             }
             return [name, { ...entry, version }];
         })
@@ -262,11 +312,10 @@ const joinItemTable = (itemListFile, itemStatesFile) => {
 
 // The default version's table, at the unversioned path every consumer already imports.
 const itemListSource = requireSource(`${jsp}/required_item_list.json`);
-const itemStatesSource = requireSource('resources/runtime_item_states.json');
 const itemTableTarget = path.resolve('src/generated/item_table.json');
-if (force || !isUpToDate([itemListSource, itemStatesSource], itemTableTarget)) {
+if (force || !isUpToDate([itemListSource, registrySource], itemTableTarget)) {
     console.log('Generating item_table.json...');
-    fs.writeFileSync(itemTableTarget, JSON.stringify(joinItemTable(itemListSource, itemStatesSource), null, 0));
+    fs.writeFileSync(itemTableTarget, JSON.stringify(joinItemTable(itemListSource, registrySource), null, 0));
 }
 
 /**
@@ -274,192 +323,33 @@ if (force || !isUpToDate([itemListSource, itemStatesSource], itemTableTarget)) {
  *
  * The item registry is server-authoritative - the client adopts the numbering it is sent - so
  * these are not a drop-in replacement for the default table; they are what a session speaking
- * that protocol has to send to match what vanilla of that version sends. Picking one per
- * session is a later slice; publishing the data is this one.
- *
- * Each needs the CloudburstMC dump of its own version for the `Item Version` column, which
- * `src/resources` cannot supply because it links exactly one. `ensureCloudburstData` resolves
- * it from the per-version cache, verifying a 1.2 MB archive that `fetch:sources` has usually
- * already put there.
+ * that protocol has to send to match what vanilla of that version sends.
  */
 for (const protocolVersion of capturedProtocolVersions) {
     if (protocolVersion === defaultProtocolVersion) continue;
 
-    const itemList = path.resolve('src/jsp', `v${protocolVersion}`, 'required_item_list.json');
+    const directory = `jsp/v${protocolVersion}`;
+    const itemList = requireSource(`${directory}/required_item_list.json`);
+    const registry = requireSource(wireFile(directory, JOIN_PACKET_IDS.itemRegistry));
     const target = path.resolve('src/generated', `v${protocolVersion}`, 'item_table.json');
-
-    const dump = await ensureCloudburstData(protocolVersion);
-    if (dump.fromOverride) {
-        // One local checkout is one version, and the join below would report the mismatch as
-        // the two files disagreeing about an item rather than as the wrong dump being read.
-        throw new Error(
-            `JSP_CLOUDBURST_DATA_PATH supplies one CloudburstMC/Data checkout, which cannot also be ` +
-                `protocol ${protocolVersion}. Unset it, or remove src/jsp/v${protocolVersion}/.`
-        );
-    }
-
-    const itemStates = path.join(dump.path, 'runtime_item_states.json');
-    if (force || !isUpToDate([itemList, itemStates], target)) {
+    if (force || !isUpToDate([itemList, registry], target)) {
         console.log(`Generating v${protocolVersion}/item_table.json...`);
         fs.mkdirSync(path.dirname(target), { recursive: true });
-        fs.writeFileSync(target, JSON.stringify(joinItemTable(itemList, itemStates), null, 0));
+        fs.writeFileSync(target, JSON.stringify(joinItemTable(itemList, registry), null, 0));
     }
 }
 
-// `Item Component Data` for every item that has any. The submodule holds the components as one
-// gzipped big-endian NBT compound with a child compound per item, which is the on-disk flavor
-// of NBT; the wire wants each item's compound on its own in the network flavor (little endian,
-// varint lengths and integers). The conversion below copies tag by tag without interpreting
-// anything, so an empty list keeps its TAG_End element type and a float stays a float. The
-// result is base64 per item, which a server writes back to the wire verbatim.
-const componentsSource = requireSource('resources/item_components.nbt');
+// `Item Component Data` for every item that has any, as the network NBT the server sent, base64
+// per item, which a server writes back to the wire verbatim.
 const componentsTarget = path.resolve('src/generated/item_components.json');
-if (force || !isUpToDate(componentsSource, componentsTarget)) {
+if (force || !isUpToDate(registrySource, componentsTarget)) {
     console.log('Generating item_components.json...');
-    const disk = zlib.gunzipSync(fs.readFileSync(componentsSource));
-
-    const TAG_END = 0;
-    const TAG_BYTE = 1;
-    const TAG_SHORT = 2;
-    const TAG_INT = 3;
-    const TAG_LONG = 4;
-    const TAG_FLOAT = 5;
-    const TAG_DOUBLE = 6;
-    const TAG_BYTE_ARRAY = 7;
-    const TAG_STRING = 8;
-    const TAG_LIST = 9;
-    const TAG_COMPOUND = 10;
-    const TAG_INT_ARRAY = 11;
-    const TAG_LONG_ARRAY = 12;
-
-    let offset = 0;
-    let out = [];
-
-    const take = (length) => {
-        const bytes = disk.subarray(offset, offset + length);
-        offset += length;
-        return bytes;
-    };
-    const readInt = () => {
-        const value = disk.readInt32BE(offset);
-        offset += 4;
-        return value;
-    };
-    const readName = () => {
-        const length = disk.readUInt16BE(offset);
-        offset += 2;
-        return take(length);
-    };
-
-    const emit = (bytes) => out.push(bytes);
-    const emitVarUint = (value) => {
-        const bytes = [];
-        let rest = value >>> 0;
-        while (rest >= 0x80) {
-            bytes.push((rest & 0x7f) | 0x80);
-            rest >>>= 7;
-        }
-        bytes.push(rest);
-        emit(Buffer.from(bytes));
-    };
-    const emitVarInt = (value) => emitVarUint((value << 1) ^ (value >> 31));
-    const emitVarLong = (value) => {
-        const bytes = [];
-        let rest = BigInt.asUintN(64, (value << 1n) ^ (value >> 63n));
-        while (rest >= 0x80n) {
-            bytes.push(Number(rest & 0x7fn) | 0x80);
-            rest >>= 7n;
-        }
-        bytes.push(Number(rest));
-        emit(Buffer.from(bytes));
-    };
-    const emitName = (bytes) => {
-        emitVarUint(bytes.length);
-        emit(bytes);
-    };
-
-    const copyPayload = (type) => {
-        switch (type) {
-            case TAG_BYTE:
-                return emit(take(1));
-            case TAG_SHORT: {
-                const value = Buffer.alloc(2);
-                value.writeInt16LE(disk.readInt16BE(offset));
-                offset += 2;
-                return emit(value);
-            }
-            case TAG_INT:
-                return emitVarInt(readInt());
-            case TAG_LONG: {
-                const value = disk.readBigInt64BE(offset);
-                offset += 8;
-                return emitVarLong(value);
-            }
-            case TAG_FLOAT: {
-                const value = Buffer.alloc(4);
-                value.writeFloatLE(disk.readFloatBE(offset));
-                offset += 4;
-                return emit(value);
-            }
-            case TAG_DOUBLE: {
-                const value = Buffer.alloc(8);
-                value.writeDoubleLE(disk.readDoubleBE(offset));
-                offset += 8;
-                return emit(value);
-            }
-            case TAG_BYTE_ARRAY: {
-                const length = readInt();
-                emitVarInt(length);
-                return emit(take(length));
-            }
-            case TAG_STRING:
-                return emitName(readName());
-            case TAG_LIST: {
-                const elementType = take(1);
-                const length = readInt();
-                emit(elementType);
-                emitVarInt(length);
-                for (let i = 0; i < length; i++) copyPayload(elementType[0]);
-                return;
-            }
-            case TAG_COMPOUND: {
-                for (let child = take(1)[0]; child !== TAG_END; child = take(1)[0]) {
-                    emit(Buffer.from([child]));
-                    emitName(readName());
-                    copyPayload(child);
-                }
-                return emit(Buffer.from([TAG_END]));
-            }
-            case TAG_INT_ARRAY:
-            case TAG_LONG_ARRAY: {
-                const length = readInt();
-                emitVarInt(length);
-                for (let i = 0; i < length; i++) copyPayload(type === TAG_INT_ARRAY ? TAG_INT : TAG_LONG);
-                return;
-            }
-            default:
-                throw new Error(`item_components.nbt: unknown NBT tag ${type} at offset ${offset}`);
-        }
-    };
-
-    if (take(1)[0] !== TAG_COMPOUND) throw new Error('item_components.nbt: the root is not a compound');
-    readName();
-
     const components = {};
-    for (let child = take(1)[0]; child !== TAG_END; child = take(1)[0]) {
-        if (child !== TAG_COMPOUND)
-            throw new Error(`item_components.nbt: item entry is a tag ${child}, not a compound`);
-        const name = readName().toString('utf8');
-
-        // The root of a network compound is nameless; the item's name is the map key instead.
-        out = [Buffer.from([TAG_COMPOUND, 0])];
-        copyPayload(TAG_COMPOUND);
-        const wire = Buffer.concat(out);
-
+    // By name, so the file does not move when the engine reorders its registry.
+    const registry = readItemRegistry(fs.readFileSync(registrySource)).sort((a, b) => a.name.localeCompare(b.name));
+    for (const { name, componentData } of registry) {
         // Three bytes is the empty compound, which a server can write without being told.
-        if (wire.length > 3) components[name] = wire.toString('base64');
+        if (componentData.byteLength > 3) components[name] = componentData.toString('base64');
     }
-    if (offset !== disk.length) throw new Error('item_components.nbt: trailing bytes after the root compound');
-
     fs.writeFileSync(componentsTarget, JSON.stringify(components, null, 0));
 }

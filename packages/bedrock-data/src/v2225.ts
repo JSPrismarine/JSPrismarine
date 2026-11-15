@@ -32,7 +32,7 @@ import type { BlockDefinitionEntry, ItemTypeEntry } from './index';
  * 82 of them sit.
  *
  * Captured with `packages/client/tools/capture-server-data.mjs` against the pinned 1.26.60.6
- * server, joined with that version's CloudburstMC dump for the `Item Version` column by
+ * server, joined with the `Item Version` column of the same capture's `ItemRegistryPacket` by
  * `utils/build.js`, the same way the 2193 table is built.
  */
 export const item_table: Record<string, ItemTypeEntry> = item_table_data;

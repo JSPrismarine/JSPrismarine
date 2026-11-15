@@ -179,7 +179,7 @@ export const REFERENCES = {
     /** The `AvailableActorIdentifiersPacket` golden: every actor type a 1.26.51 server advertises. */
     bedrockActorIdentifiers: committed(
         'bedrock-actor-identifiers',
-        'packages/bedrock-data/src/resources/entity_identifiers.dat',
+        `${bedrockCaptureDir()}/wire/0x77.bin`,
         'the actor types a Bedrock Dedicated Server advertises'
     ),
 

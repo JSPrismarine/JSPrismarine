@@ -33,13 +33,11 @@ export interface ItemTypeEntry {
  * Captured from a Bedrock Dedicated Server 1.26.51.1, not taken from a third party: the
  * server sends it as `ItemRegistryPacket`, so a client that can log in can simply record it.
  * `packages/client/tools/capture-server-data.mjs` is that client, and its output is
- * `jsp/v<protocol>/required_item_list.json`. It stays under `jsp/` rather than moving to
- * `resources/` because a capture of the version this server targets is the thing nothing else
- * can promise.
+ * `jsp/v<protocol>/required_item_list.json`.
  *
- * The capture records no `version`. `utils/build.js` takes that one column from the
- * submodule's `runtime_item_states.json`, a dump of 1.26.50 at the same protocol, and refuses
- * to generate the table unless the two agree on every name, id and component flag. They do.
+ * That file records no `version`. `utils/build.js` takes the column from the same capture's
+ * `ItemRegistryPacket` payload, `jsp/v<protocol>/wire/0xa2.bin`, and refuses to generate the
+ * table unless the two agree on every name, id and component flag.
  *
  * The version matters more than it looks. Against the 1.21.40 table this has 240 names it did
  * not, and - the part that breaks quietly - **528 items whose number changed**. A server on
@@ -56,9 +54,8 @@ export const item_table: Record<string, ItemTypeEntry> = item_table_data;
  * 47 foods that are not `component_based` yet carry their `minecraft:food` values anyway. Every
  * other item travels with the empty compound, and is absent here.
  *
- * From the submodule's `item_components.nbt`, a dump of 1.26.50 at the same protocol as the
- * item table. `utils/build.js` converts each item's compound from the on-disk NBT flavor to the
- * network one tag by tag, so a server writes the bytes to the wire as they are.
+ * Copied by `utils/build.js` from the `ItemRegistryPacket` payload the item table was captured
+ * with, as the network NBT the server sent, so a server writes the bytes to the wire as they are.
  */
 export const item_components: Readonly<Record<string, Buffer>> = Object.fromEntries(
     Object.entries(item_components_data).map(([name, data]) => [name, Buffer.from(data, 'base64')])

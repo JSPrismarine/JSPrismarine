@@ -11,23 +11,40 @@ import {
     blockStateCompound,
     fnv1a32,
     readCapturedBlockState,
-    verifyBlockRuntimeIds,
     writeBlockStateNbt
 } from './palette';
 import { nbtCompound, nbtInt, nbtList, nbtString, writeNetworkNbt } from './nbt';
 
-import type { CapturedBlockState } from './palette';
 import type { BlockProperty } from '../packet/StartGamePacket';
 
-/** Every block state a real server recorded in the creative catalog. */
-const captured = (): readonly CapturedBlockState[] => [
+/**
+ * Every block runtime id a real server put in the creative catalog, with the item that carries
+ * it. The catalog is the `CreativeContentPacket` a Bedrock Dedicated Server sent, which names a
+ * block by its hashed runtime id and nothing else.
+ */
+const captured = (): readonly { readonly item: string; readonly networkId: number }[] => [
     ...creative_groups.flatMap((group) =>
-        group.icon_block_states === undefined ? [] : [readCapturedBlockState(group.icon_block_states)]
+        group.icon_block_states === undefined
+            ? []
+            : [{ item: group.icon, networkId: readCapturedBlockState(group.icon_block_states).networkId }]
     ),
     ...creativeitems.flatMap((entry) =>
-        entry.block_states === undefined ? [] : [readCapturedBlockState(entry.block_states)]
+        entry.block_states === undefined
+            ? []
+            : [{ item: entry.name, networkId: readCapturedBlockState(entry.block_states).networkId }]
     )
 ];
+
+/** The runtime id this server computes for every state of the captured palette, to its block. */
+const paletteHashes = (): ReadonlyMap<number, string> => {
+    const palette = vanillaBlockPalette();
+    const hashes = new Map<number, string>();
+    for (let runtimeId = 0; runtimeId < palette.stateCount; runtimeId++) {
+        const { entry, values } = palette.stateOf(runtimeId);
+        hashes.set(blockRuntimeId(entry.identifier, values), entry.identifier);
+    }
+    return hashes;
+};
 
 describe('fnv1a32', () => {
     it('matches the published test vectors for the algorithm', () => {
@@ -65,25 +82,15 @@ describe('blockRuntimeId', () => {
 });
 
 describe('against the runtime ids a real server recorded', () => {
-    it('recomputes every one of them, and reports the tally', () => {
+    it('computes each of them for a state of the block the entry names', () => {
+        // The client computes the same hash over the same compound, so a captured id this server
+        // does not produce for that block is a block it would draw as something else.
+        const hashes = paletteHashes();
         const states = captured();
-        const { checked, disagreements } = verifyBlockRuntimeIds(states);
+        const disagreements = states.filter(({ item, networkId }) => hashes.get(networkId) !== item);
 
-        console.debug(`runtime ids: ${checked - disagreements.length}/${checked} recomputed`);
-        if (disagreements.length > 0) {
-            console.debug(
-                disagreements
-                    .slice(0, 10)
-                    .map(
-                        (entry) =>
-                            `${entry.name} ${JSON.stringify(entry.states)}: ${entry.computed} vs ${entry.captured}`
-                    )
-                    .join('\n')
-            );
-        }
-
-        expect(checked).toBeGreaterThan(1000);
-        expect(disagreements).toEqual([]);
+        expect(states.length).toBeGreaterThan(1000);
+        expect(disagreements.map(({ item, networkId }) => `${item} ${networkId}`)).toEqual([]);
     });
 });
 

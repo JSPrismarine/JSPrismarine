@@ -37,7 +37,7 @@ const bedrockDataRoot = packageRoot('@jsprismarine/bedrock-data');
  * datagen snapshots. The comparisons read the version the package builds its unversioned
  * exports from, which `sources.json` names.
  */
-const bedrockCapture = (file: string): string => {
+export const bedrockCapture = (file: string): string => {
     // Parsed JSON has no type the compiler can see; this is the one field read here.
     const sources = readJson(join(bedrockDataRoot, 'sources.json')) as { bds: { defaultProtocolVersion: number } };
     return join(bedrockDataRoot, 'src/jsp', `v${sources.bds.defaultProtocolVersion}`, file);
@@ -100,6 +100,9 @@ export const loadRuntimeItemStates = (): RuntimeItemState[] =>
     // Parsed JSON boundary, shape documented above.
     readJson(join(bedrockDataRoot, 'src/resources/runtime_item_states.json')) as RuntimeItemState[];
 
+/** Where the `packets` pass of `dump:bedrock` records the `AvailableActorIdentifiersPacket` payload. */
+export const ACTOR_IDENTIFIERS_CAPTURE = 'wire/0x77.bin';
+
 /** One advertised actor type from the entity identifiers golden. */
 export interface ActorIdentifier {
     /** The actor type string `AddActorPacket` names, for example `minecraft:zombie`. */
@@ -111,11 +114,11 @@ export interface ActorIdentifier {
 }
 
 /**
- * Decodes the entity identifiers golden, the network NBT `idlist` the server replays as
- * `AvailableActorIdentifiersPacket`.
+ * Decodes the entity identifiers golden, the network NBT `idlist` a Bedrock Dedicated Server
+ * sent as `AvailableActorIdentifiersPacket` and this server replays.
  */
 export const loadActorIdentifiers = (): ActorIdentifier[] => {
-    const raw = readFileSync(join(bedrockDataRoot, 'src/resources/entity_identifiers.dat'));
+    const raw = readFileSync(bedrockCapture(ACTOR_IDENTIFIERS_CAPTURE));
     const reader = new NBTReader(new BinaryStream(raw), ByteOrder.LITTLE_ENDIAN);
     reader.setUseVarint(true);
     const idlist = reader.parse().getList('idlist', false) ?? [];
