@@ -177,7 +177,8 @@ const HANDLERS: readonly {
                         redstoneSaveMode: StructureRedstoneSaveMode.SavesToMemory
                     },
                     trigger: false,
-                    isWaterlogged: false
+                    isWaterlogged: false,
+                    keepStructureVoid: false
                 }),
                 context
             )
