@@ -266,7 +266,7 @@ are built at startup and use positional IDs, so changing them in place would lea
 and entities with stale data. Because the console lives in the host and the server is a child
 process, the console keeps working across restarts. If the server crashes while you are mid-edit,
 the host stays up and starts the server again on your next change.
-Changing the `bedrock-data` resources or its generator regenerates the data before the restart.
+Changing a `bedrock-data` capture under `src/jsp/` or its generator regenerates the data before the restart.
 
 #### Dropping packets to find a bad one
 
@@ -326,7 +326,7 @@ sets it.
 The remaining flags:
 
 *   `--watch` restarts the server when a workspace source file or a loaded pack's data changes,
-    and regenerates `bedrock-data` first when its resources or generator changed. `pnpm run dev`
+    and regenerates `bedrock-data` first when its captures or generator changed. `pnpm run dev`
     passes it for you. The watcher's own state (watching, change detected, generating, restarting,
     exited) shows in the TUI status bar rather than in the log.
 *   `--headless` runs the server with no console at all: stdin is left alone and nothing is
