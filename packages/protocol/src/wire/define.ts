@@ -4,8 +4,10 @@
  * The list is the single source for a packet's wire order, both wire directions, and its
  * TypeScript payload shape ({@link PayloadOf} derives the type from the value, so a field
  * cannot exist on the wire without existing on the type or the other way around). A field
- * whose presence depends on the protocol version wraps its type in {@link gated}; a packet
- * whose layout never changed carries no gate and never mentions a version.
+ * whose presence depends on the protocol version wraps its type in {@link gated}, and a field
+ * that is always present but whose own layout changed at a version lists its layouts with
+ * {@link versioned}. A packet whose layout never changed carries neither and never mentions a
+ * version.
  *
  * Field order is the object literal's property order, which JavaScript preserves for string
  * keys. The resolved layout materializes that order into a frozen array once per protocol
@@ -25,15 +27,36 @@ export interface GatedField<T> {
     readonly fallback: T;
 }
 
-/** One entry in a field list: always on the wire, or gated by version. */
-export type FieldSpec<T> = WireType<T> | GatedField<T>;
+/**
+ * A field on the wire at every version, whose type a version picks: the first variant whose
+ * gate admits the version. It keeps one payload key where a nested structure grew a field, so
+ * a caller writes one value at every version instead of one key per layout.
+ */
+export interface VersionedField<T> {
+    readonly variants: ReadonlyArray<readonly [WireGate, WireType<T>]>;
+}
+
+/** One entry in a field list: always on the wire, gated by version, or versioned in its type. */
+export type FieldSpec<T> = WireType<T> | GatedField<T> | VersionedField<T>;
 
 /** Marks a field as travelling only at the versions its gate admits. */
 export const gated = <T>(gate: WireGate, of: WireType<T>, fallback: T): GatedField<T> =>
     Object.freeze({ gate, of, fallback });
 
+/**
+ * Lists the layouts one field travels in, each under the gate of the versions that use it.
+ * The gates should cover every version between them; a version none admits fails when its
+ * layout is resolved.
+ * @param variants - Gate and wire type pairs, checked in order.
+ */
+export const versioned = <T>(...variants: ReadonlyArray<readonly [WireGate, WireType<T>]>): VersionedField<T> =>
+    Object.freeze({ variants: Object.freeze(variants.map((variant) => Object.freeze(variant))) });
+
 /** Whether a field spec is gated. */
 export const isGated = <T>(spec: FieldSpec<T>): spec is GatedField<T> => 'gate' in spec;
+
+/** Whether a field spec picks its type by version. */
+export const isVersioned = <T>(spec: FieldSpec<T>): spec is VersionedField<T> => 'variants' in spec;
 
 /** The value type one field spec carries. */
 type ValueOf<S> = S extends FieldSpec<infer T> ? T : never;

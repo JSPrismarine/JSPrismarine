@@ -7,7 +7,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { performance } from 'node:perf_hooks';
 
 import { wireDefinitions } from '../src/wire/definitions';
-import { isGated } from '../src/wire/define';
+import { isGated, isVersioned } from '../src/wire/define';
 import * as t from '../src/wire/fieldTypes';
 import type { WireLayout } from '../src/wire/WireLayout';
 import { layoutAt } from '../src/wire/WireLayout';
@@ -50,7 +50,10 @@ interface LayoutSample {
 const samples: LayoutSample[] = [...wireDefinitions.values()]
     .filter((definition) => {
         const fields = Object.values(definition.fields);
-        return fields.length > 0 && fields.every((spec) => primitiveTypes.has(isGated(spec) ? spec.of : spec));
+        return (
+            fields.length > 0 &&
+            fields.every((spec) => !isVersioned(spec) && primitiveTypes.has(isGated(spec) ? spec.of : spec))
+        );
     })
     .map((definition) => {
         const walker = layoutAt(definition, PROTOCOL_VERSION, false);
