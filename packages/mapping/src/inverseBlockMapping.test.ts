@@ -15,6 +15,17 @@ describe('bedrockBlockStateToJava', () => {
         });
     });
 
+    it('answers a state it has mapped before with the same frozen result', () => {
+        const first = bedrockBlockStateToJava('minecraft:torch', { torch_facing_direction: 'north' });
+        const again = bedrockBlockStateToJava('minecraft:torch', { torch_facing_direction: 'north' });
+
+        expect(again).toBe(first);
+        expect(Object.isFrozen(first)).toBe(true);
+        if (first.kind !== 'mapped') throw new Error('a torch maps to Java');
+        expect(Object.isFrozen(first.java.properties)).toBe(true);
+        expect(bedrockBlockStateToJava('minecraft:torch', { torch_facing_direction: 'south' })).not.toBe(first);
+    });
+
     it('recovers the Java state a Bedrock-only identifier stands for', () => {
         // Bedrock splits the double slab off into its own block; Java states it
         // as `type=double` inside the one slab block.
