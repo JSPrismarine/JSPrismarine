@@ -9,8 +9,13 @@ import {
     PASSABLE,
     bedrockCollisionTopOf,
     bedrockLiquidReactionOf,
+    collisionShapeOf,
+    FULL_CUBE_SHAPE,
+    isFullCubeShape,
     isWashedAway
 } from './geometry';
+import { BlockPalette } from './state';
+import { resolveBlocks } from './types';
 
 describe('bedrockCollisionTopOf', () => {
     it('reads every table row from the generated JSON asset', () => {
@@ -95,5 +100,57 @@ describe('bedrockLiquidReactionOf', () => {
     it('answers nothing for a block no capture knows', () => {
         expect(bedrockLiquidReactionOf('plugin:unheard_of')).toBeUndefined();
         expect(isWashedAway('plugin:unheard_of')).toBe(false);
+    });
+});
+
+describe('collisionShapeOf', () => {
+    const stateOf = (components: Record<string, unknown>) =>
+        resolveBlocks(
+            [
+                {
+                    identifier: 'test:shape',
+                    registry: 'blocks',
+                    pack: 'test',
+                    path: 'blocks/shape.block.json',
+                    data: {
+                        format_version: '1.26.50',
+                        'minecraft:block': { description: { identifier: 'test:shape' }, components }
+                    }
+                }
+            ],
+            { statePalette: new BlockPalette([]) }
+        )
+            .types.get('test:shape')!
+            .state();
+
+    it('takes a block with no collision box component as a full cube', () => {
+        expect(collisionShapeOf(stateOf({}))).toEqual(FULL_CUBE_SHAPE);
+        expect(collisionShapeOf(stateOf({ 'minecraft:collision_box': true }))).toEqual(FULL_CUBE_SHAPE);
+    });
+
+    it('gives a block whose collision box is off no boxes', () => {
+        expect(collisionShapeOf(stateOf({ 'minecraft:collision_box': false }))).toEqual([]);
+    });
+
+    it('normalizes a bottom slab and a carpet to their cell', () => {
+        const slab = stateOf({ 'minecraft:collision_box': { origin: [-8, 0, -8], size: [16, 8, 16] } });
+        const carpet = stateOf({ 'minecraft:collision_box': { origin: [-8, 0, -8], size: [16, 1, 16] } });
+
+        expect(collisionShapeOf(slab)).toEqual([[0, 0, 0, 1, 0.5, 1]]);
+        expect(collisionShapeOf(carpet)).toEqual([[0, 0, 0, 1, 0.0625, 1]]);
+    });
+
+    it('keeps a box that reaches past its cell, as a fence post does', () => {
+        const post = stateOf({ 'minecraft:collision_box': { origin: [-2, 0, -2], size: [4, 24, 4] } });
+
+        expect(collisionShapeOf(post)).toEqual([[0.375, 0, 0.375, 0.625, 1.5, 0.625]]);
+    });
+});
+
+describe('isFullCubeShape', () => {
+    it('tells a full cube from a partial shape and from nothing', () => {
+        expect(isFullCubeShape(FULL_CUBE_SHAPE)).toBe(true);
+        expect(isFullCubeShape([[0, 0, 0, 1, 0.5, 1]])).toBe(false);
+        expect(isFullCubeShape([])).toBe(false);
     });
 });
