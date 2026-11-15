@@ -227,6 +227,8 @@ export default class Chunk {
      * when the chunk enters and schedules each tick where fluid still stands.
      */
     private readonly pendingFluidTicks: PendingFluidTick[] = [];
+    /** Whether the stored `PendingTicks` record holds fluid ticks; see {@link Chunk.hasStoredFluidTicks}. */
+    private storedFluidTicks = false;
 
     /**
      * Set by a provider that generated this chunk rather than reading it, and taken by the world
@@ -970,6 +972,23 @@ export default class Chunk {
      */
     public takePendingFluidTicks(): PendingFluidTick[] {
         return this.pendingFluidTicks.splice(0, this.pendingFluidTicks.length);
+    }
+
+    /**
+     * Whether the chunk's stored record holds fluid ticks. Such a chunk is saved again even when
+     * nothing in it changed, so a record whose ticks have run without moving a block is cleared
+     * rather than scheduling them a second time on the next load.
+     */
+    public hasStoredFluidTicks(): boolean {
+        return this.storedFluidTicks;
+    }
+
+    /**
+     * Records whether the chunk's stored record holds fluid ticks, as a provider read or wrote it.
+     * @internal
+     */
+    public setStoredFluidTicks(stored: boolean): void {
+        this.storedFluidTicks = stored;
     }
 
     /** Records that a provider generated this chunk rather than reading it from storage. */

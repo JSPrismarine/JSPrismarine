@@ -728,6 +728,7 @@ export default class LevelDB extends BaseProvider {
         }
         const hasPendingEntities = this.readPendingEntities(this.read(pendingEntitiesKey), chunk);
         const hasPendingTicks = this.readPendingFluidTicks(this.read(key(ChunkTag.PendingTicks)), chunk);
+        chunk.setStoredFluidTicks(hasPendingTicks);
 
         // Loaded, not changed: a chunk read from disk and never touched must not be written back.
         chunk.markLoadedFromDisk(persistedSubChunkKeys, blockEntityRecord !== null);
@@ -1152,6 +1153,7 @@ export default class LevelDB extends BaseProvider {
             ticks.push({ x: tick.x, y: tick.y, z: tick.z, runtimeId, time: tick.triggerTick });
         }
         const encoded = encodePendingTicks(pending.currentTick, ticks);
+        chunk.setStoredFluidTicks(encoded !== null);
         if (encoded === null) {
             if (this.mayHold(recordKey)) staged.del(recordKey);
         } else if (!this.holds(recordKey, encoded)) {

@@ -351,6 +351,21 @@ describe('world player chunk counts', () => {
         expect(contextTicks).toEqual([0, 1]);
     });
 
+    it('saves an unchanged chunk whose stored record still holds fluid ticks before it leaves', async () => {
+        const saved: number[] = [];
+        const world = worldWith([[20, 0]], true, async (chunk) => {
+            saved.push(chunk.getX());
+            chunk.setStoredFluidTicks(false);
+        });
+        world['players'].set(1, playerAt(world, 0, 0));
+        world.getLoadedChunk(20, 0)?.setStoredFluidTicks(true);
+
+        await world['unloadDistantChunks']();
+
+        expect(saved).toEqual([20]);
+        expect(world.getLoadedChunk(20, 0)).toBeNull();
+    });
+
     it('keeps a chunk a ticket holds, and unloads it once the ticket is released', async () => {
         const world = worldWith(
             [
