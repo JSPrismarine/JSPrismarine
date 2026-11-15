@@ -36,23 +36,24 @@ export const itemDropPickup: Scenario = {
         }
 
         // Looking a little down, so both land a block or so ahead, from the same point at the
-        // same speed: within half a block of each other, which is where stacks merge. One dirt
-        // at a time, since `/replaceitem` with a count leaves the slot's two counts apart (#2957).
+        // same speed: within half a block of each other, which is where stacks merge. One stack
+        // of two dropped one at a time, which used to lose the second dirt (#2957).
         await lookTo(client, 0, 30);
+        server.command(`replaceitem entity ${playerName} slot.hotbar 0 minecraft:dirt 2`);
+        deadline = Date.now() + 20_000;
+        while ((await dirtHeld()) !== 2) {
+            assert.ok(Date.now() < deadline, 'the selected slot never held the two dirt');
+            await sleep(250);
+        }
+        await waitTicks(server, 2);
         for (let drop = 1; drop <= 2; drop += 1) {
-            server.command(`replaceitem entity ${playerName} slot.hotbar 0 minecraft:dirt 1`);
-            deadline = Date.now() + 20_000;
-            while ((await dirtHeld()) !== 1) {
-                assert.ok(Date.now() < deadline, 'the selected slot never held the dirt');
-                await sleep(250);
-            }
-            await waitTicks(server, 2);
             await client.input({ press: ['key.drop'], press_frames: 2 });
             deadline = Date.now() + 20_000;
-            while ((await dirtHeld()) > 0) {
+            while ((await dirtHeld()) > 2 - drop) {
                 assert.ok(Date.now() < deadline, `the client dropped dirt ${drop}, but the server still holds it`);
                 await sleep(250);
             }
+            await waitTicks(server, 2);
         }
 
         // Both stacks have left the hand. They lie still within a second, and once the second
