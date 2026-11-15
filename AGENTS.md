@@ -114,6 +114,11 @@ commit messages and comments.
   surface, extend `packages/parity` with a test under a declared family. Exercise the public
   behavior through the parity suite's real data fixtures, and keep the family represented by a
   tested dashboard row. CI fails when a declared family has no test.
+- When you find a Java parity gap, fixed or not, add a parity test that exercises it: a scenario
+  under the matching family in `packages/parity` whose row fails while the gap exists. Record a gap
+  you leave open in `packages/parity/goldens/behavior-gaps.json` (run the family with
+  `PARITY_UPDATE_BEHAVIOR_GAPS=1`) as `deferred` or `defect`, with its issue as the reference, so the
+  dashboard shows it and the fix fails the run until the row is removed.
 
 ## Measuring performance
 
