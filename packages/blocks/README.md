@@ -276,7 +276,7 @@ property-table bump is a reviewable diff rather than a silent change at load.
 pnpm --filter @jsprismarine/blocks run generate:overlay
 ```
 
-The script refreshes the captured display-name and collision geometry tables, builds the package,
+The script refreshes the captured display-name table, builds the package,
 and then runs `utils/generate-overlay.mjs` over `dist/`. That generator is plain JavaScript on
 purpose: one that imported `src/` would have to spell its specifiers the way `node`'s resolver
 wants, and nothing under `src/` should be shaped by a build script. A dependent package needs no
@@ -304,10 +304,12 @@ value to redstone calculations. Blocks without an override use the full-cube def
 collision box. This comes from the same Bedrock block geometry capture as `bedrockCollisionTopOf`,
 rather than a hand-maintained exception list. Blocks with a fixed partial shape receive the exact
 captured boxes, converted into Bedrock's component coordinates. For blocks whose collision changes
-by state, the generator matches each captured runtime hash to the vanilla state palette and emits
-`query.block_state` permutations for every non-default shape. The report records both fixed shapes
-and state-varying permutations. Geometry is regenerated with
-`pnpm --filter @jsprismarine/blocks run generate:geometry`.
+by state, the geometry table holds each non-default shape with the `query.block_state` condition
+that selects it, and the overlay emits those as permutations. The report records both fixed shapes
+and state-varying permutations. The geometry table, `src/tables/blockGeometry.json`, is checked in
+and not regenerated: it was flattened from a CloudburstMC/Data dump of Bedrock Dedicated Server
+1.26.51, and no source this repository can run reports per-state collision boxes.
+[ADR 0019](../../docs/adr/0019-bedrock-data-comes-from-bds.md) records the decision.
 
 Four blocks have a Java friction Mojang's component cannot hold, so `minecraft:friction` is clamped
 to 0.9 and `jsprismarine:block_properties.friction` keeps the real value: blue ice 0.989, and ice,

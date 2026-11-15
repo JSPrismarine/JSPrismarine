@@ -6,9 +6,11 @@
  * publishes Java's, which the Bedrock client does not draw: a cactus is
  * 0.9375 tall in Java and a full block in Bedrock, and the client is what
  * decides where a player may stand. So this table comes from a Bedrock
- * Dedicated Server's own block table, captured in
- * `packages/bedrock-data/src/resources/blocks.json` and flattened by
- * `utils/generate-geometry.mjs`.
+ * Dedicated Server's own block table, as CloudburstMC/Data dumped it for
+ * 1.26.51. Nothing this repository can run reproduces that dump: the Script
+ * API reports no collision shapes. The table is therefore checked in and no
+ * longer regenerated; `docs/adr/0019-bedrock-data-comes-from-bds.md` records
+ * why. A block outside it is taken to be a full cube.
  *
  * It is the column `@jsprismarine/mapping` does not have. Physics and
  * pathfinding use this capture for every palette block, and the overlay uses
