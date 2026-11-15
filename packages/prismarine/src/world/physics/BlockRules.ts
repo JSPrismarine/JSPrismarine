@@ -127,3 +127,15 @@ export const falls = (name: string): boolean => isFallingBlock(name);
  * @returns {boolean} Whether liquid flows into it.
  */
 export const isWashedAway = (name: string): boolean => liquidTakesThePlaceOf(name);
+
+/**
+ * Whether a falling block passes through this block rather than landing on it.
+ *
+ * Java's `FallingBlock.isFree`: air, a liquid, or a block a liquid would wash away. The world's
+ * gravity check and the falling entity both ask this, because when they disagree a block over
+ * water falls, lands back on the surface it left and falls again, every other tick, forever.
+ * @param {string} name - The block's state name.
+ * @returns {boolean} Whether a falling block moves into it.
+ */
+export const fallsThrough = (name: string): boolean =>
+    name === 'minecraft:air' || isWashedAway(name) || liquidOf(name) !== null;

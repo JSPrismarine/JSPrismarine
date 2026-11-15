@@ -1,6 +1,6 @@
 import { destroyBlock } from '../blockDestroy';
 import type { World } from '../World';
-import { falls, isWashedAway, liquidOf, needsSupport } from './BlockRules';
+import { falls, fallsThrough, needsSupport } from './BlockRules';
 
 /**
  * What a block does when the world around it changes.
@@ -65,7 +65,7 @@ export class BlockPhysics {
         // plant at the edge of the loaded world from breaking for want of a chunk.
         if (below === null) return true;
 
-        return below !== 'minecraft:air' && !isWashedAway(below) && liquidOf(below) === null;
+        return !fallsThrough(below);
     }
 
     /** Whether a falling block can move into this position. */
@@ -73,7 +73,7 @@ export class BlockPhysics {
         const name = this.nameAt(x, y, z);
         if (name === null) return false;
 
-        return name === 'minecraft:air' || isWashedAway(name) || liquidOf(name) !== null;
+        return fallsThrough(name);
     }
 
     /**
