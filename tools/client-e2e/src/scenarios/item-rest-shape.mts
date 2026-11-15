@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3, waitTicks } from '../scenario.mts';
+import { vec3, waitTicks } from '../scenario.mts';
 
 /** The heights of the item actors the client draws within a block of a column, lowest first. */
 const itemHeightsAt = (state: Record<string, unknown>, x: number, z: number): number[] => {
@@ -41,8 +41,9 @@ export const itemRestShape: Scenario = {
         server.command(`loot spawn ${x + 0.5} ${y + 3} ${z + 0.5} mine ${x + 4} ${y} ${z}`);
         server.command(`loot spawn ${x + 2.5} ${y + 3} ${z + 0.5} mine ${x + 4} ${y} ${z}`);
 
-        // Both settle within a couple of seconds; wait until the client draws each still.
-        const deadline = Date.now() + 20_000;
+        // Both settle within a couple of seconds; wait until the client draws each still across
+        // server ticks, so a stalled server cannot pass two samples of a stack still in the air.
+        const deadline = Date.now() + 60_000;
         let onStone: number[] = [];
         let onSlab: number[] = [];
         let previous: string | undefined;
@@ -54,7 +55,7 @@ export const itemRestShape: Scenario = {
             if (onStone.length === 1 && onSlab.length === 1 && now === previous) break;
             assert.ok(Date.now() < deadline, `the two stacks never settled: stone ${onStone}, slab ${onSlab}`);
             previous = now;
-            await sleep(500);
+            await waitTicks(server, 10);
         }
 
         // Whatever offset the client draws an item at, it is the same on both blocks.
