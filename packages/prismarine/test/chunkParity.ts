@@ -60,6 +60,9 @@ if (sources === undefined) {
     process.exit(2);
 }
 
+/** How many structure starts each generator laid out on this thread, rejected candidates included. */
+const startsBuiltHere = new Map<DataDrivenGenerator, number>();
+
 const open = (
     mode: 'inline' | 'chunks' | 'stages' | 'stages-host',
     workers = 3,
@@ -67,10 +70,11 @@ const open = (
 ): DataDrivenGenerator => {
     const registries = loadJavaWorldgenRegistries(sources);
 
-    return new DataDrivenGenerator({
+    const generator: DataDrivenGenerator = new DataDrivenGenerator({
         registries,
         templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
         shareClimateTables,
+        onStructureStartBuild: () => startsBuiltHere.set(generator, (startsBuiltHere.get(generator) ?? 0) + 1),
         ...(mode === 'chunks'
             ? {
                   chunks: {
@@ -108,6 +112,7 @@ const open = (
                 }
               : {})
     });
+    return generator;
 };
 
 /** The blocks, the biomes and the block entities, as the wire carries them. */
@@ -166,6 +171,14 @@ try {
             .reduce((total, entry) => total + entry.tasks - entry.failed, 0);
         if (blockPasses !== chunksPerBuild) {
             blockPassProblems.push(`${name} ran ${blockPasses} block passes in workers for ${chunksPerBuild} chunks`);
+        }
+        // Counted the same way: the workers laid out every structure start, so none stalled
+        // the server thread. The inline count shows the chunks reach candidates at all.
+        const startsHere = startsBuiltHere.get(generator) ?? 0;
+        if (startsHere !== 0 || (startsBuiltHere.get(inline) ?? 0) === 0) {
+            blockPassProblems.push(
+                `${name} laid out ${startsHere} structure starts on this thread, inline ${startsBuiltHere.get(inline) ?? 0}`
+            );
         }
     }
 } finally {

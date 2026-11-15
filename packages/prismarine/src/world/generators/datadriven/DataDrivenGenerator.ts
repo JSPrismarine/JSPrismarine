@@ -2124,12 +2124,22 @@ export class DataDrivenGenerator implements Generator {
     /**
      * One chunk's terrain tile, built here or in a worker.
      *
-     * The structure pieces that push the terrain around are laid out on this thread and travel
-     * with the task. Laying them out is the expensive part and it is shared between neighbors
-     * through one cache, so duplicating it in every worker would cost more than the fill the
-     * worker is there to do.
+     * The structure pieces that push the terrain around travel with the task as beard pieces.
+     * With a stage pool, the workers lay the starts out through
+     * {@link installWorkerStructurePlans} and this thread only reads the installed plans, so a
+     * jigsaw start that takes a second to assemble no longer stalls the server tick.
      */
     private async terrainTileFor(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
+        const urgency = this.dependentUrgency(pipeline, cx, cz, TERRAIN_READ_RADIUS);
+        if (this.stagePool !== undefined) {
+            try {
+                await this.installWorkerStructurePlans(cx, cz, pipeline, this.stagePool, urgency);
+            } catch (error) {
+                // A pool that cannot answer leaves the starts to this thread, as before it existed.
+                if (!this.abandonStagePool(error)) throw error;
+            }
+        }
+
         const beard = this.beardInputs(cx, cz, pipeline);
         const blending = this.oldChunksOf(pipeline)?.recordsAround(cx, cz);
         const stagePool = this.stagePool;
@@ -2151,7 +2161,7 @@ export class DataDrivenGenerator implements Generator {
                         ...(blending === undefined ? {} : { blending })
                     } satisfies TerrainTaskInput
                 },
-                this.dependentUrgency(pipeline, cx, cz, TERRAIN_READ_RADIUS)
+                urgency
             );
             if (stagePool === undefined) this.poolAnswered = true;
             else this.stagePoolAnswered = true;
@@ -2185,31 +2195,28 @@ export class DataDrivenGenerator implements Generator {
             chunk.chunkZ,
             BLENDING_RECORD_RADIUS + FEATURE_READ_RADIUS
         );
-        const stagePool =
-            this.options.structureBuilders === undefined &&
-            (this.options.templates === undefined || this.options.stages?.javaTemplates === true)
-                ? this.stagePool
-                : undefined;
+        const stagePool = this.stageWorkersBuildStructures() ? this.stagePool : undefined;
         let patches: readonly RegionChunkPatch[];
 
         if (stagePool === undefined) {
             patches = this.featurePatchesFor(chunk.chunkX, chunk.chunkZ, tiles, pipeline, blending);
         } else {
             try {
-                const structures = pipeline.structures;
+                const urgency = this.dependentUrgency(pipeline, chunk.chunkX, chunk.chunkZ, FEATURE_READ_RADIUS);
+                // A worker that assembled these starts again would repeat the most expensive part
+                // of a start, so the task carries the plans the broker already holds.
+                const structureStartPlans = await this.installWorkerStructurePlans(
+                    chunk.chunkX,
+                    chunk.chunkZ,
+                    pipeline,
+                    stagePool,
+                    urgency
+                );
                 const input: FeatureTaskInput = {
                     ...this.taskInput(pipeline),
                     terrain: tiles.map((tile) => tile.workerInput()),
                     ...(blending === undefined ? {} : { blending }),
-                    // This thread laid these starts out for the terrain beard already; a worker
-                    // that assembled them again would repeat the most expensive part of a start.
-                    ...(structures === undefined
-                        ? {}
-                        : {
-                              structureStartPlans: structures.plansForCandidates(
-                                  structures.candidatesForRegion(chunk.chunkX, chunk.chunkZ, chunk.chunkX, chunk.chunkZ)
-                              )
-                          })
+                    ...(structureStartPlans === undefined ? {} : { structureStartPlans })
                 };
                 const result = await stagePool.run(
                     {
@@ -2219,7 +2226,7 @@ export class DataDrivenGenerator implements Generator {
                         dimension: pipeline.dimension.bedrockId,
                         input
                     },
-                    this.dependentUrgency(pipeline, chunk.chunkX, chunk.chunkZ, FEATURE_READ_RADIUS)
+                    urgency
                 );
                 this.stagePoolAnswered = true;
                 patches = featurePatchesFromWorker(result.payload);
@@ -2231,6 +2238,65 @@ export class DataDrivenGenerator implements Generator {
 
         chunk.recordFeatures(new Map(patches.map((patch) => [this.chunkKey(patch.chunkX, patch.chunkZ), patch])));
         return chunk;
+    }
+
+    /**
+     * Whether a stage worker builds the same structure starts this thread would.
+     *
+     * A test's builder override and a custom template source are callbacks, which cannot cross
+     * the worker boundary.
+     */
+    private stageWorkersBuildStructures(): boolean {
+        return (
+            this.options.structureBuilders === undefined &&
+            (this.options.templates === undefined || this.options.stages?.javaTemplates === true)
+        );
+    }
+
+    /**
+     * Has the stage workers lay out the starts that may reach a chunk, and installs their plans here.
+     *
+     * Laying out a jigsaw start is the most expensive single piece of generation: a large village
+     * or an ancient city takes over a second. The broker gives each candidate to one worker once
+     * and keeps the plan, so a start is still built once however many chunks it reaches, and
+     * `StructureStartSource.startsFor` finds it installed instead of building it here.
+     *
+     * @param pool - The stage pool the layouts run on.
+     * @param urgency - The band of the task that needs the starts.
+     * @returns The plans, or undefined when this thread has to build the starts itself.
+     * @throws Whatever the pool rejected with, for the caller's fallback.
+     */
+    private async installWorkerStructurePlans(
+        cx: number,
+        cz: number,
+        pipeline: SeededPipeline,
+        pool: GenerationTransport,
+        urgency: GenerationPriority
+    ): Promise<readonly StructureStartPlanEntry[] | undefined> {
+        const structures = pipeline.structures;
+        if (structures === undefined || !this.stageWorkersBuildStructures()) return undefined;
+
+        const plans = await pipeline.structurePlanBroker.plansFor(
+            structures.candidatesForRegion(cx, cz, cx, cz),
+            // Owners only batch the misses here: any stage worker can build any start.
+            (candidate) => structureStartOwnerOf(candidate, pool.workers),
+            async (_owner, candidates) => {
+                const planned = await pool.run(
+                    {
+                        status: 'structure_starts',
+                        chunkX: cx,
+                        chunkZ: cz,
+                        dimension: pipeline.dimension.bedrockId,
+                        input: { ...this.taskInput(pipeline), candidates }
+                    },
+                    urgency
+                );
+                return structureStartPlansFromWorker(planned.payload);
+            }
+        );
+        this.stagePoolAnswered = true;
+        structures.installPlans(plans);
+        return plans;
     }
 
     /** Builds a patch-producing feature view from the nine finished terrain tiles. */
