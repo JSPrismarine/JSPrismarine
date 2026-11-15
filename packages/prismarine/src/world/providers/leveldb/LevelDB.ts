@@ -9,6 +9,7 @@ import { Database, WriteBatch } from '@jsprismarine/leveldb';
 import type { DatabaseOptions } from '@jsprismarine/leveldb';
 import { blockSchemas } from '@jsprismarine/minecraft';
 
+import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import EntitySerializer from '../../../entity/EntitySerializer';
 import { PLAYER_DATA_FOLDER } from '../../WorldPaths';
@@ -41,6 +42,9 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { decodeData2D, decodeData3D, encodeData3D } from './BiomeCodec';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
 import { decodeSubChunk, encodeSubChunk, writableSubChunkVersion } from './SubChunkCodec';
+import { decodePendingTicks, encodePendingTicks } from './PendingTicksCodec';
+import type { PendingTickToSave } from './PendingTicksCodec';
+import { liquidOf } from '../../physics/BlockRules';
 import { OverlayBatch } from './OverlayBatch';
 import {
     decodeChunkGeneration,
@@ -67,7 +71,7 @@ import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
 import type { LevelDatInputs, StoredChunkReader } from '../Provider';
-import type { ChunkSaveContext } from '../ChunkSaveContext';
+import type { ChunkSaveContext, PendingFluidTicksToSave } from '../ChunkSaveContext';
 import { createChunkSaveContext } from '../ChunkSaveContext';
 import {
     isFlatGenerator,
@@ -722,10 +726,13 @@ export default class LevelDB extends BaseProvider {
             repairActorDigest = this.readActorDigest(digest, chunk);
         }
         const hasPendingEntities = this.readPendingEntities(this.read(pendingEntitiesKey), chunk);
+        const hasPendingTicks = this.readPendingFluidTicks(this.read(key(ChunkTag.PendingTicks)), chunk);
 
         // Loaded, not changed: a chunk read from disk and never touched must not be written back.
         chunk.markLoadedFromDisk(persistedSubChunkKeys, blockEntityRecord !== null);
-        if (repairActorDigest || hasPendingEntities) chunk.markChanged();
+        // A chunk read back with ticks is written again once they have run, so a record whose
+        // ticks are spent does not schedule them a second time on the next load.
+        if (repairActorDigest || hasPendingEntities || hasPendingTicks) chunk.markChanged();
 
         const missingBedrock = this.belowZeroRetrogenOf(dimension, cx, cz, chunk, persistedSubChunkKeys);
         if (missingBedrock !== undefined) {
@@ -1066,6 +1073,9 @@ export default class LevelDB extends BaseProvider {
         }
 
         this.writeEntities(staged, chunk, key, context);
+        if (context.pendingFluidTicks !== undefined) {
+            this.writePendingFluidTicks(staged, chunk, key(ChunkTag.PendingTicks), context.pendingFluidTicks);
+        }
 
         // An emptied section moves the heightmap `Data3D` carries.
         const data3D = changes.data3D || emptied;
@@ -1087,6 +1097,65 @@ export default class LevelDB extends BaseProvider {
         });
         if (cut.pending > 0 || data3D) chunk.setSaveCut(cut);
         return cut;
+    }
+
+    // ------------------------------------------------------------- pending ticks
+
+    /**
+     * Hands a chunk the fluid ticks its `PendingTicks` record holds, each due as long after the
+     * chunk enters a world as it was due after the record was written.
+     *
+     * Block ticks in a record Bedrock wrote are not read: this server keeps no scheduled block
+     * ticks across a save, and a record it rewrites holds only fluid ticks.
+     *
+     * @returns Whether the record held a fluid tick.
+     */
+    private readPendingFluidTicks(value: Buffer | null, chunk: Chunk): boolean {
+        if (value === null || value.byteLength === 0) return false;
+
+        let saved;
+        try {
+            saved = decodePendingTicks(value);
+        } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            this.getServer()
+                .getLogger()
+                .warn(`Skipped the pending ticks of chunk ${chunk.getX()},${chunk.getZ()}: ${reason}`);
+            return false;
+        }
+
+        const ticks = chunk.getPendingFluidTicks();
+        const before = ticks.length;
+        for (const tick of saved.ticks) {
+            if (liquidOf(tick.name) === null) continue;
+            const delay = tick.time - BigInt(saved.currentTick);
+            ticks.push({ x: tick.x, y: tick.y, z: tick.z, delay: delay > 0n ? Number(delay) : 0 });
+        }
+        return ticks.length > before;
+    }
+
+    /** Puts a chunk's scheduled fluid ticks in its `PendingTicks` record, or deletes the record when it has none. */
+    private writePendingFluidTicks(
+        staged: OverlayBatch,
+        chunk: Chunk,
+        recordKey: Buffer,
+        pending: PendingFluidTicksToSave
+    ): void {
+        const ticks: PendingTickToSave[] = [];
+        for (const tick of pending.byChunk.get(Chunk.packXZ(chunk.getX(), chunk.getZ())) ?? []) {
+            // The state the tick fires for, as Bedrock records it: whatever stands there now. A
+            // tick whose fluid has gone would do nothing, and is not worth a record.
+            const runtimeId = chunk.getBlockRuntimeId(tick.x & 0xf, tick.y, tick.z & 0xf);
+            const name = BlockRuntimeIds.getState(runtimeId)?.name;
+            if (name === undefined || liquidOf(name) === null) continue;
+            ticks.push({ x: tick.x, y: tick.y, z: tick.z, runtimeId, time: tick.triggerTick });
+        }
+        const encoded = encodePendingTicks(pending.currentTick, ticks);
+        if (encoded === null) {
+            if (this.mayHold(recordKey)) staged.del(recordKey);
+        } else if (!this.holds(recordKey, encoded)) {
+            staged.put(recordKey, encoded);
+        }
     }
 
     // ------------------------------------------------------------ block entities
