@@ -100,6 +100,7 @@ export type ReadonlyBlockStorage = Pick<
     | 'getPalette'
     | 'getPaletteIndexAt'
     | 'getPaletteIndexAtIndex'
+    | 'getPackedIndexWords'
     | 'networkSerialize'
     | 'isEmpty'
 >;
@@ -411,6 +412,20 @@ export default class BlockStorage implements ReadonlyBlockStorage {
         const word = this.packedWords[Math.floor(index / blocksPerWord)]!;
         const slot = index % blocksPerWord;
         return (word >>> (slot * this.packedBitsPerBlock)) & ((1 << this.packedBitsPerBlock) - 1);
+    }
+
+    /**
+     * The palette indices already packed at a width, which is the persistent form's word data
+     * when the width is the one the palette needs.
+     *
+     * @internal For the disk codec, which writes the words before it returns: they are this
+     *   storage's own, and a later write changes them.
+     * @param bitsPerBlock - The width the caller writes.
+     * @returns The words, or undefined when the storage is not packed at that width.
+     */
+    public getPackedIndexWords(bitsPerBlock: number): ArrayLike<number> | undefined {
+        if (this.packedWords === undefined || this.packedBitsPerBlock !== bitsPerBlock) return undefined;
+        return this.packedWords;
     }
 
     /** The palette slot for a runtime id, appending it if this storage has not seen it. */

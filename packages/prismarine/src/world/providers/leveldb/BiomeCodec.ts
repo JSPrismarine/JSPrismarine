@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 
+import { packBiomePalette } from '../../chunk/biomePalette';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import type { BiomeSection } from '../../chunk/ChunkBiomes';
 import { subChunkCount } from '../../Dimension';
@@ -36,14 +37,7 @@ export interface Biomes {
     palettes: BiomeSection[];
 }
 
-const bitsFor = (paletteSize: number): number => {
-    if (paletteSize <= 1) return 0;
-
-    const needed = Math.ceil(Math.log2(paletteSize));
-    return VALID_BITS_PER_BLOCK.find((bits) => bits >= needed) ?? 16;
-};
-
-const writePalette = (biomes: BiomeSection, stream: BinaryStream): void => {
+const writePalette = (biomes: number | ArrayLike<number>, stream: BinaryStream): void => {
     if (typeof biomes === 'number') {
         // Zero bits per block: no word data, and a palette holding the one id.
         stream.writeByte(0);
@@ -52,33 +46,9 @@ const writePalette = (biomes: BiomeSection, stream: BinaryStream): void => {
         return;
     }
 
-    const palette: number[] = [];
-    const index = new Map<number, number>();
-
-    for (const biome of biomes) {
-        if (!index.has(biome)) {
-            index.set(biome, palette.push(biome) - 1);
-        }
-    }
-
-    const bitsPerBlock = bitsFor(palette.length);
+    const { palette, bitsPerBlock, words } = packBiomePalette(biomes);
     stream.writeByte(bitsPerBlock << 1);
-
-    if (bitsPerBlock > 0) {
-        const perWord = Math.floor(32 / bitsPerBlock);
-        const words = Math.ceil(BLOCKS_PER_SUBCHUNK / perWord);
-
-        let position = 0;
-        for (let word = 0; word < words; word++) {
-            let packed = 0;
-            for (let slot = 0; slot < perWord && position < BLOCKS_PER_SUBCHUNK; slot++) {
-                packed |= index.get(biomes[position++]!)! << (bitsPerBlock * slot);
-            }
-
-            stream.writeIntLE(packed | 0);
-        }
-    }
-
+    for (const word of words) stream.writeIntLE(word | 0);
     stream.writeIntLE(palette.length);
     for (const biome of palette) stream.writeIntLE(biome);
 };
@@ -140,7 +110,15 @@ const readPalette = (stream: BinaryStream, below: BiomeSection | null): BiomeSec
     return biomes;
 };
 
-export const encodeData3D = (biomes: Biomes, dimension: DimensionType): Buffer => {
+/**
+ * Encodes a `Data3D` record.
+ * @param biomes - The heightmap and one section per sub chunk; the sections are read before this
+ *   returns, so they can be a column's own arrays.
+ */
+export const encodeData3D = (
+    biomes: { readonly heightmap: ArrayLike<number>; readonly palettes: readonly (number | ArrayLike<number>)[] },
+    dimension: DimensionType
+): Buffer => {
     const stream = new BinaryStream();
 
     for (let i = 0; i < COLUMNS; i++) stream.writeUnsignedShortLE(biomes.heightmap[i] ?? 0);

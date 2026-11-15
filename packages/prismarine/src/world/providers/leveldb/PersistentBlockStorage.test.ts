@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import BinaryStream from '@jsprismarine/binaryutils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import BlockStorage from '../../chunk/BlockStorage';
@@ -51,6 +51,32 @@ describe('PersistentBlockStorage', () => {
         }
 
         expect(encodedDigest(storage)).toBe('8dddcceb91fac84af031120ef85f4081d9f0f0f02cbf7258ad45c3143338589f');
+    });
+
+    it('writes a packed section from its words, with the bytes an unpacked one writes', () => {
+        const palette = runtimeIds([
+            'minecraft:stone',
+            'minecraft:dirt',
+            'minecraft:sand',
+            'minecraft:gravel',
+            'minecraft:granite'
+        ]);
+        const fill = (storage: BlockStorage): BlockStorage => {
+            for (let x = 0; x < 16; x++) {
+                for (let y = 0; y < 16; y++) {
+                    for (let z = 0; z < 16; z++)
+                        storage.setBlock(x, y, z, palette[(x * 5 + y + z * 3) % palette.length]!);
+                }
+            }
+            return storage;
+        };
+        const unpacked = fill(new BlockStorage({}));
+        const packed = fill(new BlockStorage({}));
+        packed.pack();
+        const perBlock = vi.spyOn(packed, 'getPaletteIndexAtIndex');
+
+        expect(encodedDigest(packed)).toBe(encodedDigest(unpacked));
+        expect(perBlock).not.toHaveBeenCalled();
     });
 
     it('decodes persistent storage and adopts its owned index buffer', () => {

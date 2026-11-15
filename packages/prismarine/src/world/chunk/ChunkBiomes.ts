@@ -2,6 +2,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 
 import { minSubChunk, subChunkCount } from '../Dimension';
 import type { DimensionType } from '../DimensionType';
+import { packBiomePalette } from './biomePalette';
 
 /**
  * The biome of every block in one chunk column.
@@ -46,13 +47,6 @@ type PackedSection = number | Uint16Array;
  */
 export type BiomeSection = number | Int32Array;
 
-const bitsFor = (paletteSize: number): number => {
-    if (paletteSize <= 1) return 0;
-
-    const needed = Math.ceil(Math.log2(paletteSize));
-    return VALID_BITS_PER_BLOCK.find((bits) => bits >= needed) ?? 16;
-};
-
 /** XZY with y fastest, the order both the disk and the network form pack. */
 const indexOf = (x: number, y: number, z: number): number => ((x & 0xf) << 8) | ((z & 0xf) << 4) | (y & 0xf);
 
@@ -64,7 +58,7 @@ const indexOf = (x: number, y: number, z: number): number => ((x & 0xf) << 8) | 
  */
 export type ReadonlyChunkBiomes = Pick<
     ChunkBiomes,
-    'getRevision' | 'get' | 'sectionIds' | 'toSectionIds' | 'networkSerialize'
+    'getRevision' | 'get' | 'sectionIds' | 'toSectionIds' | 'sectionsToEncode' | 'networkSerialize'
 >;
 
 /**
@@ -193,6 +187,16 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
         return typeof section === 'number' ? section : new Int32Array(section);
     }
 
+    /**
+     * Every sub chunk's biomes, bottom section first, without the copy {@link toSectionIds} makes.
+     *
+     * For an encoder that reads them before it returns: the arrays are this column's own, and a
+     * later write changes them.
+     */
+    public sectionsToEncode(): readonly (number | ArrayLike<number>)[] {
+        return this.sections;
+    }
+
     /** Every sub chunk's biomes, bottom section first. */
     public toSectionIds(): BiomeSection[] {
         return this.sections.map((_, index) => this.sectionIds(index));
@@ -233,7 +237,7 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
     ): void {
         for (let index = 0; index < sectionCount; index++) {
             const section = firstSectionIndex + index - minSubChunk(this.dimension);
-            writeNetworkPalette(this.sectionIds(section), stream);
+            writeNetworkPalette(this.sections[section] ?? PLAINS_BIOME, stream);
         }
     }
 
@@ -350,7 +354,7 @@ const packSection = (section: Int32Array): PackedSection => {
  * A single-biome section writes the header and the one id and no word data, which is what the
  * zero bit width means.
  */
-const writeNetworkPalette = (biomes: BiomeSection, stream: BinaryStream): void => {
+const writeNetworkPalette = (biomes: number | ArrayLike<number>, stream: BinaryStream): void => {
     if (typeof biomes === 'number') {
         // No word data and no palette count: the single id follows the header on its own.
         stream.writeByte(1);
@@ -358,14 +362,7 @@ const writeNetworkPalette = (biomes: BiomeSection, stream: BinaryStream): void =
         return;
     }
 
-    const palette: number[] = [];
-    const index = new Map<number, number>();
-
-    for (const biome of biomes) {
-        if (!index.has(biome)) index.set(biome, palette.push(biome) - 1);
-    }
-
-    const bitsPerBlock = bitsFor(palette.length);
+    const { palette, bitsPerBlock, words } = packBiomePalette(biomes);
     stream.writeByte((bitsPerBlock << 1) | 1);
 
     if (bitsPerBlock === 0) {
@@ -373,19 +370,7 @@ const writeNetworkPalette = (biomes: BiomeSection, stream: BinaryStream): void =
         return;
     }
 
-    const perWord = Math.floor(32 / bitsPerBlock);
-    const words = Math.ceil(BLOCKS_PER_SUBCHUNK / perWord);
-
-    let position = 0;
-    for (let word = 0; word < words; word++) {
-        let packed = 0;
-        for (let slot = 0; slot < perWord && position < BLOCKS_PER_SUBCHUNK; slot++) {
-            packed |= index.get(biomes[position++]!)! << (bitsPerBlock * slot);
-        }
-
-        stream.writeIntLE(packed | 0);
-    }
-
+    for (const word of words) stream.writeIntLE(word | 0);
     stream.writeVarInt(palette.length);
     for (const biome of palette) stream.writeVarInt(biome);
 };
