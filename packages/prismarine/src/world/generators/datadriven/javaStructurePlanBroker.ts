@@ -11,7 +11,8 @@ interface PendingPlan {
     settled: boolean;
 }
 
-const keyOf = (candidate: StructureStartCandidate): string =>
+/** The broker's key for a candidate start: its set and its chunk. */
+export const structureStartKeyOf = (candidate: StructureStartCandidate): string =>
     `${candidate.set}@${candidate.chunkX},${candidate.chunkZ}`;
 
 /**
@@ -41,7 +42,7 @@ export class StructureStartPlanBroker {
         ) => Promise<readonly StructureStartPlanEntry[]>
     ): Promise<readonly StructureStartPlanEntry[]> {
         const unique = new Map<string, StructureStartCandidate>();
-        for (const candidate of candidates) unique.set(keyOf(candidate), candidate);
+        for (const candidate of candidates) unique.set(structureStartKeyOf(candidate), candidate);
 
         const waiters = new Map<string, PendingPlan>();
         const missingByOwner = new Map<number, Array<{ key: string; candidate: StructureStartCandidate }>>();
@@ -71,11 +72,11 @@ export class StructureStartPlanBroker {
                     group.map(({ candidate }) => candidate)
                 );
                 for (const plan of loaded) freezeStructurePlanData(plan);
-                const byKey = new Map(loaded.map((plan) => [keyOf(plan), plan]));
+                const byKey = new Map(loaded.map((plan) => [structureStartKeyOf(plan), plan]));
                 for (const { key, candidate } of group) {
                     const plan = byKey.get(key);
                     if (plan === undefined) {
-                        throw new Error(`The structure-start owner omitted ${keyOf(candidate)}.`);
+                        throw new Error(`The structure-start owner omitted ${structureStartKeyOf(candidate)}.`);
                     }
                 }
                 for (const { key } of group) {
@@ -128,7 +129,7 @@ export class StructureStartPlanBroker {
  */
 export const structureStartOwnerOf = (candidate: StructureStartCandidate, shards: number): number => {
     let hash = 0x811c9dc5;
-    const key = keyOf(candidate);
+    const key = structureStartKeyOf(candidate);
     for (let index = 0; index < key.length; index++) {
         hash = Math.imul(hash ^ key.charCodeAt(index), 0x01000193);
     }
