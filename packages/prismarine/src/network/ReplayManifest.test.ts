@@ -8,7 +8,7 @@ import { RandomSequences } from '../command/host/randomSequences';
 import type { ServerReplayRandomState } from '../Server';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
-import Anvil from '../world/providers/anvil/Anvil';
+import BaseProvider from '../world/providers/BaseProvider';
 import {
     deserializeReplayInitialStateManifest,
     replayInputFingerprint,
@@ -27,6 +27,14 @@ const randomState = (): ServerReplayRandomState => ({
 });
 
 const snapshot = Buffer.from('test provider snapshot');
+
+/** A provider with neither replay snapshot hook. */
+class SnapshotlessProvider extends BaseProvider {
+    public readChunk(): never {
+        throw new Error('not read');
+    }
+    public async writeChunk(): Promise<void> {}
+}
 
 const manifest = (): ReplayInitialStateManifest => ({
     format: 'jsprismarine-replay-initial-state',
@@ -90,14 +98,14 @@ describe('replay initial-state manifest', () => {
 
     it('rejects a provider that does not support snapshot restoration', async () => {
         const initial = manifest();
-        const anvil = new Anvil('.', stub<Server>());
-        const anvilManifest = {
+        const provider = new SnapshotlessProvider('.', stub<Server>());
+        const providerManifest = {
             ...initial,
-            storageBoundary: { ...initial.storageBoundary, provider: 'Anvil' }
+            storageBoundary: { ...initial.storageBoundary, provider: 'SnapshotlessProvider' }
         };
 
-        await expect(restoreReplayInitialStateSnapshot(anvil, anvilManifest)).rejects.toThrow(
-            "Provider 'Anvil' cannot restore replay snapshots"
+        await expect(restoreReplayInitialStateSnapshot(provider, providerManifest)).rejects.toThrow(
+            "Provider 'SnapshotlessProvider' cannot restore replay snapshots"
         );
     });
 

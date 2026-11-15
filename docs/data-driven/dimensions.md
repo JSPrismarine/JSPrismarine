@@ -148,7 +148,7 @@ A `worlds.<name>` entry is `{ seed, provider, preset?, dimensions? }`. Every key
 | Key | What it does |
 | --- | --- |
 | `seed` | The world seed, written as a string. A value that parses as a 64-bit integer is that integer and anything else is its Java `String.hashCode`. A number is accepted and exact below 2^53; see [World seeds](../guide/running.md#world-seeds). |
-| `provider` | How the save is stored. `LevelDB`, the default, is Bedrock's format with every dimension in one database. `Anvil` reads Java's format, with `dimensions/<namespace>/<path>/region` per dimension and `DIM-1` and `DIM1` as fallbacks for saves written before Java 26.1. |
+| `provider` | How the save is stored. `LevelDB`, the default and the only provider, is Bedrock's format with every dimension in one database. |
 | `preset` | The `worldgen/world_preset` id that supplies the stems. Defaults to `minecraft:normal`. An id the loaded presets do not have stops the server with an error that lists the ones they do. |
 | `dimensions.<id>` | One entry per dimension to override or add, keyed by the Java dimension id such as `minecraft:the_nether`. An id the preset has is overridden one key at a time; an id it lacks adds a dimension and then needs both `type` and `generator`. |
 | `dimensions.<id>.type` | The dimension type id. Defaults to the preset's stem. A type the vanilla three do not cover has to be defined by a datapack in the server's pack stack, such as one listed under `content-datapacks`. One type backs one dimension per level: two stems naming the same type stop the server with an error. |

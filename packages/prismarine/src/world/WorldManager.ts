@@ -21,7 +21,6 @@ import type { World } from './World';
 import type BaseProvider from './providers/BaseProvider';
 import type { WorldGenSettings } from './WorldPersistence';
 
-import Anvil from './providers/anvil/Anvil';
 import LevelDB from './providers/leveldb/LevelDB';
 
 import fs from 'node:fs';
@@ -97,7 +96,6 @@ export default class WorldManager implements Service {
      * @throws {Error} When `level-name` is empty or names no `worlds` entry.
      */
     public async enable(): Promise<void> {
-        this.addProvider('Anvil', Anvil);
         this.addProvider('LevelDB', LevelDB);
 
         const config = this.server.getConfig();
