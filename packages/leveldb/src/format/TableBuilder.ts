@@ -7,7 +7,14 @@ import { BLOCK_TRAILER_LENGTH, FOOTER_LENGTH, encodeFooter, writeBlockHandle } f
 import type { BlockHandle } from './Footer';
 import { BLOOM_FILTER2_META_KEY, FilterBlockBuilder } from './FilterBlock';
 
+/**
+ * The uncompressed size a data block is cut at: 160 KiB, what Bedrock writes. Every block of a
+ * table the game saved crosses this only with its last entry.
+ */
+export const DEFAULT_BLOCK_SIZE = 160 * 1024;
+
 export interface TableBuilderOptions {
+    /** The uncompressed size a data block is cut at. Defaults to {@link DEFAULT_BLOCK_SIZE}. */
     blockSize?: number;
     blockRestartInterval?: number;
     compression?: CompressionType;
@@ -49,7 +56,7 @@ export class TableBuilder {
     private pendingHandle: BlockHandle | null = null;
 
     public constructor(options: TableBuilderOptions = {}) {
-        this.blockSize = options.blockSize ?? 4096;
+        this.blockSize = options.blockSize ?? DEFAULT_BLOCK_SIZE;
         this.compression = options.compression ?? CompressionType.ZlibRaw;
         this.compressionLevel = options.compressionLevel;
         this.shortestSeparator = options.shortestSeparator ?? findShortestSeparator;

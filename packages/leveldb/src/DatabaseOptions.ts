@@ -1,6 +1,7 @@
 import zlib from 'node:zlib';
 
 import { CompressionType } from './compression/Compression';
+import { DEFAULT_BLOCK_SIZE } from './format/TableBuilder';
 
 export interface DatabaseOptions {
     /** Create the directory and an empty database when there is nothing there. Default true. */
@@ -15,6 +16,11 @@ export interface DatabaseOptions {
     blockCacheSize?: number;
     /** The size a compaction's output files are cut at. */
     maxFileSize?: number;
+    /**
+     * The uncompressed size a table's data blocks are cut at. Defaults to 160 KiB, what the game
+     * writes. Only new tables use it: every table records where its blocks are, so tables written
+     * with any other size stay readable and take this one when a compaction rewrites them.
+     */
     blockSize?: number;
     blockRestartInterval?: number;
     /** What blocks are written with. Defaults to what the game itself writes. */
@@ -50,7 +56,7 @@ export const resolveOptions = (options: DatabaseOptions = {}): ResolvedOptions =
     writeBufferSize: options.writeBufferSize ?? 4 * 1024 * 1024,
     blockCacheSize: options.blockCacheSize ?? 64 * 1024 * 1024,
     maxFileSize: options.maxFileSize ?? 2 * 1024 * 1024,
-    blockSize: options.blockSize ?? 4096,
+    blockSize: options.blockSize ?? DEFAULT_BLOCK_SIZE,
     blockRestartInterval: options.blockRestartInterval ?? 16,
     compression: options.compression ?? CompressionType.ZlibRaw,
     compressionLevel: options.compressionLevel ?? zlib.constants.Z_DEFAULT_COMPRESSION,
