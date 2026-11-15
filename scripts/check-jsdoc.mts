@@ -33,7 +33,6 @@ const EXCLUDED = [
     '**/@types/**',
     'packages/bedrock-data/src/generated/**',
     'packages/bedrock-data/src/jsp/**',
-    'packages/bedrock-data/src/resources/**',
     'packages/minecraft/src/generated/**'
 ];
 

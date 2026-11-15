@@ -2,8 +2,8 @@
  * Points a linked git worktree's download cache at the primary checkout's.
  *
  * Every fetcher and generator in the repository reads and writes
- * `<checkout>/node_modules/.cache/jsprismarine`: the CloudburstMC data, the Bedrock Dedicated
- * Server, `bedrock-samples`, the Java server jar and the data generated from it. A worktree that
+ * `<checkout>/node_modules/.cache/jsprismarine`: the Bedrock Dedicated Server,
+ * `bedrock-samples`, the Java server jar and the data generated from it. A worktree that
  * owns its own copy downloads and generates all of it again. This makes the worktree's directory
  * a symbolic link to the primary checkout's, so each pinned version is fetched once and every
  * worktree reads the same files. Paths stay as they were, so no reader needs to change.

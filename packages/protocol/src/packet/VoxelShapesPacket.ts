@@ -39,11 +39,10 @@ const layout = () => layoutAt(voxelShapesPacket, protocolVersion);
  *
  * The wire layout is the `voxelShapesPacket` definition in `wire/definitions`.
  *
- * `packages/bedrock-data/src/resources/voxel_shapes.json` holds the vanilla registry in this
- * layout: `shapes` is the `Shapes` list in handle order, 287 entries at 1.26.50, and `names`
- * is the `Name Map` as an object from name to handle, 220 entries. The file records no custom
- * shape count. A server that sends the vanilla registry unchanged builds `shapes` from
- * `shapes`, `nameMap` from `Object.entries(names)` and sets `customShapeCount` to 0.
+ * `packages/bedrock-data/src/jsp/v<protocol>/wire/0x151.bin` is the vanilla registry a Bedrock
+ * Dedicated Server sent, as this packet's payload: the `Shapes` list in handle order, then the
+ * `Name Map` from name to handle. A server that sends the vanilla registry unchanged sets
+ * `customShapeCount` to 0.
  */
 export default class VoxelShapesPacket extends NetworkPacket<VoxelShapes> {
     public get id(): number {

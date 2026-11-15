@@ -7,18 +7,11 @@ import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { bedrockServerPath } from './bds.ts';
-import { cacheRoot as sharedCacheRoot, linkResources, parseProtocolArgument } from './cloudburst.ts';
 import { fetchSource, hashSourceContent, resolveContentRoot, sourceCachePath } from './fetch.ts';
 import { hashFolder } from './folder-hash.ts';
 import { verifyFileHash } from './hash.ts';
-import {
-    bdsDescriptor,
-    cloudburstDescriptor,
-    loadBdsData,
-    type BdsData,
-    type CloudburstData,
-    type SourceDescriptor
-} from './manifest.ts';
+import { bdsDescriptor, loadBdsData, parseProtocolArgument, type BdsData, type SourceDescriptor } from './manifest.ts';
+import { cacheRoot as sharedCacheRoot } from './paths.ts';
 import { extractZip, readZipEntriesFrom, readZipEntry } from './unzip.ts';
 
 /** Builds a zip archive of stored (uncompressed) entries, for tests only. */
@@ -306,62 +299,6 @@ describe('the pinned servers in sources.json', () => {
             expect(version.url, `protocol ${protocol}`).toContain(`bedrock-server-${version.serverVersion}.zip`);
             expect(version.serverVersion, `protocol ${protocol}`).toContain(version.minecraftVersion);
         }
-    });
-});
-
-describe('cloudburstDescriptor', () => {
-    const data: CloudburstData = {
-        repo: 'CloudburstMC/Data',
-        defaultProtocolVersion: 2193,
-        extract: ['LICENSE'],
-        versions: {
-            '2193': {
-                minecraftVersion: '1.26.51',
-                commit: 'aaa',
-                url: 'https://example.invalid/aaa.zip',
-                sha256: 'a'.repeat(64)
-            },
-            '2225': {
-                minecraftVersion: '1.26.60',
-                commit: 'bbb',
-                url: 'https://example.invalid/bbb.zip',
-                sha256: 'b'.repeat(64)
-            }
-        }
-    };
-
-    it('caches each protocol version under its own directory', () => {
-        expect(cloudburstDescriptor(data, 2193).version).toBe('v2193');
-        expect(cloudburstDescriptor(data, 2225).version).toBe('v2225');
-        expect(cloudburstDescriptor(data, 2225).url).toBe('https://example.invalid/bbb.zip');
-    });
-
-    it('falls back to the manifest default and shares one override variable', () => {
-        const fallback = cloudburstDescriptor(data);
-        expect(fallback.version).toBe('v2193');
-        expect(fallback.envOverride).toBe('JSP_CLOUDBURST_DATA_PATH');
-        expect(fallback.extract).toEqual(['LICENSE']);
-    });
-
-    it('names the pinned versions when asked for one that is not pinned', () => {
-        expect(() => cloudburstDescriptor(data, 1234)).toThrow(/protocol 1234; pinned: 2193, 2225/);
-    });
-});
-
-describe('linkResources', () => {
-    it('points the stable path at a version directory and follows a switch', async () => {
-        const link = join(dir, 'resources');
-        for (const version of ['v2193', 'v2225']) {
-            await mkdir(join(dir, version), { recursive: true });
-            await writeFile(join(dir, version, 'entity_identifiers.dat'), version);
-        }
-
-        expect(await linkResources(join(dir, 'v2193'), link)).toBe('symlink');
-        await expect(readFile(join(link, 'entity_identifiers.dat'), 'utf8')).resolves.toBe('v2193');
-
-        expect(await linkResources(join(dir, 'v2193'), link)).toBe('unchanged');
-        expect(await linkResources(join(dir, 'v2225'), link)).toBe('symlink');
-        await expect(readFile(join(link, 'entity_identifiers.dat'), 'utf8')).resolves.toBe('v2225');
     });
 });
 

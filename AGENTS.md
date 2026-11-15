@@ -33,7 +33,7 @@ commit messages and comments.
 - Read relevant pages under `docs/` when working on runtime behavior or documentation. Follow nearby
   code and tests for conventions when no guide covers the area.
 - `pnpm dev`, and the server package's `dev` script it calls, runs `pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen` first, which fetches the pinned Java Edition server jar and runs Mojang's data generator when the world generation cache is incomplete. It is a no-op on a warm cache. Keep it out of `prepare`, `start` and CI: it is a 62 MB download that only somebody starting a server needs. It needs a JDK 25 or newer, found through `JSP_JAVA_HOME`, `JAVA_HOME`, `PATH` or macOS's `java_home`. It then runs `ensure:bedrock-pack`, which downloads the pinned Bedrock Dedicated Server archive (about 95 MB) and `bedrock-samples` when either is missing from the cache; without that pack the server has one entity type, so nothing spawns, `/summon` refuses everything and the End has no dragon. A linked git worktree shares the primary checkout's cache: the root `prepare` hook runs `scripts/share-worktree-cache.ts`, which makes the worktree's `node_modules/.cache/jsprismarine` a link to the primary checkout's, so each pinned download and generated dataset exists once. `JSP_SHARED_CACHE=0` keeps a worktree's cache separate.
-- `packages/bedrock-data/src/resources/` is a link to a pinned CloudburstMC/Data download, not a checked-in directory. `pnpm --filter @jsprismarine/bedrock-data run fetch:cloudburst` creates it, `pnpm install` does so through the `prepare` hook, and `--protocol <n>` selects a Bedrock version other than the manifest default. Offline, point `JSP_CLOUDBURST_DATA_PATH` at a local checkout.
+- `packages/bedrock-data` generates its tables from the pinned Bedrock Dedicated Server and Mojang's `bedrock-samples` only ([ADR 0019](docs/adr/0019-bedrock-data-comes-from-bds.md)). Bedrock data a protocol needs comes from a capture of its pinned server: `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass packets --protocol <n>` writes it under `src/jsp/v<n>/`. Do not add a third-party data dump as a source.
 
 ## Repository rules
 
@@ -59,9 +59,8 @@ commit messages and comments.
   manage package versions and release changelogs. Read [the versioning policy](docs/guide/versioning.md)
   before adding or editing a Changeset, and choose a bump for each affected package based on its
   current version and the impact of the change.
-- Treat `packages/bedrock-data/src/generated/` as generated output. Its inputs are the pinned
-  CloudburstMC/Data download and the captures under `src/jsp/`, and `packages/bedrock-data/utils/build.js`
-  generates the JSON files. Change the
+- Treat `packages/bedrock-data/src/generated/` as generated output. Its inputs are the captures
+  under `src/jsp/`, and `packages/bedrock-data/utils/build.js` generates the JSON files. Change the
   generator or its source inputs when the generated data needs to change. Run
   `pnpm --filter @jsprismarine/bedrock-data run generate` to regenerate it.
 - Let pnpm update `pnpm-lock.yaml` when dependencies change. Keep dependency versions consistent

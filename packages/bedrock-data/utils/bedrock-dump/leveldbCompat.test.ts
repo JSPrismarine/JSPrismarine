@@ -34,7 +34,7 @@ import { TableReader } from '@jsprismarine/leveldb/format/TableReader';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { bedrockServerPath } from '../fetch/bds.ts';
-import { cacheRoot } from '../fetch/cloudburst.ts';
+import { cacheRoot } from '../fetch/paths.ts';
 import { launcherForHost } from './runner.ts';
 import type { ProbeCommand, ServerLauncher } from './runner.ts';
 import { READY_LINE, stageServer, startServer } from './server.ts';

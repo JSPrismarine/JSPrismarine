@@ -21,7 +21,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { cacheRoot, packageDir } from './cloudburst.ts';
+import { cacheRoot, packageDir } from './paths.ts';
 import { fetchSource } from './fetch.ts';
 import { bdsDescriptor, loadBdsData, loadSourceDescriptors } from './manifest.ts';
 

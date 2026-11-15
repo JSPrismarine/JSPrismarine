@@ -4,43 +4,35 @@
  * digest before unpacking, then writes `pack-hashes.json` beside the
  * manifest so a version bump shows which top-level folders changed.
  *
- * Two sources are pinned per Bedrock protocol version. Every pinned
- * CloudburstMC/Data archive is fetched, because they are small and
- * `pack-hashes.json` is worth having for all of them. Only the selected
- * Bedrock Dedicated Server is fetched, because each zip is ~95 MB.
+ * The Bedrock Dedicated Server is pinned per Bedrock protocol version, and
+ * only the selected one is fetched, because each zip is ~95 MB.
  *
  * Run as `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`, with
  * `--protocol <n>` to pick a server version other than the manifest default.
  * `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH`,
- * `JSP_VANILLA_MCDOC_PATH`, `JSP_GEYSER_MAPPINGS_PATH` and
- * `JSP_CLOUDBURST_DATA_PATH` point at local copies for offline work.
+ * `JSP_VANILLA_MCDOC_PATH` and `JSP_GEYSER_MAPPINGS_PATH` point at local
+ * copies for offline work.
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { cacheRoot, packageDir, parseProtocolArgument } from './cloudburst.ts';
 import { fetchSource, hashSourceContent, type SourcePackHashes } from './fetch.ts';
 import {
     BDS_SOURCE_NAME,
     bdsDescriptor,
-    CLOUDBURST_SOURCE_NAME,
-    cloudburstDescriptor,
     loadBdsData,
-    loadCloudburstData,
-    loadSourceDescriptors
+    loadSourceDescriptors,
+    parseProtocolArgument
 } from './manifest.ts';
+import { cacheRoot, packageDir } from './paths.ts';
 
 const manifestPath = join(packageDir, 'sources.json');
 const packHashesPath = join(packageDir, 'pack-hashes.json');
 const protocolVersion = parseProtocolArgument(process.argv);
 
-const cloudburst = await loadCloudburstData(manifestPath);
 const descriptors = [
     bdsDescriptor(await loadBdsData(manifestPath), protocolVersion),
-    ...(await loadSourceDescriptors(manifestPath)),
-    ...Object.keys(cloudburst.versions)
-        .sort((a, b) => Number(a) - Number(b))
-        .map((protocol) => cloudburstDescriptor(cloudburst, Number(protocol)))
+    ...(await loadSourceDescriptors(manifestPath))
 ];
 
 const readExistingPackHashes = async (): Promise<Record<string, SourcePackHashes>> => {
@@ -60,9 +52,8 @@ for (const descriptor of descriptors) {
     const fetched = await fetchSource(descriptor, { cacheRoot });
     const state = fetched.fromOverride ? 'override' : fetched.fromCache ? 'cached' : 'downloaded';
     console.log(`${descriptor.name} ${descriptor.version}: ${state} (${fetched.contentPath})`);
-    // The per-protocol sources have an entry per version, so the key carries it too.
-    const perProtocol = descriptor.name === CLOUDBURST_SOURCE_NAME || descriptor.name === BDS_SOURCE_NAME;
-    packHashes[perProtocol ? `${descriptor.name}/${descriptor.version}` : descriptor.name] =
+    // The server has an entry per protocol version, so its key carries the version too.
+    packHashes[descriptor.name === BDS_SOURCE_NAME ? `${descriptor.name}/${descriptor.version}` : descriptor.name] =
         await hashSourceContent(fetched);
 }
 
