@@ -1,5 +1,5 @@
 /**
- * The player systems of the entity store: hunger, breath, falls, meals and mining, run over every
+ * The player systems of the entity store: hunger, breath, suffocation, falls, meals and mining, run over every
  * store entity whose client owns its movement (ADR 0008).
  *
  * The rules are the survival rules `entity/survivalPlayer.ts` lists, so each lives once. This
@@ -14,6 +14,7 @@
  * through {@link PlayerSystems.attach}, which logs their writes there and undoes them. Every
  * live player is one, so these systems are a live player's survival.
  */
+import type { BedrockCollisionBox } from '@jsprismarine/blocks';
 import { AIR_STATE } from '@jsprismarine/entities';
 import { Gametype } from '@jsprismarine/minecraft';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -27,6 +28,7 @@ import { DROWNING_DAMAGE, FALL_DAMAGE, NATURAL_REGENERATION, ruleIsOn } from '..
 import type { PlainData } from '../../world/changelog/PlainData';
 import { DamageCause, damageCauseOf } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
+import { SUFFOCATION_DAMAGE } from '../Environment';
 import { EYE_HEIGHT } from '../playerEyes';
 import { breathe } from '../playerBreath';
 import { PlayerComponents } from '../playerComponents';
@@ -49,6 +51,7 @@ import { survivalReaches } from '../survivalPlayer';
 import type { SurvivalPlayer } from '../survivalPlayer';
 import type { DamageIntent, DamageOutcome } from './damagePipeline';
 import type { DataEntity } from './DataEntity';
+import { eyesInWall } from './collision';
 import { bedrockCauseOf } from './legacyDamage';
 import { blockPositionOf } from './position';
 
@@ -80,6 +83,11 @@ export interface PlayerSystemsPorts {
     blockAt(at: ContentPosition): ContentBlock | undefined;
     /** The runtime id at a position, or undefined when its chunk is not loaded. */
     runtimeIdAt(at: ContentPosition): number | undefined;
+    /**
+     * The collision boxes of the block at a position, normalized to its cell, or undefined when its
+     * chunk is not loaded.
+     */
+    collisionAt(at: ContentPosition): readonly BedrockCollisionBox[] | undefined;
     /** Sends a level event at a point, such as a tick of crack animation. */
     levelEvent(at: ContentPosition, event: number, data: number): void;
     /** Runs one blow through the store's damage pipeline. */
@@ -188,6 +196,7 @@ export class PlayerSystems {
         const { survival } = this.playerOf(entity);
         if (survival.vulnerable() && survival.alive()) {
             this.tickBreath(entity, survival);
+            this.tickSuffocation(entity);
             this.tickHunger(entity, survival, tick);
         }
         this.tickMeal(entity, survival);
@@ -385,6 +394,17 @@ export class PlayerSystems {
         const head = this.ports.blockAt(blockPositionOf({ x, y: y + EYE_HEIGHT, z }));
         const drowning = breathe(survival, head?.identifier, ruleIsOn(this.ports.level, DROWNING_DAMAGE));
         if (drowning !== undefined) this.hurt(entity, DamageCause.Drowning, drowning);
+    }
+
+    /**
+     * Java's `LivingEntity.baseTick` hurts a body whose eyes are inside a block that suffocates
+     * with `in_wall` damage every tick, and the grace period holds that to one blow in
+     * {@link SUFFOCATION_INTERVAL} ticks.
+     */
+    private tickSuffocation(entity: DataEntity): void {
+        const { x, y, z } = entity.position;
+        if (eyesInWall({ x, y: y + EYE_HEIGHT, z }, entity.facts.box.width, this.ports))
+            this.hurt(entity, DamageCause.Suffocation, SUFFOCATION_DAMAGE);
     }
 
     /** The meal in progress, finished once its time is up if the same item is still in hand. */

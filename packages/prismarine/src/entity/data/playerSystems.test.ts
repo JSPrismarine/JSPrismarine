@@ -180,6 +180,39 @@ describe('a store player', () => {
         });
     });
 
+    describe('suffocation', () => {
+        it('hurts a player whose eyes are in a block once a grace period, as Java does', () => {
+            const fixture = storePlayerFixture();
+            fixture.world.setBlock(HEAD, 'minecraft:stone');
+            const { player } = standingPlayer(fixture);
+
+            ticks(fixture, 1);
+            expect(healthOf(player)).toBe(19);
+            ticks(fixture, 9, 2);
+            expect(healthOf(player)).toBe(19);
+            ticks(fixture, 1, 11);
+            expect(healthOf(player)).toBe(18);
+        });
+
+        it('leaves a player whose eyes are in the air alone', () => {
+            const fixture = storePlayerFixture();
+            const { player } = standingPlayer(fixture);
+
+            ticks(fixture, 20);
+            expect(healthOf(player)).toBe(20);
+        });
+
+        it('spares a creative player', () => {
+            const fixture = storePlayerFixture();
+            fixture.world.setBlock(HEAD, 'minecraft:stone');
+            const { player } = standingPlayer(fixture);
+            fixture.runtime.playerSystems.setGamemode(player, Gametype.CREATIVE);
+
+            ticks(fixture, 20);
+            expect(healthOf(player)).toBe(20);
+        });
+    });
+
     describe('falls', () => {
         it('takes a half-heart for every block past the third, through the damage pipeline', () => {
             const fixture = storePlayerFixture();
