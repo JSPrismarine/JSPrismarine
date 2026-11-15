@@ -104,6 +104,43 @@ describe('runRandomTicks', () => {
         expect(ticked).toEqual([{ x: 7, y: 11, z: 12 }]);
     });
 
+    it("looks each section up once and reads its draws through the host's section reader", () => {
+        const base = createTestWorld();
+        let sectionLookups = 0;
+        let positionLookups = 0;
+        const reads: string[] = [];
+        // 1 is a runtime id that ticks, at the one position that holds lava; 0 is air.
+        const runtimeIdAt = (at: BlockPosition) => (positionKey(at) === '7,11,12' ? 1 : 0);
+        const world: WorldAccess = {
+            ...base,
+            getBlockRuntimeId: (at) => {
+                positionLookups++;
+                return runtimeIdAt(at);
+            },
+            getBlockByRuntimeId: (runtimeId) => block(runtimeId === 1 ? 'minecraft:lava' : 'minecraft:air'),
+            isRandomlyTickingRuntimeId: (runtimeId) => runtimeId === 1,
+            sectionRuntimeIds: () => {
+                sectionLookups++;
+                return (at) => {
+                    reads.push(positionKey(at));
+                    return runtimeIdAt(at);
+                };
+            }
+        };
+        const ticked: BlockPosition[] = [];
+        const sections = [
+            { x: 0, y: 0, z: 0 },
+            { x: 0, y: 16, z: 0 }
+        ];
+
+        runRandomTicks(world, new BlockRandomPositions(), sections, (at) => ticked.push(at));
+
+        expect(sectionLookups).toBe(2);
+        expect(reads).toHaveLength(2 * DEFAULT_RANDOM_TICK_SPEED);
+        expect(positionLookups).toBe(0);
+        expect(ticked).toEqual([{ x: 7, y: 11, z: 12 }]);
+    });
+
     it('draws nothing when the tick speed is zero', () => {
         const world = createTestWorld();
         world.place({ x: 7, y: 11, z: 12 }, block('minecraft:lava'));
