@@ -1079,7 +1079,7 @@ describeFamily(
                 };
 
                 tops.forEach(([identifier, states], index) =>
-                    world.world.blocks.set({ x: index * 4, y: 63, z }, { identifier, states })
+                    world.world.blocks.set({ x: index * 4, y: 63, z }, { identifier, states }, false)
                 );
                 const onStone = itemRest(0);
                 const cases = tops.map(([identifier, , top], index) => {
