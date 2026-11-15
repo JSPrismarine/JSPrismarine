@@ -158,6 +158,12 @@ export interface WorldActions {
     /** The block at a position, or undefined when the position is not loaded. */
     getBlock(position: BlockPosition): HookBlock | undefined;
     /**
+     * The liquid a position holds besides its block, which is how Bedrock keeps a waterlogged
+     * block's water: in the position's second storage layer. Undefined when there is none, or when
+     * the host keeps one layer only.
+     */
+    getLiquid?(position: BlockPosition): HookBlock | undefined;
+    /**
      * Replaces the block at a position.
      *
      * @param states - The whole state record, not a patch. Absent means the
