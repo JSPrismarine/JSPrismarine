@@ -34,10 +34,11 @@ import type {
     ContentPosition
 } from '../content/world/adapter';
 
-/** The twelve members of `ContentBlockAccess` the block and item subsystem implements. */
+/** The members of `ContentBlockAccess` the block and item subsystem implements. */
 export type ContentBlockGroup = Pick<
     ContentBlockAccess,
     | 'get'
+    | 'liquid'
     | 'set'
     | 'move'
     | 'destroy'
