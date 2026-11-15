@@ -32,6 +32,7 @@ import type { StructureStartCandidate, StructureStartPlanEntry } from './javaStr
 import { findJavaTemplateSource } from './javaStructureTemplates';
 import { cacheRoot } from './javaWorldgenSources';
 import { readRegistryBundle } from './registryBundle';
+import { isOptionalFluidTickList } from './GenerationRegion';
 import type { GenerationRegionPayload } from './GenerationRegion';
 import { SharedTerrainTileStore } from './SharedTerrainTileStore';
 import type { OldChunkRecord } from './javaBlending';
@@ -228,7 +229,8 @@ const isRegionPayload = (value: unknown): value is GenerationRegionPayload =>
     'blockEntities' in value &&
     Array.isArray(value.blockEntities) &&
     'entitySpawns' in value &&
-    Array.isArray(value.entitySpawns);
+    Array.isArray(value.entitySpawns) &&
+    isOptionalFluidTickList('fluidTicks' in value ? value.fluidTicks : undefined);
 
 /** Whether a value carries nine valid terrain tiles along with its key and seed. */
 const isFeatureInput = (value: unknown): value is FeatureTaskInput =>

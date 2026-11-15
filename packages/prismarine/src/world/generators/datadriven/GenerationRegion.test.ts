@@ -471,6 +471,53 @@ describe('neighbor chunk data', () => {
         expect(destination.centerEntitySpawns()).toHaveLength(1);
     });
 
+    it("sends a fluid tick a feature asked for in a neighbor to that neighbor's chunk", () => {
+        const built = region();
+        const world = built.featureWorld();
+        built.beginWriteTracking();
+        world.scheduleFluidTick?.({ x: 3, y: 40, z: 5 });
+        world.scheduleFluidTick?.({ x: 17, y: 41, z: 6 });
+
+        const patches = built.takeTrackedPatches();
+        const own = patches.find((patch) => patch.chunkX === 0 && patch.chunkZ === 0);
+        const east = patches.find((patch) => patch.chunkX === 1 && patch.chunkZ === 0);
+        expect(own?.fluidTicks).toEqual([{ x: 3, y: 40, z: 5 }]);
+        expect(east?.fluidTicks).toEqual([{ x: 17, y: 41, z: 6 }]);
+
+        // The neighbor's merge keeps it, and its chunk is the only one that carries it.
+        const destination = terrainTile(1, 0);
+        if (east === undefined) throw new Error('The cross-chunk tick did not produce a patch');
+        destination.applyPatch(east);
+        expect(destination.centerFluidTicks()).toEqual([{ x: 17, y: 41, z: 6 }]);
+        expect(built.centerFluidTicks()).toEqual([{ x: 3, y: 40, z: 5 }]);
+    });
+
+    it("carries a terrain tile's fluid ticks across a thread and into the region built from it", () => {
+        const tile = terrainTile(1, -2);
+        tile.scheduleFluidTick(20, 10, -30);
+        // Outside the tile: nothing there to tick, as Java's region drops a write it does not hold.
+        tile.scheduleFluidTick(40, 10, -30);
+        const options = {
+            seaLevel: 63,
+            seed: SEED,
+            blocks: createJavaBlockOracle(new Map()),
+            biomeAt: () => 'minecraft:plains'
+        };
+
+        const fromInput = GenerationRegion.adopt(structuredClone(tile.workerInput()), options);
+        const transferred = tile.transfer();
+        const fromTransfer = GenerationRegion.adopt(
+            structuredClone(transferred.payload, { transfer: [...transferred.transferList] }),
+            options
+        );
+        expect(fromInput.centerFluidTicks()).toEqual([{ x: 20, y: 10, z: -30 }]);
+        expect(fromTransfer.centerFluidTicks()).toEqual([{ x: 20, y: 10, z: -30 }]);
+
+        const merged = new GenerationRegion({ ...options, chunkX: 1, chunkZ: -2, minY: -64, height: 384, radius: 0 });
+        merged.copyCenterFrom(fromTransfer);
+        expect(merged.centerFluidTicks()).toEqual([{ x: 20, y: 10, z: -30 }]);
+    });
+
     it('does not let a patch drop grass or leaf litter over a block it never saw', () => {
         const position = { x: 16, y: 64, z: 8 };
         const built = terrainTile(1, 0);

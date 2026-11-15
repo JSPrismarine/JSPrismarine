@@ -39,7 +39,13 @@ export const createRegionStructureWriter = (
     return {
         level,
         blockAt: (x, y, z) => region.stateAt(x, y, z),
-        setBlock: (x, y, z, state) => boxContains(clip, x, y, z) && region.write(x, y, z, state),
+        setBlock: (x, y, z, state) => {
+            if (!boxContains(clip, x, y, z) || !region.write(x, y, z, state)) return false;
+            // Java's `StructurePiece.placeBlock` ticks the fluid a placed block holds, which is
+            // what lets a fortress's lava fall and a monument's water settle.
+            if (world.blocks.fluid(region.stateAt(x, y, z)) !== 'empty') region.scheduleFluidTick(x, y, z);
+            return true;
+        },
         setBedrockBlock: (x, y, z, state) => boxContains(clip, x, y, z) && region.writeBedrock(x, y, z, state),
         setBlockEntity: (x, y, z, request) => {
             if (boxContains(clip, x, y, z)) world.setBlockEntity?.({ x, y, z }, request);

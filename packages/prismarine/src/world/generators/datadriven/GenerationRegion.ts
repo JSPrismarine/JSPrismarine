@@ -167,6 +167,8 @@ export interface GenerationRegionPayload {
     /** The block entities, each with the state index it is attached to. */
     readonly blockEntities: ReadonlyArray<readonly [index: number, entity: RegionBlockEntity]>;
     readonly entitySpawns: readonly RegionEntitySpawn[];
+    /** The fluid positions to tick once the chunk is in a world; see {@link GenerationRegion.scheduleFluidTick}. */
+    readonly fluidTicks?: readonly RegionBlockPosition[];
 }
 
 /**
@@ -204,6 +206,25 @@ export interface RegionBlockPosition {
     readonly z: number;
 }
 
+/**
+ * Whether a value that crossed a thread or came off disk is absent or a list of block positions,
+ * which is the shape a region's and a patch's fluid ticks travel in.
+ */
+export const isOptionalFluidTickList = (value: unknown): value is readonly RegionBlockPosition[] | undefined =>
+    value === undefined ||
+    (Array.isArray(value) &&
+        value.every(
+            (tick: unknown) =>
+                typeof tick === 'object' &&
+                tick !== null &&
+                'x' in tick &&
+                Number.isSafeInteger(tick.x) &&
+                'y' in tick &&
+                Number.isSafeInteger(tick.y) &&
+                'z' in tick &&
+                Number.isSafeInteger(tick.z)
+        ));
+
 /** Decoration output that belongs to one chunk. */
 export interface RegionChunkPatch {
     readonly chunkX: number;
@@ -212,6 +233,8 @@ export interface RegionChunkPatch {
     readonly blockEntityRemovals: readonly RegionBlockEntityRemoval[];
     readonly blockEntities: readonly RegionBlockEntity[];
     readonly entitySpawns: readonly RegionEntitySpawn[];
+    /** The fluid ticks a feature asked for in this chunk; see {@link GenerationRegion.scheduleFluidTick}. */
+    readonly fluidTicks?: readonly RegionBlockPosition[];
     /**
      * The positions among {@link RegionChunkPatch.blocks} a structure piece wrote.
      *
@@ -232,6 +255,7 @@ interface MutableRegionPatch {
     readonly blockEntityRemovals: RegionBlockEntityRemoval[];
     readonly blockEntities: RegionBlockEntity[];
     readonly entitySpawns: RegionEntitySpawn[];
+    readonly fluidTicks: RegionBlockPosition[];
     readonly structureBlocks: RegionBlockPosition[];
 }
 
@@ -336,6 +360,9 @@ export class GenerationRegion {
     /** The entities features asked for, in the order they asked. */
     private entitySpawns: RegionEntitySpawn[] = [];
 
+    /** The fluid positions to tick once the chunk is in a world, in the order they were asked for. */
+    private fluidTicks: RegionBlockPosition[] = [];
+
     private trackingWrites = false;
     /** Whether the writes arriving now come from a structure piece; see {@link GenerationRegion.withStructureWrites}. */
     private placingStructure = false;
@@ -344,6 +371,7 @@ export class GenerationRegion {
     private readonly trackedBlockEntityRemovals = new Map<number, RegionBlockEntityRemoval>();
     private readonly trackedBlockEntities = new Map<number, RegionBlockEntity>();
     private readonly trackedEntitySpawns: RegionEntitySpawn[] = [];
+    private readonly trackedFluidTicks: RegionBlockPosition[] = [];
 
     /** The `WORLD_SURFACE_WG` heights frozen after the terrain fill, as Java freezes them. */
     private frozenSurface: Int32Array<ArrayBuffer> | null = null;
@@ -460,7 +488,8 @@ export class GenerationRegion {
                   }),
             ...(this.centerBiomeCells === undefined ? {} : { biomeCells: this.centerBiomeCells }),
             blockEntities: [...this.blockEntities],
-            entitySpawns: this.entitySpawns
+            entitySpawns: this.entitySpawns,
+            ...(this.fluidTicks.length === 0 ? {} : { fluidTicks: this.fluidTicks })
         };
 
         const transferList = [this.states.buffer, this.highest.buffer];
@@ -495,7 +524,8 @@ export class GenerationRegion {
             ...(this.frozenSurface === null ? {} : { frozenSurface: this.frozenSurface.buffer }),
             ...(this.centerBiomeCells === undefined ? {} : { biomeCells: this.centerBiomeCells }),
             blockEntities: [...this.blockEntities],
-            entitySpawns: this.entitySpawns
+            entitySpawns: this.entitySpawns,
+            ...(this.fluidTicks.length === 0 ? {} : { fluidTicks: this.fluidTicks })
         };
     }
 
@@ -541,6 +571,7 @@ export class GenerationRegion {
         if (payload.biomeCells !== undefined) region.setBiomeCells(payload.biomeCells);
         region.blockEntities = new Map(payload.blockEntities);
         region.entitySpawns = [...payload.entitySpawns];
+        region.fluidTicks = [...(payload.fluidTicks ?? [])];
         return region;
     }
 
@@ -727,6 +758,7 @@ export class GenerationRegion {
         this.trackedBlockEntityRemovals.clear();
         this.trackedBlockEntities.clear();
         this.trackedEntitySpawns.length = 0;
+        this.trackedFluidTicks.length = 0;
     }
 
     /**
@@ -761,6 +793,7 @@ export class GenerationRegion {
                     blockEntityRemovals: [],
                     blockEntities: [],
                     entitySpawns: [],
+                    fluidTicks: [],
                     structureBlocks: []
                 };
                 patches.set(key, patch);
@@ -783,12 +816,16 @@ export class GenerationRegion {
         for (const spawn of this.trackedEntitySpawns) {
             patchFor(Math.floor(spawn.x / 16), Math.floor(spawn.z / 16)).entitySpawns.push(spawn);
         }
+        for (const tick of this.trackedFluidTicks) {
+            patchFor(Math.floor(tick.x / 16), Math.floor(tick.z / 16)).fluidTicks.push(tick);
+        }
 
         this.trackedWrites.clear();
         this.trackedStructureWrites.clear();
         this.trackedBlockEntityRemovals.clear();
         this.trackedBlockEntities.clear();
         this.trackedEntitySpawns.length = 0;
+        this.trackedFluidTicks.length = 0;
         return [...patches.values()];
     }
 
@@ -843,6 +880,7 @@ export class GenerationRegion {
             this.attachBlockEntity({ x: blockEntity.x, y: blockEntity.y, z: blockEntity.z }, blockEntity.request);
         }
         this.entitySpawns.push(...source.centerEntitySpawns());
+        this.fluidTicks.push(...source.centerFluidTicks());
 
         if (source.frozenSurface !== null) {
             this.frozenSurface ??= new Int32Array(this.highest.length).fill(this.minY - 1);
@@ -900,6 +938,9 @@ export class GenerationRegion {
             this.attachBlockEntity({ x: blockEntity.x, y: blockEntity.y, z: blockEntity.z }, blockEntity.request);
         }
         this.entitySpawns.push(...patch.entitySpawns);
+        // A tick is kept wherever it lands, as an entity is: it asks the world to look at a
+        // position later, and the merge decides what stands there by then.
+        this.fluidTicks.push(...(patch.fluidTicks ?? []));
     }
 
     /** Whether a block is one of the plants a ground cover feature scatters: grass, ferns, flowers and leaf litter. */
@@ -973,6 +1014,8 @@ export class GenerationRegion {
             getBlock: (x, y, z) => this.stateAt(x, y, z).name,
             setBlock: (x, y, z, state) => {
                 this.writeName(x, y, z, state);
+                // Java's surface pass marks a block it places that holds fluid for post-processing.
+                if (this.options.blocks.fluid(this.stateAt(x, y, z)) !== 'empty') this.scheduleFluidTick(x, y, z);
             },
             surfaceHeight: (localX, localZ) => {
                 const column = this.columnIndex(this.chunkX * 16 + localX, this.chunkZ * 16 + localZ);
@@ -995,6 +1038,7 @@ export class GenerationRegion {
             getBiome: (position) => this.options.biomeAt(position.x, position.y, position.z),
             setBlockEntity: (position, data) => this.attachBlockEntity(position, data),
             spawnEntity: (type, position, options) => this.recordEntity(type, position, options),
+            scheduleFluidTick: (position) => this.scheduleFluidTick(position.x, position.y, position.z),
             placeTemplate: (request) => this.stampTemplate(request),
             ...(this.options.isColdEnoughToSnow
                 ? {
@@ -1013,6 +1057,27 @@ export class GenerationRegion {
     /** The entities asked for inside the center chunk, in the order the features asked. */
     public centerEntitySpawns(): readonly RegionEntitySpawn[] {
         return this.entitySpawns.filter((spawn) => this.isInCenterChunk(Math.floor(spawn.x), Math.floor(spawn.z)));
+    }
+
+    /** The fluid ticks asked for inside the center chunk, in the order they were asked for. */
+    public centerFluidTicks(): readonly RegionBlockPosition[] {
+        return this.fluidTicks.filter((tick) => this.isInCenterChunk(tick.x, tick.z));
+    }
+
+    /**
+     * Asks for the fluid at a position to be ticked once the chunk is in a world.
+     *
+     * Java's two routes to that tick: a position the noise fill or a carver marks for
+     * post-processing, which `LevelChunk.postProcessGeneration` ticks when the chunk becomes
+     * full, and a feature's `WorldGenLevel.scheduleTick`. Both name a fluid and a position, and
+     * the world ticks it only if fluid still stands there, so one list carries both.
+     */
+    public scheduleFluidTick(x: number, y: number, z: number): void {
+        if (this.indexOf(x, y, z) === -1) return;
+
+        const tick = { x, y, z };
+        this.fluidTicks.push(tick);
+        if (this.trackingWrites) this.trackedFluidTicks.push(tick);
     }
 
     /**

@@ -48,6 +48,17 @@ const CHUNK_KEY_STRIDE = 1 << CHUNK_KEY_BITS;
 /** Reads one packed axis back as the signed coordinate it was. */
 const signExtendChunkAxis = (axis: number): number => (axis << (32 - CHUNK_KEY_BITS)) >> (32 - CHUNK_KEY_BITS);
 
+/** A fluid tick a chunk carries until a world schedules it; see {@link Chunk.getPendingFluidTicks}. */
+export interface PendingFluidTick {
+    /** World x of the fluid. */
+    readonly x: number;
+    readonly y: number;
+    /** World z of the fluid. */
+    readonly z: number;
+    /** How many game ticks after the chunk enters a world the tick fires: 0 for one generation asked for. */
+    readonly delay: number;
+}
+
 /** The persisted parts a chunk write needs to update. */
 export interface ChunkPersistenceChanges {
     /** This chunk has never been written to its provider. */
@@ -207,6 +218,15 @@ export default class Chunk {
      * back from disk has none, because by then its villagers are ordinary saved entities.
      */
     private readonly entitySpawns: EntitySpawn[] = [];
+
+    /**
+     * Fluid ticks waiting for a world to schedule them, in world coordinates.
+     *
+     * A handover like {@link entitySpawns}: generation leaves the positions Java would tick after
+     * post-processing, and a provider leaves the ticks a chunk was saved with. The world drains it
+     * when the chunk enters and schedules each tick where fluid still stands.
+     */
+    private readonly pendingFluidTicks: PendingFluidTick[] = [];
 
     /**
      * The serialized form, kept until blocks, block entities, or biomes change.
@@ -927,6 +947,23 @@ export default class Chunk {
      */
     public takeEntitySpawns(): EntitySpawn[] {
         return this.entitySpawns.splice(0, this.entitySpawns.length);
+    }
+
+    /**
+     * The fluid ticks waiting for a world, live, for a generator or a provider to append to.
+     * @returns {PendingFluidTick[]} The list itself, not a copy.
+     */
+    public getPendingFluidTicks(): PendingFluidTick[] {
+        return this.pendingFluidTicks;
+    }
+
+    /**
+     * Hands over the fluid ticks waiting for a world and forgets them, so a chunk that stays in
+     * memory across an unload and a reload does not schedule them twice.
+     * @returns {PendingFluidTick[]} What was waiting, which may be nothing.
+     */
+    public takePendingFluidTicks(): PendingFluidTick[] {
+        return this.pendingFluidTicks.splice(0, this.pendingFluidTicks.length);
     }
 
     public getBlockEntities(): IterableIterator<BlockEntity> {
