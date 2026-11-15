@@ -69,8 +69,8 @@ describe(FAMILIES.registryItems2225, () => {
     });
 
     it('gives every item an Item Version, which the capture does not carry', () => {
-        // The column is joined in from that version's CloudburstMC dump, and the join refuses
-        // to run when the two disagree. An entry with no version means the join was skipped.
+        // The column is joined in from that version's captured ItemRegistryPacket, and the join
+        // refuses to run when the two disagree. An entry with no version means it was skipped.
         const missing = Object.entries(item_table_2225)
             .filter(([, entry]) => !Number.isInteger(entry.version))
             .map(([name]) => name);
