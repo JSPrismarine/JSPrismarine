@@ -1,13 +1,13 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { definePacket, gated, isGated } from './define';
+import { definePacket, gated, isGated, versioned } from './define';
 import type { FieldSpec } from './define';
 import { AnimateHand, animatePacket } from './definitions/animate';
 import * as t from './fieldTypes';
 import type { WireType } from './fieldTypes';
 import { layoutAt } from './WireLayout';
-import { since } from './wireGates';
+import { since, until } from './wireGates';
 import { wireDefinitions } from './definitions';
 
 import type { AnimatePayload } from './definitions/animate';
@@ -58,6 +58,34 @@ describe('a wire layout', () => {
 
         const read = layoutAt(animatePacket, PROTOCOL_2193).decode(new BinaryStream(stream2193.getBuffer()));
         expect(read).toEqual({ ...payload, hand: AnimateHand.Mainhand });
+    });
+
+    it('writes a versioned field under one key, in the layout its version picks', () => {
+        const definition = definePacket('VersionedPacket', {
+            value: versioned<number>([until(2225, 'byte before'), t.uint8], [since(2225, 'int after'), t.lu32])
+        });
+        expectTypeOf<ReturnType<ReturnType<typeof layoutAt<typeof definition>>['decode']>>().toEqualTypeOf<{
+            value: number;
+        }>();
+
+        const old = new BinaryStream();
+        layoutAt(definition, PROTOCOL_2193).encode(old, { value: 7 });
+        const current = new BinaryStream();
+        layoutAt(definition, PROTOCOL_2225).encode(current, { value: 7 });
+
+        expect(writtenBytes(old)).toEqual(Buffer.from([7]));
+        expect(writtenBytes(current)).toEqual(Buffer.from([7, 0, 0, 0]));
+        expect(layoutAt(definition, PROTOCOL_2225).decode(new BinaryStream(current.getBuffer()))).toEqual({ value: 7 });
+    });
+
+    it('refuses a version no variant of a versioned field covers', () => {
+        const definition = definePacket('UncoveredPacket', {
+            value: versioned<number>([since(2225, 'only from 2225'), t.uint8])
+        });
+
+        expect(() => layoutAt(definition, PROTOCOL_2193)).toThrow(
+            'UncoveredPacket.value has no layout at protocol 2193'
+        );
     });
 
     it('resolves a gate-free definition to one shared frozen layout at every version', () => {

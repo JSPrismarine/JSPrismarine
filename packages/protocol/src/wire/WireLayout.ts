@@ -16,7 +16,7 @@
  *
  * @see `docs/adr/0003-declarative-wire-layouts.md`
  */
-import { isGated } from './define';
+import { isGated, isVersioned } from './define';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type { FieldSpec, PacketDefinition, PayloadOf } from './define';
@@ -102,7 +102,13 @@ const resolve = (definition: PacketDefinition, protocolVersion: number, useCompi
     const fields: ResolvedField[] = [];
     const absent: Array<readonly [string, unknown]> = [];
     for (const [key, spec] of Object.entries(definition.fields) as Array<[string, FieldSpec<unknown>]>) {
-        if (!isGated(spec)) {
+        if (isVersioned(spec)) {
+            const variant = spec.variants.find(([gate]) => gate.includedAt(protocolVersion));
+            if (variant === undefined) {
+                throw new Error(`${definition.name}.${key} has no layout at protocol ${protocolVersion}`);
+            }
+            fields.push({ key, of: variant[1] });
+        } else if (!isGated(spec)) {
             fields.push({ key, of: spec });
         } else if (spec.gate.includedAt(protocolVersion)) {
             fields.push({ key, of: spec.of });
@@ -161,7 +167,7 @@ const hasGates = (definition: PacketDefinition): boolean => {
     if (cached !== undefined) return cached;
 
     // Definitions are immutable, so their gate status is the same for every codec version.
-    const result = Object.values(definition.fields).some(isGated);
+    const result = Object.values(definition.fields).some((spec) => isGated(spec) || isVersioned(spec));
     gateChecks.set(definition, result);
     return result;
 };
