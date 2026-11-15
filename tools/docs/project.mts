@@ -34,6 +34,8 @@ export interface PublishedPackage {
 export interface SupportedProtocol {
     minecraft: string[];
     protocol: number;
+    /** Whether the protocol is a Minecraft preview, which the server accepts but never advertises. */
+    preview: boolean;
 }
 
 /** One prebuilt server executable the release workflow publishes. */
@@ -82,8 +84,10 @@ export interface ProjectData {
     /** The file in the data directory that keeps the server's NetherNet identity key. */
     netherNetIdentityFile: string;
     packages: PublishedPackage[];
-    /** Newest protocol first, matching the order of the server's startup banner. */
+    /** Released protocols, newest first, matching the order of the server's startup banner. */
     protocols: SupportedProtocol[];
+    /** The Minecraft preview protocol the server also accepts, when it has one. */
+    preview: SupportedProtocol | undefined;
     repositoryUrl: string;
     version: string;
 }
@@ -144,9 +148,15 @@ export function loadProject(): ProjectData {
                 /minecraftVersions: readonly string\[\] = \[([^\]]*)\]/,
                 'the Minecraft versions of a protocol'
             );
-            return { protocol: Number(protocol), minecraft: [...list.matchAll(/'([^']+)'/g)].map((m) => m[1]) };
+            const source = readFileSync(path.join(versionsDir, file), 'utf8');
+            return {
+                protocol: Number(protocol),
+                minecraft: [...list.matchAll(/'([^']+)'/g)].map((m) => m[1]),
+                preview: /^export const preview = true;$/m.test(source)
+            };
         })
         .sort((a, b) => b.protocol - a.protocol);
+    const preview = protocols.find((protocol) => protocol.preview);
 
     const [, port] = fromSource(
         path.join(packagesDir, 'prismarine', 'src', 'config', 'Config.ts'),
@@ -203,7 +213,8 @@ export function loadProject(): ProjectData {
         engines: { node: root.engines?.node ?? '', pnpm: root.engines?.pnpm ?? '' },
         license: root.license ?? '',
         packages,
-        protocols,
+        protocols: protocols.filter((protocol) => !protocol.preview),
+        preview,
         repositoryUrl,
         // The startup banner prints the prismarine package's version; the workspace root is unversioned.
         version: readManifest(path.join(packagesDir, 'prismarine', 'package.json')).version

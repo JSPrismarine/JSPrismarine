@@ -14,7 +14,8 @@ import {
     recordCompiledAssets,
     resolvePin,
     runName,
-    servedProtocols
+    servedProtocols,
+    testedProtocols
 } from './cinnabar.mts';
 
 const older = '485c24673e9df7ba31a6788e24797cbc4a18c2a5';
@@ -67,11 +68,11 @@ describe('cinnabar pins', () => {
         expect(() => parseManifest({ repository: 'r', versions: { '2193': entry } }, 'cinnabar.json')).toThrow(message);
     });
 
-    it('lists a run for every declared transport of every served protocol', () => {
+    it('lists a run for every declared transport of every tested protocol', () => {
         const matrix = pinMatrix();
         const { versions } = readManifest();
 
-        for (const protocol of servedProtocols()) {
+        for (const protocol of testedProtocols()) {
             const version = versions.find((candidate) => candidate.protocol === protocol);
             expect(matrix.filter((entry) => entry.protocol === protocol).map((entry) => entry.transport)).toEqual(
                 version?.transports
@@ -81,6 +82,14 @@ describe('cinnabar pins', () => {
         for (const entry of matrix) expect(entry.build).toBe(buildName(entry.commit));
     });
 
+    it('leaves preview protocols out of the cinnabar runs', () => {
+        const tested = testedProtocols();
+        const previews = servedProtocols().filter((protocol) => !tested.includes(protocol));
+
+        expect(tested.length).toBeGreaterThan(0);
+        expect(pinMatrix().some((entry) => previews.includes(entry.protocol))).toBe(false);
+    });
+
     it('gives every run of one commit the same build', () => {
         const builds = pinMatrix(false, manifest).filter((entry) => entry.commit === newer);
 
@@ -88,7 +97,7 @@ describe('cinnabar pins', () => {
     });
 
     it('keeps only the newest protocol for a latest-only run', () => {
-        const newest = servedProtocols().at(-1);
+        const newest = testedProtocols().at(-1);
 
         expect(pinMatrix(true).every((entry) => entry.protocol === newest)).toBe(true);
     });

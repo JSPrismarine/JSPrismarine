@@ -81,8 +81,8 @@ file repeats the server's whole source map cache, so a full run leaves about a h
 about 35 MB each. `.c8rc.json` sets `merge-async`, so the report reads and merges them one at a
 time rather than holding every one in memory at once.
 
-In CI, `.github/workflows/client-e2e.yml` builds a matrix of every declared transport of every BDS
-protocol in `packages/bedrock-data/sources.json`, listed by `src/pin-matrix.mts`, and runs the full
+In CI, `.github/workflows/client-e2e.yml` builds a matrix of every declared transport of every
+released BDS protocol in `packages/bedrock-data/sources.json`, listed by `src/pin-matrix.mts`, and runs the full
 suite with the compatibility default (`zlib`) on `ubuntu-latest` for each one, with the client
 rendering through Mesa's software Vulkan driver on a virtual X display. The job runs as many suites
 at once as the runner's cores and memory allow. A second matrix runs the full suite with `snappy`
@@ -127,6 +127,12 @@ worktrees; on macOS, install it with `brew install sccache`. Its local cache is 
 `<cache-root>/sccache` and is capped at sccache's 10 GB default. Set `JSP_CINNABAR_CACHE_DIR` to
 change the cache root, or set `JSP_CINNABAR_PATH` to use an existing checkout directly (offline, or
 while testing a different client commit).
+
+A preview protocol, one whose `sources.json` pin sets `"preview": true`, has no entry here. cinnabar
+speaks only released versions, so the matrix leaves previews out, `ensure` and the runner refuse
+one, and the server's preview support is checked with `@jsprismarine/client` through
+`pnpm run bringup --protocol <n>`. When the preview's release ships, the protocol becomes a release
+and gets its pin like any other.
 
 Moving a pin is one edit to `commit`. `ensure` cross-checks the build's Bedrock target
 (`assets/bedrock-target.json` in the checkout) against the protocol and the protocols this checkout

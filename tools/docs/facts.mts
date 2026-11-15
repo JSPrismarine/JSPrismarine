@@ -572,6 +572,10 @@ export async function loadFacts(): Promise<Facts> {
             'protocol.list': list(project.protocols.map(({ protocol }) => String(protocol))),
             'minecraft.newest': minecraft.at(-1) ?? '',
             'minecraft.oldest': minecraft[0] ?? '',
+            // A whole sentence, since whether there is a preview at all changes what it says.
+            'minecraft.previewNote': project.preview
+                ? `It also accepts Minecraft Preview ${project.preview.minecraft.join(', ')} on protocol ${project.preview.protocol}, which the server list does not show.`
+                : 'It accepts no Minecraft Preview.',
             'bds.version': bds.serverVersion,
             'bds.minecraft': bds.minecraftVersion,
             'bds.size': megabytes(bds.sizeInBytes),

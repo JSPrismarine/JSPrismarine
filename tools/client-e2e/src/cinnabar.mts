@@ -148,14 +148,14 @@ export interface MatrixEntry extends PinTarget {
 }
 
 /**
- * The client runs CI makes: every declared transport of every protocol this checkout serves,
- * oldest protocol first.
- * @param latestOnly - Keep only the newest served protocol's runs.
- * @throws When a served protocol has no pin.
+ * The client runs CI makes: every declared transport of every protocol cinnabar tests, oldest
+ * protocol first. A preview protocol has no runs; see {@link testedProtocols}.
+ * @param latestOnly - Keep only the newest tested protocol's runs.
+ * @throws When a tested protocol has no pin.
  */
 export const pinMatrix = (latestOnly = false, manifest = readManifest()): MatrixEntry[] => {
-    const served = servedProtocols();
-    const protocols = latestOnly ? served.slice(-1) : served;
+    const tested = testedProtocols();
+    const protocols = latestOnly ? tested.slice(-1) : tested;
     return protocols.flatMap((protocol) => {
         const version = manifest.versions.find((candidate) => candidate.protocol === protocol);
         if (version === undefined) {
@@ -216,19 +216,41 @@ export const bedrockTarget = (checkout: string): { wireProtocol: number; gameVer
     return { wireProtocol: target.wire_protocol, gameVersion: target.game_version };
 };
 
-/** The wire protocols this JSPrismarine checkout serves, from the bedrock-data manifest. */
-export const servedProtocols = (): number[] => {
+/** One wire protocol this checkout serves, and whether it is a Minecraft preview. */
+interface ServedProtocol {
+    protocol: number;
+    preview: boolean;
+}
+
+/** Every BDS pin in the bedrock-data manifest, oldest protocol first. */
+const readServedProtocols = (): ServedProtocol[] => {
     const sources = path.join(repoRoot, 'packages', 'bedrock-data', 'sources.json');
     const manifest: unknown = JSON.parse(fs.readFileSync(sources, 'utf8'));
     if (!isRecord(manifest) || !isRecord(manifest.bds) || !isRecord(manifest.bds.versions)) {
         throw new Error(`${sources} has no bds.versions`);
     }
-    const protocols = Object.keys(manifest.bds.versions).map(Number);
-    if (protocols.some((protocol) => !Number.isSafeInteger(protocol) || protocol <= 0)) {
+    const served = Object.entries(manifest.bds.versions).map(([key, version]) => ({
+        protocol: Number(key),
+        preview: isRecord(version) && version.preview === true
+    }));
+    if (served.some(({ protocol }) => !Number.isSafeInteger(protocol) || protocol <= 0)) {
         throw new Error(`${sources} contains a non-numeric BDS protocol key`);
     }
-    return protocols.sort((left, right) => left - right);
+    return served.sort((left, right) => left.protocol - right.protocol);
 };
+
+/** The wire protocols this JSPrismarine checkout serves, previews included, from the bedrock-data manifest. */
+export const servedProtocols = (): number[] => readServedProtocols().map(({ protocol }) => protocol);
+
+/**
+ * The served wire protocols cinnabar tests, oldest first: every one but a preview. cinnabar
+ * speaks only released versions, so a preview is brought up and checked with
+ * `@jsprismarine/client` through `pnpm run bringup` instead, and needs no `cinnabar.json` pin.
+ */
+export const testedProtocols = (): number[] =>
+    readServedProtocols()
+        .filter(({ preview }) => !preview)
+        .map(({ protocol }) => protocol);
 
 const run = (command: string, args: string[], cwd: string, env = process.env): void => {
     const result = spawnSync(command, args, { cwd, env, stdio: 'inherit' });
@@ -497,18 +519,25 @@ const readStamp = (cache: string): string | undefined => {
 /**
  * Resolves, builds, and version-checks the cinnabar build for a served protocol.
  *
- * @param requestedProtocol - Wire protocol to test. Defaults to the highest served protocol.
+ * @param requestedProtocol - Wire protocol to test. Defaults to the highest protocol cinnabar tests.
  * @param requestedTransport - Transport to run over. Defaults to the first one the protocol lists.
  * @returns The pin, the checkout path, its binaries, and the Bedrock version it targets.
- * @throws When this JSPrismarine checkout does not serve the protocol, or the protocol's build does
- * not run over the transport.
+ * @throws When this JSPrismarine checkout does not serve the protocol, the protocol is a preview,
+ * or the protocol's build does not run over the transport.
  */
 export const ensureCinnabar = (requestedProtocol?: number, requestedTransport?: ClientTransport) => {
     const served = servedProtocols();
-    if (served.length === 0) throw new Error('packages/bedrock-data/sources.json declares no BDS protocols');
-    const protocolVersion = requestedProtocol ?? served.at(-1)!;
+    const tested = testedProtocols();
+    if (tested.length === 0) throw new Error('packages/bedrock-data/sources.json declares no released BDS protocols');
+    const protocolVersion = requestedProtocol ?? tested.at(-1)!;
     if (!Number.isSafeInteger(protocolVersion) || !served.includes(protocolVersion)) {
         throw new Error(`wire protocol ${protocolVersion} is not served; this checkout serves ${served.join(', ')}`);
+    }
+    if (!tested.includes(protocolVersion)) {
+        throw new Error(
+            `wire protocol ${protocolVersion} is a preview, which cinnabar does not speak; ` +
+                `check it with \`pnpm run bringup --protocol ${protocolVersion}\` instead`
+        );
     }
     const pin = resolvePin(readManifest(), protocolVersion, requestedTransport);
     const checkout = ensureCheckout(pin);

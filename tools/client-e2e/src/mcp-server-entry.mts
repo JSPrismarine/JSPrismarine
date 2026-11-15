@@ -7,11 +7,12 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-import { binaries, checkoutDir, readManifest, resolvePin, servedProtocols, targetDirectory } from './cinnabar.mts';
+import { binaries, checkoutDir, readManifest, resolvePin, targetDirectory, testedProtocols } from './cinnabar.mts';
 
-const protocolVersion = servedProtocols().at(-1);
-if (protocolVersion === undefined) throw new Error('packages/bedrock-data/sources.json declares no BDS protocols');
-// The build `ensure` makes when it is given no protocol: the newest served one's.
+const protocolVersion = testedProtocols().at(-1);
+if (protocolVersion === undefined)
+    throw new Error('packages/bedrock-data/sources.json declares no released BDS protocols');
+// The build `ensure` makes when it is given no protocol: the newest tested one's.
 const { commit } = resolvePin(readManifest(), protocolVersion, undefined);
 const checkout = checkoutDir(commit);
 const mcp = binaries(targetDirectory(commit)).mcp;
