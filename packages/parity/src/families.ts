@@ -17,6 +17,8 @@ export const FAMILIES = {
     registryItems: 'registry.items',
     /** The protocol 2225 item table against the 1.26.60 capture it is built from. */
     registryItems2225: 'registry.items-2225',
+    /** The preview protocol's item table against the BDS preview capture it is built from. */
+    registryItems2259: 'registry.items-2259',
     /** The advertised actor types against the entity identifiers golden. */
     registryEntities: 'registry.entities',
     /** Biome names and numeric ids against the biome definitions golden. */

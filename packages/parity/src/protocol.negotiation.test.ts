@@ -3,6 +3,7 @@ import Codec2193 from '@jsprismarine/prismarine/network/codec/Codec2193';
 import Codec2225 from '@jsprismarine/prismarine/network/codec/Codec2225';
 import { advertisedCodec, latestCodec, registeredCodecs } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
 import { describeSupportedProtocols } from '@jsprismarine/prismarine/network/codec/describeCodecs';
+import { about } from '@jsprismarine/prismarine/about';
 import HandshakeCodec from '@jsprismarine/prismarine/network/codec/HandshakeCodec';
 import RequestNetworkSettingsHandler from '@jsprismarine/prismarine/network/handler/RequestNetworkSettingsHandler';
 import { ConnectionContexts } from '@jsprismarine/prismarine/network/connectionContexts';
@@ -342,6 +343,32 @@ describe(FAMILIES.protocolNegotiation, () => {
         expect(sent[0]?.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
         expect(hangups).toHaveLength(1);
         expect(hangups[0]!.reason).toBe(DisconnectReason.OUTDATED_SERVER);
+    });
+
+    it('negotiates a preview with its client but advertises the newest release', async () => {
+        const cases: ReturnType<typeof parityCase>[] = [];
+        const { protocolVersion, minecraftVersion } = about();
+
+        for (const codec of registeredCodecs.filter((candidate) => candidate.preview === true)) {
+            const { connection } = await negotiate(codec.protocolVersion);
+            const negotiated = connection.codec === codec;
+            const advertisesRelease =
+                protocolVersion === advertisedCodec.protocolVersion &&
+                !codec.minecraftVersions.includes(minecraftVersion);
+            cases.push(
+                parityCase(
+                    `preview:protocol-${codec.protocolVersion}`,
+                    `${codec.protocolVersion} · ${codec.minecraftVersions.join(', ')} (preview)`,
+                    'A preview client joins while the server list shows the newest release',
+                    negotiated && advertisesRelease
+                )
+            );
+
+            expect(connection.codec).toBe(codec);
+            expect(protocolVersion).toBe(advertisedCodec.protocolVersion);
+            expect(codec.minecraftVersions).not.toContain(minecraftVersion);
+        }
+        reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, cases);
     });
 
     it('the versions the server reports are exactly the ones a client can negotiate', async () => {

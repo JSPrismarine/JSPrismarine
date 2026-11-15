@@ -17,7 +17,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 
 | Group           | Rows                                | What it measures                                                                                                      |
 | --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `registry.*`    | <!-- fact:parity.families.registry -->blocks, items, items-2225, entities, biomes<!-- /fact --> | The catalogs the server ships against the Bedrock captures                                                            |
+| `registry.*`    | <!-- fact:parity.families.registry -->blocks, items, items-2225, items-2259, entities, biomes<!-- /fact --> | The catalogs the server ships against the Bedrock captures                                                            |
 | `mapping.*`     | <!-- fact:parity.families.mapping -->blocks, items, entities, registries, untranslated, blockentities<!-- /fact --> | Chunker's totality property per mapping domain, with the reviewed losses; the banner pattern, instrument and painting registries no pairing covers |
 | `blocks.*`      | <!-- fact:parity.families.blocks -->properties, portals, behavior<!-- /fact --> | Every Bedrock block state's property row against the Java <!-- fact:java.version -->26.3<!-- /fact --> jar dump; the portal, frame and lighting blocks the portal rules name, with the states they read, against the palette capture |
 | `items.*`       | <!-- fact:parity.families.items -->components, behavior<!-- /fact --> | Java item components carried on mapped Bedrock identities against the item capture                                    |
