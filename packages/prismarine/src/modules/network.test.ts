@@ -296,20 +296,30 @@ describe('modules/network', () => {
         }
     });
 
-    /** A port free for UDP on both families right now. */
-    const portFreeOnBothFamilies = async (): Promise<number> => {
+    /**
+     * A port free right now for every listener the server opens on it: UDP on both families, and
+     * TCP for NetherNet's join by address, which listens on the same port number.
+     */
+    const portFreeForEveryListener = async (): Promise<number> => {
         for (;;) {
             const v4 = dgram.createSocket('udp4');
             v4.bind(0, '0.0.0.0');
             await once(v4, 'listening');
             const { port } = v4.address();
             const v6 = dgram.createSocket({ type: 'udp6', ipv6Only: true });
-            const free = await new Promise<boolean>((resolve) => {
-                v6.once('error', () => resolve(false));
-                v6.bind(port, '::', () => resolve(true));
-            });
+            const tcp = net.createServer();
+            const free =
+                (await new Promise<boolean>((resolve) => {
+                    v6.once('error', () => resolve(false));
+                    v6.bind(port, '::', () => resolve(true));
+                })) &&
+                (await new Promise<boolean>((resolve) => {
+                    tcp.once('error', () => resolve(false));
+                    tcp.listen(port, '0.0.0.0', () => resolve(true));
+                }));
             v4.close();
             v6.close();
+            if (tcp.listening) await new Promise((resolve) => tcp.close(resolve));
             if (free) return port;
         }
     };
@@ -356,7 +366,7 @@ describe('modules/network', () => {
         ['socket', false],
         ['worker', true]
     ])('answers a ping on both families with server-portv6 equal to port, in %s mode', async (_mode, worker) => {
-        const port = await portFreeOnBothFamilies();
+        const port = await portFreeForEveryListener();
         const networking = new ServerNetworking(rakNetServer(port, () => {}, worker));
 
         try {
@@ -738,9 +748,9 @@ describe('modules/network', () => {
         ['server-portv6 a port of its own', true, false, true],
         ['server-portv6 a port of its own, and server-udp-ports', false, true, true]
     ])('opens the ports the port table lists: %s', async (_row, worker, withUdpPorts, withPortV6) => {
-        const port = await portFreeOnBothFamilies();
-        const udpPort = withUdpPorts ? await portFreeOnBothFamilies() : port;
-        const portV6 = withPortV6 ? await portFreeOnBothFamilies() : port;
+        const port = await portFreeForEveryListener();
+        const udpPort = withUdpPorts ? await portFreeForEveryListener() : port;
+        const portV6 = withPortV6 ? await portFreeForEveryListener() : port;
         const networking = new ServerNetworking(sharedPortServer(worker, withUdpPorts ? String(udpPort) : '', portV6));
         const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
         vi.stubEnv('JSP_DIR', dataDirectory);
@@ -762,7 +772,7 @@ describe('modules/network', () => {
     });
 
     it.skipIf(driver === undefined)('answers query and NetherNet on the server port with RakNet off', async () => {
-        const port = await portFreeOnBothFamilies();
+        const port = await portFreeForEveryListener();
         const networking = new ServerNetworking(sharedPortServer(false, '', port, { rakNet: false, query: true }));
         const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-network-'));
         vi.stubEnv('JSP_DIR', dataDirectory);
