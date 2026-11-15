@@ -63,15 +63,16 @@ describe('fallOneStep', () => {
         expect(world.stateAt({ x: 0, y: 1, z: 0 }, 'minecraft:cardinal_direction')).toBe('west');
     });
 
-    it('destroys a block a piston would pop and drops it', () => {
+    it('lands on a block a piston would pop, as Java only falls into free space', () => {
         const world = createVoxelWorld().overworld;
-        world.defineProperties('minecraft:torch', { pushReaction: 'popped' });
-        world.set({ x: 0, y: 1, z: 0 }, 'minecraft:torch');
+        world.defineProperties('minecraft:moss_block', { pushReaction: 'popped' });
+        world.set({ x: 0, y: 1, z: 0 }, 'minecraft:moss_block');
         world.set({ x: 0, y: 2, z: 0 }, 'minecraft:gravel');
 
-        expect(fallOneStep(world, world.block({ x: 0, y: 2, z: 0 }))).toBe('fell');
-        expect(world.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:torch']);
-        expect(world.identifierAt({ x: 0, y: 1, z: 0 })).toBe('minecraft:gravel');
+        expect(fallOneStep(world, world.block({ x: 0, y: 2, z: 0 }))).toBe('landed');
+        expect(world.drops).toEqual([]);
+        expect(world.identifierAt({ x: 0, y: 1, z: 0 })).toBe('minecraft:moss_block');
+        expect(world.identifierAt({ x: 0, y: 2, z: 0 })).toBe('minecraft:gravel');
     });
 
     it('falls into a liquid without dropping it', () => {
