@@ -326,6 +326,8 @@ of `radius * 2`, multiplied by the exposure. Point blank against a creeper that 
 half-hearts. The flat 1 at the end is why standing fully behind a wall still costs half a heart.
 Knockback is the same impact, times the entity's knockback multiplier, times
 `1 - EXPLOSION_KNOCKBACK_RESISTANCE`, along the line from the center to the entity's eyes.
+Dropped item stacks are caught like any other entity, and a stack the blast hurts is destroyed,
+unless its item resists explosions, as a nether star does.
 
 Each ray's starting intensity is a draw, so this is rule parity rather than bit parity. Two blasts
 of the same radius at the same spot carve different holes of the same shape and size, and so would
