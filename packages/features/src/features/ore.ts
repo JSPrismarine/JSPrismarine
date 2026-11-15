@@ -159,7 +159,9 @@ export const ore = (
                             ) {
                                 continue;
                             }
-                            world.setBlock(position, target.state);
+                            // Java's ore writes through `BulkSectionAccess`, not `WorldGenRegion.setBlock`,
+                            // so an ore of magma marks nothing for post-processing.
+                            world.setBlock(position, target.state, { postProcess: false });
                             placed++;
                             break;
                         }

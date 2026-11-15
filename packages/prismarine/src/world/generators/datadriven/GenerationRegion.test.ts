@@ -518,6 +518,38 @@ describe('neighbor chunk data', () => {
         expect(merged.centerFluidTicks()).toEqual([{ x: 20, y: 10, z: -30 }]);
     });
 
+    it("marks a block's post-process position the way Java's WorldGenRegion.setBlock does", () => {
+        const tile = terrainTile(0, 0);
+        const world = tile.featureWorld();
+        world.setBlock({ x: 2, y: 10, z: 3 }, { name: 'minecraft:magma_block', properties: {} });
+        world.setBlock({ x: 4, y: 11, z: 5 }, { name: 'minecraft:soul_sand', properties: {} });
+        world.setBlock({ x: 6, y: 12, z: 7 }, { name: 'minecraft:red_mushroom', properties: {} });
+        world.setBlock({ x: 8, y: 13, z: 9 }, { name: 'minecraft:stone', properties: {} });
+        // An ore vein writes past WorldGenRegion.setBlock in Java and marks nothing.
+        world.setBlock(
+            { x: 10, y: 14, z: 11 },
+            { name: 'minecraft:magma_block', properties: {} },
+            { postProcess: false }
+        );
+        // A template writes the Bedrock spelling.
+        tile.writeBedrock(12, 15, 13, { name: 'minecraft:magma', states: {} });
+        tile.markPostProcessOf(12, 15, 13, 'minecraft:magma');
+
+        expect(tile.centerFluidTicks()).toEqual([
+            { x: 2, y: 11, z: 3 },
+            { x: 4, y: 12, z: 5 },
+            { x: 6, y: 12, z: 7 },
+            { x: 12, y: 16, z: 13 }
+        ]);
+    });
+
+    it('records the marks a multiface growth asks for', () => {
+        const tile = terrainTile(0, 0);
+        tile.featureWorld().markForPostProcessing?.({ x: 1, y: 20, z: 1 });
+
+        expect(tile.centerFluidTicks()).toEqual([{ x: 1, y: 20, z: 1 }]);
+    });
+
     it('does not let a patch drop grass or leaf litter over a block it never saw', () => {
         const position = { x: 16, y: 64, z: 8 };
         const built = terrainTile(1, 0);

@@ -20,6 +20,7 @@ import type {
     HeightmapType,
     TemplateRequest
 } from '@jsprismarine/features';
+import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import type { BedrockBlockState } from '@jsprismarine/structures';
 import type { SurfaceChunk } from '@jsprismarine/worldgen';
 
@@ -34,6 +35,33 @@ const READ_THROUGH_TERRAIN = Symbol('GenerationRegion read-through terrain');
 
 const AIR = 'minecraft:air';
 const AIR_STATE: BlockState = { name: AIR, properties: {} };
+
+/**
+ * The blocks Java 26.3 gives a post-process position, and how far above the block it is.
+ *
+ * Read from `Blocks`: the two small mushrooms register `postProcessSelf` and soul sand and the
+ * magma block register `postProcessAbove`, which is where a bubble column starts. Every other
+ * block returns null, so `WorldGenRegion.setBlock` marks nothing for it.
+ */
+const JAVA_POST_PROCESS_OFFSETS: ReadonlyMap<string, number> = new Map([
+    ['minecraft:brown_mushroom', 0],
+    ['minecraft:red_mushroom', 0],
+    ['minecraft:soul_sand', 1],
+    ['minecraft:magma_block', 1]
+]);
+
+/**
+ * The same offsets by either spelling: a feature or a structure piece writes the Java name, and a
+ * template writes the Bedrock one the mapping gives it, `minecraft:magma` for the magma block.
+ */
+const POST_PROCESS_OFFSETS: ReadonlyMap<string, number> = (() => {
+    const offsets = new Map(JAVA_POST_PROCESS_OFFSETS);
+    for (const [java, offset] of JAVA_POST_PROCESS_OFFSETS) {
+        const mapped = javaBlockStateToBedrock(java);
+        if (mapped.kind === 'mapped') offsets.set(mapped.bedrock.name, offset);
+    }
+    return offsets;
+})();
 
 /** How a {@link GenerationRegion} is built. */
 export interface GenerationRegionOptions {
@@ -1033,12 +1061,18 @@ export class GenerationRegion {
             seed: this.options.seed,
             blocks: this.options.blocks,
             getBlock: (position) => this.stateAt(position.x, position.y, position.z),
-            setBlock: (position, state) => this.write(position.x, position.y, position.z, state),
+            setBlock: (position, state, options) => {
+                if (!this.write(position.x, position.y, position.z, state)) return false;
+                if (options?.postProcess !== false)
+                    this.markPostProcessOf(position.x, position.y, position.z, state.name);
+                return true;
+            },
             getHeight: (heightmap, x, z) => this.heightAt(heightmap, x, z),
             getBiome: (position) => this.options.biomeAt(position.x, position.y, position.z),
             setBlockEntity: (position, data) => this.attachBlockEntity(position, data),
             spawnEntity: (type, position, options) => this.recordEntity(type, position, options),
             scheduleFluidTick: (position) => this.scheduleFluidTick(position.x, position.y, position.z),
+            markForPostProcessing: (position) => this.scheduleFluidTick(position.x, position.y, position.z),
             placeTemplate: (request) => this.stampTemplate(request),
             ...(this.options.isColdEnoughToSnow
                 ? {
@@ -1078,6 +1112,22 @@ export class GenerationRegion {
         const tick = { x, y, z };
         this.fluidTicks.push(tick);
         if (this.trackingWrites) this.trackedFluidTicks.push(tick);
+    }
+
+    /**
+     * Marks the position a block just written asks post-processing for, Java's
+     * `WorldGenRegion.setBlock` calling `BlockState.getPostProcessPos`.
+     *
+     * The mark joins the same list as {@link scheduleFluidTick}, because the fluid tick is the part
+     * of Java's `LevelChunk.postProcessGeneration` this server runs: the world ticks a marked
+     * position only where fluid stands, which for soul sand and magma is the water a bubble column
+     * would rise through. The shape update Java runs on the other marks has no counterpart here.
+     *
+     * @param name - The block's name, in Java or Bedrock spelling.
+     */
+    public markPostProcessOf(x: number, y: number, z: number, name: string): void {
+        const offset = POST_PROCESS_OFFSETS.get(name);
+        if (offset !== undefined) this.scheduleFluidTick(x, y + offset, z);
     }
 
     /**
@@ -1136,7 +1186,11 @@ export class GenerationRegion {
             blockAt: (x, y, z) => this.stateAt(x, y, z),
             heightAt: (heightmap, x, z) => this.heightAt(heightmap, x, z),
             hasTag: (identifier, tag) => this.options.blocks.hasTag({ name: identifier, properties: {} }, tag),
-            write: (x, y, z, state) => this.writeBedrock(x, y, z, state),
+            write: (x, y, z, state) => {
+                if (!this.writeBedrock(x, y, z, state)) return false;
+                this.markPostProcessOf(x, y, z, state.name);
+                return true;
+            },
             setBlockEntity: (x, y, z, entity) => this.attachBlockEntity({ x, y, z }, entity)
         };
 
