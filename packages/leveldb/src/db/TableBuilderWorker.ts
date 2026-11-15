@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parentPort } from 'node:worker_threads';
 
-import { TableFile, writeFileSynced } from './Storage';
+import { openTableFile, writeFileSynced } from './Storage';
+import type { TableFile } from './Storage';
 import { compareBytewise } from '../util/Comparator';
 import {
     compareInternalKeys,
@@ -61,7 +62,7 @@ const compactTables = (task: CompactTablesTask): TableWorkerResult => {
 
     try {
         const sources = task.inputs.map((metadata) => {
-            const file = new TableFile(path.join(task.directory, tableFileName(metadata.number)));
+            const file = openTableFile(task.directory, metadata.number);
             opened.push(file);
             return new TableReader(file, compareInternalKeys, { fileNumber: metadata.number })
                 .entries({ useCache: false })

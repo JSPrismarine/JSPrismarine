@@ -440,6 +440,26 @@ describe('leveldb', () => {
                 await crashed.close();
             });
 
+            it('reads and compacts tables saved under the legacy .sst name', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory);
+                db.put(key('kept'), key('v'));
+                await db.close();
+
+                for (const name of fs.readdirSync(directory).filter((name) => name.endsWith('.ldb'))) {
+                    fs.renameSync(path.join(directory, name), path.join(directory, name.replace('.ldb', '.sst')));
+                }
+
+                const reopened = await Database.open(directory, { l0CompactionTrigger: 1 });
+                expect(reopened.get(key('kept'))?.toString()).toBe('v');
+                reopened.put(key('more'), key('v'));
+                await reopened.flush();
+
+                expect(fs.readdirSync(directory).filter((name) => name.endsWith('.sst'))).toEqual([]);
+                expect([...reopened.keys()].map(String)).toEqual(['kept', 'more']);
+                await reopened.close();
+            });
+
             it('keeps deletions across a reopen', async () => {
                 const directory = scratch();
                 const first = await Database.open(directory);
