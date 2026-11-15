@@ -45,7 +45,10 @@ export const contentBlockTickHandlers = (
         const live = world();
         if (!live) return;
 
-        const stored = live.loadedBlockAt(at.x, at.y, at.z);
+        // A waterlogged block's water lives in the liquid layer, and its scheduled tick names the
+        // water rather than the block it soaks, so the layer is the one to answer for it.
+        let stored = live.loadedBlockAt(at.x, at.y, at.z);
+        if (stored !== undefined && stored.name !== identifier) stored = live.loadedLiquidAt(at.x, at.y, at.z);
         if (stored === undefined || stored.name !== identifier) return;
 
         const state = type.state(stored.states);

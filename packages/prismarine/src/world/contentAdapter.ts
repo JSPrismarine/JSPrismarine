@@ -324,6 +324,10 @@ export const worldBlockStorage = (world: LiveWorld): BlockStorageAccess => ({
         const block = world()?.loadedBlockAt(position.x, position.y, position.z);
         return block && { identifier: block.name, states: block.states };
     },
+    liquidAt: (position) => {
+        const liquid = world()?.loadedLiquidAt(position.x, position.y, position.z);
+        return liquid && { identifier: liquid.name, states: liquid.states };
+    },
     write: (position, block) => {
         const runtimeId = BlockRuntimeIds.tryGetByState(block.identifier, block.states);
         if (runtimeId === null) {

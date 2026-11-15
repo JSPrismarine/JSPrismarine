@@ -35,6 +35,7 @@ import type { BlockReference, WorldActions as ItemWorldActions } from '@jsprisma
 import type { SpawnWorld } from '@jsprismarine/spawning';
 
 import { itemInteractionWorld } from '../../item/interactionContext';
+import { liquidOf } from '../../world/physics/BlockRules';
 
 import type { ServerContent } from '../ServerContent';
 import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
@@ -187,6 +188,18 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         return block && { identifier: block.identifier, position: at, dimension, states: block.states };
     };
 
+    /**
+     * What a tick at a position is filed under: its block, except that a fluid tick names the
+     * fluid. Java's `scheduleTick(pos, Fluids.WATER, delay)` names the water, and for a waterlogged
+     * block that water is in the liquid layer, so filing it under the block would hand the water's
+     * tick to the block's own hooks.
+     */
+    const tickTypeAt = (position: ContentPosition, kind: 'block' | 'fluid'): string => {
+        const block = adapter.blocks.get(position)?.identifier ?? 'minecraft:air';
+        if (kind !== 'fluid' || liquidOf(block) !== null) return block;
+        return adapter.blocks.liquid?.(position)?.identifier ?? block;
+    };
+
     const destroy = adapter.blocks.destroy;
     const engineWorld = engineWorldOf(adapter);
     const tickPriority: Record<BlockTickPriority, number> = {
@@ -198,6 +211,10 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
 
     const actions: BlockWorldActions = {
         getBlock: hookBlock,
+        getLiquid: (at) => {
+            const liquid = adapter.blocks.liquid?.(at);
+            return liquid && { identifier: liquid.identifier, position: at, dimension, states: liquid.states };
+        },
         setBlock: (position, identifier, states = {}, notifyNeighbors = true, placement) =>
             adapter.blocks.set(position, { identifier, states }, notifyNeighbors, placement),
         ...(adapter.blocks.move === undefined
@@ -230,13 +247,7 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         // The block hook carries no tick type, so the tick is scheduled for whatever stands
         // at the position now, which is what Java's `Block.scheduleTick` does too.
         scheduleTick: (position, delay, kind = 'block', priority = 'normal') =>
-            adapter.ticks.schedule(
-                kind,
-                position,
-                adapter.blocks.get(position)?.identifier ?? 'minecraft:air',
-                delay,
-                tickPriority[priority]
-            ),
+            adapter.ticks.schedule(kind, position, tickTypeAt(position, kind), delay, tickPriority[priority]),
         willTickThisTick: (position) =>
             adapter.ticks.runsThisTick('block', position, adapter.blocks.get(position)?.identifier ?? 'minecraft:air'),
         randomInt: (bound) => adapter.random.nextInt(bound),
