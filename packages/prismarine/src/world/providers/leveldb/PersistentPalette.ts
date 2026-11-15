@@ -1,4 +1,4 @@
-import type BinaryStream from '@jsprismarine/binaryutils';
+import BinaryStream from '@jsprismarine/binaryutils';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader, NBTWriter, Types } from '@jsprismarine/nbt';
 import { blockSchemas } from '@jsprismarine/minecraft';
@@ -39,6 +39,17 @@ if (
 export const BLOCK_STATE_VERSION = (majorVersion << 24) | (minorVersion << 16) | (patchVersion << 8) | 1;
 
 /**
+ * Each runtime id's entry as {@link encodePaletteEntry} last wrote it. An entry depends only on
+ * the id and the schema its block's property types come from, and a world's sub chunks repeat a
+ * few hundred states, so a save writes these bytes instead of building the compound again.
+ */
+const encodedEntries = new Map<number, Buffer>();
+/** The schema revision {@link encodedEntries} was written under. */
+let encodedRevision = -1;
+/** Enough for every state a world holds; a registry that reaches it starts over. */
+const ENCODED_ENTRY_LIMIT = 1 << 16;
+
+/**
  * A palette entry as it sits on disk: `{name, states, version}` in little endian, fixed width NBT.
  *
  * The network form of the same palette is a list of runtime ids, which are hashes of exactly this
@@ -46,9 +57,22 @@ export const BLOCK_STATE_VERSION = (majorVersion << 24) | (minorVersion << 16) |
  * separate mapping table to keep in step.
  */
 export const encodePaletteEntry = (runtimeId: number, stream: BinaryStream): void => {
-    const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
-    writer.setUseVarint(false);
-    writer.writeCompound(paletteEntryCompound(runtimeId));
+    const revision = BlockStateSchemas.getRevision();
+    if (revision !== encodedRevision || encodedEntries.size >= ENCODED_ENTRY_LIMIT) {
+        encodedEntries.clear();
+        encodedRevision = revision;
+    }
+
+    let bytes = encodedEntries.get(runtimeId);
+    if (bytes === undefined) {
+        const entry = new BinaryStream();
+        const writer = new NBTWriter(entry, ByteOrder.LITTLE_ENDIAN);
+        writer.setUseVarint(false);
+        writer.writeCompound(paletteEntryCompound(runtimeId));
+        bytes = Buffer.from(entry.getBuffer());
+        encodedEntries.set(runtimeId, bytes);
+    }
+    stream.write(bytes);
 };
 
 /**
