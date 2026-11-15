@@ -85,7 +85,7 @@ describe('the command line', () => {
 describe('against a real server', () => {
     let stateRoot: string;
     let server: Server | null = null;
-    const port = 19280;
+    let port = 0;
 
     // This boots the full server while the monorepo test selector forks many suites; under
     // runner contention, cold bootstrap can exceed a minute even though this file passes alone.
@@ -98,7 +98,9 @@ describe('against a real server', () => {
         );
 
         server = new Server({ logger: new Logger('error'), config: new Config(), headless: true });
-        await server.bootstrap('127.0.0.1', port);
+        // Port 0, so another checkout's run cannot hold it; the server advertises the port it got.
+        await server.bootstrap('127.0.0.1', 0);
+        port = server.getMetadata().getPort();
     }, 120_000);
 
     afterAll(() => {

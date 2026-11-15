@@ -88,9 +88,9 @@ beforeAll(async () => {
     const logger = new Logger('error');
     server = new Server({ logger, config: new Config(), headless: true });
 
-    // A fixed port, as `Login.test.ts` explains, and not that suite's.
-    port = 19279;
-    await server.bootstrap('127.0.0.1', port);
+    // Port 0, so another checkout's run cannot hold it; the server advertises the port it got.
+    await server.bootstrap('127.0.0.1', 0);
+    port = server.getMetadata().getPort();
 }, 60_000);
 
 afterEach(() => {
