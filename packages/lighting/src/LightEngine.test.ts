@@ -139,6 +139,27 @@ describe('LightEngine block light', () => {
     });
 });
 
+describe('LightEngine settledness', () => {
+    it('reports a lit chunk as flooding while it or a neighbor has light queued, and not after', () => {
+        const view = darkWorld();
+        view.place(8, 10, 8, GLOWSTONE);
+        const engine = new LightEngine(view);
+
+        // Not lit yet: nothing queued for it, and nothing to settle.
+        expect(engine.isFloodingAround(0, 0)).toBe(false);
+        expect(engine.isSettledAround(0, 0)).toBe(false);
+
+        engine.onChunkLoaded(0, 0);
+        expect(engine.isFloodingAround(0, 0)).toBe(true);
+        // A chunk two away cannot be reached by this light, so it is not flooding on its account.
+        expect(engine.isFloodingAround(2, 0)).toBe(false);
+
+        engine.flush();
+        expect(engine.isFloodingAround(0, 0)).toBe(false);
+        expect(engine.isSettledAround(0, 0)).toBe(true);
+    });
+});
+
 describe('LightEngine flush budget', () => {
     it('stops at the budget and reports the work still queued', () => {
         const view = darkWorld();

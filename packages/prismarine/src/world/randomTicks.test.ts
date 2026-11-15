@@ -193,6 +193,30 @@ describe('contentRandomTickHandlers', () => {
         expect(world.randomTickChunks()).toEqual([{ x: 0, z: 0, sections: [SOIL_Y >> 4] }]);
     });
 
+    it('skips a chunk whose light is still flooding, as Java ticks a chunk only once it is lit', () => {
+        place(chunk, 0, SOIL_Y, 0, 'minecraft:farmland', { moisturized_amount: 7 });
+        Object.assign(world, {
+            players: new Map([
+                [
+                    1n,
+                    {
+                        isConnected: () => true,
+                        getViewPosition: () => new Vector3(8, 0, 8),
+                        getViewDistance: () => 0
+                    }
+                ]
+            ])
+        });
+
+        // Lit but not flushed: the sky flood is queued behind the per-tick budget.
+        world.getSystems().onChunkLoaded(0, 0);
+        expect(world.getSystems().lighting.pending.queued).toBeGreaterThan(0);
+        expect(world.randomTickChunks()).toEqual([]);
+
+        world.getSystems().lighting.flush();
+        expect(world.randomTickChunks()).toEqual([{ x: 0, z: 0, sections: [SOIL_Y >> 4] }]);
+    });
+
     it('names every block the content answers a random tick for, and nothing else', () => {
         const handlers = contentRandomTickHandlers({ content, world: () => world, report: () => {} });
 

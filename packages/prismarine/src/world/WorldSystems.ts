@@ -273,6 +273,14 @@ export class WorldSystems {
         this.randomPositions.restore(state);
     }
 
+    /**
+     * Whether a lit chunk's light is still flooding, in it or a neighbor. Such a chunk is not
+     * random-ticked, as Java ticks a chunk only once its `light` status is done.
+     */
+    public isLightFlooding(chunkX: number, chunkZ: number): boolean {
+        return this.lighting.isFloodingAround(chunkX, chunkZ);
+    }
+
     /** Reads block light, initializing and settling an otherwise deferred loaded chunk on demand. */
     public getBlockLight(x: number, y: number, z: number): number {
         this.ensureLightForRead(x, y, z);
@@ -511,8 +519,9 @@ export class WorldSystems {
         // A chunk the ring already initialized can still have its flood queued behind the
         // per-tick budget, and a read of it would see too little light: cows refused to spawn
         // for as long as the flood ran. Finishing the queue here is the work the following ticks
-        // would have done anyway, and costs nothing once it is empty.
-        if (this.lighting.pending.queued > 0) this.lighting.flush();
+        // would have done anyway. Only a read near queued work pays it: a grass block's random
+        // tick in settled terrain used to run every other chunk's flood inside the tick.
+        if (!this.lighting.isSettledAround(x >> 4, z >> 4)) this.lighting.flush();
     }
 
     private initializeLightChunk(chunkX: number, chunkZ: number): void {
