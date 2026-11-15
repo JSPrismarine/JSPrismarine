@@ -212,14 +212,18 @@ describe('CandidateChunkMemo', () => {
         }
     });
 
-    it('draws only the regions a moved window has not asked before', () => {
+    it('draws each tile of regions once, however many windows read it', () => {
         const memo = new CandidateChunkMemo(1234n);
 
-        memo.in(mineshafts, window(0, 0));
-        expect(memo.regionsDrawn).toBe(17 * 17);
+        // A 17 chunk window inside one 32 by 32 tile of the one-chunk spacing.
+        memo.in(mineshafts, window(10, 10));
+        expect(memo.regionsDrawn).toBe(32 * 32);
 
-        memo.in(mineshafts, window(0, 0));
-        memo.in(mineshafts, window(1, 0));
-        expect(memo.regionsDrawn).toBe(17 * 17 + 17);
+        for (let x = 8; x <= 23; x++) memo.in(mineshafts, window(x, 12));
+        expect(memo.regionsDrawn).toBe(32 * 32);
+
+        // One chunk further reaches the next tile over.
+        memo.in(mineshafts, window(24, 12));
+        expect(memo.regionsDrawn).toBe(2 * 32 * 32);
     });
 });

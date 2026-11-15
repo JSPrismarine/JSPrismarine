@@ -94,27 +94,38 @@ export const candidateChunksIn = (placement: StructurePlacement, seed: bigint, r
 };
 
 /** How many regions {@link CandidateChunkMemo} keeps before it starts over. */
-const MEMO_LIMIT = 1 << 17;
+const MEMO_LIMIT = 1 << 18;
+
+/** The side of the square of chunks one memo tile covers, so a 17 chunk window reads at most four. */
+const TILE_CHUNKS = 32;
+
+/** Region order: x, then z, which is the order a scan visits the regions in. */
+const byRegion =
+    (spacing: number) =>
+    (left: ChunkPosition, right: ChunkPosition): number =>
+        Math.floor(left.x / spacing) - Math.floor(right.x / spacing) ||
+        Math.floor(left.z / spacing) - Math.floor(right.z / spacing);
 
 /**
  * {@link candidateChunksIn} with each region's answer remembered.
  *
  * A region's candidate is fixed by the seed, and the windows neighboring chunks scan overlap
  * almost entirely: a set spaced one chunk apart, such as the mineshafts, asks the same 289
- * regions of every chunk around it, and each answer is two seeded draws. The memo asks each
- * region once.
+ * regions of every chunk around it, and each answer is two seeded draws. The memo draws a tile of
+ * regions once and keeps only the candidates it holds, so a later window reads a few tiles and
+ * filters their candidates instead of visiting each region.
  */
 export class CandidateChunkMemo {
-    private readonly regions = new Map<RandomSpreadPlacement, Map<string, ChunkPosition | null>>();
+    private readonly tiles = new Map<RandomSpreadPlacement, Map<string, readonly ChunkPosition[]>>();
     private readonly rings = new Map<StructurePlacement, readonly ChunkPosition[]>();
     private size = 0;
-    private asked = 0;
+    private drawn = 0;
 
     public constructor(private readonly seed: bigint) {}
 
     /** How many random spread regions this memo has drawn a candidate for, for profiling. */
     public get regionsDrawn(): number {
-        return this.asked;
+        return this.drawn;
     }
 
     /** The same chunks, in the same order, as {@link candidateChunksIn} returns. */
@@ -136,33 +147,50 @@ export class CandidateChunkMemo {
 
     private spread(placement: RandomSpreadPlacement, range: ChunkRange): ChunkPosition[] {
         if (this.size >= MEMO_LIMIT) {
-            this.regions.clear();
+            this.tiles.clear();
             this.size = 0;
         }
-        let byRegion = this.regions.get(placement);
-        if (byRegion === undefined) {
-            byRegion = new Map();
-            this.regions.set(placement, byRegion);
+        let tiles = this.tiles.get(placement);
+        if (tiles === undefined) {
+            tiles = new Map();
+            this.tiles.set(placement, tiles);
         }
 
+        const tileRegions = Math.max(1, Math.floor(TILE_CHUNKS / placement.spacing));
+        const tileOf = (chunk: number): number => Math.floor(Math.floor(chunk / placement.spacing) / tileRegions);
         const candidates: ChunkPosition[] = [];
-        const minRegionX = Math.floor(range.minChunkX / placement.spacing);
-        const maxRegionX = Math.floor(range.maxChunkX / placement.spacing);
-        const minRegionZ = Math.floor(range.minChunkZ / placement.spacing);
-        const maxRegionZ = Math.floor(range.maxChunkZ / placement.spacing);
-        for (let regionX = minRegionX; regionX <= maxRegionX; regionX++) {
-            for (let regionZ = minRegionZ; regionZ <= maxRegionZ; regionZ++) {
-                const key = `${regionX},${regionZ}`;
-                let chunk = byRegion.get(key);
-                if (chunk === undefined) {
-                    chunk = regionCandidate(placement, this.seed, regionX, regionZ);
-                    byRegion.set(key, chunk);
-                    this.size++;
-                    this.asked++;
+        let tilesRead = 0;
+        for (let tileX = tileOf(range.minChunkX); tileX <= tileOf(range.maxChunkX); tileX++) {
+            for (let tileZ = tileOf(range.minChunkZ); tileZ <= tileOf(range.maxChunkZ); tileZ++) {
+                const key = `${tileX},${tileZ}`;
+                let tile = tiles.get(key);
+                if (tile === undefined) {
+                    tile = this.drawTile(placement, tileX * tileRegions, tileZ * tileRegions, tileRegions);
+                    tiles.set(key, tile);
                 }
-                if (chunk !== null && inRange(range, chunk)) candidates.push(chunk);
+                for (const chunk of tile) if (inRange(range, chunk)) candidates.push(chunk);
+                tilesRead++;
             }
         }
+        // Tiles are read one after another, so a window spanning two needs the scan's order back.
+        return tilesRead > 1 ? candidates.sort(byRegion(placement.spacing)) : candidates;
+    }
+
+    private drawTile(
+        placement: RandomSpreadPlacement,
+        minRegionX: number,
+        minRegionZ: number,
+        regions: number
+    ): ChunkPosition[] {
+        const candidates: ChunkPosition[] = [];
+        for (let regionX = minRegionX; regionX < minRegionX + regions; regionX++) {
+            for (let regionZ = minRegionZ; regionZ < minRegionZ + regions; regionZ++) {
+                const chunk = regionCandidate(placement, this.seed, regionX, regionZ);
+                if (chunk !== null) candidates.push(chunk);
+            }
+        }
+        this.size += regions * regions;
+        this.drawn += regions * regions;
         return candidates;
     }
 }
