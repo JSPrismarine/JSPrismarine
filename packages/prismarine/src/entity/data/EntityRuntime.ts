@@ -4763,10 +4763,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         const buoyant = instance.componentParams('minecraft:buoyant');
-        if (isRecord(buoyant)) {
-            this.coastBuoyant(entity, buoyant);
-            return;
-        }
+        if (isRecord(buoyant) && this.coastBuoyant(entity, buoyant)) return;
 
         const componentFacts = this.componentFactsOf(entity);
         const position = body.position;
@@ -5150,8 +5147,15 @@ export class EntityRuntime implements EntityScene {
         entity.body.position = { ...position, y: nextY };
     }
 
-    /** Applies Java's boat float step when the active definition declares buoyancy. */
-    private coastBuoyant(entity: DataEntity, buoyant: Record<string, unknown>): void {
+    /**
+     * Applies Java's boat float step when the active definition declares buoyancy.
+     *
+     * `apply_gravity: false` limits the component to its liquids: a horse, a donkey or an
+     * experience orb that touches none of them falls under its ordinary physics instead, and
+     * this returns `false` so {@link coast} runs that step.
+     * @returns Whether this step moved the entity.
+     */
+    private coastBuoyant(entity: DataEntity, buoyant: Record<string, unknown>): boolean {
         const { body } = entity;
         const position = body.position;
         const box = entity.facts.box;
@@ -5190,6 +5194,9 @@ export class EntityRuntime implements EntityScene {
             }
         }
 
+        const applyGravity = buoyant.apply_gravity !== false;
+        if (!applyGravity && liquidSurface === undefined && !underwaterSource && !underwaterFlowing) return false;
+
         const componentFacts = this.componentFactsOf(entity);
         const navigation = this.navigation();
         const grounded =
@@ -5199,7 +5206,6 @@ export class EntityRuntime implements EntityScene {
         if (grounded) body.conditions.add('on_ground');
         else body.conditions.delete('on_ground');
 
-        const applyGravity = buoyant.apply_gravity !== false;
         const baseBuoyancy = typeof buoyant.base_buoyancy === 'number' ? buoyant.base_buoyancy : 1;
         const submerged = underwaterFlowing ? 'flowing' : underwaterSource ? 'source' : undefined;
         const inLiquid = submerged === undefined && liquidSurface !== undefined;
@@ -5269,7 +5275,7 @@ export class EntityRuntime implements EntityScene {
             } else {
                 this.land(entity);
             }
-            return;
+            return true;
         }
 
         body.velocity = {
@@ -5277,6 +5283,7 @@ export class EntityRuntime implements EntityScene {
             y: hitVerticalCollision ? (bounciness > 0 ? -nextVelocity.y * bounciness : 0) : nextVelocity.y
         };
         body.position = nextVertical;
+        return true;
     }
 
     /** Moves a body along its current waypoint using its active navigation rules. */

@@ -56,8 +56,27 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             expect(cube.instance.componentParams('minecraft:air_drag_modifier')).toBe(0.01);
             expect(cube.position.y).toBe(64);
             expect(cube.body.velocity.x).toBeCloseTo(0.999);
-            expect(cube.body.velocity.y).toBeCloseTo(0.9);
+            // Out of water its `apply_gravity: false` buoyancy steps aside, so the mob's 0.08
+            // gravity adds to the downward push before the bounce reverses it.
+            expect(cube.body.velocity.y).toBeCloseTo(1.08 * 0.9);
             runtime.remove(cube.id, 'vanilla physics coverage');
+        });
+
+        it('brings a horse back to the ground after it leaves it', () => {
+            const horse = runtime.spawn('minecraft:horse', { x: 20.5, y: 64, z: 0.5 });
+            if (horse === undefined) throw new Error('the vanilla pack declares no minecraft:horse');
+            horse.body.push({ x: 0, y: 0.5, z: 0 });
+
+            let highest = horse.position.y;
+            for (let tick = 1; tick <= 40; tick += 1) {
+                runtime.tick(tick);
+                highest = Math.max(highest, horse.position.y);
+            }
+
+            expect(highest).toBeLessThan(66);
+            expect(horse.position.y).toBe(64);
+            expect(horse.body.velocity.y).toBe(0);
+            runtime.remove(horse.id, 'vanilla physics coverage');
         });
 
         it('reads sulfur cube ground friction from its active archetype group', () => {

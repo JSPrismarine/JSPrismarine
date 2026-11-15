@@ -1577,6 +1577,46 @@ describe('EntityRuntime', () => {
             expect(boat.position.y).toBeLessThan(FLOOR_Y + 1.8);
         });
 
+        it('brings a horse-shaped buoyant mob back down out of water', () => {
+            // The horse declares `minecraft:buoyant` with `apply_gravity: false` for water only.
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:horse_like': {
+                        components: {
+                            'minecraft:collision_box': { width: 1.4, height: 1.6 },
+                            'minecraft:physics': {},
+                            'minecraft:buoyant': {
+                                base_buoyancy: 1,
+                                apply_gravity: false,
+                                can_auto_step_from_liquid: true,
+                                movement_type: 'bobbing',
+                                liquid_blocks: ['minecraft:water', 'minecraft:flowing_water']
+                            }
+                        }
+                    }
+                }
+            );
+            const jumped = runtime.spawn('jsprismarine:horse_like', { x: 0.5, y: GROUND.y, z: 0.5 });
+            const dropped = runtime.spawn('jsprismarine:horse_like', { x: 5.5, y: GROUND.y + 2, z: 0.5 });
+            if (jumped === undefined || dropped === undefined) throw new Error('the fixture declares no horse');
+            jumped.body.push({ x: 0, y: 0.5, z: 0 });
+
+            let highest = jumped.position.y;
+            for (let tick = 1; tick <= 40; tick += 1) {
+                runtime.tick(tick);
+                highest = Math.max(highest, jumped.position.y);
+            }
+
+            expect(highest).toBeGreaterThan(GROUND.y);
+            expect(highest).toBeLessThan(GROUND.y + 2);
+            expect(jumped.position.y).toBe(GROUND.y);
+            expect(jumped.body.velocity.y).toBe(0);
+            expect(dropped.position.y).toBe(GROUND.y);
+            expect(dropped.body.velocity.y).toBe(0);
+        });
+
         it('tracks water and lava independently across one body scan', () => {
             const world = new TestEntityWorld();
             world.setBlock({ x: 0, y: GROUND.y, z: 0 }, 'minecraft:water');
@@ -2138,7 +2178,6 @@ describe('EntityRuntime', () => {
                             'minecraft:physics': {},
                             'minecraft:bounciness': { value: 0.9 },
                             'minecraft:buoyant': {
-                                apply_gravity: false,
                                 liquid_blocks: ['minecraft:water', 'minecraft:flowing_water']
                             }
                         }
@@ -2151,8 +2190,9 @@ describe('EntityRuntime', () => {
 
             runtime.tick(1);
 
+            // The boat step's 0.04 gravity adds to the downward push before the bounce reverses it.
             expect(entity.position.y).toBe(GROUND.y);
-            expect(entity.body.velocity.y).toBeCloseTo(0.9);
+            expect(entity.body.velocity.y).toBeCloseTo(1.04 * 0.9);
         });
 
         it('does not lose ground speed when the active friction modifier is zero', () => {
