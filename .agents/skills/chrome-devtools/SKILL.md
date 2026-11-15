@@ -90,6 +90,10 @@ answer the question.
 Capture a baseline before changing code. Record the scenario, warmup, capture duration, and
 relevant load so the same workload can be measured after the change.
 
+For a before-and-after comparison, follow [Profiling loop](references/profile-loop.md). Its
+scripts start a disposable server and bot, profile a named workload, record the counts and load
+beside each capture, and compare two captures.
+
 - Use `Profiler.enable`, `Profiler.start`, and `Profiler.stop` through the CLI to attribute sampled
   CPU time to functions and call stacks. Save the returned profile as JSON in a `.cpuprofile` file.
 - Use `HeapProfiler` commands through the CLI for heap snapshots or allocation profiling. Account
