@@ -175,6 +175,8 @@ const SEARCH_HEIGHT = 4;
 /** Bounds retained search results and chunk indexes. */
 const MAX_CACHED_SEARCHES = 50_000;
 const MAX_CACHED_MARKER_BANDS = 1_024;
+/** How many changed chunks the index tracks before it starts over with every cache. */
+const MAX_TRACKED_CHUNK_WRITES = 65_536;
 
 /** What the index reads to answer a search. */
 export interface PoiWorld {
@@ -192,8 +194,21 @@ export class PointsOfInterest {
     /** The positions a subsystem recorded, by kind. */
     private readonly recorded = new Map<string, EntityPosition[]>();
     private readonly blockCache = new Map<number, Map<number, PoiCellFacts>>();
-    private readonly markerChunkBands = new Map<string, ReadonlyMap<string, readonly EntityPosition[]>>();
-    private readonly shelterColumns = new Map<number, Map<number, ShelterColumnFacts>>();
+    /** Each band's markers, with its chunk's write count when they were read. */
+    private readonly markerChunkBands = new Map<
+        string,
+        { readonly writes: number; readonly cells: ReadonlyMap<string, readonly EntityPosition[]> }
+    >();
+    /** Each column's shelter answers, with its chunk's write count when they were read. */
+    private readonly shelterColumns = new Map<
+        number,
+        { readonly writes: number; readonly centerYs: Map<number, ShelterColumnFacts> }
+    >();
+    /**
+     * How many times each chunk changed, by chunk key. A cached band or column is current while
+     * its chunk's count is the one it was read at, so one chunk's change leaves the rest cached.
+     */
+    private readonly chunkWrites = new Map<number, number>();
     private readonly searchCache = new Map<string, EntityPosition | null>();
     private blockCacheGeneration = 0;
     private cachedBlockCacheGeneration = 0;
@@ -209,9 +224,28 @@ export class PointsOfInterest {
         this.cachedBlockCount = 0;
     }
 
-    /** Invalidates cached block reads after the world changes a block. */
-    public invalidateBlockCache(): void {
-        this.blockCacheGeneration += 1;
+    /**
+     * Invalidates cached block reads after the world changes a block.
+     * @param chunkX - The changed chunk's x coordinate; omit both coordinates to clear every chunk.
+     * @param chunkZ - The changed chunk's z coordinate.
+     */
+    public invalidateBlockCache(chunkX?: number, chunkZ?: number): void {
+        if (chunkX === undefined || chunkZ === undefined || this.chunkWrites.size >= MAX_TRACKED_CHUNK_WRITES) {
+            this.blockCacheGeneration += 1;
+            return;
+        }
+
+        const key = columnKeyOf(chunkX, chunkZ);
+        this.chunkWrites.set(key, (this.chunkWrites.get(key) ?? 0) + 1);
+        // A finished search may have read the chunk, and so may this tick's block reads.
+        this.searchCache.clear();
+        this.blockCache.clear();
+        this.cachedBlockCount = 0;
+    }
+
+    /** How many times a chunk changed since the caches last started over. */
+    private writesIn(chunkX: number, chunkZ: number): number {
+        return this.chunkWrites.get(columnKeyOf(chunkX, chunkZ)) ?? 0;
     }
 
     /**
@@ -338,7 +372,14 @@ export class PointsOfInterest {
         navigation: PoiNavigation
     ): EntityPosition | undefined {
         const key = columnKeyOf(x, z);
-        let centerYs = this.shelterColumns.get(key);
+        const writes = this.writesIn(Math.floor(x / 16), Math.floor(z / 16));
+        let column = this.shelterColumns.get(key);
+        if (column !== undefined && column.writes !== writes) {
+            this.shelterColumns.delete(key);
+            this.cachedShelterColumnCount -= column.centerYs.size;
+            column = undefined;
+        }
+        let centerYs = column?.centerYs;
         const cached = centerYs?.get(centerY);
         if (cached !== undefined) {
             const result = indoors ? cached.indoors : cached.outdoors;
@@ -375,7 +416,7 @@ export class PointsOfInterest {
         if (cached === undefined) {
             centerYs = centerYs ?? new Map<number, ShelterColumnFacts>();
             centerYs.set(centerY, facts);
-            this.shelterColumns.set(key, centerYs);
+            this.shelterColumns.set(key, { writes, centerYs });
             this.cachedShelterColumnCount += 1;
         }
 
@@ -433,8 +474,9 @@ export class PointsOfInterest {
         navigation: PoiNavigation
     ): ReadonlyMap<string, readonly EntityPosition[]> {
         const key = `${chunkX},${chunkZ},${centerY}`;
+        const writes = this.writesIn(chunkX, chunkZ);
         const cached = this.markerChunkBands.get(key);
-        if (cached !== undefined) return cached;
+        if (cached !== undefined && cached.writes === writes) return cached.cells;
 
         if (this.markerChunkBands.size >= MAX_CACHED_MARKER_BANDS) this.markerChunkBands.clear();
 
@@ -454,7 +496,7 @@ export class PointsOfInterest {
             }
         }
 
-        this.markerChunkBands.set(key, cells);
+        this.markerChunkBands.set(key, { writes, cells });
         return cells;
     }
 
@@ -534,6 +576,7 @@ export class PointsOfInterest {
         this.markerChunkBands.clear();
         this.shelterColumns.clear();
         this.searchCache.clear();
+        this.chunkWrites.clear();
         this.cachedBlockCacheGeneration = this.blockCacheGeneration;
         this.cachedBlockCount = 0;
         this.cachedShelterColumnCount = 0;

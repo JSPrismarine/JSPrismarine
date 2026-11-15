@@ -1783,7 +1783,7 @@ export class EntityRuntime implements EntityScene {
      * @param chunkZ - The changed chunk's z coordinate.
      */
     public invalidateBlockCaches(chunkX?: number, chunkZ?: number): void {
-        this.interest.invalidateBlockCache();
+        this.interest.invalidateBlockCache(chunkX, chunkZ);
         this.navigationView?.invalidateBlockCache(chunkX, chunkZ);
     }
 
