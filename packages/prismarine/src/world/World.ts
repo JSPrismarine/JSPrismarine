@@ -4221,8 +4221,26 @@ export class World implements Service {
             // Random tick positions use Java's own stateful generator, separate from server RNG.
             randomTickState: this.systems.getRandomTickState(),
             // Keep the digest cost bounded; the lighting queue can contain a large flood.
-            pendingLighting: { queued, deferred }
+            pendingLighting: { queued, deferred },
+            settlingChunks: this.settlingChunks()
         };
+    }
+
+    /** The chunks still settling, as packed positions in ascending order; see {@link settling}. */
+    public settlingChunks(): number[] {
+        return [...(this.settling?.keys() ?? [])].sort((left, right) => left - right);
+    }
+
+    /**
+     * Puts back the chunks a replay checkpoint recorded as settling. A world restored from the
+     * checkpoint's snapshot reads its chunks from storage, so nothing else marks them.
+     * @param {readonly number[]} packed - The packed positions {@link settlingChunks} returned.
+     */
+    public restoreSettlingChunks(packed: readonly number[]): void {
+        for (const position of packed) {
+            const [x, z] = Chunk.unpackXZ(position);
+            if (x !== undefined && z !== undefined) this.markChunkSettling(x, z);
+        }
     }
 
     /**
@@ -4254,7 +4272,8 @@ export class World implements Service {
                 // The scheduler snapshot keeps Java's separate block and fluid lists and tick order.
                 pendingScheduledTicks: this.systems.ticks.snapshot(),
                 randomTickState: header.randomTickState,
-                pendingLighting: header.pendingLighting
+                pendingLighting: header.pendingLighting,
+                settlingChunks: header.settlingChunks
             })
         );
 

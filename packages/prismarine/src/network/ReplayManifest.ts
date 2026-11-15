@@ -9,7 +9,7 @@ import type { SavedWeather } from '../world/Weather';
 import type Provider from '../world/providers/Provider';
 
 const MANIFEST_FORMAT = 'jsprismarine-replay-initial-state';
-const MANIFEST_VERSION = 2;
+const MANIFEST_VERSION = 3;
 
 /** One resolved dimension input needed to identify the initial level setup. */
 export interface ReplayDimensionManifest {
@@ -66,6 +66,11 @@ export interface ReplayInitialStateManifest {
     readonly randomState: ServerReplayRandomState;
     /** Digests of ready, loaded worlds. These are verification values, not restorable chunks. */
     readonly loadedWorldDigests: readonly (readonly [dimension: string, digest: string])[];
+    /**
+     * Each loaded world's chunks still settling, as packed positions. A restore puts them back
+     * before it checks the digests, since the snapshot's chunks load as stored ones.
+     */
+    readonly settlingChunks: readonly (readonly [dimension: string, chunks: readonly number[]])[];
     /** Explains which provider-backed state this manifest can verify or restore. */
     readonly storageBoundary: ReplayStorageBoundary;
 }
@@ -289,6 +294,15 @@ const isManifest = (value: unknown): value is ReplayInitialStateManifest => {
         isFingerprint(value['worldgenFingerprint']) &&
         isFingerprint(value['activeContentFingerprint']) &&
         isServerReplayRandomState(value['randomState']) &&
+        Array.isArray(value['settlingChunks']) &&
+        value['settlingChunks'].every(
+            (entry) =>
+                Array.isArray(entry) &&
+                entry.length === 2 &&
+                typeof entry[0] === 'string' &&
+                Array.isArray(entry[1]) &&
+                entry[1].every((position: unknown) => Number.isSafeInteger(position))
+        ) &&
         Array.isArray(value['loadedWorldDigests']) &&
         value['loadedWorldDigests'].every(
             (entry) =>

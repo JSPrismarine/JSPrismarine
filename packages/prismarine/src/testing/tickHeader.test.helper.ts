@@ -11,5 +11,6 @@ export const QUIET_TICK_HEADER: TickHeader = {
     gameRules: [],
     pendingChunkLoads: [],
     randomTickState: 0,
-    pendingLighting: { queued: 0, deferred: 0 }
+    pendingLighting: { queued: 0, deferred: 0 },
+    settlingChunks: []
 };

@@ -30,7 +30,7 @@ const snapshot = Buffer.from('test provider snapshot');
 
 const manifest = (): ReplayInitialStateManifest => ({
     format: 'jsprismarine-replay-initial-state',
-    version: 2,
+    version: 3,
     level: {
         name: 'test',
         seed: '1',
@@ -44,6 +44,7 @@ const manifest = (): ReplayInitialStateManifest => ({
     activeContentFingerprint: replayInputFingerprint({ content: 'test', worldgen: 'test' }),
     randomState: randomState(),
     loadedWorldDigests: [['minecraft:overworld', 'a'.repeat(64)]],
+    settlingChunks: [['minecraft:overworld', [0, 4294967297]]],
     storageBoundary: {
         provider: 'LevelDB',
         kind: 'provider-snapshot',
@@ -65,7 +66,7 @@ describe('replay initial-state manifest', () => {
 
     it('rejects unsupported versions and incomplete random state', () => {
         const initial = manifest();
-        const unsupported = Buffer.from(JSON.stringify({ ...initial, version: 3 }));
+        const unsupported = Buffer.from(JSON.stringify({ ...initial, version: 2 }));
         const incomplete = Buffer.from(JSON.stringify({ ...initial, randomState: { version: 1 } }));
 
         expect(() => deserializeReplayInitialStateManifest(unsupported)).toThrow('Unsupported or invalid');

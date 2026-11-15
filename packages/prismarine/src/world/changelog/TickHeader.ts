@@ -18,6 +18,8 @@ type Plain<Shape extends PlainRecord> = Shape;
  * - The light queue is work derived from block writes, and only a tick drains it.
  * - The chunk loads in flight are requests whose completions arrive as inputs
  *   ([ADR 0009](../../../../../docs/adr/0009-external-inputs-enter-once-per-tick.md)).
+ * - The chunks still settling decide whether what the world destroys drops, and a chunk stops
+ *   settling on a tick that writes nothing.
  */
 export type TickHeader = Plain<{
     /** The level clock, as `World.getTicks` reads it. */
@@ -38,4 +40,6 @@ export type TickHeader = Plain<{
     readonly randomTickState: number;
     /** How deep the light queue is. */
     readonly pendingLighting: Plain<{ readonly queued: number; readonly deferred: number }>;
+    /** The freshly generated chunks still settling, as packed positions in ascending order. */
+    readonly settlingChunks: readonly number[];
 }>;
