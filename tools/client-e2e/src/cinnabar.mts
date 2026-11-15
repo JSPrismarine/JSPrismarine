@@ -324,6 +324,38 @@ export const containsCommit = (checkout: string, commit: string, ancestor: strin
 
 const stampFile = (cache: string): string => path.join(cache, '.jsprismarine-e2e-stamp');
 
+/** Where `make assets` writes the client's compiled assets, inside the checkout rather than the cache. */
+const compiledAssetDirectory = (checkout: string): string => path.join(checkout, '.local', 'assets', 'compiled');
+
+const compiledAssetListFile = (cache: string): string => path.join(cache, '.jsprismarine-e2e-assets');
+
+/**
+ * Records the names `make assets` left in the checkout's compiled asset directory.
+ *
+ * The client reads those files at launch, and they live in the checkout, not beside the binaries,
+ * so they can go missing while the stamp still says the build is current.
+ */
+export const recordCompiledAssets = (checkout: string, cache: string): void => {
+    const names = fs.readdirSync(compiledAssetDirectory(checkout)).sort();
+    fs.writeFileSync(compiledAssetListFile(cache), `${names.join('\n')}\n`);
+};
+
+/**
+ * Whether every compiled asset {@link recordCompiledAssets} recorded is still in the checkout.
+ *
+ * @returns `false` when nothing was recorded, such as for a build stamped before the list existed.
+ */
+export const compiledAssetsPresent = (checkout: string, cache: string): boolean => {
+    let names: string[];
+    try {
+        names = fs.readFileSync(compiledAssetListFile(cache), 'utf8').split('\n').filter(Boolean);
+    } catch {
+        return false;
+    }
+    const directory = compiledAssetDirectory(checkout);
+    return names.length > 0 && names.every((name) => fs.existsSync(path.join(directory, name)));
+};
+
 /** Cargo's output directories inside a build's cache. A cold build copies both from a donor. */
 const seededDirectories = ['build', 'target'] as const;
 
@@ -391,7 +423,8 @@ const seedFromDonor = (commit: string): void => {
  * while and needs the network. Each commit's build lives in one cache directory, so repeated
  * calls are a fast no-op, and every protocol, transport and worktree that pins the commit uses
  * the same build. A commit without a build starts from a copy of the most recent one, so only the
- * differing crates compile.
+ * differing crates compile. A build whose binaries or compiled assets have gone missing builds
+ * again; `make assets` and Cargo then redo only what is missing.
  *
  * @param commit - The pinned commit, whose cache holds the build.
  * @throws When a required toolchain (cargo, go) is missing or a build step fails.
@@ -403,7 +436,11 @@ export const ensureBuilt = (checkout: string, commit: string): void => {
     const built = binaries(targetDir);
     const expected = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: checkout, encoding: 'utf8' }).trim();
     const expectedStamp = `${expected}\ncommit-cache-v1`;
-    if (readStamp(cache) === expectedStamp && Object.values(built).every((binary) => fs.existsSync(binary))) {
+    if (
+        readStamp(cache) === expectedStamp &&
+        Object.values(built).every((binary) => fs.existsSync(binary)) &&
+        compiledAssetsPresent(checkout, cache)
+    ) {
         ensureDevelopmentLinks(checkout, built);
         return;
     }
@@ -445,6 +482,7 @@ export const ensureBuilt = (checkout: string, commit: string): void => {
     run('go', ['build', '-o', built.core, './core/cmd/bedrock-core'], checkout);
 
     ensureDevelopmentLinks(checkout, built);
+    recordCompiledAssets(checkout, cache);
     fs.writeFileSync(stampFile(cache), `${expected}\ncommit-cache-v1\n`);
 };
 

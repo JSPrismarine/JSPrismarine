@@ -1,11 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+import { describe, expect, it, onTestFinished } from 'vitest';
 
 import {
     buildName,
+    compiledAssetsPresent,
     parseManifest,
     parseTransport,
     pinMatrix,
     readManifest,
+    recordCompiledAssets,
     resolvePin,
     runName,
     servedProtocols
@@ -85,5 +91,43 @@ describe('cinnabar pins', () => {
         const newest = servedProtocols().at(-1);
 
         expect(pinMatrix(true).every((entry) => entry.protocol === newest)).toBe(true);
+    });
+});
+
+describe('compiled assets', () => {
+    const build = () => {
+        const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'cinnabar-build-'));
+        onTestFinished(() => fs.rmSync(cache, { recursive: true, force: true }));
+        const checkout = path.join(cache, 'repo');
+        const compiled = path.join(checkout, '.local', 'assets', 'compiled');
+        fs.mkdirSync(path.join(compiled, 'lang'), { recursive: true });
+        fs.writeFileSync(path.join(compiled, 'vanilla-v1.mcbeatm'), '');
+        fs.writeFileSync(path.join(compiled, 'prepared.json'), '{}');
+        return { cache, checkout, compiled };
+    };
+
+    it('counts the assets present while every recorded one is in the checkout', () => {
+        const { cache, checkout } = build();
+        recordCompiledAssets(checkout, cache);
+        expect(compiledAssetsPresent(checkout, cache)).toBe(true);
+    });
+
+    it('sees the compiled asset directory deleted after the build was stamped', () => {
+        const { cache, checkout, compiled } = build();
+        recordCompiledAssets(checkout, cache);
+        fs.rmSync(compiled, { recursive: true });
+        expect(compiledAssetsPresent(checkout, cache)).toBe(false);
+    });
+
+    it('sees one recorded asset missing', () => {
+        const { cache, checkout, compiled } = build();
+        recordCompiledAssets(checkout, cache);
+        fs.rmSync(path.join(compiled, 'vanilla-v1.mcbeatm'));
+        expect(compiledAssetsPresent(checkout, cache)).toBe(false);
+    });
+
+    it('does not trust a build that recorded no assets', () => {
+        const { cache, checkout } = build();
+        expect(compiledAssetsPresent(checkout, cache)).toBe(false);
     });
 });
