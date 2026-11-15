@@ -2,8 +2,9 @@
  * The seven packets the Minecraft Preview protocol 2259 (1.26.70.24) added.
  *
  * Every layout is read off Mojang's v1.26.70-preview.24 `metadata.zip` with the conventions
- * `added2225.ts` documents: `Compression` on an integer is a varint, and a property the schema
- * leaves out of `required` travels behind a presence byte. Mojang's changelog agrees with each.
+ * `added2225.ts` documents: `Compression` on an integer is a varint, a property the schema
+ * leaves out of `required` travels behind a presence byte, and an enum without `Enum-as-Value`
+ * travels as its member name. Mojang's changelog agrees with each.
  *
  * @see `docs/research/protocol-2259-delta.md`
  */
@@ -14,13 +15,34 @@ import { signedAudioContent } from './added2225';
 
 import type { PayloadOf } from '../define';
 
-/** `MusicPlaybackState`, the uint8 the music playback packets carry. */
+/**
+ * `MusicPlaybackState`. The schema gives the field no `Enum-as-Value` option, so the member name
+ * travels as a string; the schema's binary values 0 to 3 never reach the wire. No capture carries
+ * the value, so the spelling is the schema's.
+ */
 export enum MusicPlaybackState {
-    Local = 0,
-    Online = 1,
-    NotFound = 2,
-    Pending = 3
+    Local = 'Local',
+    Online = 'Online',
+    NotFound = 'NotFound',
+    Pending = 'Pending'
 }
+
+const MUSIC_PLAYBACK_STATES = new Set<string>(Object.values(MusicPlaybackState));
+
+const isMusicPlaybackState = (value: string): value is MusicPlaybackState => MUSIC_PLAYBACK_STATES.has(value);
+
+/** `State`: a string that must name a {@link MusicPlaybackState} member. */
+const musicPlaybackState = t.custom<MusicPlaybackState>(
+    'string',
+    (s, v) => t.string.write(s, v),
+    (s) => {
+        const value = t.string.read(s);
+        if (!isMusicPlaybackState(value)) {
+            throw new Error(`Unknown MusicPlaybackState "${value}"`);
+        }
+        return value;
+    }
+);
 
 /** `VirtualContainerClosePacket::Kind`: which side of the close handshake this is. */
 export enum VirtualContainerCloseKind {
@@ -96,7 +118,7 @@ export const clientboundOnlineMusicPlaybackResponsePacket = definePacket(
         /** [0] `Request ID`, the request this answers. */
         requestId: t.lu32,
         /** [1] `State`; see {@link MusicPlaybackState}. */
-        state: t.uint8,
+        state: musicPlaybackState,
         /** [2] `Shared Metadata`. */
         sharedMetadata: signedAudioContent,
         /** [3] `Playback Content`. */
@@ -116,7 +138,7 @@ export const clientboundMusicPlaybackFailurePacket = definePacket('ClientboundMu
     failures: t.list(
         t.record({
             /** [0] `State`; see {@link MusicPlaybackState}. */
-            state: t.uint8,
+            state: musicPlaybackState,
             /** [1] `Description`: the song's description. */
             description: t.string
         })
