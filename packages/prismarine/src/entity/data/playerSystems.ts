@@ -14,7 +14,7 @@
  * through {@link PlayerSystems.attach}, which logs their writes there and undoes them. Every
  * live player is one, so these systems are a live player's survival.
  */
-import type { BedrockCollisionBox } from '@jsprismarine/blocks';
+import type { BedrockCollisionBox } from '@jsprismarine/blocks/geometry';
 import { AIR_STATE } from '@jsprismarine/entities';
 import { Gametype } from '@jsprismarine/minecraft';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';

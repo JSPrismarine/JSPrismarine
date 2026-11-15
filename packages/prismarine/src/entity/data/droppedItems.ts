@@ -18,7 +18,7 @@
  * tick by tick: gravity, then the move, then drag, sideways and on the ground stronger than in the
  * air. A fall from rest covers 0.04, 0.0792, 0.1176 blocks. The numbers are the definition's.
  */
-import type { BedrockCollisionBox } from '@jsprismarine/blocks';
+import type { BedrockCollisionBox } from '@jsprismarine/blocks/geometry';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';
 import type { ComponentStateRecord } from '@jsprismarine/entities/componentState';
