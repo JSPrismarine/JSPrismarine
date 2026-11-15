@@ -10,7 +10,7 @@ import type { HeightmapType } from '@jsprismarine/features';
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { GenerationRegion } from './GenerationRegion';
+import { GenerationRegion, PackedBlockWrites } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 
@@ -586,6 +586,54 @@ describe('neighbor chunk data', () => {
         destination.applyPatch(patch);
 
         expect(destination.stateAt(position.x, position.y, position.z).name).toBe('minecraft:oak_leaves');
+    });
+
+    it('checks each distinct block of a packed patch once, however many writes it has', () => {
+        const oracle = createJavaBlockOracle(new Map());
+        let tagChecks = 0;
+        const counting = Object.assign(Object.create(oracle), {
+            hasTag: (...args: Parameters<typeof oracle.hasTag>) => {
+                tagChecks++;
+                return oracle.hasTag(...args);
+            }
+        });
+        const destination = new GenerationRegion({
+            chunkX: 1,
+            chunkZ: 0,
+            minY: -64,
+            height: 384,
+            radius: 0,
+            seaLevel: 63,
+            seed: SEED,
+            blocks: counting,
+            biomeAt: () => 'minecraft:plains'
+        });
+        const writes = 200;
+        const positions = new Int32Array(writes * 3);
+        for (let index = 0; index < writes; index++)
+            positions.set([16 + (index % 16), 70 + (index >> 4), 8], index * 3);
+        const slots = Uint32Array.from({ length: writes }, (_, index) => index % 2);
+        const blocks = new PackedBlockWrites(
+            [{ java: STONE }, { java: { name: 'minecraft:dirt', properties: {} } }],
+            positions,
+            slots
+        );
+        tagChecks = 0;
+
+        destination.applyPatch({
+            chunkX: 1,
+            chunkZ: 0,
+            blocks,
+            blockEntityRemovals: [],
+            blockEntities: [],
+            entitySpawns: [],
+            structureBlocks: []
+        });
+
+        expect(destination.stateAt(16, 70, 8).name).toBe('minecraft:stone');
+        expect(destination.stateAt(17, 70, 8).name).toBe('minecraft:dirt');
+        // One ground cover check per distinct block, not per write.
+        expect(tagChecks).toBe(2);
     });
 
     it('returns block entity removals in patches', () => {
