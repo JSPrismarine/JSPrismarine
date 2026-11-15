@@ -192,3 +192,114 @@ export const moveOnAxis = (
 
     return moved;
 };
+
+/**
+ * Whether the block cell at a position stops a box, or undefined when its chunk is not loaded.
+ * Every cell that collides at all counts as a full cube.
+ */
+export type CellSolidity = (cell: EntityPosition) => boolean | undefined;
+
+/** An axis-aligned box, by its lowest and highest corners. */
+export interface BoxBounds {
+    readonly min: EntityPosition;
+    readonly max: EntityPosition;
+}
+
+/**
+ * Whether any solid cell overlaps a box, ignoring a face it only touches.
+ * @returns Undefined when a cell the box overlaps is not loaded and none before it was solid.
+ */
+export const boundsHitSolid = (bounds: BoxBounds, solid: CellSolidity): boolean | undefined => {
+    const maxX = Math.floor(bounds.max.x - COLLISION_EPSILON);
+    const maxY = Math.floor(bounds.max.y - COLLISION_EPSILON);
+    const maxZ = Math.floor(bounds.max.z - COLLISION_EPSILON);
+    for (let x = Math.floor(bounds.min.x + COLLISION_EPSILON); x <= maxX; x += 1)
+        for (let y = Math.floor(bounds.min.y + COLLISION_EPSILON); y <= maxY; y += 1)
+            for (let z = Math.floor(bounds.min.z + COLLISION_EPSILON); z <= maxZ; z += 1) {
+                const hit = solid({ x, y, z });
+                if (hit !== false) return hit;
+            }
+    return false;
+};
+
+/**
+ * Moves a box along one axis until the first solid cell layer it would enter stops it, flush
+ * against that layer's face, as Java's `Entity.move` clips one axis.
+ *
+ * Unlike {@link moveOnAxis}, which stops at the last free step of up to 0.2 blocks, the box ends
+ * touching the face, so a falling body lands on the block rather than above it. Every layer
+ * between the start and the end of the move is tried, so a fast box cannot pass through a block.
+ * @param delta - How far to move, in blocks; the sign is the direction.
+ * @returns The box's new lowest coordinate on that axis, or undefined when a cell the move would
+ *   cross is not loaded.
+ */
+export const sweepAxis = (
+    bounds: BoxBounds,
+    axis: keyof EntityPosition,
+    delta: number,
+    solid: CellSolidity
+): number | undefined => {
+    const min = bounds.min[axis];
+    const max = bounds.max[axis];
+    const layer = (index: number): BoxBounds => ({
+        min: { ...bounds.min, [axis]: index },
+        max: { ...bounds.max, [axis]: index + 1 }
+    });
+
+    if (delta > 0) {
+        const last = Math.floor(max + delta - COLLISION_EPSILON);
+        for (let index = Math.floor(max - COLLISION_EPSILON) + 1; index <= last; index += 1) {
+            const hit = boundsHitSolid(layer(index), solid);
+            if (hit !== false) return hit === undefined ? undefined : Math.max(min, index - (max - min));
+        }
+    } else if (delta < 0) {
+        const last = Math.floor(min + delta + COLLISION_EPSILON);
+        for (let index = Math.floor(min + COLLISION_EPSILON) - 1; index >= last; index -= 1) {
+            const hit = boundsHitSolid(layer(index), solid);
+            if (hit !== false) return hit === undefined ? undefined : Math.min(min, index + 1);
+        }
+    }
+    return min + delta;
+};
+
+/** One face of a block cell, by the axis it faces along and the direction. */
+export interface CellFace {
+    readonly axis: keyof EntityPosition;
+    readonly step: 1 | -1;
+}
+
+/** The top face of a cell, which a body stuck with every side closed is pushed through. */
+const UP: CellFace = { axis: 'y', step: 1 };
+
+/** The faces Java's `Entity.moveTowardsClosestSpace` tries, in its order; down is never one. */
+const CLOSEST_SPACE_FACES: readonly CellFace[] = [
+    { axis: 'z', step: -1 },
+    { axis: 'z', step: 1 },
+    { axis: 'x', step: -1 },
+    { axis: 'x', step: 1 },
+    UP
+];
+
+/**
+ * The face of the cell a point is in that lies nearest the point and opens onto a cell that is not
+ * solid, which is the way Java's `Entity.moveTowardsClosestSpace` pushes a body stuck in a block.
+ * Up when every face it tries is closed.
+ * @returns The face, or undefined when a neighboring cell is not loaded.
+ */
+export const closestOpenFace = (point: EntityPosition, solid: CellSolidity): CellFace | undefined => {
+    const cell = { x: Math.floor(point.x), y: Math.floor(point.y), z: Math.floor(point.z) };
+    let best = UP;
+    let distance = Number.POSITIVE_INFINITY;
+    for (const face of CLOSEST_SPACE_FACES) {
+        const closed = solid({ ...cell, [face.axis]: cell[face.axis] + face.step });
+        if (closed === undefined) return undefined;
+        if (closed) continue;
+        const within = point[face.axis] - cell[face.axis];
+        const to = face.step > 0 ? 1 - within : within;
+        if (to < distance) {
+            distance = to;
+            best = face;
+        }
+    }
+    return best;
+};

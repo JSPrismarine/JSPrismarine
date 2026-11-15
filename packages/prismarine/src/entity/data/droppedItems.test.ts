@@ -15,6 +15,10 @@ const SURFACE = FLOOR_Y + 1;
 /** How far above where it lies an item reports itself, which the built-in definition declares. */
 const OFFSET = 0.125;
 
+/** Half the width and the height of the built-in definition's collision box. */
+const HALF_WIDTH = 0.125;
+const BOX_HEIGHT = 0.25;
+
 const fixtureOf = (options: TestWorldOptions = {}): EntityFixture => entityFixture(new TestEntityWorld(options));
 
 const cobblestone = (count = 1): ItemStart['stack'] => ({ name: 'minecraft:cobblestone', count });
@@ -130,15 +134,69 @@ describe('dropped items in the store', () => {
             expect(item.body.velocity.y).toBe(0);
         });
 
-        it('stops against a block in its way', () => {
+        it('stops with its box against a block in its way', () => {
             const fixture = fixtureOf();
             fixture.world.setBlock({ x: 1, y: SURFACE, z: 0 }, 'minecraft:stone');
             const item = drop(fixture, 0.5, SURFACE, 0.5, { motion: { x: 0.6, y: 0, z: 0 } });
 
             step(fixture);
 
-            expect(item.position.x).toBe(0.5);
+            expect(item.position.x).toBe(1 - HALF_WIDTH);
             expect(item.body.velocity.x).toBe(0);
+        });
+
+        it('keeps its box out of a wall its middle has not reached', () => {
+            const fixture = fixtureOf();
+            fixture.world.setBlock({ x: 0, y: SURFACE, z: 1 }, 'minecraft:stone');
+            // The middle ends at 0.9, short of the wall at 1, but the box's edge would be inside it.
+            const item = drop(fixture, 0.5, SURFACE, 0.8, { motion: { x: 0, y: 0, z: 0.1 } });
+
+            step(fixture);
+
+            expect(item.position.z).toBe(1 - HALF_WIDTH);
+            expect(item.body.velocity.z).toBe(0);
+        });
+
+        it('stops under a ceiling rather than passing up through it', () => {
+            const fixture = fixtureOf();
+            fixture.world.setBlock({ x: 0, y: SURFACE + 2, z: 0 }, 'minecraft:stone');
+            const item = drop(fixture, 0.5, SURFACE + 1.5, 0.5, { motion: { x: 0, y: 0.5, z: 0 } });
+
+            step(fixture);
+
+            expect(item.position.y).toBe(SURFACE + 2 - BOX_HEIGHT + OFFSET);
+            expect(item.body.velocity.y).toBe(0);
+
+            step(fixture, 40);
+
+            expect(item.position.y).toBe(SURFACE + OFFSET);
+        });
+
+        it('rests on a block under the edge of its box', () => {
+            const fixture = fixtureOf();
+            fixture.world.setBlock({ x: 0, y: FLOOR_Y, z: 0 }, 'minecraft:air');
+            // The middle hangs over the hole; the box's edge reaches the floor at x = 1.
+            const item = drop(fixture, 0.95, SURFACE, 0.5);
+
+            step(fixture, 5);
+
+            expect(item.position).toEqual({ x: 0.95, y: SURFACE + OFFSET, z: 0.5 });
+        });
+
+        it('is pushed out of a block it lies in through the nearest open face', () => {
+            const fixture = fixtureOf();
+            fixture.world.setBlock({ x: 0, y: SURFACE, z: 0 }, 'minecraft:stone');
+            const item = drop(fixture, 0.9, SURFACE + 0.3, 0.5);
+
+            step(fixture);
+
+            expect(item.position.x).toBeCloseTo(1.1, 6);
+            expect(item.position.z).toBe(0.5);
+
+            step(fixture, 40);
+
+            expect(item.position.x - HALF_WIDTH).toBeGreaterThanOrEqual(1);
+            expect(item.position.y).toBe(SURFACE + OFFSET);
         });
 
         it('waits where it is over a chunk that is not loaded, and loads nothing', () => {

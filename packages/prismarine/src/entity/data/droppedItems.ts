@@ -29,8 +29,9 @@ import { DamageCause, damageCauseOf } from '../DamageCause';
 import { HAZARD_DAMAGE, HAZARD_INTERVAL, VOID_DEPTH } from '../Environment';
 import { sameDrop } from '../equipment';
 import { hazardOf } from '../ai/BlockView';
+import type { BoxBounds, CellSolidity } from './collision';
+import { boundsHitSolid, closestOpenFace, sweepAxis } from './collision';
 import type { DataEntity } from './DataEntity';
-import { blockPositionOf } from './position';
 import type { SpawnOptions } from './scene';
 
 /** The type of every dropped stack. */
@@ -49,6 +50,13 @@ const PLAYER_BODY_HEIGHT = 1.8;
 
 /** How far beyond its box an item looks for a hazard it rests against, such as a cactus's side. */
 const HAZARD_CONTACT = 0.001;
+
+/**
+ * How fast a stack stuck in a block is pushed out, in blocks a tick. Java's
+ * `Entity.moveTowardsClosestSpace` rolls between 0.1 and 0.3; this is the middle of that roll, so
+ * the push needs no random source.
+ */
+const CLOSEST_SPACE_PUSH = 0.2;
 
 /** The Java damage type tag each cause belongs to, which `minecraft:damage_resistant` names. */
 const RESISTED_TAGS: Readonly<Record<string, string>> = {
@@ -427,56 +435,64 @@ export class DroppedItems {
     /**
      * Moves the item one tick, in the order BDS does: gravity, then the move, then drag.
      *
-     * It stops against a block sideways and comes to rest on top of the first solid block below.
+     * Its collision box moves as Java's `Entity.move` moves one: up or down first, then along x and
+     * then z, each stopped flush against the first solid block in the way. Falling, it comes to rest
+     * on top of the first solid block below; rising, it stops under a ceiling. A stack whose box is
+     * inside a solid block, because it was dropped there or a block was placed on it, is pushed out
+     * through the nearest open face instead, as Java's `ItemEntity` does.
+     *
      * An item that would read a block of a chunk that is not loaded waits where it is, with the
-     * speed it has, and writes nothing, so the probe never loads a chunk. An item at rest does no
-     * work and writes nothing either.
+     * speed it has, and writes nothing, so the probe never loads a chunk. An item at rest writes
+     * nothing either.
      */
     private move(entity: DataEntity, tuning: ItemTuning): void {
         const position = entity.position;
         const motion = entity.body.velocity;
+        const { width, height } = entity.facts.box;
+        const half = width / 2;
+        const boxAt = (x: number, feet: number, z: number): BoxBounds => ({
+            min: { x: x - half, y: feet, z: z - half },
+            max: { x: x + half, y: feet + height, z: z + half }
+        });
         const feet = position.y - tuning.positionOffset;
-        const still = motion.x === 0 && motion.y === 0 && motion.z === 0;
-        if (still) {
-            const below = this.solidAt(position.x, feet - tuning.groundProbe, position.z);
-            if (below !== false) return;
+        const bounds = boxAt(position.x, feet, position.z);
+
+        const stuck = boundsHitSolid(bounds, this.solidCell);
+        if (stuck === undefined) return;
+        if (stuck) {
+            this.pushOut(entity, tuning, { x: position.x, y: feet + height / 2, z: position.z });
+            return;
+        }
+
+        if (motion.x === 0 && motion.y === 0 && motion.z === 0) {
+            const probe = -tuning.groundProbe;
+            const below = sweepAxis(bounds, 'y', probe, this.solidCell);
+            if (below !== feet + probe) return;
         }
 
         let motionX = motion.x;
         let motionY = motion.y - tuning.gravity;
         let motionZ = motion.z;
 
+        const nextFeet = sweepAxis(bounds, 'y', motionY, this.solidCell);
+        if (nextFeet === undefined) return;
+        const blockedY = nextFeet !== feet + motionY;
+        const landed = blockedY && motionY < 0;
+        if (blockedY) motionY = 0;
+
+        const minX = sweepAxis(boxAt(position.x, nextFeet, position.z), 'x', motionX, this.solidCell);
+        if (minX === undefined) return;
         let x = position.x + motionX;
-        const blockedX = this.solidAt(x, feet, position.z);
-        if (blockedX === undefined) return;
-        if (blockedX) {
-            x = position.x;
+        if (minX !== bounds.min.x + motionX) {
+            x = minX + half;
             motionX = 0;
         }
+        const minZ = sweepAxis(boxAt(x, nextFeet, position.z), 'z', motionZ, this.solidCell);
+        if (minZ === undefined) return;
         let z = position.z + motionZ;
-        const blockedZ = this.solidAt(x, feet, z);
-        if (blockedZ === undefined) return;
-        if (blockedZ) {
-            z = position.z;
+        if (minZ !== bounds.min.z + motionZ) {
+            z = minZ + half;
             motionZ = 0;
-        }
-
-        let nextFeet = feet + motionY;
-        // Falling, every block between here and the end of the step is tried, top down: a stack
-        // near its top speed of about two blocks a tick would otherwise pass through a slab of
-        // one block. The block the stack is in is not, so one sunk into a block does not climb out.
-        const top = Math.floor(feet);
-        const bottom = Math.floor(nextFeet);
-        let landed = false;
-        for (let block = motionY < 0 && bottom < top ? top - 1 : bottom; block >= bottom; block -= 1) {
-            const solid = this.solidAt(x, block, z);
-            if (solid === undefined) return;
-            if (!solid) continue;
-            // The step would end inside a block, so it comes to rest on top of that one instead.
-            landed = true;
-            nextFeet = block + 1;
-            motionY = 0;
-            break;
         }
 
         const sideways = landed ? tuning.groundDrag : tuning.airDrag;
@@ -492,14 +508,35 @@ export class DroppedItems {
     }
 
     /**
-     * Whether the block a point is in stops an item, or undefined when its chunk is not loaded.
-     * Above and below the dimension's blocks is open, so a stack falls into the void.
+     * One tick of a stack stuck in a block, as Java's `ItemEntity` runs it: gravity, then
+     * `moveTowardsClosestSpace` keeps three quarters of its speed and sets the speed along the
+     * nearest open face's axis to {@link CLOSEST_SPACE_PUSH}, then it moves through blocks and
+     * slows by the air drag on every axis.
+     * @param center - The middle of the stack's box, which picks the face.
      */
-    private solidAt(x: number, y: number, z: number): boolean | undefined {
-        const block = blockPositionOf({ x, y, z });
-        if (block.y < this.host.minY() || block.y >= this.host.maxY()) return false;
-        return this.host.solidAt(block);
+    private pushOut(entity: DataEntity, tuning: ItemTuning, center: EntityPosition): void {
+        const face = closestOpenFace(center, this.solidCell);
+        if (face === undefined) return;
+        const motion = entity.body.velocity;
+        const kept = { x: motion.x * 0.75, y: (motion.y - tuning.gravity) * 0.75, z: motion.z * 0.75 };
+        const pushed = { ...kept, [face.axis]: face.step * CLOSEST_SPACE_PUSH };
+        const position = entity.position;
+        entity.position = { x: position.x + pushed.x, y: position.y + pushed.y, z: position.z + pushed.z };
+        entity.body.velocity = {
+            x: pushed.x * tuning.airDrag,
+            y: pushed.y * tuning.airDrag,
+            z: pushed.z * tuning.airDrag
+        };
     }
+
+    /**
+     * Whether a block cell stops an item, or undefined when its chunk is not loaded. Above and
+     * below the dimension's blocks is open, so a stack falls into the void.
+     */
+    private readonly solidCell: CellSolidity = (cell) => {
+        if (cell.y < this.host.minY() || cell.y >= this.host.maxY()) return false;
+        return this.host.solidAt(cell);
+    };
 
     /**
      * Burns or pricks a stack lying in fire, lava or against a cactus, at the cadence and the
