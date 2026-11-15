@@ -1,13 +1,13 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import BlockStorage from '../../chunk/BlockStorage';
 import { ChunkBiomes, PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import SubChunk from '../../chunk/SubChunk';
-import { BLOCK_STATE_VERSION, decodePaletteEntry, encodePaletteEntry } from './PersistentPalette';
+import { BLOCK_STATE_VERSION, decodePaletteEntry, encodePaletteEntry, paletteEntryCompound } from './PersistentPalette';
 import {
     ChunkTag,
     decodeChunkKey,
@@ -201,6 +201,24 @@ describe('world', () => {
             encodePaletteEntry(oakLog, stream);
 
             expect(decodePaletteEntry(new BinaryStream(stream.getBuffer()))).toBe(oakLog);
+        });
+
+        it('builds an entry once and writes the same bytes after', () => {
+            const oakLog = id('minecraft:oak_log');
+            const first = new BinaryStream();
+            encodePaletteEntry(oakLog, first);
+            const lookups = vi.spyOn(BlockRuntimeIds, 'getState');
+            const second = new BinaryStream();
+            encodePaletteEntry(oakLog, second);
+
+            expect(lookups).not.toHaveBeenCalled();
+            expect(second.getBuffer()).toEqual(first.getBuffer());
+            lookups.mockRestore();
+            const built = new BinaryStream();
+            const writer = new NBTWriter(built, ByteOrder.LITTLE_ENDIAN);
+            writer.setUseVarint(false);
+            writer.writeCompound(paletteEntryCompound(oakLog));
+            expect(first.getBuffer()).toEqual(built.getBuffer());
         });
 
         it('writes the version the game expects', () => {
