@@ -90,6 +90,11 @@ export interface FeatureTaskInput extends ChunkTaskInput {
     readonly terrain: readonly GenerationRegionPayload[];
     /** The old chunks within the blender's reach of the view, when the save holds any. */
     readonly blending?: readonly OldChunkRecord[];
+    /**
+     * Every structure start candidate whose pieces could reach the chunk, laid out by the thread
+     * that owns the starts, so the worker places pieces without assembling the structures again.
+     */
+    readonly structureStartPlans?: readonly StructureStartPlanEntry[];
 }
 
 /** Raised when the pool hands a worker a task it has no body for. */
@@ -232,7 +237,8 @@ const isFeatureInput = (value: unknown): value is FeatureTaskInput =>
     Array.isArray(value.terrain) &&
     value.terrain.length === 9 &&
     value.terrain.every(isRegionPayload) &&
-    hasValidBlending(value);
+    hasValidBlending(value) &&
+    (!('structureStartPlans' in value) || isStructureStartPlanEntries(value.structureStartPlans));
 
 /**
  * Builds this worker's generator.
@@ -322,7 +328,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                         BigInt(task.input.seed),
                         task.input.terrain,
                         task.input,
-                        task.input.blending
+                        task.input.blending,
+                        task.input.structureStartPlans
                     ),
                     transferList: []
                 };

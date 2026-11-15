@@ -1588,6 +1588,8 @@ export class DataDrivenGenerator implements Generator {
      * @param terrain - The nine tiles in {@link FEATURE_VIEW_TILES} order.
      * @param key - The stem's settings and dimension. Defaults to the instance's own.
      * @param blending - The old chunks within the blender's reach of the view, when there are any.
+     * @param structureStartPlans - The starts that may reach the chunk, laid out by the thread
+     * that owns them, so this worker does not assemble them again.
      * @returns The center chunk's own feature writes and its eight outbound patches.
      * @throws RangeError when the task does not carry the complete 3 by 3 terrain view.
      */
@@ -1597,13 +1599,15 @@ export class DataDrivenGenerator implements Generator {
         seed: bigint,
         terrain: readonly GenerationRegionPayload[],
         key: PipelineKey = this.defaultKey,
-        blending?: readonly OldChunkRecord[]
+        blending?: readonly OldChunkRecord[],
+        structureStartPlans: readonly StructureStartPlanEntry[] = []
     ): readonly RegionChunkPatch[] {
         if (terrain.length !== FEATURE_VIEW_TILES.length) {
             throw new RangeError(`A feature task needs ${FEATURE_VIEW_TILES.length} terrain tiles.`);
         }
 
         const pipeline = this.pipelineFor(key, seed);
+        pipeline.structures?.installPlans(structureStartPlans);
         const tiles = terrain.map((payload) => this.adoptRegion(payload, pipeline));
         return this.featurePatchesFor(cx, cz, tiles, pipeline, blending);
     }
@@ -2202,10 +2206,20 @@ export class DataDrivenGenerator implements Generator {
             patches = this.featurePatchesFor(chunk.chunkX, chunk.chunkZ, tiles, pipeline, blending);
         } else {
             try {
+                const structures = pipeline.structures;
                 const input: FeatureTaskInput = {
                     ...this.taskInput(pipeline),
                     terrain: tiles.map((tile) => tile.workerInput()),
-                    ...(blending === undefined ? {} : { blending })
+                    ...(blending === undefined ? {} : { blending }),
+                    // This thread laid these starts out for the terrain beard already; a worker
+                    // that assembled them again would repeat the most expensive part of a start.
+                    ...(structures === undefined
+                        ? {}
+                        : {
+                              structureStartPlans: structures.plansForCandidates(
+                                  structures.candidatesForRegion(chunk.chunkX, chunk.chunkZ, chunk.chunkX, chunk.chunkZ)
+                              )
+                          })
                 };
                 const result = await stagePool.run(
                     {
