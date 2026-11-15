@@ -94,13 +94,27 @@ const committed = (id: string, path: string, holds: string): ReferenceSource => 
     }
 });
 
-/** The pinned Java Edition version, read from the one manifest that declares it. */
-const pinnedJavaVersion = (): string | undefined => {
+/** The pins in `sources.json` the reference locators read, or `undefined` without the file. */
+const pinnedSources = (): { javaServer?: { version?: string }; bedrockSamples?: { tag?: string } } | undefined => {
     const manifest = join(repoRoot, 'packages/bedrock-data/sources.json');
     if (!existsSync(manifest)) return undefined;
-    // sources.json is parsed JSON; only the pinned Java version is read.
-    const sources = JSON.parse(readFileSync(manifest, 'utf-8')) as { javaServer?: { version?: string } };
-    return sources.javaServer?.version;
+    // sources.json is parsed JSON; only the Java version and the bedrock-samples tag are read.
+    return JSON.parse(readFileSync(manifest, 'utf-8')) as {
+        javaServer?: { version?: string };
+        bedrockSamples?: { tag?: string };
+    };
+};
+
+/** The pinned Java Edition version, read from the one manifest that declares it. */
+const pinnedJavaVersion = (): string | undefined => pinnedSources()?.javaServer?.version;
+
+/**
+ * The pinned `bedrock-samples` checkout's directories, two levels under its tag. The fetch cache
+ * keeps older tags beside it, and their item ids can differ from the pinned data.
+ */
+const pinnedBedrockSamples = (holds: (path: string) => boolean): string | undefined => {
+    const tag = pinnedSources()?.bedrockSamples?.tag;
+    return tag === undefined ? undefined : firstMatching(join(FETCH_CACHE, 'bedrock-samples', tag), 2, holds);
 };
 
 /**
@@ -298,10 +312,7 @@ export const REFERENCES = {
         kind: 'fetched',
         holds: "Mojang's 129 vanilla entity definitions and the vanilla biome files",
         howToGet: 'run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`',
-        locate: () =>
-            firstMatching(join(FETCH_CACHE, 'bedrock-samples'), 3, (path) =>
-                existsSync(join(path, 'behavior_pack', 'entities'))
-            )
+        locate: () => pinnedBedrockSamples((path) => existsSync(join(path, 'behavior_pack', 'entities')))
     },
 
     /** Mojang's vanilla data modules in `bedrock-samples`, which list every item with its numeric id. */
@@ -311,7 +322,7 @@ export const REFERENCES = {
         holds: "Mojang's vanilla item list with each item's numeric id",
         howToGet: 'run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`',
         locate: () =>
-            firstMatching(join(FETCH_CACHE, 'bedrock-samples'), 3, (path) =>
+            pinnedBedrockSamples((path) =>
                 existsSync(join(path, 'metadata', 'vanilladata_modules', 'mojang-items.json'))
             )
     },
