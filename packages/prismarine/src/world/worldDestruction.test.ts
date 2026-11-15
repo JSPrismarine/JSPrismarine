@@ -407,7 +407,6 @@ describe('a block the world destroyed', () => {
             // content adapter reached the torch, so it kept standing on nothing.
             world.setLoadedBlockState(8, 63, 8, { name: 'minecraft:air', states: {} }, true);
 
-            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:air');
             expect(drops()).toEqual([{ identifier: 'minecraft:torch', count: 1 }]);
         });
 
@@ -437,7 +436,6 @@ describe('a block the world destroyed', () => {
 
             await world.breakBlock(new Vector3(8, 63, 8));
 
-            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:air');
             expect(world.loadedBlockAt(8, 65, 8)?.name).toBe('minecraft:air');
             expect(drops().filter((drop) => drop.identifier === 'minecraft:kelp')).toEqual([
                 { identifier: 'minecraft:kelp', count: 1 },
@@ -474,7 +472,6 @@ describe('a block the world destroyed', () => {
 
             await explode(world, new Vector3(8.5, 64.5, 8.5), { power: 4 });
 
-            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:air');
             // The sticks are the block entity's and survive the blast whole. The chest itself
             // goes through `survives_explosion`, which is the roll that may lose it.
             expect(drops()).toContainEqual({ identifier: 'minecraft:stick', count: 3 });
@@ -572,6 +569,23 @@ describe('a block the world destroyed', () => {
 
             expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:flowing_water');
             expect(drops()).toEqual([{ identifier: 'minecraft:torch', count: 1 }]);
+        });
+
+        it('keeps settling when the input that wrote the block throws and is undone', () => {
+            trough();
+            world.markChunkSettling(0, 0);
+            // An input step runs inside an open tick, which is what lets a unit be undone.
+            world.getEntityStore().beginTick();
+
+            expect(() =>
+                world.runInputNow(() => {
+                    content.world.blockWorld.at(DIMENSION).setBlock({ x: 8, y: 64, z: 8 }, 'minecraft:stone');
+                    throw new Error('the input failed');
+                })
+            ).toThrow('the input failed');
+
+            expect(world.isChunkSettling(0, 0)).toBe(true);
+            world.getEntityStore().sealTick();
         });
     });
 

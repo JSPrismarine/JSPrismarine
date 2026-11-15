@@ -3452,14 +3452,18 @@ export class World implements Service {
         if (settling === undefined) return;
         const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
         if (!this.worldTickRunning && !this.systemsRunning()) {
+            const removed = settling.get(index);
+            if (removed === undefined) return;
             settling.delete(index);
+            // Settling is not in the change log, so an input that throws puts it back itself.
+            this.getEntityStore().undoWith(() => this.settling?.set(index, removed));
             return;
         }
         if (!this.systemsRunning()) return;
         if (!settling.has(index)) {
             const at = this.activeSystemPosition();
             if (at === undefined || !settling.has(Chunk.packXZ(at.x >> 4, at.z >> 4))) return;
-            this.markChunkSettling(chunk.getX(), chunk.getZ());
+            this.settleUndoably(chunk.getX(), chunk.getZ());
         }
         // The write queues updates for the blocks around it, which on an edge are the next chunk's.
         const localX = x & 0xf;
@@ -3472,7 +3476,15 @@ export class World implements Service {
 
     /** Settles a neighbor a settling write reaches across a border, when it is loaded. */
     private settleLoadedChunk(chunkX: number, chunkZ: number): void {
-        if (this.getLoadedChunk(chunkX, chunkZ) !== null) this.markChunkSettling(chunkX, chunkZ);
+        if (this.getLoadedChunk(chunkX, chunkZ) !== null) this.settleUndoably(chunkX, chunkZ);
+    }
+
+    /** Starts a chunk's settling, undone with the unit of the write that started it if that unit throws. */
+    private settleUndoably(chunkX: number, chunkZ: number): void {
+        const index = Chunk.packXZ(chunkX, chunkZ);
+        if (this.settling?.has(index) === true) return;
+        this.markChunkSettling(chunkX, chunkZ);
+        this.getEntityStore().undoWith(() => this.settling?.delete(index));
     }
 
     /**
