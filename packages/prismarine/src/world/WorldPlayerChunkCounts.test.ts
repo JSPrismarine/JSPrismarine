@@ -1,5 +1,6 @@
 import { EntityIndex } from '../entity/data/entityIndex';
 import { EntityStore } from '../entity/data/EntityStore';
+import { TickScheduler } from '@jsprismarine/engine-systems';
 import { describe, expect, it, vi } from 'vitest';
 
 import type PlayerSession from '../network/PlayerSession';
@@ -40,7 +41,7 @@ const worldWith = (
             unload: () => false,
             runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
         }),
-        systems: { onChunkUnloaded: () => {} },
+        systems: { onChunkUnloaded: () => {}, ticks: new TickScheduler() },
         dimension: Dimensions.Overworld,
         server: { invalidateEntityBlockCaches: () => {}, getLogger: () => ({ error: vi.fn() }) }
     });
@@ -360,7 +361,8 @@ describe('world player chunk counts', () => {
             systems: {
                 onChunkUnloaded: (x: number) => {
                     if (x === 20) throw failure;
-                }
+                },
+                ticks: new TickScheduler()
             },
             server: {
                 invalidateEntityBlockCaches: () => {},

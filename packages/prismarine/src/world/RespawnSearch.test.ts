@@ -1,4 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
+import { TickScheduler } from '@jsprismarine/engine-systems';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Block } from '../block/Block';
@@ -114,7 +115,7 @@ const unloadingWorld = (blocks: Record<string, string>) => {
             unload: () => false,
             runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
         }),
-        systems: { onChunkUnloaded: () => {} },
+        systems: { onChunkUnloaded: () => {}, ticks: new TickScheduler() },
         dimension: Dimensions.Overworld,
         server: {
             // No content, so a block resolves from the full palette's schemas: the fixture

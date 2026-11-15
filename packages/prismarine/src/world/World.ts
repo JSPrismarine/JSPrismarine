@@ -75,7 +75,7 @@ import type { ContentPosition } from '../content/world/adapter';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
 import { DragonFight } from './end/DragonFight';
-import { exposedFluidsOf } from './exposedFluids';
+import { liquidOf } from './physics/BlockRules';
 import type { RaidHost, RaidRecord } from './raid/RaidManager';
 import { RaidManager } from './raid/RaidManager';
 import type { DragonFightState } from './WorldPersistence';
@@ -96,7 +96,7 @@ import type { SpawnerSurroundings } from './spawners';
 import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
-import type { ChunkSaveContext } from './providers/ChunkSaveContext';
+import type { ChunkSaveContext, FluidTickToSave, PendingFluidTicksToSave } from './providers/ChunkSaveContext';
 import type { ProviderSavePass } from './providers/SavePass';
 import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
@@ -111,10 +111,6 @@ import { changeLogCost } from './changelog/changeLogCost';
 export type { LevelData, StoredPlayerAttribute, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 
 /** How far out to look for dry land, and how coarsely, before giving up. */
-/** The delay a fluid's first tick waits, Java's five ticks for water and thirty for overworld lava. */
-const WATER_SPREAD_TICKS = 5;
-const LAVA_SPREAD_TICKS = 30;
-
 const SPAWN_SEARCH_RADIUS = 256;
 const SPAWN_SEARCH_STEP = 8;
 
@@ -1646,23 +1642,42 @@ export class World implements Service {
     }
 
     /**
-     * Gives the fluid of a loaded chunk that borders air a tick, so water over an empty cave falls
-     * and a lake edge spreads instead of hanging there; see {@link exposedFluidsOf}.
+     * Schedules the fluid ticks a chunk brought with it: the positions generation left for Java's
+     * post-processing and the features that asked for one, or the ticks it was saved with.
+     *
+     * Each is scheduled only where fluid still stands, which is the check Java's
+     * `LevelChunk.postProcessGeneration` makes. A generation tick is due at once, as Java runs it
+     * when the chunk becomes full; a saved tick keeps the delay it had left.
      */
-    private scheduleExposedFluids(chunk: Chunk): void {
-        const exposed = exposedFluidsOf(chunk);
-        if (exposed.length === 0) return;
+    private schedulePendingFluidTicks(chunk: Chunk): void {
+        const pending = chunk.takePendingFluidTicks();
+        if (pending.length === 0) return;
 
         const fluidTicks = this.systems.ticks.list('fluid');
         const now = this.getTicks();
-        for (const fluid of exposed) {
-            const at = { x: chunk.getX() * 16 + fluid.x, y: fluid.y, z: chunk.getZ() * 16 + fluid.z };
-            fluidTicks.schedule(
-                at,
-                fluid.name,
-                now + (fluid.name.endsWith('lava') ? LAVA_SPREAD_TICKS : WATER_SPREAD_TICKS)
-            );
+        for (const tick of pending) {
+            const name = chunk.getBlock(tick.x & 0xf, tick.y, tick.z & 0xf).name;
+            if (liquidOf(name) === null) continue;
+            fluidTicks.schedule({ x: tick.x, y: tick.y, z: tick.z }, name, now + tick.delay);
         }
+    }
+
+    /**
+     * The world's scheduled fluid ticks by chunk, for a save to write with each chunk; see
+     * {@link ChunkSaveContext.pendingFluidTicks}.
+     */
+    private pendingFluidTicksToSave(): PendingFluidTicksToSave {
+        const byChunk = new Map<number, FluidTickToSave[]>();
+        for (const tick of this.systems.ticks.list('fluid').snapshot()) {
+            const index = Chunk.packXZ(tick.at.x >> 4, tick.at.z >> 4);
+            let ticks = byChunk.get(index);
+            if (ticks === undefined) {
+                ticks = [];
+                byChunk.set(index, ticks);
+            }
+            ticks.push({ x: tick.at.x, y: tick.at.y, z: tick.at.z, triggerTick: tick.triggerTick });
+        }
+        return { currentTick: this.getTicks(), byChunk };
     }
 
     /** The body of {@link World.loadChunk}, once it is this call's job to do the loading. */
@@ -1767,7 +1782,7 @@ export class World implements Service {
 
         // After the chunk is in the map: the engine reads the blocks back through the world.
         this.measured('chunk-lighting', () => this.systems.onChunkLoaded(x, z));
-        this.measured('chunk-fluids', () => this.scheduleExposedFluids(chunk));
+        this.measured('chunk-fluids', () => this.schedulePendingFluidTicks(chunk));
 
         return this.measured('chunk-entities', () => {
             const discarded = this.createStoredEntities(chunk);
@@ -3598,7 +3613,9 @@ export class World implements Service {
             // Held for the level's next pass rather than written, so the chunk can leave as soon
             // as this returns, and reads of it answer from the held bytes until the pass commits
             // them (ADR 0018).
-            if (!this.chunkRetained(chunk) && (chunk.getHasChanged() || entities.length > 0)) {
+            // A chunk whose fluid is still due to move is written for its ticks alone.
+            const ticking = saveContext.pendingFluidTicks?.byChunk.has(index) === true;
+            if (!this.chunkRetained(chunk) && (chunk.getHasChanged() || entities.length > 0 || ticking)) {
                 await this.getProvider().writeChunk(chunk, saveContext);
             }
         } catch (error: unknown) {
@@ -3771,10 +3788,15 @@ export class World implements Service {
 
     /** Builds the entity and actor indexes once for every chunk in a save or unload pass. */
     private chunkSaveContext(): ChunkSaveContext {
-        return createChunkSaveContext(this.dimension.bedrockId, this.actors(), (entity) => {
-            const position = entity.getPosition();
-            return Chunk.packXZ(Math.floor(position.getX() / 16), Math.floor(position.getZ() / 16));
-        });
+        return createChunkSaveContext(
+            this.dimension.bedrockId,
+            this.actors(),
+            (entity) => {
+                const position = entity.getPosition();
+                return Chunk.packXZ(Math.floor(position.getX() / 16), Math.floor(position.getZ() / 16));
+            },
+            this.pendingFluidTicksToSave()
+        );
     }
 
     /**
@@ -4143,7 +4165,12 @@ export class World implements Service {
         this.dataEntities().persist();
         const saveContext = this.chunkSaveContext();
         for (const chunk of this.chunks.values()) {
-            if (!chunk.getHasChanged() && !saveContext.entitiesByChunk.has(Chunk.packXZ(chunk.getX(), chunk.getZ())))
+            const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
+            if (
+                !chunk.getHasChanged() &&
+                !saveContext.entitiesByChunk.has(index) &&
+                saveContext.pendingFluidTicks?.byChunk.has(index) !== true
+            )
                 continue;
             try {
                 pass.cutChunk(chunk, saveContext);

@@ -1,5 +1,6 @@
 import { EntityIndex } from '../entity/data/entityIndex';
 import { EntityStore } from '../entity/data/EntityStore';
+import { TickScheduler } from '@jsprismarine/engine-systems';
 import { describe, expect, it, vi } from 'vitest';
 
 import { fakeLevel } from '../testing/level';
@@ -39,7 +40,7 @@ const worldWith = (chunks: readonly Chunk[]): World => {
             unload: () => false,
             runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
         }),
-        systems: { onChunkUnloaded: () => {} },
+        systems: { onChunkUnloaded: () => {}, ticks: new TickScheduler() },
         dimension: Dimensions.Overworld,
         server: { invalidateEntityBlockCaches: () => {}, getLogger: () => ({ error: vi.fn() }) }
     });

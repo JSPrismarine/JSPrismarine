@@ -316,6 +316,34 @@ describe('world chunk requests', () => {
         ]);
     });
 
+    it('schedules the fluid ticks a chunk brings, where fluid still stands, and scans for nothing else', async () => {
+        const water = BlockRuntimeIds.getByName('minecraft:water');
+        const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
+            const chunk = new Chunk(x, z, new Map(), Dimensions.Overworld);
+            // Water over air, which used to be found and ticked whether Java ticks it or not.
+            chunk.setBlockRuntimeId(1, 70, 1, water);
+            chunk.setBlockRuntimeId(4, 64, 4, water);
+            chunk.getPendingFluidTicks().push(
+                { x: x * 16 + 4, y: 64, z: z * 16 + 4, delay: 0 },
+                // Generation asked for it, but something took the fluid's place since.
+                { x: x * 16 + 6, y: 64, z: z * 16 + 6, delay: 0 }
+            );
+            return chunk;
+        });
+        const world = testWorld(readChunk);
+
+        const chunk = await world.getChunk(2, 3);
+
+        const scheduled = world
+            .getSystems()
+            .ticks.list('fluid')
+            .snapshot()
+            .map(({ at, type }) => ({ ...at, type }));
+        expect(scheduled).toEqual([{ x: 36, y: 64, z: 52, type: 'minecraft:water' }]);
+        // Handed over once, so a chunk that stays in memory does not schedule them again.
+        expect(chunk.getPendingFluidTicks()).toEqual([]);
+    });
+
     it('lets a later caller try again after a request failed', async () => {
         let attempt = 0;
         const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
