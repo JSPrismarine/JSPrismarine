@@ -9,6 +9,7 @@ import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:
 import { join } from 'node:path';
 import { deserialize, serialize } from 'node:v8';
 
+import { isOptionalFluidTickList } from './GenerationRegion';
 import type { GenerationRegionPayload } from './GenerationRegion';
 
 const RECORD_MAGIC = 'jsprismarine-terrain-proto';
@@ -500,6 +501,7 @@ const isGenerationRegionPayload = (value: unknown): value is GenerationRegionPay
     if (value.biomeSections !== undefined && !(value.biomeSections instanceof ArrayBuffer)) return false;
     if (value.biomeSectionOffsets !== undefined && !(value.biomeSectionOffsets instanceof ArrayBuffer)) return false;
     if ((value.biomeSections === undefined) !== (value.biomeSectionOffsets === undefined)) return false;
+    if (!isOptionalFluidTickList(value.fluidTicks)) return false;
     if (
         value.biomeCells !== undefined &&
         !(

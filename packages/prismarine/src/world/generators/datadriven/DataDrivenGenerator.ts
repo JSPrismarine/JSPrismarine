@@ -103,7 +103,7 @@ import { GenerationQueue } from './GenerationQueue';
 import { urgencyAround } from './urgencyAround';
 import type { BedrockSection, BedrockSectionsInput } from './bedrockSections';
 import { buildBedrockSections, isBedrockSections } from './bedrockSections';
-import { GenerationRegion } from './GenerationRegion';
+import { GenerationRegion, isOptionalFluidTickList } from './GenerationRegion';
 import type {
     GenerationRegionOptions,
     GenerationRegionPayload,
@@ -786,6 +786,7 @@ const featurePatchesFromWorker = (value: unknown): readonly RegionChunkPatch[] =
                 Array.isArray(patch.blockEntities) &&
                 'entitySpawns' in patch &&
                 Array.isArray(patch.entitySpawns) &&
+                isOptionalFluidTickList('fluidTicks' in patch ? patch.fluidTicks : undefined) &&
                 'structureBlocks' in patch &&
                 Array.isArray(patch.structureBlocks)
         )
@@ -2404,8 +2405,12 @@ export class DataDrivenGenerator implements Generator {
         // a chunk paid 57177 times where the lattice holds 768 cells. The blocks and their
         // fluid update flags are the same either way; only the order they are asked in moves.
         for (let cell = 0; cell < sampler.cellCount; cell++) {
-            sampler.forEachCellBlock(cell, (x, y, z, state) => {
-                if (y >= floor && y <= ceiling && state !== 'minecraft:air') writeTerrainName(x, y, z, state);
+            sampler.forEachCellBlock(cell, (x, y, z, state, scheduleFluidUpdate) => {
+                if (y < floor || y > ceiling || state === 'minecraft:air') return;
+                writeTerrainName(x, y, z, state);
+                // Java's `doFill` marks the fluid the aquifer asked to update for post-processing,
+                // which ticks it once the chunk is in a world. The flag is only ever set on fluid.
+                if (scheduleFluidUpdate) region.scheduleFluidTick(x, y, z);
             });
 
             // A yield is a trip around the event loop, which on a loaded host costs more than
@@ -2540,6 +2545,14 @@ export class DataDrivenGenerator implements Generator {
 
                 const fluid = sampler.aquifer.computeSubstance(x, y, z, 0);
                 region.writeName(x, y, z, fluid ?? CAVE_AIR);
+                // Java's `WorldCarver.carveBlock` marks a carved fluid the aquifer asked to update.
+                if (
+                    fluid !== undefined &&
+                    sampler.aquifer.shouldScheduleFluidUpdate() &&
+                    pipeline.oracle.fluid(region.stateAt(x, y, z)) !== 'empty'
+                ) {
+                    region.scheduleFluidTick(x, y, z);
+                }
 
                 if (!tookGrass || region.stateAt(x, y - 1, z).name !== DIRT) continue;
 
@@ -2548,7 +2561,12 @@ export class DataDrivenGenerator implements Generator {
                 // honest test.
                 const hasFluid = pipeline.oracle.fluid(region.stateAt(x, y, z)) !== 'empty';
                 const material = surface.topMaterial(x, y - 1, z, hasFluid);
-                if (material !== undefined) region.writeName(x, y - 1, z, material);
+                if (material === undefined) continue;
+                region.writeName(x, y - 1, z, material);
+                // Java marks the re-surfaced block too when the material it chose holds fluid.
+                if (pipeline.oracle.fluid(region.stateAt(x, y - 1, z)) !== 'empty') {
+                    region.scheduleFluidTick(x, y - 1, z);
+                }
             }
         });
     }
@@ -2826,6 +2844,7 @@ export class DataDrivenGenerator implements Generator {
 
         this.recordBlockEntities(region, chunk, pipeline);
         this.recordEntitySpawns(region, chunk);
+        this.recordFluidTicks(region, chunk);
         this.recordBiomes(cx, cz, chunk, pipeline, biomeRegion);
         return chunk;
     }
@@ -2959,6 +2978,25 @@ export class DataDrivenGenerator implements Generator {
         for (const requested of region.centerEntitySpawns()) {
             const spawn = createEntitySpawn(requested);
             if (spawn !== undefined) spawns.push(spawn);
+        }
+    }
+
+    /**
+     * Hands the chunk the fluid ticks generation asked for, once each.
+     *
+     * Java ticks a post-processing mark when the chunk becomes full and a feature's tick on the
+     * world's next tick, so both fire as soon as the chunk is in a world. The fill, a carver and a
+     * neighbor's patch can mark one position more than once; the world would drop the repeats,
+     * and dropping them here keeps the list the chunk carries short.
+     */
+    private recordFluidTicks(region: GenerationRegion, chunk: Chunk): void {
+        const ticks = chunk.getPendingFluidTicks();
+        const seen = new Set<string>();
+        for (const { x, y, z } of region.centerFluidTicks()) {
+            const key = `${x},${y},${z}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            ticks.push({ x, y, z, delay: 0 });
         }
     }
 
