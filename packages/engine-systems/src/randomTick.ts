@@ -129,6 +129,8 @@ export const runRandomTicks = (
     const blockByRuntimeId = world.getBlockByRuntimeId;
     const runtimeIdTakesRandomTicks = world.isRandomlyTickingRuntimeId;
     for (const section of sections) {
+        // Found once for the section's draws rather than once a draw.
+        const sectionReader = world.sectionRuntimeIds?.(section);
         for (const at of drawSectionPositions(positions, section, tickSpeed)) {
             let block: BlockRef;
             if (
@@ -136,7 +138,7 @@ export const runRandomTicks = (
                 blockByRuntimeId !== undefined &&
                 runtimeIdTakesRandomTicks !== undefined
             ) {
-                const runtimeId = runtimeIdAt.call(world, at);
+                const runtimeId = sectionReader === undefined ? runtimeIdAt.call(world, at) : sectionReader(at);
                 if (runtimeId === undefined || !runtimeIdTakesRandomTicks.call(world, runtimeId)) continue;
                 block = blockByRuntimeId.call(world, runtimeId);
             } else {

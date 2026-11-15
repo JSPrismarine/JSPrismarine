@@ -164,6 +164,13 @@ export interface WorldAccess {
     /** Whether a runtime id receives random ticks, using the host's palette-state facts. */
     isRandomlyTickingRuntimeId?(runtimeId: number): boolean;
     /**
+     * A reader for the runtime ids of one 16 by 16 by 16 section, found once for the positions
+     * a random tick draws in it, or undefined when the section is not loaded. Without it each
+     * draw is looked up through {@link getBlockRuntimeId}.
+     * @param origin - The section's lowest corner.
+     */
+    sectionRuntimeIds?(origin: BlockPosition): ((at: BlockPosition) => number) | undefined;
+    /**
      * Whether the stored block state at one position receives random ticks.
      * Hosts that translate state names for engine behavior can answer from their native state.
      */
