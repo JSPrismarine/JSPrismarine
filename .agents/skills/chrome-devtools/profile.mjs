@@ -90,7 +90,7 @@ Workload options (capture, run):
 
 Stop options:
   --stop-timeout <dur>    How long the server may take to save and exit before it is killed (120s).
-  --keep-session          run: keep the session directory.
+  --keep-session          run: keep the session directory; a run that fails always keeps it.
 
 Durations take ms, s, m or h; a bare number is seconds.
 `;
@@ -913,12 +913,15 @@ const run = async (options) => {
     // directory whose session still runs, that session and its directory stay as they were.
     let launched = false;
     let stopping;
+    let captured = false;
     const cleanUp = async () => {
         stopping ??= (async () => {
             if (!launched) return;
             const session = await stop(dir, options);
             if (existsSync(out)) collect(session, out);
-            if (!options['keep-session']) rmSync(dir, { recursive: true, force: true });
+            // A run that failed keeps its session, whose server and bot logs say why.
+            if (!captured) log(`kept session ${dir} with its logs; delete it when done`);
+            else if (!options['keep-session']) rmSync(dir, { recursive: true, force: true });
         })();
         return stopping;
     };
@@ -938,6 +941,7 @@ const run = async (options) => {
             }
         );
         await capture({ ...options, session: dir });
+        captured = true;
     } finally {
         await cleanUp();
         process.off('SIGINT', interrupt);
