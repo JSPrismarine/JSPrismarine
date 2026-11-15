@@ -34,7 +34,8 @@ describe('CommandBlockUpdateHandler', () => {
             filteredName: '',
             trackOutput: false,
             tickDelay: 0,
-            executeOnFirstTick: false
+            executeOnFirstTick: false,
+            lastOutputIsRawMessage: false
         });
 
         new CommandBlockUpdateHandler().handle(packet, context);
@@ -54,7 +55,8 @@ describe('CommandBlockUpdateHandler', () => {
             filteredName: '',
             trackOutput: false,
             tickDelay: 0,
-            executeOnFirstTick: false
+            executeOnFirstTick: false,
+            lastOutputIsRawMessage: false
         });
 
         new CommandBlockUpdateHandler().handle(packet, context);

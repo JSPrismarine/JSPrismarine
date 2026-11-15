@@ -22,7 +22,8 @@ const packetAt = (position: BlockPosition) => {
             redstoneSaveMode: StructureRedstoneSaveMode.SavesToMemory
         },
         trigger: false,
-        isWaterlogged: false
+        isWaterlogged: false,
+        keepStructureVoid: false
     });
 };
 
