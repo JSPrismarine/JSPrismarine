@@ -49,8 +49,9 @@ export const itemDropPickup: Scenario = {
         for (let drop = 1; drop <= 2; drop += 1) {
             await client.input({ press: ['key.drop'], press_frames: 2 });
             deadline = Date.now() + 20_000;
-            while ((await dirtHeld()) > 2 - drop) {
-                assert.ok(Date.now() < deadline, `the client dropped dirt ${drop}, but the server still holds it`);
+            // Exactly one fewer: a press that dropped both at once would skip the merge this checks.
+            while ((await dirtHeld()) !== 2 - drop) {
+                assert.ok(Date.now() < deadline, `after drop ${drop} the server did not hold exactly ${2 - drop} dirt`);
                 await sleep(250);
             }
             await waitTicks(server, 2);
