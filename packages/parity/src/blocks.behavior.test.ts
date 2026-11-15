@@ -2,6 +2,8 @@ import { VANILLA_BLOCK_FAMILIES, bindFamily, heldItem, isFallingBlock } from '@j
 import type { FamilyHarness } from '@jsprismarine/block-behaviors';
 import { createVoxelWorld } from '@jsprismarine/block-behaviors';
 import { performPull, performPush, planPush } from '@jsprismarine/block-behaviors/rules/piston';
+import { spreadLiquid } from '@jsprismarine/block-behaviors/rules/fluid';
+import { isFullCube } from '@jsprismarine/engine-systems';
 import { blockProperties } from '@jsprismarine/blocks/components';
 import { behaviorFor } from '@jsprismarine/blocks';
 import { bedrockBlockEntityDyeIndexOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
@@ -73,6 +75,21 @@ const weatheringCopper = (): readonly CopperChain[] =>
     });
 
 const BELOW = { x: 0, y: 4, z: 0 } as const;
+
+/**
+ * A world whose full cubes are the ones the server's engine answers for, so a slab is not walled
+ * in by the test double's own fallback, and whose floor is stone.
+ */
+const fluidWorld = () => {
+    const world = createVoxelWorld().overworld;
+    for (let x = -2; x <= 2; x++) {
+        for (let z = -2; z <= 2; z++) world.set({ x, y: BELOW.y, z }, 'minecraft:stone');
+    }
+    return Object.assign(world, {
+        isFullCube: (block: { identifier: string; states: Readonly<Record<string, string | number | boolean>> }) =>
+            isFullCube({ name: block.identifier, states: block.states })
+    });
+};
 
 /** Java's four `GrowingPlantHeadBlock`s: the way each grows, what into, and its Bedrock age state. */
 const GROWING_PLANT_HEADS: Readonly<
@@ -281,6 +298,53 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
             if (JSON.stringify(harness.block(ORIGIN).states) === before) return 'its growth stage never advanced';
             return undefined;
         }
+    },
+    {
+        name: 'waterlogged-by-two-sources',
+        java: 'A waterloggable block between two water sources over solid ground takes the source water its spread makes there, as LiquidBlockContainer.placeLiquid does.',
+        reference:
+            'Java FlowingFluid.spreadTo and getNewLiquid, SimpleWaterloggedBlock.canPlaceLiquid and placeLiquid; issue #3093',
+        subjects: () => named('minecraft:stone_slab'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const world = fluidWorld();
+            const west = { ...ORIGIN, x: ORIGIN.x - 1 };
+            const east = { ...ORIGIN, x: ORIGIN.x + 1 };
+            world.set(ORIGIN, subject.bedrock, subject.states);
+            world.set(west, 'minecraft:water', { liquid_depth: 0 });
+            world.set(east, 'minecraft:water', { liquid_depth: 0 });
+            spreadLiquid(world, world.block(west));
+            if (world.getLiquid(ORIGIN)?.identifier !== 'minecraft:water') {
+                return 'the block between two sources was not waterlogged';
+            }
+            return undefined;
+        },
+        classify: () => ({
+            kind: 'deferred',
+            reason: 'Flowing water never enters a waterloggable block here, and nothing writes the liquid layer at runtime, so a spread cannot waterlog one.'
+        })
+    },
+    {
+        name: 'bottom-slab-holds-water',
+        java: "A waterlogged bottom slab's full bottom face keeps its water from flowing down into the air below.",
+        reference: 'Java FlowingFluid.canPassThroughWall over the block shapes; issue #3093',
+        subjects: () => named('minecraft:stone_slab'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const world = fluidWorld();
+            const below = { ...ORIGIN, y: ORIGIN.y - 1 };
+            world.set(below, 'minecraft:air');
+            world.set(ORIGIN, subject.bedrock, subject.states);
+            world.setLiquid(ORIGIN, 'minecraft:water');
+            spreadLiquid(world, { ...world.block(ORIGIN), identifier: 'minecraft:water', states: {} });
+            if (world.identifierAt(below) !== 'minecraft:air')
+                return 'its water flowed down through the full bottom face';
+            return undefined;
+        },
+        classify: () => ({
+            kind: 'deferred',
+            reason: 'Fluid rules treat a block as a full cube or as open, so a bottom slab lets its water out of its full bottom face.'
+        })
     },
     {
         name: 'grass-spread',

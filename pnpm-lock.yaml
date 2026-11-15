@@ -1346,6 +1346,9 @@ importers:
       '@jsprismarine/content':
         specifier: workspace:*
         version: link:../content
+      '@jsprismarine/engine-systems':
+        specifier: workspace:*
+        version: link:../engine-systems
       '@jsprismarine/entities':
         specifier: workspace:*
         version: link:../entities
