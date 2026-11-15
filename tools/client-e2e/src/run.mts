@@ -27,7 +27,6 @@ import { mergeRetries, retrySuites } from './retry.mts';
 import { sleep, standAt, untilPlayersOnline } from './scenario.mts';
 import { pinSkips } from './pin-skips.mts';
 import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
-import { worldgenSpawn } from './scenarios/worldgen-spawn.mts';
 import type { ScenarioSuite } from './suites.mts';
 import { suites } from './suites.mts';
 import { applySkips, describeSkip, skipProblems } from './skips.mts';
@@ -72,13 +71,17 @@ const worldgenDataReady = await (async (): Promise<boolean> => {
         return false;
     }
 })();
-const worldgenSpawnName = worldgenSpawn.name;
+// Every scenario on the noise-generated world needs Mojang's data; without it they are skipped.
+const needsWorldgen = new Set(
+    allScenarios.filter((scenario) => scenario.serverOptions?.worldgenSpawn === true).map((scenario) => scenario.name)
+);
 if (!positionals.length && !worldgenDataReady) {
-    console.log(`${worldgenSpawnName}: skipped, the Java world generation data is not fetched on this machine`);
+    for (const name of needsWorldgen)
+        console.log(`${name}: skipped, the Java world generation data is not fetched on this machine`);
 }
 const requestedNames = positionals.length
     ? positionals
-    : allScenarios.map((scenario) => scenario.name).filter((name) => name !== worldgenSpawnName || worldgenDataReady);
+    : allScenarios.map((scenario) => scenario.name).filter((name) => !needsWorldgen.has(name) || worldgenDataReady);
 const availableNames = new Set(allScenarios.map((scenario) => scenario.name));
 const unknownNames = requestedNames.filter((name) => !availableNames.has(name));
 if (unknownNames.length > 0) {
