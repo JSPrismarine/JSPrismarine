@@ -69,6 +69,8 @@ const JSP = path.join(BEDROCK_DATA, 'src/jsp', `v${defaultProtocolVersion}`);
 const { values } = parseArgs({
     options: {
         host: { type: 'string', default: '127.0.0.1' },
+        /** The transport the server accepts clients over: `raknet` or `nethernet`. */
+        network: { type: 'string', default: 'raknet' },
         port: { type: 'string', default: '19132' },
         out: { type: 'string', default: JSP },
         /** Where the raw engine table payloads go. Empty means do not record them. */
@@ -114,6 +116,7 @@ const client = new Client({
     // with a reason left blank.
     displayName: 'DataCapture',
     loginTimeoutMs: 60_000,
+    network: values.network === 'nethernet' ? 'nethernet' : 'raknet',
     ...(values.protocol === '' ? {} : { protocolVersion: Number(values.protocol) })
 });
 

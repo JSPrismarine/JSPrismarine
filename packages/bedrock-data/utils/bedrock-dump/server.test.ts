@@ -5,7 +5,14 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { COMMON_PROPERTIES, READY_LINE, renderServerProperties, stageServer, startServer } from './server.ts';
+import {
+    COMMON_PROPERTIES,
+    READY_LINE,
+    renderServerProperties,
+    stageServer,
+    startServer,
+    transportProperties
+} from './server.ts';
 
 let workspace: string;
 
@@ -49,6 +56,22 @@ const fakeArchive = async (root: string): Promise<string> => {
     await writeFile(join(root, 'bedrock_server'), '#!/bin/sh\nexit 0\n', { mode: 0o644 });
     return root;
 };
+
+describe('transportProperties', () => {
+    it('switches a server that still has a transport setting to RakNet', () => {
+        expect(transportProperties('server-port=19132\ntransport=nethernet\n')).toEqual({
+            transport: 'raknet',
+            properties: { transport: 'raknet' }
+        });
+    });
+
+    it('dials NetherNet on loopback when the server has no transport setting to switch', () => {
+        expect(transportProperties('server-port=19132\n')).toEqual({
+            transport: 'nethernet',
+            properties: { 'server-public-ip': '127.0.0.1' }
+        });
+    });
+});
 
 describe('stageServer', () => {
     it('copies the archive, skips its world, and makes the binary executable', async () => {

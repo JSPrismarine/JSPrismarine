@@ -35,6 +35,8 @@ import { Client } from '../dist/index.js';
 const { values } = parseArgs({
     options: {
         host: { type: 'string', default: '127.0.0.1' },
+        /** The transport the server accepts clients over: `raknet` or `nethernet`. */
+        network: { type: 'string', default: 'raknet' },
         port: { type: 'string', default: '19132' },
         /** Which protocol to log in with; the server admits its own version and no other. */
         protocol: { type: 'string', default: '' },
@@ -72,6 +74,7 @@ const client = new Client({
     displayName: 'BringupProbe',
     logger,
     loginTimeoutMs: Number(values.timeout),
+    network: values.network === 'nethernet' ? 'nethernet' : 'raknet',
     ...(values.protocol === '' ? {} : { protocolVersion: Number(values.protocol) })
 });
 

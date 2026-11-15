@@ -5,6 +5,7 @@ import {
     CONTAINER_WORKDIR,
     DEFAULT_CONTAINER_IMAGE,
     EMULATION_SLOWDOWN,
+    PUBLISHED_TCP_PORTS,
     PUBLISHED_UDP_PORTS,
     RUNNER_ENV,
     containerName,
@@ -270,6 +271,7 @@ describe('createLauncher', () => {
         const launcher = createLauncher({ kind: 'container', runtime: docker, emulated: true });
         const published = launcher.launch('/cache/run', { clientConnects: true }).args;
         for (const port of PUBLISHED_UDP_PORTS) expect(published).toContain(`127.0.0.1:${port}:${port}/udp`);
+        for (const port of PUBLISHED_TCP_PORTS) expect(published).toContain(`127.0.0.1:${port}:${port}/tcp`);
         // A port a pass never uses is one more way for it to fail on `port is already allocated`.
         expect(launcher.launch('/cache/run').args).not.toContain('-p');
         expect(launcher.launch('/cache/run', { clientConnects: false }).args).not.toContain('-p');

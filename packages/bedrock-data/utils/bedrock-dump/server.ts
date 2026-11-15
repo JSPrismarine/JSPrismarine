@@ -33,9 +33,8 @@ const STAGE_MARKER = '.jsp-staged.json';
  * Properties every pass overrides, whatever else it sets.
  *
  * `content-log-console-output-enabled` is the dump pack's only way out. The log file is enabled
- * as well because it survives a crash that takes stdout with it. NetherNet became the default
- * transport in 1.26.50 and the capture client speaks RakNet, and an offline identity needs the
- * allow list and online mode off.
+ * as well because it survives a crash that takes stdout with it. An offline identity needs the
+ * allow list and online mode off. The transport is chosen per server; see {@link transportProperties}.
  */
 export const COMMON_PROPERTIES: Readonly<Record<string, string>> = {
     'content-log-console-output-enabled': 'true',
@@ -44,9 +43,28 @@ export const COMMON_PROPERTIES: Readonly<Record<string, string>> = {
     'online-mode': 'false',
     'allow-list': 'false',
     'allow-cheats': 'true',
-    transport: 'raknet',
     'player-idle-timeout': '0'
 };
+
+/** The transport a staged server accepts clients over. */
+export type ServerTransport = 'raknet' | 'nethernet';
+
+/**
+ * The transport a server is staged with, and the properties that select it.
+ *
+ * NetherNet became the default in 1.26.50, and a shipped `server.properties` with a `transport`
+ * key can still be switched to RakNet, which the capture has used since. A server without the key
+ * speaks NetherNet only (1.26.70 removed it). Its WebRTC candidates then have to name an address
+ * the client reaches, which inside a container is not the container's own, so the server
+ * advertises the loopback address the published ports listen on.
+ * @param shipped - The `server.properties` text the archive ships.
+ */
+export const transportProperties = (
+    shipped: string
+): { transport: ServerTransport; properties: Record<string, string> } =>
+    /^transport=/m.test(shipped)
+        ? { transport: 'raknet', properties: { transport: 'raknet' } }
+        : { transport: 'nethernet', properties: { 'server-public-ip': '127.0.0.1' } };
 
 /**
  * Rewrites a `server.properties` file.
@@ -79,6 +97,8 @@ export interface StagedServer {
     worldDirectory: string;
     /** The level name written into `server.properties`. */
     levelName: string;
+    /** The transport a client dials it over. */
+    transport: ServerTransport;
 }
 
 /** What {@link stageServer} needs to know. */
@@ -128,16 +148,18 @@ export const stageServer = async (options: StageOptions): Promise<StagedServer> 
     await mkdir(worldDirectory, { recursive: true });
 
     const shipped = await readFile(join(options.unpacked, 'server.properties'), 'utf8');
+    const { transport, properties } = transportProperties(shipped);
     await writeFile(
         join(root, 'server.properties'),
         renderServerProperties(shipped, {
             ...COMMON_PROPERTIES,
+            ...properties,
             ...options.properties,
             'level-name': levelName
         })
     );
 
-    return { root, binary, worldDirectory, levelName };
+    return { root, binary, worldDirectory, levelName, transport };
 };
 
 /** A running server, and the three things a capture pass does with one. */
