@@ -48,11 +48,11 @@ appending. A batch is one log record either way, so a crash keeps all of it or n
 
 ## Compatibility
 
-Reads compression types 0, 1, 2 and 4; writes 4, which is what the game itself writes. Data blocks
-are cut at 160 KiB, as the game cuts them. A table records where each of its blocks is, so tables
-written at any other block size stay readable and take the new size when a compaction rewrites
-them. Databases
-predating the modern chunk formats are rejected rather than guessed at — open such a world in the
+Reads compression types <!-- fact:leveldb.readCompression -->0, 1, 2 and 4<!-- /fact -->; writes
+<!-- fact:leveldb.writtenCompression -->4<!-- /fact -->, which is what the game itself writes. Data
+blocks are cut at <!-- fact:leveldb.blockSize -->160 KiB<!-- /fact -->, as the game cuts them. A
+table records where each of its blocks is, so tables written at any other block size stay readable
+and take the new size when a compaction rewrites them. Databases predating the modern chunk formats are rejected rather than guessed at — open such a world in the
 game once and let it convert.
 
 A test in `@jsprismarine/bedrock-data` checks this against the pinned Bedrock Dedicated Server in

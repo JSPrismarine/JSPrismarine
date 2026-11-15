@@ -21,6 +21,9 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { CompressionType } from '../../packages/leveldb/src/compression/Compression.ts';
+import { resolveOptions } from '../../packages/leveldb/src/DatabaseOptions.ts';
+import { DEFAULT_BLOCK_SIZE } from '../../packages/leveldb/src/format/TableBuilder.ts';
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
 import {
     HEIGHT_BLENDING_RANGE_CHUNKS,
@@ -476,6 +479,15 @@ function dataSources(sources: Sources): FactSource[] {
  * Every known fact, by name. A fact whose source is not on disk, such as a download the data scripts
  * have not fetched in this checkout, is present with a `null` value: markers for it keep their text.
  */
+/** The table format `@jsprismarine/leveldb` reads and writes, read off its constants and defaults. */
+function leveldbFacts() {
+    return {
+        'leveldb.readCompression': list(Object.values(CompressionType).map(String)),
+        'leveldb.writtenCompression': String(resolveOptions().compression),
+        'leveldb.blockSize': `${DEFAULT_BLOCK_SIZE / 1024} KiB`
+    };
+}
+
 /** The entry points `@jsprismarine/prismarine` publishes, read from its published exports map. */
 function prismarineEntryFacts() {
     // Parsed JSON is an untyped boundary; only the published exports map is read.
@@ -552,6 +564,7 @@ export async function loadFacts(): Promise<Facts> {
             ...(await configFacts()),
             ...eventFacts(),
             ...prismarineEntryFacts(),
+            ...leveldbFacts(),
             ...tickBudgetFacts(),
             ...replicationFacts(),
             ...blendingFacts(),
