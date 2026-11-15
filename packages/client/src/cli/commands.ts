@@ -56,18 +56,28 @@ const overLink = async (values: Values, command: () => Promise<number>): Promise
 
 const logger = (values: Values): Logger => new Logger(values.verbose === true ? 'silly' : 'error');
 
-/** Resolves when the process is asked to stop, so a long-running command can tidy up. */
-const untilInterrupted = (): Promise<void> =>
-    new Promise((resolve) => {
-        const stop = () => {
-            process.off('SIGINT', stop);
-            process.off('SIGTERM', stop);
-            resolve();
-        };
+/**
+ * Calls `stop` on the first SIGINT or SIGTERM, so a long-running command can tidy up.
+ * @param stop - What the signal does in place of ending the process.
+ * @returns A function that removes the listeners again, so a later signal ends the process.
+ */
+export const onInterrupt = (stop: () => void): (() => void) => {
+    const release = () => {
+        process.off('SIGINT', handle);
+        process.off('SIGTERM', handle);
+    };
+    const handle = () => {
+        release();
+        stop();
+    };
 
-        process.once('SIGINT', stop);
-        process.once('SIGTERM', stop);
-    });
+    process.once('SIGINT', handle);
+    process.once('SIGTERM', handle);
+    return release;
+};
+
+/** Resolves on the first SIGINT or SIGTERM. */
+const untilInterrupted = (): Promise<void> => new Promise((resolve) => onInterrupt(resolve));
 
 /** Joins a server and prints its chat until interrupted. */
 export const runConnect = async (values: Values, io: CliIo): Promise<number> =>
@@ -176,14 +186,27 @@ const bot = async (values: Values, io: CliIo): Promise<number> => {
         loginTimeoutMs: optionalParsed(values, 'timeout', parseDuration)
     });
 
-    io.out(`Connecting ${count} bot(s) to ${host}:${port(values)}${ramp > 0 ? ` at ${ramp}/s` : ' all at once'}…`);
-    await fleet.connect();
-    io.out(`Connected ${fleet.report().connected}/${count}. Running for ${(duration / 1000).toFixed(0)}s…`);
+    // Interruptible from the first connection, so a run that is clearly going wrong can be
+    // stopped without losing the report - which is often the only reason it was worth starting.
+    // Stopping clears the ramp and duration timers, so the process exits once the report is out.
+    let interrupted = false;
+    const release = onInterrupt(() => {
+        interrupted = true;
+        fleet.stop();
+    });
 
-    // Interruptible, so a run that is clearly going wrong can be stopped without losing the
-    // report - which is often the only reason it was worth starting.
-    await Promise.race([fleet.run(duration), untilInterrupted()]);
-    fleet.stop();
+    try {
+        io.out(`Connecting ${count} bot(s) to ${host}:${port(values)}${ramp > 0 ? ` at ${ramp}/s` : ' all at once'}…`);
+        await fleet.connect();
+        if (!interrupted) {
+            io.out(`Connected ${fleet.report().connected}/${count}. Running for ${(duration / 1000).toFixed(0)}s…`);
+        }
+
+        await fleet.run(duration);
+    } finally {
+        release();
+        fleet.stop();
+    }
 
     const report = fleet.report();
     io.out('');

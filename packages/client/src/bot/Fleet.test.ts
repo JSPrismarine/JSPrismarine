@@ -177,3 +177,52 @@ describe('behavior selection', () => {
         expect(first).not.toBe(second);
     });
 });
+
+describe('stopping a fleet', () => {
+    // No server: these bots never dial, and the assertions are on the fleet's own timers.
+    const idleFleet = (ramp: number) =>
+        new Fleet({ host: '127.0.0.1', port: 1, count: 3, ramp, logger: new Logger('error') });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('ends a run early and leaves no timer behind', async () => {
+        vi.useFakeTimers();
+        const fleet = idleFleet(0);
+
+        const run = fleet.run(60 * 60 * 1000);
+        expect(vi.getTimerCount()).toBe(1);
+        fleet.stop();
+        await run;
+
+        expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('cancels the ramp, so no bot dials after the fleet stopped', async () => {
+        vi.useFakeTimers();
+        const fleet = idleFleet(1);
+        const dials = fleet.getBots().map((bot) => vi.spyOn(bot, 'connect'));
+
+        const connecting = fleet.connect();
+        fleet.stop();
+        await connecting;
+
+        expect(vi.getTimerCount()).toBe(0);
+        for (const dial of dials) expect(dial).not.toHaveBeenCalled();
+        expect(fleet.report().failures).toEqual([]);
+    });
+
+    it('returns at once from a run on a stopped fleet and keeps the first end time', async () => {
+        vi.useFakeTimers();
+        const fleet = idleFleet(0);
+        fleet.stop();
+        const { durationMs } = fleet.report();
+
+        vi.advanceTimersByTime(1000);
+        await fleet.run(60 * 60 * 1000);
+
+        expect(vi.getTimerCount()).toBe(0);
+        expect(fleet.report().durationMs).toBe(durationMs);
+    });
+});
