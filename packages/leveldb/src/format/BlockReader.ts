@@ -177,11 +177,14 @@ export class BlockReader {
             if (this.seekScratch === null || this.seekScratch.byteLength < keyLength) {
                 let capacity = Math.max(32, this.seekScratch?.byteLength ?? 0);
                 while (capacity < keyLength) capacity *= 2;
-                this.seekScratch = Buffer.allocUnsafe(capacity);
+                // The scratch holds the previous key, whose first `shared` bytes this one reuses.
+                const grown = Buffer.allocUnsafe(capacity);
+                this.seekScratch?.copy(grown, 0, 0, shared);
+                this.seekScratch = grown;
             }
 
+            // The first `shared` bytes are already in place from the previous key.
             const scratch = this.seekScratch;
-            scratch.copy(scratch, 0, 0, shared);
             this.data.copy(scratch, shared, cursor, cursor + nonShared);
             const valueOffset = cursor + nonShared;
             cursor = valueOffset + valueLength;

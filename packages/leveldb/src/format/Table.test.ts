@@ -135,6 +135,17 @@ describe('leveldb', () => {
                 for (const [k] of entries) expect(block.seek(k)?.key).toEqual(k);
             });
 
+            it('finds a long key that shares a prefix with a shorter one, on a reader seeking for the first time', () => {
+                // `player_server_<uuid>` and `tickingarea_<uuid>` are the game's keys of this shape.
+                const short = key('player_a');
+                const long = key(`player_server_${'0'.repeat(36)}`);
+                const builder = new BlockBuilder(16);
+                builder.add(short, key('a'));
+                builder.add(long, key('server'));
+
+                expect(new BlockReader(builder.finish(), compareBytewise).seek(long)?.value).toEqual(key('server'));
+            });
+
             it('uses the internal-key ordering for allocation-light point seeks', () => {
                 const builder = new BlockBuilder(16);
                 const internalKeys = Array.from({ length: 200 }, (_unused, index) =>
