@@ -35,7 +35,7 @@ your own at <!-- fact:demo.sponsorLink -->[rspwn.click/jsprismarine](https://rsp
 The server speaks Bedrock protocols <!-- fact:protocol.list -->2225 and 2193<!-- /fact -->, so
 Minecraft <!-- fact:minecraft.oldest -->1.26.50<!-- /fact --> through
 <!-- fact:minecraft.newest -->1.26.62<!-- /fact --> can join. The server list shows the newest of
-these. <!-- fact:minecraft.previewNote -->It accepts no Minecraft Preview.<!-- /fact --> A client outside that range sees Minecraft's **Outdated client** or **Outdated server**
+these. <!-- fact:minecraft.previewNote -->It also accepts Minecraft Preview 1.26.70.24 on protocol 2259, which the server list does not show.<!-- /fact --> A client outside that range sees Minecraft's **Outdated client** or **Outdated server**
 screen: update the game, or ask the host to update the server.
 
 ## Signing in

@@ -3,9 +3,10 @@ import { createProtocolCodecRegistry } from '@jsprismarine/protocol';
 
 import Codec2193 from './Codec2193';
 import Codec2225 from './Codec2225';
+import Codec2259 from './Codec2259';
 
 /** Protocol codecs configured with the server's captured item and world data. */
-const serverProtocolRegistry = createProtocolCodecRegistry([Codec2193, Codec2225]);
+const serverProtocolRegistry = createProtocolCodecRegistry([Codec2193, Codec2225, Codec2259]);
 
 /** Server-configured codecs keyed by the protocol number announced by each client. */
 export const codecs: ProtocolCodecRegistry['codecs'] = serverProtocolRegistry.codecs;
