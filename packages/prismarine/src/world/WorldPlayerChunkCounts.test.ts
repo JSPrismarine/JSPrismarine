@@ -13,6 +13,7 @@ import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
 import BaseProvider from './providers/BaseProvider';
+import type { ChunkSaveContext } from './providers/ChunkSaveContext';
 
 const PLAYER_COUNT = 16;
 const CHUNK_COUNT = 32;
@@ -20,7 +21,7 @@ const CHUNK_COUNT = 32;
 const worldWith = (
     chunkPositions: readonly (readonly [number, number])[],
     unloadable = false,
-    writeChunk: (chunk: Chunk) => Promise<void> = async () => {}
+    writeChunk: (chunk: Chunk, context?: ChunkSaveContext) => Promise<void> = async () => {}
 ): World => {
     const players = new Map<number, PlayerSession>();
     const chunks = new Map(chunkPositions.map(([x, z]) => [Chunk.packXZ(x, z), new Chunk(x, z)]));
@@ -316,6 +317,38 @@ describe('world player chunk counts', () => {
         world['beginDistantChunkUnloads']();
         await world['unloading'];
         expect(saved).toHaveLength(6);
+    });
+
+    it('takes a fresh save context for a chunk saved after a tick passed', async () => {
+        let finishFirst!: () => void;
+        const firstGate = new Promise<void>((resolve) => {
+            finishFirst = resolve;
+        });
+        const contextTicks: (number | undefined)[] = [];
+        const world = worldWith(
+            [
+                [20, 0],
+                [21, 0]
+            ],
+            true,
+            async (chunk, context) => {
+                contextTicks.push(context?.pendingFluidTicks?.currentTick);
+                if (chunk.getX() === 20) await firstGate;
+                chunk.markSaved();
+            }
+        );
+        world['players'].set(1, playerAt(world, 0, 0));
+        world.getLoadedChunk(20, 0)?.markChanged();
+        world.getLoadedChunk(21, 0)?.markChanged();
+
+        const unloading = world['unloadDistantChunks']();
+        await Promise.resolve();
+        // The first save waits on the database while the server ticks on.
+        world.getLevel().setTicks(world.getTicks() + 1);
+        finishFirst();
+        await unloading;
+
+        expect(contextTicks).toEqual([0, 1]);
     });
 
     it('keeps a chunk a ticket holds, and unloads it once the ticket is released', async () => {
