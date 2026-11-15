@@ -157,6 +157,17 @@ function tickBudgetFacts() {
     );
 }
 
+/** How many cores chunk generation leaves to the server thread, read off the constant that decides it. */
+function generationFacts() {
+    const source = readFileSync(
+        path.join(repoRoot, 'packages', 'prismarine', 'src', 'world', 'generators', 'chunkConcurrency.ts'),
+        'utf8'
+    );
+    const reserved = /export const RESERVED_CORES = (\d+);/.exec(source)?.[1];
+    if (reserved === undefined) throw new Error('The docs facts no longer find RESERVED_CORES in chunkConcurrency.ts.');
+    return { 'generation.reservedCores': reserved };
+}
+
 /** A source file the facts below quote, read as text. */
 const sourceText = (...segments: string[]) => readFileSync(path.join(repoRoot, ...segments), 'utf8');
 
@@ -566,6 +577,7 @@ export async function loadFacts(): Promise<Facts> {
             ...prismarineEntryFacts(),
             ...leveldbFacts(),
             ...tickBudgetFacts(),
+            ...generationFacts(),
             ...replicationFacts(),
             ...blendingFacts(),
             ...parityFamilyFacts(),
