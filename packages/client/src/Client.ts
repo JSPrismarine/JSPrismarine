@@ -19,6 +19,7 @@ import {
     v2193,
     v2225
 } from '@jsprismarine/protocol';
+import * as v2259 from '@jsprismarine/protocol/wire/versions/v2259';
 import { EventEmitter } from 'node:events';
 import Credits, { ShowCreditsPacket } from './Credits';
 import DimensionChange from './DimensionChange';
@@ -50,11 +51,13 @@ export const MINECRAFT_VERSION = '1.26.51';
  *
  * A server refuses a login whose protocol is not its own, so capturing data from a 1.26.60
  * server means speaking 2225 to it. Protocol packet classes use the selected version to read
- * version-gated fields; everything else this client reads and sends is unchanged at 2225.
+ * version-gated fields.
  */
 const PROTOCOLS = new Map([
     [v2193.protocolVersion, { minecraftVersion: MINECRAFT_VERSION }],
-    [v2225.protocolVersion, { minecraftVersion: '1.26.60' }]
+    [v2225.protocolVersion, { minecraftVersion: '1.26.60' }],
+    // A preview: the client speaks it to bring the server's preview support up against BDS.
+    [v2259.protocolVersion, { minecraftVersion: v2259.minecraftVersions[0]! }]
 ]);
 
 export interface ClientOptions {

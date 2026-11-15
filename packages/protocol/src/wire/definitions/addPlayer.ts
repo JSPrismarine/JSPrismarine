@@ -9,10 +9,16 @@
  * `AddPlayer.Marshal` at v1.63.0 (`OptionalMarshaler` of `PassengerOfBlock` before
  * `DeviceID`), which agree. Nothing else changed.
  */
-import { definePacket, gated } from '../define';
+import { definePacket } from '../define';
 import * as t from '../fieldTypes';
-import { itemStackDescriptor, metadata, passengerOfBlock, syncedProperties, uuid, vector3 } from '../structureTypes';
-import { SINCE_2225 } from '../wireGates';
+import {
+    itemStackDescriptor,
+    metadata,
+    passengerOfBlockField,
+    syncedProperties,
+    uuid,
+    vector3
+} from '../structureTypes';
 import { actorLinks } from './addActor';
 
 import type { PayloadOf } from '../define';
@@ -119,7 +125,7 @@ export const addPlayerPacket = definePacket('AddPlayerPacket', {
     /** `Actor Links`. */
     links: actorLinks,
     /** `Passenger Block Data`: the ridden block, or `null` for not riding; 2225 on. */
-    passengerOfBlock: gated(SINCE_2225, passengerOfBlock, null),
+    passengerOfBlock: passengerOfBlockField,
     /** `Device Id`. */
     deviceId: t.string,
     /** `Build Platform`, a `BuildPlatform` value as a little-endian int32. */

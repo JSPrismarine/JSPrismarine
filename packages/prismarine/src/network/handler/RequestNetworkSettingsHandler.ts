@@ -1,5 +1,11 @@
 import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import { CompressionThreshold, NetworkSettingsPacket, PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
+import {
+    CompressionThreshold,
+    NetworkSettingsPacket,
+    PlayStatus,
+    PlayStatusPacket,
+    SctpRecoveryProfile
+} from '@jsprismarine/protocol';
 import type { RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
 import { advertisedCodec, codecForProtocol, latestCodec, registeredCodecs } from '../codec/CodecRegistry';
 import type ClientConnection from '../ClientConnection';
@@ -39,7 +45,8 @@ export default class RequestNetworkSettingsHandler implements ConnectionHandler<
             compressionAlgorithm,
             clientThrottlingEnabled: false,
             clientThrottleThreshold: 0,
-            clientThrottleScalar: 0
+            clientThrottleScalar: 0,
+            sctpRecoveryProfile: SctpRecoveryProfile.Default
         });
 
         connection.setCompressionSettings(compressionAlgorithm, compressionThreshold);

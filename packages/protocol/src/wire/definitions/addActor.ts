@@ -8,11 +8,10 @@
  * `AddActor.Marshal` at v1.63.0 (`OptionalMarshaler` of `PassengerOfBlock` last), which
  * agree. Nothing before it changed.
  */
-import { definePacket, gated } from '../define';
+import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 import { Attribute } from '../structures/Attribute';
-import { metadata, passengerOfBlock, syncedProperties, vector3 } from '../structureTypes';
-import { SINCE_2225 } from '../wireGates';
+import { metadata, passengerOfBlockField, syncedProperties, vector3 } from '../structureTypes';
 
 import type { PayloadOf } from '../define';
 
@@ -130,7 +129,7 @@ export const addActorPacket = definePacket('AddActorPacket', {
     /** `Actor Links`. */
     links: actorLinks,
     /** `Passenger Block Data`: the ridden block, or `null` for not riding; 2225 on. */
-    passengerOfBlock: gated(SINCE_2225, passengerOfBlock, null)
+    passengerOfBlock: passengerOfBlockField
 });
 
 /** Spawns an actor with its position, motion, attributes, metadata, properties, and links. */

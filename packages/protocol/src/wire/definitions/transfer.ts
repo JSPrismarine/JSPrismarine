@@ -6,9 +6,10 @@
  * Mojang's packet page.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/transfer-packet/
  */
-import { definePacket } from '../define';
+import { definePacket, gated } from '../define';
 import * as t from '../fieldTypes';
 import { uuid } from '../structureTypes';
+import { SINCE_2259 } from '../wireGates';
 
 import type { PayloadOf } from '../define';
 
@@ -40,6 +41,33 @@ export const transferPacket = definePacket('TransferPacket', {
             /** `serverId`: identifier of the destination server, when one is supplied. */
             serverId: t.optional(t.string)
         })
+    ),
+    /**
+     * `Server Transfer Settings` from protocol 2259: an optional `TransferPlayerUIOptions` that
+     * styles the loading screen of a server-to-server transfer. Each of its seven members is
+     * optional behind its own presence byte, as the schema lists none as required.
+     */
+    transferSettings: gated(
+        SINCE_2259,
+        t.optional(
+            t.record({
+                /** `TitleText`. */
+                titleText: t.optional(t.string),
+                /** `BodyText`. */
+                bodyText: t.optional(t.string),
+                /** `TitleVisible`. */
+                titleVisible: t.optional(t.bool),
+                /** `BodyVisible`. */
+                bodyVisible: t.optional(t.bool),
+                /** `CancelButtonText`. */
+                cancelButtonText: t.optional(t.string),
+                /** `CancelButtonVisible`. */
+                cancelButtonVisible: t.optional(t.bool),
+                /** `CancelButtonDelaySeconds`. */
+                cancelButtonDelaySeconds: t.optional(t.lf32)
+            })
+        ),
+        null
     )
 });
 

@@ -15,7 +15,8 @@ const payload = {
     compressionAlgorithm: 40001,
     clientThrottlingEnabled: true,
     clientThrottleThreshold: 197,
-    clientThrottleScalar: 5.5
+    clientThrottleScalar: 5.5,
+    sctpRecoveryProfile: 0
 };
 
 describe('the declarative NetworkSettings layout', () => {
@@ -45,7 +46,8 @@ describe.each([2193, 2225])('NetworkSettings at protocol %i', (protocol) => {
             compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
             clientThrottlingEnabled: false,
             clientThrottleThreshold: 0,
-            clientThrottleScalar: 0
+            clientThrottleScalar: 0,
+            sctpRecoveryProfile: 0
         });
 
         const stream = new BinaryStream();

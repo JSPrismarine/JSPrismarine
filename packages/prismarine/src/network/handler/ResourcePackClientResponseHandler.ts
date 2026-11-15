@@ -19,7 +19,7 @@ import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';
 import type ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet/ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from '@jsprismarine/protocol/packet/ResourcePackStackPacket';
-import { ResourcePackStatus } from '@jsprismarine/protocol';
+import { EditorPackType, ResourcePackStatus } from '@jsprismarine/protocol';
 import { joinContentPayloads } from '../contentPayloads';
 import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
 import { allSent } from '../allSent';
@@ -189,7 +189,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                             gameVersion: '*',
                             experiments: [],
                             experimentsAlreadyEnabled: false,
-                            includeEditorPacks: false
+                            editorPackTypes: EditorPackType.None
                         })
                     )
                 );

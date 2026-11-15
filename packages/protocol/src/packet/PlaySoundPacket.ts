@@ -67,7 +67,7 @@ export enum SoundName {
 /**
  * Plays a named sound at a position, once or on a loop.
  *
- * Wire order, the same at protocols 2193 and 2225 (1.26.60 adds nothing to it): `Name` as a string, `Position` as a `BlockPos` of three ZigZag
+ * Wire order: `Name` as a string, `Position` as a `BlockPos` of three ZigZag
  * varint32 holding each coordinate times eight (the client divides them back, so the sound
  * lands on an eighth of a block), `Volume` and `Pitch` as little-endian floats, then the
  * fields 1.26.50 added: `Loop Count` as a ZigZag varint32, `Bypass Listener Range Check` as
@@ -97,6 +97,10 @@ export default class PlaySoundPacket extends FieldNetworkPacket {
     public soundHandle: bigint | null = null;
     /** Where in the sound to start, in seconds. */
     public playbackPositionSeconds: number | null = null;
+    /** How long to wait before the sound starts, in seconds. On the wire from protocol 2259. */
+    public startDelaySeconds: number | null = null;
+    /** The runtime id of the actor the sound follows. On the wire from protocol 2259. */
+    public attachToActorRuntimeId: bigint | null = null;
 
     /** Reads the sound name, quantized position, playback settings, and optional fields. */
     public decodePayload(): void {
@@ -109,6 +113,8 @@ export default class PlaySoundPacket extends FieldNetworkPacket {
         this.bypassListenerRangeCheck = payload.bypassListenerRangeCheck;
         this.soundHandle = payload.soundHandle;
         this.playbackPositionSeconds = payload.playbackPositionSeconds;
+        this.startDelaySeconds = payload.startDelaySeconds;
+        this.attachToActorRuntimeId = payload.attachToActorRuntimeId;
     }
 
     /** Writes the fields in wire order, using the origin when no position was set. */
@@ -123,7 +129,9 @@ export default class PlaySoundPacket extends FieldNetworkPacket {
             loopCount: this.loopCount,
             bypassListenerRangeCheck: this.bypassListenerRangeCheck,
             soundHandle: this.soundHandle,
-            playbackPositionSeconds: this.playbackPositionSeconds
+            playbackPositionSeconds: this.playbackPositionSeconds,
+            startDelaySeconds: this.startDelaySeconds,
+            attachToActorRuntimeId: this.attachToActorRuntimeId
         });
     }
 }

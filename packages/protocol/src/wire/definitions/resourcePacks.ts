@@ -4,8 +4,9 @@
  * Field names and order follow each packet's docs page.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
-import { definePacket } from '../define';
+import { definePacket, versioned } from '../define';
 import * as t from '../fieldTypes';
+import { SINCE_2259, UNTIL_2259 } from '../wireGates';
 
 import type { Experiment } from '@jsprismarine/minecraft';
 import type { WireType } from '../fieldTypes';
@@ -92,6 +93,32 @@ const experimentToggle = t.custom<Experiment>(
 );
 
 /**
+ * `EditorPackType` bits: which vanilla editor packs an Editor world adds. From protocol 2259 the
+ * field is a uint8 of these flags, and a client rejects a byte with any other bit set.
+ */
+export enum EditorPackType {
+    None = 0,
+    Core = 0x1,
+    Annotation = 0x2
+}
+
+/**
+ * The editor packs field, as {@link EditorPackType} flags. Up to 2225 it is the
+ * `Include Editor Packs` boolean: any flag travels as `true`, and `true` reads back as `Core`.
+ */
+const editorPackTypes = versioned<number>(
+    [
+        UNTIL_2259,
+        t.custom(
+            'bool[Include Editor Packs]',
+            (stream, value) => t.bool.write(stream, value !== EditorPackType.None),
+            (stream) => (t.bool.read(stream) ? EditorPackType.Core : EditorPackType.None)
+        )
+    ],
+    [SINCE_2259, t.uint8]
+);
+
+/**
  * The `ResourcePackStackPacket` field list.
  *
  * One pack list, not two. 748 sent the behavior packs ahead of the texture packs, and a reader
@@ -112,8 +139,8 @@ export const resourcePackStackPacket = definePacket('ResourcePackStackPacket', {
     experiments: t.listWith(t.lu32, experimentToggle),
     /** `ExperimentsEverToggled`: whether any experiment was ever toggled in this world. */
     experimentsAlreadyEnabled: t.bool,
-    /** `Include Editor Packs`: whether an Editor world adds the vanilla editor packs. */
-    includeEditorPacks: t.bool
+    /** `Editor Pack Types` (`Include Editor Packs` before 2259): the vanilla editor packs an Editor world adds. */
+    editorPackTypes
 });
 
 /**

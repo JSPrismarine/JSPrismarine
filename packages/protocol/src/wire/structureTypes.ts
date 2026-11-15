@@ -15,13 +15,21 @@ import Vec2 from '../structure/Vec2';
 import Vec3 from '../structure/Vec3';
 
 import CommandOriginData from './structures/CommandOriginData';
+import { versioned } from './define';
 import { custom } from './fieldTypes';
 import { readItemStackDescriptor, writeItemStackDescriptor } from './structures/ItemStackDescriptor';
 import { Metadata } from './structures/Metadata';
-import { readPassengerOfBlock, writePassengerOfBlock } from './structures/PassengerOfBlock';
+import {
+    PASSENGER_OF_BLOCK_2225,
+    PASSENGER_OF_BLOCK_2259,
+    readPassengerOfBlock,
+    writePassengerOfBlock
+} from './structures/PassengerOfBlock';
 import Skin from './structures/skin/Skin';
 import { SyncedProperties } from './structures/SyncedProperties';
 import UUID from './structures/UUID';
+
+import { SINCE_2259, UNTIL_2225, UNTIL_2259 } from './wireGates';
 
 import type { WireType } from './fieldTypes';
 import type { ItemStackDescriptorData } from './structures/ItemStackDescriptor';
@@ -82,8 +90,32 @@ export const syncedProperties: WireType<SyncedProperties> = custom(
  */
 export const passengerOfBlock: WireType<PassengerOfBlock | null> = custom(
     'optional<PassengerOfBlockArguments>',
-    (stream, value) => writePassengerOfBlock(stream, value),
-    (stream) => readPassengerOfBlock(stream)
+    (stream, value) => writePassengerOfBlock(stream, value, PASSENGER_OF_BLOCK_2225),
+    (stream) => readPassengerOfBlock(stream, PASSENGER_OF_BLOCK_2225)
+);
+
+/** {@link passengerOfBlock} from protocol 2259, with `BlockType` and `PackUUID` appended. */
+export const passengerOfBlock2259: WireType<PassengerOfBlock | null> = custom(
+    'optional<PassengerOfBlockArguments[2259]>',
+    (stream, value) => writePassengerOfBlock(stream, value, PASSENGER_OF_BLOCK_2259),
+    (stream) => readPassengerOfBlock(stream, PASSENGER_OF_BLOCK_2259)
+);
+
+/**
+ * The passenger field of `AddActorPacket` and `AddPlayerPacket`: off the wire before 2225, where
+ * it reads as `null` and a value is dropped, then in the 2225 layout, then in the 2259 one.
+ */
+export const passengerOfBlockField = versioned<PassengerOfBlock | null>(
+    [
+        UNTIL_2225,
+        custom(
+            'absent<PassengerOfBlockArguments>',
+            () => undefined,
+            () => null
+        )
+    ],
+    [UNTIL_2259, passengerOfBlock],
+    [SINCE_2259, passengerOfBlock2259]
 );
 
 /**

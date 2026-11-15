@@ -1,6 +1,7 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type { Vector3 } from '@jsprismarine/math';
 import { NetworkUtil } from '../networkUtil';
+import UUID from './UUID';
 
 /**
  * The docs' `PassengerOfBlockArguments__EmoteType`: the pose an entity takes while riding a
@@ -32,14 +33,41 @@ export interface PassengerOfBlock {
     rotationLimit: number;
     /** EmoteType, one {@link PassengerOfBlockEmoteType} byte. */
     emoteType: number;
+    /**
+     * `BlockType` from protocol 2259: the ridden block's type, a little-endian uint64. Absent,
+     * a 2259 writer sends 0.
+     */
+    blockType?: bigint;
+    /**
+     * `PackUUID` from protocol 2259: the pack that defines the ridden block. Absent, a 2259
+     * writer sends the nil UUID.
+     */
+    packUuid?: UUID;
 }
 
+/** Which `PassengerOfBlockArguments` layout to read or write: 2259 appended two fields. */
+export interface PassengerOfBlockLayout {
+    /** Whether `BlockType` and `PackUUID` follow `EmoteType`. */
+    readonly carriesBlockType: boolean;
+}
+
+/** The layout protocols 2225 up to 2259 use: the five fields alone. */
+export const PASSENGER_OF_BLOCK_2225: PassengerOfBlockLayout = Object.freeze({ carriesBlockType: false });
+
+/** The layout from protocol 2259: the five fields, then `BlockType` and `PackUUID`. */
+export const PASSENGER_OF_BLOCK_2259: PassengerOfBlockLayout = Object.freeze({ carriesBlockType: true });
+
 /**
- * Writes an optional `PassengerOfBlockArguments`: a presence byte, then the five fields.
+ * Writes an optional `PassengerOfBlockArguments`: a presence byte, then the fields its layout carries.
  * @param {BinaryStream} stream - the stream to write to.
  * @param {PassengerOfBlock | null} passenger - the ridden block, or `null` for not riding.
+ * @param {PassengerOfBlockLayout} layout - which protocol's field list to write.
  */
-export const writePassengerOfBlock = (stream: BinaryStream, passenger: PassengerOfBlock | null): void => {
+export const writePassengerOfBlock = (
+    stream: BinaryStream,
+    passenger: PassengerOfBlock | null,
+    layout: PassengerOfBlockLayout = PASSENGER_OF_BLOCK_2225
+): void => {
     stream.writeBoolean(passenger !== null);
     if (passenger === null) return;
 
@@ -48,21 +76,32 @@ export const writePassengerOfBlock = (stream: BinaryStream, passenger: Passenger
     stream.writeFloatLE(passenger.rotation);
     stream.writeFloatLE(passenger.rotationLimit);
     stream.writeByte(passenger.emoteType);
+    if (!layout.carriesBlockType) return;
+
+    stream.writeUnsignedLongLE(passenger.blockType ?? 0n);
+    (passenger.packUuid ?? new UUID()).networkSerialize(stream);
 };
 
 /**
  * Reads an optional `PassengerOfBlockArguments`, the mirror of {@link writePassengerOfBlock}.
  * @param {BinaryStream} stream - the stream to read from.
+ * @param {PassengerOfBlockLayout} layout - which protocol's field list to read.
  * @returns {PassengerOfBlock | null} the ridden block, or `null` when the presence byte is 0.
  */
-export const readPassengerOfBlock = (stream: BinaryStream): PassengerOfBlock | null => {
+export const readPassengerOfBlock = (
+    stream: BinaryStream,
+    layout: PassengerOfBlockLayout = PASSENGER_OF_BLOCK_2225
+): PassengerOfBlock | null => {
     if (!stream.readBoolean()) return null;
 
-    return {
+    const passenger: PassengerOfBlock = {
         blockPosition: NetworkUtil.readBlockPosition(stream),
         offset: NetworkUtil.readVector3(stream),
         rotation: stream.readFloatLE(),
         rotationLimit: stream.readFloatLE(),
         emoteType: stream.readByte()
     };
+    if (!layout.carriesBlockType) return passenger;
+
+    return { ...passenger, blockType: stream.readUnsignedLongLE(), packUuid: UUID.networkDeserialize(stream) };
 };

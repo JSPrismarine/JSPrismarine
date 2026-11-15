@@ -176,7 +176,13 @@ export const serverSideCommandHost = (
             const session = playerSessionOf(server, ref);
             if (session === undefined) return false;
 
-            const packet = new TransferPacket({ address: host, port, reloadWorld: false, gatheringsConfig: null });
+            const packet = new TransferPacket({
+                address: host,
+                port,
+                reloadWorld: false,
+                gatheringsConfig: null,
+                transferSettings: null
+            });
             return carryOut(session.send(packet), true);
         },
 

@@ -8,9 +8,10 @@
  * `Execute On First Tick`.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/command-block-update-packet/
  */
-import { definePacket } from '../define';
+import { definePacket, gated } from '../define';
 import * as t from '../fieldTypes';
 import { blockPosStructure } from '../structureTypes';
+import { SINCE_2259 } from '../wireGates';
 
 import type { CommandBlockMode } from '../../packet/CommandBlockUpdatePacket';
 import type BlockPos from '../../structure/BlockPos';
@@ -84,7 +85,9 @@ export const commandBlockUpdatePacket = definePacket('CommandBlockUpdatePacket',
     /** `Tick Delay`: the delay in ticks between repeating block executions, a little-endian int32. */
     tickDelay: t.li32,
     /** `Execute On First Tick`: whether a repeating block should execute before its first delay. */
-    executeOnFirstTick: t.bool
+    executeOnFirstTick: t.bool,
+    /** `Last Output Is Raw Message` from protocol 2259: whether `Last Output` is literal text rather than a translation key. */
+    lastOutputIsRawMessage: gated(SINCE_2259, t.bool, false)
 });
 
 /** Payload carried by `CommandBlockUpdatePacket`. */

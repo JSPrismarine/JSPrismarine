@@ -22,7 +22,13 @@ const bytesOf = (write: (stream: NetworkBinaryStream) => void): number[] => {
 const stringBytes = (value: string): number[] => bytesOf((stream) => stream.writeString(value));
 const uuidBytes = (value: string): number[] => bytesOf((stream) => UUID.fromString(value).networkSerialize(stream));
 
-const WITHOUT_CONFIG: Transfer = { address: ADDRESS, port: 19132, reloadWorld: true, gatheringsConfig: null };
+const WITHOUT_CONFIG: Transfer = {
+    address: ADDRESS,
+    port: 19132,
+    reloadWorld: true,
+    gatheringsConfig: null,
+    transferSettings: null
+};
 const WITH_CONFIG: Transfer = {
     address: ADDRESS,
     port: 19132,
@@ -36,7 +42,8 @@ const WITH_CONFIG: Transfer = {
         targetId: UUID.fromString(TARGET_ID),
         scenarioId: 'scenario-1',
         serverId: null
-    }
+    },
+    transferSettings: null
 };
 const packetHead = [PacketIdentifier.TRANSFER, ...stringBytes(ADDRESS), 0xbc, 0x4a];
 const WITHOUT_CONFIG_BYTES = Buffer.from([...packetHead, 0x01, 0x00]);
