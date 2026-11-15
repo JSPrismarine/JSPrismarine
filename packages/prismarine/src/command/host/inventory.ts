@@ -159,6 +159,8 @@ export const setItemSlot = (
     const stack = stackOf(server, item);
     if (stack === null) return 0;
 
-    resolved.inventory.setItem(resolved.slot, new ContainerEntry({ item: stack, count }));
+    // The wire and every reader of the item count the item's own amount, so the item carries the
+    // slot's count rather than leaving the entry and the item to disagree.
+    resolved.inventory.setItem(resolved.slot, new ContainerEntry({ item: stack.withCount(count), count }));
     return carryOut(session.sendInventory(), count);
 };
