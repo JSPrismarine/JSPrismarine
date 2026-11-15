@@ -7,8 +7,8 @@
  * or not. The three liquids are named, because being water or lava is a fact
  * about those four identifiers and nothing else.
  */
-import type { BedrockCollisionBox } from '@jsprismarine/blocks';
-import { collisionShapeOf } from '@jsprismarine/blocks';
+import type { BedrockCollisionBox } from '@jsprismarine/blocks/geometry';
+import { collisionShapeOf } from '@jsprismarine/blocks/geometry';
 import type { NavigationView } from '@jsprismarine/entity-goals';
 import type { EntityPosition } from '@jsprismarine/entities';
 
