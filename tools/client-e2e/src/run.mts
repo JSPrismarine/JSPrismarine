@@ -199,6 +199,13 @@ const serverLogs: string[] = new Array(selectedSuites.length);
  */
 const additionalClientTurns = createMutex();
 
+/**
+ * The stone floor scenarios stand on at 0.5 64 0.5. Movement travels about twelve blocks in three
+ * seconds; the floor runs under its full path so cleanup can respawn a player that finishes the
+ * scenario away from the spawn pad.
+ */
+const scenarioFloor = 'fill -2 63 -2 2 63 20 minecraft:stone';
+
 const resetBetweenScenarios = async (
     server: Awaited<ReturnType<typeof startServer>>,
     client: CinnabarClient
@@ -261,10 +268,8 @@ const resetBetweenScenarios = async (
     await client.waitForScreenAbsent('Loading', 30_000);
     await client.waitFor({ chunks_loaded: { radius: 2 } }, 60_000);
 
-    // Movement travels about twelve blocks in three seconds; keep a floor under its full path
-    // so cleanup can respawn a player that finishes the scenario away from the spawn pad. Only now
-    // does the fill land, since the chunks it writes to are loaded around the player.
-    server.command('fill -2 63 -2 2 63 20 minecraft:stone');
+    // Only now does the fill land, since the chunks it writes to are loaded around the player.
+    server.command(scenarioFloor);
     await standAt({ server, client, playerName }, { x: 0.5, y: 64, z: 0.5 });
     const { dimension } = await client.state();
     if (![0, 'minecraft:overworld', 'Overworld'].some((value) => value === dimension)) {
@@ -317,6 +322,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
     let server: Awaited<ReturnType<typeof startServer>> | undefined;
     let client: CinnabarClient | undefined;
     const results: ScenarioResult[] = [];
+    const worldgenSuite = suite.scenarios.some((scenario) => scenario.serverOptions?.worldgenSpawn === true);
 
     try {
         server = await startServer({
@@ -337,9 +343,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.naturalCowSpawning === true)
                 ? { naturalCowSpawning: true }
                 : {}),
-            ...(suite.scenarios.some((scenario) => scenario.serverOptions?.worldgenSpawn === true)
-                ? { worldgenSpawn: true }
-                : {}),
+            ...(worldgenSuite ? { worldgenSpawn: true } : {}),
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.secondLevel === true)
                 ? { secondLevel: true }
                 : {})
@@ -371,9 +375,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
         // A suite that boots the Java noise Overworld generates real terrain and runs the climate
         // spawn search before the first join, which took a minute on a developer machine and
         // longer than two minutes on a CI runner.
-        const joinBudgetMs = suite.scenarios.some((scenario) => scenario.serverOptions?.worldgenSpawn === true)
-            ? 360_000
-            : 120_000;
+        const joinBudgetMs = worldgenSuite ? 360_000 : 120_000;
         const joined = suiteServer.waitForLine(new RegExp(`${playerName} joined the game`), joinBudgetMs);
         const measureChunkJoin = suite.scenarios.some((scenario) => scenario.name === cachedChunkDelivery.name);
         const connectStarted = performance.now();
@@ -411,6 +413,16 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
         }
         await client.waitForScreenAbsent('Loading', joinBudgetMs);
         await joined;
+        // The reset after each scenario lays the floor the next one stands on, so the first
+        // scenario needs it laid here. A noise world's spawn is far from the floor and has ground
+        // of its own, and laying it there would generate terrain the join did not ask for.
+        if (!worldgenSuite) {
+            await client.waitFor({ chunks_loaded: { radius: 2 } }, joinBudgetMs);
+            const floorLaid = suiteServer.waitForLine(/e2e-floor-laid/, 15_000);
+            suiteServer.command(scenarioFloor);
+            suiteServer.command('say e2e-floor-laid');
+            await floorLaid;
+        }
         await client.armInput();
         console.log(`${suite.name}: join ok`);
 
