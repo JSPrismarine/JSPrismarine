@@ -110,6 +110,17 @@ import { changeLogCost } from './changelog/changeLogCost';
 
 export type { LevelData, StoredPlayerAttribute, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 
+/** Whether a runtime id names a liquid, remembered because the liquid layer repeats a few ids. */
+const liquidRuntimeIds = new Map<number, boolean>();
+const isLiquidRuntimeId = (runtimeId: number): boolean => {
+    let known = liquidRuntimeIds.get(runtimeId);
+    if (known === undefined) {
+        known = liquidOf(BlockRuntimeIds.getState(runtimeId)?.name ?? '') !== null;
+        liquidRuntimeIds.set(runtimeId, known);
+    }
+    return known;
+};
+
 /** How far out to look for dry land, and how coarsely, before giving up. */
 const SPAWN_SEARCH_RADIUS = 256;
 const SPAWN_SEARCH_STEP = 8;
@@ -1647,7 +1658,9 @@ export class World implements Service {
      *
      * Each is scheduled only where fluid still stands, which is the check Java's
      * `LevelChunk.postProcessGeneration` makes. A generation tick is due at once, as Java runs it
-     * when the chunk becomes full; a saved tick keeps the delay it had left.
+     * when the chunk becomes full; a saved tick keeps the delay it had left. A waterlogged block
+     * holds its water in the liquid layer, and Java's `getFluidState` answers with that water, so
+     * the liquid layer counts where the block itself is not a fluid.
      */
     private schedulePendingFluidTicks(chunk: Chunk): void {
         const pending = chunk.takePendingFluidTicks();
@@ -1656,7 +1669,8 @@ export class World implements Service {
         const fluidTicks = this.systems.ticks.list('fluid');
         const now = this.getTicks();
         for (const tick of pending) {
-            const name = chunk.getBlock(tick.x & 0xf, tick.y, tick.z & 0xf).name;
+            let name = chunk.getBlock(tick.x & 0xf, tick.y, tick.z & 0xf).name;
+            if (liquidOf(name) === null) name = chunk.getBlock(tick.x & 0xf, tick.y, tick.z & 0xf, 1).name;
             if (liquidOf(name) === null) continue;
             fluidTicks.schedule({ x: tick.x, y: tick.y, z: tick.z }, name, now + tick.delay);
         }
@@ -3179,6 +3193,23 @@ export class World implements Service {
 
         const state = chunk.getBlock(x, y, z);
         return { name: state.name, states: state.properties };
+    }
+
+    /**
+     * The liquid a loaded position holds in its second storage layer, which is where Bedrock keeps
+     * a waterlogged block's water, or undefined when that layer holds no liquid or the chunk is
+     * not loaded.
+     */
+    public loadedLiquidAt(x: number, y: number, z: number): SystemBlock | undefined {
+        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+        if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) return undefined;
+
+        // By runtime id, because the fluid rules ask this of every neighbor that is not a fluid
+        // itself, and most positions have no second layer at all, which reads as air.
+        const runtimeId = chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf, 1);
+        if (!isLiquidRuntimeId(runtimeId)) return undefined;
+        const state = BlockRuntimeIds.getState(runtimeId);
+        return state ? { name: state.name, states: state.properties } : undefined;
     }
 
     /**

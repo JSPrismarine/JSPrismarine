@@ -17,11 +17,13 @@ const stone: ContentBlock = { identifier: 'minecraft:stone', states: {} };
 const lamp: ContentBlock = { identifier: 'minecraft:redstone_lamp', states: { lit: false } };
 
 /** A world of a handful of blocks, which is all the eight adapter members read. */
-const mapStorage = (initial: Record<string, ContentBlock> = {}) => {
+const mapStorage = (initial: Record<string, ContentBlock> = {}, liquids: Record<string, ContentBlock> = {}) => {
     const blocks = new Map(Object.entries(initial));
+    const liquidLayer = new Map(Object.entries(liquids));
     const written: string[] = [];
     const storage: BlockStorageAccess = {
         at: (position) => blocks.get(key(position)),
+        liquidAt: (position) => liquidLayer.get(key(position)),
         write: (position, block) => {
             written.push(key(position));
             blocks.set(key(position), block);
@@ -40,8 +42,8 @@ const mapBlockEntities = (): BlockEntityStore => {
  * wires it: the adapter carries the group, the content is built around the
  * adapter, and the group reads the content back.
  */
-const harness = (initial: Record<string, ContentBlock> = {}) => {
-    const { storage, written } = mapStorage(initial);
+const harness = (initial: Record<string, ContentBlock> = {}, liquids: Record<string, ContentBlock> = {}) => {
+    const { storage, written } = mapStorage(initial, liquids);
     let content: ServerContent | undefined;
 
     const blocks = createContentBlockGroup({
@@ -140,6 +142,22 @@ describe('block', () => {
             // its `down` face; the four unloaded neighbors and the distant
             // block hear nothing.
             expect(seen.sort()).toEqual(['0,-1,0 up', '0,1,0 down']);
+        });
+
+        it("tells what a position's liquid layer holds about its neighbor, as Java's updateShape does", () => {
+            // The fixture content has no water, so a lamp stands in the liquid layer: the routing
+            // dispatches whatever block the layer holds to its own hooks, which for real content
+            // is a waterlogged block's water and its fluid family.
+            const { blocks } = harness({ '0,0,0': stone, '0,1,0': stone, '0,-1,0': stone }, { '0,1,0': lamp });
+            const seen = watchNeighborHooks();
+
+            blocks.notifyNeighbors({ x: 0, y: 0, z: 0 });
+
+            // Stone reacts to nothing, so the one dispatch is the liquid layer's, on the face toward
+            // the change; the position below has no liquid layer and hears nothing.
+            expect(seen).toEqual(['0,1,0 down']);
+            expect(blocks.liquid?.({ x: 0, y: 1, z: 0 })).toEqual(lamp);
+            expect(blocks.liquid?.({ x: 0, y: -1, z: 0 })).toBeUndefined();
         });
 
         it('handles long chains of nested neighbor updates without recursion', () => {

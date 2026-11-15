@@ -69,7 +69,8 @@ const BLOCKS = [
     'minecraft:anvil',
     'minecraft:kelp',
     'minecraft:cave_vines_body_with_berries',
-    'minecraft:cave_vines_head_with_berries'
+    'minecraft:cave_vines_head_with_berries',
+    'minecraft:oak_fence'
 ] as const;
 
 /** The items the destructions below yield. */
@@ -293,10 +294,16 @@ const runTicks = (world: World, count: number): void => {
 };
 
 /** Writes a block straight into the chunk, which is the ground the destruction happens on. */
-const place = (chunk: Chunk, at: ContentPosition, identifier: string, states: Record<string, unknown> = {}): void => {
+const place = (
+    chunk: Chunk,
+    at: ContentPosition,
+    identifier: string,
+    states: Record<string, unknown> = {},
+    layer = 0
+): void => {
     const runtimeId = BlockRuntimeIds.tryGetByState(identifier, states as Record<string, string | number | boolean>);
     if (runtimeId === null) throw new Error(`no ${identifier} in state ${JSON.stringify(states)}`);
-    chunk.setBlockRuntimeId(at.x & 0xf, at.y, at.z & 0xf, runtimeId);
+    chunk.setBlockRuntimeId(at.x & 0xf, at.y, at.z & 0xf, runtimeId, layer);
 };
 
 describe('a block the world destroyed', () => {
@@ -496,6 +503,45 @@ describe('a block the world destroyed', () => {
 
             expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:flowing_water');
             expect(drops()).toEqual([{ identifier: 'minecraft:torch', count: 1 }]);
+        });
+    });
+
+    describe('by the water a waterlogged block holds', () => {
+        /** The trough the stream test uses, with a waterlogged fence where its source stood. */
+        const waterloggedTrough = (): void => {
+            for (let x = 6; x <= 12; x += 1) {
+                place(chunk, { x, y: 63, z: 8 }, 'minecraft:stone');
+                place(chunk, { x, y: 64, z: 7 }, 'minecraft:stone');
+                place(chunk, { x, y: 64, z: 9 }, 'minecraft:stone');
+            }
+            place(chunk, { x: 7, y: 64, z: 8 }, 'minecraft:stone');
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:oak_fence');
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:water', { liquid_depth: 0 }, 1);
+            place(chunk, { x: 9, y: 64, z: 8 }, 'minecraft:torch', { torch_facing_direction: 'top' });
+        };
+
+        it('runs a tick that names the water, and the water flows out of the fence', () => {
+            waterloggedTrough();
+            // What a generation mark or a saved tick leaves: a water tick at the fence.
+            world.getSystems().ticks.list('fluid').schedule({ x: 8, y: 64, z: 8 }, 'minecraft:water', 1);
+            runTicks(world, 40);
+
+            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:oak_fence');
+            expect(world.loadedLiquidAt(8, 64, 8)?.name).toBe('minecraft:water');
+            expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:flowing_water');
+            expect(drops()).toEqual([{ identifier: 'minecraft:torch', count: 1 }]);
+        });
+
+        it('wakes when a neighbor changes, as a waterlogged block does in Java', () => {
+            waterloggedTrough();
+            runTicks(world, 10);
+            expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:torch');
+
+            // A block placed above the fence notifies it, and its water hears it too.
+            content.world.blockWorld.at(DIMENSION).setBlock({ x: 8, y: 65, z: 8 }, 'minecraft:stone');
+            runTicks(world, 40);
+
+            expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:flowing_water');
         });
     });
 

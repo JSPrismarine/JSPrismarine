@@ -86,6 +86,11 @@ export type ContentItemDrop = ItemDrop;
 export interface ContentBlockAccess {
     /** The block at a position, or undefined when its chunk is not loaded. */
     get(at: ContentPosition): ContentBlock | undefined;
+    /**
+     * The liquid a position holds in its second storage layer, which is where Bedrock keeps a
+     * waterlogged block's water, or undefined when there is none or its chunk is not loaded.
+     */
+    liquid?(at: ContentPosition): ContentBlock | undefined;
     /** The dimension's monotonic block-write version, when the host can provide one. */
     blockRevision?(): number;
     /** The loaded chunk object holding a block, for caches that span ticks. */

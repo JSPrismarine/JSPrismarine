@@ -70,6 +70,11 @@ export interface BlockStorageAccess {
     /** Moves a block and its block entity without raising placement hooks. */
     move?(from: ContentPosition, to: ContentPosition): void;
     /**
+     * The liquid a position holds in its second storage layer, which is where Bedrock keeps a
+     * waterlogged block's water, or undefined when there is none.
+     */
+    liquidAt?(position: ContentPosition): ContentBlock | undefined;
+    /**
      * Raises a block's `onBreak` and puts what Java's table rolls on the ground, leaving
      * the write to the caller; see {@link ContentBlockAccess.destroy}.
      *
@@ -234,20 +239,31 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
 
                 const position = relative(update.at, face);
                 const neighbor = storage.at(position);
-                if (!neighbor || !reactsToNeighbors(content, neighbor.identifier)) continue;
+                if (neighbor && reactsToNeighbors(content, neighbor.identifier)) {
+                    const reacting: HookBlock = {
+                        identifier: neighbor.identifier,
+                        position,
+                        dimension,
+                        states: neighbor.states
+                    };
+                    hooksOf(content, neighbor.identifier, neighbor.states)?.dispatch('onNeighborChanged', {
+                        block: reacting,
+                        // The face the changed block sits on, read from the neighbor's side.
+                        face: opposite(face),
+                        neighbor: update.changed
+                    });
+                }
 
-                const reacting: HookBlock = {
-                    identifier: neighbor.identifier,
-                    position,
-                    dimension,
-                    states: neighbor.states
-                };
-                hooksOf(content, neighbor.identifier, neighbor.states)?.dispatch('onNeighborChanged', {
-                    block: reacting,
-                    // The face the changed block sits on, read from the neighbor's side.
-                    face: opposite(face),
-                    neighbor: update.changed
-                });
+                // A waterlogged block's water hears its neighbors as well: Java's waterlogged
+                // blocks schedule their water's tick from `updateShape`, which is this update.
+                const liquid = storage.liquidAt?.(position);
+                if (liquid && reactsToNeighbors(content, liquid.identifier)) {
+                    hooksOf(content, liquid.identifier, liquid.states)?.dispatch('onNeighborChanged', {
+                        block: { identifier: liquid.identifier, position, dimension, states: liquid.states },
+                        face: opposite(face),
+                        neighbor: update.changed
+                    });
+                }
             }
         } finally {
             stack.length = 0;
@@ -262,6 +278,7 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
 
     return {
         get: (at) => storage.at(at),
+        ...(storage.liquidAt === undefined ? {} : { liquid: (at: ContentPosition) => storage.liquidAt?.(at) }),
         ...(move === undefined ? {} : { move }),
         // Passed through rather than reimplemented: the hook, the roll and the ground all
         // belong to the world the storage is over. Absent when the storage cannot do it,

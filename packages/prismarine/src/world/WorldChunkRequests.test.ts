@@ -344,6 +344,37 @@ describe('world chunk requests', () => {
         expect(chunk.getPendingFluidTicks()).toEqual([]);
     });
 
+    it("schedules a waterlogged block's water from the liquid layer, where Java's fluid state is", async () => {
+        const water = BlockRuntimeIds.getByName('minecraft:water');
+        const fence = BlockRuntimeIds.getByName('minecraft:oak_fence');
+        const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
+            const chunk = new Chunk(x, z, new Map(), Dimensions.Overworld);
+            chunk.setBlockRuntimeId(4, 64, 4, fence);
+            chunk.setBlockRuntimeId(4, 64, 4, water, 1);
+            // A fence with nothing in its liquid layer holds no water to tick.
+            chunk.setBlockRuntimeId(6, 64, 6, fence);
+            chunk
+                .getPendingFluidTicks()
+                .push(
+                    { x: x * 16 + 4, y: 64, z: z * 16 + 4, delay: 0 },
+                    { x: x * 16 + 6, y: 64, z: z * 16 + 6, delay: 0 }
+                );
+            return chunk;
+        });
+        const world = testWorld(readChunk);
+
+        await world.getChunk(2, 3);
+
+        const scheduled = world
+            .getSystems()
+            .ticks.list('fluid')
+            .snapshot()
+            .map(({ at, type }) => ({ ...at, type }));
+        expect(scheduled).toEqual([{ x: 36, y: 64, z: 52, type: 'minecraft:water' }]);
+        expect(world.loadedLiquidAt(36, 64, 52)).toEqual({ name: 'minecraft:water', states: { liquid_depth: 0 } });
+        expect(world.loadedLiquidAt(38, 64, 54)).toBeUndefined();
+    });
+
     it('lets a later caller try again after a request failed', async () => {
         let attempt = 0;
         const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
