@@ -126,7 +126,7 @@ describe('Watcher', () => {
             { type: 'supervisor.watching', root: packagesDir }
         ]);
         expect(fs.watched()).toEqual([
-            path.join(packagesDir, 'bedrock-data', 'src', 'resources'),
+            path.join(packagesDir, 'bedrock-data', 'src', 'jsp'),
             path.join(packagesDir, 'bedrock-data', 'utils'),
             path.join(packagesDir, 'alpha', 'src'),
             path.join(packagesDir, 'bedrock-data', 'src'),
@@ -296,7 +296,7 @@ describe('Watcher', () => {
         const secondRun = waitForCall(2);
         await advanceDebounce();
         await secondRun;
-        fs.change(path.join(packagesDir, 'bedrock-data', 'src', 'resources'), 'blocks.json');
+        fs.change(path.join(packagesDir, 'bedrock-data', 'src', 'jsp'), path.join('v2193', 'required_item_list.json'));
         await advanceDebounce();
         expect(generate).toHaveBeenCalledTimes(2);
 

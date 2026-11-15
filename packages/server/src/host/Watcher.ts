@@ -28,8 +28,7 @@ export interface WatcherOptions {
     debounceMs?: number;
     /**
      * Regenerates the bedrock-data JSON and resolves whether it succeeded; a rejection counts
-     * as a failure. Defaults to `pnpm run generate` in `packages/bedrock-data`, which also
-     * fetches the resources submodule when a fresh clone left it empty.
+     * as a failure. Defaults to `pnpm run generate` in `packages/bedrock-data`.
      */
     generate?: () => boolean | Promise<boolean>;
     /**
@@ -46,12 +45,13 @@ export interface WatcherOptions {
 
 /**
  * Paths (relative to a package's `src/`) that must not restart the server: tests, the
- * resources submodule (a generator input, handled by the generate watcher), and the
- * generator's own output (a regeneration already requests one restart for the whole batch).
+ * bedrock-data captures under `jsp/` (the generator's input, handled by the generate watcher),
+ * and the generator's own output (a regeneration already requests one restart for the whole
+ * batch).
  */
 const shouldIgnore = (pkg: string, filename: string): boolean =>
     filename.includes('.test.') ||
-    (pkg === 'bedrock-data' && (filename.startsWith('resources') || filename.startsWith('generated')));
+    (pkg === 'bedrock-data' && (filename.startsWith('jsp') || filename.startsWith('generated')));
 
 const SOURCE_FILE = /\.(ts|json)$/;
 /** What a package build writes that the server loads; declarations and source maps are not loaded. */
@@ -102,12 +102,9 @@ export class Watcher {
     public async start(): Promise<void> {
         await this.generateBedrockData({ restart: false });
 
-        // The generator's inputs live outside the restart watchers: the resources submodule
-        // and the generator script itself.
-        for (const dir of [
-            path.join(this.bedrockDataDir, 'src', 'resources'),
-            path.join(this.bedrockDataDir, 'utils')
-        ]) {
+        // The generator's inputs live outside the restart watchers: the Bedrock captures and
+        // the generator script itself.
+        for (const dir of [path.join(this.bedrockDataDir, 'src', 'jsp'), path.join(this.bedrockDataDir, 'utils')]) {
             this.watch(dir, () => this.requestGenerate());
         }
 
