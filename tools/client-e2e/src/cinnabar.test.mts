@@ -83,11 +83,18 @@ describe('cinnabar pins', () => {
     });
 
     it('leaves preview protocols out of the cinnabar runs', () => {
-        const tested = testedProtocols();
-        const previews = servedProtocols().filter((protocol) => !tested.includes(protocol));
+        // Read the flags straight from the pins, so a testedProtocols() that kept previews fails here.
+        const sources = new URL('../../../packages/bedrock-data/sources.json', import.meta.url);
+        // Parsed JSON is an untyped boundary; only `bds.versions[*].preview` is read.
+        const pins: Record<string, { preview?: boolean }> = JSON.parse(fs.readFileSync(sources, 'utf8')).bds.versions;
+        const previews = Object.entries(pins)
+            .filter(([, pin]) => pin.preview === true)
+            .map(([protocol]) => Number(protocol));
 
-        expect(tested.length).toBeGreaterThan(0);
-        expect(pinMatrix().some((entry) => previews.includes(entry.protocol))).toBe(false);
+        expect(previews.length).toBeGreaterThan(0);
+        expect(servedProtocols()).toEqual(expect.arrayContaining(previews));
+        expect(testedProtocols().filter((protocol) => previews.includes(protocol))).toEqual([]);
+        expect(pinMatrix().filter((entry) => previews.includes(entry.protocol))).toEqual([]);
     });
 
     it('gives every run of one commit the same build', () => {
