@@ -89,6 +89,9 @@ const timingOf = ({ triggerTick, priority, subTickOrder }: ScheduledTick): Sched
 
 const identity = (tick: Pick<ScheduledTick, 'at' | 'type'>): string => `${positionKey(tick.at)}|${tick.type}`;
 
+/** The chunk a position is in, as the per-chunk index keys it. */
+const chunkKeyOf = (x: number, z: number): string => `${x >> 4},${z >> 4}`;
+
 /**
  * Java's `ScheduledTick.DRAIN_ORDER`: trigger tick, then priority, then the
  * order the ticks were scheduled in.
@@ -116,6 +119,14 @@ const intraTickDrainOrder = (a: ScheduledTick, b: ScheduledTick): number =>
 export class TickList {
     private readonly queue: ScheduledTick[] = [];
     private readonly queued = new Set<string>();
+    /** The live ticks of each chunk, Java's `LevelChunkTicks`, so a chunk's ticks are found without reading the queue. */
+    private readonly byChunk = new Map<string, Set<ScheduledTick>>();
+    /**
+     * Ticks a chunk unload took off but the queue still holds. They are skipped everywhere and
+     * dropped by the next {@link TickList.tick}, which sorts the whole queue anyway, so unloading a
+     * chunk costs its own ticks rather than a pass over every queued one.
+     */
+    private readonly removed = new Set<ScheduledTick>();
     private batch: ScheduledTick[] = [];
     private readonly batchIdentities = new Set<string>();
     private subTickCounter = 0;
@@ -149,6 +160,7 @@ export class TickList {
         const position = { x: at.x, y: at.y, z: at.z };
         const tick: ScheduledTick = { type, at: position, triggerTick, priority, subTickOrder: this.subTickCounter++ };
         this.queue.push(tick);
+        this.index(tick);
         this.observer?.({ at: position, type, before: null, after: timingOf(tick) });
         return true;
     }
@@ -166,14 +178,18 @@ export class TickList {
         const key = identity({ at, type });
         // The set says whether the tick is queued, so a restore of one that is not skips the scan:
         // an undo or a replay restores once per logged tick, which would read the queue each time.
-        const index = this.queued.has(key) ? this.queue.findIndex((tick) => identity(tick) === key) : -1;
-        if (index !== -1) this.queue.splice(index, 1);
+        const index = this.queued.has(key)
+            ? this.queue.findIndex((tick) => !this.removed.has(tick) && identity(tick) === key)
+            : -1;
+        if (index !== -1) this.unindex(this.queue.splice(index, 1)[0]!);
         if (timing === null) {
             this.queued.delete(key);
             return;
         }
         this.queued.add(key);
-        this.queue.push({ type, at: { x: at.x, y: at.y, z: at.z }, ...timing });
+        const tick: ScheduledTick = { type, at: { x: at.x, y: at.y, z: at.z }, ...timing };
+        this.queue.push(tick);
+        this.index(tick);
         // Ticks queued after this sort after it, as they did when it was first queued.
         this.subTickCounter = Math.max(this.subTickCounter, timing.subTickOrder + 1);
     }
@@ -194,7 +210,44 @@ export class TickList {
 
     /** How many ticks are queued. */
     count(): number {
-        return this.queue.length;
+        return this.queue.length - this.removed.size;
+    }
+
+    /**
+     * Copies the ticks queued for positions inside one chunk, in no particular order.
+     *
+     * @param chunkX - The chunk's x, in chunks.
+     * @param chunkZ - The chunk's z, in chunks.
+     */
+    ticksInChunk(chunkX: number, chunkZ: number): readonly ScheduledTick[] {
+        const ticks = this.byChunk.get(`${chunkX},${chunkZ}`);
+        if (ticks === undefined) return [];
+        return [...ticks].map((tick) => ({ ...tick, at: { ...tick.at } }));
+    }
+
+    /**
+     * Takes every tick of one chunk off the list, which is what Java's `LevelTicks.removeContainer`
+     * does when the chunk unloads. A host saves them with the chunk first and schedules them again
+     * when it loads.
+     *
+     * Costs the chunk's own ticks: they are found through the per-chunk index and left in the
+     * queue, skipped, until the next {@link TickList.tick} drops them in the pass it makes anyway.
+     *
+     * @param chunkX - The chunk's x, in chunks.
+     * @param chunkZ - The chunk's z, in chunks.
+     * @returns How many ticks were taken off.
+     */
+    clearChunk(chunkX: number, chunkZ: number): number {
+        const key = `${chunkX},${chunkZ}`;
+        const ticks = this.byChunk.get(key);
+        if (ticks === undefined) return 0;
+        this.byChunk.delete(key);
+        for (const tick of ticks) {
+            this.queued.delete(identity(tick));
+            this.removed.add(tick);
+            this.observer?.({ at: tick.at, type: tick.type, before: timingOf(tick), after: null });
+        }
+        return ticks.size;
     }
 
     /**
@@ -204,16 +257,21 @@ export class TickList {
      * so callers cannot mutate a queued tick through the returned state.
      */
     snapshot(): readonly ScheduledTick[] {
-        return [...this.queue].sort(drainOrder).map((tick) => ({ ...tick, at: { ...tick.at } }));
+        return this.queue
+            .filter((tick) => !this.removed.has(tick))
+            .sort(drainOrder)
+            .map((tick) => ({ ...tick, at: { ...tick.at } }));
     }
 
     /** Remove every queued tick at one position, which a destroyed block needs. */
     clearAt(at: BlockPosition): void {
         for (let i = this.queue.length - 1; i >= 0; i--) {
             const tick = this.queue[i]!;
+            if (this.removed.has(tick)) continue;
             if (tick.at.x === at.x && tick.at.y === at.y && tick.at.z === at.z) {
                 this.queued.delete(identity(tick));
                 this.queue.splice(i, 1);
+                this.unindex(tick);
                 this.observer?.({ at: tick.at, type: tick.type, before: timingOf(tick), after: null });
             }
         }
@@ -238,6 +296,12 @@ export class TickList {
      * @returns How many ticks ran.
      */
     tick(currentTick: number, run: TickHandler, maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK): number {
+        if (this.removed.size > 0) {
+            let kept = 0;
+            for (const tick of this.queue) if (!this.removed.has(tick)) this.queue[kept++] = tick;
+            this.queue.length = kept;
+            this.removed.clear();
+        }
         this.queue.sort(drainOrder);
 
         let dueCount = 0;
@@ -251,6 +315,7 @@ export class TickList {
         const collected = this.queue.splice(0, dueCount);
         for (const tick of collected) {
             this.queued.delete(identity(tick));
+            this.unindex(tick);
             this.observer?.({ at: tick.at, type: tick.type, before: timingOf(tick), after: null });
         }
 
@@ -269,6 +334,26 @@ export class TickList {
         this.batch = [];
         this.batchIdentities.clear();
         return ran;
+    }
+
+    /** Files a queued tick under its chunk. */
+    private index(tick: ScheduledTick): void {
+        const key = chunkKeyOf(tick.at.x, tick.at.z);
+        let ticks = this.byChunk.get(key);
+        if (ticks === undefined) {
+            ticks = new Set();
+            this.byChunk.set(key, ticks);
+        }
+        ticks.add(tick);
+    }
+
+    /** Takes a tick that left the queue out of its chunk's set. */
+    private unindex(tick: ScheduledTick): void {
+        const key = chunkKeyOf(tick.at.x, tick.at.z);
+        const ticks = this.byChunk.get(key);
+        if (ticks === undefined) return;
+        ticks.delete(tick);
+        if (ticks.size === 0) this.byChunk.delete(key);
     }
 }
 

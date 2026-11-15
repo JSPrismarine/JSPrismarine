@@ -3625,7 +3625,8 @@ export class World implements Service {
             return { left: Promise.resolve(false) };
         }
 
-        const leave = () => this.leaveChunk(chunk);
+        const savedFluidTicks = saveContext.pendingFluidTicks?.byChunk.get(index) ?? [];
+        const leave = () => this.leaveChunk(chunk, savedFluidTicks);
         const admissions = this.admissions;
         if (admissions === undefined) return { left: Promise.resolve(leave()) };
         return {
@@ -3638,19 +3639,27 @@ export class World implements Service {
     }
 
     /**
-     * Takes a saved chunk and the non-player entities it holds out of the world, unless something
-     * wants it again: a load, a change since the save, or a player who came back.
+     * Takes a saved chunk, the non-player entities it holds and its scheduled fluid ticks out of
+     * the world, unless something wants it again: a load, a change since the save, a fluid tick
+     * the save did not write, or a player who came back.
      *
+     * The fluid ticks leave with the chunk as Java's `LevelTicks.removeContainer` takes them: the
+     * save wrote them to its `PendingTicks` record and a reload schedules them again. Block ticks
+     * stay queued. This server does not persist them, so taking them off would lose them, where
+     * leaving them lets a chunk that comes back before they fall due still run them.
+     *
+     * @param savedFluidTicks - The chunk's fluid ticks as the save wrote them.
      * @returns Whether it left.
      */
-    private leaveChunk(chunk: Chunk): boolean {
+    private leaveChunk(chunk: Chunk, savedFluidTicks: readonly FluidTickToSave[]): boolean {
         const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
         this.getPlayerChunkRefCounts().synchronize(this.players);
         if (
             this.chunks.get(index) !== chunk ||
             this.loading.has(index) ||
             chunk.getHasChanged() ||
-            this.chunkRetained(chunk)
+            this.chunkRetained(chunk) ||
+            !this.fluidTicksSaved(chunk, savedFluidTicks)
         )
             return false;
 
@@ -3663,8 +3672,17 @@ export class World implements Service {
             live.runtime.remove(item.id, 'chunk unload');
 
         this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
+        this.systems.ticks.list('fluid').clearChunk(chunk.getX(), chunk.getZ());
         this.dropChunk(chunk, index);
         return true;
+    }
+
+    /** Whether every fluid tick the chunk has queued now is one its save wrote. */
+    private fluidTicksSaved(chunk: Chunk, saved: readonly FluidTickToSave[]): boolean {
+        const queued = this.systems.ticks.list('fluid').ticksInChunk(chunk.getX(), chunk.getZ());
+        if (queued.length === 0) return true;
+        const written = new Set(saved.map((tick) => `${tick.x},${tick.y},${tick.z},${tick.triggerTick}`));
+        return queued.every((tick) => written.has(`${tick.at.x},${tick.at.y},${tick.at.z},${tick.triggerTick}`));
     }
 
     /**
