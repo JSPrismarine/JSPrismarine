@@ -78,7 +78,8 @@ export default defineConfig({
         bail: 0,
         tags: [
             { name: 'real-data', description: 'Tests that require fetched game data.' },
-            { name: 'performance', description: 'Tests whose timing or workload depends on the host machine.' }
+            { name: 'performance', description: 'Tests whose timing or workload depends on the host machine.' },
+            { name: 'bedrock-server', description: 'Tests that boot the pinned Bedrock Dedicated Server.' }
         ],
         environment: 'node',
         exclude,
