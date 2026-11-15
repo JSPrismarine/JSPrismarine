@@ -174,7 +174,7 @@ const entitiesNear = (world: World, at: Vector3, power: number): readonly Caught
     const live = world.dataEntities();
     const radius = power * EXPLOSION_ENTITY_REACH + 1;
     const near: StoreActor[] = [];
-    for (const entity of index.storeWithin(at.getX(), at.getZ(), radius)) {
+    for (const entity of index.blastWithin(at.getX(), at.getZ(), radius)) {
         const actor = live.actors.actorOf(entity.id);
         if (actor !== undefined) near.push(actor);
     }
