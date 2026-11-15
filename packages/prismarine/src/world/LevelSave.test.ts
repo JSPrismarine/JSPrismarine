@@ -517,6 +517,45 @@ describe('a write outside a pass', () => {
     });
 });
 
+describe('a chunk that unloads with fluid still due to move', () => {
+    it('takes its fluid ticks off the world queue and brings them back from its PendingTicks record', async () => {
+        const { level, overworld } = await harness('fluid-ticks-unload');
+        const water = BlockRuntimeIds.getByName('minecraft:water');
+        const leaving = overworld.getLoadedChunk(0, 0)!;
+        leaving.setBlockRuntimeId(3, 100, 3, water);
+        overworld.getLoadedChunk(1, 0)!.setBlockRuntimeId(3, 100, 3, water);
+        const fluid = overworld.getSystems().ticks.list('fluid');
+        const now = overworld.getTicks();
+        fluid.schedule({ x: 3, y: 100, z: 3 }, 'minecraft:water', now + 5);
+        fluid.schedule({ x: 19, y: 100, z: 3 }, 'minecraft:water', now + 7);
+
+        await overworld['unloadChunks']([leaving]);
+        expect(overworld.getLoadedChunk(0, 0)).toBeNull();
+        expect(fluid.ticksInChunk(0, 0)).toEqual([]);
+        expect(fluid.ticksInChunk(1, 0).map((tick) => tick.at)).toEqual([{ x: 19, y: 100, z: 3 }]);
+
+        await overworld.getChunk(0, 0);
+        expect(fluid.ticksInChunk(0, 0).map(({ at, type, triggerTick }) => ({ at, type, triggerTick }))).toEqual([
+            { at: { x: 3, y: 100, z: 3 }, type: 'minecraft:water', triggerTick: now + 5 }
+        ]);
+        await level.disable();
+    });
+
+    it('stays loaded when a fluid tick was queued after its save', async () => {
+        const { level, overworld } = await harness('fluid-ticks-late');
+        await level.save();
+        const chunk = overworld.getLoadedChunk(2, 0)!;
+        const due = overworld.getTicks() + 5;
+        overworld.getSystems().ticks.list('fluid').schedule({ x: 35, y: 100, z: 3 }, 'minecraft:water', due);
+
+        // The save's list did not hold the tick, so leaving now would lose it.
+        expect(overworld['leaveChunk'](chunk, [])).toBe(false);
+        expect(overworld.getLoadedChunk(2, 0)).toBe(chunk);
+        expect(overworld['leaveChunk'](chunk, [{ x: 35, y: 100, z: 3, triggerTick: due }])).toBe(true);
+        await level.disable();
+    });
+});
+
 describe('a pass whose encode fails', () => {
     it('is abandoned, so the commit it held and the saves behind it go on', async () => {
         const passes: string[] = [];

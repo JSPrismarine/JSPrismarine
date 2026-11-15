@@ -324,6 +324,73 @@ describe('TickList', () => {
     });
 });
 
+describe('a chunk leaving the tick list', () => {
+    const at = (x: number, y: number, z: number): BlockPosition => ({ x, y, z });
+
+    it('takes every tick of the chunk off and leaves the other chunks queued in drain order', () => {
+        const list = new TickList();
+        list.schedule(at(1, 64, 1), 'minecraft:water', 5);
+        list.schedule(at(15, 10, 15), 'minecraft:lava', 3);
+        list.schedule(at(16, 64, 0), 'minecraft:water', 4);
+        list.schedule(at(-1, 64, 0), 'minecraft:water', 2);
+
+        expect(
+            list
+                .ticksInChunk(0, 0)
+                .map((tick) => tick.type)
+                .sort()
+        ).toEqual(['minecraft:lava', 'minecraft:water']);
+        expect(list.clearChunk(0, 0)).toBe(2);
+
+        expect(list.count()).toBe(2);
+        expect(list.ticksInChunk(0, 0)).toEqual([]);
+        expect(list.hasScheduledTick(at(1, 64, 1), 'minecraft:water')).toBe(false);
+        expect(list.snapshot().map((tick) => tick.at)).toEqual([at(-1, 64, 0), at(16, 64, 0)]);
+
+        const ran: BlockPosition[] = [];
+        list.tick(10, (tick) => ran.push(tick.at));
+        // A due batch runs in schedule order, Java's intra-tick drain order.
+        expect(ran).toEqual([at(16, 64, 0), at(-1, 64, 0)]);
+    });
+
+    it('reports each tick it takes off and lets the same tick be scheduled again', () => {
+        const list = new TickList();
+        const changes: TickListChange[] = [];
+        list.schedule(at(3, 70, 4), 'minecraft:water', 8);
+        list.observer = (change) => changes.push(change);
+
+        list.clearChunk(0, 0);
+        expect(changes).toEqual([
+            {
+                at: at(3, 70, 4),
+                type: 'minecraft:water',
+                before: { triggerTick: 8, priority: TICK_PRIORITIES.NORMAL, subTickOrder: 0 },
+                after: null
+            }
+        ]);
+
+        // The reload schedules it again; the taken-off copy must not run beside it.
+        expect(list.schedule(at(3, 70, 4), 'minecraft:water', 9)).toBe(true);
+        const ran: number[] = [];
+        list.tick(20, (tick) => ran.push(tick.triggerTick));
+        expect(ran).toEqual([9]);
+    });
+
+    it('touches only the leaving chunk, however many ticks other chunks hold', () => {
+        const list = new TickList();
+        for (let x = 0; x < 2000; x++) list.schedule(at(32 + x, 64, 0), 'minecraft:water', 100);
+        list.schedule(at(2, 64, 2), 'minecraft:water', 100);
+        const changes: TickListChange[] = [];
+        list.observer = (change) => changes.push(change);
+
+        // Counted, not timed: one tick left, so one change is reported and one tick is gone.
+        expect(list.clearChunk(0, 0)).toBe(1);
+        expect(changes).toHaveLength(1);
+        expect(list.count()).toBe(2000);
+        expect(list.clearChunk(0, 0)).toBe(0);
+    });
+});
+
 describe('TickScheduler', () => {
     it('snapshots block and fluid queues separately', () => {
         const scheduler = new TickScheduler();
