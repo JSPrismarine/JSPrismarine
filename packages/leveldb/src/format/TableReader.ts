@@ -4,7 +4,7 @@ import { BlockReader } from './BlockReader';
 import { BlockCache } from './BlockCache';
 import { ByteReader } from '../util/ByteReader';
 import { CorruptionError } from '../Errors';
-import { FOOTER_LENGTH, decodeFooter, readBlockHandle } from './Footer';
+import { BLOCK_TRAILER_LENGTH, FOOTER_LENGTH, decodeFooter, readBlockHandle } from './Footer';
 import { BLOOM_FILTER2_META_KEY, FilterBlockReader } from './FilterBlock';
 import type { BlockEntry } from './BlockReader';
 import type { BlockHandle } from './Footer';
@@ -25,8 +25,6 @@ export const bufferSource = (buffer: Buffer): TableSource => ({
     },
     size: buffer.byteLength
 });
-
-const BLOCK_TRAILER_LENGTH = 5;
 
 /** Shared cache identity for blocks read from one table file. */
 export interface TableReaderOptions {
