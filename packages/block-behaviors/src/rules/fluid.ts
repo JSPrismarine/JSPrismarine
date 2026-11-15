@@ -297,6 +297,10 @@ const slopeDistance = (
     return lowest;
 };
 
+/** How far a slope search reaches from its start: a lava or water slope distance of 4, plus a step. */
+const SEARCH_REACH = 8;
+const SEARCH_SPAN = SEARCH_REACH * 2 + 1;
+
 /**
  * The world with each position's block and liquid read once, for a search that writes nothing.
  *
@@ -304,16 +308,29 @@ const slopeDistance = (
  * and its neighbors again. Java's `FlowingFluid.getSpread` keeps the same per-search cache of
  * block states.
  */
-const searchView = (world: WorldActions): WorldActions => {
-    const blocks = new Map<string, HookBlock | undefined>();
-    const liquids = new Map<string, HookBlock | undefined>();
+const searchView = (world: WorldActions, origin: BlockPosition): WorldActions => {
+    const blocks = new Map<number | string, HookBlock | undefined>();
+    const liquids = new Map<number | string, HookBlock | undefined>();
+    // The search stays a few blocks from where it started, so a cell's key is its small offset
+    // from there, which is a number rather than a string to build and hash. Anything further
+    // out, which a host's own reads might reach, keeps a string key.
+    const keyOf = (at: BlockPosition): number | string => {
+        const dx = at.x - origin.x + SEARCH_REACH;
+        const dy = at.y - origin.y + 2;
+        const dz = at.z - origin.z + SEARCH_REACH;
+        if (dx < 0 || dx >= SEARCH_SPAN || dz < 0 || dz >= SEARCH_SPAN || dy < 0 || dy > 4) {
+            return `${at.x},${at.y},${at.z}`;
+        }
+        return (dx * SEARCH_SPAN + dz) * 5 + dy;
+    };
     const remembered = (
-        cache: Map<string, HookBlock | undefined>,
+        cache: Map<number | string, HookBlock | undefined>,
         at: BlockPosition,
         read: (at: BlockPosition) => HookBlock | undefined
     ): HookBlock | undefined => {
-        const key = `${at.x},${at.y},${at.z}`;
-        if (cache.has(key)) return cache.get(key);
+        const key = keyOf(at);
+        const cached = cache.get(key);
+        if (cached !== undefined || cache.has(key)) return cached;
         const block = read(at);
         cache.set(key, block);
         return block;
@@ -334,7 +351,7 @@ const fluidSpreadDirections = (
     kind: LiquidState['kind'],
     dimension: string
 ): Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, LiquidState> => {
-    const world = searchView(host);
+    const world = searchView(host, at);
     const rates = ratesFor(kind, dimension);
     const result = new Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, LiquidState>();
     const holeCache = new Map<string, boolean>();
