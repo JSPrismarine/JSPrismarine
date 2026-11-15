@@ -684,6 +684,8 @@ export const multifaceGrowth = (
                 const existing = world.getBlock(position);
                 const base = existing.name === placeBlock ? existing : blockState(placeBlock);
                 world.setBlock(position, withProperty(base, direction, 'true'));
+                // Java's `placeGrowthIfPossible` marks every face it places for post-processing.
+                world.markForPostProcessing?.(position);
                 random.nextFloat();
                 return true;
             }

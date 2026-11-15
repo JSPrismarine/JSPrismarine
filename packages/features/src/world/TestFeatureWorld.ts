@@ -1,6 +1,6 @@
 import type { BlockState, FluidKind } from './BlockState';
 import { blockState, blockStateKey } from './BlockState';
-import type { BlockOracle, BlockPos, FeatureWorld, HeightmapType } from './FeatureWorld';
+import type { BlockOracle, BlockPos, FeatureWorld, HeightmapType, SetBlockOptions } from './FeatureWorld';
 import { posKey } from './FeatureWorld';
 
 /** The state every unwritten position holds. */
@@ -112,9 +112,12 @@ export class TestFeatureWorld implements FeatureWorld {
     /** @inheritDoc */
     public readonly blocks: BlockOracle;
     /** Every successful write in the order it happened. */
-    public readonly writes: { position: BlockPos; state: BlockState }[] = [];
+    /** Every write in order, with whether it marked its post-process position (Java's flag 16 off). */
+    public readonly writes: { position: BlockPos; state: BlockState; postProcess: boolean }[] = [];
     /** Every fluid tick a feature asked for, in the order it asked. */
     public readonly fluidTicks: BlockPos[] = [];
+    /** Every position a feature marked for post-processing, in order. */
+    public readonly postProcessMarks: BlockPos[] = [];
 
     private readonly store = new Map<string, BlockState>();
     private readonly biomes = new Map<string, string>();
@@ -135,11 +138,16 @@ export class TestFeatureWorld implements FeatureWorld {
     }
 
     /** @inheritDoc */
-    public setBlock(position: BlockPos, state: BlockState): boolean {
+    public setBlock(position: BlockPos, state: BlockState, options?: SetBlockOptions): boolean {
         if (position.y < this.minY || position.y >= this.minY + this.height) return false;
         this.store.set(posKey(position), state);
-        this.writes.push({ position, state });
+        this.writes.push({ position, state, postProcess: options?.postProcess ?? true });
         return true;
+    }
+
+    /** @inheritDoc */
+    public markForPostProcessing(position: BlockPos): void {
+        this.postProcessMarks.push({ x: position.x, y: position.y, z: position.z });
     }
 
     /** @inheritDoc */

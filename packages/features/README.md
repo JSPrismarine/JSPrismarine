@@ -116,12 +116,18 @@ from its block registry and tag tables and reuses it for every chunk, while a wo
 exists for one decorated region. A feature still takes one object, because the oracle hangs off
 the world.
 
-Five optional members cover what a feature needs and world generation does not own:
+Optional members cover what a feature needs and world generation does not own:
 `isColdEnoughToSnow` for `freeze_top_layer` and the lake's ice, `setBlockEntity` for the two
 chests and the spawner, `placeTemplate` for `template` and `fossil`, `spawnEntity` for the end
-spike's crystal, and `tagMembers` for the one state provider that enumerates a tag rather than
-testing it. When one is absent the feature does the visible part and skips the rest rather than
-failing. `spawnEntity` takes an `EntitySpawnOptions` object carrying the yaw and the crystal's
+spike's crystal, `tagMembers` for the one state provider that enumerates a tag rather than
+testing it, `scheduleFluidTick` for the spring and the geode, and `markForPostProcessing` for
+the faces `multiface_growth` places. When one is absent the feature does the visible part and
+skips the rest rather than failing.
+
+`setBlock` takes an optional third argument. `{ postProcess: false }` is a write Java makes past
+`WorldGenRegion.setBlock`, which the ore feature does through `BulkSectionAccess`, so the world
+does not mark the position the block asks post-processing for: the block above soul sand or a
+magma block, or a small mushroom itself. `spawnEntity` takes an `EntitySpawnOptions` object carrying the yaw and the crystal's
 beam target, base plate and invulnerability, which the server applies to the entity it spawns.
 
 `TestFeatureWorld` is the in-memory adapter the tests use. It records every write in order,

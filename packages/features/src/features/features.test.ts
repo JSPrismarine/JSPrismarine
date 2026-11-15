@@ -281,6 +281,49 @@ describe('spring_feature', () => {
     });
 });
 
+describe('post-processing marks', () => {
+    it('writes an ore vein past the post-processing marks, as Java writes ore through the section', () => {
+        const world = stoneWorld();
+        const magmaOre = {
+            type: 'minecraft:ore',
+            size: 33,
+            discard_chance_on_air_exposure: 0,
+            targets: [
+                {
+                    target: { predicate_type: 'minecraft:tag_match', tag: 'minecraft:stone_ore_replaceables' },
+                    state: { Name: 'minecraft:magma_block' }
+                }
+            ]
+        };
+
+        expect(build(magmaOre).place(world, new WorldgenRandom(3n), { x: 0, y: 30, z: 0 })).toBe(true);
+        const placed = world.writes.filter((write) => write.state.name === 'minecraft:magma_block');
+        expect(placed.length).toBeGreaterThan(0);
+        expect(placed.every((write) => !write.postProcess)).toBe(true);
+    });
+
+    it('marks every face a multiface growth places, as placeGrowthIfPossible does', () => {
+        const world = stoneWorld();
+        world.fill({ x: -2, y: 20, z: -2 }, { x: 2, y: 22, z: 2 }, blockState('minecraft:air'));
+        world.clearWrites();
+        const lichen = {
+            type: 'minecraft:multiface_growth',
+            block: 'minecraft:glow_lichen',
+            search_range: 4,
+            can_place_on_floor: true,
+            can_place_on_ceiling: true,
+            can_place_on_wall: true,
+            chance_of_spreading: 0,
+            can_be_placed_on: ['minecraft:stone']
+        };
+
+        expect(build(lichen).place(world, new WorldgenRandom(5n), { x: 0, y: 21, z: 0 })).toBe(true);
+        const faces = world.writes.filter((write) => write.state.name === 'minecraft:glow_lichen');
+        expect(faces.length).toBeGreaterThan(0);
+        expect(world.postProcessMarks).toEqual(faces.map((write) => write.position));
+    });
+});
+
 describe('geode', () => {
     const amethystGeode = {
         type: 'minecraft:geode',

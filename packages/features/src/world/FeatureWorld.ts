@@ -109,7 +109,7 @@ export interface FeatureWorld {
     /** Returns the state at a position, or air outside the generated region. */
     getBlock(position: BlockPos): BlockState;
     /** Writes a state. Returns whether the write landed. */
-    setBlock(position: BlockPos, state: BlockState): boolean;
+    setBlock(position: BlockPos, state: BlockState, options?: SetBlockOptions): boolean;
     /** Returns the first y above the topmost block matching the heightmap's predicate. */
     getHeight(heightmap: HeightmapType, x: number, z: number): number;
     /** Returns the biome identifier at a position. */
@@ -154,6 +154,27 @@ export interface FeatureWorld {
      * cannot schedule one leaves the fluid standing until something else disturbs it.
      */
     scheduleFluidTick?(position: BlockPos): void;
+    /**
+     * Marks a position for the work Java's `LevelChunk.postProcessGeneration` does once the chunk
+     * is full: tick the fluid standing there, and settle the block against its neighbors. Java's
+     * `ChunkAccess.markPosForPostProcessing`, which a multiface growth calls for every face it
+     * places.
+     *
+     * Optional, for the same reason as {@link scheduleFluidTick}.
+     */
+    markForPostProcessing?(position: BlockPos): void;
+}
+
+/** How a feature writes one block, beyond the state it writes. */
+export interface SetBlockOptions {
+    /**
+     * Whether the write marks the position its block asks for post-processing, as Java's
+     * `WorldGenRegion.setBlock` does for a block with a post-process position: a mushroom marks
+     * itself, and soul sand and magma mark the block above for the bubble column. Defaults to
+     * true. False is a write Java makes past `WorldGenRegion.setBlock`, which is how the ore
+     * feature writes through `BulkSectionAccess`.
+     */
+    readonly postProcess?: boolean;
 }
 
 /**
@@ -245,7 +266,7 @@ export type BlockStateMapper<Target> = {
 /** A world that stores some other state type, which {@link translatingWorld} adapts. */
 export interface TargetWorld<Target> extends Omit<FeatureWorld, 'getBlock' | 'setBlock' | 'blocks'> {
     getBlock(position: BlockPos): Target;
-    setBlock(position: BlockPos, state: Target): boolean;
+    setBlock(position: BlockPos, state: Target, options?: SetBlockOptions): boolean;
 }
 
 /**
@@ -265,7 +286,7 @@ export const translatingWorld = <Target>(
     seed: target.seed,
     blocks,
     getBlock: (position) => mapper.toJava(target.getBlock(position)),
-    setBlock: (position, state) => target.setBlock(position, mapper.toTarget(state)),
+    setBlock: (position, state, options) => target.setBlock(position, mapper.toTarget(state), options),
     getHeight: (heightmap, x, z) => target.getHeight(heightmap, x, z),
     getBiome: (position) => target.getBiome(position)
 });
