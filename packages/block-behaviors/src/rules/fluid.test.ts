@@ -51,6 +51,24 @@ describe('spreadLiquid', () => {
         expect(world.stateAt({ x: 1, y: 1, z: 0 }, 'liquid_depth')).toBe(1);
     });
 
+    it('reads each cell of its slope search once', () => {
+        const world = createVoxelWorld().overworld;
+        world.fill({ x: -6, y: 0, z: -6 }, { x: 6, y: 0, z: 6 }, 'minecraft:stone');
+        world.set(source, 'minecraft:water');
+        let reads = 0;
+        const cells = new Set<string>();
+        const counting: typeof world = Object.create(world);
+        counting.getBlock = (at) => {
+            reads++;
+            cells.add(`${at.x},${at.y},${at.z}`);
+            return world.getBlock(at);
+        };
+
+        expect(spreadLiquid(counting, world.block(source)).sides).toHaveLength(4);
+        // The search reads 126 cells. Without its cache, each visit read them again: 1979 reads.
+        expect(reads).toBeLessThan(cells.size * 1.2);
+    });
+
     it('stops once the depth would pass the maximum', () => {
         const world = createVoxelWorld().overworld;
         floorUnder(world);
