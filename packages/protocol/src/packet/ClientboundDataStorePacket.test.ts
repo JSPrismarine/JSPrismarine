@@ -29,7 +29,8 @@ const DATA: ClientboundDataStore = {
             }
         },
         { type: DataStoreEntryType.REMOVAL, removal: { dataStoreName: 'hud' } }
-    ]
+    ],
+    variableUpdates: []
 };
 
 /** `DATA` on the wire, header bytes included, written by hand in the order the docs list the fields. */
@@ -85,7 +86,8 @@ const NESTED: ClientboundDataStore = {
             type: DataStoreEntryType.CHANGE,
             change: { dataStoreName: 'hud', property: 'p', updateCount: 1, value: NESTED_VALUE }
         }
-    ]
+    ],
+    variableUpdates: []
 };
 
 const NESTED_BYTES = Buffer.from([
@@ -122,11 +124,11 @@ const decode = (bytes: Buffer): ClientboundDataStore => {
 
 describe('ClientboundDataStorePacket', () => {
     it('writes an empty batch as the header and a zero count', () => {
-        expect([...encode({ updates: [] })]).toEqual([...EMPTY_BYTES]);
+        expect([...encode({ updates: [], variableUpdates: [] })]).toEqual([...EMPTY_BYTES]);
     });
 
     it('reads an empty batch to the end of the buffer', () => {
-        expect(decode(EMPTY_BYTES)).toEqual({ updates: [] });
+        expect(decode(EMPTY_BYTES)).toEqual({ updates: [], variableUpdates: [] });
     });
 
     it('writes every alternative in the order protocol 2193 defines', () => {

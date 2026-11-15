@@ -22,8 +22,8 @@ export const minecraftVersions: readonly string[] = ['1.26.70.24'];
 export const preview = true;
 
 /**
- * The packets 1.26.70 added, keyed by the names their classes would export from the packet
- * barrel. None has a packet class yet, so the codec decodes each to `null`.
+ * The packets 1.26.70 added, keyed by the names their classes export from the packet barrel.
+ * The codec uses these names to pair each new id with its Protocol packet implementation.
  */
 export const addedPacketIds = {
     ChatPacket: 0x169,

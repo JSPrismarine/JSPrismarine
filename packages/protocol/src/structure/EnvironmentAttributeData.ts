@@ -16,7 +16,13 @@ export enum AttributeDataType {
     /** `FloatAttributeData`: a float `value`, a {@link FloatAttributeOperation} and optional constraints. */
     Float = 1,
     /** `ColorAttributeData`: a `Color255RGBA` `value` and a {@link ColorAttributeOperation}. */
-    Color = 2
+    Color = 2,
+    /**
+     * `StringAttributeData`: a string `value` and a {@link StringAttributeOperation}. Added at
+     * protocol 2259; a client before it rejects the selector, so `ClientboundAttributeLayerSyncPacket`
+     * refuses to write one to an older session.
+     */
+    String = 3
 }
 
 /** The docs enum `BoolAttributeOperation`: how a boolean attribute combines with the layers below it. */
@@ -51,6 +57,11 @@ export enum ColorAttributeOperation {
     MULTIPLY = 4
 }
 
+/** The docs enum `StringAttributeOperation`: how a string attribute combines with the layers below it. */
+export enum StringAttributeOperation {
+    OVERRIDE = 0
+}
+
 /**
  * One attribute value, the shape of `Attribute`, `FromAttribute` and `ToAttribute`. `type`
  * picks the alternative and the fields that follow it.
@@ -80,6 +91,13 @@ export type AttributeValue =
           value: number;
           /** `operation`. */
           operation: ColorAttributeOperation;
+      }
+    | {
+          type: AttributeDataType.String;
+          /** `value`, at most 128 characters. */
+          value: string;
+          /** `operation`. */
+          operation: StringAttributeOperation;
       };
 
 /** The fields of an `EnvironmentAttributeData`, in wire order. */
@@ -152,6 +170,11 @@ export function writeAttributeValue(stream: NetworkBinaryStream, attribute: Attr
             stream.writeUnsignedIntLE(attribute.value);
             stream.writeString(nameOf(ColorAttributeOperation, attribute.operation, 'ColorAttributeOperation'));
             break;
+
+        case AttributeDataType.String:
+            stream.writeString(attribute.value);
+            stream.writeString(nameOf(StringAttributeOperation, attribute.operation, 'StringAttributeOperation'));
+            break;
     }
 }
 
@@ -179,6 +202,12 @@ export function readAttributeValue(stream: NetworkBinaryStream): AttributeValue 
         case AttributeDataType.Color: {
             const value = stream.readUnsignedIntLE();
             const operation = valueOf(ColorAttributeOperation, stream.readString(), 'ColorAttributeOperation');
+            return { type, value, operation };
+        }
+
+        case AttributeDataType.String: {
+            const value = stream.readString();
+            const operation = valueOf(StringAttributeOperation, stream.readString(), 'StringAttributeOperation');
             return { type, value, operation };
         }
 

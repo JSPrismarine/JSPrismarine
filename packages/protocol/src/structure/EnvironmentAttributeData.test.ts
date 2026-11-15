@@ -110,11 +110,11 @@ describe('EnvironmentAttributeData', () => {
         );
     });
 
-    it('rejects a value selector outside the three alternatives', () => {
-        const bytes = Buffer.from([0x00, 0x00, 0x03]);
+    it('rejects a value selector outside the four alternatives', () => {
+        const bytes = Buffer.from([0x00, 0x00, 0x04]);
 
         expect(() => EnvironmentAttributeData.deserialize(new NetworkBinaryStream(bytes))).toThrow(
-            'Unknown attribute value alternative 3'
+            'Unknown attribute value alternative 4'
         );
     });
 });

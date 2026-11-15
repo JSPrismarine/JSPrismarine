@@ -19,7 +19,7 @@ The changelog adds two facts the schemas do not show. `Editor Pack Types` is a s
 
 Removed: `AddVolumeEntityPacket` (0xa6), `RemoveVolumeEntityPacket` (0xa7). No id was renumbered.
 
-Added, all decoded to `null` because none has a packet class yet:
+Added, each with a packet class and a declarative layout in `wire/definitions/added2259.ts`:
 
 | Id    | Packet                                      | Added in   |
 | ----- | ------------------------------------------- | ---------- |
@@ -48,11 +48,13 @@ Added, all decoded to `null` because none has a packet class yet:
 
 The changelog's preview.24 developer notes say `Attach Options` "replaced the `Entity To Attach To` field". No such field exists at 2225 or at 2259, so it was added and replaced within the preview chain. The 2259 schema is the source here.
 
+## Reshaped structures
+
+- `ClientboundDataStorePacket` and `ServerboundDataStorePacket`. The records were flattened to variable names (preview.23): `Variable Name` replaces the store name, property and path, and a change's value became the same three-way `Data` an update carries. The entries travel under `variableUpdates` and `variableUpdate` from 2259, beside the earlier keys, as the attribute-layer sync's two layouts do.
+- `StringAttributeData`, a fourth alternative of the attribute oneOfs in `ClientboundAttributeLayerSyncPacket`. `ClientboundAttributeLayerSyncPacket` refuses to write one to a session before 2259.
+
 ## Verified but not implemented
 
-- `ClientboundDataStorePacket` and `ServerboundDataStorePacket`. The data store records were flattened to variable names (preview.23), so the 2225 layout misreads them at 2259. The server neither sends nor handles either packet.
-- `StringAttributeData`, a fourth alternative of the attribute oneOfs in `ClientboundAttributeLayerSyncPacket`. The server does not send it.
-- The seven new packets above.
 - Enum renames with unchanged values, which need no code: `CraftReservedAction` → `CraftDiscPress` (18, payload unchanged), `InternalUpdate` → `SwapOffhand` (38 and 65), the reserved container names → `DiscPress*`. New members: `DisconnectFailReason` 151–159, `InputMode.GamePadAndMouse`, `ContainerEnumName.VirtualContainer` 71, `AudioContentPlaybackType.ConcurrentMusic`.
 - `maxItems` limits added to `PlayerFog`, `EmoteList`, `ContainerRegistryCleanup` and `ServerboundDiagnostics`, which constrain values and leave the wire layout unchanged.
 

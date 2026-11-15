@@ -3,7 +3,9 @@ import { PacketIdentifier } from '../PacketIdentifier';
 import AttributeLayerData from '../structure/AttributeLayerData';
 import AttributeLayerData2225 from '../structure/AttributeLayerData2225';
 import EnvironmentAttributeData from '../structure/EnvironmentAttributeData';
-import EnvironmentAttributeData2225 from '../structure/EnvironmentAttributeData2225';
+import EnvironmentAttributeData2225, { AttributePayloadType } from '../structure/EnvironmentAttributeData2225';
+import { AttributeDataType } from '../structure/EnvironmentAttributeData';
+import { protocolVersion as protocol2259 } from '../wire/versions/v2259';
 import {
     AttributeLayerSyncDataType,
     clientboundAttributeLayerSyncPacket
@@ -11,6 +13,7 @@ import {
 import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { AttributeValue } from '../structure/EnvironmentAttributeData';
 import type {
     AttributeLayerSyncData,
     AttributeLayerSyncData2225
@@ -58,6 +61,29 @@ const isData2225 = (data: ClientboundAttributeLayerSync['data']): data is Attrib
     }
 };
 
+/** Every attribute value a `Data` variant carries, in either layout. */
+const attributeValuesOf = (data: ClientboundAttributeLayerSync['data']): AttributeValue[] => {
+    const environment: ReadonlyArray<EnvironmentAttributeData | EnvironmentAttributeData2225> =
+        data.type === AttributeLayerSyncDataType.UpdateAttributeLayers
+            ? data.attributeLayers.flatMap(
+                  (layer): ReadonlyArray<EnvironmentAttributeData | EnvironmentAttributeData2225> => layer.attributes
+              )
+            : data.type === AttributeLayerSyncDataType.UpdateEnvironmentAttributes
+              ? data.attributes
+              : [];
+    return environment.flatMap((attribute) => {
+        if (attribute instanceof EnvironmentAttributeData) {
+            return [attribute.fromAttribute, attribute.attribute, attribute.toAttribute].filter(
+                (value) => value !== undefined
+            );
+        }
+        const { payload } = attribute;
+        return payload.type === AttributePayloadType.Constant
+            ? [payload.attribute]
+            : [payload.fromAttribute, payload.toAttribute];
+    });
+};
+
 /**
  * Syncs the server's environment attribute layers (fog, lighting and similar per-dimension
  * attributes blended by priority and weight) to the client.
@@ -92,6 +118,14 @@ export default class ClientboundAttributeLayerSyncPacket extends NetworkPacket<C
     }
 
     protected serializePayload(stream: NetworkBinaryStream, { data }: ClientboundAttributeLayerSync): void {
+        if (
+            this.codecProtocol < protocol2259 &&
+            attributeValuesOf(data).some((value) => value.type === AttributeDataType.String)
+        ) {
+            throw new Error(
+                `A string attribute needs protocol ${protocol2259}; this packet is for ${this.codecProtocol}`
+            );
+        }
         // The layout writes whichever of the two gated fields the stamped version admits; the other one is ignored.
         layoutAt(clientboundAttributeLayerSyncPacket, this.codecProtocol).encode(stream, {
             dataUntil2225: isData2193(data) ? data : null,

@@ -13,7 +13,11 @@ import type {
     DataStoreEntry,
     DataStoreMapEntry,
     DataStorePropertyValue,
-    DataStoreRemoval
+    DataStoreRemoval,
+    DataStoreVariableChange,
+    DataStoreVariableEntry,
+    DataStoreVariableRemoval,
+    DataStoreVariableUpdate
 } from '../wire/definitions/clientboundDataStore';
 export type {
     ClientboundDataStore,
@@ -21,7 +25,11 @@ export type {
     DataStoreEntry,
     DataStoreMapEntry,
     DataStorePropertyValue,
-    DataStoreRemoval
+    DataStoreRemoval,
+    DataStoreVariableChange,
+    DataStoreVariableEntry,
+    DataStoreVariableRemoval,
+    DataStoreVariableUpdate
 };
 
 /**

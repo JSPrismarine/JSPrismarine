@@ -5,11 +5,16 @@
  * selector with the values of {@link DataStoreEntryType}, then a `Data Store Update`, a
  * `Data Store Change` or a `Data Store Removal` in full. Strings are a varuint32 byte length
  * followed by UTF-8.
+ *
+ * Protocol 2259 flattened the records to variable names: a store name and a property became one
+ * `Variable Name`, `Path` went away, and a change's dynamic value became the same three-way `Data`
+ * an update carries. The entries travel under `variableUpdates` from 2259 and `updates` before.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/clientbound-data-store-packet/
  */
 import DataStoreUpdate, { DataStoreValueType } from '../../structure/DataStoreUpdate';
-import { definePacket } from '../define';
+import { definePacket, gated } from '../define';
 import * as t from '../fieldTypes';
+import { SINCE_2259, UNTIL_2259 } from '../wireGates';
 
 import type { DataStoreValue } from '../../structure/DataStoreUpdate';
 import type { PayloadOf } from '../define';
@@ -286,10 +291,99 @@ const dataStoreEntry = t.custom<DataStoreEntry>(
     }
 );
 
+/** A `Data Store Update` from protocol 2259: a value written to one variable. */
+export interface DataStoreVariableUpdate {
+    /** `Variable Name`. */
+    variableName: string;
+    /** `Data`, the new value. */
+    data: DataStoreValue;
+    /** `Update Count`: how many times the variable has updated. */
+    updateCount: number;
+}
+
+/** A `Data Store Change` from protocol 2259: a variable's new value, carried like an update's. */
+export interface DataStoreVariableChange {
+    /** `Variable Name`. */
+    variableName: string;
+    /** `Update Count`: how many times the variable has updated. */
+    updateCount: number;
+    /** `The New Variable Value`. */
+    value: DataStoreValue;
+}
+
+/** A `Data Store Removal` from protocol 2259: a variable that is gone. */
+export interface DataStoreVariableRemoval {
+    /** `Variable Name`. */
+    variableName: string;
+}
+
+/** One `Updates` entry from protocol 2259, selected the same way as {@link DataStoreEntry}. */
+export type DataStoreVariableEntry =
+    | { type: DataStoreEntryType.UPDATE; update: DataStoreVariableUpdate }
+    | { type: DataStoreEntryType.CHANGE; change: DataStoreVariableChange }
+    | { type: DataStoreEntryType.REMOVAL; removal: DataStoreVariableRemoval };
+
+/** `Data Store Update` from protocol 2259: `Variable Name`, `Data`, `Update Count`. */
+export const dataStoreVariableUpdate = t.record({
+    /** [0] `Variable Name`. */
+    variableName: t.string,
+    /** [1] `Data`. */
+    data: dataStoreValue,
+    /** [2] `Update Count`. */
+    updateCount: t.lu32
+});
+
+/** `Data Store Change` from protocol 2259: `Variable Name`, `Update Count`, `The New Variable Value`. */
+const dataStoreVariableChange = t.record({
+    /** [0] `Variable Name`. */
+    variableName: t.string,
+    /** [1] `Update Count`. */
+    updateCount: t.lu32,
+    /** [2] `The New Variable Value`. */
+    value: dataStoreValue
+});
+
+/** `Data Store Removal` from protocol 2259: its `Variable Name`. */
+const dataStoreVariableRemoval = t.record({ variableName: t.string });
+
+/** One `Updates` entry from protocol 2259: the varuint32 selector, then the alternative it names. */
+const dataStoreVariableEntry = t.custom<DataStoreVariableEntry>(
+    'DataStoreEntry[2259]',
+    (stream, entry) => {
+        stream.writeUnsignedVarInt(entry.type);
+        switch (entry.type) {
+            case DataStoreEntryType.UPDATE:
+                dataStoreVariableUpdate.write(stream, entry.update);
+                break;
+            case DataStoreEntryType.CHANGE:
+                dataStoreVariableChange.write(stream, entry.change);
+                break;
+            case DataStoreEntryType.REMOVAL:
+                dataStoreVariableRemoval.write(stream, entry.removal);
+                break;
+        }
+    },
+    (stream) => {
+        const type: DataStoreEntryType = stream.readUnsignedVarInt();
+        switch (type) {
+            case DataStoreEntryType.UPDATE:
+                return { type, update: dataStoreVariableUpdate.read(stream) };
+            case DataStoreEntryType.CHANGE:
+                return { type, change: dataStoreVariableChange.read(stream) };
+            case DataStoreEntryType.REMOVAL:
+                return { type, removal: dataStoreVariableRemoval.read(stream) };
+            default:
+                throw new Error(`Data store entry has an unknown type ${type}`);
+        }
+    }
+);
+
 /** The fields of a `ClientboundDataStorePacket`. */
 export const clientboundDataStorePacket = definePacket('ClientboundDataStorePacket', {
-    /** `Updates`: the changes, updates, and removals that happened to the data store, at most 500. */
-    updates: t.list(dataStoreEntry)
+    /** `Updates` before protocol 2259: the changes, updates, and removals, at most 500. Empty from 2259. */
+    updates: gated(UNTIL_2259, t.list(dataStoreEntry), []),
+    /** `Updates` from protocol 2259, keyed by variable name. Empty before 2259. */
+    variableUpdates: gated(SINCE_2259, t.list(dataStoreVariableEntry), [])
 });
 
 /** Payload carried by `ClientboundDataStorePacket`. */
