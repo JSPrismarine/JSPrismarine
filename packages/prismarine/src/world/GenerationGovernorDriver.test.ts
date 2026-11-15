@@ -39,7 +39,9 @@ describe('GenerationGovernorDriver', () => {
             workers: 8,
             control: () => control,
             sampler: { sample: () => 0 },
-            now: () => now
+            now: () => now,
+            // A thread busy all the time, so every late tick is pressure.
+            utilization: () => 1
         });
         driver.start();
         let tick = 0;
@@ -64,6 +66,38 @@ describe('GenerationGovernorDriver', () => {
         expect(driver.active).toBeLessThanOrEqual(8);
     });
 
+    it('leaves the limit alone for a stall on a thread that was mostly waiting', () => {
+        const recorder = new TickRecorder();
+        const { control } = recordingControl();
+        let now = 0;
+        let busy = 0.4;
+        const driver = new GenerationGovernorDriver({
+            recorder,
+            workers: 8,
+            control: () => control,
+            sampler: { sample: () => 0 },
+            now: () => now,
+            utilization: () => busy
+        });
+        driver.start();
+        let tick = 0;
+        const step = (latenessMs: number) => {
+            now += 50;
+            recorder.record(sample(tick++, latenessMs));
+        };
+
+        for (let index = 0; index < 30; index++) step(1);
+        const calm = driver.active;
+        // A 300 ms stall and the ticks that catch up on it.
+        for (const latenessMs of [300, 255, 210, 165, 120, 75, 30]) step(latenessMs);
+        expect(driver.active).toBe(calm);
+
+        busy = 0.9;
+        step(1);
+        step(300);
+        expect(driver.active).toBeLessThan(calm);
+    });
+
     it('treats growth of the control group throttle counter as pressure', () => {
         const recorder = new TickRecorder();
         const { control } = recordingControl();
@@ -74,7 +108,9 @@ describe('GenerationGovernorDriver', () => {
             workers: 8,
             control: () => control,
             sampler: { sample: () => throttled },
-            now: () => now
+            now: () => now,
+            // A thread busy all the time, so every late tick is pressure.
+            utilization: () => 1
         });
         driver.start();
 
@@ -98,7 +134,9 @@ describe('GenerationGovernorDriver', () => {
             workers: 6,
             control: () => (present ? control : undefined),
             sampler: { sample: () => 0 },
-            now: () => now
+            now: () => now,
+            // A thread busy all the time, so every late tick is pressure.
+            utilization: () => 1
         });
         driver.start();
 
@@ -139,7 +177,9 @@ describe('GenerationGovernorDriver', () => {
             workers: 6,
             control: () => current,
             sampler: { sample: () => 0 },
-            now: () => now
+            now: () => now,
+            // A thread busy all the time, so every late tick is pressure.
+            utilization: () => 1
         });
         driver.start();
 

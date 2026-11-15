@@ -1,4 +1,5 @@
 import { CgroupThrottleSampler, ConcurrencyGovernor } from '@jsprismarine/chunkgen';
+import { performance } from 'node:perf_hooks';
 
 import type { TickRecorder } from '../profiling/TickRecorder';
 import type { GenerationControl } from './Generator';
@@ -15,19 +16,46 @@ export interface GenerationGovernorDriverOptions {
     readonly sampler?: Pick<CgroupThrottleSampler, 'sample'>;
     /** A monotonic clock in milliseconds. */
     readonly now?: () => number;
+    /**
+     * How busy the server thread has been lately, from 0 to 1. Defaults to the event loop's own
+     * utilization over the last one to two seconds.
+     */
+    readonly utilization?: () => number | undefined;
 }
 
 /** How often the control group's throttle counter is read, in milliseconds. */
 const THROTTLE_SAMPLE_INTERVAL_MS = 1000;
 
 /**
- * Connects the concurrency governor to the server: tick lateness and the control group's
- * throttle counter go in, a limit on background generation tasks comes out.
+ * The event loop's utilization over a window of one to two sample intervals: long enough to take
+ * in a stall the latest tick started after, short enough to follow the load as it changes.
+ */
+const eventLoopUtilization = (): (() => number) => {
+    let windowStart = performance.eventLoopUtilization();
+    let nextStart = windowStart;
+    let nextStartAt = performance.now();
+    return () => {
+        const current = performance.eventLoopUtilization();
+        const now = performance.now();
+        if (now - nextStartAt >= THROTTLE_SAMPLE_INTERVAL_MS) {
+            windowStart = nextStart;
+            nextStart = current;
+            nextStartAt = now;
+        }
+        return performance.eventLoopUtilization(current, windowStart).utilization;
+    };
+};
+
+/**
+ * Connects the concurrency governor to the server: tick lateness, how busy the server thread has
+ * been and the control group's throttle counter go in, a limit on background generation tasks
+ * comes out.
  */
 export class GenerationGovernorDriver {
     private readonly governor: ConcurrencyGovernor;
     private readonly sampler: Pick<CgroupThrottleSampler, 'sample'>;
     private readonly now: () => number;
+    private readonly utilization: () => number | undefined;
     private stop: (() => void) | undefined;
     private applied: number | undefined;
     private appliedAt = Number.NEGATIVE_INFINITY;
@@ -40,6 +68,7 @@ export class GenerationGovernorDriver {
         this.governor = new ConcurrencyGovernor({ max: Math.max(1, options.workers) });
         this.sampler = options.sampler ?? new CgroupThrottleSampler();
         this.now = options.now ?? (() => performance.now());
+        this.utilization = options.utilization ?? eventLoopUtilization();
     }
 
     /** The limit the governor currently asks for. */
@@ -58,7 +87,15 @@ export class GenerationGovernorDriver {
 
             const throttledDelta = this.throttledSince;
             this.throttledSince = 0;
-            const limit = this.governor.observe({ latenessMs: sample.latenessMs, throttledDelta }, now);
+            const utilization = this.utilization();
+            const limit = this.governor.observe(
+                {
+                    latenessMs: sample.latenessMs,
+                    throttledDelta,
+                    ...(utilization === undefined ? {} : { utilization })
+                },
+                now
+            );
 
             // Applied when it changes, and again every sample interval, because a pool the
             // generator replaces after a failure starts without the limit and nothing else would

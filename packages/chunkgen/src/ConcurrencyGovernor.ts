@@ -7,6 +7,13 @@
  * CPU quota is enforced per group, so a generator that spends it freezes the tick whatever its
  * priority is, and the only warning before that is the counter rising.
  *
+ * Not every late tick is pressure. A stall is counted once: the ticks that follow it start less
+ * late each time while the ticker catches up, and they say nothing new. And when the caller
+ * reports how busy the server thread has been, a late tick counts only while it is busy: a stall
+ * on an otherwise idle thread is the thread's own burst of work, which fewer generation tasks do
+ * not shorten, while a thread that is busy most of the time is one that more chunks would
+ * overload, and one that other threads take the CPU from looks busy too.
+ *
  * `immediate` work never passes through here. A chunk a player stands on is always admitted; the
  * governor only decides how many `soon` and `idle` tasks may be with workers.
  */
@@ -28,6 +35,11 @@ export interface ConcurrencyGovernorOptions {
     readonly decrease?: number;
     /** After pressure, how long before the limit may rise again, in milliseconds. Defaults to 2000. */
     readonly holdMs?: number;
+    /**
+     * The share of recent time the server thread must have been busy for a late tick to count,
+     * from 0 to 1. Defaults to 0.8. Only applies to a signal that reports {@link GovernorSignal.utilization}.
+     */
+    readonly busyUtilization?: number;
 }
 
 /** What the server reports to the governor. */
@@ -36,6 +48,11 @@ export interface GovernorSignal {
     readonly latenessMs: number;
     /** How many times the control group was throttled since the previous signal, when known. */
     readonly throttledDelta?: number;
+    /**
+     * The share of the last second or so the server thread spent running rather than waiting for
+     * work, from 0 to 1, when known. Without it every late tick that is not catching up counts.
+     */
+    readonly utilization?: number;
 }
 
 /** A controller for the background concurrency limit. Pure: it reads no clock of its own. */
@@ -49,6 +66,8 @@ export class ConcurrencyGovernor {
     private readonly raiseEveryMs: number;
     private readonly decrease: number;
     private readonly holdMs: number;
+    private readonly busyUtilization: number;
+    private previousLatenessMs = 0;
 
     public constructor(options: ConcurrencyGovernorOptions) {
         this.max = Math.max(1, Math.trunc(options.max));
@@ -58,6 +77,7 @@ export class ConcurrencyGovernor {
         this.raiseEveryMs = options.raiseEveryMs ?? 1000;
         this.decrease = options.decrease ?? 0.5;
         this.holdMs = options.holdMs ?? 2000;
+        this.busyUtilization = options.busyUtilization ?? 0.8;
     }
 
     /** How many background tasks are allowed right now. */
@@ -74,7 +94,13 @@ export class ConcurrencyGovernor {
      */
     public observe(signal: GovernorSignal, nowMs: number): number {
         this.lastChangeAt ??= nowMs;
-        const pressured = signal.latenessMs > this.lateMs || (signal.throttledDelta ?? 0) > 0;
+        const late = signal.latenessMs > this.lateMs;
+        // Starting less late than the late tick before it is the ticker catching up on a stall
+        // that tick already reported.
+        const catchingUp = late && this.previousLatenessMs > this.lateMs && signal.latenessMs < this.previousLatenessMs;
+        this.previousLatenessMs = signal.latenessMs;
+        const busy = signal.utilization === undefined || signal.utilization >= this.busyUtilization;
+        const pressured = (late && !catchingUp && busy) || (signal.throttledDelta ?? 0) > 0;
 
         if (pressured) {
             const lowered = Math.max(this.min, Math.floor(this.current * this.decrease));
