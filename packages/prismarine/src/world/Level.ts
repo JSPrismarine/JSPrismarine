@@ -719,8 +719,10 @@ export class Level {
     /** Verifies a matching initial boundary and restores only its random streams. */
     public restoreReplayRandomState(manifest: ReplayInitialStateManifest): void {
         serializeReplayInitialStateManifest(manifest);
-        // Before the digests are compared, which cover them.
+        // Before the digests are compared, which cover them, and put back as they were if the
+        // manifest turns out not to be this level's.
         const settling = new Map(manifest.settlingChunks);
+        const before = [...this.worlds()].map((world) => [world, world.settlingChunks()] as const);
         for (const world of this.worlds()) world.restoreSettlingChunks(settling.get(world.getDimension().id) ?? []);
         const currentInputs = this.replayInputFingerprints();
         const currentGameRules = [...this.gameRuleManager.getGameRules()]
@@ -745,6 +747,7 @@ export class Level {
             manifest.storageBoundary.provider !== this.provider.constructor.name ||
             JSON.stringify(manifest.loadedWorldDigests) !== JSON.stringify(this.replayWorldDigests())
         ) {
+            for (const [world, chunks] of before) world.restoreSettlingChunks(chunks);
             throw new Error("Replay manifest does not match this level's current initial state");
         }
 
