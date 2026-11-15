@@ -9,8 +9,10 @@ const serverProtocolRegistry = createProtocolCodecRegistry([Codec2193, Codec2225
 
 /** Server-configured codecs keyed by the protocol number announced by each client. */
 export const codecs: ProtocolCodecRegistry['codecs'] = serverProtocolRegistry.codecs;
-/** The newest codec supported by this server. */
+/** The newest codec supported by this server, which is the preview when one is configured. */
 export const latestCodec: ProtocolCodec = serverProtocolRegistry.latestCodec;
+/** The newest release codec: the version the MOTD advertises and an outdated client is told to use. */
+export const advertisedCodec: ProtocolCodec = serverProtocolRegistry.advertisedCodec;
 /** Configured codecs ordered from newest protocol to oldest. */
 export const registeredCodecs: readonly ProtocolCodec[] = serverProtocolRegistry.registeredCodecs;
 /** Minecraft releases supported by the configured server codecs, in ascending order. */

@@ -7,7 +7,7 @@ import {
 } from '@jsprismarine/protocol';
 
 import Codec2193 from './Codec2193';
-import { latestCodec } from './CodecRegistry';
+import { advertisedCodec } from './CodecRegistry';
 import HandshakeCodec from './HandshakeCodec';
 import LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 
@@ -29,8 +29,8 @@ describe('network/codec/HandshakeCodec', () => {
         expect(HandshakeCodec.netIdOf(LoginPacket.name)).toBeUndefined();
     });
 
-    it('advertises the newest protocol version, which is what a refusal names', () => {
-        expect(HandshakeCodec.protocolVersion).toBe(latestCodec.protocolVersion);
-        expect(HandshakeCodec.minecraftVersions).toStrictEqual(latestCodec.minecraftVersions);
+    it('carries the advertised release, never a preview', () => {
+        expect(HandshakeCodec.protocolVersion).toBe(advertisedCodec.protocolVersion);
+        expect(HandshakeCodec.minecraftVersions).toStrictEqual(advertisedCodec.minecraftVersions);
     });
 });

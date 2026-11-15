@@ -43,6 +43,11 @@ export interface BdsVersion extends PinnedArchive {
     /** Mojang's build hash, kept as a cross-check of the measured sha256. */
     sha1: string;
     sizeInBytes: number;
+    /**
+     * Whether this is a preview build, from Mojang's `bin-linux-preview` channel. cinnabar does
+     * not speak previews, so client-e2e leaves them out; `pnpm run bringup` checks them instead.
+     */
+    preview?: boolean;
 }
 
 /** The `bds` section: one server zip per Bedrock protocol version. */

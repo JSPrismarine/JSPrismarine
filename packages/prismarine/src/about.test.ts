@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { about } from './about';
-import { latestCodec, registeredCodecs } from './network/codec/CodecRegistry';
+import { advertisedCodec, registeredCodecs } from './network/codec/CodecRegistry';
 import { serverVersion, softwareLabel } from './version';
 
 describe('about', () => {
@@ -9,11 +9,21 @@ describe('about', () => {
         vi.unstubAllGlobals();
     });
 
-    it('advertises the newest Minecraft release of the newest codec', () => {
+    it('advertises the newest Minecraft release of the newest release codec', () => {
         const { minecraftVersion, protocolVersion } = about();
 
-        expect(protocolVersion).toBe(latestCodec.protocolVersion);
-        expect(minecraftVersion).toBe(latestCodec.minecraftVersions.at(-1));
+        expect(advertisedCodec.preview).not.toBe(true);
+        expect(protocolVersion).toBe(advertisedCodec.protocolVersion);
+        expect(minecraftVersion).toBe(advertisedCodec.minecraftVersions.at(-1));
+    });
+
+    it('never advertises a preview protocol, and flags each one', () => {
+        const { protocols } = about();
+
+        for (const [index, protocol] of protocols.entries()) {
+            expect(protocol.preview).toBe(registeredCodecs[index]!.preview === true);
+            if (protocol.preview) expect(protocol.advertised).toBe(false);
+        }
     });
 
     it('lists every registered protocol and marks only the advertised one', () => {
