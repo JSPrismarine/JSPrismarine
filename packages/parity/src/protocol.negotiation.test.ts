@@ -1,7 +1,7 @@
 import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import Codec2193 from '@jsprismarine/prismarine/network/codec/Codec2193';
 import Codec2225 from '@jsprismarine/prismarine/network/codec/Codec2225';
-import { latestCodec, registeredCodecs } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
+import { advertisedCodec, latestCodec, registeredCodecs } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
 import { describeSupportedProtocols } from '@jsprismarine/prismarine/network/codec/describeCodecs';
 import HandshakeCodec from '@jsprismarine/prismarine/network/codec/HandshakeCodec';
 import RequestNetworkSettingsHandler from '@jsprismarine/prismarine/network/handler/RequestNetworkSettingsHandler';
@@ -304,7 +304,7 @@ describe(FAMILIES.protocolNegotiation, () => {
             sent[0].getPacketData()?.status === PlayStatus.LoginFailed_ClientOld &&
             hangups.length === 1 &&
             hangups[0]!.reason === DisconnectReason.OUTDATED_CLIENT &&
-            hangups[0]!.message.includes(latestCodec.minecraftVersions.at(-1)!);
+            hangups[0]!.message.includes(advertisedCodec.minecraftVersions.at(-1)!);
         reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, [
             parityCase(
                 'unsupported:older-client',
@@ -320,9 +320,9 @@ describe(FAMILIES.protocolNegotiation, () => {
         expect(sent[0]?.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ClientOld });
         expect(hangups).toHaveLength(1);
         expect(hangups[0]!.reason).toBe(DisconnectReason.OUTDATED_CLIENT);
-        // The refusal names the newest version the registry speaks, which is what the
-        // player should upgrade to.
-        expect(hangups[0]!.message).toContain(latestCodec.minecraftVersions.at(-1)!);
+        // The refusal names the newest release the registry speaks, which is what the
+        // player should upgrade to; a preview is never what the server tells them to install.
+        expect(hangups[0]!.message).toContain(advertisedCodec.minecraftVersions.at(-1)!);
     });
 
     it('a newer unsupported client is told the server is outdated', async () => {

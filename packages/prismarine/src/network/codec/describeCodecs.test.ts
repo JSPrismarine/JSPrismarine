@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { latestCodec, registeredCodecs } from './CodecRegistry';
+import { advertisedCodec, registeredCodecs } from './CodecRegistry';
 import { describeSupportedProtocols } from './describeCodecs';
 
 describe('describeSupportedProtocols', () => {
@@ -17,10 +17,18 @@ describe('describeSupportedProtocols', () => {
         }
     });
 
+    it('marks each preview codec as a preview', () => {
+        const described = describeSupportedProtocols();
+
+        for (const [index, codec] of registeredCodecs.entries()) {
+            expect(described[index]!.includes('(preview)')).toBe(codec.preview === true);
+        }
+    });
+
     it('marks only the codec the MOTD advertises', () => {
         const marked = describeSupportedProtocols().filter((line) => line.includes('advertised in the MOTD'));
 
         expect(marked).toHaveLength(1);
-        expect(marked[0]).toContain(`protocol §e${latestCodec.protocolVersion}§r`);
+        expect(marked[0]).toContain(`protocol §e${advertisedCodec.protocolVersion}§r`);
     });
 });

@@ -1,7 +1,7 @@
 import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { CompressionThreshold, NetworkSettingsPacket, PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import type { RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
-import { codecForProtocol, latestCodec, registeredCodecs } from '../codec/CodecRegistry';
+import { advertisedCodec, codecForProtocol, latestCodec, registeredCodecs } from '../codec/CodecRegistry';
 import type ClientConnection from '../ClientConnection';
 import type { ConnectionContext, ConnectionHandler } from './ConnectionContext';
 import type { HandlerLog } from './HandlerContext';
@@ -77,7 +77,9 @@ export default class RequestNetworkSettingsHandler implements ConnectionHandler<
         await connection.sendDataPacket(new PlayStatusPacket({ status }), false);
 
         await connection.disconnect(
-            outdatedClient ? `Outdated client! Please use ${latestCodec.minecraftVersions.at(-1)}` : 'Outdated server!',
+            outdatedClient
+                ? `Outdated client! Please use ${advertisedCodec.minecraftVersions.at(-1)}`
+                : 'Outdated server!',
             false,
             outdatedClient ? DisconnectReason.OUTDATED_CLIENT : DisconnectReason.OUTDATED_SERVER
         );

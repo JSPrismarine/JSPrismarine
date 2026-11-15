@@ -16,7 +16,7 @@ import type ClientConnection from '../ClientConnection';
 import { ConnectionContexts } from '../connectionContexts';
 import Codec2193 from '../codec/Codec2193';
 import Codec2225 from '../codec/Codec2225';
-import { latestCodec } from '../codec/CodecRegistry';
+import { advertisedCodec, latestCodec } from '../codec/CodecRegistry';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import RequestNetworkSettingsHandler from './RequestNetworkSettingsHandler';
 
@@ -147,7 +147,7 @@ describe('RequestNetworkSettingsHandler', () => {
         // The status first, so the client has a screen to put the reason on.
         expect(order).toEqual(['PlayStatusPacket', 'disconnect']);
         expect(disconnect).toHaveBeenCalledWith(
-            `Outdated client! Please use ${latestCodec.minecraftVersions.at(-1)}`,
+            `Outdated client! Please use ${advertisedCodec.minecraftVersions.at(-1)}`,
             false,
             DisconnectReason.OUTDATED_CLIENT
         );
