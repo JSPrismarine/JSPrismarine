@@ -177,7 +177,12 @@ describe('createTagExpander', () => {
 });
 
 describe('CandidateChunkMemo', () => {
-    const common = { salt: 16842397, frequencyReductionMethod: 'default', locateOffset: [0, 0, 0] } as const;
+    const common = {
+        salt: 16842397,
+        frequency: 1,
+        frequencyReductionMethod: 'default',
+        locateOffset: [0, 0, 0]
+    } as const;
     const mineshafts = {
         ...common,
         type: 'minecraft:random_spread',
