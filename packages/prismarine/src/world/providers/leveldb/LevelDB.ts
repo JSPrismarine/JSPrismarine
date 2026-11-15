@@ -1145,11 +1145,16 @@ export default class LevelDB extends BaseProvider {
     ): void {
         const ticks: PendingTickToSave[] = [];
         for (const tick of pending.byChunk.get(Chunk.packXZ(chunk.getX(), chunk.getZ())) ?? []) {
-            // The state the tick fires for, as Bedrock records it: whatever stands there now. A
-            // tick whose fluid has gone would do nothing, and is not worth a record.
-            const runtimeId = chunk.getBlockRuntimeId(tick.x & 0xf, tick.y, tick.z & 0xf);
-            const name = BlockRuntimeIds.getState(runtimeId)?.name;
-            if (name === undefined || liquidOf(name) === null) continue;
+            // The state the tick fires for, as Bedrock records it: the fluid that stands there now,
+            // in the block layer or, for a waterlogged block, in the liquid layer. A tick whose
+            // fluid has gone would do nothing, and is not worth a record.
+            const fluidAt = (layer: number) => {
+                const id = chunk.getBlockRuntimeId(tick.x & 0xf, tick.y, tick.z & 0xf, layer);
+                const name = BlockRuntimeIds.getState(id)?.name;
+                return name !== undefined && liquidOf(name) !== null ? id : undefined;
+            };
+            const runtimeId = fluidAt(0) ?? fluidAt(1);
+            if (runtimeId === undefined) continue;
             ticks.push({ x: tick.x, y: tick.y, z: tick.z, runtimeId, time: tick.triggerTick });
         }
         const encoded = encodePendingTicks(pending.currentTick, ticks);
