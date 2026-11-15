@@ -13,6 +13,11 @@ export interface ProtocolCodec {
     readonly protocolVersion: number;
     /** Minecraft releases that speak this wire version, in ascending order. */
     readonly minecraftVersions: readonly string[];
+    /**
+     * Whether this codec speaks a Minecraft preview, which a server negotiates but never
+     * advertises. Absent means a release.
+     */
+    readonly preview?: boolean;
     /** Wire id by packet class name. */
     readonly ids: Readonly<Record<string, number>>;
     /** Item names and runtime ids supplied by the server for this wire version. */
@@ -91,6 +96,7 @@ export const createProtocolCodec = ({ definition, context }: ProtocolCodecOption
     return {
         protocolVersion: definition.protocolVersion,
         minecraftVersions: definition.minecraftVersions,
+        preview: definition.preview === true,
         ids: definition.ids,
         itemData,
         context,

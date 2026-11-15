@@ -11,26 +11,27 @@ export const HANDSHAKE_PACKET_NAMES = [
 
 /**
  * Creates the codec used before protocol negotiation completes.
- * @param latestCodec - A configured codec; the four handshake packets use its stable ids.
+ * @param baseCodec - A configured codec; the four handshake packets use its stable ids. Servers
+ *   pass their advertised release codec.
  * @returns A codec that rejects every id outside the handshake exchange.
  */
-export const createHandshakeCodec = (latestCodec: ProtocolCodec): ProtocolCodec => {
+export const createHandshakeCodec = (baseCodec: ProtocolCodec): ProtocolCodec => {
     const ids: Record<string, number> = {};
     for (const name of HANDSHAKE_PACKET_NAMES) {
-        const id = latestCodec.netIdOf(name);
-        if (id === undefined) throw new Error(`Handshake packet ${name} has no id in the latest codec!`);
+        const id = baseCodec.netIdOf(name);
+        if (id === undefined) throw new Error(`Handshake packet ${name} has no id in the base codec!`);
         ids[name] = id;
     }
 
     const netIds = new Set(Object.values(ids));
     return {
-        protocolVersion: latestCodec.protocolVersion,
-        minecraftVersions: latestCodec.minecraftVersions,
+        protocolVersion: baseCodec.protocolVersion,
+        minecraftVersions: baseCodec.minecraftVersions,
         ids,
-        itemData: latestCodec.itemData,
-        context: latestCodec.context,
+        itemData: baseCodec.itemData,
+        context: baseCodec.context,
         createPacket(netId: number, buffer?: Buffer): NetworkPacket<unknown> | null {
-            return netIds.has(netId) ? latestCodec.createPacket(netId, buffer) : null;
+            return netIds.has(netId) ? baseCodec.createPacket(netId, buffer) : null;
         },
         prepareOutbound(packet) {
             return packet;
