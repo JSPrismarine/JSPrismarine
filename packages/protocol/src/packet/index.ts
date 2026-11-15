@@ -591,6 +591,13 @@ export { default as ServerboundStonecutterSetRecipePacket } from './ServerboundS
 export * from './ServerboundStonecutterSetRecipePacket';
 export { default as ServerboundCursorItemDragPacket } from './ServerboundCursorItemDragPacket';
 export * from './ServerboundCursorItemDragPacket';
+export { default as ChatPacket } from './ChatPacket';
+export { default as ServerboundRequestOnlineMusicPlaybackPacket } from './ServerboundRequestOnlineMusicPlaybackPacket';
+export { default as ClientboundOnlineMusicPlaybackResponsePacket } from './ClientboundOnlineMusicPlaybackResponsePacket';
+export { default as PlayerToggleArmorVisibilityRequestPacket } from './PlayerToggleArmorVisibilityRequestPacket';
+export { default as ClientboundMusicPlaybackFailurePacket } from './ClientboundMusicPlaybackFailurePacket';
+export { default as VirtualContainerOpenPacket } from './VirtualContainerOpenPacket';
+export { default as VirtualContainerClosePacket } from './VirtualContainerClosePacket';
 export { default as DebugInfoPacket } from './DebugInfoPacket';
 export * from './DebugInfoPacket';
 export { default as LegacyTelemetryEventPacket } from './LegacyTelemetryEventPacket';

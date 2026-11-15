@@ -63,7 +63,7 @@ export interface SignedAudioContent {
 }
 
 /** `SignedAudioContent` on the wire: its single string. */
-const signedAudioContent: WireType<SignedAudioContent> = t.custom(
+export const signedAudioContent: WireType<SignedAudioContent> = t.custom(
     'SignedAudioContent',
     (stream, value) => t.string.write(stream, value.compactJwt),
     (stream) => ({ compactJwt: t.string.read(stream) })

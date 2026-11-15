@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { removedPacketNames } from '@jsprismarine/protocol/wire/versions/v2259';
+import { addedPacketIds, removedPacketNames } from '@jsprismarine/protocol/wire/versions/v2259';
 import Codec2225 from './Codec2225';
 import Codec2259 from './Codec2259';
 import { advertisedCodec, codecForProtocol, latestCodec } from './CodecRegistry';
@@ -17,6 +17,13 @@ describe('network/codec/Codec2259', () => {
         for (const name of removedPacketNames) {
             expect(Codec2225.netIdOf(name), name).toBeDefined();
             expect(Codec2259.netIdOf(name), name).toBeUndefined();
+        }
+    });
+
+    it('builds a packet for every id 2259 added', () => {
+        for (const [name, id] of Object.entries(addedPacketIds)) {
+            expect(Codec2259.netIdOf(name), name).toBe(id);
+            expect(Codec2259.createPacket(id)?.constructor.name, name).toBe(name);
         }
     });
 

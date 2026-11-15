@@ -68,7 +68,10 @@ const decode = (bytes: Buffer): ServerboundDataStore => {
 
 describe('ServerboundDataStorePacket', () => {
     for (const { name, data, bytes } of vectors) {
-        const packet: ServerboundDataStore = { update: new DataStoreUpdate('hud', 'score', 'a.b', data, 7, 300) };
+        const packet: ServerboundDataStore = {
+            update: new DataStoreUpdate('hud', 'score', 'a.b', data, 7, 300),
+            variableUpdate: null
+        };
 
         it(`writes an update carrying ${name} in the order protocol 2193 defines`, () => {
             expect([...encode(packet)]).toEqual(bytes);
@@ -84,7 +87,10 @@ describe('ServerboundDataStorePacket', () => {
             const vector = vectors[2];
             if (vector === undefined) throw new Error('the third vector is missing');
             const { data, bytes } = vector;
-            const packet: ServerboundDataStore = { update: new DataStoreUpdate('hud', 'score', 'a.b', data, 7, 300) };
+            const packet: ServerboundDataStore = {
+                update: new DataStoreUpdate('hud', 'score', 'a.b', data, 7, 300),
+                variableUpdate: null
+            };
             const writer = new ServerboundDataStorePacket(packet);
             writer.codecProtocol = protocol;
             const encoded = writer.serialize(new NetworkBinaryStream());
