@@ -17,7 +17,7 @@ import { createBehaviors } from './behavior/Behaviors';
 
 let stateRoot: string;
 let server: Server | null = null;
-const port = 19278;
+let port = 0;
 const fleets: Fleet[] = [];
 
 const newFleet = (options: Partial<ConstructorParameters<typeof Fleet>[0]> & { namePrefix: string }) => {
@@ -52,7 +52,9 @@ describe('a fleet against a real server', { tags: ['real-data', 'performance'] }
         );
 
         server = new Server({ logger: new Logger('error'), config: new Config(), headless: true });
-        await server.bootstrap('127.0.0.1', port);
+        // Port 0, so another checkout's run cannot hold it; the server advertises the port it got.
+        await server.bootstrap('127.0.0.1', 0);
+        port = server.getMetadata().getPort();
     }, 60_000);
 
     afterEach(() => {
