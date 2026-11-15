@@ -1,0 +1,23 @@
+{
+    "$comment": "Main-thread work categories for analyze.mjs. A sample takes the first category whose pattern matches any frame on its stack; frames read as '<function> <package>/<path>:<line>'. Patterns name functions, so update them when the code they name moves.",
+    "categories": [
+        ["gc", "^\\(garbage collector\\)"],
+        ["unload-save", "^unloadChunks |^writeChunk "],
+        ["level-save", "^tick .*LevelSave|^advance .*LevelSave"],
+        ["light-load", "^onChunkLoaded .*LightEngine"],
+        ["light-flush", "^flush .*LightEngine"],
+        ["fluid", "^fluidTick "],
+        ["random-ticks", "^runRandomTicks .*WorldSystems"],
+        ["block-ticks", "^runAt .*WorldSystems"],
+        ["chunk-enter", "^enterChunk "],
+        ["full-adopt", "^runFull |^full .*DataDriven|^adoptRegion "],
+        ["terrain-dispatch", "^runTerrain |^terrainTileFor "],
+        ["features-dispatch", "^runFeatures "],
+        ["chunk-send", "^requestChunk |^prepareQueuedChunk |^networkSerialize .*Chunk"],
+        ["ipc", "^parseChannelMessages "],
+        ["command", "^dispatchCommand "],
+        ["entities", "tickEntit|replicateTick"],
+        ["tick-other", "^tickWorld "],
+        ["program", "^\\(program\\)"]
+    ]
+}
