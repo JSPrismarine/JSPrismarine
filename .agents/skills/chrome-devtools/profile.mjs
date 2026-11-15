@@ -369,8 +369,9 @@ const ONLINE_PLAYERS = 'jsprismarine.server.getSessionManager().getAllPlayers().
 /**
  * Starts a disposable server and joins bots to it. Records every process in the session's
  * session.json as soon as it starts, so `stop` can end whatever a failed start left behind.
+ * `onLaunch` runs once the server process exists and session.json records it.
  */
-const start = async (options) => {
+const start = async (options, { onLaunch } = {}) => {
     const nice = parseInteger(options.nice, '--nice');
     const readyMs = parseDuration(options['ready-timeout'], '--ready-timeout');
     const bots = parseInteger(options.bots, '--bots', { min: 1 });
@@ -422,6 +423,7 @@ const start = async (options) => {
         server: { pid: server.pid, startTime: server.startTime, log: serverLog }
     };
     writeSession(session);
+    onLaunch?.();
     log(`server pid ${server.pid} on port ${port}, session ${dir}`);
     try {
         await joinBots(session, server, {
@@ -896,10 +898,13 @@ const run = async (options) => {
     if (existsSync(join(out, 'meta.json'))) throw new Error(`${out} already holds a capture; choose another --out`);
     const dir = resolve(options.session ?? mkdtempSync(join(os.tmpdir(), 'jsp-profile-')));
 
+    // Cleanup stops and deletes only a session this run launched. When start refuses a
+    // directory whose session still runs, that session and its directory stay as they were.
+    let launched = false;
     let stopping;
     const cleanUp = async () => {
         stopping ??= (async () => {
-            if (!existsSync(join(dir, SESSION_FILE))) return;
+            if (!launched) return;
             const session = await stop(dir, options);
             if (existsSync(out)) collect(session, out);
             if (!options['keep-session']) rmSync(dir, { recursive: true, force: true });
@@ -913,7 +918,14 @@ const run = async (options) => {
     process.once('SIGINT', interrupt);
     process.once('SIGTERM', interrupt);
     try {
-        await start({ ...options, session: dir });
+        await start(
+            { ...options, session: dir },
+            {
+                onLaunch: () => {
+                    launched = true;
+                }
+            }
+        );
         await capture({ ...options, session: dir });
     } finally {
         await cleanUp();
