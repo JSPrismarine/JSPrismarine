@@ -115,16 +115,20 @@ export class GenerationScheduler<TChunk extends StagedChunk> {
     /** Applies one status to every chunk in the square of `radius` around the center. */
     private runLayer(centerX: number, centerZ: number, status: ChunkStatus, radius: number): Promise<unknown> {
         const step = this.pyramid.stepTo(status);
-        const task = this.tasks[status];
+        let body: ChunkStepBody<TChunk> | undefined;
         const layer: Promise<TChunk>[] = [];
 
         for (let dz = -radius; dz <= radius; dz++) {
             for (let dx = -radius; dx <= radius; dx++) {
                 const holder = this.holderAt(centerX + dx, centerZ + dz, status);
-                layer.push(holder.applyStep(step, this.bodyFor(step, task)));
+                // Most of a request's square was finished by the requests around it, and has
+                // nothing to run and nothing to wait for.
+                if (holder.hasReached(status)) continue;
+                body ??= this.bodyFor(step, this.tasks[status]);
+                layer.push(holder.applyStep(step, body));
             }
         }
-        return Promise.all(layer);
+        return layer.length === 0 ? Promise.resolve() : Promise.all(layer);
     }
 
     /**

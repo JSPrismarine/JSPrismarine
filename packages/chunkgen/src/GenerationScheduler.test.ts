@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { ChunkHolder } from './ChunkHolder';
 import { ChunkHolderMap } from './ChunkHolderMap';
 import type { ChunkStatus } from './ChunkStatus';
 import { CHUNK_STATUSES } from './ChunkStatus';
@@ -271,6 +272,20 @@ describe('what a retained reference prevents', () => {
         expect(log.runsAt('structure_starts')).toBe(721);
 
         holders.release(0, 0);
+    });
+
+    it('asks no holder that already reached a status to apply it again', async () => {
+        const { scheduler, holders } = harness();
+        // Holds the whole square the first run builds, as a retained neighborhood does.
+        const held = holders.acquireSquare(0, 0, 10);
+        await scheduler.generate(0, 0, 'terrain');
+        const applied = vi.spyOn(ChunkHolder.prototype, 'applyStep');
+
+        await scheduler.generate(0, 0, 'terrain');
+
+        expect(applied).not.toHaveBeenCalled();
+        applied.mockRestore();
+        holders.releaseAll(held);
     });
 
     it('rebuilds a chunk nothing holds, which is the lifetime the count buys', async () => {
