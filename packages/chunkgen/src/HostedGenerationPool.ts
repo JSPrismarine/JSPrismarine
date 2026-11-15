@@ -30,6 +30,7 @@ import { GenerationStatsRecorder } from './GenerationStats';
 import type { GenerationTransport } from './GenerationTransport';
 import type { HostCommand, HostEvent } from './hostProtocol';
 import { encodeShared } from './hostProtocol';
+import { encodeReusable, REUSABLE_CAPACITY, ReusableCache } from './reusableInput';
 import { GENERATION_HOST_ROLE } from './hostRole';
 
 /**
@@ -96,6 +97,8 @@ export class HostedGenerationPool implements GenerationTransport {
     private lowered = false;
     /** The last background limit, sent again to a replacement host. */
     private limit: number | undefined;
+    /** The reusable inputs the host holds, kept in step with the host's own record. */
+    private readonly held = new ReusableCache<true>(REUSABLE_CAPACITY);
 
     /**
      * Why a host cannot be started here, or undefined when one can.
@@ -258,7 +261,9 @@ export class HostedGenerationPool implements GenerationTransport {
         if (child === undefined || entry.sentTo === child || !this.outstanding.has(entry.id)) return;
 
         entry.sentTo = child;
-        this.post({ type: 'run', id: entry.id, task: entry.task, priority: entry.priority });
+        const input = encodeReusable(entry.task.input, this.held);
+        const task = input === entry.task.input ? entry.task : { ...entry.task, input };
+        this.post({ type: 'run', id: entry.id, task, priority: entry.priority });
     }
 
     private post(command: HostCommand): void {
@@ -298,6 +303,8 @@ export class HostedGenerationPool implements GenerationTransport {
             }
 
             this.child = child;
+            // A new host holds nothing yet.
+            this.held.clear();
             this.lowerPriority(child);
             let settled = false;
             child.on('message', (event: HostEvent) => {
@@ -355,6 +362,14 @@ export class HostedGenerationPool implements GenerationTransport {
     private settle(event: Extract<HostEvent, { type: 'result' }>): void {
         const entry = this.outstanding.get(event.id);
         if (entry === undefined) return;
+        if (!event.ok && event.error.name === 'ReusableMissError') {
+            // The record and the host disagree, which nothing should cause; starting the record over
+            // sends every value again, and the task with them.
+            this.held.clear();
+            entry.sentTo = undefined;
+            this.send(entry);
+            return;
+        }
         this.outstanding.delete(event.id);
         // A host that answers is a healthy one; the restart budget is for hosts that keep dying.
         this.restarts = 0;

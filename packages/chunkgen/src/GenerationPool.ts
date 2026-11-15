@@ -28,6 +28,7 @@ import Piscina from 'piscina';
 import type { ChunkStatus } from './ChunkStatus';
 import type { GenerationStatsSnapshot, WorkerTaskStats } from './GenerationStats';
 import { GenerationStatsRecorder } from './GenerationStats';
+import { unwrapReusable } from './reusableInput';
 
 /**
  * Where a compiled Bun executable embedded this package's worker entry, defined at build time
@@ -856,7 +857,9 @@ export class GenerationPool {
         if (priority === 'immediate') this.runningImmediate++;
         else this.runningBackground++;
         const dispatchedAt = this.now();
-        const result = this.runner.run(task);
+        // A worker keeps nothing between tasks, so a reusable part goes as its value.
+        const input = unwrapReusable(task.input);
+        const result = this.runner.run(input === task.input ? task : { ...task, input });
         this.observeWorkerExits();
         const settled = (failed: boolean, reported: GenerationResult | undefined): void => {
             this.stats.record({

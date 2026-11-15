@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url';
 import { threadId } from 'node:worker_threads';
 
 import type { GenerationPriority, GenerationTransport, StepRegion } from '@jsprismarine/chunkgen';
+import type { ReusableInput } from '@jsprismarine/chunkgen/reusableInput';
+import { reusableInput } from '@jsprismarine/chunkgen/reusableInput';
 import {
     ChunkHolderMap,
     FEATURE_PATCH_ORDER,
@@ -883,6 +885,9 @@ export class DataDrivenGenerator implements Generator {
 
     /** Workers for independent statuses, all fed by this generator's shared holder map. */
     private stagePool: GenerationTransport | undefined;
+    /** Each terrain tile's key as a reusable feature input; see {@link tileKeyOf}. */
+    private readonly tileKeys = new WeakMap<GenerationRegion, string>();
+    private nextTileKey = 0;
     /** The candidate starts each structure-start task lays out, by its input, so a later request can promote it. */
     private readonly structureStartTaskKeys = new WeakMap<object, ReadonlySet<string>>();
 
@@ -2184,9 +2189,11 @@ export class DataDrivenGenerator implements Generator {
                     stagePool,
                     urgency
                 );
-                const input: FeatureTaskInput = {
+                // Each tile goes to the generation host once; the eight neighbors that read it
+                // again name it by key. A worker receives the payloads either way.
+                const input: Omit<FeatureTaskInput, 'terrain'> & { readonly terrain: readonly ReusableInput[] } = {
                     ...this.taskInput(pipeline),
-                    terrain: tiles.map((tile) => tile.workerInput()),
+                    terrain: tiles.map((tile) => reusableInput(this.tileKeyOf(tile), tile.workerInput())),
                     ...(blending === undefined ? {} : { blending }),
                     ...(structureStartPlans === undefined ? {} : { structureStartPlans })
                 };
@@ -2211,6 +2218,20 @@ export class DataDrivenGenerator implements Generator {
 
         chunk.recordFeatures(new Map(patches.map((patch) => [this.chunkKey(patch.chunkX, patch.chunkZ), patch])));
         return chunk;
+    }
+
+    /**
+     * The key a terrain tile is sent to the generation host under, one per tile object. A tile is
+     * finished at the terrain status and never written again, so its key always names the same
+     * content.
+     */
+    private tileKeyOf(tile: GenerationRegion): string {
+        let key = this.tileKeys.get(tile);
+        if (key === undefined) {
+            key = `terrain:${this.nextTileKey++}`;
+            this.tileKeys.set(tile, key);
+        }
+        return key;
     }
 
     /**

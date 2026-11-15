@@ -12,6 +12,7 @@ import { GenerationPool } from './GenerationPool';
 import type { GenerationPriority, GenerationTask } from './GenerationPool';
 import type { HostCommand, HostEvent, HostPoolOptions } from './hostProtocol';
 import { decodeShared } from './hostProtocol';
+import { decodeReusable, REUSABLE_CAPACITY, ReusableCache } from './reusableInput';
 
 const send = (event: HostEvent): void => {
     process.send?.(event);
@@ -19,6 +20,8 @@ const send = (event: HostEvent): void => {
 
 let pool: GenerationPool | undefined;
 const taskIds = new WeakMap<GenerationTask, number>();
+/** The reusable inputs the server sent, which later tasks name by key. */
+const kept = new ReusableCache<unknown>(REUSABLE_CAPACITY);
 
 const start = (options: HostPoolOptions): void => {
     // The setup arrives as plain bytes and goes back into shared memory here, so the host's own
@@ -30,10 +33,22 @@ const start = (options: HostPoolOptions): void => {
     send({ type: 'ready' });
 };
 
-const run = (id: number, task: GenerationTask, priority: GenerationPriority): void => {
+const run = (id: number, sent: GenerationTask, priority: GenerationPriority): void => {
     const current = pool;
     if (current === undefined) {
         send({ type: 'result', id, ok: false, error: { name: 'Error', message: 'The generation host has no pool' } });
+        return;
+    }
+
+    // Decoded as it arrives, before anything can be canceled, so the values kept are the ones the
+    // server's record says were sent, in the order it sent them.
+    let task: GenerationTask;
+    try {
+        const input = decodeReusable(sent.input, kept);
+        task = input === sent.input ? sent : { ...sent, input };
+    } catch (error) {
+        const thrown = error instanceof Error ? error : new Error(String(error));
+        send({ type: 'result', id, ok: false, error: { name: thrown.name, message: thrown.message } });
         return;
     }
 
