@@ -68,7 +68,8 @@ export interface BehaviorScenario<Subject> {
     readonly run: (subject: Subject) => ScenarioOutcome;
     /**
      * Sorts a difference into the kind recorded for it, with a replacement reason when the
-     * difference is a known edition difference rather than a defect. Absent means a defect.
+     * difference is a known edition difference rather than a defect. Absent means a defect, and a
+     * scenario that threw is never classified.
      */
     readonly classify?: (
         subject: Subject,
@@ -98,12 +99,16 @@ export const runScenarios = <Subject>(scenarios: readonly BehaviorScenario<Subje
     scenarios.flatMap((scenario) =>
         scenario.subjects().map((subject): ScenarioRow => {
             let difference: ScenarioOutcome;
+            let threw = false;
             try {
                 difference = scenario.run(subject);
             } catch (error) {
                 difference = crash(error);
+                threw = true;
             }
-            const classified = difference === undefined ? undefined : scenario.classify?.(subject, difference);
+            // A scenario that threw found a defect of its own, whatever its classifier says about the
+            // difference it was written to observe.
+            const classified = difference === undefined || threw ? undefined : scenario.classify?.(subject, difference);
             return {
                 id: `${scenario.name}:${scenario.idOf(subject)}`,
                 title: scenario.idOf(subject),

@@ -76,14 +76,17 @@ const weatheringCopper = (): readonly CopperChain[] =>
 
 const BELOW = { x: 0, y: 4, z: 0 } as const;
 
+/** How far the stone floor reaches: past water's slope search, so no edge offers a shorter way down. */
+const FLOOR_REACH = 6;
+
 /**
  * A world whose full cubes are the ones the server's engine answers for, so a slab is not walled
  * in by the test double's own fallback, and whose floor is stone.
  */
 const fluidWorld = () => {
     const world = createVoxelWorld().overworld;
-    for (let x = -2; x <= 2; x++) {
-        for (let z = -2; z <= 2; z++) world.set({ x, y: BELOW.y, z }, 'minecraft:stone');
+    for (let x = -FLOOR_REACH; x <= FLOOR_REACH; x++) {
+        for (let z = -FLOOR_REACH; z <= FLOOR_REACH; z++) world.set({ x, y: BELOW.y, z }, 'minecraft:stone');
     }
     return Object.assign(world, {
         isFullCube: (block: { identifier: string; states: Readonly<Record<string, string | number | boolean>> }) =>
@@ -91,11 +94,27 @@ const fluidWorld = () => {
     });
 };
 
-/** Java's four `GrowingPlantHeadBlock`s: the way each grows, what into, and its Bedrock age state. */
+/**
+ * Java's four `GrowingPlantHeadBlock`s: the way each grows, what into, its Bedrock age state, and
+ * any Bedrock head besides its own a new head may be (a cave vine head with berries).
+ */
 const GROWING_PLANT_HEADS: Readonly<
-    Record<string, { readonly direction: 'up' | 'down'; readonly into: 'air' | 'water'; readonly ageState: string }>
+    Record<
+        string,
+        {
+            readonly direction: 'up' | 'down';
+            readonly into: 'air' | 'water';
+            readonly ageState: string;
+            readonly alsoGrows?: string;
+        }
+    >
 > = {
-    'minecraft:cave_vines': { direction: 'down', into: 'air', ageState: 'growing_plant_age' },
+    'minecraft:cave_vines': {
+        direction: 'down',
+        into: 'air',
+        ageState: 'growing_plant_age',
+        alsoGrows: 'minecraft:cave_vines_head_with_berries'
+    },
     'minecraft:kelp': { direction: 'up', into: 'water', ageState: 'kelp_age' },
     'minecraft:twisting_vines': { direction: 'up', into: 'air', ageState: 'twisting_vines_age' },
     'minecraft:weeping_vines': { direction: 'down', into: 'air', ageState: 'weeping_vines_age' }
@@ -320,7 +339,7 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
             return undefined;
         },
         classify: () => ({
-            kind: 'deferred',
+            kind: 'defect',
             reason: 'Flowing water never enters a waterloggable block here, and nothing writes the liquid layer at runtime, so a spread cannot waterlog one.'
         })
     },
@@ -342,7 +361,7 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
             return undefined;
         },
         classify: () => ({
-            kind: 'deferred',
+            kind: 'defect',
             reason: 'Fluid rules treat a block as a full cube or as open, so a bottom slab lets its water out of its full bottom face.'
         })
     },
@@ -368,7 +387,7 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
             return undefined;
         },
         classify: () => ({
-            kind: 'deferred',
+            kind: 'defect',
             reason: 'The soil family tries only the six face neighbors, at 1/4 each and light 4, so grass never reaches a diagonal or a block below or above it.'
         })
     },
@@ -387,19 +406,21 @@ const scenarios: readonly BehaviorScenario<BlockSubject>[] = [
             const target = { ...ORIGIN, y: ORIGIN.y + (grows.direction === 'up' ? 1 : -1) };
             if (grows.into === 'water') harness.dimension.set(target, 'minecraft:water', { liquid_depth: 0 });
             harness.dimension.set(ORIGIN, subject.bedrock, { ...subject.states, [grows.ageState]: 0 });
-            // Every draw passes Java's growPerTickProbability and misses the berry chance.
+            // Every draw passes Java's growPerTickProbability, and a cave vine's berry chance too.
             harness.dimension.queueRandom(...Array.from({ length: 8 }, () => 0.05));
             harness.randomTick(ORIGIN);
             const grown = harness.dimension.identifierAt(target);
             if (grown === 'minecraft:air' || grown === 'minecraft:water')
                 return 'the head did not grow on a random tick';
+            if (grown !== subject.bedrock && grown !== grows.alsoGrows)
+                return `the head grew ${grown} rather than more of itself`;
             if (harness.block(target).states[grows.ageState] !== 1) return 'the grown head is not one year older';
             return undefined;
         },
         classify: (subject) =>
             subject.javaId === 'minecraft:twisting_vines' || subject.javaId === 'minecraft:weeping_vines'
                 ? {
-                      kind: 'deferred',
+                      kind: 'defect',
                       reason: 'The climbing family that runs the nether vines has no random tick yet, so they keep the length they generated at; cave vines and kelp grow through growPlantHead, which these can reuse.'
                   }
                 : undefined
