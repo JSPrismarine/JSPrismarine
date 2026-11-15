@@ -278,6 +278,41 @@ describe('snowFamily', () => {
 });
 
 describe('dripstoneFamily', () => {
+    const dripstone = 'minecraft:pointed_dripstone';
+    const above = { x: 0, y: 5, z: 0 };
+    const below = { x: 0, y: 3, z: 0 };
+
+    it('keeps a stalagmite standing on the block below it', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(below, 'minecraft:dripstone_block');
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: false });
+
+        harness.neighborChanged(origin, 'up');
+
+        expect(harness.dimension.identifierAt(origin)).toBe(dripstone);
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('keeps a stalactite hanging from a stalactite above it', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(above, dripstone, { dripstone_thickness: 'base', hanging: true });
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: true });
+
+        harness.neighborChanged(origin, 'up');
+
+        expect(harness.dimension.identifierAt(origin)).toBe(dripstone);
+    });
+
+    it('pops a stalagmite whose ground is gone', () => {
+        const harness = bindFamily(dripstoneFamily, dripstone);
+        harness.dimension.set(above, 'minecraft:dripstone_block');
+        harness.dimension.set(origin, dripstone, { dripstone_thickness: 'tip', hanging: false });
+
+        harness.neighborChanged(origin, 'down');
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:air');
+    });
+
     it('grows a bud on a free face of a budding block', () => {
         const harness = bindFamily(dripstoneFamily, 'minecraft:budding_amethyst');
         harness.dimension.set(origin, 'minecraft:budding_amethyst');

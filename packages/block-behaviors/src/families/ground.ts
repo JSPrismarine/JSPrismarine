@@ -12,7 +12,7 @@ import { fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
 import { hasSilkTouch } from '../rules/heldItem';
 import { dampensLightMoreThan } from '../rules/light';
 import { breakBlock, isSolidSupport, popWithoutSupport } from '../rules/support';
-import { bareName, hasState, setStates, sibling, stateNumber, stateString } from '../state';
+import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber, stateString } from '../state';
 import type { WorldActions } from '../world';
 import { dropSelf } from './shared';
 
@@ -266,6 +266,27 @@ export const AMETHYST_STAGES: readonly string[] = [
     'amethyst_cluster'
 ];
 
+/**
+ * Pops pointed dripstone that lost what holds it, Java's `PointedDripstoneBlock.canSurvive`.
+ *
+ * A stalactite (`hanging`) hangs from the block above it and a stalagmite stands on the block
+ * below. Another pointed dripstone pointing the same way holds it too, which is how a column
+ * longer than one block stays up although a piston would pop every segment of it.
+ */
+const popUnsupportedDripstone = (world: WorldActions, block: HookBlock): void => {
+    const hanging = stateBoolean(block, 'hanging');
+    const support = hanging ? 'up' : 'down';
+    const neighbor = world.getBlock(offset(block.position, support));
+    if (
+        neighbor !== undefined &&
+        neighbor.identifier === block.identifier &&
+        stateBoolean(neighbor, 'hanging') === hanging
+    ) {
+        return;
+    }
+    popWithoutSupport(world, block, support);
+};
+
 /** Dripstone, amethyst and budding amethyst. */
 export const dripstoneFamily = defineFamily(
     'jsprismarine:dripstone',
@@ -299,7 +320,7 @@ export const dripstoneFamily = defineFamily(
         },
         onNeighborChanged: (event, world) => {
             if (!hasState(event.block, 'minecraft:block_face')) {
-                if (hasState(event.block, 'dripstone_thickness')) popWithoutSupport(world, event.block, 'up');
+                if (hasState(event.block, 'dripstone_thickness')) popUnsupportedDripstone(world, event.block);
                 return;
             }
             // `minecraft:block_face` names the face the cluster grows out
