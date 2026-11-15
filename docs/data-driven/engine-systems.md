@@ -220,6 +220,12 @@ water source. `bedrock` follows each block's Bedrock `liquidReactionOnTouch`, un
 pops sugar cane and a big dripleaf that Java leaves standing. A stack that declares no
 `#minecraft:washed_away_by_fluids` falls back to the Bedrock reactions either way.
 
+A freshly generated chunk settles before anything it destroys drops. Generation leaves fluid to
+tick where Java's post-processing does, and while that water moves, what the world's own block
+updates, scheduled ticks and random ticks destroy in the chunk leaves nothing on the ground. The
+chunk settles until it and its eight neighbors are loaded with no fluid tick queued, or until a
+player, a command or an entity writes a block in it.
+
 ## Fire
 
 Fire is `FireBlock.tick` and `FireBlock.checkBurnOut`, implemented by `portalFamily` in
