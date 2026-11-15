@@ -23,6 +23,18 @@ describe('liquidFamily', () => {
         });
     });
 
+    it('asks for no tick when a random tick lands on settled flowing water', () => {
+        // Java's `Fluid.isRandomlyTicking` is false for water; a random tick restarting it would
+        // move water Java leaves still.
+        const harness = bindFamily(liquidFamily, 'minecraft:flowing_water');
+        harness.dimension.fill({ x: -2, y: 0, z: -2 }, { x: 2, y: 0, z: 2 }, 'minecraft:stone');
+        harness.dimension.set(origin, 'minecraft:flowing_water', { liquid_depth: 3 });
+
+        harness.randomTick(origin);
+
+        expect(harness.dimension.scheduled).toEqual([]);
+    });
+
     it('falls instead of spreading when the space below is free', () => {
         const harness = bindFamily(liquidFamily, 'minecraft:water');
         harness.dimension.set(origin, 'minecraft:water', { liquid_depth: 0 });

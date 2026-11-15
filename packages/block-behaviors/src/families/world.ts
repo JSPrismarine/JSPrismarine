@@ -70,18 +70,11 @@ export const liquidFamily = defineFamily(
                 world.removeEntity(entity.id);
             }
             world.spawnParticle(event.entity.position, 'minecraft:basic_flame_particle');
-        },
-        onRandomTick: (event, world) => {
-            // A source block never dries up; a flowing one that lost its
-            // source does, which the spread check reports as nothing moving.
-            if (isLiquidSource(event.block.identifier)) return;
-            if (stateNumber(event.block, 'liquid_depth') === 0) return;
-            world.scheduleTick(
-                event.block.position,
-                spreadTicks(event.block.identifier, event.block.dimension),
-                'fluid'
-            );
         }
+        // No random tick: Java's `Fluid.isRandomlyTicking` is false for water, and lava's random
+        // tick only spreads fire. Flowing water that lost its source learns it through the
+        // neighbor update that removed the source, so a random tick here only restarted flow
+        // that had already settled.
     }
 );
 
