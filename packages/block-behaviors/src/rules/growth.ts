@@ -6,7 +6,7 @@
  * it. The counters differ by block, so each family names its own state and
  * these functions move it.
  */
-import type { HookBlock } from '@jsprismarine/blocks';
+import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
 
 import { offset } from '../geometry';
 import { bareName, setStates, stateNumber } from '../state';
@@ -208,4 +208,55 @@ export const hasNearbyLog = (world: WorldActions, block: HookBlock): boolean => 
         frontier = next;
     }
     return false;
+};
+
+/** How one of Java's `GrowingPlantHeadBlock`s grows, as the 26.3 server jar sets it. */
+export interface GrowingPlantHead {
+    /** Which way the plant grows: `down` for cave vines, `up` for kelp. */
+    readonly direction: BlockFace;
+    /** The Bedrock state carrying Java's `AGE`. */
+    readonly ageState: string;
+    /** Java's `growPerTickProbability`. */
+    readonly chance: number;
+    /** Whether a bare block name belongs to the same plant, head or body. */
+    readonly isPart: (name: string) => boolean;
+    /** Java's `canGrowInto`, over the block the head would grow into. */
+    readonly canGrowInto: (name: string) => boolean;
+    /** The head that grows, as an identifier and its states, from the old head's. */
+    readonly grownHead: (
+        world: WorldActions,
+        head: HookBlock,
+        age: number
+    ) => { readonly identifier: string; readonly states: HookBlock['states'] };
+    /** What the old head becomes once a new head is below or above it, when that differs. */
+    readonly bodyOf?: (head: HookBlock) => string | undefined;
+}
+
+/** Java's `GrowingPlantHeadBlock.MAX_AGE`: a head at this age no longer takes a random tick. */
+export const GROWING_PLANT_MAX_AGE = 25;
+
+/**
+ * Java's `GrowingPlantHeadBlock.randomTick`: a head younger than 25 grows one block in its
+ * direction at its plant's chance, into a block its plant can grow into, and the new head is
+ * one year older. A body block, one with more of the plant beyond it, never grows: Bedrock keeps
+ * head and body under one identifier where Java has two blocks, so the position decides.
+ *
+ * @returns True when the plant grew.
+ */
+export const growPlantHead = (world: WorldActions, block: HookBlock, plant: GrowingPlantHead): boolean => {
+    const target = offset(block.position, plant.direction);
+    const next = world.getBlock(target);
+    if (next === undefined || plant.isPart(bareName(next.identifier))) return false;
+
+    const age = stateNumber(block, plant.ageState);
+    if (age >= GROWING_PLANT_MAX_AGE) return false;
+    if (world.random() >= plant.chance) return false;
+    if (!plant.canGrowInto(bareName(next.identifier))) return false;
+
+    const grown = plant.grownHead(world, block, Math.min(age + 1, GROWING_PLANT_MAX_AGE));
+    world.setBlock(target, grown.identifier, grown.states);
+    const body = plant.bodyOf?.(block);
+    if (body !== undefined && body !== block.identifier) world.setBlock(block.position, body, block.states);
+    world.notifyNeighbors(target);
+    return true;
 };

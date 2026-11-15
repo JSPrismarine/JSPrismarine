@@ -114,6 +114,44 @@ describe('cropFamily', () => {
         expect(harness.dimension.identifierAt(plant)).toBe('minecraft:wheat');
     });
 
+    it('grows a cave vine head down into air, one year older, as Java does', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:cave_vines');
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:moss_block');
+        harness.dimension.set(plant, 'minecraft:cave_vines_head_with_berries', { growing_plant_age: 7 });
+        // The growth draw passes Java's 0.1 and the berry draw misses its 0.11.
+        harness.dimension.queueRandom(0.05, 0.5);
+
+        harness.randomTick(plant);
+
+        expect(harness.dimension.identifierAt({ x: 0, y: 0, z: 0 })).toBe('minecraft:cave_vines');
+        expect(harness.dimension.stateAt({ x: 0, y: 0, z: 0 }, 'growing_plant_age')).toBe(8);
+        // The old head is body now, and keeps its berries.
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:cave_vines_body_with_berries');
+    });
+
+    it('leaves a cave vine body alone on a random tick', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:cave_vines');
+        harness.dimension.set(plant, 'minecraft:cave_vines', { growing_plant_age: 3 });
+        harness.dimension.set({ x: 0, y: 0, z: 0 }, 'minecraft:cave_vines', { growing_plant_age: 4 });
+        harness.dimension.queueRandom(0.01, 0.01);
+
+        harness.randomTick(plant);
+
+        expect(harness.dimension.stateAt(plant, 'growing_plant_age')).toBe(3);
+        expect(harness.dimension.identifierAt({ x: 0, y: -1, z: 0 })).toBe(AIR);
+    });
+
+    it('stops a cave vine head at age 25', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:cave_vines');
+        harness.dimension.set(plant, 'minecraft:cave_vines', { growing_plant_age: 25 });
+        harness.dimension.queueRandom(0.01, 0.01);
+
+        harness.randomTick(plant);
+
+        expect(harness.dimension.identifierAt({ x: 0, y: 0, z: 0 })).toBe(AIR);
+        expect(harness.dimension.stateAt(plant, 'growing_plant_age')).toBe(25);
+    });
+
     it('ignores side changes to cave vines and keeps them joined to the vine above', () => {
         const harness = bindFamily(cropFamily, 'minecraft:cave_vines');
         harness.dimension.set(plant, 'minecraft:cave_vines', { growing_plant_age: 0 });
@@ -509,6 +547,21 @@ describe('floraFamily', () => {
 });
 
 describe('bambooFamily', () => {
+    it("grows a kelp head up into water at Java's chance and leaves its body alone", () => {
+        const harness = bindFamily(bambooFamily, 'minecraft:kelp');
+        harness.dimension.set({ x: 0, y: 0, z: 0 }, 'minecraft:kelp', { kelp_age: 2 });
+        harness.dimension.set(plant, 'minecraft:kelp', { kelp_age: 3 });
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:water', { liquid_depth: 0 });
+        harness.dimension.queueRandom(0.1, 0.1);
+
+        harness.randomTick({ x: 0, y: 0, z: 0 });
+        harness.randomTick(plant);
+
+        expect(harness.dimension.stateAt({ x: 0, y: 0, z: 0 }, 'kelp_age')).toBe(2);
+        expect(harness.dimension.identifierAt({ x: 0, y: 2, z: 0 })).toBe('minecraft:kelp');
+        expect(harness.dimension.stateAt({ x: 0, y: 2, z: 0 }, 'kelp_age')).toBe(4);
+    });
+
     it('grows a stalk up to its limit', () => {
         const harness = bindFamily(bambooFamily, 'minecraft:reeds');
         harness.dimension.set(ground, 'minecraft:sand');

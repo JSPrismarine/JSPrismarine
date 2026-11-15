@@ -8,9 +8,11 @@ import { defineFamily } from '../family';
 import { faceOfFacingDirection, offset, opposite } from '../geometry';
 import type { HorizontalFace } from '../geometry';
 import { AIR, isWater } from '../identifiers';
+import type { GrowingPlantHead } from '../rules/growth';
 import {
     advanceCounter,
     cropGrowthChance,
+    growPlantHead,
     FARMLAND_NAMES,
     SUPPORTS_CROPS_TAG,
     hasNearbyLog,
@@ -43,6 +45,37 @@ const CAVE_VINE_NAMES: ReadonlySet<string> = new Set([
     'cave_vines_body_with_berries',
     'cave_vines_head_with_berries'
 ]);
+
+/**
+ * Cave vines as Java's `CaveVinesBlock` grows them: down into air at 0.1 a random tick, the new
+ * head bearing berries at 0.11. Java's head and body are two blocks; Bedrock names a vine by its
+ * berries instead, so the old head keeps its berries and becomes the body variant of them.
+ */
+const CAVE_VINE_HEAD: GrowingPlantHead = {
+    direction: 'down',
+    ageState: 'growing_plant_age',
+    chance: 0.1,
+    isPart: (name) => CAVE_VINE_NAMES.has(name),
+    canGrowInto: (name) => name === 'air',
+    grownHead: (world, head, age) => ({
+        identifier: sibling(head.identifier, world.random() < 0.11 ? 'cave_vines_head_with_berries' : 'cave_vines'),
+        states: { ...head.states, growing_plant_age: age }
+    }),
+    bodyOf: (head) =>
+        bareName(head.identifier) === 'cave_vines_head_with_berries'
+            ? sibling(head.identifier, 'cave_vines_body_with_berries')
+            : undefined
+};
+
+/** Kelp as Java's `KelpBlock` grows it: up into water at 0.14 a random tick. */
+const KELP_HEAD: GrowingPlantHead = {
+    direction: 'up',
+    ageState: 'kelp_age',
+    chance: 0.14,
+    isPart: (name) => name === 'kelp',
+    canGrowInto: (name) => name === 'water' || name === 'flowing_water',
+    grownHead: (_world, head, age) => ({ identifier: head.identifier, states: { ...head.states, kelp_age: age } })
+};
 
 type FaceBit = { readonly face: BlockFace; readonly bit: number };
 
@@ -162,7 +195,11 @@ export const cropFamily = defineFamily(
                 advanceCounter(world, event.block, growth.state, growth.max, 1 / 10);
                 return;
             }
-            if (name === 'cocoa' || name === 'cave_vines' || name === 'sweet_berry_bush') {
+            if (CAVE_VINE_NAMES.has(name)) {
+                growPlantHead(world, event.block, CAVE_VINE_HEAD);
+                return;
+            }
+            if (name === 'cocoa' || name === 'sweet_berry_bush') {
                 advanceCounter(world, event.block, growth.state, growth.max, 1 / 5);
                 return;
             }
@@ -364,6 +401,10 @@ export const bambooFamily = defineFamily(
             if (limit !== undefined) {
                 if (world.random() >= 1 / 16) return;
                 growStalk(world, event.block, limit, growth.state);
+                return;
+            }
+            if (name === 'kelp') {
+                growPlantHead(world, event.block, KELP_HEAD);
                 return;
             }
             advanceCounter(world, event.block, growth.state, growth.max, 1 / 7);
