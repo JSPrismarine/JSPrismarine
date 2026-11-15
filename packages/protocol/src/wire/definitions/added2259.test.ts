@@ -88,6 +88,17 @@ describe('the packets protocol 2259 added', () => {
             playbackContent: { compactJwt: 'd.e.f' }
         };
         expect(roundTrip(clientboundOnlineMusicPlaybackResponsePacket, response)).toEqual(response);
+        // The state travels as its member name, a varint length then the bytes, after the id.
+        expect(encode(clientboundOnlineMusicPlaybackResponsePacket, response).subarray(4, 12)).toEqual(
+            Buffer.from([7, ...Buffer.from('Pending')])
+        );
+    });
+
+    it('refuses a music playback state the schema does not list', () => {
+        const bytes = Buffer.from([1, 4, ...Buffer.from('Lost'), 0]);
+        expect(() =>
+            layoutAt(clientboundMusicPlaybackFailurePacket, PROTOCOL_2259).decode(new BinaryStream(bytes))
+        ).toThrow('Unknown MusicPlaybackState "Lost"');
     });
 
     it('round-trips the armor visibility request as one byte', () => {
@@ -103,6 +114,10 @@ describe('the packets protocol 2259 added', () => {
             ]
         };
         expect(roundTrip(clientboundMusicPlaybackFailurePacket, failures)).toEqual(failures);
+        // A varint count, then each entry's state name before its description.
+        expect(encode(clientboundMusicPlaybackFailurePacket, failures).subarray(0, 10)).toEqual(
+            Buffer.from([2, 8, ...Buffer.from('NotFound')])
+        );
     });
 
     it('round-trips a virtual container open and its close handshake', () => {
