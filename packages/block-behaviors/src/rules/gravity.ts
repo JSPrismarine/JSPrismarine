@@ -12,7 +12,6 @@ import type { HookBlock } from '@jsprismarine/blocks';
 import { offset } from '../geometry';
 import { AIR, isLiquid, isReplaceable } from '../identifiers';
 import type { WorldActions } from '../world';
-import { popBlock } from './support';
 
 /** Game ticks between a falling block's check and its first move, as Bedrock schedules it. */
 export const FALL_DELAY = 2;
@@ -37,12 +36,14 @@ export const isFallingBlock = (identifier: string): boolean => {
     );
 };
 
-/** Whether a falling block can move into a position rather than landing on it. */
-export const isFallThrough = (world: WorldActions, block: HookBlock): boolean => {
-    const identifier = block.identifier;
-    if (isReplaceable(identifier) || isLiquid(identifier)) return true;
-    return world.propertiesOf(identifier).pushReaction === 'popped';
-};
+/**
+ * Whether a falling block can move into a position rather than landing on it.
+ *
+ * Java's `FallingBlock.isFree`: air, fire, a liquid or a replaceable block. How a piston treats
+ * the block does not enter into it, so gravel stays put on a moss block or a torch.
+ */
+export const isFallThrough = (_world: WorldActions, block: HookBlock): boolean =>
+    isReplaceable(block.identifier) || isLiquid(block.identifier);
 
 /**
  * Asks for the tick that moves a block down, when the space below is free.
@@ -66,17 +67,13 @@ export type FallStep =
 /**
  * Moves a falling block down one position, or reports that it landed.
  *
- * A block the falling one passes through is destroyed and drops itself,
- * which is how a falling anvil clears a torch out of its way.
+ * It only ever moves into a position {@link isFallThrough} frees, whose occupant it replaces
+ * without a drop, as a Java falling block replaces the grass or water it settles in.
  */
 export const fallOneStep = (world: WorldActions, block: HookBlock): FallStep => {
     const target = offset(block.position, 'down');
     const below = world.getBlock(target);
     if (below === undefined || !isFallThrough(world, below)) return 'landed';
-
-    if (!isReplaceable(below.identifier) && !isLiquid(below.identifier)) {
-        popBlock(world, below);
-    }
 
     world.setBlock(target, block.identifier, block.states);
     world.setBlock(block.position, AIR);
