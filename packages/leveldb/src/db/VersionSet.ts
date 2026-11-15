@@ -152,6 +152,40 @@ export class VersionSet {
     }
 
     /**
+     * `inputs` plus every file of `level` that continues the last input's final user key.
+     *
+     * A sorted run can split one user key's versions across two neighboring files, newest in the
+     * first. Upstream LevelDB wrote such splits before 1.23, so a world the game saved can hold
+     * them. Compacting only the first file would move the newest version below an older one that
+     * stays behind, and every later read would return the stale value. Upstream's
+     * `AddBoundaryInputs` closes the same hole.
+     *
+     * @param level - The level the inputs come from, 1 or deeper.
+     * @param inputs - Files picked from that level.
+     */
+    public withBoundaryInputs(level: number, inputs: readonly FileMetaData[]): FileMetaData[] {
+        const result = [...inputs];
+        if (result.length === 0) return result;
+
+        let largest = result.reduce(
+            (max, file) => (compareInternalKeys(file.largest, max) > 0 ? file.largest : max),
+            result[0]!.largest
+        );
+        for (;;) {
+            let boundary: FileMetaData | null = null;
+            for (const file of this.levels[level] ?? []) {
+                if (compareInternalKeys(file.smallest, largest) <= 0) continue;
+                if (compareBytewise(extractUserKey(file.smallest), extractUserKey(largest)) !== 0) continue;
+                if (boundary === null || compareInternalKeys(file.smallest, boundary.smallest) < 0) boundary = file;
+            }
+
+            if (boundary === null || result.includes(boundary)) return result;
+            result.push(boundary);
+            largest = boundary.largest;
+        }
+    }
+
+    /**
      * Whether any level below `level` can still contain an older version of `userKey`.
      *
      * @param level - The level being compacted into.

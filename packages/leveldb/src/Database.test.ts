@@ -12,6 +12,16 @@ import { DatabaseLockedError } from './Errors';
 import { WriteBatch } from './format/WriteBatch';
 import { readLogRecords } from './format/LogFormat';
 import { VersionSet } from './db/VersionSet';
+import { TableBuilder } from './format/TableBuilder';
+import {
+    ValueType,
+    encodeInternalKey,
+    extractUserKey,
+    findShortInternalSuccessor,
+    findShortestInternalSeparator
+} from './format/InternalKey';
+import { tableFileName } from './util/FileNames';
+import type { FileMetaData } from './db/VersionEdit';
 
 /**
  * Every test gets its own directory. Vitest runs files in parallel forks, and two databases in one
@@ -601,6 +611,63 @@ describe('leveldb', () => {
                     );
                 }
                 expect([...db.keys()]).toHaveLength(400);
+                await db.close();
+            });
+
+            it('compacts both halves of a user key that a game-written level split across two files', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory, { maxFileSize: 64 });
+                const versions = Reflect.get(db, 'versions');
+                if (!(versions instanceof VersionSet)) throw new Error('Database version set is unavailable');
+
+                // Level 1 as upstream LevelDB before 1.23 could leave it: `split`'s newest version
+                // ends the first file and an older one starts the second.
+                const writeTable = (entries: Array<[string, number, string]>, valueSize: number): FileMetaData => {
+                    const builder = new TableBuilder({
+                        compression: CompressionType.None,
+                        shortestSeparator: findShortestInternalSeparator,
+                        shortSuccessor: findShortInternalSuccessor,
+                        filterKey: extractUserKey
+                    });
+                    const keys = entries.map(([name, sequence]) =>
+                        encodeInternalKey(key(name), BigInt(sequence), ValueType.Value)
+                    );
+                    entries.forEach(([, , value], i) => builder.add(keys[i]!, Buffer.alloc(valueSize, value)));
+                    const number = versions.allocateFileNumber();
+                    fs.writeFileSync(path.join(directory, tableFileName(number)), builder.finish());
+                    const size = fs.statSync(path.join(directory, tableFileName(number))).size;
+                    return { number, size, smallest: keys[0]!, largest: keys.at(-1)! };
+                };
+                // Only the first file is over level 1's budget, so it alone would be pushed down.
+                const first = writeTable(
+                    [
+                        ['a', 1, 'a'],
+                        ['split', 20, 'new']
+                    ],
+                    400
+                );
+                const second = writeTable(
+                    [
+                        ['split', 10, 'old'],
+                        ['z', 2, 'z']
+                    ],
+                    3
+                );
+                versions.lastSequence = 20n;
+                const applyAndPersist = Reflect.get(db, 'applyAndPersist');
+                if (typeof applyAndPersist !== 'function') throw new Error('Database edit writer is unavailable');
+                applyAndPersist.call(db, {
+                    newFiles: [
+                        [1, first],
+                        [1, second]
+                    ]
+                });
+
+                await db.flush();
+
+                expect(db.get(key('split'))?.toString()).toBe('new'.repeat(134).slice(0, 400));
+                expect(db.get(key('z'))?.toString()).toBe('zzz');
+                expect(db.levelSizes[1]).toBe(0);
                 await db.close();
             });
 

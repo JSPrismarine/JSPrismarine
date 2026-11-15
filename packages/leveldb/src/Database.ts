@@ -701,7 +701,8 @@ export class Database {
             // Leveled runs grow by a factor of ten. This keeps compaction work local to a bounded
             // source file and its overlaps instead of repeatedly rewriting all of level 1.
             if (bytes > this.options.maxFileSize * 10 ** sourceLevel) {
-                return { sourceLevel, targetLevel: sourceLevel + 1, inputs: files[0] ? [files[0]] : [] };
+                const inputs = this.versions.withBoundaryInputs(sourceLevel, files[0] ? [files[0]] : []);
+                return { sourceLevel, targetLevel: sourceLevel + 1, inputs };
             }
         }
 
