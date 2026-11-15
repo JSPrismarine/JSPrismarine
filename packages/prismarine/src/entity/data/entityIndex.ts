@@ -258,6 +258,15 @@ export class EntityIndex {
     }
 
     /**
+     * Every entity of the store within a horizontal radius of a point, dropped stacks included, in
+     * ascending runtime id order. What a blast catches: Java's `ServerExplosion` hurts every entity
+     * in range, and a stack it hurts is gone. Horizontal, as the blast applies its own exact reach.
+     */
+    public blastWithin(x: number, z: number, radius: number): DataEntity[] {
+        return inIdOrder([...this.storeWithin(x, z, radius), ...this.itemsWithin(x, z, radius)]);
+    }
+
+    /**
      * The store's entities other than dropped stacks within a horizontal radius of a point, in
      * ascending runtime id order. Horizontal, as a blast asks: it applies its own exact reach.
      */

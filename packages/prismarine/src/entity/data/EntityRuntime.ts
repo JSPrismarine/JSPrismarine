@@ -3084,10 +3084,10 @@ export class EntityRuntime implements EntityScene {
         const blast = detonate(this.world, {
             center: source.position,
             power,
-            // From the index, within the engine's reach and a block more, which is all it accepts.
-            // The same entities in the same order as the whole list it replaced.
+            // From the index, within the engine's reach and a block more, which is all it accepts,
+            // dropped stacks included. In ascending runtime id order, which the hits come back in.
             candidates: this.index
-                .within(source.position, power * EXPLOSION_ENTITY_REACH + 1)
+                .blastWithin(source.position.x, source.position.z, power * EXPLOSION_ENTITY_REACH + 1)
                 .filter((caught) => caught.id !== source.id),
             breaksBlocks: isTnt || ruleIsOn(this.world.level, MOB_GRIEFING),
             content: this.content(),

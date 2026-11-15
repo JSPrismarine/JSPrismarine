@@ -23,6 +23,7 @@ import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import { DamageCause } from './DamageCause';
 import type { DamageSource } from './DamageSource';
+import type { DataEntity } from './data/DataEntity';
 import { DEFAULT_BOX } from './data/facts';
 import type { LiveEntityRuntime } from './data/live';
 import type { StoreActor, StoreActors } from './data/storeActors';
@@ -125,6 +126,17 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
     const spawn = (identifier: string, x = 0, z = 0, health = 10): Caught => {
         const entity = store.spawn('minecraft:cow', { x, y: 64, z });
         if (entity === undefined) throw new Error('the fixture declares no cow');
+        return watch(entity, identifier, health);
+    };
+
+    /** A dropped stack in the blast's way, filed among the index's items rather than its mobs. */
+    const drop = (x = 0, z = 0): Caught => {
+        const entity = store.droppedItems.spawn({ x, y: 64, z }, { stack: { name: 'minecraft:stone', count: 1 } });
+        if (entity === undefined) throw new Error('the fixture declares no dropped item');
+        return watch(entity, 'minecraft:item', 5);
+    };
+
+    const watch = (entity: DataEntity, identifier: string, health: number): Caught => {
         const hit: Caught = {
             health,
             lastSource: undefined,
@@ -149,7 +161,7 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
         return hit;
     };
 
-    return { world, spawn, effects, cleared, dropped };
+    return { world, spawn, drop, effects, cleared, dropped };
 };
 
 /**
@@ -218,6 +230,13 @@ describe('explosions', () => {
         await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 
         expect(cow.health).toBe(0);
+    });
+
+    it('catches a dropped stack, as Java hurts every entity in range', async () => {
+        const stack = stage.drop(1, 0);
+        await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
+
+        expect(stack.health).toBe(0);
     });
 
     it('falls away steeply with distance', async () => {
