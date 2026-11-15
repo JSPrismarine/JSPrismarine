@@ -500,7 +500,9 @@ const runPacketPass = async (): Promise<void> => {
                 // The server refuses a login at any version but its own, so the client is
                 // told which one it is dialling rather than defaulting to its own.
                 '--protocol',
-                String(protocolVersion)
+                String(protocolVersion),
+                '--network',
+                staged.transport
             ]),
             { cwd: repositoryRoot, stdio: 'inherit' }
         );

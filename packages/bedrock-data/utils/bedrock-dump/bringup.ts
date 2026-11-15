@@ -177,7 +177,14 @@ try {
 
     const probe = spawnSync(
         process.execPath,
-        hostNodeArgs(probeTool, ['--protocol', String(protocolVersion), '--timeout', values.timeout]),
+        hostNodeArgs(probeTool, [
+            '--protocol',
+            String(protocolVersion),
+            '--network',
+            staged.transport,
+            '--timeout',
+            values.timeout
+        ]),
         { cwd: repositoryRoot, stdio: 'inherit' }
     );
     status = probe.status ?? 1;

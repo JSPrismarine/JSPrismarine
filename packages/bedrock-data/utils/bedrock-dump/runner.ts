@@ -73,6 +73,12 @@ export const EMULATION_SLOWDOWN = 4;
  */
 export const PUBLISHED_UDP_PORTS = [19132, 19133] as const;
 
+/**
+ * TCP ports published beside {@link PUBLISHED_UDP_PORTS}: a NetherNet client signals over HTTP on
+ * the TCP side of the server port before its WebRTC connection opens on the UDP side.
+ */
+export const PUBLISHED_TCP_PORTS = [19132] as const;
+
 /** Environment variables that steer the runner, named like the rest of the pipeline's overrides. */
 export const RUNNER_ENV = {
     /** `auto`, `native`, or `container` (`docker` and `podman` are accepted as aliases). */
@@ -265,6 +271,8 @@ export interface ContainerLaunch {
     user?: string;
     /** UDP ports to publish on the loopback interface. */
     udpPorts?: readonly number[];
+    /** TCP ports to publish on the loopback interface. */
+    tcpPorts?: readonly number[];
     /** Environment to set inside the container. */
     env?: Readonly<Record<string, string>>;
     /** The command and its arguments, run inside {@link CONTAINER_WORKDIR}. */
@@ -292,6 +300,7 @@ export const containerRunArgs = (launch: ContainerLaunch): string[] => {
     }
     args.push('-w', CONTAINER_WORKDIR);
     for (const port of launch.udpPorts ?? []) args.push('-p', `127.0.0.1:${port}:${port}/udp`);
+    for (const port of launch.tcpPorts ?? []) args.push('-p', `127.0.0.1:${port}:${port}/tcp`);
     for (const [key, value] of Object.entries(launch.env ?? {})) args.push('-e', `${key}=${value}`);
     args.push(launch.image, ...launch.command);
     return args;
@@ -468,6 +477,7 @@ export const createLauncher = (plan: RunnerPlan, options: LauncherOptions = {}):
                 platform: plan.emulated ? CONTAINER_PLATFORM : undefined,
                 user: options.user,
                 udpPorts: needs?.clientConnects === true ? PUBLISHED_UDP_PORTS : undefined,
+                tcpPorts: needs?.clientConnects === true ? PUBLISHED_TCP_PORTS : undefined,
                 // The server loads its own shared objects out of its working directory, which is
                 // the mount; the native path sets the same variable in the child's environment.
                 env: { LD_LIBRARY_PATH: '.' },
