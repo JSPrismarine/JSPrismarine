@@ -1378,6 +1378,32 @@ describe('world', () => {
                 expect(fs.readFileSync(path.join(worldPath, 'chunks', '0_0.dat'), 'utf8')).toBe('old world data');
             });
 
+            it('opens a world whose log is damaged, and says what it skipped', async () => {
+                // A copy taken while the database is open, as a crash leaves it: the write is in
+                // the log alone.
+                const source = scratch();
+                const database = await Database.open(source);
+                database.put(Buffer.from('damaged'), Buffer.from('lost'));
+                const worldPath = scratch();
+                fs.mkdirSync(path.join(worldPath, 'db'));
+                for (const name of fs.readdirSync(source)) {
+                    if (name !== 'LOCK') fs.copyFileSync(path.join(source, name), path.join(worldPath, 'db', name));
+                }
+                await database.close();
+                const log = fs.readdirSync(path.join(worldPath, 'db')).find((name) => name.endsWith('.log'))!;
+                const bytes = fs.readFileSync(path.join(worldPath, 'db', log));
+                bytes.writeUInt8(bytes.readUInt8(20) ^ 0xff, 20);
+                fs.writeFileSync(path.join(worldPath, 'db', log), bytes);
+
+                const { provider, warnings } = harness(worldPath);
+                await provider.enable();
+                await provider.disable();
+
+                expect(warnings.join('\n')).toMatch(
+                    new RegExp(`damaged bytes of the world's ${log} \\(checksum mismatch\\)`)
+                );
+            });
+
             it('refuses a second provider on the same folder', async () => {
                 const worldPath = scratch();
                 const first = harness(worldPath);

@@ -6,6 +6,7 @@ import path from 'node:path';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
 import { Database, WriteBatch } from '@jsprismarine/leveldb';
+import type { DatabaseOptions } from '@jsprismarine/leveldb';
 import { blockSchemas } from '@jsprismarine/minecraft';
 
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
@@ -253,8 +254,21 @@ export default class LevelDB extends BaseProvider {
     public override async enable(): Promise<void> {
         this.warnIfFilesystemWorld();
 
-        this.database = await Database.open(path.join(this.getPath(), DATABASE_DIRECTORY));
+        this.database = await Database.open(path.join(this.getPath(), DATABASE_DIRECTORY), this.databaseOptions());
         this.ensureLevelMetadata();
+    }
+
+    /** How the database is opened: damage it skips in a log is reported through the server's logger. */
+    private databaseOptions(): DatabaseOptions {
+        return {
+            onCorruption: ({ file, bytes, reason }) =>
+                this.getServer()
+                    .getLogger()
+                    .warn(
+                        `Skipped ${bytes} damaged bytes of the world's ${file} (${reason}). The writes in them are ` +
+                            'lost, as they are when Minecraft opens this world.'
+                    )
+        };
     }
 
     /**
@@ -437,7 +451,7 @@ export default class LevelDB extends BaseProvider {
             }
         }
 
-        const database = await Database.open(path.join(this.getPath(), DATABASE_DIRECTORY));
+        const database = await Database.open(path.join(this.getPath(), DATABASE_DIRECTORY), this.databaseOptions());
         try {
             const batch = new WriteBatch();
             for (const key of database.keys()) batch.del(key);
