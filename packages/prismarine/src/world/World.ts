@@ -3824,7 +3824,10 @@ export class World implements Service {
             // them (ADR 0018).
             // A chunk whose fluid is still due to move is written for its ticks alone.
             const ticking = saveContext.pendingFluidTicks?.byChunk.has(index) === true;
-            if (!this.chunkRetained(chunk) && (chunk.getHasChanged() || entities.length > 0 || ticking)) {
+            if (
+                !this.chunkRetained(chunk) &&
+                (chunk.getHasChanged() || entities.length > 0 || ticking || chunk.hasStoredFluidTicks())
+            ) {
                 await this.getProvider().writeChunk(chunk, saveContext);
             }
         } catch (error: unknown) {
@@ -4397,7 +4400,8 @@ export class World implements Service {
             if (
                 !chunk.getHasChanged() &&
                 !saveContext.entitiesByChunk.has(index) &&
-                saveContext.pendingFluidTicks?.byChunk.has(index) !== true
+                saveContext.pendingFluidTicks?.byChunk.has(index) !== true &&
+                !chunk.hasStoredFluidTicks()
             )
                 continue;
             try {

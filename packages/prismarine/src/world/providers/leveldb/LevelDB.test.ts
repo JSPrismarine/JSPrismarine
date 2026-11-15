@@ -969,6 +969,8 @@ describe('world', () => {
                 expect(restored.takePendingFluidTicks()).toEqual([{ x: 2, y: 70, z: 3, delay: 5 }]);
                 // Changed, so the next save writes the record again once the tick has run.
                 expect(restored.getHasChanged()).toBe(true);
+                // And it stays due a save while the record holds ticks, even if a save clears the change.
+                expect(restored.hasStoredFluidTicks()).toBe(true);
 
                 // Saved again with nothing scheduled, the record goes.
                 await reopened.provider.writeChunk(
@@ -978,6 +980,7 @@ describe('world', () => {
                         byChunk: new Map()
                     })
                 );
+                expect(restored.hasStoredFluidTicks()).toBe(false);
                 await reopened.provider.disable();
                 const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
                 const recordKey = encodeChunkKey({
