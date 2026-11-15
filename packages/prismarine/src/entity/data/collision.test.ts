@@ -210,6 +210,25 @@ describe('stepUp', () => {
         expect(walk(carpetUnder(2)).x).toBeCloseTo(0.9, 9);
     });
 
+    it('steps from a slab onto a full block with just enough head room', () => {
+        // Feet on a slab at 0.5 and a 1.95-block body leave 0.55 of head room under stone at
+        // y 3, enough for the half-block rise but less than the last fifth-block sample needs.
+        const blocks: BodyBlocks = {
+            collisionAt: ({ x, y, z }) =>
+                y === 3 || (x === 1 && y === 0 && z === 0)
+                    ? FULL_CUBE_SHAPE
+                    : x === 0 && y === 0 && z === 0
+                      ? SLAB
+                      : [],
+            blockAt: () => undefined
+        };
+        const tall = { width: 0.6, height: 1.95 };
+        const canOccupy = (at: { x: number; y: number; z: number }) => bodyCanOccupy(at, tall, blocks);
+        const from = { x: 0.6, y: 0.5, z: 0.5 };
+
+        expect(stepUp(from, { x: 0.9, y: 0.5, z: 0.5 }, from, 0.6, canOccupy).x).toBeCloseTo(0.9, 9);
+    });
+
     it('stays put against a full block', () => {
         const wall: BodyBlocks = {
             collisionAt: ({ x, y, z }) => (x === 1 && y === 0 && z === 0 ? FULL_CUBE_SHAPE : []),

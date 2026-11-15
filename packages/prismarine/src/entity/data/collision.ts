@@ -232,6 +232,31 @@ export const moveOnAxis = (
     return moved;
 };
 
+/** How many halvings {@link riseWithin} takes to find the head room, to within a millionth of a block. */
+const CLEARANCE_HALVINGS = 20;
+
+/**
+ * Rises toward `target` as far as the head room allows: {@link moveOnAxis}'s steps, then a
+ * bisection of the step that would hit the ceiling, so the rise ends within a millionth of a
+ * block of it rather than up to a fifth of a block short.
+ */
+const riseWithin = (
+    from: EntityPosition,
+    target: number,
+    canOccupy: (position: EntityPosition) => boolean
+): EntityPosition => {
+    const stepped = moveOnAxis(from, target, 'y', canOccupy);
+    if (stepped.y >= target) return stepped;
+    let free = stepped.y;
+    let hit = Math.min(target, free + MAX_COLLISION_STEP);
+    for (let halving = 0; halving < CLEARANCE_HALVINGS; halving += 1) {
+        const middle = (free + hit) / 2;
+        if (canOccupy({ ...from, y: middle })) free = middle;
+        else hit = middle;
+    }
+    return { ...from, y: free };
+};
+
 /**
  * Java's `Entity.collide` step: when a ledge stops a walker, the same horizontal move is tried with
  * the feet raised as high as `maxStep` and the head room allow, and kept when it goes further.
@@ -249,7 +274,7 @@ export const stepUp = (
     maxStep: number,
     canOccupy: (position: EntityPosition) => boolean
 ): EntityPosition => {
-    const raised = moveOnAxis(from, from.y + maxStep, 'y', canOccupy);
+    const raised = riseWithin(from, from.y + maxStep, canOccupy);
     if (raised.y === from.y) return blocked;
     let stepped = moveOnAxis(raised, proposed.x, 'x', canOccupy);
     stepped = moveOnAxis(stepped, proposed.z, 'z', canOccupy);
