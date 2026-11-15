@@ -998,19 +998,26 @@ export class GenerationRegion {
             const index = this.indexOf(removal.x, removal.y, removal.z);
             if (index !== -1 && !kept.has(index)) this.blockEntities.delete(index);
         }
+        // A patch writes a few distinct blocks thousands of times, so each is resolved to its
+        // palette slot, and checked for ground cover, once per patch rather than once per write.
+        const resolved = new Map<RegionBlock, { readonly slot: number; readonly groundCover: boolean }>();
         forEachBlockWrite(patch.blocks, (x, y, z, block) => {
             if (isKept(x, y, z)) return;
+            const index = this.indexOf(x, y, z);
+            if (index === -1) return;
+            let facts = resolved.get(block);
+            if (facts === undefined) {
+                facts =
+                    block.bedrock === undefined
+                        ? { slot: this.paletteSlot(block.java), groundCover: this.isGroundCover(block.java) }
+                        : { slot: this.bedrockSlot(block.bedrock), groundCover: false };
+                resolved.set(block, facts);
+            }
             // A patch was drawn against terrain that did not hold the blocks another chunk's
             // trees put here, so its grass and leaf litter believe this spot is air. Java's
             // ground cover only goes where the block is replaceable; it must not erase a trunk.
-            if (
-                block.bedrock === undefined &&
-                this.isGroundCover(block.java) &&
-                !this.isOpenSpace(this.stateAt(x, y, z))
-            )
-                return;
-            if (block.bedrock === undefined) this.write(x, y, z, block.java);
-            else this.writeBedrock(x, y, z, block.bedrock);
+            if (facts.groundCover && !this.isOpenSpace(this.stateAt(x, y, z))) return;
+            this.writeResolvedSlot(index, x, y, z, facts.slot);
         });
         for (const blockEntity of patch.blockEntities) {
             if (isKept(blockEntity.x, blockEntity.y, blockEntity.z)) continue;
