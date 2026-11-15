@@ -15,7 +15,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
  * Mobs do not need it: the server moves them, and `MoveActorAbsolutePacket` already says where
  * they ended up.
  *
- * Wire order, identical at protocols 2193 and 2225, with the docs' field names:
+ * Wire order, with the docs' field names:
  * `Target Runtime ID` (varuint64), `Motion` (three little-endian floats), `Tick` (a
  * `PlayerInputTick`, a varuint64).
  *

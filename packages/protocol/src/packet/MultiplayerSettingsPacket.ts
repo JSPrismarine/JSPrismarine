@@ -17,7 +17,7 @@ export enum MultiplayerSettingsPacketType {
  * code, and the server sends the same packet back to the players in the session. The base
  * game has no screen that produces it.
  *
- * Wire order at protocols 2193 and 2225, unchanged between them: PacketType as a ZigZag varint32 (see
+ * Wire order: PacketType as a ZigZag varint32 (see
  * {@link MultiplayerSettingsPacketType}).
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/multiplayer-settings-packet/
  */

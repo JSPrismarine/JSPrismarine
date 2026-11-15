@@ -2,7 +2,7 @@
  * `ServerboundDataStorePacket`: one data store update from the client.
  *
  * The payload is a single `Update`, a `Data Store Update`. Strings are a varuint32 byte length
- * followed by UTF-8. The layout is the same at protocols 2193 and 2225.
+ * followed by UTF-8.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/serverbound-data-store-packet/
  */
 import { definePacket } from '../define';

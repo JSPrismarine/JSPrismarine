@@ -9,7 +9,7 @@
  * exists only for a type some packet field is declared with, and this one travels as
  * a plain integer. The members below come from the last `enums.html` Mojang
  * published, for Minecraft 1.26.40, and every protocol this package generates
- * reads them unchanged: 2193, 2225.
+ * reads them unchanged.
  *
  * Treat them as approximate above protocol 2168. A member added since then is
  * missing, and a member removed since then is still here. No source this package will

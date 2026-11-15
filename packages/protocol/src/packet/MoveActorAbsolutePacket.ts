@@ -7,7 +7,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
 /**
  * Where an entity now is, as the server tells a client.
  *
- * The payload is one `MoveActorAbsoluteData`, the same at protocols 2193 and 2225. Wire order, with
+ * The payload is one `MoveActorAbsoluteData`. Wire order, with
  * the docs' field names: `ActorRuntimeID` (varuint64), `Header` (uint8, the flags below), `Position` (three
  * little-endian floats), then `Rotation X`, `Rotation Y` and `Rotation Y Head`, each one byte
  * holding the angle as a 256th of a turn.

@@ -6,7 +6,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
 /**
  * The client's periodic report of which chunk blobs it has and which it is missing.
  *
- * Wire layout, identical at protocols 2193 and 2225: Missing Ids as a varuint32 count of uint64 LE
+ * Wire layout: Missing Ids as a varuint32 count of uint64 LE
  * hashes, then Found Ids in the same form. Only a client that offered a blob cache sends it, and
  * only once the server has marked a chunk packet as cached.
  *

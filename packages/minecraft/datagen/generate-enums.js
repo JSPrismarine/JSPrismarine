@@ -414,7 +414,6 @@ const unversionedEnums = (reads) => {
 /** The header lines that say an enum is not versioned, and what is known to be wrong with it. */
 const unversionedNotes = (name, reads) => {
     const { source } = reads[0].version.config;
-    const protocols = reads.map((read) => read.version.protocol);
     const gap = manifest.legacy.knownGaps?.[name];
 
     return [
@@ -423,7 +422,7 @@ const unversionedNotes = (name, reads) => {
             'exists only for a type some packet field is declared with, and this one travels as',
             `a plain integer. The members below come from the last \`${path.basename(source.path)}\` Mojang`,
             `published, for Minecraft ${source.minecraftVersion}, and every protocol this package generates`,
-            `reads them unchanged: ${protocols.join(', ')}.`,
+            'reads them unchanged.',
             '',
             `Treat them as approximate above protocol ${source.networkProtocolVersion}. A member added since then is`,
             'missing, and a member removed since then is still here. No source this package will',

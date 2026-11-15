@@ -35,7 +35,7 @@ export interface PlayStatusData {
  * `SetLocalPlayerAsInitialized`, so this packet appears twice in one join for two unrelated
  * reasons.
  *
- * Layout after the header, identical at protocols 2193 and 2225: `Status`, a big-endian int32
+ * Layout after the header: `Status`, a big-endian int32
  * holding a `PlayStatus` enum value. Nothing else.
  *
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/play-status-packet/

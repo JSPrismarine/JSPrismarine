@@ -2,7 +2,7 @@
  * `CameraAimAssistActorPriorityPacket`: overrides aim assist priorities for individual actors.
  *
  * The payload is one `Camera Aim-Assist Actor Priority List`: a varuint32 count followed by one
- * `AimAssistActorPriorityData` per entry, each four little-endian int32s. The layout is the same at protocols 2193 and 2225.
+ * `AimAssistActorPriorityData` per entry, each four little-endian int32s.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-aim-assist-actor-priority-packet/
  */
 import { definePacket } from '../define';

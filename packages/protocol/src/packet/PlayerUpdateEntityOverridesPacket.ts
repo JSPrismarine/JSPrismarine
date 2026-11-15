@@ -28,7 +28,7 @@ export type { EntityOverrideUpdate, PlayerUpdateEntityOverrides };
  *
  * Mojang's notes for 2193 say the packet moved to Cereal and its wire format is not
  * compatible with earlier protocols: the value is now part of the alternative's schema
- * instead of a conditional after a one byte type. The layout is the same at protocols 2193 and 2225.
+ * instead of a conditional after a one byte type.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/player-update-entity-overrides-packet/
  */
 export default class PlayerUpdateEntityOverridesPacket extends NetworkPacket<PlayerUpdateEntityOverrides> {

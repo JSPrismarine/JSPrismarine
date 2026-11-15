@@ -30,7 +30,7 @@ export interface SimulationTypeData {
  * Switches the client's simulation type for toolbox mode. Mojang's docs mark it as not yet
  * supported, so a vanilla client ignores it.
  *
- * Layout after the header, identical at protocols 2193 and 2225: `Sim Type`, one byte holding a
+ * Layout after the header: `Sim Type`, one byte holding a
  * {@link SimulationType} value. Nothing else.
  *
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/simulation-type-packet/

@@ -2,7 +2,7 @@
  * `CameraAimAssistPacket`: turns aim assist on or off for the client's camera, naming the preset
  * and the targeting volume to use.
  *
- * The layout is the same at protocols 2193 and 2225. The payload is the preset id, the view
+ * The payload is the preset id, the view
  * angle, the distance, the target mode and action as one byte each, and the debug render flag,
  * in the order on Mojang's packet page.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/camera-aim-assist-packet/}

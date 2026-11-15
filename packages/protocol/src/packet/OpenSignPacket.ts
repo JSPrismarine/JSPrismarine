@@ -14,8 +14,7 @@ export type OpenSign = OpenSignPayload;
  *
  * Protocol 2193 layout, in wire order: `Pos` as a block position (three ZigZag varint32),
  * then `Is Front Side` as one byte. The server sends it after a player interacts with a sign
- * they may edit; the client answers with a `BlockActorData` carrying the new text. The layout is
- * identical at protocol 2225.
+ * they may edit; the client answers with a `BlockActorData` carrying the new text.
  *
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/open-sign-packet/
  */

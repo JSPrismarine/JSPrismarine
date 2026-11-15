@@ -38,7 +38,7 @@ export enum ItemUseMethod {
  * Bound to the client. The client starts the animation itself and keeps playing it until this
  * packet says the use is over.
  *
- * Wire order at protocols 2193 and 2225, which lay it out the same: Item Id as an int16 in little-endian byte order, then Item Use
+ * Wire order: Item Id as an int16 in little-endian byte order, then Item Use
  * Method as an int32 in little-endian byte order (see {@link ItemUseMethod}).
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/completed-using-item-packet/
  */
