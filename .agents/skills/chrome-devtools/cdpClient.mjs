@@ -107,6 +107,12 @@ export const openSession = async (endpoint) => {
 
     const send = (method, params = {}) =>
         new Promise((resolve, reject) => {
+            // A closed socket drops what is sent without an error, and its close handler has
+            // already rejected everything pending, so the request would never settle.
+            if (socket.readyState !== WebSocket.OPEN) {
+                reject(new Error(`${method}: the inspector WebSocket is closed`));
+                return;
+            }
             const id = nextId++;
             pending.set(id, { method, resolve, reject });
             socket.send(JSON.stringify({ id, method, params }));
