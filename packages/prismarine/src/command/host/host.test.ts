@@ -849,6 +849,13 @@ describe('the server command host', () => {
             expect(player.getInventory().getEntry(2)?.getCount()).toBe(4);
         });
 
+        it('gives the stack /replaceitem writes the count its slot holds', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await fixture.run('replaceitem entity @a slot.hotbar 0 minecraft:stone 2');
+            expect(player.getInventory().getItem(0).getAmount()).toBe(2);
+        });
+
         it('leaves an occupied slot alone in keep mode', async () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
             await fixture.run('replaceitem entity @a slot.hotbar 0 minecraft:stone 1');
