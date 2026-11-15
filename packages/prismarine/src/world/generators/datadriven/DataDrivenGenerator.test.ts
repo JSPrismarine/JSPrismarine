@@ -239,6 +239,33 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
     );
 
     it(
+        'hands a chunk the fluid Java ticks after generating it, all of it on fluid in that chunk',
+        async () => {
+            // Aquifer water the caves cut through: the fill and the carvers mark some of it.
+            const carved = new DataDrivenGenerator({ registries, decorate: false });
+            const seed = 2934897987023934859n;
+
+            let ticks = 0;
+            for (const [cx, cz] of [
+                [100, -60],
+                [101, -60],
+                [100, -59],
+                [101, -59]
+            ] as const) {
+                const chunk = await carved.generateChunk(cx, cz, seed);
+                for (const tick of chunk.getPendingFluidTicks()) {
+                    expect([tick.x >> 4, tick.z >> 4]).toEqual([cx, cz]);
+                    expect(tick.delay).toBe(0);
+                    expect(chunk.getBlock(tick.x & 15, tick.y, tick.z & 15).name).toMatch(/water|lava/);
+                    ticks++;
+                }
+            }
+            expect(ticks).toBeGreaterThan(0);
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
         'carves caves into the terrain',
         async () => {
             const registries = loadJavaWorldgenRegistries(sources!);
