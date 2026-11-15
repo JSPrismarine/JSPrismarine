@@ -3614,6 +3614,32 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(live.runtime.byId(fallingBlock.id)).toBeUndefined();
             });
 
+            it('sinks a block falling into water to the floor, where it stays', async () => {
+                useVanillaContent();
+
+                const chunk = world.getLoadedChunk(0, 0);
+                if (chunk === null) throw new Error('the falling-block test chunk was not loaded');
+                chunk.setBlockRuntimeId(2, FLOOR_Y, 2, idOf('minecraft:water'));
+                chunk.setBlockRuntimeId(2, FLOOR_Y + 1, 2, idOf('minecraft:gravel'));
+
+                const physics = new BlockPhysics(world);
+                await physics.update(2, FLOOR_Y + 1, 2, 0);
+                for (let tick = 1; tick <= 40; tick += 1) await live.tick(tick);
+
+                // Java's falling block treats water as free space, the same as the physics that
+                // let it fall, so it lands on the floor rather than back on the surface it left.
+                expect((await world.getBlockState(2, FLOOR_Y, 2)).name).toBe('minecraft:gravel');
+                const falling = () =>
+                    live.runtime
+                        .entities()
+                        .toArray()
+                        .filter((entity) => entity.identifier === 'minecraft:falling_block');
+                expect(falling()).toEqual([]);
+
+                await physics.update(2, FLOOR_Y, 2, 41);
+                expect(falling()).toEqual([]);
+            });
+
             it('migrates a serialized legacy TNT with its saved fuse into the runtime', () => {
                 useVanillaContent();
 

@@ -170,6 +170,7 @@ import {
 import type { StateEntry } from '../../world/changelog/ChangeEntry';
 import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
 import { isPlainRecord, plainOf } from '../../world/changelog/PlainData';
+import { fallsThrough } from '../../world/physics/BlockRules';
 import type { EntityItemInteraction } from './itemInteraction';
 import { JAVA_POI_TYPES, PointsOfInterest } from './poi';
 import { RideIndex } from './riding';
@@ -5118,13 +5119,14 @@ export class EntityRuntime implements EntityScene {
         const occupying = this.world.blocks.get(target);
         if (occupying === undefined) return;
 
-        if (!state.fallThrough.has(occupying.identifier)) {
+        const passes = (identifier: string): boolean => state.fallThrough.has(identifier) || fallsThrough(identifier);
+        if (!passes(occupying.identifier)) {
             const landing = { ...target, y: target.y + 1 };
             const resting = this.world.blocks.get(landing);
             if (resting === undefined) return;
 
             this.remove(entity.id, 'landed');
-            if (state.fallThrough.has(resting.identifier)) {
+            if (passes(resting.identifier)) {
                 if (resting.identifier !== AIR) this.world.blocks.destroy?.(landing);
                 this.world.blocks.set(landing, { identifier: blockName, states: {} }, true);
             } else {

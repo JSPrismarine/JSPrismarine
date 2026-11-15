@@ -4,6 +4,7 @@ import { chat } from './scenarios/chat.mts';
 import { spectatorPickup } from './scenarios/spectator-pickup.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
 import { itemDropPickup } from './scenarios/item-drop-pickup.mts';
+import { fallingBlockWater } from './scenarios/falling-block-water.mts';
 import { farmland } from './scenarios/farmland.mts';
 import { furnace } from './scenarios/furnace.mts';
 import { villagerTrade } from './scenarios/villager-trade.mts';
@@ -99,6 +100,7 @@ export const suites: ScenarioSuite[] = [
             enderDragon,
             dimensionsScenario,
             spawnpointRespawn,
+            fallingBlockWater,
             // Last, because it reshapes the terrain it runs on - tilled ground, planted wheat
             // and a water source stay behind - and nothing should have to play on top of that.
             farmland
