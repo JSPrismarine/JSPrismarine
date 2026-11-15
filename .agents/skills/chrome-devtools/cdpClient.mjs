@@ -83,7 +83,14 @@ export const openSession = async (endpoint) => {
             const { sessionId, workerInfo } = message.params;
             workers.set(sessionId, workerInfo.title || workerInfo.url || sessionId);
         } else if (message.method === 'NodeWorker.detachedFromWorker') {
-            workers.delete(message.params.sessionId);
+            const { sessionId } = message.params;
+            workers.delete(sessionId);
+            // A worker that went away answers nothing more, so what was asked of it fails now.
+            for (const [id, request] of workerPending) {
+                if (request.sessionId !== sessionId) continue;
+                workerPending.delete(id);
+                request.reject(new Error(`${request.method}: the worker session ${sessionId} detached`));
+            }
         } else if (message.method === 'NodeWorker.receivedMessageFromWorker') {
             const inner = JSON.parse(message.params.message);
             if (typeof inner.id === 'number') settle(workerPending, inner);
@@ -120,8 +127,13 @@ export const openSession = async (endpoint) => {
 
     const sendToWorker = (sessionId, method, params = {}) =>
         new Promise((resolve, reject) => {
+            // The inspector accepts a message for a session that is gone and never answers it.
+            if (!workers.has(sessionId)) {
+                reject(new Error(`${method}: no worker session ${sessionId} is attached`));
+                return;
+            }
             const id = nextId++;
-            workerPending.set(id, { method, resolve, reject });
+            workerPending.set(id, { method, sessionId, resolve, reject });
             send('NodeWorker.sendMessageToWorker', {
                 sessionId,
                 message: JSON.stringify({ id, method, params })
