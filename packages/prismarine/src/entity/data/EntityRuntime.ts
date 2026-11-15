@@ -77,8 +77,7 @@ import type {
     GoalItemCraft,
     GoalMob,
     GoalPickupOptions,
-    GoalWorld,
-    NavigationView
+    GoalWorld
 } from '@jsprismarine/entity-goals';
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
@@ -119,8 +118,10 @@ import type { EntityFacts } from './facts';
 import {
     bodyCanOccupy,
     bodyIntersectsMedia,
+    floorUnder,
     hasLineOfSight as hasBlockLineOfSight,
     isSupported,
+    landingY,
     moveOnAxis
 } from './collision';
 import { actuatorOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
@@ -136,7 +137,7 @@ import { itemDropOf } from '../../inventory/persistence';
 import { maxStackSizeOf, resistsDamageOf } from '../../item/Item';
 import { navigationViewOf } from './navigationView';
 import { DEFAULT_BLOCK_FRICTION, DRAG } from './travel';
-import type { CachedNavigationView } from './navigationView';
+import type { CachedNavigationView, EntityBlockView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
 import { applyDataEntityRecord, dataEntityRecordFrom, dataEntityRecordOf } from './persistence';
 import { EntityStore } from './EntityStore';
@@ -726,11 +727,7 @@ export class EntityRuntime implements EntityScene {
             spawn: (identifier, at, options) => this.spawn(identifier, at, options),
             byId: (id) => this.store.get(id),
             itemsWithin: (x, z, radius) => this.index.itemsWithin(x, z, radius),
-            solidAt: (position) => {
-                const navigation = this.navigation();
-                if (navigation.isSolid(position)) return true;
-                return navigation.isPassable(position) ? false : undefined;
-            },
+            collisionAt: (position) => this.navigation().collisionAt(position),
             blockAt: (position) => this.navigation().blockAt(position),
             players: () => this.host.players(),
             minY: () => this.world.level.minY,
@@ -1976,7 +1973,7 @@ export class EntityRuntime implements EntityScene {
      * block reads a path search repeats thousands of times per tick while
      * reading the current day and sky state for sunlight-sensitive goals.
      */
-    public navigation(): NavigationView {
+    public navigation(): EntityBlockView {
         const blockRevision = this.world.blocks.blockRevision?.();
         if (
             this.navigationView !== undefined &&
@@ -4823,7 +4820,16 @@ export class EntityRuntime implements EntityScene {
 
         if (hitVerticalCollision) {
             if (fallingY <= 0) {
-                const landed = { ...nextVertical, y: Math.floor(nextVertical.y + MOVEMENT_EPSILON) };
+                const landed = {
+                    ...nextVertical,
+                    y: landingY(
+                        nextVertical,
+                        entity.facts.box,
+                        navigation,
+                        nextVertical.y - nextY,
+                        componentFacts.canStandOnPowderSnow
+                    )
+                };
                 body.position = landed;
                 if (bounciness > 0) {
                     body.velocity = { ...horizontalVelocity, y: -fallingY * bounciness };
@@ -5250,7 +5256,10 @@ export class EntityRuntime implements EntityScene {
         };
 
         if (hitVerticalCollision && fallingY <= 0) {
-            const landed = { ...nextVertical, y: Math.floor(nextVertical.y + MOVEMENT_EPSILON) };
+            const landed = {
+                ...nextVertical,
+                y: landingY(nextVertical, box, navigation, nextVertical.y - nextY, componentFacts.canStandOnPowderSnow)
+            };
             body.position = landed;
             if (bounciness > 0) {
                 body.velocity = { ...horizontalVelocity, y: -nextVelocity.y * bounciness };
@@ -5293,6 +5302,7 @@ export class EntityRuntime implements EntityScene {
             canJump: profile.canJump,
             stepHeight: profile.stepHeight,
             groundFriction: this.groundFrictionAt(entity.position),
+            floorAt: (waypoint) => floorUnder(waypoint, navigation),
             ...(typeof shortest === 'number' && typeof longest === 'number'
                 ? {
                       nextHopDelay: () =>

@@ -37,6 +37,12 @@ const ARRIVAL_RADIUS = 0.25;
 /** How many ticks of no progress make a walk stuck, which is what a brain reads. */
 const STUCK_TICKS = 100;
 
+/**
+ * How high a walker's feet rise over a ledge without jumping, Java's default `step_height`
+ * attribute: a slab, a carpet or a two-layer snow cover is walked onto, a full block is jumped.
+ */
+const MAX_UP_STEP = 0.6;
+
 /** Below this many blocks per tick an impulse has spent itself, so the body stops. */
 const IMPULSE_FLOOR = 0.003;
 
@@ -52,6 +58,11 @@ interface MobBodyStepOptions {
     readonly canOccupy: (position: EntityPosition) => boolean;
     /** The Java friction of the block under the entity, which a walk on land accelerates against. */
     readonly groundFriction: number;
+    /**
+     * Where a body standing at a waypoint has its feet. A path waypoint sits on top of the cell
+     * below it, and a slab or a carpet there holds the feet lower than that.
+     */
+    readonly floorAt?: (waypoint: EntityPosition) => number;
     /**
      * Draws how many ticks the entity waits on the ground before its next hop, for a mob that
      * moves by hopping, as `minecraft:movement.jump` does. Absent for a mob that walks.
@@ -842,6 +853,25 @@ export class MobBody {
     }
 
     /**
+     * Java's `Entity.collide` step: when a ledge stops a walker, the same move is tried with the
+     * feet raised by up to {@link MAX_UP_STEP}, and kept when it goes further. Gravity then settles
+     * the feet onto the ledge's real top.
+     */
+    private stepUp(
+        from: EntityPosition,
+        proposed: EntityPosition,
+        blocked: EntityPosition,
+        canOccupy: (position: EntityPosition) => boolean
+    ): EntityPosition {
+        const raised = { ...from, y: from.y + MAX_UP_STEP };
+        if (!canOccupy(raised)) return blocked;
+        let stepped = moveOnAxis(raised, proposed.x, 'x', canOccupy);
+        stepped = moveOnAxis(stepped, proposed.z, 'z', canOccupy);
+        const reached = (at: EntityPosition) => Math.hypot(at.x - from.x, at.z - from.z);
+        return reached(stepped) > reached(blocked) + 1e-9 ? stepped : blocked;
+    }
+
+    /**
      * Turns the body toward a position on the horizontal plane and leaves the pitch alone, as
      * Java's `MoveControl` turns a walker: where the head points is the look control's business.
      */
@@ -864,12 +894,15 @@ export class MobBody {
         const destination = this.destination;
         if (destination === undefined) return;
 
+        // A rise a step covers is walked up rather than jumped, as Java's `MoveControl` jumps only
+        // above the entity's step height.
+        const floor = options?.floorAt?.(destination) ?? destination.y;
         if (
             options !== undefined &&
             !options.allowVertical &&
             options.canJump &&
-            destination.y > this.position.y + ARRIVAL_RADIUS &&
-            destination.y <= this.position.y + options.stepHeight + ARRIVAL_RADIUS &&
+            floor > this.position.y + MAX_UP_STEP &&
+            floor <= this.position.y + options.stepHeight + ARRIVAL_RADIUS &&
             !this.airborne
         )
             this.jump();
@@ -947,8 +980,11 @@ export class MobBody {
                 resolved = moveOnAxis(resolved, proposed.y, 'y', options.canOccupy);
             }
 
+            const from = resolved;
             resolved = moveOnAxis(resolved, proposed.x, 'x', options.canOccupy);
             resolved = moveOnAxis(resolved, proposed.z, 'z', options.canOccupy);
+            if (!options.allowVertical && !this.airborne && (resolved.x !== proposed.x || resolved.z !== proposed.z))
+                resolved = this.stepUp(from, proposed, resolved, options.canOccupy);
 
             this.position = resolved;
         }
