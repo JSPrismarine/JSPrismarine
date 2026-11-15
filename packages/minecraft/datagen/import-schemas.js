@@ -145,7 +145,8 @@ const main = async () => {
 const importVersion = async ({ config, snapshotDir }) => {
     const { schemas } = config;
     const release = unzip(await readAsset(snapshotDir, schemas));
-    const valued = unzip(await readAsset(snapshotDir, schemas.values));
+    // `values` names only the release and asset; it lives in the same repository.
+    const valued = unzip(await readAsset(snapshotDir, { repo: schemas.repo, ...schemas.values }));
 
     const enums = {};
     const missing = [];
