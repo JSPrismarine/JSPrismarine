@@ -214,6 +214,16 @@ export class TickList {
     }
 
     /**
+     * Whether any tick is queued for a position inside one chunk, without copying them.
+     *
+     * @param chunkX - The chunk's x, in chunks.
+     * @param chunkZ - The chunk's z, in chunks.
+     */
+    hasTicksInChunk(chunkX: number, chunkZ: number): boolean {
+        return (this.byChunk.get(`${chunkX},${chunkZ}`)?.size ?? 0) > 0;
+    }
+
+    /**
      * Copies the ticks queued for positions inside one chunk, in no particular order.
      *
      * @param chunkX - The chunk's x, in chunks.

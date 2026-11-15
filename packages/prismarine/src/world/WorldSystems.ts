@@ -185,6 +185,9 @@ export class WorldSystems {
 
     private readonly randomPositions = new BlockRandomPositions();
 
+    /** True while {@link tick} runs; see {@link isRunning}. */
+    private running = false;
+
     /** The active light columns, separate from chunks which are merely loaded in memory. */
     private readonly litChunks = new Map<string, { readonly x: number; readonly z: number }>();
 
@@ -322,6 +325,25 @@ export class WorldSystems {
      * chunk it reads on demand.
      */
     public tick(currentTick: number): WorldSystemsReport {
+        const outer = this.running;
+        this.running = true;
+        try {
+            return this.runTick(currentTick);
+        } finally {
+            this.running = outer;
+        }
+    }
+
+    /**
+     * Whether {@link tick} is running, so the world can tell its own systems' writes from
+     * somebody else's.
+     */
+    public isRunning(): boolean {
+        return this.running === true;
+    }
+
+    /** The body of {@link tick}. */
+    private runTick(currentTick: number): WorldSystemsReport {
         this.prepareLighting();
 
         const scheduled = this.ticks.tick(
