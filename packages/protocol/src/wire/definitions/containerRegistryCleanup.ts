@@ -4,7 +4,7 @@
  * The payload is a varuint32 count followed by one `FullContainerName` per container the
  * server's registry dropped.
  *
- * The layout is the same at protocols 2193 and 2225. The 1.26.50 page lists `Dynamic ID` as a
+ * The 1.26.50 page lists `Dynamic ID` as a
  * plain uint32 and the 1.26.60 page lists it as an optional with a changelog row saying it "is
  * now optional"; Mojang's note for that build calls the optionality rows a docs correction
  * (`docs/research/protocol-2225-delta.md`), so the presence byte is written at both versions.

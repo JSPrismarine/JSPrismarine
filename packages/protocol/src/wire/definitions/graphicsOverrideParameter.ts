@@ -2,7 +2,7 @@
  * `GraphicsOverrideParameterPacket`: a rendering parameter a server script overrides for a
  * biome, optionally for one player.
  *
- * The layout is the same at protocols 2193 and 2225, in the order on Mojang's packet page.
+ * The layout follows the order on Mojang's packet page.
  * `Float Value` and `Vec3 Value` carry a presence byte at both: the 1.26.50 page prints them
  * plain, but the 1.26.60 page marks them optional and its changelog says they "are now
  * optional", which Mojang's note for that build gives as a documentation correction, not a

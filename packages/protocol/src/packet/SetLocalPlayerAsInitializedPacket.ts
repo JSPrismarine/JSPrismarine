@@ -14,7 +14,7 @@ export interface SetLocalPlayerAsInitialized {
 /**
  * The client announcing it has finished loading and is standing in the world.
  *
- * Layout at protocol 2193 and 2225 (unchanged between them), in wire order: `Player ID` as an `ActorRuntimeID`, which is one
+ * Layout, in wire order: `Player ID` as an `ActorRuntimeID`, which is one
  * varuint64. Nothing else follows it.
  *
  * The last step of a join: until this arrives the server has a player nobody can see, and

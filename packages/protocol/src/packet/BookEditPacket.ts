@@ -15,7 +15,7 @@ export type BookEdit = BookEditPayload;
 /**
  * Edits a book and quill held by the player.
  *
- * Layout, identical at protocols 2193 and 2225: `Book Slot` as a ZigZag varint32, then `Operation` as a varuint32
+ * Layout: `Book Slot` as a ZigZag varint32, then `Operation` as a varuint32
  * selector followed by the selected fields. Page indices are ZigZag varint32 values; text
  * fields are varuint32-length-prefixed UTF-8 strings.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/book-edit-packet/

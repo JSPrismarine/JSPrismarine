@@ -8,7 +8,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
 /**
  * An operator asking the server to change another player's permission level.
  *
- * Wire layout at protocols 2193 and 2225 (unchanged between them): Target Player Id's Raw ID as
+ * Wire layout: Target Player Id's Raw ID as
  * an int64 LE (an actor unique id written fixed width, not as a varint), Player Permission Level
  * as a ZigZag varint32, then Custom Permission Flags as a uint16 LE bit set that only matters at
  * the `Custom` level.

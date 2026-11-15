@@ -2,7 +2,7 @@
  * `UpdateClientOptionsPacket`: a change to one of the client settings it first reported in the
  * login connection request.
  *
- * Docs id 323, the same at protocol 2193 and 2225. The 1.26.50 page draws both fields as plain values and its
+ * Docs id 323. The 1.26.50 page draws both fields as plain values and its
  * 1.26.60-preview.21 changelog then marks them optional, which `docs/research/protocol-2225-delta.md` reads as the
  * documentation being corrected. The presence bytes are not new:
  * gophertunnel and PocketMine read them at protocol 2193, and the client has written them since

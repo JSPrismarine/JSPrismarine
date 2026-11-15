@@ -15,7 +15,7 @@ export type CorrectPlayerMovePrediction = CorrectPlayerMovePredictionPayload;
 /**
  * Rewinds a client to a server-authoritative movement state and replays its later inputs.
  *
- * Layout at protocols 2193 and 2225 (identical): `PredictionType` (uint8), `Pos` and `Pos Delta` (three little-endian
+ * Layout: `PredictionType` (uint8), `Pos` and `Pos Delta` (three little-endian
  * floats each), `Rotation` (two little-endian floats), optional `Vehicle Angular Velocity`
  * (presence boolean and float), `On Ground` (boolean), and `Tick` (varuint64). Rotation and
  * the angular velocity presence byte are present for player corrections too.

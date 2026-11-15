@@ -2,8 +2,7 @@
  * `LegacyTelemetryEventPacket`: hands a telemetry event to the client so the client can forward
  * it to Mojang's eventing service.
  *
- * Field names and order follow the docs' packet page (docs id 65), which lays the packet out the
- * same at protocols 2193 and 2225. `Event Data` is a `oneOf`: a `varuint32` alternative number,
+ * Field names and order follow the docs' packet page (docs id 65). `Event Data` is a `oneOf`: a `varuint32` alternative number,
  * then that alternative's own fields.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/legacy-telemetry-event-packet/}
  */

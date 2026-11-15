@@ -2,7 +2,7 @@
  * `PhotoTransferPacket`: a photo taken with the Education Edition camera, moving between the
  * client's photo storage and the server's.
  *
- * Field names and order follow the docs' packet page, identical at protocols 2193 and 2225.
+ * Field names and order follow the docs' packet page.
  * Photo Data is typed a string there, which on the wire is the same varuint32 length prefix
  * followed by the bytes; those bytes are an image file, so the layout keeps them as a `Buffer`.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/photo-transfer-packet/}

@@ -14,7 +14,7 @@ export enum EmoteFlags {
 /**
  * An emote, sent by a client to play one and by the server to show it on another player.
  *
- * Wire layout, the same at protocols 2193 and 2225: Actor Runtime Id as a varuint64, Emote Id as a string (the
+ * Wire layout: Actor Runtime Id as a varuint64, Emote Id as a string (the
  * emote piece UUID), Emote Length Ticks as a varuint32, Xuid and PlatformId as strings, then
  * Flags as a uint8, see {@link EmoteFlags}.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/emote-packet/

@@ -2,7 +2,7 @@
  * `ClientboundDataDrivenUIShowScreenPacket`: tells the client to open a data-driven UI screen.
  *
  * The payload is the screen id, the form id, and an optional data instance id, in the order
- * the docs list them, the same at protocols 2193 and 2225. The client answers with `ServerboundDataDrivenScreenClosedPacket`
+ * the docs list them. The client answers with `ServerboundDataDrivenScreenClosedPacket`
  * once the screen goes away.
  */
 import { definePacket } from '../define';

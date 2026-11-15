@@ -11,7 +11,7 @@ export type { MapClientPixel };
 /**
  * The client asking for a map's data, and offering pixels it rendered itself.
  *
- * Wire layout, identical at protocols 2193 and 2225: Map Unique ID as a ZigZag varint64, then Client Pixels List
+ * Wire layout: Map Unique ID as a ZigZag varint64, then Client Pixels List
  * as a uint32 LE count ("no size compression") of pixel (uint32 LE) and index (uint16 LE)
  * pairs. The layout lives in `wire/definitions/mapInfoRequest.ts`, which this class walks.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/map-info-request-packet/

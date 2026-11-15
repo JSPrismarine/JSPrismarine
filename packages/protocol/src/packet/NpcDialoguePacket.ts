@@ -38,7 +38,7 @@ export interface NpcDialogue {
 /**
  * Opens or closes an NPC dialogue window on the client without the player clicking an NPC.
  *
- * The layout is the same at protocols 2193 and 2225. In wire order: `Npc Id Raw Id` as a little-endian uint64,
+ * In wire order: `Npc Id Raw Id` as a little-endian uint64,
  * `Npc Dialogue Action Type` as a ZigZag varint32 holding an {@link NpcDialogueActionType},
  * then `Dialogue`, `Scene Name`, `Npc Name` and `Action JSON` as strings. Strings are a
  * varuint32 byte length followed by UTF-8.
