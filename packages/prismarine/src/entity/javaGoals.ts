@@ -64,6 +64,28 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
         java: tuned('minecraft:target_nearby_sensor', { inside_range: under(3), outside_range: 7 })
     },
     {
+        // Java `Fox$StalkPreyGoal` walks the fox at 1.5 toward prey farther than 6 blocks
+        // (`distanceToSqr > 36`) and crouches inside them; `Fox.tick` fills `crouchAmount` by 0.2
+        // a tick to 3, so `FoxPounceGoal` leaps 15 ticks later. `Fox.STALKABLE_PREY` is chickens
+        // and rabbits; any other target is left to `FoxMeleeAttackGoal`.
+        entity: 'minecraft:fox',
+        component: 'minecraft:behavior.stalk_and_pounce_on_target',
+        java: (body) => ({
+            'minecraft:behavior.stalk_and_pounce_on_target': {
+                ...body,
+                stalk_speed: 1.5,
+                pounce_max_dist: 6,
+                interest_time: 15 / TICKS_PER_SECOND,
+                filters: {
+                    any_of: [
+                        { test: 'is_family', subject: 'other', value: 'chicken' },
+                        { test: 'is_family', subject: 'other', value: 'rabbit' }
+                    ]
+                }
+            }
+        })
+    },
+    {
         // Java `Fox.PerchAndSearchGoal.canUse` rolls `random.nextFloat() < 0.02`.
         entity: 'minecraft:fox',
         component: 'minecraft:behavior.random_look_around_and_sit',

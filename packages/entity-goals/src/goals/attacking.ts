@@ -1343,12 +1343,18 @@ export interface StalkAndPounceParams {
     readonly stalkSpeed: number;
     /** How long the entity stays stuck before giving up, in ticks. */
     readonly stuckTime: number;
+    /** Which targets it stalks, with the target as `other`; absent stalks any. */
+    readonly filters: Filter | undefined;
 }
 
 /**
  * `minecraft:behavior.stalk_and_pounce_on_target`, which the fox carries. It creeps into range,
  * waits out `interest_time` and leaps, and bites once the leap carries it within
  * `strike_dist`, as Java's `Fox.FoxPounceGoal.tick` does at 2 blocks.
+ *
+ * Like Java's `Fox$StalkPreyGoal` it only starts on a target farther than `pounce_max_dist`,
+ * which it creeps up to; a target already that close is left to the melee goal. `filters`, a
+ * server key, names the prey it stalks, as Java's `STALKABLE_PREY` does.
  */
 export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
     name: 'minecraft:behavior.stalk_and_pounce_on_target',
@@ -1361,7 +1367,8 @@ export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
         pounceMaxDistance: numberAt(body, 'pounce_max_dist', 5),
         strikeDistance: numberAt(body, 'strike_dist', 2),
         stalkSpeed: numberAt(body, 'stalk_speed', 1.2),
-        stuckTime: ticksAt(body, 'stuck_time', 2)
+        stuckTime: ticksAt(body, 'stuck_time', 2),
+        filters: filterAt(body, 'filters')
     })),
     create: (params, support) => {
         /** How long a leap may stay in the air before the goal gives up on it, in ticks. */
@@ -1375,7 +1382,9 @@ export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
         return {
             canStart: () => {
                 target = support.target();
-                return target !== undefined && support.distanceTo(target.position()) <= params.maxStalkDistance;
+                if (target === undefined || !support.matches(params.filters, target)) return false;
+                const range = support.distanceTo(target.position());
+                return range > params.pounceMaxDistance && range <= params.maxStalkDistance;
             },
             canContinue: () => !done && support.target() !== undefined,
             start: () => {
@@ -1399,7 +1408,8 @@ export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
                     return;
                 }
                 if (range > params.pounceMaxDistance) {
-                    support.navigator.moveTo(where, params.stalkSpeed, 1);
+                    // The walk advances along its path every tick, as Java's navigation ticks.
+                    if (support.navigator.moveTo(where, params.stalkSpeed, 1)) support.navigator.tick();
                     interest = 0;
                     return;
                 }

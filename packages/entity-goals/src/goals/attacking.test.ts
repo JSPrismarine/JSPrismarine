@@ -647,3 +647,44 @@ describe('minecraft:behavior.send_event', () => {
         expect(spells.fired).toEqual([]);
     });
 });
+
+describe('minecraft:behavior.stalk_and_pounce_on_target', () => {
+    const fox = (prey: GoalMob, at = 0) => {
+        const floor = Array.from({ length: 16 }, () => '#'.repeat(16));
+        const air = Array.from({ length: 16 }, () => '.'.repeat(16));
+        const world = { ...combatWorld(prey), navigation: () => voxelGrid([floor, air, air]) };
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.stalk_and_pounce_on_target': {
+                    priority: 7,
+                    stalk_speed: 1.5,
+                    max_stalk_dist: 12,
+                    pounce_max_dist: 6,
+                    interest_time: 0.75,
+                    filters: { test: 'is_family', subject: 'other', value: 'chicken' }
+                }
+            },
+            components: { 'minecraft:collision_box': { width: 0.6, height: 0.7 }, 'minecraft:navigation.walk': {} },
+            world,
+            at: { x: at + 0.5, y: 1, z: 8.5 }
+        });
+        return { harness, world };
+    };
+
+    it("stalks prey Java's fox stalks only from beyond its pounce range, and walks the stalk", () => {
+        const chicken = testMob('chicken', { x: 12.5, y: 1, z: 8.5 }, { families: ['chicken'] });
+        const { harness } = fox(chicken);
+        harness.tick(3);
+        expect(harness.isRunning('minecraft:behavior.stalk_and_pounce_on_target')).toBe(true);
+        // The walk advances every tick rather than waiting for the next re-path.
+        expect(harness.actuator.count('moveTo')).toBeGreaterThanOrEqual(3);
+
+        const near = fox(testMob('chicken', { x: 4.5, y: 1, z: 8.5 }, { families: ['chicken'] }), 0).harness;
+        near.tick();
+        expect(near.running()).toEqual([]);
+
+        const player = fox(testMob('player', { x: 12.5, y: 1, z: 8.5 }, { families: ['player'] })).harness;
+        player.tick();
+        expect(player.running()).toEqual([]);
+    });
+});

@@ -62,6 +62,29 @@ describe('withJavaGoals', () => {
         });
     });
 
+    it("stalks only a fox's Java prey, from Java's 6 blocks, crouching Java's 15 ticks", () => {
+        const data = withJavaGoals(
+            entityFile('minecraft:fox', {
+                'minecraft:behavior.stalk_and_pounce_on_target': { priority: 7, pounce_max_dist: 5, interest_time: 2 }
+            }),
+            javaGoalRulings()
+        );
+
+        expect(data).toMatchObject({
+            'minecraft:entity': {
+                components: {
+                    'minecraft:behavior.stalk_and_pounce_on_target': {
+                        priority: 7,
+                        stalk_speed: 1.5,
+                        pounce_max_dist: 6,
+                        interest_time: 0.75,
+                        filters: { any_of: [{ value: 'chicken' }, { value: 'rabbit' }] }
+                    }
+                }
+            }
+        });
+    });
+
     it('takes off a goal Java registers nothing for, and swaps one Java runs by another rule', () => {
         const panda = withJavaGoals(
             entityFile('minecraft:panda', {
