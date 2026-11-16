@@ -25,6 +25,8 @@ export interface DespawnParams {
     readonly maxDistance: number;
     /** One in this many ticks, the entity beyond `minDistance` rolls to despawn. */
     readonly minRangeRandomChance: number;
+    /** Seconds without an action the entity must reach before it rolls, Java's `noActionTime > 600`. */
+    readonly minRangeInactivityTimer: number;
     readonly removeChildEntities: boolean;
 }
 
@@ -34,7 +36,8 @@ export interface DespawnParams {
  *
  * With `filters`, the entity despawns as soon as they pass. Without them, the
  * standard rules apply: anything past `max_distance` goes at once, and
- * anything past `min_distance` rolls `min_range_random_chance` each tick.
+ * anything past `min_distance` that has been idle for `min_range_inactivity_timer` rolls
+ * `min_range_random_chance` each tick.
  */
 export const despawn: ComponentFactory<EntityHooks, DespawnParams> = {
     name: 'minecraft:despawn',
@@ -53,6 +56,7 @@ export const despawn: ComponentFactory<EntityHooks, DespawnParams> = {
             minDistance: numberAt(distance, 'min_distance', 32),
             maxDistance: numberAt(distance, 'max_distance', 128),
             minRangeRandomChance: numberAt(value, 'min_range_random_chance', 800),
+            minRangeInactivityTimer: numberAt(value, 'min_range_inactivity_timer', 30),
             removeChildEntities: booleanAt(value, 'remove_child_entities', false)
         });
     },
@@ -75,6 +79,9 @@ export const despawn: ComponentFactory<EntityHooks, DespawnParams> = {
                 return;
             }
             if (distance <= params.minDistance || params.minRangeRandomChance <= 0) return;
+            // Java's Mob.checkDespawn rolls only once noActionTime passes 600 ticks, which is
+            // Bedrock's documented 30 second min_range_inactivity_timer.
+            if (entity.noActionTime <= params.minRangeInactivityTimer * TICKS_PER_SECOND) return;
             if (entity.random.next() * params.minRangeRandomChance < 1)
                 entity.remove('despawn roll beyond min_distance');
         }

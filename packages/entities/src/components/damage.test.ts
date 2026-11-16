@@ -310,6 +310,23 @@ describe('minecraft:persistent', () => {
         expect(removed).toEqual(['despawn beyond max_distance']);
     });
 
+    it('rolls the random despawn only after 30 seconds without an action', () => {
+        const removed: string[] = [];
+        const between: EntityEnvironment = {
+            filterContext: () => ({
+                self: { measure: (name) => (name === 'distance_to_nearest_player' ? 40 : undefined) }
+            }),
+            random: { next: () => 0 },
+            remove: (_entity, reason) => removed.push(reason)
+        };
+        const entity = spawn(wanderer(false), 'test:wanderer', between);
+        tick(entity, 600);
+        expect(removed).toEqual([]);
+
+        tick(entity, 1);
+        expect(removed).toEqual(['despawn roll beyond min_distance']);
+    });
+
     it('keeps a persistent mob whatever the distance', () => {
         const removed: string[] = [];
         const entity = spawn(wanderer(true), 'test:wanderer', {
