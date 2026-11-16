@@ -1053,25 +1053,45 @@ export const moveToLand = goal<MoveToBlockParams>({
         })
 });
 
+/** Java's `MoveToBlockGoal.nextStartTick` draw, `200 + random.nextInt(200)`, before `reducedTickDelay`. */
+const BLOCK_SEARCH_DELAY = 200;
+
 /**
  * `minecraft:behavior.move_to_liquid`, which the strider carries. The
  * `material_type` names which liquid, so lava and water share one goal.
+ *
+ * Java's `Strider.StriderGoToLavaGoal` is a `MoveToBlockGoal`, which searches on its first
+ * selector pass and then waits `reducedTickDelay(200 + nextInt(200))` passes before the next
+ * search, where Bedrock rolls one tick in `tick_interval`.
  */
 export const moveToLiquid = goal<MoveToBlockParams & { readonly materialType: string }>({
     name: 'minecraft:behavior.move_to_liquid',
     controlFlags: ['move'],
     schema: bodySchema((body) => {
         const material = stringAt(body, 'material_type') ?? 'Water';
+        // Java's `StriderGoToLavaGoal.getMoveToTarget` walks to the liquid block it found, where
+        // `MoveToBlockGoal` would walk to the block above it, so the offset stays the body's own.
         const params = moveToBlockFrom(body, { targetBlocks: [`minecraft:${material.toLowerCase()}`] });
-        return {
-            ...params,
-            // Java's `MoveToBlockGoal.getMoveToTarget` walks to the block over the liquid it found,
-            // which is where a strider stands on lava, unless the body names its own offset.
-            targetOffset: Array.isArray(body.target_offset) ? params.targetOffset : { x: 0, y: 1, z: 0 },
-            materialType: material
-        };
+        return { ...params, materialType: material };
     }),
-    create: (params, support) => walkToBlock(support, params)
+    create: (params, support) => {
+        let countdown = 0;
+        const walk = walkToBlock(support, { ...params, tickInterval: 0 });
+        return {
+            ...walk,
+            // Java's goal neither searches nor keeps walking once the strider is in lava.
+            canStart: () => {
+                if (support.flag('in_lava')) return false;
+                if (countdown > 0) {
+                    countdown -= 1;
+                    return false;
+                }
+                countdown = Math.ceil((BLOCK_SEARCH_DELAY + support.randomInt(BLOCK_SEARCH_DELAY)) / 2);
+                return walk.canStart();
+            },
+            canContinue: () => !support.flag('in_lava') && (walk.canContinue?.() ?? false)
+        };
+    }
 });
 
 /** How far one hop toward a patrol target goes, Java's `LongDistancePatrolGoal` cap of 10 blocks. */

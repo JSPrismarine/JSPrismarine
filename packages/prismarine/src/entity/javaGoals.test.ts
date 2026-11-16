@@ -70,6 +70,40 @@ describe('withJavaGoals', () => {
         });
     });
 
+    it("rolls a panda's sneeze table on every sneeze, as Java's Panda.afterSneeze does", () => {
+        const data = withJavaGoals(
+            entityFile(
+                'minecraft:panda',
+                {},
+                {
+                    'minecraft:panda_sneezing': {
+                        'minecraft:behavior.sneeze': {
+                            priority: 7,
+                            probability: 0.002,
+                            drop_item_chance: 0.001,
+                            loot_table: 'loot_tables/entities/panda_sneeze.json'
+                        }
+                    }
+                }
+            ),
+            javaGoalRulings()
+        );
+
+        expect(data).toMatchObject({
+            'minecraft:entity': {
+                component_groups: {
+                    'minecraft:panda_sneezing': {
+                        'minecraft:behavior.sneeze': {
+                            probability: 0.002,
+                            drop_item_chance: 1,
+                            loot_table: 'loot_tables/gameplay/panda_sneeze.json'
+                        }
+                    }
+                }
+            }
+        });
+    });
+
     it('leaves a file no ruling names unchanged', () => {
         const data = entityFile('test:creeper', { 'minecraft:behavior.swell': { start_distance: 2.5 } });
         expect(withJavaGoals(data, javaGoalRulings())).toBe(data);

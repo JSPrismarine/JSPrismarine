@@ -79,10 +79,14 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
         java: tuned('minecraft:behavior.drop_item_for', { loot_table: 'loot_tables/gameplay/cat_morning_gift.json' })
     },
     {
-        // Java `Panda.afterSneeze` rolls the `gameplay/panda_sneeze` table.
+        // Java `Panda.afterSneeze` rolls the `gameplay/panda_sneeze` table on every sneeze; the
+        // table's one slime ball in 700 is the whole chance, with no roll in front of it.
         entity: 'minecraft:panda',
         component: 'minecraft:behavior.sneeze',
-        java: tuned('minecraft:behavior.sneeze', { loot_table: 'loot_tables/gameplay/panda_sneeze.json' })
+        java: tuned('minecraft:behavior.sneeze', {
+            loot_table: 'loot_tables/gameplay/panda_sneeze.json',
+            drop_item_chance: 1
+        })
     },
     {
         // Java `Dolphin.registerGoals` adds `DolphinJumpGoal(this, 10)`, which rolls
@@ -90,6 +94,14 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
         entity: 'minecraft:dolphin',
         component: 'minecraft:behavior.random_breach',
         java: tuned('minecraft:behavior.random_breach', { interval: 5 })
+    },
+    {
+        // Java `Strider.registerGoals` adds `StriderGoToLavaGoal(this, 1.0)`, a `MoveToBlockGoal`
+        // with a search range of 8 and a vertical range of 2: `findNearestBlock` scans offsets
+        // below the range, so lava up to 7 blocks across.
+        entity: 'minecraft:strider',
+        component: 'minecraft:behavior.move_to_liquid',
+        java: tuned('minecraft:behavior.move_to_liquid', { search_range: 7, search_height: 2, speed_multiplier: 1 })
     },
     {
         // Java `Strider.floatStrider` lifts a strider in lava by 0.05 a tick.

@@ -453,6 +453,43 @@ describe('minecraft:behavior.move_to_water', () => {
     });
 });
 
+describe('minecraft:behavior.move_to_liquid', () => {
+    it("searches on its first selector pass and then waits Java's 100 to 199 passes, whatever tick_interval says", () => {
+        let searches = 0;
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.move_to_liquid': {
+                    priority: 7,
+                    search_range: 7,
+                    search_height: 2,
+                    material_type: 'Lava',
+                    tick_interval: 20
+                }
+            },
+            components: walker,
+            world: {
+                ...flatWorld(),
+                blocks: () => {
+                    searches += 1;
+                    return [];
+                }
+            },
+            at: { x: 8.5, y: 1, z: 8.5 },
+            // The draw that makes the wait its shortest, ceil((200 + 0) / 2) = 100 passes.
+            random: () => 0
+        });
+
+        harness.tick();
+        expect(searches).toBe(1);
+
+        for (let pass = 0; pass < 100; pass += 1) harness.tick();
+        expect(searches).toBe(1);
+
+        harness.tick();
+        expect(searches).toBe(2);
+    });
+});
+
 describe('minecraft:behavior.follow_mob', () => {
     it('follows a mob its filters accept and stops inside stop_distance', () => {
         const friend = testMob('friend', { x: 12.5, y: 1, z: 8.5 }, { families: ['villager'] });
