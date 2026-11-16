@@ -78,6 +78,17 @@ describe('routeDatapackPath', () => {
         });
     });
 
+    it('routes enchantment providers by namespaced id, nested ones by their path', () => {
+        expect(routeDatapackPath('data/minecraft/enchantment_provider/mob_spawn_equipment.json')).toEqual({
+            registry: 'enchantmentProviders',
+            identifier: 'minecraft:mob_spawn_equipment'
+        });
+        expect(routeDatapackPath('data/minecraft/enchantment_provider/raid/vindicator.json')).toEqual({
+            registry: 'enchantmentProviders',
+            identifier: 'minecraft:raid/vindicator'
+        });
+    });
+
     it('routes every worldgen kind into one registry keyed by kind then namespaced id', () => {
         expect(routeDatapackPath('data/minecraft/worldgen/noise_settings/overworld.json')).toEqual({
             registry: 'worldgen',

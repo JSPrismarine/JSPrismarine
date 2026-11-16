@@ -154,6 +154,7 @@ const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
     },
     dimensions: { required: { type: 'string', generator: 'object' } },
     paintingVariants: { required: { asset_id: 'string', width: 'number', height: 'number' } },
+    enchantmentProviders: { required: { type: 'string' } },
     worldgen: { allowsAnyRoot: true }
 };
 

@@ -33,6 +33,7 @@ export const JAVA_REGISTRY_IDS = [
     'dimensionTypes',
     'dimensions',
     'paintingVariants',
+    'enchantmentProviders',
     'worldgen'
 ] as const;
 
@@ -69,6 +70,7 @@ export const MERGE_MODES: Readonly<Record<JavaRegistryId, MergeMode>> = {
     dimensionTypes: 'override',
     dimensions: 'override',
     paintingVariants: 'override',
+    enchantmentProviders: 'override',
     worldgen: 'override'
 };
 
@@ -97,7 +99,8 @@ export const JAVA_REGISTRY_DIRECTORIES: Readonly<
     item_modifier: 'itemModifiers',
     dimension_type: 'dimensionTypes',
     dimension: 'dimensions',
-    painting_variant: 'paintingVariants'
+    painting_variant: 'paintingVariants',
+    enchantment_provider: 'enchantmentProviders'
 };
 
 /** The directory under `data/<namespace>/` whose subdirectories are the worldgen registries. */
