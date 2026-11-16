@@ -7,7 +7,7 @@
  * REVERSE` halves its speed and points it the other way, and the arrow then keeps a fifth of
  * that, so it falls away from the dragon at a tenth of the speed it came in at.
  */
-import { dragonPhaseState, isSittingPhase } from '@jsprismarine/entity-goals/goals/dragonPhases';
+import { dragonPhaseState, isSittingDragonPhase } from '@jsprismarine/entity-goals/goals/dragonPhases';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import type { DataEntity } from './DataEntity';
@@ -30,5 +30,5 @@ export const DEFLECTED_ARROW_SPEED = -0.1;
 export const deflectsArrow = (target: DataEntity, projectile: string): boolean => {
     if (!ARROWS.has(projectile)) return false;
     const phase = target.instance.componentState.get(dragonPhaseState)?.phase;
-    return phase !== undefined && isSittingPhase(phase);
+    return phase !== undefined && isSittingDragonPhase(phase);
 };

@@ -67,8 +67,8 @@ const SITTING_GROUP_PHASES: readonly DragonPhaseName[] = [
 /** The phases Java's `isSitting` answers true for, in which damage can make the dragon take off. */
 const SITTING_PHASES: readonly DragonPhaseName[] = ['sitting_scanning', 'sitting_attacking', 'sitting_flaming'];
 
-/** Whether a phase is one of Java's `AbstractDragonSittingPhase`s, in which the dragon perches. */
-export const isSittingPhase = (phase: DragonPhaseName): boolean => SITTING_PHASES.includes(phase);
+/** Whether a dragon phase is one Java's `DragonPhaseInstance.isSitting` answers true for. */
+export const isSittingDragonPhase = (phase: DragonPhaseName): boolean => SITTING_PHASES.includes(phase);
 
 /** How much of its health a sitting dragon takes before it flies off, Java's `0.25F * getMaxHealth()`. */
 const SITTING_DAMAGE_SHARE = 0.25;
@@ -259,7 +259,7 @@ class DragonPhases {
         // Java's `hurtTime`, which a blow sets to 10 and every tick counts down.
         if (health !== undefined && was !== undefined && health.current < was) this.hurtTime = HURT_TICKS;
         else if (this.hurtTime > 0) this.hurtTime -= 1;
-        if (health === undefined || was === undefined || !SITTING_PHASES.includes(this.phaseName)) return;
+        if (health === undefined || was === undefined || !isSittingDragonPhase(this.phaseName)) return;
         if (health.current < was) this.sittingDamage += was - health.current;
         if (this.sittingDamage > SITTING_DAMAGE_SHARE * health.max) {
             this.sittingDamage = 0;
@@ -773,7 +773,7 @@ class DragonPhases {
                     ? this.support.isAttackable(mob)
                     : mob.health?.() !== undefined
             );
-        const sitting = isSittingPhase(this.phaseName);
+        const sitting = isSittingDragonPhase(this.phaseName);
         const body = { x: here.x + sin * BODY_REACH, z: here.z - cos * BODY_REACH };
         for (const side of [1, -1]) {
             const wing = { x: here.x + cos * WING_REACH * side, y: here.y + 2, z: here.z + sin * WING_REACH * side };

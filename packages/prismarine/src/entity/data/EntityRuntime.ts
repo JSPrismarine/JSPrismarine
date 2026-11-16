@@ -131,6 +131,8 @@ import type { RegionalDifficultyInputs } from '../regionalDifficulty';
 import { VEHICLE_DAMAGE_DECAY_PER_TICK, boatItemOf, isBreakableVehicle, vehicleBlow } from './vehicleDamage';
 import { ITEM_HOPPER, ITEM_HOPPER_QUERY_RADIUS, inHopperReach, insertStack } from './itemHopper';
 import type { CushionHost } from './cushionFire';
+import type { FlappingHost } from './flapping';
+import { FLAP_EVENT, updateFlapping } from './flapping';
 import { isCushion, updateCushion } from './cushionFire';
 import type { EntityFacts } from './facts';
 import {
@@ -603,6 +605,15 @@ export class EntityRuntime implements EntityScene {
 
     /** Each boat's `VehicleEntity` damage, which blows add to and every tick takes from. */
     private readonly vehicleDamage = new Map<number, number>();
+    /** What a flying mob's flap reads and sends. */
+    private readonly flappingHost: FlappingHost = {
+        isAir: (at) => {
+            const block = this.world.blocks.get(blockPositionOf(at));
+            return block === undefined || block.identifier === 'minecraft:air';
+        },
+        isPassenger: (entity) => this.rides.vehicleOf(entity.id) !== undefined,
+        emit: (entity) => this.world.effects.emitGameEvent(FLAP_EVENT, blockPositionOf(entity.position), entity.id)
+    };
     /** What a cushion's fire and lava check reads and does. */
     private readonly cushionHost: CushionHost = {
         inLava: (entity) => entity.body.conditions.has('in_lava'),
@@ -2055,13 +2066,15 @@ export class EntityRuntime implements EntityScene {
         this.tickBrain(entity);
         tickBrainNavigation(entity);
         if (isCopperGolem(entity) && tickCopperGolemStatue(entity, this.statueHost)) return;
-        const fromY = entity.position.y;
+        const from = { ...entity.position };
+        const fromY = from.y;
         // Java's ender dragon is `noPhysics`: its phases fly it, and nothing pulls it down.
         if (!JAVA_NO_PHYSICS.has(entity.identifier)) this.coast(entity);
         if (entity.removed !== undefined) return;
         this.step(entity);
         this.updateMedium(entity);
         this.updateGrounded(entity);
+        updateFlapping(entity, from, this.flappingHost);
         this.checkFallDamage(entity, fromY);
         if (entity.removed !== undefined) return;
         this.tickAreaAttack(entity, tick);

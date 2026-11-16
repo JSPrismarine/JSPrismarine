@@ -319,10 +319,26 @@ const javaLavaDamage = (): number => {
     return pushedNumbers(method).find((value) => value > 1) ?? 4;
 };
 
-/** Every flying Java type whose class overrides `isFlapping`, which `Entity.move` turns into a flap game event. */
+/**
+ * Every flying Java type whose class overrides `isFlapping` and reaches `processFlappingMovement`,
+ * which sends the flap game event. `Entity.move` reaches it after each move, except that it returns
+ * first for a `noPhysics` entity, which the vex is while `Vex.tick` runs; the ender dragon, also
+ * `noPhysics`, calls it from its own `aiStep`.
+ */
 const javaFlaps = (javaId: string): boolean => {
-    const found = javaMethodOf(javaEntityClassName(javaId), 'isFlapping');
-    return found !== undefined && found.owner !== 'Entity';
+    const className = javaEntityClassName(javaId);
+    const found = javaMethodOf(className, 'isFlapping');
+    if (found === undefined || found.owner === 'Entity') return false;
+    const flapsItself =
+        javaMethodOf(className, 'aiStep')?.method.calls.some((call) => call.endsWith('.processFlappingMovement')) ===
+        true;
+    const tick = javaMethodOf(className, 'tick');
+    const ticksWithoutPhysics =
+        tick !== undefined &&
+        javaOperations(tick.method).some(
+            (operation) => operation.kind === 'field' && operation.write && operation.target.endsWith('.noPhysics')
+        );
+    return flapsItself || !ticksWithoutPhysics;
 };
 
 /**
@@ -787,7 +803,7 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'flaps-as-it-flies',
         java: 'A flying mob whose Java class overrides isFlapping sends the flap game event as it flies, which sculk sensors and wardens hear.',
         reference:
-            'Java Entity.move (isFlapping, onFlap: GameEvent.FLAP) and isFlapping in Allay, Bat, Bee, Chicken, EnderDragon, Parrot, Phantom and Vex, read from the pinned jar; issue #3175',
+            'Java Entity.move (noPhysics returns first; applyMovementEmissionAndPlaySound, processFlappingMovement: GameEvent.FLAP), EnderDragon.aiStep (processFlappingMovement), Vex.tick (noPhysics) and isFlapping in Allay, Bat, Bee, Chicken, EnderDragon, Parrot, Phantom and Vex, read from the pinned jar; issue #3175',
         subjects: () => entitiesDeclaring('minecraft:game_event_movement_tracking'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:game_event_movement_tracking'],
