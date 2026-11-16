@@ -34,6 +34,8 @@ export interface BehaviorControl {
     /** The Java class name, which is what a debug read-out shows. */
     readonly name: string;
     readonly status: BehaviorStatus;
+    /** The behaviors a gate chooses among, for a debug read-out; absent on a single behavior. */
+    readonly members?: readonly BehaviorControl[];
     /**
      * Every memory the behavior reads or writes. The brain registers each one when the behavior is
      * added, which is how a memory a mob never declares still gets a slot.

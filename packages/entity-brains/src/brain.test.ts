@@ -5,6 +5,7 @@ import { Activities, ALL_ACTIVITIES } from './activity.js';
 import { activityData, Brain, prioritized, scheduledActivity } from './brain.js';
 import type { BehaviorControl } from './behavior/control.js';
 import { MemoryModuleTypes } from './memory.js';
+import { RunOne } from './behavior/gate.js';
 import { BABY_VILLAGER_SCHEDULE, VILLAGER_SCHEDULE } from './mobs/villager.js';
 import { TestWorld } from './testWorld.js';
 
@@ -240,5 +241,36 @@ describe('the twenty-tick schedule throttle, Brain.SCHEDULE_UPDATE_DELAY', () =>
         expect(brain.getActiveNonCoreActivity()).toBe(Activities.IDLE);
         brain.updateActivityFromSchedule(1021, 12000);
         expect(brain.getActiveNonCoreActivity()).toBe(Activities.REST);
+    });
+});
+
+describe('the activity table read-out', () => {
+    it('lists each activity with its behaviors in priority order, gates followed by their members', () => {
+        const brain = new Brain({
+            sensors: [],
+            activities: [
+                activityData(Activities.CORE, [
+                    [1, recorder('Swim')],
+                    [
+                        0,
+                        new RunOne([
+                            [recorder('LookAtTargetSink'), 1],
+                            [recorder('MoveToTargetSink'), 1]
+                        ])
+                    ]
+                ]),
+                activityData(Activities.REST, prioritized(0, [recorder('SleepInBed')]))
+            ]
+        });
+
+        expect(brain.activities).toEqual([Activities.CORE, Activities.REST]);
+        expect(brain.behaviorNames(Activities.CORE)).toEqual([
+            'RunOne',
+            'LookAtTargetSink',
+            'MoveToTargetSink',
+            'Swim'
+        ]);
+        expect(brain.behaviorNames(Activities.REST)).toEqual(['SleepInBed']);
+        expect(brain.behaviorNames(Activities.WORK)).toEqual([]);
     });
 });

@@ -94,6 +94,11 @@ export class GateBehavior implements BehaviorControl {
         return this.behaviorStatus;
     }
 
+    /** The behaviors the gate chooses among, in the order they were given. */
+    public get members(): readonly BehaviorControl[] {
+        return this.children;
+    }
+
     public get requiredMemories(): readonly MemoryModuleType<unknown>[] {
         const memories = new Set<MemoryModuleType<unknown>>(this.entryCondition.keys());
         for (const child of this.children) {

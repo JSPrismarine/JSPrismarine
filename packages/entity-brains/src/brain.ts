@@ -319,6 +319,27 @@ export class Brain {
         return undefined;
     }
 
+    /** Every activity the brain has a behavior table for, core ones included, in the order they were added. */
+    public get activities(): readonly Activity[] {
+        return [...this.activityRequirements.keys()];
+    }
+
+    /**
+     * The Java class names of the behaviors one activity runs, in ascending priority order, with
+     * each gate followed by the names of the behaviors it chooses among. A debug read-out, and
+     * what a parity check reads to compare a mob's activity table with Java's.
+     */
+    public behaviorNames(activity: Activity): readonly string[] {
+        const names: string[] = [];
+        const visit = (behavior: BehaviorControl): void => {
+            names.push(behavior.name);
+            for (const member of behavior.members ?? []) visit(member);
+        };
+        for (const priority of this.ascendingPriorities())
+            for (const behavior of this.behaviorsByPriority.get(priority)?.get(activity) ?? []) visit(behavior);
+        return names;
+    }
+
     /** Every running behavior, in ascending priority order. A debug read-out and the tests read this. */
     public getRunningBehaviors(): readonly BehaviorControl[] {
         const running: BehaviorControl[] = [];
