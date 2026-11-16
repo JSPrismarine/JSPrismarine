@@ -153,6 +153,17 @@ export const OPCODES = {
     INSTANCEOF: 0xc1
 } as const;
 
+/** The value each `lconst`, `fconst` and `dconst` shorthand pushes (JVMS 6.5). */
+const WIDE_SHORTHAND_CONSTANTS: ReadonlyMap<number, number> = new Map([
+    [0x09, 0],
+    [0x0a, 1],
+    [0x0b, 0],
+    [0x0c, 1],
+    [0x0d, 2],
+    [0x0e, 0],
+    [0x0f, 1]
+]);
+
 const TABLESWITCH = 0xaa;
 const LOOKUPSWITCH = 0xab;
 const WIDE = 0xc4;
@@ -306,6 +317,8 @@ export const javaClass = (bytes: Uint8Array): JavaClass => {
             let instruction: JavaInstruction = { pc, opcode };
             if (opcode >= OPCODES.ICONST_M1 && opcode <= OPCODES.ICONST_5)
                 instruction = { ...instruction, constant: opcode - OPCODES.ICONST_0 };
+            else if (WIDE_SHORTHAND_CONSTANTS.has(opcode))
+                instruction = { ...instruction, constant: WIDE_SHORTHAND_CONSTANTS.get(opcode) ?? 0 };
             else if (opcode === OPCODES.BIPUSH) instruction = { ...instruction, constant: codeView.getInt8(pc + 1) };
             else if (opcode === OPCODES.SIPUSH) instruction = { ...instruction, constant: codeView.getInt16(pc + 1) };
             else if (opcode === OPCODES.LDC) {
@@ -425,4 +438,40 @@ export const pinnedJavaClass = (className: string): JavaMethod[] => {
     const parsed = pinnedJavaClassFile(className);
     if (parsed === undefined) throw new Error(`the server jar holds no ${className}.class`);
     return [...parsed.methods];
+};
+
+/**
+ * Each number a method's code pushes onto the stack, in the order it appears: the `iconst`
+ * shorthands, `bipush` and `sipush`, and the numbers `ldc` loads.
+ *
+ * @param method - A parsed method.
+ */
+export const numericConstants = (method: JavaMethod): readonly number[] =>
+    method.instructions.flatMap((instruction) =>
+        typeof instruction.constant === 'number' ? [instruction.constant] : []
+    );
+
+/**
+ * The method a class runs for a name with no arguments: its own, or the nearest superclass's,
+ * which is what a virtual call on an instance of the class dispatches to.
+ *
+ * @param className - The class's binary name.
+ * @param name - The method's name; only a method that takes no arguments matches.
+ * @returns The method and the class that declares it, or undefined when no class in the chain declares one.
+ * @throws {Error} When the jar is not in the fetch cache.
+ */
+export const pinnedJavaMethod = (
+    className: string,
+    name: string
+): { readonly owner: string; readonly method: JavaMethod } | undefined => {
+    for (let owner: string | undefined = className; owner !== undefined; ) {
+        const parsed = pinnedJavaClassFile(owner);
+        if (parsed === undefined) return undefined;
+        const method = parsed.methods.find(
+            (candidate) => candidate.name === name && candidate.descriptor.startsWith('()')
+        );
+        if (method !== undefined) return { owner, method };
+        owner = parsed.superName;
+    }
+    return undefined;
 };
