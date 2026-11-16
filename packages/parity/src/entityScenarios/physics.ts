@@ -308,7 +308,7 @@ export const physicsScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'falls-under-gravity',
         java: "A body in open air falls by its Java gravity: a living one moves by its velocity before gravity and the 0.98 drag apply, a hovering flyer stays put, and a non-living one gains its class's default gravity on the first tick.",
         reference:
-            'Java LivingEntity.travelInAir (move, then Attributes.GRAVITY and 0.98), getDefaultGravity of each entity class in the pinned jar, FlyingMob.travel, Chicken.aiStep, Blaze.aiStep and Parrot.calculateFlapping (0.6 slow fall); projectile gravity is issue #3122',
+            'Java LivingEntity.travelInAir (move, then Attributes.GRAVITY and 0.98), getDefaultGravity of each entity class in the pinned jar, FlyingMob.travel, Chicken.aiStep, Blaze.aiStep and Parrot.calculateFlapping (0.6 slow fall)',
         subjects: () => declaringAny('minecraft:physics', 'minecraft:can_fly'),
         idOf: (subject) => subject.javaId,
         aspects: (subject) => declaredOf(subject, ['minecraft:physics', 'minecraft:can_fly']),
