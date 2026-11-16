@@ -2024,6 +2024,7 @@ export class EntityRuntime implements EntityScene {
         if (entity.removed !== undefined) return;
         if (this.tickFuse(entity)) return;
         this.carryRiders(entity);
+        this.giveRidersBreath(entity);
         if (entity.removed !== undefined) return;
         this.pushIntersectingEntity(entity);
     }
@@ -6515,6 +6516,33 @@ export class EntityRuntime implements EntityScene {
         }
     }
 
+    /**
+     * Gives the player riders of a mount with `minecraft:underwater_mount_breathing` Breath of the
+     * Nautilus while the mount is in water, refreshed to 60 ticks each tick, as Java's
+     * `AbstractNautilus` does for its rider, so a player riding a nautilus does not drown.
+     */
+    private giveRidersBreath(vehicle: DataEntity): void {
+        if (
+            !vehicle.instance.hasComponent('minecraft:underwater_mount_breathing') ||
+            !vehicle.body.conditions.has('in_water')
+        )
+            return;
+        for (const rider of this.rides.ridersOf(vehicle.id)) {
+            const carried = this.store.get(rider);
+            const player =
+                carried === undefined
+                    ? this.host.players().some((candidate) => candidate.id === rider)
+                    : clientOwnsMovement(carried.identifier);
+            if (!player) continue;
+            this.applyStatusEffectToId(vehicle.instance, rider, {
+                id: 'minecraft:breath_of_the_nautilus',
+                durationTicks: NAUTILUS_BREATH_TICKS,
+                amplifier: 0,
+                ambient: true
+            });
+        }
+    }
+
     /** The `def` of the entity's `minecraft:shooter`, which names what it fires. */
     private shooterDefinitionOf(shooter: MobBody): string | undefined {
         const params = this.store.get(shooter.id)?.instance.componentParams('minecraft:shooter');
@@ -6651,6 +6679,9 @@ const FALL_DAMAGE_MULTIPLIER = 'minecraft:fall_damage_multiplier';
 
 /** What `LivingEntity.calculateFallPower` adds to a fall, so a fall of exactly a whole block counts it. */
 const FALL_EPSILON = 1e-6;
+
+/** How long the Breath of the Nautilus a nautilus gives its rider lasts, refreshed each tick. */
+const NAUTILUS_BREATH_TICKS = 60;
 
 /** The mobs whose Java `canStandOnFluid` takes lava: `Strider.canStandOnFluid`. */
 const LAVA_WALKERS: ReadonlySet<string> = new Set(['minecraft:strider']);
