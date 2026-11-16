@@ -1,6 +1,7 @@
 import type { Filter, FilterOperator, FilterSubject, FilterTest } from '@jsprismarine/packs';
 import { parseFilter } from '@jsprismarine/packs';
-import { legacy_item_aliases, legacy_item_aux_aliases } from '@jsprismarine/bedrock-data';
+
+import { holdsNamedItem, sameItemName, splitItemValue } from './itemNames';
 
 import type {
     EntityFlag,
@@ -52,47 +53,6 @@ const sameEntity = (a: FilterEntityView | undefined, b: FilterEntityView | undef
     const right = b.id?.();
     if (left === undefined || right === undefined) return undefined;
     return left === right;
-};
-
-/** Splits a `has_equipment` value such as `bucket:1` into its name and auxiliary value. */
-const splitItemValue = (value: unknown): { readonly name: string; readonly data?: number } | undefined => {
-    if (typeof value !== 'string') return undefined;
-    const match = /^(?<name>.*?)(?::(?<data>\d+))?$/.exec(value);
-    if (match?.groups === undefined) return { name: value };
-    return { name: match.groups.name!, data: match.groups.data === undefined ? undefined : Number(match.groups.data) };
-};
-
-/** Compares an item identifier with and without the `minecraft:` namespace. */
-const sameItemName = (identifier: string, name: string): boolean =>
-    identifier === name || identifier === `minecraft:${name}` || `minecraft:${identifier}` === name;
-
-/** An item identifier with the `minecraft:` namespace a bare name leaves out. */
-const namespaced = (name: string): string => (name.includes(':') ? name : `minecraft:${name}`);
-
-/**
- * Whether a held item is the one a `has_equipment` value names.
- *
- * Vanilla definitions still name some items by their pre-flattening identifier: the llama's
- * carpet interaction asks for `carpet`, which Bedrock now holds as sixteen `*_carpet` items. Bedrock's
- * own table maps such a name, with an auxiliary value to one item and without one to every item it
- * stood for.
- */
-const holdsNamedItem = (
-    identifier: string,
-    data: number | undefined,
-    wanted: { readonly name: string; readonly data?: number | undefined }
-): boolean => {
-    if (sameItemName(identifier, wanted.name)) return wanted.data === undefined || data === wanted.data;
-    const legacy = namespaced(wanted.name);
-    const variants = legacy_item_aux_aliases[legacy];
-    if (variants !== undefined) {
-        const held = namespaced(identifier);
-        return wanted.data === undefined
-            ? Object.values(variants).includes(held)
-            : variants[String(wanted.data)] === held;
-    }
-    const renamed = legacy_item_aliases[legacy];
-    return renamed !== undefined && wanted.data === undefined && sameItemName(identifier, renamed);
 };
 
 /** Reads a flag the view answers under its own test name. */

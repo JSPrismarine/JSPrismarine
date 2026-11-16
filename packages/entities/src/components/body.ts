@@ -145,7 +145,13 @@ export const pushable: ComponentFactory<EntityHooks, PushableParams> = {
 /** What `minecraft:inventory` declares. */
 export interface InventoryParams {
     readonly containerType: string;
+    /** The slots `inventory_size` states, or Bedrock's documented default of 5. */
     readonly inventorySize: number;
+    /**
+     * Whether the definition states `inventory_size`. A mount that leaves it out, such as the
+     * camel or the nautilus, has no storage beyond the equipment it wears.
+     */
+    readonly declaresSize: boolean;
     readonly isPrivate: boolean;
     readonly restrictToOwner: boolean;
     readonly additionalSlotsPerStrength: number;
@@ -161,6 +167,7 @@ export const inventory: ComponentFactory<EntityHooks, InventoryParams> = {
             ? accepted({
                   containerType: stringAt(value, 'container_type') ?? 'inventory',
                   inventorySize: numberAt(value, 'inventory_size', 5),
+                  declaresSize: value['inventory_size'] !== undefined,
                   isPrivate: booleanAt(value, 'private', false),
                   restrictToOwner: booleanAt(value, 'restrict_to_owner', false),
                   additionalSlotsPerStrength: numberAt(value, 'additional_slots_per_strength', 0),
