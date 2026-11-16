@@ -353,6 +353,10 @@
             "jsprismarine:dist": "./dist/entity/PortalContact.js",
             "default": "./src/entity/PortalContact.ts"
         },
+        "./entity/portalUse": {
+            "jsprismarine:dist": "./dist/entity/portalUse.js",
+            "default": "./src/entity/portalUse.ts"
+        },
         "./entity/survivalPlayer": {
             "jsprismarine:dist": "./dist/entity/survivalPlayer.js",
             "default": "./src/entity/survivalPlayer.ts"
@@ -592,6 +596,10 @@
         "./world/BlockPosition": {
             "jsprismarine:dist": "./dist/world/BlockPosition.js",
             "default": "./src/world/BlockPosition.ts"
+        },
+        "./world/GameEventListenerRegistry": {
+            "jsprismarine:dist": "./dist/world/GameEventListenerRegistry.js",
+            "default": "./src/world/GameEventListenerRegistry.ts"
         },
         "./world/chunk/Chunk": {
             "jsprismarine:dist": "./dist/world/chunk/Chunk.js",
