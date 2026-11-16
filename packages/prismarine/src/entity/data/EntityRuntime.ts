@@ -63,6 +63,7 @@ import { addTrusted } from '@jsprismarine/entities/components/trust';
 import { javaItemTagsForBedrock } from '../../content/javaTags';
 import { itemMatchesName } from '@jsprismarine/entities/itemNames';
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
+import { isLovedItem, PIGLIN, wantsToPickUp as wantsToPickUpAsPiglin } from '@jsprismarine/entity-brains/mobs/piglin';
 import {
     admireGoldItem,
     canAdmire,
@@ -155,9 +156,12 @@ import { deathDamageSource, deathLootState, killerView } from './deathLoot';
 import type { DeathKiller } from './deathLoot';
 import { JAVA_EXPERIENCE, deathExperience, experienceOrbs } from './deathExperience';
 import { brainMobFor } from './brainIdentifiers';
-import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import type { CopperGolemStatueHost } from './copperGolemStatue';
 import { isCopperGolem, tickCopperGolemStatue } from './copperGolemStatue';
+
+import { brainItemOf, brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
+import { flatInventoryRoom, inPickupReach, pickupQueryRadius, villagerWants } from './lootPickup';
+import type { LootPickupRule } from './lootPickup';
 import { entityFilterContextOf } from './filterView';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { DroppedItems, isDroppedItem } from './droppedItems';
@@ -2178,6 +2182,8 @@ export class EntityRuntime implements EntityScene {
         leaveTrail(entity, this.mobBlockHost);
         this.checkFallDamage(entity, fromY);
         if (entity.removed !== undefined) return;
+        // After the move, as `Mob.aiStep` picks up once `LivingEntity.aiStep` has moved the mob.
+        this.pickUpLoot(entity);
         this.tickAreaAttack(entity, tick);
         if (entity.removed !== undefined) return;
         if (this.tickFuse(entity)) return;
@@ -3993,9 +3999,13 @@ export class EntityRuntime implements EntityScene {
     /** Takes up to `count` items from a stack lying in the world into an entity's inventory. */
     public pickUp(taker: MobBody, item: GoalItem, count = item.count(), options?: GoalPickupOptions): void {
         if (typeof item.id !== 'number') return;
+        const entity = this.store.get(taker.id);
+        // `Fox.canHoldItem`: a fox with something in its mouth leaves the item where it lies. Java
+        // also lets it trade a food for another item once it has gone off the food, which the
+        // runtime keeps no `ticksSinceEaten` for.
+        if (entity?.identifier === FOX && taker.equipment.mainhand !== undefined) return;
         const taken = this.host.takeItem?.(item.id, count);
         if (taken === undefined) return;
-        const entity = this.store.get(taker.id);
         const piglinStarted =
             entity !== undefined &&
             (options?.admire === true || options?.barter === true) &&
@@ -4036,6 +4046,153 @@ export class EntityRuntime implements EntityScene {
         equipment[slot] = { ...item, count: 1 };
         taker.setEquipment(equipment);
         return 1;
+    }
+
+    /** Which Java class's touch pickup a mob follows, or undefined for one whose class picks up nothing. */
+    private lootPickupRuleOf(entity: DataEntity): LootPickupRule | undefined {
+        if (entity.brainMob?.id === 'minecraft:piglin') return 'piglin';
+        if (entity.brainMob?.id === 'minecraft:villager') return 'villager';
+        if (entity.identifier === SULFUR_CUBE) return 'swallow';
+        // `pickup_based_on_chance` marks exactly the mobs whose Java class rolls `canPickUpLoot`
+        // in `finalizeSpawn`: the zombies, the skeletons and their kin.
+        return this.pickupGoalParams(entity)?.pickupBasedOnChance === true ? 'equip' : undefined;
+    }
+
+    /** The parsed body of a mob's active `minecraft:behavior.pickup_items`, if it has one. */
+    private pickupGoalParams(entity: DataEntity): Record<string, unknown> | undefined {
+        const declared = entity.instance.componentParams(PICKUP_ITEMS);
+        return isRecord(declared) && isRecord(declared.params) ? declared.params : undefined;
+    }
+
+    /**
+     * Java's `Mob.aiStep` loot pickup for one mob: each item entity it touches that its class
+     * wants, taken by its class's `pickUpItem`. See {@link LootPickupRule}.
+     */
+    private pickUpLoot(entity: DataEntity): void {
+        const rule = this.lootPickupRuleOf(entity);
+        if (rule === undefined || entity.removed !== undefined || this.dying.has(entity.id)) return;
+        if (!ruleIsOn(this.world.level, MOB_GRIEFING)) return;
+        // `canPickUpLoot`: set by the piglin's and the villager's constructors, rolled once from
+        // the region for the rest, and false for a sulfur cube that holds a block already.
+        if (rule === 'equip' && !this.canPickUpLoot(entity.body)) return;
+        if (rule === 'swallow' && entity.body.equipment.mainhand !== undefined) return;
+
+        const { box } = entity.facts;
+        const reacher = { position: entity.position, width: box.width, height: box.height };
+        const lying = this.host.itemsNear?.(entity.position, pickupQueryRadius(box)) ?? this.host.items?.() ?? [];
+        for (const candidate of lying) {
+            if (entity.removed !== undefined) return;
+            if ((candidate.pickupDelay ?? 0) > 0 || !inPickupReach(reacher, candidate.position)) continue;
+            switch (rule) {
+                case 'piglin':
+                    this.piglinPickUp(entity, candidate);
+                    break;
+                case 'villager':
+                    this.villagerPickUp(entity, candidate);
+                    break;
+                case 'swallow':
+                    this.swallowPickUp(entity, candidate);
+                    break;
+                case 'equip':
+                    this.equipPickUp(entity, candidate);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * `Mob.pickUpItem` through `equipItemIfPossible`, after `Zombie.wantsToPickUp`: the item goes to
+     * the slot it is worn or held in when that slot is empty, armor to the main hand when its own
+     * slot is taken, and a hand takes the whole stack where an armor slot takes one.
+     */
+    private equipPickUp(entity: DataEntity, candidate: ContentItemEntity): void {
+        const excluded = this.pickupGoalParams(entity)?.excludedItems;
+        if (Array.isArray(excluded) && excluded.includes(candidate.item.identifier)) return;
+        const stack = itemOfDrop(candidate.item, this.content());
+        if (stack === null) return;
+        // `Zombie.canHoldItem`: a baby riding something holds no egg.
+        const riding = this.rides.vehicleOf(entity.id) !== undefined;
+        if (stack.hasJavaTag('minecraft:eggs') && entity.instance.hasComponent('minecraft:is_baby') && riding) return;
+        const { equipment } = entity.body;
+        let slot = slotForItem(stack);
+        if (equipment[slot] !== undefined && slot !== 'mainhand' && slot !== 'offhand') slot = 'mainhand';
+        if (equipment[slot] !== undefined) return;
+        const count = slot === 'mainhand' || slot === 'offhand' ? candidate.item.count : 1;
+        const taken = this.host.takeItem?.(candidate.id, count);
+        if (taken !== undefined) entity.body.setEquipment({ ...equipment, [slot]: taken });
+    }
+
+    /**
+     * `Villager.wantsToPickUp` and `InventoryCarrier.pickUpItem`: an item the villager gathers,
+     * eats or works with goes into its inventory, as much of the stack as fits.
+     */
+    private villagerPickUp(entity: DataEntity, candidate: ContentItemEntity): void {
+        const stack = itemOfDrop(candidate.item, this.content());
+        if (stack === null) return;
+        const item = {
+            identifier: candidate.item.identifier,
+            picksUp: stack.hasJavaTag('minecraft:villager_picks_up'),
+            villagerFood: stack.hasComponent('minecraft:villager_food')
+        };
+        if (!villagerWants(item, professionOf(entity.instance))) return;
+        const room = flatInventoryRoom(entity.body.inventory, item.identifier, entity.body.containerCapacity, (id) =>
+            maxStackSizeOf(id, this.content())
+        );
+        if (room <= 0) return;
+        const taken = this.host.takeItem?.(candidate.id, Math.min(room, candidate.item.count));
+        if (taken === undefined) return;
+        entity.body.setInventory([
+            ...entity.body.inventory,
+            ...Array.from({ length: taken.count }, () => taken.identifier)
+        ]);
+    }
+
+    /**
+     * `SulfurCube.canHoldItem` and `pickUpItem`: an adult cube with nothing in its body swallows one
+     * block of `#minecraft:sulfur_cube_swallowable`. Java keeps it in the body slot; Bedrock's cube
+     * keeps it in its main hand, which its `minecraft:equip_item` (`can_wear_armor: false`) routes
+     * every pickup to and its client draws inside the cube.
+     */
+    private swallowPickUp(entity: DataEntity, candidate: ContentItemEntity): void {
+        if (entity.body.equipment.mainhand !== undefined || entity.instance.hasComponent('minecraft:is_baby')) return;
+        const stack = itemOfDrop(candidate.item, this.content());
+        if (stack === null || !stack.hasJavaTag('minecraft:sulfur_cube_swallowable')) return;
+        const taken = this.host.takeItem?.(candidate.id, 1);
+        if (taken !== undefined) entity.body.setEquipment({ ...entity.body.equipment, mainhand: taken });
+    }
+
+    /**
+     * `Piglin.wantsToPickUp` through the brain's `PiglinAi.wantsToPickup`, and `PiglinAi.pickUpItem`:
+     * the piglin stops walking, admires a loved item in its off hand (a gold ingot also starts a
+     * barter), eats food when it has not eaten lately, and otherwise wears or holds the item, or
+     * keeps it in its inventory.
+     */
+    private piglinPickUp(entity: DataEntity, candidate: ContentItemEntity): void {
+        const brain = entity.brain;
+        if (brain === undefined) return;
+        const context = { world: this.brainWorld(), body: brainMobOf(entity, brain, this) };
+        const item = brainItemOf(candidate.item.identifier, this);
+        if (!wantsToPickUpAsPiglin(item, context)) return;
+        context.body.navigation.stop();
+        brain.eraseMemory(MemoryModuleTypes.WALK_TARGET);
+        const nugget = candidate.item.identifier === 'minecraft:gold_nugget';
+        const taken = this.host.takeItem?.(candidate.id, nugget ? candidate.item.count : 1);
+        if (taken === undefined) return;
+        if (isLovedItem(item)) {
+            brain.eraseMemory(MemoryModuleTypes.TIME_TRYING_TO_REACH_ADMIRE_ITEM);
+            if (this.startPiglinInteraction(entity, taken.identifier, true, true)) return;
+            const held = entity.body.equipment.offhand;
+            if (held !== undefined) this.host.drop(blockPositionOf(entity.position), held);
+            entity.body.setEquipment({ ...entity.body.equipment, offhand: taken });
+            admireGoldItem(context);
+            return;
+        }
+        if (item.tags.has('minecraft:piglin_food') && !brain.hasMemoryValue(MemoryModuleTypes.ATE_RECENTLY)) {
+            brain.setMemoryWithExpiry(MemoryModuleTypes.ATE_RECENTLY, true, PIGLIN.eatCooldown);
+            return;
+        }
+        if (this.equipPickedUpItem(entity.body, taken) > 0) return;
+        if (!this.storePickedUpItem(entity.body, taken)) this.host.drop(blockPositionOf(entity.position), taken);
     }
 
     /** Stores a picked-up stack in the first free declared inventory slot. */
@@ -7312,6 +7469,14 @@ const RESTOCKS_PER_DAY = 2;
 /** The Java loot table a piglin's barter rolls, from `PiglinAi.getBarterResponseItems`. */
 const JAVA_BARTER_TABLE = 'minecraft:gameplay/piglin_bartering';
 
+/** The fox, whose Java class holds one item in its mouth. */
+const FOX = 'minecraft:fox';
+
+/** The sulfur cube, whose Java class swallows what it picks up. */
+const SULFUR_CUBE = 'minecraft:sulfur_cube';
+
+/** The goal whose `pickup_based_on_chance` marks a mob that rolls Java's `canPickUpLoot`. */
+const PICKUP_ITEMS = 'minecraft:behavior.pickup_items';
 /** How close another cured villager counts as nearby for the trading discount, in blocks. */
 const NEARBY_CURED_RANGE = 16;
 /** Java stops a villager from breeding again for five minutes. */

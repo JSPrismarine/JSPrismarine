@@ -249,6 +249,7 @@ const lyingItemOf = (entity: DataEntity, content: ServerContent): ContentItemEnt
         id: entity.id,
         position: { x: at.x, y: at.y - itemTuningOf(entity).positionOffset, z: at.z },
         item: itemDropOf(view.stack),
+        pickupDelay: view.pickupDelay,
         ...(item === null ? {} : { filterView: filterItemOf(item) })
     };
 };

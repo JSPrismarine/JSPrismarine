@@ -36,6 +36,11 @@ export interface ContentItemEntity {
     readonly item: ContentItemDrop;
     /** Tags, auxiliary data, and components the entity pickup rules read. */
     readonly filterView?: FilterItemView;
+    /**
+     * Ticks before anything may pick the stack up, Java's `ItemEntity.pickupDelay`. Left out by a
+     * host that keeps none, which reads as no delay.
+     */
+    readonly pickupDelay?: number;
 }
 
 /** The groups the blocks, world and network subsystems own, as the entity runtime reads them. */

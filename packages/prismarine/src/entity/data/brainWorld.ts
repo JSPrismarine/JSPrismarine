@@ -119,11 +119,11 @@ export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEnti
         },
         get mainHandItem() {
             const identifier = entity.carried;
-            return identifier === undefined ? undefined : itemOf(identifier, scene);
+            return identifier === undefined ? undefined : brainItemOf(identifier, scene);
         },
         get offHandItem() {
             const identifier = entity.body.equipment.offhand?.identifier;
-            return identifier === undefined ? undefined : itemOf(identifier, scene);
+            return identifier === undefined ? undefined : brainItemOf(identifier, scene);
         }
     };
 
@@ -190,8 +190,11 @@ const itemTags = (identifier: string, tags: ContentTags): ReadonlySet<string> =>
     return contentTagsFor('item', identifier, tags);
 };
 
-/** A cached brain item view; both its id and tags depend only on content identity. */
-const itemOf = (identifier: string, scene: EntityScene): BrainItemEntity['item'] => {
+/**
+ * A cached brain item view; both its id and tags depend only on content identity. The runtime's
+ * loot pickup reads it too, to ask a piglin's brain whether it wants an item.
+ */
+export const brainItemOf = (identifier: string, scene: EntityScene): BrainItemEntity['item'] => {
     const tags = scene.content().tags;
     let byIdentifier = itemsByContent.get(tags);
     const known = byIdentifier?.get(identifier);
