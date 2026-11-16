@@ -122,6 +122,15 @@ open sky are darkened from 15 and refilled through the new blocker.
 `processed`, `queued` and `deferred`. Every decrease node runs before any increase node. Stopping
 mid-flush leaves readable but not yet correct levels; they are correct once `queued` is 0.
 
+**Settling one chunk** does not need the whole queue. `settleAround(chunkX, chunkZ, budget)` runs
+only the nodes queued in that chunk and its eight neighbors, and the nodes those queue there.
+Light reaches fifteen blocks, so no node further away can change a level in the chunk, and when
+`isFloodingAround(chunkX, chunkZ)` turns false the chunk holds the levels a full flush would give
+it. The work depends on what is queued around the chunk and not on how much is queued elsewhere,
+so a server can answer a light read, or finish the chunks nearest a player first, while the rest
+of a large flood waits for its budget. The queue keeps its nodes per chunk column to make that
+cheap, so `flush` empties the column that has waited longest before it starts the next.
+
 **Chunk borders** are ordinary propagation. The engine crosses section and chunk boundaries through
 the view, and an unloaded neighbor is skipped rather than treated as opaque, so the lit block next to
 the border keeps its level instead of being shaded against a surface that is not there. The column is
@@ -135,9 +144,10 @@ there.
   `onChunkLoaded`, and `onChunkUnloaded` drops a column's light. A chunk the view can read but the
   engine has not been told about is treated as unloaded. One entry point for a chunk is simpler to
   reason about than lazily inventing a heightmap for a column nobody declared.
-- **Callers choose which loaded chunks need light.** The Prismarine world initializes the
-  simulation area and a one-chunk guard ring. A light-dependent read outside that ring initializes
-  and settles its loaded chunk on demand; `hasChunk` tells a caller whether a column is resident.
+- **Callers choose which loaded chunks need light, and when.** The Prismarine world announces the
+  simulation area and a one-chunk guard ring a few chunks a tick, nearest a player first. A
+  light-dependent read of a chunk it has not reached announces and settles that chunk and its
+  neighbors on demand; `hasChunk` tells a caller whether a column is resident.
 - **Deferred work is reconstructed, not stored.** Propagation into an unloaded chunk is dropped and
   rebuilt from the neighbors' borders when that chunk loads. A queue of parked nodes would grow with
   every edit next to an unloaded border and would still need the border pass for chunks that unload

@@ -1,6 +1,7 @@
 import type { BlockLightProperties, BlockLightView, LightSectionHint } from './BlockLightView';
 import { CHUNK_COLUMN_COUNT, CHUNK_SIZE, chunkOf, columnKeyOf, heightmapIndexOf } from './coordinates';
 import { LightQueue } from './LightQueue';
+import type { LightNode } from './LightQueue';
 import { LightSection, MAX_LIGHT_LEVEL } from './LightSection';
 
 /** A world block position. */
@@ -286,6 +287,56 @@ export class LightEngine {
         return { processed, queued: this.queuedNodes, deferred: this.awaitingChunks.size };
     }
 
+    /**
+     * Finishes the light of one chunk and leaves the rest of the queue alone: runs every node
+     * queued in the chunk and its eight neighbors, and every node those queue there. Afterwards
+     * {@link LightEngine.isFloodingAround} is false for the chunk and it holds the levels a full
+     * {@link LightEngine.flush} gives it, because light reaches at most fifteen blocks and no node
+     * further out can change a level in it.
+     *
+     * The nodes it runs depend on the work queued around the chunk, and not on how much is queued
+     * elsewhere. A flood that leaves the nine chunks stays queued for `flush`.
+     *
+     * A decrease in the nine chunks still runs before an increase there. A decrease queued further
+     * out has not run yet, so the light it will take away can still stand in the eight neighbors,
+     * never in the chunk itself.
+     * @param {number} chunkX - The chunk x.
+     * @param {number} chunkZ - The chunk z.
+     * @param {number} [budget] - The most nodes to run. Unbounded when omitted. A call that stops
+     * at its budget leaves the chunk flooding, and a later call carries on.
+     * @returns {LightFlushResult} The nodes it ran and the work left in the whole queue.
+     * @throws {RangeError} When the budget is negative or not a number.
+     */
+    public settleAround(chunkX: number, chunkZ: number, budget: number = Number.POSITIVE_INFINITY): LightFlushResult {
+        if (Number.isNaN(budget) || budget < 0) {
+            throw new RangeError(`Light settle budget ${budget} is not a count of nodes`);
+        }
+
+        let processed = 0;
+        if (this.queuedByColumn.size > 0) {
+            for (const layer of [BLOCK_LAYER, SKY_LAYER] as const) {
+                processed += this.decreaseQueues[layer].takeWithin(
+                    chunkX - 1,
+                    chunkX + 1,
+                    chunkZ - 1,
+                    chunkZ + 1,
+                    (node) => this.decrease(layer, node),
+                    budget - processed
+                );
+                processed += this.increaseQueues[layer].takeWithin(
+                    chunkX - 1,
+                    chunkX + 1,
+                    chunkZ - 1,
+                    chunkZ + 1,
+                    (node) => this.increase(layer, node),
+                    budget - processed
+                );
+            }
+        }
+
+        return { processed, queued: this.queuedNodes, deferred: this.awaitingChunks.size };
+    }
+
     private get queuedNodes(): number {
         return (
             this.decreaseQueues[BLOCK_LAYER].size +
@@ -558,8 +609,16 @@ export class LightEngine {
 
     private stepIncrease(layer: LightLayer): void {
         const node = this.increaseQueues[layer].shift();
-        if (node === undefined) return;
+        if (node !== undefined) this.increase(layer, node);
+    }
 
+    private stepDecrease(layer: LightLayer): void {
+        const node = this.decreaseQueues[layer].shift();
+        if (node !== undefined) this.decrease(layer, node);
+    }
+
+    /** Spreads one queued position's level to the neighbors it is brighter than. */
+    private increase(layer: LightLayer, node: LightNode): void {
         const { x, y, z } = node;
         const column = this.columnAt(x, z);
         if (column === undefined) return;
@@ -585,10 +644,8 @@ export class LightEngine {
         }
     }
 
-    private stepDecrease(layer: LightLayer): void {
-        const node = this.decreaseQueues[layer].shift();
-        if (node === undefined) return;
-
+    /** Takes away the light one queued position gave its neighbors, and queues what fills in again. */
+    private decrease(layer: LightLayer, node: LightNode): void {
         const { x, y, z, level: removed } = node;
         for (let direction = 0; direction < ALL_DIRECTIONS; direction++) {
             const neighborX = x + OFFSET_X[direction]!;
