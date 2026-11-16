@@ -107,6 +107,27 @@ describe('findPath', () => {
         );
     });
 
+    it('keeps a mob a block wide or wider out of a one-block gap, as Java sizes nodes by floor(width + 1)', () => {
+        // A wall along x = 2 with a one-wide gap at z = 1, and a two-wide gap at z = 3 and 4.
+        const floor = '######';
+        const narrow = voxelGrid([
+            [floor, floor, floor, floor, floor],
+            ['..#...', '......', '..#...', '..#...', '..#...'],
+            ['..#...', '......', '..#...', '..#...', '..#...']
+        ]);
+        const wide = voxelGrid([
+            [floor, floor, floor, floor, floor],
+            ['..#...', '..#...', '..#...', '......', '......'],
+            ['..#...', '..#...', '..#...', '......', '......']
+        ]);
+        const request = { from: { x: 1, y: 1, z: 1.5 }, to: { x: 4, y: 1, z: 1.5 } };
+        const horse = navigationProfileOf({ height: 2, width: 2 });
+
+        expect(findPath(narrow, walker, request)?.reachedGoal).toBe(true);
+        expect(findPath(narrow, horse, request)).toBeUndefined();
+        expect(findPath(wide, horse, { from: { x: 1, y: 1, z: 1 }, to: { x: 4, y: 1, z: 1 } })?.reachedGoal).toBe(true);
+    });
+
     it('needs can_open_iron_doors for an iron door', () => {
         const view = voxelGrid([['###'], ['.I.']]);
         const request = { from: { x: 0, y: 1, z: 0 }, to: { x: 2, y: 1, z: 0 } };

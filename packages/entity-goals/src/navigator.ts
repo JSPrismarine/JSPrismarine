@@ -4,7 +4,7 @@ import type { Path } from './navigation/pathfinder';
 import { findPath } from './navigation/pathfinder';
 import type { NavigationProfile } from './navigation/profile';
 import type { NavigationView } from './navigation/view';
-import { blockOf, centerOf, distanceBetween } from './navigation/view';
+import { blockOf, centerOf, distanceBetween, entityPositionAtNode } from './navigation/view';
 
 /**
  * One entity's movement, from a goal's point of view.
@@ -34,6 +34,7 @@ const sameProfile = (left: NavigationProfile, right: NavigationProfile): boolean
     if (
         left.kind !== right.kind ||
         left.height !== right.height ||
+        left.width !== right.width ||
         left.stepHeight !== right.stepHeight ||
         left.maxFallDistance !== right.maxFallDistance ||
         left.canPathOverWater !== right.canPathOverWater ||
@@ -269,7 +270,7 @@ export class Navigator {
             this.pathNeedsRecompute = true;
             return false;
         }
-        if (distanceBetween(here, centerOf(current)) <= WAYPOINT_RADIUS) {
+        if (distanceBetween(here, entityPositionAtNode(current, this.plannedProfile?.width)) <= WAYPOINT_RADIUS) {
             this.waypoint += 1;
             if (this.waypoint >= path.nodes.length) {
                 this.pathNeedsRecompute = true;
@@ -350,7 +351,8 @@ export class Navigator {
     /** Points the actuator at the waypoint the entity is walking to now. */
     private step(): void {
         const node = this.path?.nodes[this.waypoint];
-        const destination = node === undefined ? this.destination : centerOf(node);
+        const destination =
+            node === undefined ? this.destination : entityPositionAtNode(node, this.plannedProfile?.width);
         if (destination !== undefined) this.context.actuator?.moveTo(destination, this.speed);
     }
 }

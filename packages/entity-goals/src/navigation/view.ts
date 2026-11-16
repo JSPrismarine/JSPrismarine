@@ -68,6 +68,24 @@ export const centerOf = (block: EntityPosition): EntityPosition => ({
     z: Math.floor(block.z) + 0.5
 });
 
+/**
+ * Where a path node puts an entity `width` blocks wide, Java's `Path.getEntityPosAtNode`: the
+ * middle of the `width` by `width` cells the node's corner starts, which for a one-block mob is
+ * {@link centerOf}.
+ */
+export const entityPositionAtNode = (node: EntityPosition, width = 1): EntityPosition => ({
+    x: Math.floor(node.x) + width * 0.5,
+    y: Math.floor(node.y),
+    z: Math.floor(node.z) + width * 0.5
+});
+
+/** The node whose cells an entity `width` blocks wide stands in, the inverse of {@link entityPositionAtNode}. */
+export const nodeOfEntityPosition = (position: EntityPosition, width = 1): EntityPosition => ({
+    x: Math.floor(position.x - width * 0.5 + 0.5),
+    y: Math.floor(position.y),
+    z: Math.floor(position.z - width * 0.5 + 0.5)
+});
+
 /** The straight-line distance between two positions. */
 export const distanceBetween = (a: EntityPosition, b: EntityPosition): number =>
     hypot3(a.x - b.x, a.y - b.y, a.z - b.z);

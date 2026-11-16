@@ -47,4 +47,46 @@ describe('navigationProfile', () => {
 
         expect(navigationProfile(fish).canPassDoors).toBe(false);
     });
+
+    it("opens closed doors only as the Java navigator does, and breaks them only with Bedrock's break_door", () => {
+        const zombie = (annotated: boolean): NavigationSource => ({
+            componentSetToken: {},
+            componentParams: (name) =>
+                name === 'minecraft:navigation.walk'
+                    ? { canOpenDoors: true, canBreakDoors: true }
+                    : name === 'minecraft:collision_box'
+                      ? { width: 0.6, height: 1.9 }
+                      : undefined,
+            hasComponent: (name) => annotated && name === 'minecraft:annotation.break_door',
+            javaNavigation: {
+                navigationClass: 'net.minecraft.world.entity.ai.navigation.GroundPathNavigation',
+                canFloat: true,
+                canNavigateGround: true,
+                canOpenDoors: false,
+                pushable: true,
+                pathfindingMalus: {}
+            }
+        });
+
+        expect(navigationProfile(zombie(false))).toMatchObject({ canOpenDoors: false, canBreakDoors: false });
+        expect(navigationProfile(zombie(true))).toMatchObject({ canOpenDoors: false, canBreakDoors: true });
+    });
+
+    it("sizes path cells by Java's floor(width + 1)", () => {
+        const sized = (width: number): NavigationSource => ({
+            componentSetToken: {},
+            componentParams: (name) =>
+                name === 'minecraft:navigation.walk'
+                    ? {}
+                    : name === 'minecraft:collision_box'
+                      ? { width, height: 1.6 }
+                      : undefined,
+            hasComponent: () => false,
+            javaNavigation: undefined
+        });
+
+        expect([0.6, 0.99, 1, 1.4, 1.95].map((width) => navigationProfile(sized(width)).width)).toEqual([
+            1, 1, 2, 2, 2
+        ]);
+    });
 });

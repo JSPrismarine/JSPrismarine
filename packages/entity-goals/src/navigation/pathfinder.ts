@@ -3,7 +3,7 @@ import { hypot3 } from '@jsprismarine/math';
 
 import type { NavigationProfile } from './profile';
 import type { NavigationView } from './view';
-import { blockOf } from './view';
+import { nodeOfEntityPosition } from './view';
 
 /**
  * An A* search over whole blocks, run against a {@link NavigationView} and
@@ -264,7 +264,24 @@ class CellReader {
         return this.at;
     }
 
+    /**
+     * What entering a node costs: the dearest of the cells under the entity's footprint, which
+     * Java's `getPathTypeOfMob` reads across `floor(bbWidth + 1)` blocks each way from the node's
+     * corner, or undefined when any of them refuses it.
+     */
     private readCost(x: number, y: number, z: number): number | undefined {
+        const width = this.profile.width ?? 1;
+        let cost = this.readCellCost(x, y, z);
+        for (let dx = 0; dx < width && cost !== undefined; dx += 1)
+            for (let dz = 0; dz < width && cost !== undefined; dz += 1) {
+                if (dx === 0 && dz === 0) continue;
+                const column = this.readCellCost(x + dx, y, z + dz);
+                cost = column === undefined ? undefined : Math.max(cost, column);
+            }
+        return cost;
+    }
+
+    private readCellCost(x: number, y: number, z: number): number | undefined {
         const { view, profile } = this;
         const feet = this.cell(x, y, z);
 
@@ -475,7 +492,7 @@ const unwind = (node: SearchNode): readonly EntityPosition[] => {
  * check, without searching for a route to the cell.
  */
 export const canOccupy = (view: NavigationView, profile: NavigationProfile, at: EntityPosition): boolean => {
-    const block = blockOf(at);
+    const block = nodeOfEntityPosition(at, profile.width);
     return new CellReader(view, profile, block).enterable(block.x, block.y, block.z) !== undefined;
 };
 
@@ -515,8 +532,8 @@ const goalRegionSize = (goalRadius: number): number => (2 * Math.floor(goalRadiu
  *   satisfies the goal radius returns an empty path.
  */
 export const findPath = (view: NavigationView, profile: NavigationProfile, request: PathRequest): Path | undefined => {
-    const start = blockOf(request.from);
-    const goal = blockOf(request.to);
+    const start = nodeOfEntityPosition(request.from, profile.width);
+    const goal = nodeOfEntityPosition(request.to, profile.width);
     const goalRadius = request.goalRadius ?? 0;
     const budget = request.maxNodes ?? DEFAULT_MAX_NODES;
     const cells = new CellReader(view, profile, start);

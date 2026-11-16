@@ -235,7 +235,7 @@ import { cushions } from '../playerFall';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
-import { effectiveDifficulty } from '../localDifficulty';
+import { effectiveDifficulty, specialMultiplier } from '../localDifficulty';
 import type { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerMining } from '../playerComponents';
 import type { PlayerShownForm } from '../playerShown';
@@ -1136,6 +1136,7 @@ export class EntityRuntime implements EntityScene {
             this.remove(entity.id, 'refused_spawn');
             return undefined;
         }
+        this.decideDoorBreaking(entity);
         this.syncGameEventListener(entity);
         this.startFuse(entity);
         // Between the spawn event and the body, for the same reason the body comes last. The
@@ -1178,6 +1179,31 @@ export class EntityRuntime implements EntityScene {
                 this.remove(spawned.id, 'unseated_rider');
             }
         }
+    }
+
+    /**
+     * Decides whether a fresh zombie breaks doors by Java's chance rather than the pack's.
+     *
+     * Java's `Zombie.finalizeSpawn` lets one break doors, and so path through them, when
+     * `nextFloat()` falls under a tenth of the local difficulty's special multiplier, which is 0 on
+     * a fresh Normal world; a drowned never does (`Drowned.supportsBreakDoorGoal`). Bedrock's spawn
+     * event adds the door-breaking group one time in ten whatever the difficulty.
+     */
+    private decideDoorBreaking(entity: DataEntity): void {
+        const supports = JAVA_DOOR_BREAKERS.get(entity.identifier);
+        const { groups } = entity.instance.type;
+        const group = BREAK_DOORS_GROUPS.find((name) => groups.has(name));
+        if (supports === undefined || group === undefined) return;
+        const { level } = this.world;
+        const chance = supports
+            ? specialMultiplier(effectiveDifficulty(level.difficulty(), level.gameTime())) * 0.1
+            : 0;
+        const breaks = chance > 0 && this.world.random.nextFloat() < chance;
+        if (breaks === entity.instance.hasComponent(BREAK_DOOR_ANNOTATION)) return;
+        const effects = noEffects('jsprismarine:java_door_breaking');
+        entity.instance.applyEffects(
+            breaks ? { ...effects, addGroups: [group] } : { ...effects, removeGroups: [group] }
+        );
     }
 
     /**
@@ -6579,6 +6605,20 @@ const FALL_DAMAGE_MULTIPLIER = 'minecraft:fall_damage_multiplier';
 
 /** What `LivingEntity.calculateFallPower` adds to a fall, so a fall of exactly a whole block counts it. */
 const FALL_EPSILON = 1e-6;
+
+/** The group Bedrock's zombies break doors with, which the zombie villager files name without a namespace, and the component it adds. */
+const BREAK_DOORS_GROUPS = ['minecraft:can_break_doors', 'can_break_doors'];
+const BREAK_DOOR_ANNOTATION = 'minecraft:annotation.break_door';
+
+/** The zombies whose pack draws door breaking at spawn, with whether their Java class can break doors at all. */
+const JAVA_DOOR_BREAKERS: ReadonlyMap<string, boolean> = new Map([
+    ['minecraft:zombie', true],
+    ['minecraft:husk', true],
+    ['minecraft:zombie_villager', true],
+    ['minecraft:zombie_villager_v2', true],
+    // Drowned.supportsBreakDoorGoal is false.
+    ['minecraft:drowned', false]
+]);
 
 /**
  * The melee effects a mob's Java class decides in its own `doHurtTarget`, by the effective local

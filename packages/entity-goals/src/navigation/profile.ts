@@ -32,6 +32,12 @@ export interface NavigationProfile {
     readonly kind: NavigationKind;
     /** How many whole blocks of headroom the entity needs, at least 1. */
     readonly height: number;
+    /**
+     * How many blocks wide and deep a path cell has to be clear for the entity, Java's
+     * `floor(bbWidth + 1)`: 1 for a mob under a block wide, 2 for a horse or a spider. Absent
+     * means 1.
+     */
+    readonly width?: number;
     /** How high the entity climbs without jumping, in blocks. */
     readonly stepHeight: number;
     /** How far the entity drops in one step, in blocks. */
@@ -73,6 +79,7 @@ export interface NavigationProfile {
 export const defaultNavigationProfile: NavigationProfile = {
     kind: 'walk',
     height: 2,
+    width: 1,
     stepHeight: 1,
     maxFallDistance: 3,
     canPathOverWater: false,
@@ -128,6 +135,16 @@ const heightOf = (entity: NavigationSource): number => {
     return Math.max(1, Math.ceil(height));
 };
 
+/**
+ * How many blocks wide the entity's path cells are, from `minecraft:collision_box`: Java's
+ * `WalkNodeEvaluator` and `FlyNodeEvaluator` take `floor(bbWidth + 1)`.
+ */
+const widthOf = (entity: NavigationSource): number => {
+    const box = entity.componentParams('minecraft:collision_box');
+    const width = isRecord(box) && typeof box.width === 'number' ? box.width : 0.6;
+    return Math.max(1, Math.floor(width + 1));
+};
+
 /** How high the entity steps, from `minecraft:variable_max_auto_step`. */
 const stepHeightOf = (entity: NavigationSource, canJump: boolean): number => {
     const step = entity.componentParams('minecraft:variable_max_auto_step');
@@ -179,6 +196,7 @@ const buildNavigationProfile = (entity: NavigationSource): NavigationProfile => 
             withJavaNavigation(entity, {
                 kind,
                 height: heightOf(entity),
+                width: widthOf(entity),
                 stepHeight: stepHeightOf(entity, canJump),
                 maxFallDistance: 3,
                 canPathOverWater: flag(body, 'canPathOverWater', false),
@@ -208,11 +226,11 @@ const buildNavigationProfile = (entity: NavigationSource): NavigationProfile => 
 
     return withEntityAbilities(
         entity,
-        withJavaNavigation(entity, { ...defaultNavigationProfile, height: heightOf(entity) })
+        withJavaNavigation(entity, { ...defaultNavigationProfile, height: heightOf(entity), width: widthOf(entity) })
     );
 };
 
-/** Lets the pinned Java navigator decide which media its path can enter and hold, and whether it passes open doors. */
+/** Lets the pinned Java navigator decide which media its path can enter and hold, and which doors it passes. */
 const withJavaNavigation = (entity: NavigationSource, profile: NavigationProfile): NavigationProfile => {
     const java = entity.javaNavigation;
     if (java === undefined) return profile;
@@ -231,6 +249,11 @@ const withJavaNavigation = (entity: NavigationSource, profile: NavigationProfile
         canSwim: isWaterBound || isAmphibious,
         canWalk: java.canNavigateGround,
         canPassDoors: java.canPassDoors ?? profile.canPassDoors,
+        // Java's evaluator opens a closed wooden door only for a navigator set to open doors, and
+        // a zombie's navigator is set so only once it can break them, which Bedrock writes as the
+        // `minecraft:annotation.break_door` its door-breaking group adds.
+        canOpenDoors: java.canOpenDoors ?? profile.canOpenDoors,
+        canBreakDoors: profile.canBreakDoors && entity.hasComponent('minecraft:annotation.break_door'),
         canFly: isFlying,
         isAmphibious,
         pathfindingMalus: java.pathfindingMalus
