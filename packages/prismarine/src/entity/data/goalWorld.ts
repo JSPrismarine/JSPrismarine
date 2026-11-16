@@ -174,6 +174,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
 
     return {
         navigation: () => scene.navigation(),
+        gameRule: (name) => scene.world.level.gameRule(name),
         // FleeSunGoal's bytecode checks this before drawing. The vanilla
         // Overworld clock's bright interval is the daytime interval here.
         isBrightOutside: () =>

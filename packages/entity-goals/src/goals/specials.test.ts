@@ -196,3 +196,65 @@ describe('minecraft:behavior.skeleton_horse_trap', () => {
         expect(harness.running()).toEqual([]);
     });
 });
+
+describe('the silverfish goals', () => {
+    it('hide a silverfish in a cobblestone face neighbor as infested cobblestone', () => {
+        const writes: string[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.silverfish_merge_with_stone': { priority: 5 } },
+            world: {
+                blocks: () => [{ position: { x: 0, y: -1, z: 0 }, identifier: 'minecraft:cobblestone' }],
+                setBlock: (_position, identifier) => writes.push(identifier)
+            },
+            at: { x: 0.5, y: 0, z: 0.5 },
+            // The first draw passes the one-in-five check, the second picks the face below.
+            randomInt: () => 0
+        });
+
+        harness.tick();
+
+        expect(writes).toEqual(['minecraft:infested_cobblestone']);
+    });
+
+    it('leave a block that cannot host a silverfish alone', () => {
+        const writes: string[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.silverfish_merge_with_stone': { priority: 5 } },
+            world: {
+                blocks: (query) =>
+                    query.identifiers?.includes('minecraft:dirt') === true
+                        ? [{ position: { x: 0, y: -1, z: 0 }, identifier: 'minecraft:dirt' }]
+                        : [],
+                setBlock: (_position, identifier) => writes.push(identifier)
+            },
+            at: { x: 0.5, y: 0, z: 0.5 },
+            randomInt: () => 0
+        });
+
+        harness.tick(10);
+
+        expect(writes).toEqual([]);
+    });
+
+    it('wake the nests 20 ticks after the blow, not before', () => {
+        const broken: number[] = [];
+        let tick = 0;
+        let damagers: readonly { mob: ReturnType<typeof testMob>; cause: string; total: number }[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.silverfish_wake_up_friends': { priority: 1 } },
+            world: {
+                damagers: () => damagers,
+                blocks: () => [{ position: { x: 3, y: 0, z: 0 }, identifier: 'minecraft:infested_stone' }],
+                breakBlock: () => broken.push(tick),
+                spawn: () => undefined
+            },
+            at: { x: 0.5, y: 0, z: 0.5 }
+        });
+
+        harness.tick();
+        damagers = [{ mob: testMob('player', { x: 2, y: 0, z: 0 }), cause: 'entity_attack', total: 1 }];
+        for (tick = 1; tick <= 30; tick += 1) harness.tick();
+
+        expect(broken).toEqual([20]);
+    });
+});

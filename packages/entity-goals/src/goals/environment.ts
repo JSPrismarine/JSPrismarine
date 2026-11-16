@@ -2,6 +2,7 @@ import type { EntityPosition, Goal } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 
 import type { RegisterableGoal } from '../goal';
+import { blockIdentifiersOf } from '../blockNames';
 import { goal } from '../goal';
 import { centerOf } from '../navigation/view';
 import type { GoalEvent, Range, TargetEntityType } from '../params';
@@ -419,10 +420,14 @@ export const eatBlock = goal<EatBlockParams>({
     name: 'minecraft:behavior.eat_block',
     controlFlags: ['move', 'look'],
     schema: bodySchema((body) => ({
-        pairs: recordsAt(body, 'eat_and_replace_block_pairs').map((pair) => ({
-            eatBlock: stringAt(pair, 'eat_block') ?? '',
-            replaceBlock: stringAt(pair, 'replace_block') ?? 'minecraft:air'
-        })),
+        pairs: recordsAt(body, 'eat_and_replace_block_pairs').flatMap((pair) => {
+            const replaceBlock =
+                blockIdentifiersOf(stringAt(pair, 'replace_block') ?? 'minecraft:air')[0] ?? 'minecraft:air';
+            return blockIdentifiersOf(stringAt(pair, 'eat_block') ?? '').map((eatBlock) => ({
+                eatBlock,
+                replaceBlock
+            }));
+        }),
         timeUntilEat: ticksAt(body, 'time_until_eat', EAT_ANIMATION_TICKS / 20),
         successChance: stringAt(body, 'success_chance'),
         onEat: eventAt(body, 'on_eat')
@@ -436,14 +441,19 @@ export const eatBlock = goal<EatBlockParams>({
             canStart: () => {
                 const interval = support.flag('is_baby') ? BABY_EAT_INTERVAL : ADULT_EAT_INTERVAL;
                 if (!support.chance(1 / interval)) return false;
-                for (const pair of params.pairs) {
-                    const found = support.world.blocks?.({
-                        identifiers: [pair.eatBlock],
-                        range: 1,
-                        height: 1,
-                        limit: 1
-                    })[0];
-                    if (found === undefined) continue;
+                // Java's EatBlockGoal looks at two cells only: the one the sheep stands in, then
+                // the one under its feet.
+                const feet = Math.floor(support.position().y);
+                const column =
+                    support.world.blocks?.({
+                        identifiers: params.pairs.map((pair) => pair.eatBlock),
+                        range: 0,
+                        height: 1
+                    }) ?? [];
+                for (const y of [feet, feet - 1]) {
+                    const found = column.find((candidate) => Math.floor(candidate.position.y) === y);
+                    const pair = params.pairs.find((entry) => entry.eatBlock === found?.identifier);
+                    if (found === undefined || pair === undefined) continue;
                     mouthful = pair;
                     block = found.position;
                     return true;

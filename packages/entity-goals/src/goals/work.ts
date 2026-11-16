@@ -3,6 +3,7 @@ import { isShareablesParams } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 
 import type { RegisterableGoal } from '../goal';
+import { blockIdentifiersOf } from '../blockNames';
 import { goal } from '../goal';
 import { centerOf } from '../navigation/view';
 import type { GoalBody, GoalEvent, Range } from '../params';
@@ -867,20 +868,33 @@ export const placeBlock = goal<PlaceBlockParams>({
         canStart: () => support.chance(params.chance) && support.matches(params.canPlace),
         start: () => {
             const here = support.position();
-            const block =
-                params.placeableBlocks[Math.floor(support.random() * params.placeableBlocks.length)] ??
-                support.world.carriedItem?.();
+            const listed = params.placeableBlocks[Math.floor(support.random() * params.placeableBlocks.length)];
+            const block = listed ?? support.world.carriedItem?.();
             if (block === undefined) return;
-            const spread = support.between(params.xzRange[0], params.xzRange[1]);
-            const lift = support.between(params.yRange[0], params.yRange[1]);
-            support.world.setBlock?.(
-                {
-                    x: Math.floor(here.x) + Math.round((support.random() * 2 - 1) * spread),
-                    y: Math.floor(here.y) + Math.round((support.random() * 2 - 1) * lift),
-                    z: Math.floor(here.z) + Math.round((support.random() * 2 - 1) * spread)
-                },
-                block
-            );
+            if (params.affectedByGriefingRule && support.world.gameRule?.('mobGriefing') === false) return;
+            const target = {
+                x: Math.floor(here.x) + support.between(params.xzRange[0], params.xzRange[1]),
+                y: Math.floor(here.y) + support.between(params.yRange[0], params.yRange[1]),
+                z: Math.floor(here.z) + support.between(params.xzRange[0], params.xzRange[1])
+            };
+            // Java's EndermanLeaveBlockGoal puts a block only into air standing on something,
+            // so a placement never replaces a block that is already there.
+            const reach = Math.max(1, ...params.xzRange.map(Math.abs));
+            const lift = Math.max(1, ...params.yRange.map(Math.abs)) + 1;
+            const air = support.world.blocks?.({ identifiers: ['minecraft:air'], range: reach, height: lift });
+            if (air !== undefined) {
+                const isAir = (y: number): boolean =>
+                    air.some(
+                        (cell) =>
+                            Math.floor(cell.position.x) === target.x &&
+                            Math.floor(cell.position.y) === y &&
+                            Math.floor(cell.position.z) === target.z
+                    );
+                if (!isAir(target.y) || isAir(target.y - 1)) return;
+            }
+            support.world.setBlock?.(target, block);
+            // A carried block is put down, as Java's EndermanLeaveBlockGoal empties the arms.
+            if (listed === undefined) support.world.setCarriedItem?.(undefined);
             support.fire(params.onPlace);
         }
     })
@@ -907,11 +921,12 @@ export const takeBlock = goal<TakeBlockParams>({
         chance: numberAt(body, 'chance', 0.02),
         xzRange: rangeAt(body, 'xz_range', [0, 0]),
         yRange: rangeAt(body, 'y_range', [0, 0]),
-        blocks: stringsAt(body, 'blocks')
+        blocks: stringsAt(body, 'blocks').flatMap(blockIdentifiersOf)
     })),
     create: (params, support) => ({
         canStart: () => support.world.carriedItem?.() === undefined && support.chance(params.chance),
         start: () => {
+            if (support.world.gameRule?.('mobGriefing') === false) return;
             const found = support.world.blocks?.({
                 identifiers: params.blocks,
                 range: Math.max(1, params.xzRange[1]),
@@ -919,7 +934,9 @@ export const takeBlock = goal<TakeBlockParams>({
                 limit: 1
             })[0];
             if (found === undefined) return;
-            support.world.breakBlock?.(found.position);
+            // Java's EndermanTakeBlockGoal lifts the block out with removeBlock, which drops
+            // nothing: the block is in the enderman's arms, not on the ground as well.
+            support.world.setBlock?.(found.position, 'minecraft:air');
             support.world.setCarriedItem?.(found.identifier);
         }
     })

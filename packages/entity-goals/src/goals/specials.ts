@@ -1,7 +1,8 @@
-import type { ControlFlag, Goal } from '@jsprismarine/entities';
+import type { ControlFlag, EntityPosition, Goal } from '@jsprismarine/entities';
 
 import type { RegisterableGoal } from '../goal';
 import { goal } from '../goal';
+import { centerOf } from '../navigation/view';
 import type { GoalBody, GoalEvent, Range } from '../params';
 import { bodySchema, eventAt, numberAt, stringAt, tickRangeAt, ticksAt } from '../params';
 import type { GoalSupport } from '../support';
@@ -285,58 +286,149 @@ export const slimeRandomDirection = goal<SlimeRandomDirectionParams>({
 });
 
 /**
- * `minecraft:behavior.silverfish_merge_with_stone`, which the silverfish
- * carries. It hides inside a stone block, which is how an infested block is
- * made.
+ * The blocks a silverfish can hide in, with the infested block each becomes. Java's
+ * `InfestedBlock.isCompatibleHostBlock` and `infestedStateByHost`.
+ */
+const INFESTED_BY_HOST: ReadonlyMap<string, string> = new Map([
+    ['minecraft:stone', 'minecraft:infested_stone'],
+    ['minecraft:cobblestone', 'minecraft:infested_cobblestone'],
+    ['minecraft:stone_bricks', 'minecraft:infested_stone_bricks'],
+    ['minecraft:mossy_stone_bricks', 'minecraft:infested_mossy_stone_bricks'],
+    ['minecraft:cracked_stone_bricks', 'minecraft:infested_cracked_stone_bricks'],
+    ['minecraft:chiseled_stone_bricks', 'minecraft:infested_chiseled_stone_bricks'],
+    ['minecraft:deepslate', 'minecraft:infested_deepslate']
+]);
+
+/** The host block each infested block was made from, for waking a nest without griefing. */
+const HOST_BY_INFESTED: ReadonlyMap<string, string> = new Map(
+    [...INFESTED_BY_HOST].map(([host, infested]) => [infested, host])
+);
+
+/** The six face directions, in Java's `Direction` order: down, up, north, south, west, east. */
+const FACES: readonly (readonly [number, number, number])[] = [
+    [0, -1, 0],
+    [0, 1, 0],
+    [0, 0, -1],
+    [0, 0, 1],
+    [-1, 0, 0],
+    [1, 0, 0]
+];
+
+/**
+ * `minecraft:behavior.silverfish_merge_with_stone`, which the silverfish carries. Java's
+ * `SilverfishMergeWithStoneGoal`: with no target and nothing to walk to, one goal check in five
+ * looks at the block on one random face and, when it can host a silverfish, the silverfish turns
+ * it into the infested block and disappears.
  */
 export const silverfishMergeWithStone = goal<GoalBody>({
     name: 'minecraft:behavior.silverfish_merge_with_stone',
     controlFlags: ['move'],
     schema: bodySchema((body) => body),
-    create: (_params, support) => ({
-        canStart: () =>
-            support.target() === undefined &&
-            (support.world.blocks?.({ identifiers: ['minecraft:stone'], range: 1, height: 1, limit: 1 }) ?? []).length >
-                0,
-        start: () => {
-            const stone = support.world.blocks?.({
-                identifiers: ['minecraft:stone'],
-                range: 1,
-                height: 1,
-                limit: 1
-            })[0];
-            if (stone === undefined) return;
-            support.world.setBlock?.(stone.position, 'minecraft:infested_stone');
-            support.entity.remove('minecraft:behavior.silverfish_merge_with_stone');
-        }
-    })
+    create: (_params, support) => {
+        let host: { readonly position: EntityPosition; readonly infested: string } | undefined;
+        return {
+            canStart: () => {
+                host = undefined;
+                if (support.target() !== undefined || support.navigator.walking) return false;
+                if (support.world.gameRule?.('mobGriefing') === false) return false;
+                // reducedTickDelay(10) is 5 goal checks, one in which succeeds.
+                if (support.randomInt(5) !== 0) return false;
+                const [dx, dy, dz] = FACES[support.randomInt(FACES.length)] ?? [0, -1, 0];
+                const here = support.position();
+                const cell = {
+                    x: Math.floor(here.x) + dx,
+                    y: Math.floor(here.y + 0.5) + dy,
+                    z: Math.floor(here.z) + dz
+                };
+                const found = (
+                    support.world.blocks?.({ identifiers: [...INFESTED_BY_HOST.keys()], range: 1, height: 1 }) ?? []
+                ).find(
+                    (block) =>
+                        Math.floor(block.position.x) === cell.x &&
+                        Math.floor(block.position.y) === cell.y &&
+                        Math.floor(block.position.z) === cell.z
+                );
+                const infested = found === undefined ? undefined : INFESTED_BY_HOST.get(found.identifier);
+                if (found === undefined || infested === undefined) return false;
+                host = { position: found.position, infested };
+                return true;
+            },
+            start: () => {
+                if (host === undefined) return;
+                support.world.setBlock?.(host.position, host.infested);
+                support.entity.remove('minecraft:behavior.silverfish_merge_with_stone');
+            }
+        };
+    }
 });
 
+/** The y offsets Java's wake-up scan visits, nearest first: 0, 1, -1, 2, -2 and so on. */
+const nearestFirst = (reach: number): readonly number[] => {
+    const offsets = [0];
+    for (let step = 1; step <= reach; step += 1) offsets.push(step, -step);
+    return offsets;
+};
+
 /**
- * `minecraft:behavior.silverfish_wake_up_friends`, which the silverfish
- * carries. A hurt silverfish calls every infested block around it.
+ * `minecraft:behavior.silverfish_wake_up_friends`, which the silverfish carries. Java's
+ * `SilverfishWakeUpFriendsGoal`: 20 ticks after a silverfish is hurt by an attacker, it scans
+ * 10 blocks across and 5 up and down, nearest first, and breaks each infested block it finds,
+ * which lets the silverfish inside out. After each block a coin flip ends the scan. With
+ * `mobGriefing` off the block turns back into its host and nothing comes out.
  */
 export const silverfishWakeUpFriends = goal<GoalBody>({
     name: 'minecraft:behavior.silverfish_wake_up_friends',
     controlFlags: [],
     schema: bodySchema((body) => body),
     create: (_params, support) => {
-        /** How far the call reaches, which is the vanilla silverfish's summon radius in blocks. */
-        const callRadius = 10;
+        /** How long the call takes to go out, `adjustedTickDelay(20)`. */
+        const delay = 20;
+        let seen = 0;
+        let lookForFriends = 0;
         return {
-            canStart: () => (support.world.damagers?.() ?? []).length > 0,
-            start: () => {
+            canStart: () => {
+                const hurt = (support.world.damagers?.() ?? []).reduce(
+                    (sum, damage) => sum + (damage.mob === undefined ? 0 : damage.total),
+                    0
+                );
+                const fresh = hurt > seen;
+                seen = hurt;
+                if (fresh) lookForFriends = delay;
+                return lookForFriends > 0;
+            },
+            canContinue: () => lookForFriends > 0,
+            tick: () => {
+                lookForFriends -= 1;
+                if (lookForFriends > 0) return;
+                const here = support.position();
+                const origin = { x: Math.floor(here.x), y: Math.floor(here.y), z: Math.floor(here.z) };
                 const nests =
-                    support.world.blocks?.({
-                        identifiers: ['minecraft:infested_stone'],
-                        range: callRadius,
-                        height: callRadius
-                    }) ?? [];
-                for (const nest of nests) {
-                    support.world.breakBlock?.(nest.position);
-                    support.world.spawn?.('minecraft:silverfish', nest.position, undefined);
-                }
-            }
+                    support.world.blocks?.({ identifiers: [...HOST_BY_INFESTED.keys()], range: 10, height: 5 }) ?? [];
+                const at = new Map(
+                    nests.map((nest) => [
+                        `${Math.floor(nest.position.x)},${Math.floor(nest.position.y)},${Math.floor(nest.position.z)}`,
+                        nest
+                    ])
+                );
+                const griefing = support.world.gameRule?.('mobGriefing') !== false;
+                for (const dy of nearestFirst(5))
+                    for (const dx of nearestFirst(10))
+                        for (const dz of nearestFirst(10)) {
+                            const nest = at.get(`${origin.x + dx},${origin.y + dy},${origin.z + dz}`);
+                            if (nest === undefined) continue;
+                            if (griefing) {
+                                support.world.breakBlock?.(nest.position);
+                                support.world.spawn?.('minecraft:silverfish', centerOf(nest.position), undefined);
+                            } else {
+                                support.world.setBlock?.(
+                                    nest.position,
+                                    HOST_BY_INFESTED.get(nest.identifier) ?? 'minecraft:stone'
+                                );
+                            }
+                            if (support.random() < 0.5) return;
+                        }
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });

@@ -130,6 +130,8 @@ export interface GoalDamage {
 export interface GoalWorld {
     /** The blocks around the entity, which is what the path finder reads. */
     navigation?(): NavigationView | undefined;
+    /** One game rule's value, by Java's name such as `mobGriefing`, or undefined when unknown. */
+    gameRule?(name: string): boolean | number | undefined;
     /** Whether Java's level considers it bright outside. */
     isBrightOutside?(): boolean;
     /**

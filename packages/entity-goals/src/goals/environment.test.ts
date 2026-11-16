@@ -173,3 +173,48 @@ describe('minecraft:behavior.play_dead', () => {
         expect(harness.running()).toEqual([]);
     });
 });
+
+describe('minecraft:behavior.eat_block, as the vanilla sheep writes it', () => {
+    const sheep = (blocks: readonly { readonly position: EntityPosition; readonly identifier: string }[]) => {
+        const writes: { readonly position: EntityPosition; readonly identifier: string }[] = [];
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.eat_block': {
+                    priority: 6,
+                    time_until_eat: 0.5,
+                    eat_and_replace_block_pairs: [
+                        { eat_block: 'grass', replace_block: 'dirt' },
+                        { eat_block: 'tallgrass', replace_block: 'air' }
+                    ]
+                }
+            },
+            world: {
+                blocks: (query) => blocks.filter((block) => query.identifiers?.includes(block.identifier) === true),
+                setBlock: (position, identifier) => writes.push({ position, identifier })
+            },
+            at: { x: 0.5, y: 1, z: 0.5 },
+            random: () => 0
+        });
+        harness.tick(12);
+        return writes;
+    };
+
+    it('eats a fern at its feet before the grass block under it', () => {
+        expect(
+            sheep([
+                { position: { x: 0, y: 1, z: 0 }, identifier: 'minecraft:fern' },
+                { position: { x: 0, y: 0, z: 0 }, identifier: 'minecraft:grass_block' }
+            ])
+        ).toEqual([{ position: { x: 0, y: 1, z: 0 }, identifier: 'minecraft:air' }]);
+    });
+
+    it('turns the grass block under it to dirt', () => {
+        expect(sheep([{ position: { x: 0, y: 0, z: 0 }, identifier: 'minecraft:grass_block' }])).toEqual([
+            { position: { x: 0, y: 0, z: 0 }, identifier: 'minecraft:dirt' }
+        ]);
+    });
+
+    it('leaves grass above its head alone', () => {
+        expect(sheep([{ position: { x: 0, y: 2, z: 0 }, identifier: 'minecraft:short_grass' }])).toEqual([]);
+    });
+});

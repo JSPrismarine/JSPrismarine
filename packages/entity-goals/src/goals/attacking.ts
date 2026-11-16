@@ -1165,41 +1165,60 @@ export const slimeAttack = goal<Record<string, unknown>>({
     })
 });
 
+/** How long a guardian's beam takes to lock on before it starts charging, from Java's `attackTime = -10`. */
+const GUARDIAN_LOCK_TICKS = 10;
+
+/** How long the beam charges once locked: `Guardian.getAttackDuration`, 60 for the elder. */
+const GUARDIAN_CHARGE_TICKS = 80;
+const ELDER_GUARDIAN_CHARGE_TICKS = 60;
+
 /**
- * `minecraft:behavior.guardian_attack`, which the guardian and the elder
- * guardian carry. The beam takes time to lock on, which is why the goal holds
- * the entity still rather than closing in.
+ * `minecraft:behavior.guardian_attack`, which the guardian and the elder guardian carry. Java's
+ * `GuardianAttackGoal`: the guardian holds still and locks its beam for 10 ticks, charges it for
+ * 80 (the elder for 60), then hurts the target and lets it go, so the targeting goals have to
+ * pick it again for another beam. A guardian that loses sight of its target drops it, and one
+ * whose target comes within 3 blocks stops beaming; the elder keeps beaming at any range.
+ *
+ * Java's beam deals 1 magic damage (3 for the elder) and then the melee damage in the same tick,
+ * and the second blow inside the grace period only deals what it adds to the first, so the
+ * target loses the melee damage in all.
  */
 export const guardianAttack = goal<Record<string, unknown>>({
     name: 'minecraft:behavior.guardian_attack',
     controlFlags: ['move', 'look'],
     schema: bodySchema((body) => body),
     create: (_params, support) => {
-        /** How long the beam charges before it hurts, from the vanilla attack animation. */
-        const chargeTicks = 80;
-        let charge = 0;
+        const elder = (): boolean => support.entity.families().includes('guardian_elder');
+        let attackTime = 0;
         return {
             canStart: () => support.target() !== undefined,
             canContinue: () => {
                 const current = support.target();
-                return current !== undefined && support.canSee(current);
+                if (current === undefined) return false;
+                return elder() || support.distanceTo(current.position()) > 3;
             },
             start: () => {
-                charge = 0;
+                attackTime = -GUARDIAN_LOCK_TICKS;
                 support.navigator.stop();
             },
             tick: () => {
                 const current = support.target();
                 if (current === undefined) return;
+                support.navigator.stop();
                 support.lookAtMob(current);
-                charge += 1;
-                if (charge < chargeTicks) return;
-                charge = 0;
+                if (!support.canSee(current)) {
+                    support.setTarget(undefined);
+                    return;
+                }
+                attackTime += 1;
+                if (attackTime < (elder() ? ELDER_GUARDIAN_CHARGE_TICKS : GUARDIAN_CHARGE_TICKS)) return;
                 support.world.attack?.(current);
+                support.setTarget(undefined);
             },
             stop: () => {
-                charge = 0;
-            }
+                attackTime = 0;
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });

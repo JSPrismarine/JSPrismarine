@@ -274,3 +274,40 @@ describe('minecraft:behavior.use_kinetic_weapon', () => {
         expect(harness.holderOf('move')).toBe('minecraft:behavior.use_kinetic_weapon');
     });
 });
+
+describe('minecraft:behavior.guardian_attack', () => {
+    const beam = (families: readonly string[], at: number) => {
+        const hits: number[] = [];
+        let target: ReturnType<typeof testMob> | undefined = testMob('player', { x: at, y: 0, z: 0 });
+        let tick = 0;
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.guardian_attack': { priority: 4 } },
+            components: { 'minecraft:type_family': { family: families } },
+            world: {
+                target: () => target,
+                setTarget: (mob) => {
+                    target = mob;
+                },
+                canSee: () => true,
+                attack: () => hits.push(tick)
+            }
+        });
+        for (tick = 1; tick <= 120; tick += 1) harness.tick();
+        return { hits, target };
+    };
+
+    it('locks for 10 ticks, charges for 80, hits once and lets the target go', () => {
+        const { hits, target } = beam(['guardian'], 6);
+        expect(hits).toEqual([90]);
+        expect(target).toBeUndefined();
+    });
+
+    it('charges for 60 on an elder guardian', () => {
+        expect(beam(['guardian_elder'], 6).hits).toEqual([70]);
+    });
+
+    it('stops beaming a target within 3 blocks, unless it is an elder', () => {
+        expect(beam(['guardian'], 2).hits).toEqual([]);
+        expect(beam(['guardian_elder'], 2).hits).toEqual([70]);
+    });
+});

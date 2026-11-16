@@ -267,3 +267,90 @@ describe('minecraft:behavior.take_block', () => {
         expect(held).toEqual(['minecraft:grass_block']);
     });
 });
+
+describe('minecraft:behavior.take_block, as the vanilla enderman writes it', () => {
+    it('matches a bare block name and lifts the block out without dropping it', () => {
+        const writes: string[] = [];
+        const held: (string | undefined)[] = [];
+        let broke = false;
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.take_block': { priority: 11, chance: 1, xz_range: 2, y_range: 1, blocks: ['dirt'] }
+            },
+            world: {
+                blocks: (query) =>
+                    query.identifiers?.includes('minecraft:dirt') === true
+                        ? [{ position: { x: 1, y: 0, z: 0 }, identifier: 'minecraft:dirt' }]
+                        : [],
+                breakBlock: () => {
+                    broke = true;
+                },
+                setBlock: (_position, identifier) => writes.push(identifier),
+                carriedItem: () => undefined,
+                setCarriedItem: (item) => held.push(item)
+            }
+        });
+
+        harness.tick();
+
+        expect(held).toEqual(['minecraft:dirt']);
+        expect(writes).toEqual(['minecraft:air']);
+        expect(broke).toBe(false);
+    });
+
+    it('takes nothing while mobGriefing is off', () => {
+        const held: (string | undefined)[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.take_block': { priority: 11, chance: 1, blocks: ['dirt'] } },
+            world: {
+                gameRule: () => false,
+                blocks: () => [{ position: { x: 1, y: 0, z: 0 }, identifier: 'minecraft:dirt' }],
+                carriedItem: () => undefined,
+                setCarriedItem: (item) => held.push(item)
+            }
+        });
+
+        harness.tick();
+
+        expect(held).toEqual([]);
+    });
+});
+
+describe('minecraft:behavior.place_block, putting down a carried block', () => {
+    const carrying = (air: readonly { x: number; y: number; z: number }[]) => {
+        const placed: { readonly position: EntityPosition; readonly identifier: string }[] = [];
+        const held: (string | undefined)[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.place_block': { priority: 10, chance: 1, xz_range: [0, 0], y_range: [0, 0] } },
+            world: {
+                blocks: () => air.map((position) => ({ position, identifier: 'minecraft:air' })),
+                setBlock: (position, identifier) => placed.push({ position, identifier }),
+                carriedItem: () => 'minecraft:dirt',
+                setCarriedItem: (item) => held.push(item)
+            },
+            at: { x: 0.5, y: 1, z: 0.5 }
+        });
+        harness.tick();
+        return { placed, held };
+    };
+
+    it('puts it into the air cell it stands in and empties its arms', () => {
+        const { placed, held } = carrying([
+            { x: 0, y: 1, z: 0 },
+            { x: 0, y: 2, z: 0 }
+        ]);
+
+        expect(placed).toEqual([{ position: { x: 0, y: 1, z: 0 }, identifier: 'minecraft:dirt' }]);
+        expect(held).toEqual([undefined]);
+    });
+
+    it('keeps it when the cell is not air or has nothing under it', () => {
+        expect(carrying([]).placed).toEqual([]);
+        expect(
+            carrying([
+                { x: 0, y: 0, z: 0 },
+                { x: 0, y: 1, z: 0 }
+            ]).placed
+        ).toEqual([]);
+    });
+});
