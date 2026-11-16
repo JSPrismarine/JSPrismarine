@@ -69,6 +69,27 @@ describe('javaGoalOverlay', () => {
         expect(JSON.stringify(data)).toContain('"look_distance":8');
     });
 
+    it("takes off a goal Java's class does not register, and keeps one its own goal stands in for", () => {
+        const ghast = entityFile('minecraft:ghast', {
+            'minecraft:behavior.float': { priority: 0 },
+            'minecraft:behavior.ranged_attack': { priority: 2 }
+        });
+        const json = JSON.stringify(overlay(ghast));
+        expect(json).not.toContain('minecraft:behavior.float');
+        expect(json).toContain('minecraft:behavior.ranged_attack');
+    });
+
+    it('keeps every goal of a mob whose brain runs in place of them', () => {
+        const ghast = entityFile('minecraft:ghast', { 'minecraft:behavior.float': { priority: 0 } });
+        const brainOverlay = javaGoalOverlay([ghast], {
+            goals: java_entity_goals,
+            attributes: java_entity_attributes,
+            tags: NO_TAGS,
+            brainOnly: new Set(['minecraft:ghast'])
+        });
+        expect(JSON.stringify(brainOverlay(ghast))).toContain('minecraft:behavior.float');
+    });
+
     it('leaves a file whose entity has no Java goals as it is', () => {
         const file = entityFile('minecraft:armor_stand', { 'minecraft:behavior.look_at_player': { look_distance: 6 } });
         expect(overlay(file)).toBe(file);

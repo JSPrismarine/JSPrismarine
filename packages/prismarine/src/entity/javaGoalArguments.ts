@@ -12,13 +12,13 @@
  */
 import type { JavaEntityAttributes, JavaEntityGoal } from '@jsprismarine/bedrock-data';
 import type { JavaGoalContext } from '@jsprismarine/entity-goals/javaArguments';
-import { JAVA_TRANSLATED_GOALS, javaGoalBody } from '@jsprismarine/entity-goals/javaArguments';
+import { JAVA_TRANSLATED_GOALS, javaGoalBody, matchingJavaGoals } from '@jsprismarine/entity-goals/javaArguments';
 import type { GoalBody } from '@jsprismarine/entity-goals/params';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import type { ContentTags } from '../content/tags';
 import { isRecord } from '../utils/isRecord';
-import { entityFileIdentifier, withComponentRewritten } from './definitionOverlay';
+import { entityFileIdentifier, withComponentRewritten, withoutComponent } from './definitionOverlay';
 import { bedrockItemsOf } from './javaBreedingFood';
 
 /** What the overlay reads. */
@@ -29,7 +29,42 @@ export interface JavaGoalSources {
     readonly attributes: Readonly<Record<string, JavaEntityAttributes>>;
     /** The stack's tags, which a tempt predicate's item tags resolve against. */
     readonly tags: ContentTags;
+    /**
+     * The Java mobs whose brain runs in place of their goals, by Java identifier. Their files keep
+     * every goal, since the server runs none of them.
+     */
+    readonly brainOnly?: ReadonlySet<string>;
 }
+
+/**
+ * The Java goals of a mob's own class that do a Bedrock goal's job under their own rule, by the
+ * Bedrock goal. The Bedrock goal stays on such a mob, since without it the mob would not do the
+ * job at all: a blaze would never shoot.
+ */
+const STAND_INS: Readonly<Record<string, readonly string[]>> = {
+    'minecraft:behavior.ranged_attack': [
+        'Blaze$BlazeAttackGoal',
+        'Ghast$GhastShootFireballGoal',
+        'Shulker$ShulkerAttackGoal'
+    ],
+    'minecraft:behavior.melee_box_attack': ['Blaze$BlazeAttackGoal'],
+    'minecraft:behavior.nearest_attackable_target': ['Phantom$PhantomAttackPlayerTargetGoal'],
+    // `PhantomSweepAttackGoal.canContinueToUse` breaks off a swoop when a cat is near.
+    'minecraft:behavior.avoid_mob_type': ['Phantom$PhantomSweepAttackGoal'],
+    // A guardian's `RandomStrollGoal` swims, since its navigation is bound to water, and a turtle's
+    // `TurtleTravelGoal` swims it about in water.
+    'minecraft:behavior.random_swim': ['RandomStrollGoal', 'Turtle$TurtleTravelGoal'],
+    // The parrot's, which `withJavaGoals` swaps for the goal that runs `LandOnOwnersShoulderGoal`.
+    'minecraft:behavior.find_mount': ['LandOnOwnersShoulderGoal']
+};
+
+/**
+ * Whether a mob's Java class registers nothing that does a Bedrock goal's job: no goal the
+ * translation matches and no goal of its own that stands in for it.
+ */
+const unregistered = (component: string, goals: readonly JavaEntityGoal[]): boolean =>
+    matchingJavaGoals(component, goals)?.length === 0 &&
+    !goals.some((goal) => goal.classes.some((name) => STAND_INS[component]?.includes(name) === true));
 
 /** The families each entity file declares, in its base components and every component group. */
 const declaredFamilies = (data: unknown): readonly string[] => {
@@ -140,7 +175,8 @@ export const familyFilter = (
  * @param files - Every entity file the stack loads, whose families the entity filters read.
  * @param sources - Java's goals and attributes, and the stack's tags.
  * @returns A rewrite for one entity file: the same object when its entity has no Java mob with
- *   goals, otherwise a copy whose goal bodies carry Java's arguments.
+ *   goals, otherwise a copy whose goal bodies carry Java's arguments, without the goals Java's
+ *   class does not register.
  */
 export const javaGoalOverlay = (files: Iterable<unknown>, sources: JavaGoalSources): ((data: unknown) => unknown) => {
     const families = new Map<string, readonly string[]>();
@@ -161,6 +197,7 @@ export const javaGoalOverlay = (files: Iterable<unknown>, sources: JavaGoalSourc
         const javaId = identifier === undefined ? undefined : javaByBedrock.get(identifier);
         const goals = javaId === undefined ? undefined : sources.goals[javaId];
         if (javaId === undefined || goals === undefined) return data;
+        const keepsGoals = sources.brainOnly?.has(javaId) === true;
 
         const context: JavaGoalContext = {
             self: javaId,
@@ -182,9 +219,12 @@ export const javaGoalOverlay = (files: Iterable<unknown>, sources: JavaGoalSourc
                     ...(predicate.items ?? [])
                 ])
         };
+        // A goal Java's class does not register comes off the file; the rest take Java's arguments.
         return JAVA_TRANSLATED_GOALS.reduce(
             (file, component) =>
-                withComponentRewritten(file, component, (body) => javaGoalBody(component, body, goals, context)),
+                !keepsGoals && unregistered(component, goals)
+                    ? withoutComponent(file, component)
+                    : withComponentRewritten(file, component, (body) => javaGoalBody(component, body, goals, context)),
             data
         );
     };

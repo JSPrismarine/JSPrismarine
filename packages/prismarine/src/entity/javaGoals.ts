@@ -10,6 +10,7 @@
  * declares one gets the Bedrock behavior its file asks for. A ruling may also reach a component
  * that only exists to drive a goal, such as the sensor that lights a creeper's fuse.
  */
+import { LAND_ON_OWNERS_SHOULDER } from '@jsprismarine/entity-goals/goals/shoulder';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import { isRecord } from '../utils/isRecord';
@@ -127,6 +128,20 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
         entity: 'minecraft:panda',
         component: 'minecraft:behavior.random_sitting',
         java: absent
+    },
+    {
+        // Java's `Bat` registers no goals, so `java_entity_goals` has no entry for it, and
+        // `Bat.customServerAiStep` flies it out of water rather than a `FloatGoal` jumping it.
+        entity: 'minecraft:bat',
+        component: 'minecraft:behavior.float',
+        java: absent
+    },
+    {
+        // Java `Parrot.registerGoals` adds `LandOnOwnersShoulderGoal`, which seats a tamed parrot on
+        // the owner it touches; Bedrock's `find_mount` walks it to any mount within 16 blocks.
+        entity: 'minecraft:parrot',
+        component: 'minecraft:behavior.find_mount',
+        java: ({ priority }) => ({ [LAND_ON_OWNERS_SHOULDER]: priority === undefined ? {} : { priority } })
     },
     {
         // Java `Cat.registerGoals` has no goal that walks a cat to a village.

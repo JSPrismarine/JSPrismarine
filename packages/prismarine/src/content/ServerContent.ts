@@ -384,12 +384,17 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const airSupplies = javaAirSupplies();
     const goalRulings = javaGoalRulings();
     const entityFiles = [...definitions.entities.values(), ...playerFallback];
-    const withJavaGoalArguments = javaGoalOverlay(
-        entityFiles.map((definition) => definition.data),
-        { goals: java_entity_goals, attributes: java_entity_attributes, tags }
-    );
     const brains = new BrainMobRegistry();
     registerBrainMobs(brains);
+    const withJavaGoalArguments = javaGoalOverlay(
+        entityFiles.map((definition) => definition.data),
+        {
+            goals: java_entity_goals,
+            attributes: java_entity_attributes,
+            tags,
+            brainOnly: new Set(brains.all.filter((brain) => !brain.alsoRunsGoals).map((brain) => brain.id))
+        }
+    );
     const brainGoals = brainGoalsOf(brains.all);
 
     const spawnRulings = javaSpawnRulings();
