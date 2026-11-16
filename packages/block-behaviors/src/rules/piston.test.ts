@@ -70,6 +70,17 @@ describe('performPush', () => {
         expect(world.identifierAt({ x: 1, y: 0, z: 0 })).toBe(AIR);
     });
 
+    it('carries an entity standing where a pushed block arrives one block along', () => {
+        const world = createVoxelWorld().overworld;
+        world.set({ x: 1, y: 0, z: 0 }, 'minecraft:stone');
+        const inFront = world.addEntity('minecraft:pig', { x: 2, y: 0, z: 0 });
+        const aside = world.addEntity('minecraft:cow', { x: 2, y: 0, z: 1 });
+
+        expect(performPush(world, piston, 'east')).toBe(true);
+        expect(world.entities.find((entity) => entity.id === inFront)?.position).toEqual({ x: 3, y: 0, z: 0 });
+        expect(world.entities.find((entity) => entity.id === aside)?.position).toEqual({ x: 2, y: 0, z: 1 });
+    });
+
     it('moves the whole run one position along, far end first', () => {
         const world = createVoxelWorld().overworld;
         world.set({ x: 1, y: 0, z: 0 }, 'minecraft:stone');

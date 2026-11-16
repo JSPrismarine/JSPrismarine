@@ -271,6 +271,7 @@ export const performPush = (
     for (let index = plan.moved.length - 1; index >= 0; index -= 1) {
         carry(world, plan.moved[index]!, offset(plan.moved[index]!, face));
     }
+    carryEntities(world, origin, face, plan.moved);
 
     if (notifyNeighbors) {
         world.notifyNeighbors(origin);
@@ -282,6 +283,28 @@ export const performPush = (
         for (const position of plan.destroyedBlocks) world.notifyNeighbors(position);
     }
     return true;
+};
+
+/**
+ * Moves every entity standing where the head or a pushed block arrives one block along with it,
+ * which is Java's `PistonMovingBlockEntity.moveCollidedEntities` at the end of the push.
+ */
+const carryEntities = (
+    world: WorldActions,
+    origin: BlockPosition,
+    face: BlockFace,
+    moved: readonly BlockPosition[]
+): void => {
+    if (world.moveEntity === undefined) return;
+    const step = offset({ x: 0, y: 0, z: 0 }, face);
+    const carried = new Set<number>();
+    for (const cell of [offset(origin, face), ...moved.map((position) => offset(position, face))]) {
+        for (const entity of world.entitiesAt(cell)) {
+            if (carried.has(entity.id)) continue;
+            carried.add(entity.id);
+            world.moveEntity(entity.id, step);
+        }
+    }
 };
 
 /**

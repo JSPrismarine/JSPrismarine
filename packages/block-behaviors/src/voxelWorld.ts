@@ -50,7 +50,8 @@ export interface RecordedTick {
 export interface RecordedEntity {
     readonly id: number;
     readonly identifier: string;
-    readonly position: BlockPosition;
+    /** Where it stands, which {@link WorldActions.moveEntity} changes. */
+    position: BlockPosition;
     readonly data: BlockEntityData | undefined;
     /** True once {@link WorldActions.removeEntity} took it out of the world. */
     removed: boolean;
@@ -279,6 +280,14 @@ export class VoxelDimension implements WorldActions {
     public removeEntity(entity: number): void {
         const found = this.entities.find((candidate) => candidate.id === entity);
         if (found !== undefined) found.removed = true;
+    }
+
+    /** Moves a recorded entity by an offset, as a piston carries one; a removed entity stays put. */
+    public moveEntity(entity: number, by: BlockPosition): void {
+        const found = this.entities.find((candidate) => candidate.id === entity && !candidate.removed);
+        if (found === undefined) return;
+        const { x, y, z } = found.position;
+        found.position = { x: x + by.x, y: y + by.y, z: z + by.z };
     }
 
     /** Every entity still in the world whose position floors to this block. */

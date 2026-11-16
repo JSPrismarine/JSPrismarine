@@ -242,6 +242,11 @@ export interface WorldActions {
     removeEntity(entity: number): void;
     /** Every entity whose position is inside the block at a position. */
     entitiesAt(position: BlockPosition): readonly WorldEntity[];
+    /**
+     * Moves an entity by an offset, as a piston carries one in front of the blocks it pushes.
+     * Absent on a world that cannot move its entities, where a push leaves them standing.
+     */
+    moveEntity?(entity: number, by: BlockPosition): void;
     /** Plays a sound event, such as `block.door.open`. */
     playSound(position: BlockPosition, sound: string): void;
     /** Emits a particle effect, such as `minecraft:crop_growth_emitter`. */
