@@ -176,6 +176,14 @@ import { maxStackSizeOf, resistsDamageOf } from '../../item/Item';
 import { navigationViewOf } from './navigationView';
 import { DEFAULT_BLOCK_FRICTION, DRAG } from './travel';
 import { projectileFlight, velocityAfterMove, velocityBeforeMove } from './projectileFlight';
+import {
+    JAVA_PROJECTILE_HITS,
+    PROJECTILE_IGNITE_TICKS,
+    grantedExperience,
+    projectileHitEffects,
+    projectileHitEvent,
+    projectileKnockback
+} from './projectileImpact';
 import type { CachedNavigationView, EntityBlockView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
 import { applyDataEntityRecord, dataEntityRecordFrom, dataEntityRecordOf } from './persistence';
@@ -289,7 +297,8 @@ interface PlayerBlows {
 }
 
 const PROJECTILE_KNOCKBACK = 0.4;
-const PROJECTILE_KNOCKBACK_LIFT = 0.1;
+/** What an ender pearl's landing hurts the player who threw it, Java's `ThrownEnderpearl.onHit` `enderPearl` 5. */
+const ENDER_PEARL_DAMAGE = 5;
 
 /** The component spellings for the equipment slots the runtime stores. */
 const COMPONENT_EQUIPMENT_SLOTS = {
@@ -6029,6 +6038,9 @@ export class EntityRuntime implements EntityScene {
         const steps = Math.max(1, Math.ceil(distance / PROJECTILE_SWEEP_STEP));
         const navigation = this.navigation();
         const componentFacts = this.componentFactsOf(entity);
+        // Every Java projectile clips its move against blocks (`ProjectileUtil.getHitResultOnMoveVector`),
+        // a shulker bullet too, which Bedrock's file gives no collision.
+        const meetsBlocks = componentFacts.hasCollision || entity.identifier.startsWith('minecraft:');
         let lastSafe = from;
 
         for (let step = 1; step <= steps; step += 1) {
@@ -6073,20 +6085,24 @@ export class EntityRuntime implements EntityScene {
                     body.position = lastSafe;
                     return;
                 }
-                if (this.hitProjectile(entity, target, params, at) && entity.removed !== undefined) return;
+                if (this.hitProjectile(entity, target, params, at, from) && entity.removed !== undefined) return;
+                if (entity.removed !== undefined || body.projectileStuck) return;
             }
 
-            if (
-                componentFacts.hasCollision &&
-                !bodyCanOccupy(at, entity.facts.box, navigation, componentFacts.canStandOnPowderSnow)
-            ) {
+            if (meetsBlocks && !bodyCanOccupy(at, entity.facts.box, navigation, componentFacts.canStandOnPowderSnow)) {
                 const onHit = isRecord(params.on_hit) ? params.on_hit : {};
                 this.applyProjectileHitEffects(onHit, at, false);
+                this.landProjectile(entity, onHit, lastSafe, from, undefined);
                 if (entity.identifier === DRAGON_FIREBALL) this.breathe(entity, at);
                 const sound = typeof params.hit_ground_sound === 'string' ? params.hit_ground_sound : undefined;
                 if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
 
-                if (isRecord(onHit.stick_in_ground)) {
+                if (entity.removed !== undefined) return;
+                if (this.waitsToExplode(entity, onHit)) {
+                    body.position = lastSafe;
+                    body.velocity = { x: 0, y: 0, z: 0 };
+                    body.projectileStuck = true;
+                } else if (isRecord(onHit.stick_in_ground)) {
                     body.position = lastSafe;
                     this.land(entity);
                     body.projectileStuck = true;
@@ -6139,53 +6155,51 @@ export class EntityRuntime implements EntityScene {
         return undefined;
     }
 
-    /** Runs an entity hit through the damage route and hit actions in its projectile data. */
+    /**
+     * Runs an entity hit through the damage route and hit actions in its projectile data, with
+     * Java's rules where a vanilla projectile's class differs from its file ({@link JAVA_PROJECTILE_HITS}):
+     * every blow pushes the way `LivingEntity.knockback` does, and the effects, fire and owner
+     * teleport the hit carries land only when the blow did.
+     * @param from - Where the projectile was at the start of the tick, which an ender pearl takes its owner to.
+     */
     private hitProjectile(
         projectile: DataEntity,
         target: DataEntity | ContentEntity,
         params: Record<string, unknown>,
-        at: EntityPosition
+        at: EntityPosition,
+        from: EntityPosition
     ): boolean {
         const onHit = isRecord(params.on_hit) ? params.on_hit : {};
         const impact = isRecord(onHit.impact_damage) ? onHit.impact_damage : undefined;
+        const java = JAVA_PROJECTILE_HITS.get(projectile.identifier);
+        const owner = projectile.body.owner;
         let damage = 0;
+        let blow = false;
 
-        if (impact !== undefined && this.projectileFilterAllows(impact.filter, target)) {
-            const range = isRecord(impact.damage) ? impact.damage : {};
-            const minimum =
-                typeof range.min === 'number' ? range.min : typeof range.range_min === 'number' ? range.range_min : 0;
-            const maximum =
-                typeof range.max === 'number'
-                    ? range.max
-                    : typeof range.range_max === 'number'
-                      ? range.range_max
-                      : minimum;
-            const powerMultiplier = typeof impact.power_multiplier === 'number' ? impact.power_multiplier : 0;
-            if (minimum === 0 && maximum === 0 && powerMultiplier > 0) {
-                const speed = Math.hypot(
-                    projectile.body.velocity.x,
-                    projectile.body.velocity.y,
-                    projectile.body.velocity.z
-                );
-                damage = Math.ceil(speed * powerMultiplier);
-                if (projectile.spawnData?.['critical'] === true)
-                    damage += this.world.random.nextInt(Math.floor(damage / 2) + 2);
-                const power = projectile.spawnData?.['power'];
-                if (typeof power === 'number' && power > 0) damage += power * 0.5 + 0.5;
-            } else if (maximum >= minimum) {
-                damage = minimum + this.world.random.nextInt(Math.floor(maximum - minimum) + 1);
-            }
+        if (java?.damage !== undefined) {
+            const owned =
+                owner !== undefined &&
+                (this.store.get(owner) !== undefined || this.host.playerById?.(owner) !== undefined);
+            const amount = owned ? java.damage.owned : java.damage.unowned;
+            blow = amount !== undefined;
+            damage = amount ?? 0;
+        } else if (impact !== undefined) {
+            // Java hurts every entity its projectiles hit, for nothing where the filter would
+            // pass it by, as a snowball does anything but a blaze.
+            blow = true;
+            if (this.projectileFilterAllows(impact.filter, target)) damage = this.impactDamage(projectile, impact);
+        }
 
-            if (damage > 0) {
-                if (target instanceof DataEntity)
-                    this.hurt(target, projectile.body.owner, 'projectile', damage, { route: 'projectile' });
-                else {
-                    if (this.host.hurtByProjectile !== undefined)
-                        this.host.hurtByProjectile(target.id, damage, projectile.id, projectile.body.owner);
-                    else this.host.hurt?.(target.id, damage, 'projectile', projectile.body.owner);
-                    if (projectile.body.owner !== undefined)
-                        this.markPlayerBlow(target.id, 'hurtBy', projectile.body.owner);
-                }
+        let landed = blow && damage === 0;
+        if (damage > 0) {
+            if (target instanceof DataEntity)
+                landed = this.hurt(target, owner, 'projectile', damage, { route: 'projectile' });
+            else {
+                landed = true;
+                if (this.host.hurtByProjectile !== undefined)
+                    this.host.hurtByProjectile(target.id, damage, projectile.id, owner);
+                else this.host.hurt?.(target.id, damage, 'projectile', owner);
+                if (owner !== undefined) this.markPlayerBlow(target.id, 'hurtBy', owner);
             }
         }
 
@@ -6197,18 +6211,19 @@ export class EntityRuntime implements EntityScene {
         const sound = typeof params.hit_sound === 'string' ? params.hit_sound : undefined;
         if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
 
-        if (impact?.knockback === true && target instanceof DataEntity) {
-            const resistance = Math.min(1, Math.max(0, target.facts.knockbackResistance));
+        const pushes = java?.knockback ?? impact?.knockback === true;
+        if (pushes && landed && target instanceof DataEntity) {
             const punch = typeof projectile.spawnData?.['punch'] === 'number' ? projectile.spawnData['punch'] : 0;
-            const strength = (PROJECTILE_KNOCKBACK + Math.max(0, punch) * 0.5) * (1 - resistance);
-            const flatSpeed = Math.hypot(projectile.body.velocity.x, projectile.body.velocity.z) || 1;
-            target.body.push({
-                x: (projectile.body.velocity.x / flatSpeed) * strength,
-                y: PROJECTILE_KNOCKBACK_LIFT * (1 - resistance),
-                z: (projectile.body.velocity.z / flatSpeed) * strength
+            target.body.velocity = projectileKnockback({
+                velocity: target.body.velocity,
+                direction: { x: projectile.body.velocity.x, z: projectile.body.velocity.z },
+                resistance: target.facts.knockbackResistance,
+                onGround: target.body.conditions.has('on_ground'),
+                punch: Math.max(0, punch)
             });
-            target.body.lastPusher = projectile.body.owner;
-        } else if (impact?.knockback === true && damage === 0 && !('instance' in target)) {
+            target.body.conditions.delete('on_ground');
+            target.body.lastPusher = owner;
+        } else if (pushes && landed && damage === 0 && !('instance' in target)) {
             const flatSpeed = Math.hypot(projectile.body.velocity.x, projectile.body.velocity.z) || 1;
             this.host.knockback?.(
                 target.id,
@@ -6218,7 +6233,26 @@ export class EntityRuntime implements EntityScene {
             );
         }
 
-        const destroyOnHit = impact?.destroy_on_hit === true || onHit.remove_on_hit !== undefined;
+        if (landed || !blow) {
+            if (
+                impact?.catch_fire === true &&
+                target instanceof DataEntity &&
+                !target.instance.hasComponent('minecraft:fire_immune')
+            )
+                target.body.fireTicks = Math.max(target.body.fireTicks, PROJECTILE_IGNITE_TICKS);
+            for (const effect of projectileHitEffects(onHit, this.world.level.difficulty()))
+                this.applyStatusEffectToId(projectile.instance, target.id, effect);
+        }
+        this.landProjectile(projectile, onHit, at, from, target);
+
+        if (projectile.removed !== undefined) return true;
+        if (this.waitsToExplode(projectile, onHit)) {
+            projectile.body.velocity = { x: 0, y: 0, z: 0 };
+            projectile.body.projectileStuck = true;
+            return false;
+        }
+        const destroyOnHit =
+            impact?.destroy_on_hit === true || onHit.remove_on_hit !== undefined || isRecord(onHit.wind_burst_on_hit);
         if (destroyOnHit) this.remove(projectile.id, 'projectile_hit_entity');
         return destroyOnHit;
     }
@@ -6245,6 +6279,85 @@ export class EntityRuntime implements EntityScene {
             data: breath.data,
             ...(owner === undefined ? {} : { ownerId: owner })
         });
+    }
+
+    /** The damage an `impact_damage` deals: a fixed range, or an arrow's speed times its power with a critical bonus. */
+    private impactDamage(projectile: DataEntity, impact: Record<string, unknown>): number {
+        const range = isRecord(impact.damage) ? impact.damage : {};
+        const minimum =
+            typeof range.min === 'number' ? range.min : typeof range.range_min === 'number' ? range.range_min : 0;
+        const maximum =
+            typeof range.max === 'number' ? range.max : typeof range.range_max === 'number' ? range.range_max : minimum;
+        const powerMultiplier = typeof impact.power_multiplier === 'number' ? impact.power_multiplier : 0;
+        if (minimum === 0 && maximum === 0 && powerMultiplier > 0) {
+            const { velocity } = projectile.body;
+            let damage = Math.ceil(Math.hypot(velocity.x, velocity.y, velocity.z) * powerMultiplier);
+            if (projectile.spawnData?.['critical'] === true)
+                damage += this.world.random.nextInt(Math.floor(damage / 2) + 2);
+            const power = projectile.spawnData?.['power'];
+            if (typeof power === 'number' && power > 0) damage += power * 0.5 + 0.5;
+            return damage;
+        }
+        return maximum >= minimum ? minimum + this.world.random.nextInt(Math.floor(maximum - minimum) + 1) : 0;
+    }
+
+    /**
+     * What a projectile does where it lands, on an entity or a block, beyond the blow: it takes
+     * its owner there (`teleport_owner`, Java's `ThrownEnderpearl.onHit`, which hurts a player
+     * owner 5), fires its `definition_event`, bursts (`wind_burst_on_hit`), drops its
+     * experience and leaves its area effect cloud.
+     */
+    private landProjectile(
+        projectile: DataEntity,
+        onHit: Record<string, unknown>,
+        at: EntityPosition,
+        from: EntityPosition,
+        target: DataEntity | ContentEntity | undefined
+    ): void {
+        const java = JAVA_PROJECTILE_HITS.get(projectile.identifier);
+        const owner = projectile.body.owner === undefined ? undefined : this.store.get(projectile.body.owner);
+
+        if (isRecord(onHit.teleport_owner) && owner !== undefined) {
+            if (clientOwnsMovement(owner.identifier)) {
+                this.teleportPlayer(owner.id, from);
+                this.hurt(owner, undefined, 'fall', ENDER_PEARL_DAMAGE, { route: 'component' });
+            } else {
+                owner.position = { ...from };
+            }
+        }
+
+        const event = projectileHitEvent(onHit);
+        if (event !== undefined) {
+            if (event.projectile) projectile.instance.fire(event.event);
+            if (event.target && target instanceof DataEntity) target.instance.fire(event.event);
+            if (event.shooter) owner?.instance.fire(event.event);
+        }
+
+        const points =
+            java?.experience !== undefined
+                ? java.experience(this.world.random)
+                : grantedExperience(onHit, this.world.random);
+        for (const value of experienceOrbs(points)) this.spawn(EXPERIENCE_ORB, { ...at }, { data: { value } });
+
+        if (java?.cloud !== undefined)
+            this.spawn(
+                AREA_EFFECT_CLOUD,
+                { ...at },
+                {
+                    data: java.cloud,
+                    ...(projectile.body.owner === undefined ? {} : { ownerId: projectile.body.owner })
+                }
+            );
+
+        if (isRecord(onHit.wind_burst_on_hit)) this.explode(projectile.body);
+    }
+
+    /** Whether a projectile fired an event at itself on landing that lights its `minecraft:explode`, so it waits for the blast. */
+    private waitsToExplode(projectile: DataEntity, onHit: Record<string, unknown>): boolean {
+        if (projectile.removed !== undefined || projectileHitEvent(onHit)?.projectile !== true) return false;
+        projectile.instance.applyQueuedEvents();
+        const explode = projectile.instance.componentParams('minecraft:explode');
+        return isRecord(explode);
     }
 
     /** Applies the particle and child-spawn actions carried by `on_hit`. */
@@ -6696,7 +6809,8 @@ export class EntityRuntime implements EntityScene {
 
     /** Applies Java's horizontal push impulse after this entity has moved for the tick. */
     private pushIntersectingEntity(first: DataEntity): void {
-        if (!this.hasEntityCollision(first)) return;
+        // A Java projectile is never pushable and pushes nothing, so no body is shoved by one it overlaps.
+        if (!this.hasEntityCollision(first) || first.instance.hasComponent('minecraft:projectile')) return;
 
         const firstPosition = first.position;
         const firstId = first.id;
@@ -6721,7 +6835,12 @@ export class EntityRuntime implements EntityScene {
         );
         for (const second of collisionCandidates) {
             const secondId = second.id;
-            if (firstId === secondId || !this.hasEntityCollision(second)) continue;
+            if (
+                firstId === secondId ||
+                !this.hasEntityCollision(second) ||
+                second.instance.hasComponent('minecraft:projectile')
+            )
+                continue;
             if (!firstVehicleResolved) {
                 firstVehicle = this.rides.vehicleOf(firstId);
                 firstVehicleResolved = true;
