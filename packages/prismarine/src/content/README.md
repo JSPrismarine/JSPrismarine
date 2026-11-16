@@ -171,8 +171,10 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
 
 - `level`: the dimension identifier, its bounds, its sea level, the seed, the clock, the difficulty
   and the weather.
-- `blocks.light`, `blocks.isLoaded`, `blocks.surfaceY`, `blocks.biome`, `blocks.biomeTags`. A chunk
-  stores the numeric Bedrock biome id, so `blocks.biome` reads it back through
+- `blocks.light`, `blocks.lightReady`, `blocks.isLoaded`, `blocks.surfaceY`, `blocks.biome`,
+  `blocks.biomeTags`. `blocks.lightReady` says whether a chunk's first light is done, which a
+  natural spawn waits for. A chunk stores the numeric Bedrock biome id, so `blocks.biome` reads
+  it back through
   `bedrockBiomeToJava` in `@jsprismarine/mapping` and `blocks.biomeTags` looks the resulting
   identifier up in [`content/biomeTags.ts`](biomeTags.ts), which indexes the `minecraft:tags`
   component of the pack stack's biome definitions.

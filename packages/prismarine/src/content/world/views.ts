@@ -390,6 +390,7 @@ const spawnWorldOf = (adapter: ServerWorldAdapter, content: ContentLookup): Spaw
         light: (at) => adapter.blocks.light(at),
         biomeTags: (at) => adapter.blocks.biomeTags(at),
         surfaceY: (x, z) => adapter.blocks.surfaceY(x, z),
+        chunkReady: (chunkX, chunkZ) => adapter.blocks.lightReady?.(chunkX, chunkZ) ?? true,
         minY: () => adapter.level.minY,
         players: () => adapter.entities.players().map((player) => ({ position: player.position })),
         worldSpawn: () =>

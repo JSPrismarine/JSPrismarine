@@ -38,11 +38,26 @@ export interface SystemBlock {
 /**
  * How many queue nodes one world tick may spend on light.
  *
- * A torch placed in the open queues a few hundred nodes and a chunk load queues tens of
- * thousands. 4096 keeps the worst case under a millisecond and lets the rest of the flood
- * finish on the ticks that follow; {@link WorldSystemsReport.light} says when it has.
+ * A torch placed in the open queues a few hundred nodes, and a chunk of broken terrain floods a
+ * few thousand when it is first lit. A chunk is not simulated until its first light is done
+ * ({@link WorldSystems.isLightReady}), so this number is also how soon the world around a player
+ * who just joined starts to move: at 16384 the chunks next to the player are ready within a few
+ * ticks and a whole light ring of broken terrain within about a hundred. The rest of a flood
+ * finishes on the ticks that follow; {@link WorldSystemsReport.light} says when it has.
  */
-export const LIGHT_BUDGET_PER_TICK = 4096;
+export const LIGHT_BUDGET_PER_TICK = 16384;
+
+/**
+ * How many chunks one world tick takes into the light model.
+ *
+ * Taking a chunk in reads each of its 256 block columns down to the ground and queues the sources
+ * it finds. A player who joins, teleports or changes dimension puts a whole light ring of loaded
+ * chunks in front of this at once, and taking them all in was the longest thing a tick did. Eight
+ * a tick still queues more light in broken terrain than {@link LIGHT_BUDGET_PER_TICK} floods, so a
+ * higher number finishes no chunk sooner there. A read that cannot wait takes in the chunks it
+ * needs itself; see {@link WorldSystems.getSkyLight}.
+ */
+export const LIGHT_CHUNKS_PER_TICK = 8;
 
 /**
  * How many scheduled ticks one world tick may run, per list.
@@ -106,7 +121,9 @@ export interface WorldSystemsView {
     /** The chunk coordinates held in memory, used by fallbacks and world-wide reads. */
     loadedChunks(): Iterable<{ readonly x: number; readonly z: number }>;
     /**
-     * Chunks whose simulation distance and guard ring currently require lighting.
+     * Chunks whose simulation distance and guard ring currently require lighting, in the order
+     * they should be lit: {@link LIGHT_CHUNKS_PER_TICK} of them are taken in each tick, from the
+     * front.
      *
      * A view that returns the same object across calls promises the set has not changed in
      * between; one that changes the set returns a new object.
@@ -197,8 +214,16 @@ export class WorldSystems {
     /** What each runtime id this world has read does to light - see {@link lightPropertiesAt}. */
     private readonly lightByRuntimeId = new Map<number, BlockLightProperties>();
     /** Per chunk section facts, replaced whenever that section's palette revision changes. */
-    /** The list the last {@link prepareLighting} pass found fully lit, while it is still the current one. */
+    /** The list the light passes found fully lit and ready, while it is still the current one. */
     private litLightChunks: Iterable<{ readonly x: number; readonly z: number }> | undefined;
+    /** The list {@link unlitChunks} and {@link unreadyChunks} were last built from. */
+    private requiredLightChunks: Iterable<{ readonly x: number; readonly z: number }> | undefined;
+    /** Chunks the light ring requires that are not in the light model yet, in the order to take them in. */
+    private readonly unlitChunks = new Map<string, { readonly x: number; readonly z: number }>();
+    /** Chunks the light ring requires whose first light has not finished, in the order to finish them. */
+    private readonly unreadyChunks = new Map<string, { readonly x: number; readonly z: number }>();
+    /** Chunks whose first light has finished; see {@link isLightReady}. */
+    private readonly readyChunks = new Set<string>();
     private readonly lightHintsByChunk = new Map<string, Map<number, { revision: number; hint: LightSectionHint }>>();
 
     public constructor(options: WorldSystemsOptions) {
@@ -223,22 +248,55 @@ export class WorldSystems {
         this.engine.updateAround(at, block.name);
     }
 
-    /** Computes a newly loaded in-ring chunk's light and re-seeds its neighbors' borders. */
+    /**
+     * Takes note of a newly loaded chunk the light ring requires. {@link prepareLighting} computes
+     * its light within the tick's budget; a view that lists no light chunks has no such pass, so
+     * its chunk is lit here.
+     */
     public onChunkLoaded(chunkX: number, chunkZ: number): void {
         if (!(this.view.shouldInitializeLight?.(chunkX, chunkZ) ?? true)) return;
 
-        this.lighting.onChunkLoaded(chunkX, chunkZ);
-        this.litChunks.set(this.lightChunkKey(chunkX, chunkZ), { x: chunkX, z: chunkZ });
+        const key = this.lightChunkKey(chunkX, chunkZ);
+        const chunk = { x: chunkX, z: chunkZ };
+        // A chunk the model already holds was replaced where it stands, and is computed again.
+        if (this.view.lightChunks === undefined || this.lighting.hasChunk(chunkX, chunkZ)) {
+            this.lighting.onChunkLoaded(chunkX, chunkZ);
+            this.litChunks.set(key, chunk);
+            this.readyChunks.delete(key);
+            return;
+        }
+        this.unlitChunks.set(key, chunk);
+        this.unreadyChunks.set(key, chunk);
+        this.litLightChunks = undefined;
     }
 
-    /** Initializes newly relevant chunks before a world tick can run light-dependent simulation. */
+    /**
+     * Takes up to {@link LIGHT_CHUNKS_PER_TICK} of the chunks the light ring requires into the
+     * light model, in the order the view lists them, and drops the light of chunks it no longer
+     * lists. {@link tick} calls it once a tick, before anything in the tick reads light.
+     */
     public prepareLighting(): void {
         const lightChunks = this.view.lightChunks?.();
         if (lightChunks === undefined) return;
         // The view hands back the same list while nothing has loaded, unloaded or moved, and the
-        // pass that saw it lit every chunk in it.
+        // passes that saw it finished every chunk in it.
         if (lightChunks === this.litLightChunks) return;
+        if (lightChunks !== this.requiredLightChunks) this.requireLight(lightChunks);
 
+        let budget = LIGHT_CHUNKS_PER_TICK;
+        for (const [key, { x, z }] of this.unlitChunks) {
+            if (budget === 0) break;
+
+            this.unlitChunks.delete(key);
+            // A read may have taken it in ahead of this pass.
+            if (this.lighting.hasChunk(x, z)) continue;
+            this.initializeLightChunk(x, z);
+            budget--;
+        }
+    }
+
+    /** Rebuilds what the light ring requires from a new list, and drops the light of chunks it left out. */
+    private requireLight(lightChunks: Iterable<{ readonly x: number; readonly z: number }>): void {
         const required = new Map<string, { readonly x: number; readonly z: number }>();
         for (const chunk of lightChunks) required.set(this.lightChunkKey(chunk.x, chunk.z), chunk);
 
@@ -248,14 +306,62 @@ export class WorldSystems {
             if (required.has(key)) continue;
             this.lighting.onChunkUnloaded(chunk.x, chunk.z);
             this.litChunks.delete(key);
+            this.readyChunks.delete(key);
         }
 
-        let allLit = true;
-        for (const { x, z } of required.values()) {
-            this.initializeLightChunk(x, z);
-            if (!this.lighting.hasChunk(x, z)) allLit = false;
+        this.unlitChunks.clear();
+        this.unreadyChunks.clear();
+        for (const [key, chunk] of required) {
+            if (!this.lighting.hasChunk(chunk.x, chunk.z)) this.unlitChunks.set(key, chunk);
+            if (!this.readyChunks.has(key)) this.unreadyChunks.set(key, chunk);
         }
-        this.litLightChunks = allLit ? lightChunks : undefined;
+        this.requiredLightChunks = lightChunks;
+    }
+
+    /**
+     * Spends the tick's light budget: finishes the first light of the chunks the ring requires, in
+     * the order the view lists them, and floods whatever else is queued with what is left.
+     *
+     * A chunk is finished by flooding the nine chunks around it, so the chunks nearest a player
+     * become ready first while the rest of the ring is still queued. In queue order every chunk of
+     * the ring would finish in the same last ticks, because each one's flood waits behind the
+     * sources of every chunk taken in after it.
+     */
+    private advanceLight(): LightFlushResult {
+        let left = LIGHT_BUDGET_PER_TICK;
+        for (const [key, { x, z }] of this.unreadyChunks) {
+            // The next chunk in line waits for the chunks `prepareLighting` still owes it.
+            if (!this.lightTakenInAround(x, z)) break;
+
+            left -= this.lighting.settleAround(x, z, left).processed;
+            if (this.lighting.isFloodingAround(x, z)) break;
+            this.unreadyChunks.delete(key);
+            this.readyChunks.add(key);
+            if (left === 0) break;
+        }
+        if (this.unlitChunks.size === 0 && this.unreadyChunks.size === 0)
+            this.litLightChunks = this.requiredLightChunks;
+
+        const rest = this.lighting.flush(left);
+        return { ...rest, processed: LIGHT_BUDGET_PER_TICK - left + rest.processed };
+    }
+
+    /** Whether a chunk and every neighbor the light ring requires are in the light model. */
+    private lightTakenInAround(chunkX: number, chunkZ: number): boolean {
+        if (!this.lighting.hasChunk(chunkX, chunkZ)) return false;
+        if (this.unlitChunks.size === 0) return true;
+
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                // A read may have taken a listed chunk in ahead of the pass.
+                if (
+                    this.unlitChunks.has(this.lightChunkKey(chunkX + dx, chunkZ + dz)) &&
+                    !this.lighting.hasChunk(chunkX + dx, chunkZ + dz)
+                )
+                    return false;
+            }
+        }
+        return true;
     }
 
     /** Whether all active light propagation has settled enough for simulation reads. */
@@ -274,20 +380,71 @@ export class WorldSystems {
     }
 
     /**
-     * Whether a lit chunk's light is still flooding, in it or a neighbor. Such a chunk is not
-     * random-ticked, as Java ticks a chunk only once its `light` status is done.
+     * Whether a chunk may be simulated: the first light of the chunk and of every neighbor the
+     * light ring requires has finished.
+     *
+     * Java ticks a chunk only once it and its neighbors are loaded and lit. This is the same
+     * question asked of a chunk whose light arrives over several ticks, and what its entities, its
+     * random ticks and its natural spawns wait for. Each of them reads light in the chunk or one
+     * block over its border, and a read of light that is still arriving has to finish it inside
+     * the tick.
+     *
+     * A chunk's first light stays finished. Light a later block change queues floods within the
+     * tick's budget and a read near it finishes only that, so a torch or an explosion holds
+     * nothing up. A neighbor that has just loaded does, until its own first light is done.
      */
-    public isLightFlooding(chunkX: number, chunkZ: number): boolean {
-        return this.lighting.isFloodingAround(chunkX, chunkZ);
+    public isLightReady(chunkX: number, chunkZ: number): boolean {
+        if (!this.firstLightDone(chunkX, chunkZ)) return false;
+        if (this.unreadyChunks.size === 0) return true;
+
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                if (
+                    this.unreadyChunks.has(this.lightChunkKey(chunkX + dx, chunkZ + dz)) &&
+                    !this.firstLightDone(chunkX + dx, chunkZ + dz)
+                )
+                    return false;
+            }
+        }
+        return true;
     }
 
-    /** Reads block light, initializing and settling an otherwise deferred loaded chunk on demand. */
+    /**
+     * Whether a chunk's first light has finished: it and the neighbors the light ring requires
+     * were taken into the light model, and the light they queued has flooded. Remembers the
+     * answer once it is yes.
+     */
+    private firstLightDone(chunkX: number, chunkZ: number): boolean {
+        const key = this.lightChunkKey(chunkX, chunkZ);
+        if (this.readyChunks.has(key)) return true;
+        // A view that lists no light chunks has no pass to take one in. The first read of a chunk
+        // nobody announced does, so such a chunk waits for nothing.
+        if (!this.lighting.hasChunk(chunkX, chunkZ)) return this.view.lightChunks === undefined;
+        if (!this.lightTakenInAround(chunkX, chunkZ) || this.lighting.isFloodingAround(chunkX, chunkZ)) return false;
+
+        this.readyChunks.add(key);
+        this.unreadyChunks.delete(key);
+        return true;
+    }
+
+    /**
+     * Reads block light. A chunk whose light is not final yet is finished first, as
+     * {@link getSkyLight} describes.
+     */
     public getBlockLight(x: number, y: number, z: number): number {
         this.ensureLightForRead(x, y, z);
         return this.lighting.getBlockLight(x, y, z);
     }
 
-    /** Reads sky light, initializing and settling an otherwise deferred loaded chunk on demand. */
+    /**
+     * Reads sky light, and finishes the light of the chunk first when it is not final yet.
+     *
+     * Finishing takes the chunk and the neighbors the light ring still owes into the light model
+     * and floods the light queued in those nine chunks. Light reaches fifteen blocks, so nothing
+     * further away can change the answer, and the rest of the queue is left for the tick's budget.
+     * The work a read does therefore depends on the nine chunks around it and not on how many
+     * chunks a join, a teleport or a move just queued.
+     */
     public getSkyLight(x: number, y: number, z: number): number {
         this.ensureLightForRead(x, y, z);
         return this.lighting.getSkyLight(x, y, z);
@@ -296,7 +453,11 @@ export class WorldSystems {
     /** Drops a chunk's light. The neighbors keep what it gave them until something changes. */
     public onChunkUnloaded(chunkX: number, chunkZ: number): void {
         this.lighting.onChunkUnloaded(chunkX, chunkZ);
-        this.litChunks.delete(this.lightChunkKey(chunkX, chunkZ));
+        const key = this.lightChunkKey(chunkX, chunkZ);
+        this.litChunks.delete(key);
+        this.unlitChunks.delete(key);
+        this.unreadyChunks.delete(key);
+        this.readyChunks.delete(key);
         // A different chunk at these coordinates may start with the same revision.
         this.lightHintsByChunk.delete(this.lightChunkKey(chunkX, chunkZ));
         this.redstoneUpdateHandlers?.forgetChunk(chunkX, chunkZ);
@@ -403,7 +564,7 @@ export class WorldSystems {
         return {
             scheduled,
             randomTicked: this.runRandomTicks(),
-            light: this.lighting.flush(LIGHT_BUDGET_PER_TICK)
+            light: this.advanceLight()
         };
     }
 
@@ -511,17 +672,32 @@ export class WorldSystems {
     }
 
     private ensureLightForRead(x: number, y: number, z: number): void {
-        if (!this.lighting.hasChunk(x >> 4, z >> 4)) {
+        const chunkX = x >> 4;
+        const chunkZ = z >> 4;
+        if (!this.lighting.hasChunk(chunkX, chunkZ)) {
             if (this.view.blockAt(x, y, z) === undefined) return;
-            this.initializeLightChunk(x >> 4, z >> 4);
+            this.initializeLightChunk(chunkX, chunkZ);
         }
 
-        // A chunk the ring already initialized can still have its flood queued behind the
-        // per-tick budget, and a read of it would see too little light: cows refused to spawn
-        // for as long as the flood ran. Finishing the queue here is the work the following ticks
-        // would have done anyway. Only a read near queued work pays it: a grass block's random
-        // tick in settled terrain used to run every other chunk's flood inside the tick.
-        if (!this.lighting.isSettledAround(x >> 4, z >> 4)) this.lighting.flush();
+        // A neighbor the ring requires and the tick's budget has not reached holds sources whose
+        // light crosses into this chunk, so the read takes it in now. Asked of the view rather
+        // than of the pass's own list, which is a tick old when a player has just arrived.
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                const neighborX = chunkX + dx;
+                const neighborZ = chunkZ + dz;
+                if (this.lighting.hasChunk(neighborX, neighborZ)) continue;
+                if (this.view.blockAt(neighborX << 4, y, neighborZ << 4) === undefined) continue;
+                if (!(this.view.shouldInitializeLight?.(neighborX, neighborZ) ?? true)) continue;
+                this.initializeLightChunk(neighborX, neighborZ);
+            }
+        }
+
+        // A read of a flood still queued behind the per-tick budget would see too little light:
+        // cows refused to spawn for as long as the flood ran. Only the nine chunks that can reach
+        // the read are finished. Flushing the whole queue here ran every chunk a join had just
+        // queued, over a million nodes, inside the tick of the first mob that checked for daylight.
+        if (!this.lighting.isSettledAround(chunkX, chunkZ)) this.lighting.settleAround(chunkX, chunkZ);
     }
 
     private initializeLightChunk(chunkX: number, chunkZ: number): void {

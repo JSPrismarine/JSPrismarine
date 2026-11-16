@@ -269,6 +269,45 @@ describe('world', () => {
             await update;
         });
 
+        it('holds back an entity in a chunk whose light is not done, and never a player', () => {
+            const updated: string[] = [];
+            const standing = (type: string, runtimeId: bigint) =>
+                actorOf({
+                    getPosition: () => new Position(0, 64, 0, world),
+                    getType: () => type,
+                    getRuntimeId: () => runtimeId,
+                    claimUpdate: () => true,
+                    update: () => void updated.push(type)
+                });
+            const { world } = worldTicking({
+                entities: [standing('minecraft:player', 1n), standing('minecraft:cow', 2n)]
+            });
+            let lightReady = false;
+            Object.assign(world, {
+                touchPortals: () => {},
+                // A player within simulation distance of the chunk both stand in. Not connected, so
+                // the sends, which this test is not about, pass it by.
+                players: new Map([
+                    [
+                        1,
+                        stub<PlayerSession>({
+                            isConnected: () => false,
+                            getViewPosition: () => new Vector3(0, 64, 0),
+                            getViewDistance: () => 4
+                        })
+                    ]
+                ]),
+                systems: { tick: () => {}, isLightReady: () => lightReady }
+            });
+
+            world.update(1);
+            expect(updated).toEqual(['minecraft:player']);
+
+            lightReady = true;
+            world.update(2);
+            expect(updated).toEqual(['minecraft:player', 'minecraft:player', 'minecraft:cow']);
+        });
+
         it('ticks its entities without copying the whole entity list for an index', async () => {
             const updated: bigint[] = [];
             const player = actorOf({
