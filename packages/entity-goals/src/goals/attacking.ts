@@ -32,6 +32,9 @@ import { slimeHeadingOf } from './slimeHeading';
 /** How long between melee swings when the body names no cooldown, from Java's `MeleeAttackGoal`. */
 const MELEE_COOLDOWN = 20;
 
+/** One selector tick in this many starts a leap: Java's `LeapAtTargetGoal` draws `reducedTickDelay(5)`. */
+const LEAP_INTERVAL = Math.ceil(5 / 2);
+
 /** How often a chasing goal recomputes its path, from Java's `MeleeAttackGoal`. */
 const REPATH_INTERVAL = 10;
 
@@ -546,7 +549,8 @@ export const leapAtTarget = goal<LeapAtTargetParams>({
                 if (params.mustBeOnGround && !support.flag('on_ground')) return false;
                 const range = support.distanceTo(target.position());
                 if (range < 2 || range > 4) return false;
-                return support.chance(0.2);
+                // Java's LeapAtTargetGoal leaps on one selector tick in reducedTickDelay(5).
+                return support.randomInt(LEAP_INTERVAL) === 0;
             },
             canContinue: () => leaping && !support.flag('on_ground'),
             start: () => {

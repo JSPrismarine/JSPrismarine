@@ -138,7 +138,8 @@ describe("the scheduler over a zombie's goal set", () => {
         const player = testMob('player', { x: 14.5, y: 1, z: 8.5 }, { families: ['player'] });
         const harness = spawn(zombieWorld({ players: [player] }));
 
-        harness.tick(2);
+        // The target scan draws one selector tick in reducedTickDelay(10), as Java's does.
+        expect(tickUntil(harness, () => harness.isRunning('minecraft:behavior.melee_box_attack'))).toBe(true);
 
         expect(harness.holderOf('move')).toBe('minecraft:behavior.melee_box_attack');
         expect(harness.holderOf('look')).toBe('minecraft:behavior.melee_box_attack');
@@ -149,7 +150,8 @@ describe("the scheduler over a zombie's goal set", () => {
         const player = testMob('player', { x: 14.5, y: 1, z: 8.5 }, { families: ['player'] });
         const harness = spawn(zombieWorld({ players: [player] }));
 
-        harness.tick(2);
+        // The target scan draws one selector tick in reducedTickDelay(10), as Java's does.
+        expect(tickUntil(harness, () => harness.isRunning('minecraft:behavior.melee_box_attack'))).toBe(true);
 
         expect(harness.running()).toContain('minecraft:behavior.nearest_attackable_target');
         expect(harness.running()).toContain('minecraft:behavior.melee_box_attack');
@@ -159,7 +161,8 @@ describe("the scheduler over a zombie's goal set", () => {
         const player = testMob('player', { x: 14.5, y: 1, z: 8.5 }, { families: ['player'] });
         const harness = spawn(zombieWorld({ players: [player] }));
 
-        harness.tick(2);
+        // The target scan draws one selector tick in reducedTickDelay(10), as Java's does.
+        expect(tickUntil(harness, () => harness.isRunning('minecraft:behavior.melee_box_attack'))).toBe(true);
         const running = harness.running();
 
         expect(running.indexOf('minecraft:behavior.nearest_attackable_target')).toBeLessThan(

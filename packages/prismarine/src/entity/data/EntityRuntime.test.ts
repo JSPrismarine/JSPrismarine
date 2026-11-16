@@ -2348,6 +2348,8 @@ describe('EntityRuntime', () => {
                             'minecraft:navigation.walk': {},
                             'minecraft:type_family': { family: ['zombie', 'monster', 'mob'] },
                             'minecraft:behavior.nearest_attackable_target': {
+                                // Scans every selector tick, so the test does not wait on Java's one-in-five draw.
+                                scan_interval: 0,
                                 priority: 1,
                                 within_radius: 24,
                                 entity_types: [
@@ -2392,6 +2394,8 @@ describe('EntityRuntime', () => {
                             'minecraft:physics': {},
                             'minecraft:type_family': { family: ['hunter', 'monster'] },
                             'minecraft:behavior.nearest_attackable_target': {
+                                // Scans every selector tick, so the test does not wait on Java's one-in-five draw.
+                                scan_interval: 0,
                                 priority: 1,
                                 entity_types: [
                                     { filters: { test: 'is_family', subject: 'other', value: 'ghast' }, max_dist: 16 }
@@ -2407,6 +2411,8 @@ describe('EntityRuntime', () => {
                             'minecraft:physics': {},
                             'minecraft:type_family': { family: ['hunter', 'monster'] },
                             'minecraft:behavior.nearest_attackable_target': {
+                                // Scans every selector tick, so the test does not wait on Java's one-in-five draw.
+                                scan_interval: 0,
                                 priority: 1,
                                 entity_types: [
                                     { filters: { test: 'is_family', subject: 'other', value: 'ghast' }, max_dist: 16 }

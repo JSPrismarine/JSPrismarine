@@ -26,7 +26,10 @@ const FORGET_TICKS = 60;
 /** How long a revenge target is remembered, from Java's `HurtByTargetGoal`. */
 const REVENGE_FORGET_TICKS = 300;
 
-/** One tick in ten runs a scan, from Java's `NearestAttackableTargetGoal.DEFAULT_RANDOM_INTERVAL`. */
+/**
+ * The random interval of a scan, from Java's `NearestAttackableTargetGoal.DEFAULT_RANDOM_INTERVAL`:
+ * one selector tick in `reducedTickDelay(10)`, so one in five, runs a scan.
+ */
 const SCAN_INTERVAL = 10;
 
 /** How the shared find-hold-release loop is parameterized. */
@@ -41,7 +44,7 @@ interface TargetHold {
     readonly forgetTicks: number;
     /** How long the target is held at most, in ticks; 0 holds it until it is invalid. */
     readonly persistTicks: number;
-    /** How many ticks between scans. */
+    /** Java's random interval: one selector tick in half of it, rounded up, runs a scan; 0 scans every one. */
     readonly scanInterval: number;
     /** The chance a scan that found a candidate takes it, in [0, 1]. */
     readonly probability: number;
@@ -62,15 +65,12 @@ const holdTarget = (support: GoalSupport, options: TargetHold): Goal => {
     let held: GoalMob | undefined;
     let unseen = 0;
     let age = 0;
-    let cooldown = 0;
 
     return {
         canStart: () => {
-            if (cooldown > 0) {
-                cooldown -= 1;
-                return false;
-            }
-            cooldown = options.scanInterval;
+            // Java's NearestAttackableTargetGoal scans on one selector tick in
+            // reducedTickDelay(randomInterval), a draw rather than a fixed countdown.
+            if (options.scanInterval > 0 && support.randomInt(Math.ceil(options.scanInterval / 2)) !== 0) return false;
             if (!options.reselect && support.target() !== undefined) return false;
             if (!support.chance(options.probability)) return false;
             const candidate = options.find();
@@ -409,7 +409,8 @@ export const defendVillageTarget = goal<DefendVillageTargetParams>({
             mustSee: false,
             forgetTicks: FORGET_TICKS,
             persistTicks: 0,
-            scanInterval: SCAN_INTERVAL,
+            // Java's DefendVillageTargetGoal looks every selector tick; it has no random interval.
+            scanInterval: 0,
             probability: 1,
             reselect: false,
             mustReach: params.mustReach
@@ -485,7 +486,8 @@ export const witherTargetHighestDamage = goal<readonly TargetEntityType[]>({
             mustSee: false,
             forgetTicks: REVENGE_FORGET_TICKS,
             persistTicks: 0,
-            scanInterval: SCAN_INTERVAL,
+            // The wither's NearestAttackableTargetGoal has a random interval of 0: it looks every selector tick.
+            scanInterval: 0,
             probability: 1,
             reselect: true,
             mustReach: false

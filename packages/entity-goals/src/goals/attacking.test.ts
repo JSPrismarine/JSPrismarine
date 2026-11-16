@@ -189,6 +189,25 @@ describe('minecraft:behavior.leap_at_target', () => {
         expect(world.pushes).toEqual([0.4]);
     });
 
+    it("leaps on one selector tick in reducedTickDelay(5), as Java's LeapAtTargetGoal does", () => {
+        const good = testMob('good', { x: 3, y: 0, z: 0 });
+        const bounds: number[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.leap_at_target': { priority: 4 } },
+            world: combatWorld(good),
+            flags: { on_ground: true },
+            randomInt: (bound) => {
+                bounds.push(bound);
+                return 1;
+            }
+        });
+
+        harness.tick();
+
+        expect(bounds).toEqual([3]);
+        expect(harness.running()).toEqual([]);
+    });
+
     it('refuses while the entity is in the air and must_be_on_ground is set', () => {
         const good = testMob('good', { x: 3, y: 0, z: 0 });
         const harness = new GoalHarness({

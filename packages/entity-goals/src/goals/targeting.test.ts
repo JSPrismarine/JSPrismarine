@@ -59,6 +59,25 @@ describe('minecraft:behavior.nearest_attackable_target', () => {
         expect(harness.isRunning('minecraft:behavior.nearest_attackable_target')).toBe(true);
     });
 
+    it("scans on one selector tick in reducedTickDelay(scan_interval), as Java's random interval does", () => {
+        const player = testMob('player', { x: 4, y: 0, z: 0 }, { families: ['player'] });
+        const bounds: number[] = [];
+        const world = targetingWorld({ mobs: [player] });
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.nearest_attackable_target': { ...body, scan_interval: 10 } },
+            world,
+            randomInt: (bound) => {
+                bounds.push(bound);
+                return 1;
+            }
+        });
+
+        harness.tick(3);
+
+        expect(bounds).toEqual([5, 5, 5]);
+        expect(world.writes).toEqual([]);
+    });
+
     it('claims no control flag, so an attack goal may run beside it', () => {
         const player = testMob('player', { x: 4, y: 0, z: 0 }, { families: ['player'] });
         const harness = new GoalHarness({

@@ -122,6 +122,8 @@ const GOAL_WORLD_ENTITIES: ExtraEntities = {
     'jsprismarine:stalker': mob({
         'minecraft:behavior.nearest_attackable_target': {
             priority: 1,
+            // Scans every selector tick, so the test does not wait on Java's one-in-five draw.
+            scan_interval: 0,
             within_radius: 24,
             reselect_targets: true,
             entity_types: [{ filters: { test: 'is_family', subject: 'other', value: 'player' }, max_dist: 24 }]
