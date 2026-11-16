@@ -33,6 +33,9 @@ export const BLOCK_DROPS = idOf('doTileDrops');
 /** `minecraft:mob_drops`: whether a dead mob leaves its loot behind. */
 export const MOB_DROPS = idOf('doMobLoot');
 
+/** `minecraft:entity_drops`: whether a non-mob entity, or a snapped lead, leaves its item behind. */
+export const ENTITY_DROPS = idOf('doEntityDrops');
+
 /** `minecraft:tnt_explodes`: whether primed TNT detonates and chains. */
 export const TNT_EXPLODES = idOf('tntExplodes');
 

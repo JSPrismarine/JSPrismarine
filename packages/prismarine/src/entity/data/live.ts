@@ -966,6 +966,15 @@ export class LiveEntityRuntime {
         if (session !== undefined && this.openTradeScreen(id, target, session, itemIdentifier))
             return { accepted: true, swing: true, consumeItem: false };
 
+        // Java's Entity.interact: a sneaking player moves the leads it holds onto a leashable entity.
+        if (
+            session?.getPlayer().isSneaking() === true &&
+            this.runtime.transferLeashes(Number(player.getRuntimeId()), id)
+        ) {
+            target.getWorld().sendActorSound(target, LevelSoundEvent.LEAD_LEASH);
+            return { accepted: true, swing: true, consumeItem: false };
+        }
+
         const previousLoveTicks = this.runtime.byId(id)?.body.loveTicks ?? 0;
         const interaction = this.runtime.interactWithItem(
             id,

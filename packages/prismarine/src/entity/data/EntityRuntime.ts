@@ -86,8 +86,10 @@ import type { Merchant, MerchantSnapshot } from '@jsprismarine/trading';
 import type { EntityView, ItemStack } from '@jsprismarine/predicates';
 
 import type { ContentEntity, ContentItemDrop } from '../../content/world/adapter';
+import { leashSnapDistance } from './leash';
 import {
     BLOCK_DROPS,
+    ENTITY_DROPS,
     FIRE_DAMAGE,
     MOB_DROPS,
     MOB_GRIEFING,
@@ -1572,6 +1574,60 @@ export class EntityRuntime implements EntityScene {
         return true;
     }
 
+    /**
+     * Moves every lead a player holds onto another entity, which then holds them: Java's
+     * `Entity.interact` does this when a sneaking player uses a leashable entity.
+     *
+     * The new holder has to carry an active `minecraft:leashable_to` and be an adult, and each
+     * lead moves only when its entity is within its snap distance of the new holder, which is
+     * Java's `Leashable.canHaveALeashAttachedTo`.
+     *
+     * @param playerId - Runtime id of the player holding the leads.
+     * @param holderId - Runtime id of the entity taking them.
+     * @returns Whether any lead moved.
+     */
+    public transferLeashes(playerId: number, holderId: number): boolean {
+        const holder = this.store.get(holderId);
+        if (holder === undefined || holder.removed !== undefined) return false;
+        if (
+            !holder.instance.hasComponent('minecraft:leashable_to') ||
+            holder.instance.hasComponent('minecraft:is_baby')
+        )
+            return false;
+        const playerIdentity = this.host.playerIdentityOf?.(playerId);
+        if (playerIdentity === undefined) return false;
+
+        let moved = false;
+        for (const [leashedId, identity] of [...this.leashHolders]) {
+            if (identity !== `${PLAYER_LEASH_HOLDER_PREFIX}${playerIdentity}` || leashedId === holderId) continue;
+            const leashed = this.store.get(leashedId);
+            if (leashed === undefined) continue;
+            if (distance(leashed.position, holder.position) > leashSnapDistance(leashed.identifier)) continue;
+            this.setLeashHolder(leashedId, holder.persistentIdentity);
+            moved = true;
+        }
+        return moved;
+    }
+
+    /**
+     * Snaps every lead whose entity got past its snap distance from the holder, dropping the
+     * lead item when entity drops are on, which is Java's `Leashable.tickLeash`.
+     */
+    private tickLeashes(): void {
+        for (const [leashedId] of [...this.leashHolders]) {
+            const leashed = this.store.get(leashedId);
+            const holderId = this.leashHolderIdOf(leashedId);
+            const holder = holderId === undefined ? undefined : this.mobById(holderId);
+            if (leashed === undefined || holder === undefined) continue;
+            if (distance(leashed.position, holder.position()) <= leashSnapDistance(leashed.identifier)) continue;
+
+            this.setLeashHolder(leashedId, undefined);
+            this.raiseLeashEvent(leashed, 'on_unleash');
+            if (ruleIsOn(this.world.level, ENTITY_DROPS))
+                this.host.drop(blockPositionOf(leashed.position), { identifier: 'minecraft:lead', count: 1 });
+        }
+    }
+
     /** Cuts the incoming leash or any cuttable leashes held by an entity with shears. */
     private cutLeashesAt(target: DataEntity): boolean {
         let cut = false;
@@ -1637,6 +1693,7 @@ export class EntityRuntime implements EntityScene {
                 this.store.succeeded(entity.id);
         }
         if (this.store.broken !== undefined) return;
+        this.tickLeashes();
         this.runSpawnCycle(tick);
         this.runDespawnCycle(shouldTick);
     }
