@@ -102,3 +102,29 @@ describe('behavior coverage', () => {
         expect(reported()).toMatchObject([{ id: 'runtime-behavior:minecraft:marker', status: 'not measured' }]);
     });
 });
+
+describe('runScenarios', () => {
+    it('records a classified gap under the reference the classifier names', () => {
+        const [row] = runScenarios([
+            {
+                ...breeding,
+                subjects: () => ['minecraft:pig'],
+                classify: () => ({ kind: 'deferred', reason: 'Breeding waits on the brain.', reference: 'issue #1' })
+            }
+        ]);
+
+        expect(row?.gap).toEqual({ kind: 'deferred', reason: 'Breeding waits on the brain.', reference: 'issue #1' });
+    });
+
+    it("falls back to the scenario's reference when the classifier names none", () => {
+        const [row] = runScenarios([
+            {
+                ...breeding,
+                subjects: () => ['minecraft:pig'],
+                classify: () => ({ kind: 'deferred', reason: 'Breeding waits on the brain.' })
+            }
+        ]);
+
+        expect(row?.gap?.reference).toBe('test');
+    });
+});

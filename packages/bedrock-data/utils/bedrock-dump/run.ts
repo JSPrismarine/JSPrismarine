@@ -56,11 +56,12 @@ import { describePending, sessionVerdict, VERIFY_INTERVAL_MS } from './completio
 import type { PendingChunk } from './completion.ts';
 import { hostNodeArgs } from './host.ts';
 import { writeDumpPack } from './pack.ts';
+import { spawnProbe } from './probe.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
 import { blockBounds, REFERENCE_DIMENSION, REFERENCE_REGION, REFERENCE_SEED, tileRegion } from './region.ts';
 import type { ReferenceRegion } from './region.ts';
 import { launcherForHost } from './runner.ts';
-import type { ProbeCommand, ServerLauncher } from './runner.ts';
+import type { ServerLauncher } from './runner.ts';
 import { READY_LINE, stageServer, startServer } from './server.ts';
 import type { StagedServer } from './server.ts';
 import { readPendingChunks, readReferenceWorld } from './world.ts';
@@ -104,17 +105,7 @@ const requested = selectPasses(values.pass);
 // The pinned server
 // ---------------------------------------------------------------------------
 
-/** Runs a short command and reports what it did, for the runtime probe and the container cleanup. */
-const runProbe: ProbeCommand = (command, args) => {
-    const result = spawnSync(command, [...args], { encoding: 'utf8' });
-    return {
-        status: result.error !== undefined ? null : result.status,
-        stdout: result.stdout ?? '',
-        stderr: result.error !== undefined ? result.error.message : (result.stderr ?? '')
-    };
-};
-
-const launcher: ServerLauncher = launcherForHost(runProbe);
+const launcher: ServerLauncher = launcherForHost(spawnProbe);
 
 /** The stage budgets for this run, sized for the runner that was chosen. */
 const TIMEOUTS = {

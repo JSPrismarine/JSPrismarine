@@ -13,10 +13,11 @@ import { fileURLToPath } from 'node:url';
 
 import type { VitestJsonReport } from '../src/dashboard/render.ts';
 import type { ParityMeasurement } from '../src/progress.ts';
-import { ALL_FAMILIES } from '../src/families.ts';
+import { isFamily } from '../src/families.ts';
 import { familiesWithoutTests, renderDashboard } from '../src/dashboard/render.ts';
 import type { ReportedParityCase } from '../src/dashboard/tracker.ts';
 import { buildTrackerData } from '../src/dashboard/tracker.ts';
+import { isRecord } from '../src/isRecord.ts';
 
 /**
  * Teaches node how the workspace's own packages spell an import.
@@ -74,9 +75,6 @@ if (!existsSync(reportPath)) {
 
 // Parsed JSON boundary; VitestJsonReport documents the fields the renderer reads.
 const report = JSON.parse(readFileSync(reportPath, 'utf-8')) as VitestJsonReport;
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
-const isFamily = (value: string): value is (typeof ALL_FAMILIES)[number] =>
-    ALL_FAMILIES.some((family) => family === value);
 const isParityMeasurement = (value: unknown): value is ParityMeasurement =>
     isRecord(value) &&
     typeof value.family === 'string' &&

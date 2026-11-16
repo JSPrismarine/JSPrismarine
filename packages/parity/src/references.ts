@@ -13,6 +13,10 @@ import { findJavaWorldgenSources } from '@jsprismarine/prismarine/world/generato
 // and the block schemas read. The module reads one JSON file and imports nothing else.
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
+import { scenarioGoldenPath } from './scripting/record.ts';
+import { SCRIPT_SCENARIOS } from './scripting/scenarios.ts';
+import type { ScriptingFamily } from './scripting/scenarios.ts';
+
 /**
  * Where each comparison's reference data comes from, and whether this checkout has it.
  *
@@ -361,6 +365,24 @@ export const REFERENCES = {
         }
     }
 } as const satisfies Record<string, ReferenceSource>;
+
+/**
+ * The BDS goldens of one scripting family's scenarios.
+ *
+ * Present once any scenario of the family has a captured golden. A family with no scenario yet
+ * reports "not measured" rather than passing on nothing; a declared scenario whose golden is
+ * missing fails its own row instead.
+ */
+export const scriptingGoldens = (family: ScriptingFamily): ReferenceSource => ({
+    id: `${family}-goldens`,
+    kind: 'committed',
+    holds: `what the pinned Bedrock Dedicated Server's scripts recorded for each ${family} scenario`,
+    howToGet: 'add a scenario to SCRIPT_SCENARIOS and run `pnpm --filter @jsprismarine/parity run capture:scripting`',
+    locate: () =>
+        SCRIPT_SCENARIOS.filter((scenario) => scenario.family === family)
+            .map((scenario) => scenarioGoldenPath(scenario.id))
+            .find((path) => existsSync(path))
+});
 
 /** The sources a comparison needs that this checkout does not have. */
 export const missingReferences = (required: readonly ReferenceSource[]): readonly ReferenceSource[] =>

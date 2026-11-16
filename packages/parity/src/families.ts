@@ -131,6 +131,17 @@ export const FAMILIES = {
     /** The packet sequence a world change sends round-trips through every registered codec. */
     protocolDimensionChange: 'protocol.dimension-change',
 
+    /**
+     * When behavior pack scripts run against the pinned Bedrock Dedicated Server: module top
+     * level, promise jobs, `startup`, `worldInitialize`, `worldLoad` and system tasks, for each
+     * `@minecraft/server` major version.
+     */
+    scriptingLifecycle: 'scripting.lifecycle',
+    /** Which before-events and after-events a script receives, in what order, and what they carry. */
+    scriptingEvents: 'scripting.events',
+    /** The JavaScript engine a script sees: its globals, its language level and its error messages. */
+    scriptingEngine: 'scripting.engine',
+
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',
     /** The classification table the claim counts stays in step with the research note. */
@@ -144,6 +155,9 @@ export type Family = (typeof FAMILIES)[keyof typeof FAMILIES];
 
 /** Every declared family id, in declaration order. */
 export const ALL_FAMILIES: readonly Family[] = Object.values(FAMILIES);
+
+/** Whether a string is one of the declared family ids. */
+export const isFamily = (value: string): value is Family => ALL_FAMILIES.some((family) => family === value);
 
 /**
  * The group each family id starts with, deduplicated and sorted. Derived from {@link FAMILIES}

@@ -130,7 +130,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
 2. [x] **Research note.** [bedrock-script-api.md](../research/bedrock-script-api.md): versions
    and their members, timing, configuration, storage, the debugger protocol, engine options, and
    corpus candidates.
-3. [ ] **The engine on one platform.** Linux x64 first.
+3. [ ] [#3200](https://github.com/JSPrismarine/JSPrismarine/issues/3200) **The engine on one platform.** Linux x64 first.
    - Create `packages/script-host` with its README.
    - Build Bellard's QuickJS at its latest release and the C layer: handles, host dispatch, the
      interrupt-driven step budget, the allocation and stack limits, state per engine.
@@ -139,14 +139,14 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
    - Bind it with `node:ffi`, as the native networking package does.
    - Tests: evaluation, a host call from inside a script, a `while (true)` stopped at the same
      step on every run, an allocation limit, two engines on two threads.
-4. [ ] **The generated shape.** The generator over `metadata/script_modules`, the semver
+4. [ ] [#3201](https://github.com/JSPrismarine/JSPrismarine/issues/3201) **The generated shape.** The generator over `metadata/script_modules`, the semver
    resolution, and `NotImplementedError` stubs for every member.
    - The overrides list for metadata gaps, starting with `registerCommand`'s privilege.
    - Tests: a pack declaring 1.3.0 gets the newest 1.x, argument validation errors match the
      metadata, an unimplemented call names its member.
-5. [ ] **The parity families.** Declare the `scripting.*` families, write the BDS runner and the
+5. [x] [#3202](https://github.com/JSPrismarine/JSPrismarine/issues/3202) **The parity families.** Declare the `scripting.*` families, write the BDS runner and the
    golden format, and land one scenario that runs on BDS, with JSP's row recorded as a gap.
-6. [ ] **The skeleton.** The milestone that proves every mechanism once:
+6. [ ] [#3203](https://github.com/JSPrismarine/JSPrismarine/issues/3203) **The skeleton.** The milestone that proves every mechanism once:
    - manifest and native module resolution, including an undeclared `@jsprismarine/server` import
      that rejects on BDS and resolves on JSP
    - `permissions.json`, `variables.json` and `secrets.json` from the BDS layout
@@ -160,14 +160,14 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
    - seeded `Math.random`, `Date` as an input, and a replay of a scripted session reaching the
      same digest
    - Done when every item has a passing `scripting` row.
-7. [ ] **The debugger.** The protocol the VS Code extension speaks, `/script debugger
+7. [ ] [#3204](https://github.com/JSPrismarine/JSPrismarine/issues/3204) **The debugger.** The protocol the VS Code extension speaks, `/script debugger
    listen|connect|detach` and the `script-debugger-*` properties, over koush's debugger patch
    ported to the pinned QuickJS. Planned with the skeleton, and split into its own slice right
    after it if the port is large.
    - Done when VS Code attaches and stops at a breakpoint in a scenario pack.
-8. [ ] **The corpus.** The manifest, the fetch script and the usage counter, starting from the
+8. [ ] [#3205](https://github.com/JSPrismarine/JSPrismarine/issues/3205) **The corpus.** The manifest, the fetch script and the usage counter, starting from the
    candidates in the research note. Count beta packs too. Order slices 9 onward by the counts.
-9. [ ] **Beta modules.** Right after the skeleton, because most open-source add-ons in the corpus
+9. [ ] [#3206](https://github.com/JSPrismarine/JSPrismarine/issues/3206) **Beta modules.** Right after the skeleton, because most open-source add-ons in the corpus
    depend on a beta `@minecraft/server`.
    - The Beta APIs experiment as a world setting, sent to clients and required by a pack that
      declares a `-beta` version, with BDS's message when it is off.
@@ -175,26 +175,26 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      semver, so a `scripting.lifecycle` row records what BDS does with a pack that names another
      beta version.
    - From here on, breadth slices implement a member in the stable and beta shapes together.
-10. [ ] **Core server breadth.** Players, entities, blocks, dimensions, items and the events the
+10. [ ] [#3207](https://github.com/JSPrismarine/JSPrismarine/issues/3207) **Core server breadth.** Players, entities, blocks, dimensions, items and the events the
     corpus uses most, in batches. Each batch names the corpus packs it makes run.
-11. [ ] **Custom components.** `registerCustomComponent` for blocks and items registers into the
+11. [ ] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.
-12. [ ] **Persistence.** Dynamic properties and script scoreboards, byte-compatible with BDS and
+12. [ ] [#3209](https://github.com/JSPrismarine/JSPrismarine/issues/3209) **Persistence.** Dynamic properties and script scoreboards, byte-compatible with BDS and
     checked by the LevelDB compatibility suite in both directions.
-13. [ ] **`@minecraft/server-ui`.** Forms, over the modal form packets.
-14. [ ] **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
+13. [ ] [#3210](https://github.com/JSPrismarine/JSPrismarine/issues/3210) **`@minecraft/server-ui`.** Forms, over the modal form packets.
+14. [ ] [#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211) **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
     same tests.
-15. [ ] **`@minecraft/server-net` and `@minecraft/server-admin`.** Responses as inputs, and the
+15. [ ] [#3212](https://github.com/JSPrismarine/JSPrismarine/issues/3212) **`@minecraft/server-net` and `@minecraft/server-admin`.** Responses as inputs, and the
     permissions BDS requires.
-16. [ ] **`@jsprismarine/server`.** The first JSP-only members, the npm typings package, and a
+16. [ ] [#3213](https://github.com/JSPrismarine/JSPrismarine/issues/3213) **`@jsprismarine/server`.** The first JSP-only members, the npm typings package, and a
     docs page with the detect-and-fall-back pattern.
-17. [ ] **The docs.** Rewrite [Extending JSPrismarine](../guide/extending.md) around script packs,
+17. [ ] [#3214](https://github.com/JSPrismarine/JSPrismarine/issues/3214) **The docs.** Rewrite [Extending JSPrismarine](../guide/extending.md) around script packs,
     with embedding as the lower-level option.
-18. [ ] **Every platform.** The native builds for each platform ADR 0006 lists.
-19. [ ] **scriptc.** The scriptc binding over the same C layer, once the server compiles under
+18. [ ] [#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215) **Every platform.** The native builds for each platform ADR 0006 lists.
+19. [ ] [#3216](https://github.com/JSPrismarine/JSPrismarine/issues/3216) **scriptc.** The scriptc binding over the same C layer, once the server compiles under
     scriptc.
-20. [ ] **The rest.** `debug-utilities`, `diagnostics` and `server-graphics`, as the corpus asks.
+20. [ ] [#3217](https://github.com/JSPrismarine/JSPrismarine/issues/3217) **The rest.** `debug-utilities`, `diagnostics` and `server-graphics`, as the corpus asks.
 
 ## Risks
 
