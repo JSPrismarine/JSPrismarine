@@ -6,6 +6,7 @@ import { entityAspects } from './entityScenarios/aspects.ts';
 import { coreScenarios } from './entityScenarios/core.ts';
 import { interactionScenarios } from './entityScenarios/interaction.ts';
 import { mobGoalScenarios } from './entityScenarios/mobGoals.ts';
+import { engineScenarios } from './entityScenarios/engine.ts';
 import { spawnScenarios } from './entityScenarios/spawning.ts';
 import { javaEntityIds } from './entityScenarios/subjects.ts';
 import { FAMILIES } from './families.ts';
@@ -20,7 +21,8 @@ const ENTITY_SCENARIO_GROUPS: readonly ScenarioGroup[] = [
     scenarioGroup(spawnScenarios),
     scenarioGroup(coreScenarios),
     scenarioGroup(interactionScenarios),
-    scenarioGroup(mobGoalScenarios)
+    scenarioGroup(mobGoalScenarios),
+    scenarioGroup(engineScenarios)
 ];
 
 describeFamily(

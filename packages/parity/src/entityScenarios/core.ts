@@ -4,18 +4,37 @@ import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponen
 import { land, trackFall } from '@jsprismarine/prismarine/entity/playerFall';
 import { EXHAUSTION } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
+import type { EntityPosition } from '@jsprismarine/entities';
+import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
+import { FLOOR_Y } from '@jsprismarine/prismarine/entity/data/testing';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
-import { entitiesTable } from '@jsprismarine/mapping/tables';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
+import { loadJavaEntityAttributes } from '../goldens.ts';
 import { serverContent } from '../serverStack.ts';
 import { loadVanillaEntityTypes } from '../vanillaEntities.ts';
+import type { StagedEntity } from './stage.ts';
+import { STAGE_PLAYER_ID, stage, tickStage, withEntity } from './stage.ts';
 import type { EntitySubject } from './subjects.ts';
-import { componentValues, field, mappedEntity, stringList, withNamespace } from './subjects.ts';
+import {
+    componentValues,
+    entitiesDeclaring,
+    field,
+    javaEntityIds,
+    mappedEntity,
+    stringList,
+    withNamespace
+} from './subjects.ts';
 
-/** The Java food tag each breedable Java animal reads, which is the item set `Animal.isFood` accepts. */
-const BREEDING_FOOD: readonly (readonly [string, string])[] = [
+/** The golden foods Java's `AbstractHorse.handleEating` puts a tamed adult horse or donkey in love with. */
+const HORSE_BREEDING_FOOD = ['minecraft:golden_carrot', 'minecraft:golden_apple', 'minecraft:enchanted_golden_apple'];
+
+/**
+ * What breeds each breedable Java animal: the food tag `Animal.isFood` reads, or the items that
+ * a horse's or a llama's `handleEating` puts it in love with, where the tag only heals it.
+ */
+const BREEDING_FOOD: ReadonlyMap<string, string | readonly string[]> = new Map<string, string | readonly string[]>([
     ['minecraft:armadillo', 'minecraft:armadillo_food'],
     ['minecraft:axolotl', 'minecraft:axolotl_food'],
     ['minecraft:bee', 'minecraft:bee_food'],
@@ -23,10 +42,16 @@ const BREEDING_FOOD: readonly (readonly [string, string])[] = [
     ['minecraft:cat', 'minecraft:cat_food'],
     ['minecraft:chicken', 'minecraft:chicken_food'],
     ['minecraft:cow', 'minecraft:cow_food'],
+    ['minecraft:donkey', HORSE_BREEDING_FOOD],
     ['minecraft:fox', 'minecraft:fox_food'],
     ['minecraft:frog', 'minecraft:frog_food'],
     ['minecraft:goat', 'minecraft:goat_food'],
     ['minecraft:hoglin', 'minecraft:hoglin_food'],
+    ['minecraft:horse', HORSE_BREEDING_FOOD],
+    ['minecraft:llama', ['minecraft:hay_block']],
+    // `MushroomCow` extends `AbstractCow`, which reads the cow's tag.
+    ['minecraft:mooshroom', 'minecraft:cow_food'],
+    ['minecraft:nautilus', 'minecraft:nautilus_food'],
     ['minecraft:ocelot', 'minecraft:ocelot_food'],
     ['minecraft:panda', 'minecraft:panda_food'],
     ['minecraft:pig', 'minecraft:pig_food'],
@@ -34,9 +59,210 @@ const BREEDING_FOOD: readonly (readonly [string, string])[] = [
     ['minecraft:sheep', 'minecraft:sheep_food'],
     ['minecraft:sniffer', 'minecraft:sniffer_food'],
     ['minecraft:strider', 'minecraft:strider_food'],
+    // `TraderLlama` extends `Llama` and keeps its `handleEating`.
+    ['minecraft:trader_llama', ['minecraft:hay_block']],
     ['minecraft:turtle', 'minecraft:turtle_food'],
     ['minecraft:wolf', 'minecraft:wolf_food']
-];
+]);
+
+/** A Java item as the Bedrock item a player would hold, or undefined when it has none. */
+const bedrockItem = (javaItem: string): string | undefined => {
+    const mapped = javaItemToBedrock(javaItem);
+    return mapped.kind === 'unknown' ? undefined : mapped.bedrock.identifier;
+};
+
+/** The Bedrock items Java breeds one animal with. */
+const javaBreedingFood = (javaId: string): readonly string[] => {
+    const food = BREEDING_FOOD.get(javaId) ?? [];
+    const javaItems = typeof food === 'string' ? serverContent().tags.members('item', food) : food;
+    return [...new Set(javaItems.flatMap((item) => bedrockItem(item) ?? []))];
+};
+
+/** The items a server definition's `minecraft:breedable` names, written as strings or as `{item}`. */
+const declaredBreedingItems = (bedrock: string): readonly string[] =>
+    componentValues(bedrock, 'minecraft:breedable').flatMap((value) => {
+        const items = field(value, 'breed_items');
+        return (Array.isArray(items) ? items : [items]).flatMap((entry) => {
+            const item = typeof entry === 'string' ? entry : field(entry, 'item');
+            return typeof item === 'string' ? [withNamespace(item)] : [];
+        });
+    });
+
+/** The events a definition's taming or trusting component fires once the mob is tamed or trusts. */
+const tameEventsOf = (bedrock: string): readonly string[] =>
+    [
+        ['minecraft:tameable', 'tame_event'],
+        ['minecraft:tamemount', 'tame_event'],
+        ['minecraft:trusting', 'trust_event']
+    ].flatMap(([component, key]) =>
+        componentValues(bedrock, component ?? '').flatMap((value) => {
+            const event = field(field(value, key ?? ''), 'event');
+            return typeof event === 'string' ? [event] : [];
+        })
+    );
+
+/**
+ * The Java entity types that are fire immune, from `EntityType.Builder.fireImmune` in
+ * `EntityType`, among the ones a daylight check can reach. `Entity.isOnFire` is false for each.
+ */
+const JAVA_FIRE_IMMUNE: ReadonlySet<string> = new Set(['minecraft:magma_cube', 'minecraft:wither_skeleton']);
+
+/** How many ticks a mob stands in open sunlight before the daylight check gives up on it catching fire. */
+const SUNLIGHT_TICKS = 200;
+
+/**
+ * Java's air for a living entity: `Entity.getMaxAirSupply` (300 ticks) unless the class
+ * overrides it, and whether it loses air underwater at all.
+ */
+const JAVA_MAX_AIR: ReadonlyMap<string, number> = new Map([
+    ['minecraft:dolphin', 4800],
+    ['minecraft:axolotl', 6000]
+]);
+
+/** Java's default `Entity.getMaxAirSupply`. */
+const DEFAULT_MAX_AIR = 300;
+
+/**
+ * Living entities that keep their air underwater outside the can_breathe_under_water tag:
+ * `IronGolem.decreaseAirSupply` returns the supply unchanged. A happy ghast breathes underwater
+ * only as a baby and a sulfur cube only with an item in its body, so as the adults the scenario
+ * spawns both drown.
+ */
+const JAVA_KEEPS_AIR: ReadonlySet<string> = new Set(['minecraft:iron_golem']);
+
+/**
+ * The mobs `isSensitiveToWater` hurts in water from the first tick, 1 at a time, as often as the
+ * 10 ticks of hurt invulnerability let it: `LivingEntity.aiStep` hurts them with the drowning
+ * damage type every tick they are wet.
+ */
+const JAVA_WATER_SENSITIVE: ReadonlySet<string> = new Set([
+    'minecraft:blaze',
+    'minecraft:enderman',
+    'minecraft:snow_golem',
+    'minecraft:strider'
+]);
+
+/** Java's water damage to a water-sensitive mob: a blow of 1 on the first wet tick, then every 10 ticks. */
+const WATER_SENSITIVITY = { first: 1, interval: 10, damage: 1 } as const;
+
+/** The `WaterAnimal` subclasses, whose `handleAirSupply` spends air out of water and drowns them on land. */
+const JAVA_WATER_ANIMALS: ReadonlySet<string> = new Set([
+    'minecraft:cod',
+    'minecraft:salmon',
+    'minecraft:pufferfish',
+    'minecraft:tropical_fish',
+    'minecraft:squid',
+    'minecraft:glow_squid',
+    'minecraft:tadpole'
+]);
+
+/** Java's drowning: the first blow lands 20 ticks after the air runs out, then every 20 ticks, for 2. */
+const DROWNING = { delay: 20, interval: 20, damage: 2 } as const;
+
+/** A water pool on the stage, deep enough to hold any mob under. */
+const POOL = { x: 3000, y: FLOOR_Y + 1, z: 0, size: 6, depth: 8 } as const;
+
+let poolFilled = false;
+
+/** The middle of the stage's water pool, filling it on first use. */
+const underwater = (): EntityPosition => {
+    if (!poolFilled) {
+        const { world } = stage();
+        for (let x = POOL.x - POOL.size; x <= POOL.x + POOL.size; x += 1)
+            for (let z = POOL.z - POOL.size; z <= POOL.z + POOL.size; z += 1)
+                for (let y = POOL.y; y < POOL.y + POOL.depth; y += 1) world.setBlock({ x, y, z }, 'minecraft:water');
+        poolFilled = true;
+    }
+    return { x: POOL.x + 0.5, y: POOL.y + 1, z: POOL.z + 0.5 };
+};
+
+/** A spot on the stage's dry, sunlit floor, away from the pool. */
+const DRY_LAND: EntityPosition = { x: 3100.5, y: FLOOR_Y + 1, z: 0.5 };
+
+/** One drowning blow the stage saw: the tick it landed on, what it took, and whether it killed. */
+interface Blow {
+    readonly tick: number;
+    readonly taken: number;
+    readonly died: boolean;
+}
+
+/**
+ * Holds an entity still where it is and ticks the stage until it takes `blows` drowning
+ * blows or `ticks` pass, and returns the tick of each blow and what it took.
+ */
+const drowningBlows = (entity: StagedEntity, ticks: number, blows: number): readonly Blow[] => {
+    const { world } = stage();
+    const at = entity.position;
+    const seen: Blow[] = [];
+    let read = world.commits.length;
+    for (let tick = 1; tick <= ticks && seen.length < blows && seen.at(-1)?.died !== true; tick += 1) {
+        entity.body.position = at;
+        entity.body.velocity = { x: 0, y: 0, z: 0 };
+        tickStage();
+        for (const commit of world.commits.slice(read))
+            if (commit.target.id === entity.id && commit.intent.cause === 'drowning')
+                seen.push({ tick, taken: commit.taken, died: commit.died });
+        read = world.commits.length;
+    }
+    return seen;
+};
+
+/** When Java's blows land and what each takes: the first blow's tick, the ticks between blows and the damage. */
+interface JavaBlows {
+    readonly first: number;
+    readonly interval: number;
+    readonly damage: number;
+}
+
+/** Compares a run of blows with Java's, which `java` leaves out for an entity Java's water never hurts. */
+const blowsDifference = (blows: readonly Blow[], java: JavaBlows | undefined, where: string): string | undefined => {
+    if (java === undefined) return blows.length === 0 ? undefined : `it drowns ${where}, where Java's never does`;
+    const [first, second] = blows;
+    if (first === undefined) return `it never drowns ${where}, where Java's does`;
+    const differences: string[] = [];
+    if (first.tick !== java.first)
+        differences.push(`the first blow ${where} lands ${first.tick} ticks in, where Java's lands ${java.first} in`);
+    if (first.taken !== java.damage && !first.died)
+        differences.push(`a blow takes ${first.taken}, where Java's takes ${java.damage}`);
+    if (second !== undefined && second.tick - first.tick !== java.interval)
+        differences.push(
+            `blows land ${second.tick - first.tick} ticks apart, where Java's land ${java.interval} apart`
+        );
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
+/** How many ticks past the first blow a run waits for the second. */
+const SECOND_BLOW_SLACK = DROWNING.interval + 5;
+
+/**
+ * Runs one entity's breath where it stands and compares it with Java's: its air supply, that it
+ * spends it a tick at a time, and the blows once it runs out.
+ *
+ * Waiting out 300 ticks of air for every mob would make the family too slow to run, so once the
+ * first tick shows the entity spending air, its supply is set to one tick and the real component
+ * runs the rest, which is the part that differs between the editions anyway.
+ *
+ * @param air - Java's air supply for an entity that loses it here, or undefined for one that keeps it.
+ */
+const breathDifference = (entity: StagedEntity, air: number | undefined, where: string): string | undefined => {
+    const supply = entity.instance.componentState.get(AIR_STATE)?.remaining;
+    if (air !== undefined && supply === undefined)
+        return `it never drowns ${where}, since the server gives it no air to lose`;
+    if (air !== undefined && supply !== air)
+        return `it holds ${String(supply)} ticks of air, where Java's holds ${air}`;
+
+    drowningBlows(entity, 1, 1);
+    const state = entity.instance.componentState.get(AIR_STATE);
+    if (air !== undefined && supply !== undefined && state?.remaining !== supply - 1)
+        return `a tick ${where} leaves it ${String(state?.remaining)} of its ${supply} ticks of air, where Java's spends one`;
+    if (state !== undefined) entity.instance.componentState.set(AIR_STATE, { ...state, remaining: 1 });
+
+    if (air === undefined)
+        // One tick past where a drowning mob's first blow would land, which is all it takes to see one.
+        return blowsDifference(drowningBlows(entity, DROWNING.delay + 2, 1), undefined, where);
+    const java = { first: 1 + DROWNING.delay, interval: DROWNING.interval, damage: DROWNING.damage };
+    return blowsDifference(drowningBlows(entity, 1 + DROWNING.delay + SECOND_BLOW_SLACK, 2), java, where);
+};
 
 /** The Java entity-type tags that name a mob family Bedrock expresses as `minecraft:type_family`. */
 const FAMILY_BY_TAG: readonly (readonly [string, string])[] = [
@@ -76,24 +302,33 @@ const firstDrowning = (): { readonly ticks: number; readonly damage: number } =>
 export const coreScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
         name: 'breeding-food',
-        java: 'An animal breeds with exactly the items in its Java food tag.',
-        reference: 'Java Animal.isFood and the data/minecraft/tags/item/*_food tags; issue #2911',
-        subjects: () => BREEDING_FOOD.flatMap(([javaId, tag]) => mappedEntity(javaId, tag) ?? []),
+        java: 'An adult, tamed where it must be, falls in love when fed exactly the items Java breeds it with.',
+        reference:
+            'Java Animal.isFood and the data/minecraft/tags/item/*_food tags, AbstractHorse.handleEating (golden carrot, golden apple, enchanted golden apple) and Llama.handleEating (hay block); issue #2911',
+        subjects: () => [...BREEDING_FOOD.keys()].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:breedable'],
         run: (subject) => {
-            const content = serverContent();
-            const java = new Set(
-                content.tags.members('item', subject.tag ?? '').flatMap((javaItem) => {
-                    const mapped = javaItemToBedrock(javaItem);
-                    return mapped.kind === 'unknown' ? [] : [mapped.bedrock.identifier];
-                })
-            );
-            const server = new Set(
-                componentValues(subject.bedrock, 'minecraft:breedable').flatMap((value) =>
-                    stringList(field(value, 'breed_items')).map(withNamespace)
-                )
-            );
+            const java = new Set(javaBreedingFood(subject.javaId));
+            const candidates = [...new Set([...java, ...declaredBreedingItems(subject.bedrock)])].sort();
+            const outcome = withEntity(subject.bedrock, DRY_LAND, (animal) => {
+                const { runtime } = stage();
+                // Tamed, or trusting, the way its own taming would leave it, since Java breeds a horse,
+                // a llama, a wolf or a cat only once tamed, and an ocelot only once it trusts.
+                animal.body.owner = STAGE_PLAYER_ID;
+                for (const event of tameEventsOf(subject.bedrock)) animal.instance.fire(event);
+                animal.instance.applyQueuedEvents();
+                return candidates.filter((item) => {
+                    const health = animal.instance.attributes.get('health');
+                    if (health !== undefined) animal.instance.attributes.set('health', health.max);
+                    animal.body.loveTicks = 0;
+                    animal.body.breedCooldown = 0;
+                    runtime.interactWithItem(animal.id, STAGE_PLAYER_ID, item);
+                    return animal.body.loveTicks > 0;
+                });
+            });
+            if (typeof outcome === 'string') return outcome;
+            const server = new Set(outcome);
             const missing = [...java].filter((item) => !server.has(item));
             const extra = [...server].filter((item) => !java.has(item));
             if (missing.length === 0 && extra.length === 0) return undefined;
@@ -124,43 +359,100 @@ export const coreScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'burns-in-daylight',
-        java: "A mob in Java's burn_in_daylight tag catches fire in sunlight, and no other mob does.",
-        reference: 'Java entity type tag burn_in_daylight and Mob.isSunBurnTick',
+        java: "A mob in Java's burn_in_daylight tag catches fire in open sunlight unless it is immune to fire, and no other mob does.",
+        reference:
+            'Java entity type tag burn_in_daylight, Mob.isSunBurnTick, and Entity.isOnFire, which is false for a type built with EntityType.Builder.fireImmune',
         subjects: () => {
-            const burning = new Set(serverContent().tags.members('entity_type', 'minecraft:burn_in_daylight'));
-            return Object.keys(entitiesTable.entities).flatMap(
-                (javaId) => mappedEntity(javaId, burning.has(javaId) ? 'burns' : 'safe') ?? []
+            const tagged = new Set(serverContent().tags.members('entity_type', 'minecraft:burn_in_daylight'));
+            const declaring = new Set(
+                entitiesDeclaring('minecraft:burns_in_daylight').map((subject) => subject.javaId)
             );
+            return javaEntityIds()
+                .filter((javaId) => tagged.has(javaId) || declaring.has(javaId))
+                .flatMap(
+                    (javaId) =>
+                        mappedEntity(javaId, tagged.has(javaId) && !JAVA_FIRE_IMMUNE.has(javaId) ? 'burns' : 'safe') ??
+                        []
+                );
         },
         idOf: (subject) => subject.javaId,
-        // The other mobs are checked for a wrong burn, but only the tagged ones count as covered for sunlight behavior.
-        guard: true,
-        covers: (subject) => (subject.tag === 'burns' ? subject.javaId : undefined),
+        covers: (subject) => subject.javaId,
         aspects: () => ['minecraft:burns_in_daylight'],
         run: (subject) => {
-            const burns = componentValues(subject.bedrock, 'minecraft:burns_in_daylight').length > 0;
-            if (subject.tag === 'burns' && !burns) return 'Java burns it in daylight; the server does not';
-            if (subject.tag === 'safe' && burns) return 'the server burns it in daylight; Java does not';
+            const { world } = stage();
+            // Back to sunrise, so the whole run is in daylight.
+            world.advance(24000 - (world.world.level.dayTime() % 24000));
+            const burned = withEntity(subject.bedrock, DRY_LAND, (mob) => {
+                const at = mob.position;
+                // Bare-headed, since a helmet shades a mob from the sun in both editions.
+                mob.body.setEquipment({});
+                for (let tick = 0; tick < SUNLIGHT_TICKS; tick += 1) {
+                    mob.body.position = at;
+                    mob.body.velocity = { x: 0, y: 0, z: 0 };
+                    tickStage();
+                    if (mob.body.conditions.has('on_fire')) return true;
+                }
+                return false;
+            });
+            if (typeof burned === 'string') return burned;
+            if (subject.tag === 'burns' && !burned) return 'Java sets it on fire in daylight; the server does not';
+            if (subject.tag === 'safe' && burned) return 'the server sets it on fire in daylight; Java does not';
             return undefined;
         }
     },
     {
         name: 'breathes-underwater',
-        java: "A mob in Java's can_breathe_under_water tag does not drown, and every other mob that breathes air does.",
-        reference: 'Java entity type tag can_breathe_under_water and LivingEntity.canBreatheUnderwater',
+        java: "A living mob held underwater drowns once its air runs out, 2 at a time every second, unless Java's can_breathe_under_water tag or its class keeps its air; a water-sensitive mob is hurt from the first wet tick.",
+        reference:
+            'Java LivingEntity.baseTick (a blow of 2 when the air reaches -20), Entity.getMaxAirSupply (300) with the Dolphin (4800) and Axolotl (6000) overrides, the can_breathe_under_water tag, IronGolem.decreaseAirSupply, HappyGhast and SulfurCube.canBreatheUnderwater, LivingEntity.aiStep for isSensitiveToWater, ',
         subjects: () => {
             const gills = new Set(serverContent().tags.members('entity_type', 'minecraft:can_breathe_under_water'));
-            return [...gills].flatMap((javaId) => mappedEntity(javaId, 'gills') ?? []);
+            const declaring = new Set(entitiesDeclaring('minecraft:breathable').map((subject) => subject.javaId));
+            const living = new Set(Object.keys(loadJavaEntityAttributes()));
+            const fate = (javaId: string): string =>
+                JAVA_WATER_SENSITIVE.has(javaId)
+                    ? 'scalds'
+                    : !living.has(javaId) || gills.has(javaId) || JAVA_KEEPS_AIR.has(javaId)
+                      ? 'breathes'
+                      : 'drowns';
+            return javaEntityIds()
+                .filter((javaId) => javaId !== 'minecraft:player' && (gills.has(javaId) || declaring.has(javaId)))
+                .flatMap((javaId) => mappedEntity(javaId, fate(javaId)) ?? []);
         },
         idOf: (subject) => subject.javaId,
         covers: (subject) => subject.javaId,
         aspects: () => ['minecraft:breathable'],
+        run: (subject) =>
+            withEntity(subject.bedrock, underwater(), (mob) =>
+                subject.tag === 'scalds'
+                    ? blowsDifference(drowningBlows(mob, SECOND_BLOW_SLACK, 2), WATER_SENSITIVITY, 'underwater')
+                    : breathDifference(
+                          mob,
+                          subject.tag === 'drowns' ? (JAVA_MAX_AIR.get(subject.javaId) ?? DEFAULT_MAX_AIR) : undefined,
+                          'underwater'
+                      )
+            )
+    },
+    {
+        name: 'suffocates-on-land',
+        java: "A fish or squid out of water loses its air and drowns like a mob held underwater; Java's other water breathers keep theirs on land.",
+        reference:
+            "Java WaterAnimal.handleAirSupply (air spent out of water, a blow of 2 at -20, refilled to 300 in water), which Turtle, Frog, Guardian and the can_breathe_under_water tag's land mobs do not run",
+        subjects: () =>
+            serverContent()
+                .tags.members('entity_type', 'minecraft:can_breathe_under_water')
+                // The axolotl dries out instead, by its own clock; the nautilus has its own air handling.
+                .filter((javaId) => javaId !== 'minecraft:axolotl' && javaId !== 'minecraft:nautilus')
+                .flatMap(
+                    (javaId) => mappedEntity(javaId, JAVA_WATER_ANIMALS.has(javaId) ? 'suffocates' : 'breathes') ?? []
+                )
+                .filter((subject) => componentValues(subject.bedrock, 'minecraft:breathable').length > 0),
+        idOf: (subject) => subject.javaId,
+        covers: (subject) => subject.javaId,
+        aspects: () => ['minecraft:breathable'],
         run: (subject) => {
-            const breathable = componentValues(subject.bedrock, 'minecraft:breathable');
-            const underwater = breathable.some(
-                (value) => field(value, 'breathes_water') === true || field(value, 'breathes_air') === false
-            );
-            return underwater ? undefined : 'the server drowns it, though Java lets it breathe underwater';
+            const air = subject.tag === 'suffocates' ? DEFAULT_MAX_AIR : undefined;
+            return withEntity(subject.bedrock, DRY_LAND, (mob) => breathDifference(mob, air, 'on land'));
         }
     },
     {
