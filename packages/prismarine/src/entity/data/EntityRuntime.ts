@@ -300,6 +300,9 @@ const PROJECTILE_KNOCKBACK = 0.4;
 /** What an ender pearl's landing hurts the player who threw it, Java's `ThrownEnderpearl.onHit` `enderPearl` 5. */
 const ENDER_PEARL_DAMAGE = 5;
 
+/** What a melee blow adds to its target's upward motion beyond the push, Java's `IronGolem.doHurtTarget` 0.4. */
+const JAVA_ATTACK_LIFT: ReadonlyMap<string, number> = new Map([['minecraft:iron_golem', 0.4]]);
+
 /** The types whose vibrations no listener hears, Java's `Entity.dampensVibrations` overrides. */
 const DAMPENS_VIBRATIONS: ReadonlySet<string> = new Set(['minecraft:warden']);
 
@@ -2722,6 +2725,11 @@ export class EntityRuntime implements EntityScene {
             const blow = player ? { mitigated: true, graced: true } : {};
             const landed = this.blow(other, attacker.id, 'entity_attack', damage, blow).committed;
             if (landed && attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
+            const lift = JAVA_ATTACK_LIFT.get(attacker.identifier);
+            if (landed && lift !== undefined) {
+                const resisted = Math.max(0, 1 - other.facts.knockbackResistance);
+                other.body.velocity = { ...other.body.velocity, y: other.body.velocity.y + lift * resisted };
+            }
             return;
         }
 

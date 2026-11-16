@@ -2937,6 +2937,31 @@ describe('EntityRuntime', () => {
             expect(victim!.body.damage.last()?.sourceId).toBe(attacker!.id);
         });
 
+        it("throws an iron golem's target up 0.4 beyond the push, as Java's IronGolem.doHurtTarget does", () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'minecraft:iron_golem': {
+                        components: {
+                            'minecraft:health': { value: 100, max: 100 },
+                            'minecraft:attack': { damage: 2 },
+                            'minecraft:collision_box': { width: 1.4, height: 2.9 }
+                        }
+                    }
+                }
+            );
+            const golem = runtime.spawn('minecraft:iron_golem', GROUND);
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            const byGolem = runtime.spawn('minecraft:cow', { ...GROUND, x: GROUND.x + 1 });
+            const byCow = runtime.spawn('minecraft:cow', { ...GROUND, x: GROUND.x + 1 });
+            runtime.attack(golem!.body, runtime.mobById(byGolem!.id)!);
+            runtime.attack(cow!.body, runtime.mobById(byCow!.id)!);
+
+            const resisted = 1 - byGolem!.facts.knockbackResistance;
+            expect(byGolem!.body.velocity.y - byCow!.body.velocity.y).toBeCloseTo(0.4 * resisted);
+        });
+
         it('shares the attacked target through minecraft:angry.broadcast_anger_on_attack', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

@@ -162,3 +162,24 @@ describe('withJavaComponentTuning on schools', () => {
         expect(pufferfish.hasComponent('minecraft:flocking')).toBe(false);
     });
 });
+
+describe('withJavaComponentTuning on flower effects', () => {
+    it("poisons a bee for Java's 25 ticks and withers it for 40, not the pack's seconds", () => {
+        const spell = (effect: string, duration: number) => ({
+            'minecraft:spell_effects': { add_effects: [{ effect, duration }] }
+        });
+        const bee = spawn(
+            entityFile(
+                'minecraft:bee',
+                {},
+                { add_poison_effect: spell('poison', 25), add_wither_effect: spell('wither', 40) }
+            ),
+            'minecraft:bee'
+        );
+
+        bee.restoreComponentGroups(['add_poison_effect']);
+        expect(bee.componentParams('minecraft:spell_effects')).toMatchObject({ addEffects: [{ durationTicks: 25 }] });
+        bee.restoreComponentGroups(['add_wither_effect']);
+        expect(bee.componentParams('minecraft:spell_effects')).toMatchObject({ addEffects: [{ durationTicks: 40 }] });
+    });
+});

@@ -72,6 +72,18 @@ const sensorBox = (group: string | undefined, horizontal: number, vertical: numb
     })
 });
 
+/** A `minecraft:spell_effects` whose added effects last `ticks` Java ticks. */
+const spellEffectTicks = (group: string, ticks: number): Tuning => ({
+    component: 'minecraft:spell_effects',
+    group,
+    rewrite: (spell) => ({
+        ...spell,
+        add_effects: (Array.isArray(spell.add_effects) ? spell.add_effects : []).map((effect: unknown) =>
+            isRecord(effect) ? { ...effect, duration: seconds(ticks) } : effect
+        )
+    })
+});
+
 /**
  * A `minecraft:home` that keeps the home position but holds no movement to it, for a mob whose
  * Java class never calls `Mob.setHomeTo`. Bedrock's default `restriction_type` is `none`.
@@ -95,6 +107,10 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
     // `WanderingTraderSpawner.spawn` calls `setDespawnDelay(48000)`.
     'minecraft:wandering_trader': [timerTicks(undefined, 48000)],
     'minecraft:bee': [
+        // `EyeblossomBlock.getBeeInteractionEffect` and `WitherRoseBlock.getBeeInteractionEffect`:
+        // Poison for 25 ticks and Wither for 40, where the pack writes 25 and 40 seconds.
+        spellEffectTicks('add_poison_effect', 25),
+        spellEffectTicks('add_wither_effect', 40),
         // `BeehiveBlockEntity.MIN_TICKS_BEFORE_REENTERING_HIVE` for a bee a burning hive lets out.
         timerTicks('escape_fire', 400),
         // `Bee.STING_DEATH_COUNTDOWN`: a stung bee dies from its fifth tick to its 1200th.
