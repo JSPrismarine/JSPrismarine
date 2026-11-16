@@ -17,6 +17,8 @@ There are two ways to change what a JSPrismarine server does, and most work need
 
 JSPrismarine has no plugin loader yet: there is no folder the server scans for code to run. A
 "plugin" today is a program that starts the server itself, as in [Embed the server](#embed-the-server).
+Behavior pack scripts that use `@minecraft/server` are planned as the plugin format, and do not
+run yet. [The script host plan](../plans/script-api-host.md) tracks the work.
 
 ## Add packs
 
