@@ -5,7 +5,7 @@ import { javaItemToBedrock } from '@jsprismarine/mapping';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { loadJavaEntityAttributes } from '../goldens.ts';
-import type { JavaGoal, JavaValue } from '../javaGoals.ts';
+import type { JavaGoal, JavaValue } from '../../../bedrock-data/utils/java-goals/goals.ts';
 import { pinnedJavaClass } from '../javaClassFile.ts';
 import {
     javaClass,
