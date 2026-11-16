@@ -657,6 +657,7 @@ export const damageSensor: ComponentFactory<EntityHooks, DamageSensorParams> = {
                 if (!ANY_CAUSE.has(trigger.cause) && trigger.cause !== damage.cause) continue;
                 if (trigger.filters !== undefined && !evaluateFilter(trigger.filters, context)) continue;
                 const events = trigger.event === undefined ? [] : [trigger.event];
+                if (damage.measured === true) return { amount: damage.amount, events, multiplier: 1 };
                 if (trigger.dealsDamage !== 'yes') return { amount: 0, events, multiplier: 0 };
                 const amount = Math.max(0, damage.amount * trigger.damageMultiplier + trigger.damageModifier);
                 return {

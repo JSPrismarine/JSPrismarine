@@ -463,6 +463,33 @@ describe('damage', () => {
         expect(entity.damage({ cause: 'fall', amount: 10 }).amount).toBe(0);
     });
 
+    it("leaves a measured blow's amount alone and still fires the trigger's event", () => {
+        const creeper = {
+            format_version: '1.26.50',
+            'minecraft:entity': {
+                description: { identifier: 'test:creeper' },
+                components: {
+                    'minecraft:health': { value: 20, max: 20 },
+                    'minecraft:damage_sensor': {
+                        triggers: [
+                            { cause: 'lightning', deals_damage: 'no', on_damage: { event: 'test:charge' } },
+                            { cause: 'fall', deals_damage: 'yes', damage_modifier: -4 }
+                        ]
+                    }
+                },
+                component_groups: { 'test:charged': { 'minecraft:is_charged': {} } },
+                events: { 'test:charge': { add: { component_groups: ['test:charged'] } } }
+            }
+        };
+        const entity = load(creeper).types.spawn('test:creeper');
+
+        expect(entity.damage({ cause: 'lightning', amount: 5, measured: true }).amount).toBe(5);
+        entity.tick();
+        expect(entity.hasComponent('minecraft:is_charged')).toBe(true);
+        expect(entity.damage({ cause: 'fall', amount: 7, measured: true }).amount).toBe(7);
+        expect(entity.damage({ cause: 'fall', amount: 7 }).amount).toBe(3);
+    });
+
     it("answers every cause with a trigger whose cause is vanilla's all", () => {
         const npc = {
             format_version: '1.26.50',

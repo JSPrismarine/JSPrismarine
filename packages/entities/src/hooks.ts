@@ -147,6 +147,14 @@ export interface DamageEvent {
      * read and `minecraft:on_hurt_by_player` tests for the player family.
      */
     readonly damager?: FilterEntityView;
+    /**
+     * Whether the amount is already what the entity's own rules make of the cause, so a damage
+     * sensor trigger's `deals_damage`, `damage_multiplier` and `damage_modifier` leave it alone;
+     * its event still fires, and an immunity still turns the blow aside. A fall measured against
+     * a type's Java `safe_fall_distance` is one, which the camel's pack writes a `-4` fall
+     * modifier for, and so is Java's lightning damage, which a creeper takes as it is powered.
+     */
+    readonly measured?: boolean;
 }
 
 /**
