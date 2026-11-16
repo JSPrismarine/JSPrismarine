@@ -25,7 +25,9 @@ Minecraft Bedrock game data exported in a nodejs friendly way.
   push reaction, instrument, fire odds and the rest), with state-invariant values once per
   block and per-state differences under `stateOverrides`. `entity_attributes.json` holds the
   default attribute values, dimensions and category for the 93 entity types with an attribute
-  supplier. See the next section for how to refresh them.
+  supplier. `entity_goals.json` holds the goals each Java mob registers and the arguments it
+  passes them, read from the jar's bytecode by `utils/java-goals/run.ts` and exported as
+  `java_entity_goals`. See the next section for how to refresh them.
 
 ## Refreshing the Java goldens
 
@@ -34,6 +36,9 @@ the build. It downloads the pinned server jar through the piston-meta manifest c
 its sha1, unpacks the bundler, compiles `utils/java-dump/DumpJavaData.java` against the server
 classes, runs it, and rewrites the two files under `src/jsp/java/`. Everything downloaded stays
 under `node_modules/.cache/jsprismarine/java/`.
+
+`pnpm run dump:java-goals` rewrites `entity_goals.json` from the jar `fetch:sources` caches. It
+needs no JDK, because it reads the class files and never runs them.
 
 The pinned version, its sha1 and the manifest URL are constants at the top of
 `utils/java-dump/run.mjs`. The dumper needs a JDK matching the jar's class file version (Java 25

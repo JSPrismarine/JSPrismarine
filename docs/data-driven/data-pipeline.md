@@ -112,6 +112,20 @@ and, on macOS, `/usr/libexec/java_home`. `src/javaGoldens.test.ts` checks the sh
 both files.
 
 ```sh
+pnpm --filter @jsprismarine/bedrock-data run dump:java-goals
+```
+
+`entity_goals.json` comes from a second capture that needs no JDK. `utils/java-goals/run.ts` reads
+the pinned jar's class files and runs each mob's `registerGoals` symbolically. It writes the goals
+of the <!-- fact:java.entityGoals -->70<!-- /fact --> Java entity types that register any, with the
+arguments each goal ends up holding. A class literal is written with every entity type it covers,
+and an item predicate with the item tags and items its code reads. The server writes those
+arguments into the vanilla goal bodies
+([ADR 0019](../adr/0019-java-decides-server-decided-goal-parameters.md)). The parity suite reads the
+jar with the same code, and `utils/java-goals/capture.test.ts` fails when the committed file no
+longer matches the jar.
+
+```sh
 pnpm --filter @jsprismarine/bedrock-data run dump:bedrock
 ```
 

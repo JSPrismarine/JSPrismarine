@@ -136,6 +136,7 @@ export const biome_definitions_network: Buffer = toBuffer(biome_definitions_netw
 
 import java_entity_attributes_data from './jsp/java/entity_attributes.json';
 import java_entity_navigation_data from './jsp/java/entity_navigation.json';
+import java_entity_goals_data from './jsp/java/entity_goals.json';
 
 /** One Java entity type's hitbox and the attributes its class declares. */
 export interface JavaEntityAttributes {
@@ -185,3 +186,46 @@ export interface JavaEntityNavigationEntry {
 
 /** The path navigation Java's mob classes construct, keyed by Java entity identifier. */
 export const java_entity_navigation: Record<string, JavaEntityNavigationEntry> = java_entity_navigation_data;
+
+/**
+ * One argument a Java goal was constructed with. A number or string is the constant itself. A
+ * class literal lists every entity type whose class is, or extends, it. A predicate lambda lists
+ * the item tags and items its code reads. `null` is a value the capture could not resolve.
+ */
+export type JavaGoalArgument =
+    | number
+    | string
+    | null
+    | { readonly class: string; readonly entities: readonly string[] }
+    | { readonly field: string }
+    | {
+          readonly lambda: string | null;
+          readonly itemTags?: readonly string[];
+          readonly items?: readonly string[];
+      }
+    | { readonly array: readonly JavaGoalArgument[] }
+    | { readonly call: string; readonly args: readonly JavaGoalArgument[] }
+    | { readonly object: string };
+
+/** One goal a Java mob registers in `registerGoals` or a method it calls. */
+export interface JavaEntityGoal {
+    /** The vanilla goal class it is, by simple name, such as `LookAtPlayerGoal`. */
+    readonly goal: string;
+    /** Every class from the one constructed down to `Goal`, by simple name, such as `Fox$FoxPanicGoal`. */
+    readonly classes: readonly string[];
+    /** Which selector it was added to: `goal` or `target`. */
+    readonly selector: string;
+    /** The priority it was added with, or null when that was not a constant. */
+    readonly priority: number | null;
+    /** Each named constructor parameter along the chain, with the value the vanilla class ends up with. */
+    readonly params: Readonly<Record<string, JavaGoalArgument | undefined>>;
+    /** The instance methods called on the goal after construction, such as `setAlertOthers`. */
+    readonly calls: readonly { readonly name: string; readonly args: readonly JavaGoalArgument[] }[];
+}
+
+/**
+ * The goals each Java mob registers, with the arguments it passes them, keyed by Java entity
+ * identifier. `utils/java-goals/run.ts` reads them out of the pinned server jar's bytecode; a mob
+ * whose AI is a brain, or that registers no goals, is absent.
+ */
+export const java_entity_goals: Readonly<Record<string, readonly JavaEntityGoal[]>> = java_entity_goals_data;

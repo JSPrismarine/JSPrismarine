@@ -467,14 +467,16 @@ function dataSources(sources: Sources): FactSource[] {
             }
         },
         {
-            label: 'the Java entity attribute capture',
+            label: 'the Java entity attribute and goal captures',
             dir: path.join(repoRoot, 'packages', 'bedrock-data', 'src', 'jsp', 'java'),
-            names: ['java.entityAttributes'],
+            names: ['java.entityAttributes', 'java.entityGoals'],
             read: (dir) => {
                 const attributes: unknown = JSON.parse(readFileSync(path.join(dir, 'entity_attributes.json'), 'utf8'));
+                const goals: unknown = JSON.parse(readFileSync(path.join(dir, 'entity_goals.json'), 'utf8'));
                 return {
                     'java.entityAttributes':
-                        typeof attributes === 'object' && attributes !== null ? Object.keys(attributes).length : 0
+                        typeof attributes === 'object' && attributes !== null ? Object.keys(attributes).length : 0,
+                    'java.entityGoals': typeof goals === 'object' && goals !== null ? Object.keys(goals).length : 0
                 };
             }
         },
