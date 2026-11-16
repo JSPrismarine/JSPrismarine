@@ -235,6 +235,17 @@ export interface BrainNavigation {
     /** Whether a path to the position exists without starting to follow it. */
     canReach(target: Vec3): boolean;
     stop(): void;
+    /**
+     * The node of the path under way the mob last left and the one it walks to, Java's
+     * `Path.getPreviousNode` and `getNextNode`, or undefined while no path is under way.
+     */
+    pathStep?(): BrainPathStep | undefined;
+}
+
+/** Where a mob stands on its path: the node it last left, if any, and the one it walks to. */
+export interface BrainPathStep {
+    readonly previous: BlockPos | undefined;
+    readonly next: BlockPos;
 }
 
 /** The body a brain drives. */
@@ -331,6 +342,10 @@ export interface BrainWorld {
     isWaterAt(pos: BlockPos): boolean;
     /** Every block tag at a position, such as `minecraft:piglin_repellents`. */
     blockTagsAt(pos: BlockPos): ReadonlySet<string>;
+    /** Whether the door at a position stands open, either half, or undefined where no door is. */
+    isDoorOpen?(pos: BlockPos): boolean | undefined;
+    /** Opens or closes the door at a position, either half, Java's `DoorBlock.setOpen`. */
+    setDoorOpen?(pos: BlockPos, open: boolean, source: BrainEntity): void;
     /**
      * Java's `Level::findBlocksInBoxByManhattanDistance`: the nearest block in the box around
      * `center` whose tag set or id satisfies `test`.

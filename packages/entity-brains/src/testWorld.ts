@@ -23,6 +23,7 @@ import type {
     BrainItemEntity,
     BrainMob,
     BrainNavigation,
+    BrainPathStep,
     BrainWorld,
     EntityDimensions,
     PoiRecord,
@@ -120,6 +121,8 @@ export class TestNavigation implements BrainNavigation {
     public readonly unreachable: Vec3[] = [];
     public done = true;
     public stuck = false;
+    /** What {@link TestNavigation.pathStep} answers; a test sets it to put the mob on a path. */
+    public step: BrainPathStep | undefined;
 
     /** Records the call and reports false for a target listed in {@link TestNavigation.unreachable}. */
     public moveTo(target: Vec3, speedModifier: number): boolean {
@@ -150,6 +153,11 @@ export class TestNavigation implements BrainNavigation {
     public stop(): void {
         this.stopped++;
         this.done = true;
+    }
+
+    /** Whatever a test put in `step`. */
+    public pathStep(): BrainPathStep | undefined {
+        return this.step;
     }
 
     /** The last position the mob was told to walk to. */
@@ -283,6 +291,8 @@ export class TestWorld implements BrainWorld {
     public readonly blocks = new Map<string, string>();
     /** Block tags by `x,y,z`. */
     public readonly blockTags = new Map<string, Set<string>>();
+    /** Whether each door stands open, by `x,y,z`; a position left out holds no door. */
+    public readonly doors = new Map<string, boolean>();
     public readonly pois: (PoiRecord & { claimedBy?: string })[] = [];
     /** Every `playSound` call, in order. */
     public readonly sounds: { sound: string; pos: Vec3 }[] = [];
@@ -443,6 +453,17 @@ export class TestWorld implements BrainWorld {
     }
 
     /** The tags a test placed at the position, or an empty set. */
+    /** Whatever a test put in `doors` for the position. */
+    public isDoorOpen(pos: BlockPos): boolean | undefined {
+        return this.doors.get(key(pos));
+    }
+
+    /** Opens or closes a door a test put in `doors`; anything else is left alone. */
+    public setDoorOpen(pos: BlockPos, open: boolean): void {
+        if (this.doors.has(key(pos))) this.doors.set(key(pos), open);
+    }
+
+    /** The tags a test put in `blockTags` for the position. */
     public blockTagsAt(pos: BlockPos): ReadonlySet<string> {
         return this.blockTags.get(key(pos)) ?? new Set();
     }

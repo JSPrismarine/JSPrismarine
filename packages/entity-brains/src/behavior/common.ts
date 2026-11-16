@@ -8,7 +8,7 @@
 import type { Activity } from '../activity.js';
 import type { MemoryModuleType } from '../memory.js';
 import { MemoryModuleTypes, NO_VISIBLE_ENTITIES, UNIT } from '../memory.js';
-import type { BrainContext, BrainEntity, BrainMob, Vec3, WalkTarget } from '../world.js';
+import type { BlockPos, BrainContext, BrainEntity, BrainMob, Vec3, WalkTarget } from '../world.js';
 import {
     blockContaining,
     blockPosTracker,
@@ -1064,28 +1064,77 @@ export function setLookAndInteract(type: string, interactionRange: number): OneS
         });
 }
 
+/** `InteractWithDoor.COOLDOWN_BEFORE_RERUNNING_IN_SAME_NODE`. */
+const DOOR_RECHECK_COOLDOWN = 20;
+
+/** `InteractWithDoor.SKIP_CLOSING_DOOR_IF_FURTHER_AWAY_THAN`: a door this far behind is forgotten open. */
+const SKIP_CLOSING_DOOR_DISTANCE = 3;
+
+/** `InteractWithDoor.MAX_DISTANCE_TO_HOLD_DOOR_OPEN_FOR_OTHER_MOBS`. */
+const HOLD_DOOR_DISTANCE = 2;
+
+/** The doors a villager or piglin opens and closes, Java's `BlockTags.MOB_INTERACTABLE_DOORS`. */
+const MOB_INTERACTABLE_DOORS = 'minecraft:mob_interactable_doors';
+
+const samePos = (a: BlockPos | undefined, b: BlockPos | undefined): boolean =>
+    a !== undefined && b !== undefined && a.x === b.x && a.y === b.y && a.z === b.z;
+
+/** `BlockPos.closerToCenterThan`: whether a point lies within `distance` of a block's center. */
+const closerToCenterThan = (pos: BlockPos, point: Vec3, distance: number): boolean =>
+    distanceSquared({ x: pos.x + 0.5, y: pos.y + 0.5, z: pos.z + 0.5 }, point) < distance * distance;
+
 /**
- * Java's `InteractWithDoor`: opens the doors on the current path and closes them behind.
+ * Java's `InteractWithDoor`: opens the doors on the path under way and closes them behind.
  *
- * The door state itself is the host's; what the brain owns is `DOORS_TO_CLOSE`, and that is what
- * this keeps. The behavior is in the core activity of the villager, the piglin, the piglin brute
- * and the copper golem.
+ * Each tick the mob walks a path, it opens a closed door of `#mob_interactable_doors` at the node it
+ * last left or the one it walks to, remembers it in `DOORS_TO_CLOSE`, and closes each remembered
+ * door it is no longer passing through once it is within 3 blocks of it, holding it open while
+ * another mob of its type stands within 2 blocks of it. Java also asks whether that mob's own path
+ * passes the door, which the brain cannot read of another mob, so any such mob holds the door.
+ * The doors themselves are the host's, through {@link BrainWorld.setDoorOpen}. The behavior is in
+ * the core activity of the villager, the piglin, the piglin brute and the copper golem.
  */
 export function interactWithDoor(): OneShot {
-    return behavior('InteractWithDoor')
-        .registered(MemoryModuleTypes.DOORS_TO_CLOSE)
-        .present(MemoryModuleTypes.PATH)
-        .build((context, doorsToClose, path) => {
-            const open = doorsToClose.tryGet() ?? [];
-            const ahead = { dimension: context.world.dimension, pos: path.get().target };
-            const isDoor = context.world.blockTagsAt(ahead.pos).has('minecraft:doors');
-            if (!isDoor) {
+    let lastChecked: BlockPos | undefined;
+    let remainingCooldown = 0;
+    return new OneShot('InteractWithDoor', [MemoryModuleTypes.DOORS_TO_CLOSE], (context) => {
+        const { body, world } = context;
+        const step = body.navigation.pathStep?.();
+        if (step?.previous === undefined || world.setDoorOpen === undefined) return false;
+        if (samePos(lastChecked, step.next)) remainingCooldown = DOOR_RECHECK_COOLDOWN;
+        else if ((remainingCooldown -= 1) > 0) return false;
+        lastChecked = step.next;
+
+        const brain = body.brain;
+        let doors = brain.getMemory(MemoryModuleTypes.DOORS_TO_CLOSE) ?? [];
+        for (const pos of [step.previous, step.next]) {
+            if (!world.blockTagsAt(pos).has(MOB_INTERACTABLE_DOORS)) continue;
+            const open = world.isDoorOpen?.(pos);
+            if (open === undefined) continue;
+            if (!open) world.setDoorOpen(pos, true, body);
+            if (!doors.some((door) => door.dimension === world.dimension && samePos(door.pos, pos)))
+                doors = [...doors, { dimension: world.dimension, pos }];
+        }
+
+        const nearest = brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES) ?? [];
+        const kept = doors.filter((door) => {
+            const { pos } = door;
+            if (samePos(pos, step.previous) || samePos(pos, step.next)) return true;
+            if (
+                door.dimension !== world.dimension ||
+                !closerToCenterThan(pos, body.position, SKIP_CLOSING_DOOR_DISTANCE)
+            )
                 return false;
-            }
-            context.world.emitGameEvent('minecraft:block_open', bottomCenterOf(ahead.pos), context.body);
-            doorsToClose.set([...open, ahead]);
-            return true;
+            if (!world.blockTagsAt(pos).has(MOB_INTERACTABLE_DOORS) || world.isDoorOpen?.(pos) !== true) return false;
+            const held = nearest.some(
+                (other) => other.type === body.type && closerToCenterThan(pos, other.position, HOLD_DOOR_DISTANCE)
+            );
+            if (!held) world.setDoorOpen?.(pos, false, body);
+            return false;
         });
+        if (kept.length > 0 || doors.length > 0) brain.setMemory(MemoryModuleTypes.DOORS_TO_CLOSE, kept);
+        return true;
+    });
 }
 
 /**
