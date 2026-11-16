@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { findParityComment, renderParityComment } from '../src/dashboard/comments.ts';
+import { findParityComment, parityTrackerUrl, renderParityComment } from '../src/dashboard/comments.ts';
 import type { IssueComment } from '../src/dashboard/comments.ts';
 import type { TrackerData } from '../src/dashboard/tracker.ts';
 import { parseDashboardTotals } from '../src/dashboard/trend.ts';
@@ -99,7 +99,7 @@ const baselineTracker: TrackerData = baselineReport.trimStart().startsWith('{')
               defects: totals.defects
           };
       })();
-const body = renderParityComment(current, baselineTracker, headSha, 'https://jsprismarine.dev/parity.html');
+const body = renderParityComment(current, baselineTracker, headSha, parityTrackerUrl(comments));
 
 const commentUrl = previousComment
     ? `${apiRoot}/repos/${repository}/issues/comments/${previousComment.id}`

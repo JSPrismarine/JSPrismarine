@@ -20,6 +20,32 @@ export const findParityComment = (
             undefined
         );
 
+/** The public docs page for the complete parity tracker. */
+export const PARITY_TRACKER_URL = 'https://jsprismarine.dev/parity.html';
+
+/**
+ * Picks the parity tracker page a pull request comment should link to.
+ *
+ * The docs workflow comments `Docs preview: <url>` when it deploys a preview of the pull request,
+ * and replaces that line when closing the pull request deletes the preview. While a preview is
+ * live, its tracker reflects the pull request head, so the link points there.
+ *
+ * @param comments - The pull request's issue comments.
+ * @param botLogin - The account that posts the preview comment.
+ * @returns The preview's tracker page, or the published one when the pull request has no preview.
+ */
+export const parityTrackerUrl = (comments: readonly IssueComment[], botLogin = 'github-actions[bot]'): string => {
+    const preview = comments
+        .filter((comment) => comment.user.login === botLogin)
+        .map((comment) => ({ id: comment.id, url: /^Docs preview: (https:\/\/\S+)/m.exec(comment.body)?.[1] }))
+        .filter((entry): entry is { id: number; url: string } => entry.url !== undefined)
+        .reduce<{ id: number; url: string } | undefined>(
+            (newest, entry) => (newest === undefined || entry.id > newest.id ? entry : newest),
+            undefined
+        );
+    return preview === undefined ? PARITY_TRACKER_URL : new URL(new URL(PARITY_TRACKER_URL).pathname, preview.url).href;
+};
+
 const checkCases = (tracker: TrackerData): readonly TrackerCase[] =>
     tracker.cases.filter((entry) => entry.kind === 'check');
 

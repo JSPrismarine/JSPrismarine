@@ -252,3 +252,20 @@ jobs:
                   # A pull request that never had a preview gets no comment about one.
                   only_update: true
                   message: Closing this pull request deleted its docs preview.
+
+            # The parity comment links the preview's tracker while one exists. The test workflow may
+            # post it before this upload finishes or after the preview is deleted, so point its link
+            # at the preview now, or back at the published site once the preview is gone.
+            - name: 🔗 Point the parity comment at the tracker
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PULL_REQUEST: ${{ github.event.number }}
+                  SITE: ${{ github.event.action == 'closed' && 'https://jsprismarine.dev' || steps.upload.outputs.pages-deployment-alias-url || steps.upload.outputs.deployment-url }}
+              run: |
+                  comment="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PULL_REQUEST/comments" --paginate \
+                      --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("<!-- jsprismarine-parity-trend -->"))) | .id' | tail -n 1)"
+                  if [ -z "$comment" ]; then exit 0; fi
+                  gh api "repos/$GITHUB_REPOSITORY/issues/comments/$comment" \
+                      | jq --arg url "${SITE%/}/parity.html" \
+                          '{body: .body | sub("\\[Open the full parity tracker\\]\\([^)]*\\)"; "[Open the full parity tracker](\($url))")}' \
+                      | gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment" --input - > /dev/null

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { findParityComment, renderParityComment } from './comments.ts';
+import { PARITY_TRACKER_URL, findParityComment, parityTrackerUrl, renderParityComment } from './comments.ts';
 import type { TrackerCase, TrackerData } from './tracker.ts';
 
 const trackerCase = (overrides: Partial<TrackerCase> = {}): TrackerCase => ({
@@ -26,6 +26,33 @@ const tracker = (cases: readonly TrackerCase[]): TrackerData => ({
     intentional: cases.filter((entry) => entry.status === 'intentional').length,
     deferred: cases.filter((entry) => entry.status === 'deferred').length,
     defects: cases.filter((entry) => entry.status === 'defect').length
+});
+
+describe('parity tracker link', () => {
+    it('points at the pull request docs preview when one is deployed', () => {
+        const comments = [
+            {
+                id: 7,
+                body: 'Docs preview: https://pr-42.jsprismarine.pages.dev\n\nBuilt from abc.',
+                user: { login: 'github-actions[bot]' }
+            }
+        ];
+
+        expect(parityTrackerUrl(comments)).toBe('https://pr-42.jsprismarine.pages.dev/parity.html');
+    });
+
+    it('falls back to the published tracker without a preview from the bot', () => {
+        const comments = [
+            { id: 3, body: 'Docs preview: https://evil.example', user: { login: 'contributor' } },
+            {
+                id: 4,
+                body: 'Closing this pull request deleted its docs preview.',
+                user: { login: 'github-actions[bot]' }
+            }
+        ];
+
+        expect(parityTrackerUrl(comments)).toBe(PARITY_TRACKER_URL);
+    });
 });
 
 describe('parity report comment lookup', () => {
