@@ -214,11 +214,11 @@ export class RaidManager {
      * where they stood.
      */
     private turnBadOmens(): void {
-        if (this.host.difficulty() <= 0) return;
+        const omened = this.host.players().filter((player) => player.badOmenLevel > 0);
+        if (omened.length === 0 || this.host.difficulty() <= 0) return;
 
-        for (const player of this.host.players()) {
+        for (const player of omened) {
             const level = player.badOmenLevel;
-            if (level <= 0) continue;
             const center = this.host.villageCenterAt(player.position);
             if (center === undefined) continue;
             const raid = this.raidAt(center);

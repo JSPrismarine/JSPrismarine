@@ -5,7 +5,7 @@ import path from 'node:path';
 import { behaviorFor, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 import type { Logger } from '@jsprismarine/logger';
-import { Difficulty } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -210,7 +210,11 @@ const standInPlayer = (world: World): void => {
         isConnected: () => true,
         getViewPosition: () => new Position(0, GROUND + 1, 0, world),
         getConnection: () => connection,
-        getViewDistance: () => 8
+        getViewDistance: () => 8,
+        // The raid host reads each viewer's game mode and its actor's status effects every tick.
+        getPlayer: () => stub<ReturnType<PlayerSession['getPlayer']>>({ gamemode: Gametype.SURVIVAL }),
+        getActor: () => undefined,
+        runtimeId: 1n
     });
     world['players'].set(1, player);
 };
