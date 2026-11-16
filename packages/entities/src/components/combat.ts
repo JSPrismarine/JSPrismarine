@@ -189,6 +189,10 @@ export interface CombatRegenerationParams {
 /**
  * `minecraft:combat_regeneration`, which rewards the killer of the entity's
  * current attack target with Regeneration I and removes Mining Fatigue.
+ *
+ * A player who makes the kill is always rewarded, as Java's `Axolotl.onStopAttacking` rewards a
+ * player who kills what the axolotl was fighting; Java also asks that the player stand within 20
+ * blocks of the axolotl, which a filter view cannot tell.
  */
 export const combatRegeneration: ComponentFactory<EntityHooks, CombatRegenerationParams> = {
     name: 'minecraft:combat_regeneration',
@@ -219,8 +223,11 @@ export const combatRegeneration: ComponentFactory<EntityHooks, CombatRegeneratio
             const killerId = killer.id?.();
             const isSelf = selfId !== undefined && killerId === selfId;
             const sameFamily = entity.families().some((family) => killer.names?.('is_family')?.includes(family));
+            const player = killer.names?.('is_family')?.includes('player') === true;
             const recipient =
-                (isSelf && params.applyToSelf) || (!isSelf && sameFamily && params.applyToFamily) ? killer : undefined;
+                (isSelf && params.applyToSelf) || (!isSelf && (player || (sameFamily && params.applyToFamily)))
+                    ? killer
+                    : undefined;
             if (recipient === undefined) return;
 
             entity.applyStatusEffect(recipient, {
