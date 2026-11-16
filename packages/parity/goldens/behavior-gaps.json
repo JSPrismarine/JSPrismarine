@@ -252,115 +252,30 @@
         }
     },
     "entities.behavior": {
-        "boat-over-bubble-column:minecraft:acacia_boat": {
+        "anger-alerts-kin:minecraft:hoglin": {
             "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
+            "reason": "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others or its brain broadcasts the target. Observed: hit by a zombie, it never turns on the zombie itself, where Java's turns on its attacker.",
+            "reference": "Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187"
         },
-        "boat-over-bubble-column:minecraft:acacia_chest_boat": {
+        "anger-alerts-kin:minecraft:piglin": {
             "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
+            "reason": "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others or its brain broadcasts the target. Observed: hit by a zombie, it never turns on the zombie itself, where Java's turns on its attacker.",
+            "reference": "Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187"
         },
-        "boat-over-bubble-column:minecraft:bamboo_chest_raft": {
+        "anger-alerts-kin:minecraft:piglin_brute": {
             "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
+            "reason": "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others or its brain broadcasts the target. Observed: hit by a zombie, it never turns on the zombie itself, where Java's turns on its attacker.",
+            "reference": "Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187"
         },
-        "boat-over-bubble-column:minecraft:bamboo_raft": {
+        "anger-alerts-kin:minecraft:zoglin": {
             "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
+            "reason": "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others or its brain broadcasts the target. Observed: hit by a zombie, it never turns on the zombie itself, where Java's turns on its attacker.",
+            "reference": "Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187"
         },
-        "boat-over-bubble-column:minecraft:birch_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:birch_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:cherry_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:cherry_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:dark_oak_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:dark_oak_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:jungle_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:jungle_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:mangrove_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:mangrove_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:oak_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:oak_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:pale_oak_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:pale_oak_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:poplar_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:poplar_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:spruce_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
-        },
-        "boat-over-bubble-column:minecraft:spruce_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a downward bubble column is dragged under after Java's 60 ticks. Observed: over a downward bubble column it goes under after 7 ticks, where Java drags it under after 60.",
-            "reference": "Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144"
+        "breeze-ground-sound:minecraft:breeze": {
+            "kind": "intentional",
+            "reason": "The sensor only picks the idle ground sound, which is sound selection: rendered presentation, category 1 of docs/data-driven/parity.md.",
+            "reference": "Java Breeze.tick (soundTick, playWhirlSound) and Breeze.getAmbientSound, read from the pinned jar"
         },
         "climbs-ladders:minecraft:player": {
             "kind": "intentional",
@@ -547,160 +462,20 @@
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
             "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
         },
-        "java-rule-out_of_control:minecraft:acacia_boat": {
+        "heals-when-fed:minecraft:nautilus": {
             "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
+            "reason": "A tamed cat, wolf or nautilus fed a food its isFood takes heals by the food's nutrition times Java's scale for it, and a sniffer heals by nothing. Observed: minecraft:cod heals it 0, where Java heals 4; minecraft:salmon heals it 0, where Java heals 4; minecraft:tropical_fish heals it 0, where Java heals 2; minecraft:pufferfish heals it 0, where Java heals 2; minecraft:cooked_cod heals it 0, where Java heals 10; minecraft:cooked_salmon heals it 0, where Java heals 12.",
+            "reference": "Java Cat, Wolf and AbstractNautilus.mobInteract (TamableAnimal.feed with scale 1, 2 and 2) and isFood (item tags cat_food, wolf_food, nautilus_food), Sniffer.mobInteract (Animal.mobInteract, which breeds and heals nothing), and the items' food nutrition, read from the pinned jar and the item table; issue #3192"
         },
-        "java-rule-out_of_control:minecraft:acacia_chest_boat": {
+        "held-item-interaction:minecraft:tnt_minecart": {
             "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
+            "reason": "A mob takes, converts or ignores the item a player uses on it the way its Java mobInteract does. Observed: minecraft:flint_and_steel: the server answers accept, Java reject (MinecartTNT has no interact; only fire, damage and an activator rail prime it).",
+            "reference": "Java mobInteract of AbstractCow, MushroomCow, Goat, Sheep, SnowGolem, Bogged, CopperGolem, Creeper, IronGolem, Armadillo, Allay, Bee, ZombieVillager, Pig, Strider, Camel, AbstractHorse, Llama, AbstractNautilus, SulfurCube, Piglin and Wolf, Mob.interact for saddles, carpets and harnesses, DyeItem.interactLivingEntity, and MinecartTNT, which has no interact; issue #3118"
         },
-        "java-rule-out_of_control:minecraft:bamboo_chest_raft": {
+        "insomnia-calls-phantoms:minecraft:player": {
             "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:bamboo_raft": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:birch_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:birch_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:cherry_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:cherry_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:dark_oak_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:dark_oak_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:jungle_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:jungle_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:mangrove_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:mangrove_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:oak_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:oak_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:pale_oak_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:pale_oak_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:poplar_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:poplar_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:spruce_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:spruce_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
-            "reference": "Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down); issue #3144"
-        },
-        "java-rule-rail_movement:minecraft:chest_minecart": {
-            "kind": "defect",
-            "reason": "A minecart pushed along a rail runs along it, slowed only by its rolling drag, and a powered rail speeds it up. Observed: on a rail it keeps 55 percent of its speed over a tick, where Java keeps 96; a powered rail does not speed it up.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack (getSlowdownFactor 0.96 empty, a powered rail adds 0.06 a tick), PoweredRailBlock; issue #3145"
-        },
-        "java-rule-rail_movement:minecraft:command_block_minecart": {
-            "kind": "defect",
-            "reason": "A minecart pushed along a rail runs along it, slowed only by its rolling drag, and a powered rail speeds it up. Observed: on a rail it keeps 55 percent of its speed over a tick, where Java keeps 96; a powered rail does not speed it up.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack (getSlowdownFactor 0.96 empty, a powered rail adds 0.06 a tick), PoweredRailBlock; issue #3145"
-        },
-        "java-rule-rail_movement:minecraft:hopper_minecart": {
-            "kind": "defect",
-            "reason": "A minecart pushed along a rail runs along it, slowed only by its rolling drag, and a powered rail speeds it up. Observed: on a rail it keeps 55 percent of its speed over a tick, where Java keeps 96; a powered rail does not speed it up.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack (getSlowdownFactor 0.96 empty, a powered rail adds 0.06 a tick), PoweredRailBlock; issue #3145"
-        },
-        "java-rule-rail_movement:minecraft:minecart": {
-            "kind": "defect",
-            "reason": "A minecart pushed along a rail runs along it, slowed only by its rolling drag, and a powered rail speeds it up. Observed: on a rail it keeps 55 percent of its speed over a tick, where Java keeps 96; a powered rail does not speed it up.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack (getSlowdownFactor 0.96 empty, a powered rail adds 0.06 a tick), PoweredRailBlock; issue #3145"
-        },
-        "java-rule-rail_movement:minecraft:tnt_minecart": {
-            "kind": "defect",
-            "reason": "A minecart pushed along a rail runs along it, slowed only by its rolling drag, and a powered rail speeds it up. Observed: on a rail it keeps 55 percent of its speed over a tick, where Java keeps 96; a powered rail does not speed it up.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack (getSlowdownFactor 0.96 empty, a powered rail adds 0.06 a tick), PoweredRailBlock; issue #3145"
-        },
-        "java-rule-rail_sensor:minecraft:command_block_minecart": {
-            "kind": "defect",
-            "reason": "A minecart over a powered activator rail reacts: a minecart drops its rider, a TNT minecart primes, a hopper minecart locks and a command block minecart runs. Observed: it does not react to a powered activator rail.",
-            "reference": "Java AbstractMinecart.activateMinecart and its Minecart, MinecartTNT, MinecartHopper and MinecartCommandBlock overrides; issue #3145"
-        },
-        "java-rule-rail_sensor:minecraft:hopper_minecart": {
-            "kind": "defect",
-            "reason": "A minecart over a powered activator rail reacts: a minecart drops its rider, a TNT minecart primes, a hopper minecart locks and a command block minecart runs. Observed: it does not lock over a powered activator rail.",
-            "reference": "Java AbstractMinecart.activateMinecart and its Minecart, MinecartTNT, MinecartHopper and MinecartCommandBlock overrides; issue #3145"
-        },
-        "java-rule-rail_sensor:minecraft:minecart": {
-            "kind": "defect",
-            "reason": "A minecart over a powered activator rail reacts: a minecart drops its rider, a TNT minecart primes, a hopper minecart locks and a command block minecart runs. Observed: it keeps its rider over a powered activator rail, where Java drops it.",
-            "reference": "Java AbstractMinecart.activateMinecart and its Minecart, MinecartTNT, MinecartHopper and MinecartCommandBlock overrides; issue #3145"
-        },
-        "java-rule-rail_sensor:minecraft:tnt_minecart": {
-            "kind": "defect",
-            "reason": "A minecart over a powered activator rail reacts: a minecart drops its rider, a TNT minecart primes, a hopper minecart locks and a command block minecart runs. Observed: it does not prime over a powered activator rail.",
-            "reference": "Java AbstractMinecart.activateMinecart and its Minecart, MinecartTNT, MinecartHopper and MinecartCommandBlock overrides; issue #3145"
+            "reason": "Phantoms spawn over a player who has not slept for three days, and only over such a player, by Java's PhantomSpawner. Observed: the server never reads minecraft:insomnia and spawns phantoms from the pack's spawn rule by darkness alone, so a rested player sees them too, where Java spawns them only over a player 72000 ticks without rest.",
+            "reference": "Java PhantomSpawner.tick (spawnPhantoms game rule, Stats.TIME_SINCE_REST, random.nextInt(timeSinceRest) >= 72000), read from the pinned jar; issue #3191"
         },
         "jump-apex:minecraft:dolphin": {
             "kind": "intentional",
@@ -772,30 +547,35 @@
             "reason": "A player puts a saddle on a tamed adult mount that Java's can_equip_saddle tag lists, horse or nautilus armor on the mobs their tags list, and a carpet on a llama, and nothing else on any of them. Observed: it refuses minecraft:saddle, which Java puts on it.",
             "reference": "Java entity type tags can_equip_saddle, can_wear_horse_armor and can_wear_nautilus_armor, Equippable.llamaSwag, and Mob.mobInteract through Equippable.equipOnInteract and AbstractHorse.isEquippableInSlot"
         },
-        "picks-up-loot:minecraft:husk": {
-            "kind": "defect",
-            "reason": "A mob picks up an item at its feet only when Java's canPickUpLoot and wantsToPickUp allow it, and wears or holds it where Java puts it: a fresh zombie or skeleton in a fresh region picks up nothing, a piglin takes gold, a villager what it gathers. Observed: once it may pick up, it leaves it with minecraft:iron_helmet at its feet, where Java puts it in its head slot.",
-            "reference": "Java Mob.aiStep (canPickUpLoot, wantsToPickUp, pickUpItem), Zombie.finalizeSpawn and AbstractSkeleton.finalizeSpawn (nextFloat() < 0.55F * getSpecialMultiplier()), the setCanPickUpLoot(true) of Fox, AbstractPiglin and Villager, PiglinAi.wantsToPickup, Villager.wantsToPickUp (villager_picks_up), Fox.canHoldItem and Mob.equipItemIfPossible; issue #3179"
+        "not-pickable-from-inside:minecraft:creaking": {
+            "kind": "intentional",
+            "reason": "Input handling (category 2 of docs/data-driven/parity.md): which entity a crosshair inside a box picks follows the player's device, not the server. Java decides it only in the client: Entity.canBePickedFromInside is read by ProjectileUtil.getEntityHitResult(Entity, Vec3, Vec3, AABB, Predicate, double), which no class of the pinned 26.3 server jar calls (the client's GameRenderer.pick does), and the server takes a blow from a player standing inside the box at reach 0 either way.",
+            "reference": "Java Entity.canBePickedFromInside and SulfurCube.canBePickedFromInside (!hasBodyItem), read only by ProjectileUtil.getEntityHitResult(..., double), whose caller is the client GameRenderer.pick; ServerGamePacketListenerImpl.handleInteract measures reach to the bounding box"
         },
-        "picks-up-loot:minecraft:piglin": {
-            "kind": "defect",
-            "reason": "A mob picks up an item at its feet only when Java's canPickUpLoot and wantsToPickUp allow it, and wears or holds it where Java puts it: a fresh zombie or skeleton in a fresh region picks up nothing, a piglin takes gold, a villager what it gathers. Observed: it leaves it with minecraft:gold_ingot at its feet, where Java takes it; it leaves it with minecraft:iron_helmet at its feet, where Java puts it in its head slot.",
-            "reference": "Java Mob.aiStep (canPickUpLoot, wantsToPickUp, pickUpItem), Zombie.finalizeSpawn and AbstractSkeleton.finalizeSpawn (nextFloat() < 0.55F * getSpecialMultiplier()), the setCanPickUpLoot(true) of Fox, AbstractPiglin and Villager, PiglinAi.wantsToPickup, Villager.wantsToPickUp (villager_picks_up), Fox.canHoldItem and Mob.equipItemIfPossible; issue #3179"
+        "not-pickable-from-inside:minecraft:sulfur_cube": {
+            "kind": "intentional",
+            "reason": "Input handling (category 2 of docs/data-driven/parity.md): which entity a crosshair inside a box picks follows the player's device, not the server. Java decides it only in the client: Entity.canBePickedFromInside is read by ProjectileUtil.getEntityHitResult(Entity, Vec3, Vec3, AABB, Predicate, double), which no class of the pinned 26.3 server jar calls (the client's GameRenderer.pick does), and the server takes a blow from a player standing inside the box at reach 0 either way.",
+            "reference": "Java Entity.canBePickedFromInside and SulfurCube.canBePickedFromInside (!hasBodyItem), read only by ProjectileUtil.getEntityHitResult(..., double), whose caller is the client GameRenderer.pick; ServerGamePacketListenerImpl.handleInteract measures reach to the bounding box"
         },
-        "picks-up-loot:minecraft:villager": {
+        "parrot-poisoned-by-cookie:minecraft:parrot": {
             "kind": "defect",
-            "reason": "A mob picks up an item at its feet only when Java's canPickUpLoot and wantsToPickUp allow it, and wears or holds it where Java puts it: a fresh zombie or skeleton in a fresh region picks up nothing, a piglin takes gold, a villager what it gathers. Observed: it leaves it with minecraft:wheat_seeds at its feet, where Java takes it.",
-            "reference": "Java Mob.aiStep (canPickUpLoot, wantsToPickUp, pickUpItem), Zombie.finalizeSpawn and AbstractSkeleton.finalizeSpawn (nextFloat() < 0.55F * getSpecialMultiplier()), the setCanPickUpLoot(true) of Fox, AbstractPiglin and Villager, PiglinAi.wantsToPickup, Villager.wantsToPickUp (villager_picks_up), Fox.canHoldItem and Mob.equipItemIfPossible; issue #3179"
+            "reason": "A parrot fed a cookie dies on the spot, as Java hurts it for all its health and poisons it. Observed: three ticks after eating a cookie it is still alive, where Java kills it at once.",
+            "reference": "Java Parrot.mobInteract (item tag parrot_poisonous_food: Poison 900, hurtServer Float.MAX_VALUE), read from the pinned jar; issue #3193"
         },
-        "picks-up-loot:minecraft:wither_skeleton": {
+        "player-hunger:minecraft:player": {
             "kind": "defect",
-            "reason": "A mob picks up an item at its feet only when Java's canPickUpLoot and wantsToPickUp allow it, and wears or holds it where Java puts it: a fresh zombie or skeleton in a fresh region picks up nothing, a piglin takes gold, a villager what it gathers. Observed: once it may pick up, it leaves it with minecraft:iron_helmet at its feet, where Java puts it in its head slot.",
-            "reference": "Java Mob.aiStep (canPickUpLoot, wantsToPickUp, pickUpItem), Zombie.finalizeSpawn and AbstractSkeleton.finalizeSpawn (nextFloat() < 0.55F * getSpecialMultiplier()), the setCanPickUpLoot(true) of Fox, AbstractPiglin and Villager, PiglinAi.wantsToPickup, Villager.wantsToPickUp (villager_picks_up), Fox.canHoldItem and Mob.equipItemIfPossible; issue #3179"
+            "reason": "A fresh player has Java's 5 saturation; exhaustion is capped at 40 and spends 4 into saturation or food only once it is above 4, one step a tick. Observed: a fresh player has 20 saturation, where Java's has 5; exhaustion of exactly 4 spends saturation, where Java spends it only above 4; 100 exhaustion at once leaves 0 saturation and 0 food, where Java caps it at 40 and spends one step a tick.",
+            "reference": "Java FoodData.<init> (foodLevel 20, saturationLevel 5), FoodData.addExhaustion (min(exhaustion + amount, 40)) and FoodData.tick (exhaustionLevel > 4: take 4, then one saturation or one food), read from the pinned jar; issue #3190"
         },
-        "picks-up-loot:minecraft:zombie": {
+        "projectile-hits-entity:minecraft:lingering_potion": {
             "kind": "defect",
-            "reason": "A mob picks up an item at its feet only when Java's canPickUpLoot and wantsToPickUp allow it, and wears or holds it where Java puts it: a fresh zombie or skeleton in a fresh region picks up nothing, a piglin takes gold, a villager what it gathers. Observed: once it may pick up, it leaves it with minecraft:iron_helmet at its feet, where Java puts it in its head slot.",
-            "reference": "Java Mob.aiStep (canPickUpLoot, wantsToPickUp, pickUpItem), Zombie.finalizeSpawn and AbstractSkeleton.finalizeSpawn (nextFloat() < 0.55F * getSpecialMultiplier()), the setCanPickUpLoot(true) of Fox, AbstractPiglin and Villager, PiglinAi.wantsToPickup, Villager.wantsToPickUp (villager_picks_up), Fox.canHoldItem and Mob.equipItemIfPossible; issue #3179"
+            "reason": "A projectile that hits a mob deals Java's blow, push, effect and fire for its class, leaves its cloud or experience, takes its thrower along, and is discarded or stays as Java's is. Observed: a lingering water bottle at a blaze: it takes 0 off the minecraft:blaze, where Java takes 1.",
+            "reference": "Java AbstractArrow.onHitEntity (ceil(speed * baseDamage 2)), ThrownTrident.onHitEntity (8), Snowball.onHitEntity (3 for a blaze), ThrownEgg and ThrownEnderpearl.onHitEntity (0) and ThrownEnderpearl.onHit (teleport, enderPearl 5), LargeFireball (6) and SmallFireball.onHitEntity (5, igniteForSeconds 5), LlamaSpit (1 from a llama), ShulkerBullet (4, Levitation 200), WitherSkull (witherSkull 8 or magic 5, Wither II 10 s on normal), AbstractWindCharge (1), DragonFireball.onHit (cloud radius 3, 600 ticks), ThrownExperienceBottle.onHit (3 + nextInt(5) + nextInt(5)), FishingHook.onHitEntity (hooks, no blow), AbstractThrownPotion.onHitAsWater (indirect magic 1 to a water-sensitive mob), and LivingEntity.hurtServer and knockback (0.4 along the flight, lift capped at 0.4), read from the pinned jar; issue #3184, #3183"
+        },
+        "projectile-hits-entity:minecraft:splash_potion": {
+            "kind": "defect",
+            "reason": "A projectile that hits a mob deals Java's blow, push, effect and fire for its class, leaves its cloud or experience, takes its thrower along, and is discarded or stays as Java's is. Observed: a splash water bottle at a blaze: it takes 0 off the minecraft:blaze, where Java takes 1.",
+            "reference": "Java AbstractArrow.onHitEntity (ceil(speed * baseDamage 2)), ThrownTrident.onHitEntity (8), Snowball.onHitEntity (3 for a blaze), ThrownEgg and ThrownEnderpearl.onHitEntity (0) and ThrownEnderpearl.onHit (teleport, enderPearl 5), LargeFireball (6) and SmallFireball.onHitEntity (5, igniteForSeconds 5), LlamaSpit (1 from a llama), ShulkerBullet (4, Levitation 200), WitherSkull (witherSkull 8 or magic 5, Wither II 10 s on normal), AbstractWindCharge (1), DragonFireball.onHit (cloud radius 3, 600 ticks), ThrownExperienceBottle.onHit (3 + nextInt(5) + nextInt(5)), FishingHook.onHitEntity (hooks, no blow), AbstractThrownPotion.onHitAsWater (indirect magic 1 to a water-sensitive mob), and LivingEntity.hurtServer and knockback (0.4 along the flight, lift capped at 0.4), read from the pinned jar; issue #3184, #3183"
         },
         "schedules:minecraft:fox": {
             "kind": "intentional",
@@ -811,6 +591,11 @@
             "kind": "intentional",
             "reason": "The parrot's sensor only switches where a perched parrot looks. A Java parrot on a shoulder is part of the player and is drawn by the client, so where it looks is rendered presentation, category 1 of docs/data-driven/parity.md.",
             "reference": "Java Armadillo (inflate 7, 2, 7), Pufferfish$PufferfishPuffGoal (inflate 2) and HappyGhast.scanPlayerAboveGhast (getBoundingBox, 1 past each side, maxY to maxY + getYsize() / 2); issue #3158"
+        },
+        "shulker-peeks:minecraft:shulker": {
+            "kind": "defect",
+            "reason": "A shulker with no target opens its shell now and then, Java's ShulkerPeekGoal rolling one in 20 every other tick. Observed: with no target it never opens in 800 ticks, where Java's opens about every 40.",
+            "reference": "Java Shulker$ShulkerPeekGoal.canUse (getTarget() == null, random.nextInt(reducedTickDelay(40)) == 0) and start (peek 30 for 20 to 60 ticks), read from the pinned jar; issue #3188"
         },
         "spawn-flying_speed:minecraft:bee": {
             "kind": "intentional",
@@ -1086,6 +871,41 @@
             "kind": "intentional",
             "reason": "Bedrock spawns an ocelot with two kittens one time in seven, where Java's ocelot spawns alone. The litter is part of how Bedrock composes a natural spawn, and docs/data-driven/parity.md category 7 keeps Bedrock's spawn model.",
             "reference": "Java Chicken.aiStep and gameplay/chicken_lay, Armadillo.pickNextScuteDropTime and gameplay/armadillo_shed, CopperGolem.shear, Drowned.finalizeSpawn, Sniffer.spawnChildFromBreeding and WanderingTraderSpawner.spawn"
+        },
+        "stared-at:minecraft:creaking": {
+            "kind": "defect",
+            "reason": "A player who stares at an enderman's head angers it, as Java's EnderMan$EndermanLookForPlayerGoal has it; a creaking within 12 blocks of a player who is not looking wakes and goes for the player, as Java's Creaking.checkCanMove does. Observed: the server runs nothing for minecraft:looked_at, so a player near it never wakes it or freezes it, where Java activates it within 12 blocks and freezes it while looked at.",
+            "reference": "Java EnderMan.isBeingStaredBy and EnderMan$EndermanLookForPlayerGoal, and Creaking.checkCanMove (distanceToSqr < 144 activates, isLookingAtMe freezes), read from the pinned jar; issue #3189"
+        },
+        "stared-at:minecraft:enderman": {
+            "kind": "defect",
+            "reason": "A player who stares at an enderman's head angers it, as Java's EnderMan$EndermanLookForPlayerGoal has it; a creaking within 12 blocks of a player who is not looking wakes and goes for the player, as Java's Creaking.checkCanMove does. Observed: the server runs nothing for minecraft:looked_at, so a stare never angers it, where Java's turns on the player who stares.",
+            "reference": "Java EnderMan.isBeingStaredBy and EnderMan$EndermanLookForPlayerGoal, and Creaking.checkCanMove (distanceToSqr < 144 activates, isLookingAtMe freezes), read from the pinned jar; issue #3189"
+        },
+        "unrun-components:minecraft:bee": {
+            "kind": "defect",
+            "reason": "A bee carrying nectar grows the crops it passes over, Java's Bee$BeeGrowCropGoal, and a ravager a shield blocks is stunned or throws the defender back, Java's Ravager.blockedByItem. Observed: the server runs nothing for minecraft:grows_crop, so a bee grows no crop, where Java's does.",
+            "reference": "Java Bee$BeeGrowCropGoal (nextInt(adjustedTickDelay(30)), bee_growables, 10 crops a pollination) and Ravager.blockedByItem (stunnedTick 40 half the time, strongKnockback otherwise), read from the pinned jar; issue #3194"
+        },
+        "unrun-components:minecraft:ravager": {
+            "kind": "defect",
+            "reason": "A bee carrying nectar grows the crops it passes over, Java's Bee$BeeGrowCropGoal, and a ravager a shield blocks is stunned or throws the defender back, Java's Ravager.blockedByItem. Observed: the server runs nothing for minecraft:ravager_blocked, so a blocked ravager is never stunned or pushed back, where Java's does.",
+            "reference": "Java Bee$BeeGrowCropGoal (nextInt(adjustedTickDelay(30)), bee_growables, 10 crops a pollination) and Ravager.blockedByItem (stunnedTick 40 half the time, strongKnockback otherwise), read from the pinned jar; issue #3194"
+        },
+        "warden-angers-when-hit:minecraft:warden": {
+            "kind": "defect",
+            "reason": "A warden a zombie hits is at once angry at it, Java's 80 plus 20, roars and goes for it. Observed: hit by a zombie, it is not after the zombie 300 ticks later, where Java angers at it at once and roars at it.",
+            "reference": "Java Warden.hurtServer (increaseAngerAt(attacker, AngerLevel.ANGRY.getMinimumAnger() + 20)), AngerManagement.increaseAnger and WardenAi (roar, then fight), read from the pinned jar; issue #3186"
+        },
+        "warden-darkens-players:minecraft:warden": {
+            "kind": "defect",
+            "reason": "A warden gives every player within 20 blocks Darkness for 260 ticks, once each 120 ticks. Observed: a player six blocks away gets no Darkness in 125 ticks, where Java gives it within 120.",
+            "reference": "Java Warden.customServerAiStep ((tickCount + id) % 120 == 0) and Warden.applyDarknessAround (Darkness 260, radius 20), read from the pinned jar; issue #3185"
+        },
+        "warden-heartbeat:minecraft:warden": {
+            "kind": "intentional",
+            "reason": "The heartbeat is the client's sound and animation, which Java times on the client from the synced anger level: rendered presentation, category 1 of docs/data-driven/parity.md.",
+            "reference": "Java Warden.getHeartBeatDelay (40 - floor(clamp(anger / 80, 0, 1) * 30)) and Warden.tick, which runs it only on the client, read from the pinned jar"
         }
     },
     "gameplay.datapack": {
