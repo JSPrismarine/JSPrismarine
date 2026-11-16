@@ -1,4 +1,4 @@
-import type { Goal } from '@jsprismarine/entities';
+import type { EntityPosition, Goal } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 
 import type { RegisterableGoal } from '../goal';
@@ -1723,24 +1723,61 @@ export const chargeHeldItem = goal<ChargeHeldItemParams>({
     }
 });
 
+/**
+ * A clock for the spell goals' intervals: the world's game time when it answers, and otherwise a
+ * count of the times the goal looked, which is enough for a world that keeps no time.
+ */
+const spellClock = (support: GoalSupport): (() => number) => {
+    let looked = 0;
+    return () => {
+        looked += 1;
+        return support.world.gameTime?.() ?? looked;
+    };
+};
+
+/** One spell's place in Java's spell goals: what it costs in time, and when it may run again. */
+interface SpellTiming {
+    /** How long the caster stands casting, Java's `getCastingTime`, in ticks. */
+    readonly castDuration: number;
+    /** How long from one cast's start until the spell may be cast again, Java's `getCastingInterval`. */
+    readonly cooldownTime: number;
+}
+
+/**
+ * Draws one spell from the candidates by their weights, as the Bedrock spell tables weigh them.
+ * Java's spell goals never draw: the one candidate a table leaves is the one cast.
+ */
+const drawWeighted = <T extends { readonly weight: number }>(
+    support: GoalSupport,
+    candidates: readonly T[]
+): T | undefined => {
+    if (candidates.length <= 1) return candidates[0];
+    const total = candidates.reduce((sum, candidate) => sum + candidate.weight, 0);
+    let roll = support.random() * total;
+    for (const candidate of candidates) {
+        roll -= candidate.weight;
+        if (roll < 0) return candidate;
+    }
+    return candidates.at(-1);
+};
+
 /** What `minecraft:behavior.summon_entity` declares. */
 export interface SummonEntityParams {
-    /** The summons, each with the spell it casts and how often it may run. */
+    /** The spells, each with its own cast, interval and summons. */
     readonly choices: readonly SummonChoice[];
 }
 
-/** One entry of `summon_choices`. */
-export interface SummonChoice {
-    readonly id: number;
-    /** How long the cast takes, in ticks. */
-    readonly castDuration: number;
-    /** How long before the choice may run again, in ticks. */
-    readonly cooldownTime: number;
-    /** How far the target may be, in blocks. */
+/** One entry of `summon_choices`, which is one spell. */
+export interface SummonChoice extends SpellTiming {
+    /** The spell's place in the table, which keys its interval. */
+    readonly index: number;
+    /** How likely the spell is against the others the caster could cast at the same time. */
+    readonly weight: number;
+    /** How far the target may be, in blocks: at least the minimum and less than the maximum. */
     readonly minActivationRange: number;
     readonly maxActivationRange: number;
     readonly startSound: string | undefined;
-    /** What the cast does, as the spell's own sequence of steps. */
+    /** What the spell summons, step by step. */
     readonly sequence: readonly SummonStep[];
 }
 
@@ -1749,149 +1786,166 @@ export interface SummonStep {
     /** The entity type to create. */
     readonly entityType: string | undefined;
     /** How many to create. */
-    readonly numberOfSummons: number;
-    /** The event to run on each. */
-    readonly spawnEvent: string | undefined;
-    /** How far from the caster they appear, in blocks. */
-    readonly summonCap: number;
+    readonly count: number;
+    /** Whether they stand in a ring around the caster or in a line toward its target. */
+    readonly shape: 'circle' | 'line';
+    /** The ring's radius, or the line's length, in blocks. */
+    readonly size: number;
+    /** Ticks before the step, counted from the step before it or, for the first, from the cast's start. */
     readonly baseDelay: number;
+    /** Ticks between one summon of the step and the next. */
+    readonly delayPerSummon: number;
+    /** The most of the type that may be near before the spell refuses to summon more. */
+    readonly summonCap: number | undefined;
+    /** How far around the caster the cap counts, in blocks. */
+    readonly summonCapRadius: number;
+    /** The event each summon runs once it exists, such as the vex's damage timer. */
+    readonly summonEvent: string | undefined;
+    readonly sound: string | undefined;
 }
 
+/** The angle a ring of evoker fangs or a line of them is laid out from, Java's `Mth.atan2`. */
+const headingTo = (from: EntityPosition, to: EntityPosition): number => Math.atan2(to.z - from.z, to.x - from.x);
+
 /**
- * `minecraft:behavior.summon_entity`, which the evoker carries. One choice is
- * one spell, and a spell is a sequence of summon steps.
+ * Where an attack spell's summon stands: Java's `EvokerAttackSpellGoal.createSpellEntity`, which
+ * walks down from a block above the higher of caster and target to a block below the lower, and
+ * takes the first cell standing on a solid block. A column with no floor in that span gets none.
+ */
+const spellFloor = (support: GoalSupport, x: number, z: number, minY: number, maxY: number): number | undefined => {
+    const view = support.navigation();
+    if (view === undefined) return minY;
+    for (let y = Math.floor(maxY); y >= Math.floor(minY) - 1; y -= 1) if (view.isSolid({ x, y: y - 1, z })) return y;
+    return undefined;
+};
+
+/**
+ * `minecraft:behavior.summon_entity`, which the evoker carries: Java's `SpellcasterIllager`
+ * spell goals, with the spells the Bedrock table writes.
+ *
+ * Java's evoker has three spell goals. While one casts, the evoker stands still for the cast
+ * (`EvokerCastingSpellGoal`) and no other spell may start; each spell may start again only
+ * once its interval since its last start has run. The summon spell, priority 4, comes before the
+ * attack spell, priority 5, and refuses when as many vexes as a draw below the cap are already
+ * near (`EvokerSummonSpellGoal.canUse`). So the table's spells that summon under a cap go first,
+ * and the rest by weight among those the target's distance admits.
+ *
+ * A spell runs at its first step's delay into the cast (Java's `getCastWarmupTime`), and only if
+ * the caster still has its target. Every step's summons are created then, each one owned by the
+ * caster, and one that waits longer is told so through its `warmup` field, the way Java's
+ * `EvokerFangs` carry their `warmupDelay`. A ring starts at the heading to the target and turns
+ * each ring after the first by the ring before it's spacing; a line runs from the caster toward
+ * the target. Fangs stand on the floor between the caster's and the target's heights; a capped
+ * summon appears a block above the caster, as Java's vexes do.
  */
 export const summonEntity = goal<SummonEntityParams>({
     name: 'minecraft:behavior.summon_entity',
     controlFlags: ['move', 'look'],
     schema: bodySchema((body) => ({
-        choices: recordsAt(body, 'summon_choices').map((choice) => ({
-            id: numberAt(choice, 'id', 0),
+        choices: recordsAt(body, 'summon_choices').map((choice, index) => ({
+            index,
+            weight: numberAt(choice, 'weight', 1),
             castDuration: ticksAt(choice, 'cast_duration', 1),
-            cooldownTime: ticksAt(choice, 'cooldown_time', 5),
+            cooldownTime: ticksAt(choice, 'cooldown_time', 0),
             minActivationRange: numberAt(choice, 'min_activation_range', 0),
-            maxActivationRange: numberAt(choice, 'max_activation_range', 16),
+            maxActivationRange: numberAt(choice, 'max_activation_range', 32),
             startSound: stringAt(choice, 'start_sound_event'),
-            sequence: recordsAt(choice, 'sequence').map((step) => ({
-                entityType: stringAt(step, 'entity_type'),
-                numberOfSummons: numberAt(step, 'num_entities_spawned', 1),
-                spawnEvent: stringAt(step, 'entity_lifetime') === undefined ? stringAt(step, 'spawn_event') : undefined,
-                summonCap: numberAt(step, 'summon_cap_radius', 1),
-                baseDelay: ticksAt(step, 'base_delay', 0)
-            }))
+            sequence: recordsAt(choice, 'sequence').map((step) => {
+                const cap = step['summon_cap'];
+                return {
+                    entityType: stringAt(step, 'entity_type'),
+                    count: numberAt(step, 'num_entities_spawned', 1),
+                    shape: stringAt(step, 'shape') === 'line' ? ('line' as const) : ('circle' as const),
+                    size: numberAt(step, 'size', 1),
+                    baseDelay: ticksAt(step, 'base_delay', 0),
+                    delayPerSummon: ticksAt(step, 'delay_per_summon', 0),
+                    summonCap: typeof cap === 'number' ? cap : undefined,
+                    summonCapRadius: numberAt(step, 'summon_cap_radius', 0),
+                    summonEvent: stringAt(step, 'summon_event'),
+                    sound: stringAt(step, 'sound_event')
+                };
+            })
         }))
     })),
     create: (params, support) => {
+        const now = spellClock(support);
+        const readyAt = new Map<number, number>();
         let choice: SummonChoice | undefined;
-        let remaining = 0;
-        const cooldowns = new Map<number, number>();
+        let elapsed = 0;
 
-        return {
-            canStart: () => {
-                const target = support.target();
-                if (target === undefined) return false;
-                const range = support.distanceTo(target.position());
-                choice = params.choices.find((candidate) => {
-                    if ((cooldowns.get(candidate.id) ?? 0) > 0) return false;
-                    return range >= candidate.minActivationRange && range <= candidate.maxActivationRange;
-                });
-                return choice !== undefined;
-            },
-            canContinue: () => remaining > 0,
-            start: () => {
-                if (choice === undefined) return;
-                remaining = choice.castDuration;
-                support.navigator.stop();
-                support.playSound(choice.startSound);
-            },
-            tick: () => {
-                for (const [id, ticks] of cooldowns) cooldowns.set(id, Math.max(0, ticks - 1));
-                remaining -= 1;
-                if (remaining > 0 || choice === undefined) return;
-                const here = support.position();
-                for (const step of choice.sequence) {
-                    if (step.entityType === undefined) continue;
-                    for (let index = 0; index < step.numberOfSummons; index += 1) {
-                        support.world.spawn?.(
-                            step.entityType,
-                            {
-                                x: here.x + (support.random() * 2 - 1) * step.summonCap,
-                                y: here.y,
-                                z: here.z + (support.random() * 2 - 1) * step.summonCap
-                            },
-                            step.spawnEvent
-                        );
+        /** Java's `EvokerSummonSpellGoal.canUse` draw: fewer of the type near than a roll below the cap. */
+        const underCap = (spell: SummonChoice): boolean =>
+            spell.sequence.every((step) => {
+                if (step.summonCap === undefined || step.entityType === undefined) return true;
+                const near = support
+                    .mobs(step.summonCapRadius)
+                    .filter((mob) => mob.identifier?.() === step.entityType).length;
+                return support.randomInt(step.summonCap) + 1 > near;
+            });
+        const summons = (spell: SummonChoice): boolean => spell.sequence.some((step) => step.summonCap !== undefined);
+
+        const cast = (spell: SummonChoice, target: GoalMob): void => {
+            const here = support.position();
+            const there = target.position();
+            const heading = headingTo(here, there);
+            const minY = Math.min(here.y, there.y);
+            const maxY = Math.max(here.y, there.y) + 1;
+            let offset = 0;
+            let turn = 0;
+            for (const [index, step] of spell.sequence.entries()) {
+                if (index > 0) offset += step.baseDelay;
+                support.playSound(step.sound);
+                if (step.entityType === undefined) continue;
+                for (let member = 0; member < step.count; member += 1) {
+                    let x: number;
+                    let z: number;
+                    let yaw: number;
+                    if (step.shape === 'line') {
+                        const along = (step.size / step.count) * (member + 1);
+                        x = here.x + Math.cos(heading) * along;
+                        z = here.z + Math.sin(heading) * along;
+                        yaw = heading;
+                    } else {
+                        yaw = heading + (member * Math.PI * 2) / step.count + turn;
+                        x = here.x + Math.cos(yaw) * step.size;
+                        z = here.z + Math.sin(yaw) * step.size;
                     }
+                    const y = step.summonCap === undefined ? spellFloor(support, x, z, minY, maxY) : here.y + 1;
+                    if (y === undefined) continue;
+                    const summoned = support.world.spawn?.(step.entityType, { x, y, z }, undefined, {
+                        owned: true,
+                        yaw: (yaw * 180) / Math.PI,
+                        data: { warmup: offset + member * step.delayPerSummon }
+                    });
+                    if (summoned !== undefined && step.summonEvent !== undefined)
+                        support.world.fireOn?.(summoned, step.summonEvent);
                 }
-            },
-            stop: () => {
-                if (choice !== undefined) cooldowns.set(choice.id, choice.cooldownTime);
-                remaining = 0;
-                choice = undefined;
+                if (step.shape === 'circle') turn = (Math.PI * 2) / step.count;
             }
         };
-    }
-});
-
-/** What `minecraft:behavior.send_event` declares. */
-export interface SendEventParams {
-    /** The event sequences the goal may run, each with its own cast and cooldown. */
-    readonly choices: readonly SendEventChoice[];
-}
-
-/** One entry of `event_choices`. */
-export interface SendEventChoice {
-    readonly id: number;
-    /** How long the cast takes, in ticks. */
-    readonly castDuration: number;
-    /** How long before the choice may run again, in ticks. */
-    readonly cooldownTime: number;
-    readonly minActivationRange: number;
-    readonly maxActivationRange: number;
-    readonly startSound: string | undefined;
-    /** The events fired over the cast, each with its own delay in ticks. */
-    readonly sequence: readonly { readonly event: GoalEvent | undefined; readonly delay: number }[];
-}
-
-/**
- * `minecraft:behavior.send_event`, which the evoker carries. It is
- * `summon_entity` with events instead of entities, which is how the fangs
- * attack is written.
- */
-export const sendEvent = goal<SendEventParams>({
-    name: 'minecraft:behavior.send_event',
-    controlFlags: ['move', 'look'],
-    schema: bodySchema((body) => ({
-        choices: recordsAt(body, 'event_choices').map((choice) => ({
-            id: numberAt(choice, 'id', 0),
-            castDuration: ticksAt(choice, 'cast_duration', 1),
-            cooldownTime: ticksAt(choice, 'cooldown_time', 5),
-            minActivationRange: numberAt(choice, 'min_activation_range', 0),
-            maxActivationRange: numberAt(choice, 'max_activation_range', 16),
-            startSound: stringAt(choice, 'start_sound_event'),
-            sequence: recordsAt(choice, 'sequence').map((step) => ({
-                event: eventAt(step, 'event'),
-                delay: ticksAt(step, 'base_delay', 0)
-            }))
-        }))
-    })),
-    create: (params, support) => {
-        let choice: SendEventChoice | undefined;
-        let elapsed = 0;
-        const cooldowns = new Map<number, number>();
 
         return {
             canStart: () => {
                 const target = support.target();
                 if (target === undefined) return false;
+                const time = now();
                 const range = support.distanceTo(target.position());
-                choice = params.choices.find(
-                    (candidate) =>
-                        (cooldowns.get(candidate.id) ?? 0) <= 0 &&
-                        range >= candidate.minActivationRange &&
-                        range <= candidate.maxActivationRange
+                const ready = params.choices.filter(
+                    (spell) =>
+                        time >= (readyAt.get(spell.index) ?? 0) &&
+                        range >= spell.minActivationRange &&
+                        range < spell.maxActivationRange
                 );
-                return choice !== undefined;
+                const summoning = ready.filter(summons);
+                choice =
+                    summoning.find(underCap) ??
+                    drawWeighted(
+                        support,
+                        ready.filter((spell) => !summons(spell))
+                    );
+                if (choice === undefined) return false;
+                readyAt.set(choice.index, time + choice.cooldownTime);
+                return true;
             },
             canContinue: () => choice !== undefined && elapsed < choice.castDuration,
             start: () => {
@@ -1900,16 +1954,124 @@ export const sendEvent = goal<SendEventParams>({
                 support.playSound(choice?.startSound);
             },
             tick: () => {
-                for (const [id, ticks] of cooldowns) cooldowns.set(id, Math.max(0, ticks - 1));
                 if (choice === undefined) return;
-                for (const step of choice.sequence) if (step.delay === elapsed) support.fire(step.event);
+                const target = support.target();
+                if (target !== undefined) support.lookAtMob(target);
                 elapsed += 1;
+                if (elapsed === (choice.sequence[0]?.baseDelay ?? 0) && target !== undefined) cast(choice, target);
             },
             stop: () => {
-                if (choice !== undefined) cooldowns.set(choice.id, choice.cooldownTime);
                 elapsed = 0;
                 choice = undefined;
-            }
+            },
+            requiresUpdateEveryTick: () => true
+        };
+    }
+});
+
+/** What `minecraft:behavior.send_event` declares. */
+export interface SendEventParams {
+    /** The spells the goal may cast, each with its own cast, interval and subject. */
+    readonly choices: readonly SendEventChoice[];
+}
+
+/** One entry of `event_choices`, which is one spell cast on another mob. */
+export interface SendEventChoice extends SpellTiming {
+    readonly index: number;
+    readonly weight: number;
+    /** How far the subject may be, in blocks. */
+    readonly minActivationRange: number;
+    readonly maxActivationRange: number;
+    /** Which mobs the spell may be cast on, with the mob as `other`. */
+    readonly filters: Filter | undefined;
+    readonly startSound: string | undefined;
+    /** The events fired on the subject, each this many ticks after the one before it. */
+    readonly sequence: readonly {
+        readonly event: string | undefined;
+        readonly delay: number;
+        readonly sound: string | undefined;
+    }[];
+}
+
+/**
+ * `minecraft:behavior.send_event`, which the evoker carries for its wololo spell: Java's
+ * `EvokerWololoSpellGoal`.
+ *
+ * The spell is cast only by a caster with no attack target and only while `mobGriefing` is on.
+ * It picks one mob at random among those its filters accept within its activation range, stands
+ * casting at it, and fires each event of its sequence on that mob at the event's delay, as long
+ * as the mob is still alive. Like the summon spells, it may start again once its interval since
+ * its last start has run.
+ */
+export const sendEvent = goal<SendEventParams>({
+    name: 'minecraft:behavior.send_event',
+    controlFlags: ['move', 'look'],
+    schema: bodySchema((body) => ({
+        choices: recordsAt(body, 'event_choices').map((choice, index) => ({
+            index,
+            weight: numberAt(choice, 'weight', 1),
+            castDuration: ticksAt(choice, 'cast_duration', 1),
+            cooldownTime: ticksAt(choice, 'cooldown_time', 0),
+            minActivationRange: numberAt(choice, 'min_activation_range', 0),
+            maxActivationRange: numberAt(choice, 'max_activation_range', 16),
+            filters: filterAt(choice, 'filters'),
+            startSound: stringAt(choice, 'start_sound_event'),
+            sequence: recordsAt(choice, 'sequence').map((step) => ({
+                event: stringAt(step, 'event'),
+                delay: ticksAt(step, 'base_delay', 0),
+                sound: stringAt(step, 'sound_event')
+            }))
+        }))
+    })),
+    create: (params, support) => {
+        const now = spellClock(support);
+        const readyAt = new Map<number, number>();
+        let choice: SendEventChoice | undefined;
+        let subject: GoalMob | undefined;
+        let elapsed = 0;
+
+        return {
+            canStart: () => {
+                if (support.target() !== undefined || support.world.gameRule?.('mobGriefing') === false) return false;
+                const time = now();
+                const ready = params.choices.filter((spell) => time >= (readyAt.get(spell.index) ?? 0));
+                const spell = drawWeighted(support, ready);
+                if (spell === undefined) return false;
+                const subjects = support.mobs(spell.maxActivationRange).filter((mob) => {
+                    const away = support.distanceTo(mob.position());
+                    return away >= spell.minActivationRange && support.matches(spell.filters, mob);
+                });
+                if (subjects.length === 0) return false;
+                choice = spell;
+                subject = subjects[support.randomInt(subjects.length)];
+                readyAt.set(spell.index, time + spell.cooldownTime);
+                return true;
+            },
+            canContinue: () => choice !== undefined && subject !== undefined && elapsed < choice.castDuration,
+            start: () => {
+                elapsed = 0;
+                support.navigator.stop();
+                support.playSound(choice?.startSound);
+            },
+            tick: () => {
+                if (choice === undefined || subject === undefined) return;
+                support.lookAtMob(subject);
+                elapsed += 1;
+                let at = 0;
+                for (const step of choice.sequence) {
+                    at += step.delay;
+                    if (at !== elapsed) continue;
+                    support.playSound(step.sound);
+                    if (step.event !== undefined && (subject.health?.() ?? 1) > 0)
+                        support.world.fireOn?.(subject, step.event);
+                }
+            },
+            stop: () => {
+                elapsed = 0;
+                choice = undefined;
+                subject = undefined;
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });

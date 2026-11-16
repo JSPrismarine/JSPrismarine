@@ -6,12 +6,15 @@ import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
 const AT = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 
 /** Fangs cast under a cow, and when each blow on it landed and the fangs left. */
-const castUnderCow = (owned: boolean) => {
+const castUnderCow = (owned: boolean, warmup?: number) => {
     const world = new TestEntityWorld();
     const { runtime } = entityFixture(world);
     const caster = runtime.spawn('minecraft:cow', { x: 10.5, y: FLOOR_Y + 1, z: 0.5 });
     const cow = runtime.spawn('minecraft:cow', AT);
-    const fangs = runtime.spawn(EVOKER_FANGS, AT, owned && caster !== undefined ? { ownerId: caster.id } : {});
+    const fangs = runtime.spawn(EVOKER_FANGS, AT, {
+        ...(owned && caster !== undefined ? { ownerId: caster.id } : {}),
+        ...(warmup === undefined ? {} : { data: { warmup } })
+    });
     if (cow === undefined || fangs === undefined || caster === undefined)
         throw new Error('the fixture spawned nothing');
 
@@ -41,5 +44,11 @@ describe('evoker fangs', () => {
 
     it('are gone once their 22 ticks run out', () => {
         expect(castUnderCow(false).gone).toBe(23);
+    });
+
+    it('wait out the warm-up their spell gave them before they rise', () => {
+        const { blows, gone } = castUnderCow(false, 5);
+        expect(blows.map((blow) => blow.tick)).toEqual([13]);
+        expect(gone).toBe(28);
     });
 });

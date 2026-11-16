@@ -390,3 +390,220 @@ describe('minecraft:behavior.wither_random_attack_pos_goal', () => {
         expect(here.y).toBeGreaterThanOrEqual(5);
     });
 });
+
+/** The evoker's three spells as the vanilla file writes them. */
+const EVOKER_SPELLS = {
+    priority: 2,
+    summon_choices: [
+        {
+            cast_duration: 2,
+            cooldown_time: 5,
+            max_activation_range: 3,
+            min_activation_range: 0,
+            sequence: [
+                {
+                    base_delay: 1,
+                    shape: 'circle',
+                    num_entities_spawned: 5,
+                    delay_per_summon: 0,
+                    entity_type: 'minecraft:evocation_fang',
+                    size: 1.5,
+                    target: 'self'
+                },
+                {
+                    base_delay: 0.15,
+                    num_entities_spawned: 8,
+                    shape: 'circle',
+                    delay_per_summon: 0,
+                    entity_type: 'minecraft:evocation_fang',
+                    size: 2.5,
+                    target: 'self'
+                }
+            ],
+            weight: 3
+        },
+        {
+            cast_duration: 2,
+            cooldown_time: 5,
+            min_activation_range: 3,
+            sequence: [
+                {
+                    base_delay: 1,
+                    delay_per_summon: 0.05,
+                    num_entities_spawned: 16,
+                    shape: 'line',
+                    entity_type: 'minecraft:evocation_fang',
+                    size: 20,
+                    target: 'self'
+                }
+            ],
+            weight: 3
+        },
+        {
+            cast_duration: 5,
+            cooldown_time: 17,
+            sequence: [
+                {
+                    base_delay: 5,
+                    entity_type: 'minecraft:vex',
+                    shape: 'circle',
+                    num_entities_spawned: 3,
+                    summon_cap_radius: 16,
+                    size: 1,
+                    summon_cap: 8,
+                    summon_event: 'minecraft:add_damage_timer',
+                    target: 'self'
+                }
+            ],
+            weight: 1
+        }
+    ]
+};
+
+/** One summon the spell world was asked for. */
+interface Summoned {
+    readonly tick: number;
+    readonly identifier: string;
+    readonly x: number;
+    readonly z: number;
+    readonly warmup: unknown;
+    readonly owned: boolean | undefined;
+}
+
+/** A world that records every summon and every event fired on one, with `near` mobs around the caster. */
+const spellWorld = (target: GoalMob | undefined, near: readonly GoalMob[] = []) => {
+    let clock = 0;
+    const summoned: Summoned[] = [];
+    const fired: string[] = [];
+    const world: GoalWorld = {
+        target: () => target,
+        mobs: () => near,
+        gameTime: () => clock,
+        spawn: (identifier, position, _event, options) => {
+            summoned.push({
+                tick: clock,
+                identifier,
+                x: position.x,
+                z: position.z,
+                warmup: options?.data?.['warmup'],
+                owned: options?.owned
+            });
+            return testMob(`summon-${summoned.length}`, position, { identifier });
+        },
+        fireOn: (mob, event) => fired.push(`${String(mob.id)} ${event}`)
+    };
+    return {
+        world,
+        summoned,
+        fired,
+        run: (harness: GoalHarness, ticks: number) => {
+            for (let index = 0; index < ticks; index += 1) {
+                clock += 1;
+                harness.tick();
+            }
+        }
+    };
+};
+
+describe('minecraft:behavior.summon_entity', () => {
+    it("summons the evoker's three vexes first, owned and on their damage timer, then a line of fangs", () => {
+        const spells = spellWorld(testMob('player', { x: 8, y: 0, z: 0 }));
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.summon_entity': EVOKER_SPELLS },
+            world: spells.world
+        });
+
+        spells.run(harness, 300);
+
+        const vexes = spells.summoned.filter((entry) => entry.identifier === 'minecraft:vex');
+        expect(vexes).toHaveLength(3);
+        expect(vexes.every((vex) => vex.owned === true && vex.tick === vexes[0]?.tick)).toBe(true);
+        expect(spells.fired).toEqual([
+            'summon-1 minecraft:add_damage_timer',
+            'summon-2 minecraft:add_damage_timer',
+            'summon-3 minecraft:add_damage_timer'
+        ]);
+
+        const fangs = spells.summoned.filter((entry) => entry.identifier === 'minecraft:evocation_fang');
+        const firstCast = fangs.filter((fang) => fang.tick === fangs[0]?.tick);
+        expect(firstCast).toHaveLength(16);
+        expect(firstCast.map((fang) => fang.x)).toEqual(Array.from({ length: 16 }, (_, index) => 1.25 * (index + 1)));
+        expect(firstCast.map((fang) => fang.warmup)).toEqual(Array.from({ length: 16 }, (_, index) => index));
+        // Java's attack spell waits out the summon's 100 tick cast, then its own 20 tick warm-up.
+        expect((fangs[0]?.tick ?? 0) - (vexes[0]?.tick ?? 0)).toBeGreaterThanOrEqual(20);
+    });
+
+    it('casts two rings of fangs at a target within 3 blocks, the second turned and three ticks later', () => {
+        const spells = spellWorld(testMob('player', { x: 2, y: 0, z: 0 }));
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.summon_entity': EVOKER_SPELLS },
+            world: spells.world
+        });
+
+        spells.run(harness, 300);
+
+        const fangs = spells.summoned.filter((entry) => entry.identifier === 'minecraft:evocation_fang');
+        const firstCast = fangs.filter((fang) => fang.tick === fangs[0]?.tick);
+        const inner = firstCast.filter((fang) => Math.abs(Math.hypot(fang.x, fang.z) - 1.5) < 1e-9);
+        const outer = firstCast.filter((fang) => Math.abs(Math.hypot(fang.x, fang.z) - 2.5) < 1e-9);
+        expect(inner).toHaveLength(5);
+        expect(outer).toHaveLength(8);
+        expect(inner.every((fang) => fang.warmup === 0)).toBe(true);
+        expect(outer.every((fang) => fang.warmup === 3)).toBe(true);
+        expect(inner[0]?.x).toBeCloseTo(1.5);
+        expect(Math.atan2(outer[0]?.z ?? 0, outer[0]?.x ?? 0)).toBeCloseTo(Math.PI * 0.4);
+    });
+
+    it('casts fangs instead of vexes once as many vexes as its draw allows are near', () => {
+        const vexes = Array.from({ length: 8 }, (_, index) =>
+            testMob(`vex-${index}`, { x: 1, y: 0, z: 0 }, { identifier: 'minecraft:vex' })
+        );
+        const spells = spellWorld(testMob('player', { x: 8, y: 0, z: 0 }), vexes);
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.summon_entity': EVOKER_SPELLS },
+            world: spells.world,
+            randomInt: (bound) => bound - 1
+        });
+
+        spells.run(harness, 60);
+
+        expect(spells.summoned.some((entry) => entry.identifier === 'minecraft:vex')).toBe(false);
+        expect(spells.summoned.filter((entry) => entry.identifier === 'minecraft:evocation_fang')).toHaveLength(16);
+    });
+});
+
+describe('minecraft:behavior.send_event', () => {
+    const wololo = {
+        priority: 3,
+        event_choices: [
+            {
+                cast_duration: 3,
+                max_activation_range: 16,
+                filters: { test: 'is_family', subject: 'other', value: 'sheep' },
+                cooldown_time: 5,
+                sequence: [{ base_delay: 2, event: 'wololo' }]
+            }
+        ]
+    };
+
+    it('fires its event on a mob its filter accepts, 40 ticks into the cast, when the caster has no target', () => {
+        const sheep = testMob('sheep', { x: 5, y: 0, z: 0 }, { families: ['sheep'] });
+        const spells = spellWorld(undefined, [testMob('cow', { x: 3, y: 0, z: 0 }, { families: ['cow'] }), sheep]);
+        const harness = new GoalHarness({ goals: { 'minecraft:behavior.send_event': wololo }, world: spells.world });
+
+        spells.run(harness, 39);
+        expect(spells.fired).toEqual([]);
+        spells.run(harness, 1);
+        expect(spells.fired).toEqual(['sheep wololo']);
+    });
+
+    it('casts nothing while the caster has a target', () => {
+        const sheep = testMob('sheep', { x: 5, y: 0, z: 0 }, { families: ['sheep'] });
+        const spells = spellWorld(testMob('player', { x: 8, y: 0, z: 0 }), [sheep]);
+        const harness = new GoalHarness({ goals: { 'minecraft:behavior.send_event': wololo }, world: spells.world });
+
+        spells.run(harness, 200);
+
+        expect(spells.fired).toEqual([]);
+    });
+});

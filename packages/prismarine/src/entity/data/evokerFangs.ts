@@ -76,6 +76,16 @@ export const fangsTuningOf = (entity: DataEntity): FangsTuning => {
     return read;
 };
 
+/**
+ * How long one set of fangs waits before it rises: the `warmup` its spell spawned it with, as
+ * Java's `EvokerAttackSpellGoal` gives each fang of a line one tick more than the one before it,
+ * or the component's when the spell named none.
+ */
+const warmupOf = (entity: DataEntity, tuning: FangsTuning): number => {
+    const given = entity.spawnData?.['warmup'];
+    return typeof given === 'number' && Number.isInteger(given) && given >= 0 ? given : tuning.warmup;
+};
+
 /** Whether a data entity is a set of evoker fangs this system runs. */
 export const isEvokerFangs = (entity: DataEntity): boolean => entity.instance.hasComponent(EVOKER_FANGS_COMPONENT);
 
@@ -103,7 +113,7 @@ export class EvokerFangs {
         const age = (entity.instance.componentState.get(fangsState)?.age ?? 0) + 1;
         entity.instance.componentState.set(fangsState, { age });
 
-        const past = age - tuning.warmup;
+        const past = age - warmupOf(entity, tuning);
         if (past === tuning.biteDelay) this.bite(entity, tuning);
         if (past > tuning.lifetime) this.host.remove(entity.id, 'discarded');
     }

@@ -108,6 +108,16 @@ export interface GoalItemCraft {
     readonly outputCount: number;
 }
 
+/** How a goal wants a spawned entity set up, beyond its type, position and spawn event. */
+export interface GoalSpawnOptions {
+    /** Whether the spawning entity owns the new one, as an evoker owns its fangs and vexes. */
+    readonly owned?: boolean;
+    /** Which way the new entity faces, in degrees. */
+    readonly yaw?: number;
+    /** Entity-specific fields, such as how long a set of evoker fangs waits before it rises. */
+    readonly data?: Readonly<Record<string, unknown>>;
+}
+
 /** One block a block search found. */
 export interface GoalBlock {
     readonly position: EntityPosition;
@@ -249,8 +259,20 @@ export interface GoalWorld {
     blockAt?(position: EntityPosition): { readonly identifier: string; readonly states: GoalBlockStates } | undefined;
     /** Breaks a block, for the eat, harvest and dig goals. */
     breakBlock?(position: EntityPosition): void;
-    /** Creates another entity, for the summon and lay goals. */
-    spawn?(identifier: string, position: EntityPosition, event: string | undefined): void;
+    /**
+     * Creates another entity, for the summon and lay goals.
+     * @returns The new entity, or undefined when the world could not create it.
+     */
+    spawn?(
+        identifier: string,
+        position: EntityPosition,
+        event: string | undefined,
+        options?: GoalSpawnOptions
+    ): GoalMob | undefined;
+    /** Fires an entity event on another entity, as the evoker's wololo spell does on a sheep. */
+    fireOn?(mob: GoalMob, event: string): void;
+    /** Java's `Level.getGameTime`: ticks since the world was created, which spell intervals count against. */
+    gameTime?(): number;
     /** Plays one of the entity's sound events. */
     playSound?(name: string): void;
     /** Opens the trade screen with a player. */

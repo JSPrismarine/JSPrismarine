@@ -293,9 +293,19 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             scene.world.blocks.set(blockPositionOf(position), { identifier, states }, true),
         blockAt: (position) => scene.world.blocks.get(blockPositionOf(position)),
         breakBlock: (position) => scene.breakBlock(position),
-        spawn: (identifier, position, event) => {
-            scene.spawn(identifier, position, { event });
+        spawn: (identifier, position, event, options) => {
+            const spawned = scene.spawn(identifier, position, {
+                ...(event === undefined ? {} : { event }),
+                ...(options?.owned === true ? { ownerId: entity.id } : {}),
+                ...(options?.yaw === undefined ? {} : { yaw: options.yaw }),
+                ...(options?.data === undefined ? {} : { data: options.data })
+            });
+            return spawned === undefined ? undefined : goalMobOf(spawned, scene);
         },
+        fireOn: (mob, event) => {
+            if (typeof mob.id === 'number') scene.byId(mob.id)?.instance.fire(event);
+        },
+        gameTime: () => scene.world.level.gameTime(),
         playSound: (name) => scene.world.effects.playSound(blockPositionOf(entity.position), name),
         dropLoot: (table, position) => scene.dropLoot(table, position),
         openTrade: (player) => scene.openTrade(entity, player),
