@@ -3947,7 +3947,10 @@ export class EntityRuntime implements EntityScene {
                 ...(spawnEgg === undefined ? {} : { spawnEgg })
             }
         );
-        if (interaction === false) return { accepted: false };
+        if (interaction === false)
+            return this.toggleOrderedToSit(entity, owner)
+                ? { accepted: true, consumeItem: false }
+                : { accepted: false };
         if (typeof interaction === 'object') {
             const {
                 addItems,
@@ -4020,6 +4023,23 @@ export class EntityRuntime implements EntityScene {
             };
         }
         return { accepted: true };
+    }
+
+    /**
+     * Java's `TamableAnimal.setOrderedToSit` as `Wolf`, `Cat` and `Parrot.mobInteract` reach it:
+     * when nothing else takes the item, the owner's use flips a tamed pet between sitting and
+     * standing and drops its attack target. A parrot only sits from the ground, since Java skips
+     * the toggle while it flies.
+     *
+     * @returns Whether the pet's sitting changed.
+     */
+    private toggleOrderedToSit(entity: DataEntity, player: number): boolean {
+        if (!entity.instance.hasComponent('minecraft:sittable')) return false;
+        if (entity.body.owner === undefined || entity.body.owner !== player) return false;
+        if (entity.instance.hasComponent('minecraft:can_fly') && !entity.body.conditions.has('on_ground')) return false;
+        entity.body.sitting = !entity.body.sitting;
+        entity.body.target = undefined;
+        return true;
     }
 
     /** The active inventory size, including slots contributed by entity strength. */

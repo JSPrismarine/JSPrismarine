@@ -804,6 +804,41 @@ describe('EntityRuntime', () => {
             expect(wolf.instance.hasComponent('minecraft:is_tamed')).toBe(true);
         });
 
+        it("toggles a tamed pet's sitting when its owner uses an item nothing else takes", () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:pet': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:is_tamed': {},
+                            'minecraft:sittable': {}
+                        }
+                    }
+                }
+            );
+            const pet = runtime.spawn('jsprismarine:pet', GROUND);
+            if (pet === undefined) throw new Error('the fixture declares no pet');
+            runtime.setOwner(pet.id, 42);
+            pet.body.target = 7;
+
+            // Java's Wolf.mobInteract: a stranger's use does nothing, the owner's flips the order.
+            expect(runtime.interactWithItem(pet.id, 41, 'minecraft:air')).toEqual({ accepted: false });
+            expect(pet.body.sitting).toBe(false);
+            expect(runtime.interactWithItem(pet.id, 42, 'minecraft:air')).toEqual({
+                accepted: true,
+                consumeItem: false
+            });
+            expect(pet.body.sitting).toBe(true);
+            expect(pet.body.target).toBeUndefined();
+            expect(runtime.interactWithItem(pet.id, 42, 'minecraft:stick')).toEqual({
+                accepted: true,
+                consumeItem: false
+            });
+            expect(pet.body.sitting).toBe(false);
+        });
+
         it('puts an eligible entity in love when fed an item from its data', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),
