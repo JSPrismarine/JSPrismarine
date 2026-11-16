@@ -23,8 +23,17 @@ const declared = (data: unknown, identifier: string): readonly string[] => {
     return types.registry.get(identifier)?.declaredComponents ?? [];
 };
 
+/**
+ * A distance just under 3 blocks: `SwellGoal`'s `distanceToSqr < 9` is strict, so a target exactly
+ * 3 blocks away does not light the fuse, where a range of 3 would.
+ */
+const JUST_UNDER_3 = {
+    asymmetricMatch: (value: unknown): boolean => typeof value === 'number' && value < 3 && value > 3 - 1e-9,
+    toString: () => 'a distance just under 3'
+};
+
 describe('withJavaGoals', () => {
-    it("gives a creeper Java's SwellGoal distances in its goal and in the sensor that lights the fuse", () => {
+    it("gives a creeper Java's strict SwellGoal distances in its goal and in the sensor that lights the fuse", () => {
         const data = withJavaGoals(
             entityFile(
                 'minecraft:creeper',
@@ -40,8 +49,12 @@ describe('withJavaGoals', () => {
         expect(data).toMatchObject({
             'minecraft:entity': {
                 components: {
-                    'minecraft:behavior.swell': { priority: 2, start_distance: 3, stop_distance: 7 },
-                    'minecraft:target_nearby_sensor': { inside_range: 3, outside_range: 7, must_see: true }
+                    'minecraft:behavior.swell': { priority: 2, start_distance: JUST_UNDER_3, stop_distance: 7 },
+                    'minecraft:target_nearby_sensor': {
+                        inside_range: JUST_UNDER_3,
+                        outside_range: 7,
+                        must_see: true
+                    }
                 },
                 // The empty sensor switches the base one off, and stays empty.
                 component_groups: { 'minecraft:forced_exploding': { 'minecraft:target_nearby_sensor': {} } }

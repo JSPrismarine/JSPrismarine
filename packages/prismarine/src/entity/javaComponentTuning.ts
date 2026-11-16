@@ -26,7 +26,7 @@ const seconds = (ticks: number): number => ticks / TICKS_PER_SECOND;
  * The largest distance under `distance`. A target sensor counts a target at or under its range as
  * inside, so this is the range at which it acts on Java's strict `distanceToSqr < distance²`.
  */
-const under = (distance: number): number => distance - distance * Number.EPSILON;
+export const under = (distance: number): number => distance - distance * Number.EPSILON;
 
 /** One component of one entity, rewritten to Java's numbers. */
 interface Tuning {

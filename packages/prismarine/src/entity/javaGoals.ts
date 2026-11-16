@@ -15,6 +15,7 @@ import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import { isRecord } from '../utils/isRecord';
 import { entityFileIdentifier, withComponentReplaced } from './definitionOverlay';
+import { under } from './javaComponentTuning';
 
 /** The Bedrock potion ids of Java's `Potions.SWIFTNESS` and `Potions.INVISIBILITY`. */
 const SWIFTNESS_POTION = 14;
@@ -50,16 +51,17 @@ const absent = (): Readonly<Record<string, Record<string, unknown>>> => ({});
 /** Every ruling, each with the Java source that decides it. */
 const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
     {
-        // Java `SwellGoal.canUse` starts at `distanceToSqr < 9` and `SwellGoal.tick` stops past 49.
+        // Java `SwellGoal.canUse` starts at `distanceToSqr < 9`, strictly under 3 blocks, and
+        // `SwellGoal.tick` stops past 49.
         entity: 'minecraft:creeper',
         component: 'minecraft:behavior.swell',
-        java: tuned('minecraft:behavior.swell', { start_distance: 3, stop_distance: 7 })
+        java: tuned('minecraft:behavior.swell', { start_distance: under(3), stop_distance: 7 })
     },
     {
         // The same `SwellGoal` distances, where the creeper's file lights the fuse.
         entity: 'minecraft:creeper',
         component: 'minecraft:target_nearby_sensor',
-        java: tuned('minecraft:target_nearby_sensor', { inside_range: 3, outside_range: 7 })
+        java: tuned('minecraft:target_nearby_sensor', { inside_range: under(3), outside_range: 7 })
     },
     {
         // Java `Fox.PerchAndSearchGoal.canUse` rolls `random.nextFloat() < 0.02`.
