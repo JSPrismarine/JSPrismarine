@@ -1,5 +1,7 @@
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 
+import { dragonPhaseState } from '@jsprismarine/entity-goals/goals/dragonPhases';
+
 import type { BehaviorScenario, ScenarioOutcome } from '../behaviorScenarios.ts';
 import { serverContent } from '../serverStack.ts';
 import type { Probe, ProbeOptions } from './goalProbe.ts';
@@ -47,7 +49,7 @@ const OPEN_ISSUES: Readonly<Record<string, string>> = {
     'goal-owner_hurt_target': '#3125',
     'goal-owner_hurt_by_target': '#3125',
     'goal-defend_trusted_target': '#3115',
-    'goal-skeleton_horse_trap': '#3126',
+    'goal-skeleton_horse_trap': '#2912',
     'goal-summon_entity': '#3127',
     'goal-send_event': '#3127',
     'creeper-swell-range': '#3129',
@@ -61,6 +63,9 @@ const OPEN_ISSUES: Readonly<Record<string, string>> = {
     'goal-swim_up_for_breath': '#3129',
     'goal-find_underwater_treasure': '#3129'
 };
+
+/** How the skeleton trap row names its one known gap, the enchanting of the skeletons' gear. */
+const TRAP_GEAR_GAP = 'where Java enchants both from the mob_spawn_equipment provider';
 
 /** The issue for every other scenario that still differs: the mob-specific goals with no Java outcome. */
 const OUTCOME_ISSUE = '#3131';
@@ -599,21 +604,97 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         }
     }),
     goalScenario({
-        goals: ['skeleton_horse_trap'],
-        java: 'A trap skeleton horse that a player comes within 10 blocks of becomes a tamed horse ridden by a skeleton and calls three more skeleton horsemen.',
+        goals: ['charge_held_item'],
+        name: 'piglin-crossbow',
+        entities: ['minecraft:piglin'],
+        java: 'A piglin holding a crossbow fires arrows at a player 6 blocks away, the first after it charges for 25 ticks and holds the charge 20 to 39 more, and never swings at it.',
         reference:
-            'Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (createHorse and createSkeleton for the trap horse and three more)',
+            'Java PiglinAi.initFightActivity (CrossbowAttack, and MeleeAttack, which refuses while the mob holds a projectile weapon it can fire) and CrossbowAttack.crossbowAttack (CrossbowItem.getChargeDuration 25, attackDelay 20 + nextInt(20))',
+        run: (subject) =>
+            withProbe(subject.bedrock, {}, (probe) => {
+                probe.entity.body.carried = 'minecraft:crossbow';
+                const player = probe.player(6, 0, 0);
+                const origin = probe.at(0, 0, 0);
+                const arrows = new Map<number, number>();
+                for (let tick = 1; tick <= 200; tick += 1) {
+                    probe.tick();
+                    for (const other of probe.runtime.near(origin, 12))
+                        if (
+                            other.identifier === 'minecraft:arrow' &&
+                            other.body.owner === probe.entity.id &&
+                            !arrows.has(other.id)
+                        )
+                            arrows.set(other.id, tick);
+                }
+                const swings = hitsOn(probe, player).filter((hit) => hit.cause === 'entity_attack').length;
+                for (const other of probe.runtime.near(origin, 32))
+                    if (other.id !== probe.entity.id) probe.runtime.remove(other.id, 'parity probe');
+                const first = Math.min(...arrows.values());
+                return differences([
+                    arrows.size === 0 && 'it fired no arrow at a player 6 blocks away in 200 ticks',
+                    arrows.size > 0 &&
+                        first < 25 + 20 &&
+                        `its first arrow left at tick ${first}, before Java's 25 tick charge and 20 tick hold`,
+                    swings > 0 && `it swung at the player ${swings} times, where Java's crossbow piglin never does`
+                ]);
+            })
+    }),
+    goalScenario({
+        goals: ['skeleton_horse_trap'],
+        classify: (_subject, difference) =>
+            difference.split('; ').every((part) => part.endsWith(TRAP_GEAR_GAP))
+                ? {
+                      kind: 'deferred',
+                      reason: "Java's trap enchants each skeleton's bow and helmet through the mob_spawn_equipment enchantment provider, a registry the server does not load yet (#2912); everything else about the trap matches Java."
+                  }
+                : undefined,
+        java: 'A trap skeleton horse that a player comes within 10 blocks of is struck by a visual-only bolt, carries a skeleton, and calls three more skeleton horses with skeleton riders; every skeleton spawned bareheaded gets an iron helmet, the bow and helmet of each skeleton are enchanted, and the trap springs once.',
+        reference:
+            'Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (setVisualOnly bolt, createSkeleton with an iron helmet when its head slot is empty and its main hand and head enchanted by VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, riding the trap horse and three more from createHorse, setTrap(false))',
         run: (subject) =>
             probeGoals(subject, ['skeleton_horse_trap'], { groups: ['minecraft:skeleton_trap'] }, (probe) => {
-                probe.player(6, 0, 0);
+                const origin = probe.at(0, 0, 0);
+                const far = probe.player(30, 0, 0);
                 probe.tick(20);
-                const horses = probe.runtime.countOfType('minecraft:skeleton_horse', probe.at(0, 0, 0), 12);
-                const skeletons = probe.runtime.countOfType('minecraft:skeleton', probe.at(0, 0, 0), 12);
-                for (const other of probe.runtime.near(probe.at(0, 0, 0), 12))
+                const early = probe.runtime.countOfType('minecraft:skeleton', origin, 16);
+                probe.world.players = probe.world.players.filter((player) => player.id !== far);
+                probe.player(6, 0, 0);
+                const bolts = new Set<number>();
+                for (let tick = 0; tick < 20; tick += 1) {
+                    probe.tick();
+                    for (const other of probe.runtime.near(origin, 16))
+                        if (other.identifier === 'minecraft:lightning_bolt') bolts.add(other.id);
+                }
+                const near = probe.runtime.near(origin, 16);
+                const horses = near.filter((other) => other.identifier === 'minecraft:skeleton_horse');
+                const skeletons = near.filter((other) => other.identifier === 'minecraft:skeleton');
+                const unridden = horses.filter((horse) => probe.runtime.ridersOf(horse.body).length !== 1).length;
+                const bare = skeletons.filter((skeleton) => skeleton.body.equipment.head === undefined).length;
+                const unenchanted = skeletons.filter((skeleton) =>
+                    [skeleton.body.equipment.mainhand, skeleton.body.equipment.head].some(
+                        (item) => item === undefined || Object.keys(item.enchantments ?? {}).length === 0
+                    )
+                ).length;
+                const hurt = skeletons.filter((skeleton) => {
+                    const health = skeleton.instance.attributes.get('health');
+                    return health !== undefined && health.current < health.max;
+                }).length;
+                probe.tick(40);
+                const again = probe.runtime.countOfType('minecraft:skeleton', origin, 16);
+                for (const other of probe.runtime.near(origin, 32))
                     if (other.id !== probe.entity.id) probe.runtime.remove(other.id, 'parity probe');
-                return horses === 4 && skeletons === 4
-                    ? undefined
-                    : `springing the trap left ${horses} skeleton horses and ${skeletons} skeletons, where Java has 4 of each`;
+                return differences([
+                    early > 0 && 'the trap sprang with the only player 30 blocks away',
+                    (horses.length !== 4 || skeletons.length !== 4) &&
+                        `springing the trap left ${horses.length} skeleton horses and ${skeletons.length} skeletons, where Java has 4 of each`,
+                    unridden > 0 && `${unridden} of the horses do not carry exactly one skeleton`,
+                    bare > 0 && `${bare} of the skeletons wear no helmet`,
+                    unenchanted > 0 &&
+                        `${unenchanted} of the skeletons carry an unenchanted bow or helmet, ${TRAP_GEAR_GAP}`,
+                    bolts.size !== 1 && `${bolts.size} lightning bolts struck, where Java's trap calls one`,
+                    hurt > 0 && `the bolt hurt ${hurt} of the skeletons, where Java's trap bolt is visual only`,
+                    again !== skeletons.length && 'the trap sprang a second time'
+                ]);
             })
     }),
     goalScenario({
@@ -998,47 +1079,54 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             [
                 'dragonholdingpattern',
                 'dragon_flying',
-                'circles the arena: it moves at least 20 blocks in 100 ticks',
-                'Java DragonHoldingPatternPhase (flies the node path around the fountain)'
+                'holding_pattern',
+                'laps the node rings around the fountain: within 200 ticks it covers 20 blocks and climbs to the nodes, 10 or more blocks up, and stays inside the outer ring',
+                'Java DragonHoldingPatternPhase.findNewTarget (a path to the next node of the ring, up to 20 blocks above it) and EnderDragon.findClosestNode (rings of 60, 40 and 20 at least 10 above sea level)'
             ],
             [
                 'dragonstrafeplayer',
                 'dragon_flying',
-                'shoots a dragon fireball at a player in sight within 200 ticks',
-                'Java DragonStrafePlayerPhase (fireball after 5 ticks of sight within 64 blocks)'
+                'strafe_player',
+                'shoots a dragon fireball at its target 40 blocks away within 200 ticks, then returns to the holding pattern',
+                'Java DragonStrafePlayerPhase.doServerTick (5 ticks of sight within 64 blocks and an aim inside 10 degrees, then HOLDING_PATTERN)'
             ],
             [
                 'dragonchargeplayer',
                 'dragon_flying',
-                'flies to within 10 blocks of the player it charges within 200 ticks',
-                'Java DragonChargePlayerPhase (flies at the target location, 200 tick limit)'
+                'charging_player',
+                'flies to within 10 blocks of where the player stood within 200 ticks, then returns to the holding pattern',
+                'Java DragonChargePlayerPhase (fly speed 3 at the target location, then 10 ticks of recovery and HOLDING_PATTERN)'
             ],
             [
                 'dragontakeoff',
                 'dragon_flying',
-                'climbs more than 10 blocks off the portal within 200 ticks',
-                'Java DragonTakeoffPhase (climbs to the first node above the portal)'
+                'takeoff',
+                'leaves the portal rising toward the node ahead within 200 ticks, and turns to the holding pattern once 10 blocks away from it',
+                'Java DragonTakeoffPhase (a path to the node ahead, up to 20 blocks above it, then HOLDING_PATTERN once 10 blocks from the portal center)'
             ],
             [
                 'dragonlanding',
                 'dragon_sitting',
-                'descends to the portal within 400 ticks',
-                'Java DragonLandingApproachPhase and DragonLandingPhase (flies to the top of the exit portal)'
+                'landing_approach',
+                'comes down onto the exit portal from 20 blocks up within 600 ticks and starts scanning there',
+                'Java DragonLandingApproachPhase (a path ending at the portal) and DragonLandingPhase (within 1 block of the portal top, then SITTING_SCANNING)'
             ],
             [
                 'dragonscanning',
                 'dragon_sitting',
-                'turns to face a player within 20 blocks while perched',
-                'Java DragonSittingScanningPhase (turns toward a player within 20 blocks, then attacks after 25 ticks)'
+                'sitting_scanning',
+                'turns toward a player 12 blocks away while perched, and roars at it after 25 ticks',
+                'Java DragonSittingScanningPhase (yRotA turns toward a player within 20 blocks and 10 up or down, then SITTING_ATTACKING after 25 ticks)'
             ],
             [
                 'dragonflaming',
                 'dragon_sitting',
-                'breathes a dragon breath cloud within 100 ticks',
-                'Java DragonSittingFlamingPhase (spawns an AreaEffectCloud of dragon breath at its head)'
+                'sitting_flaming',
+                'breathes a dragon breath cloud on the ground ahead of its head on the 10th tick, takes it back at tick 200 and scans again',
+                'Java DragonSittingFlamingPhase (an AreaEffectCloud of radius 5 at the ground 2.5 blocks past its head on tick 10, discarded at 200, then SITTING_SCANNING)'
             ]
         ] as const
-    ).map(([goal, group, outcome, reference]) =>
+    ).map(([goal, group, phase, outcome, reference]) =>
         goalScenario({
             goals: [goal],
             java: `An ender dragon in this phase ${outcome}.`,
@@ -1047,28 +1135,136 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 probeGoals(
                     subject,
                     [goal],
-                    { groups: [group], without: (name) => name.startsWith('dragon_') },
+                    {
+                        groups: [group],
+                        without: (name) => name.startsWith('dragon_'),
+                        data: (origin) => ({ fight_origin: [origin.x, origin.y, origin.z] })
+                    },
                     (probe) => {
+                        const origin = probe.at(0, 0, 0);
                         probe.entity.position = probe.at(0, goal === 'dragonlanding' ? 20 : 0, 0);
                         const start = { ...probe.entity.position };
-                        const player = probe.player(goal === 'dragonscanning' ? 12 : 40, 0, 0);
+                        const away = goal === 'dragonscanning' ? 12 : 40;
+                        const player = probe.player(away, 0, 0);
                         probe.entity.target = player;
-                        const ticks = goal === 'dragonlanding' ? 400 : 200;
-                        let done = false;
-                        for (let tick = 0; tick < ticks && !done; tick += 1) {
+                        probe.entity.instance.componentState.set(dragonPhaseState, {
+                            phase,
+                            flameCount: 0,
+                            chargeTarget: goal === 'dragonchargeplayer' ? [origin.x + away, origin.y, origin.z] : null
+                        });
+                        const phaseNow = (): string | undefined =>
+                            probe.entity.instance.componentState.get(dragonPhaseState)?.phase;
+                        const seen: string[] = [];
+                        const clouds = new Map<number, { tick: number; at: { x: number; y: number; z: number } }>();
+                        let reached: number | undefined;
+                        let highest = start.y;
+                        let widest = 0;
+                        let traveled = 0;
+                        let last = { ...start };
+                        const offTarget = (): number => {
+                            const here = probe.entity.position;
+                            const there = probe.at(away, 0, 0);
+                            const wanted = (Math.atan2(there.z - here.z, there.x - here.x) * 180) / Math.PI - 90;
+                            return Math.abs(((((probe.entity.body.yaw - wanted) % 360) + 540) % 360) - 180);
+                        };
+                        let offBefore: number | undefined;
+                        let offAfter: number | undefined;
+                        const limit = goal === 'dragonlanding' ? 600 : 220;
+                        for (let tick = 1; tick <= limit; tick += 1) {
                             probe.tick();
                             const here = probe.entity.position;
-                            if (goal === 'dragonholdingpattern') done = distanceBetween(start, here) >= 20;
-                            if (goal === 'dragonstrafeplayer')
-                                done = probe.runtime.countOfType('minecraft:dragon_fireball', here, 64) > 0;
-                            if (goal === 'dragonchargeplayer') done = distanceBetween(here, probe.at(40, 0, 0)) < 10;
-                            if (goal === 'dragontakeoff') done = here.y - start.y > 10;
-                            if (goal === 'dragonlanding') done = here.y - probe.at(0, 0, 0).y < 2;
-                            if (goal === 'dragonscanning') done = faces(probe, probe.at(12, 0, 0));
-                            if (goal === 'dragonflaming')
-                                done = probe.runtime.countOfType('minecraft:area_effect_cloud', here, 16) > 0;
+                            traveled += distanceBetween(last, here);
+                            last = { ...here };
+                            highest = Math.max(highest, here.y);
+                            widest = Math.max(widest, Math.hypot(here.x - origin.x, here.z - origin.z));
+                            const now = phaseNow();
+                            if (now !== undefined && seen.at(-1) !== now) seen.push(now);
+                            if (
+                                goal === 'dragonchargeplayer' &&
+                                reached === undefined &&
+                                distanceBetween(here, probe.at(away, 0, 0)) < 10
+                            )
+                                reached = tick;
+                            if (
+                                goal === 'dragonlanding' &&
+                                reached === undefined &&
+                                distanceBetween(here, origin) < 1.5
+                            )
+                                reached = tick;
+                            if (goal === 'dragonscanning' && now === 'sitting_scanning') {
+                                offBefore ??= offTarget();
+                                offAfter = offTarget();
+                            }
+                            for (const other of probe.runtime.near(origin, 32))
+                                if (other.identifier === 'minecraft:area_effect_cloud' && !clouds.has(other.id))
+                                    clouds.set(other.id, { tick, at: { ...other.position } });
                         }
-                        return done ? undefined : `it never ${outcome.replace(/^\w+ /, (word) => word)} on the server`;
+                        const fireballs = probe.runtime.countOfType(
+                            'minecraft:dragon_fireball',
+                            probe.entity.position,
+                            96
+                        );
+                        const cloudsLeft = probe.runtime.countOfType('minecraft:area_effect_cloud', origin, 32);
+                        for (const other of probe.runtime.near(origin, 128))
+                            if (other.id !== probe.entity.id) probe.runtime.remove(other.id, 'parity probe');
+                        const after = (next: string): boolean => seen.indexOf(next) > seen.indexOf(phase);
+                        const phases = seen.join(' then ');
+                        switch (goal) {
+                            case 'dragonholdingpattern':
+                                return differences([
+                                    traveled < 20 && `it covered ${traveled.toFixed(1)} blocks in 200 ticks`,
+                                    highest - start.y < 10 &&
+                                        `it climbed only ${(highest - start.y).toFixed(1)} blocks toward the nodes`,
+                                    widest > 70 &&
+                                        `it strayed ${widest.toFixed(0)} blocks from the fountain, past the outer ring of 60`
+                                ]);
+                            case 'dragonstrafeplayer':
+                                return differences([
+                                    fireballs === 0 && !after('holding_pattern') && 'it shot no fireball at its target',
+                                    !after('holding_pattern') &&
+                                        `it went through ${phases}, not back to the holding pattern`
+                                ]);
+                            case 'dragonchargeplayer':
+                                return differences([
+                                    reached === undefined && 'it never came within 10 blocks of where the player stood',
+                                    !after('holding_pattern') &&
+                                        `it went through ${phases}, not back to the holding pattern`
+                                ]);
+                            case 'dragontakeoff':
+                                return differences([
+                                    highest - start.y < 0.5 && 'it did not rise off the portal',
+                                    widest < 9.5 && `it went only ${widest.toFixed(1)} blocks out from the portal`,
+                                    !after('holding_pattern') &&
+                                        `it went through ${phases}, not on to the holding pattern`
+                                ]);
+                            case 'dragonlanding':
+                                return differences([
+                                    reached === undefined && 'it never came down onto the portal',
+                                    !after('sitting_scanning') && `it went through ${phases}, not on to scanning`
+                                ]);
+                            case 'dragonscanning':
+                                return differences([
+                                    (offBefore === undefined || offAfter === undefined || offAfter > offBefore - 20) &&
+                                        `it turned from ${offBefore?.toFixed(0)} to ${offAfter?.toFixed(0)} degrees off the player, not toward it`,
+                                    !after('sitting_attacking') && `it went through ${phases}, not on to the roar`
+                                ]);
+                            default: {
+                                const [cloud] = clouds.values();
+                                const ahead =
+                                    cloud === undefined ? 0 : Math.hypot(cloud.at.x - origin.x, cloud.at.z - origin.z);
+                                return differences([
+                                    clouds.size !== 1 && `it breathed ${clouds.size} clouds, where Java breathes one`,
+                                    cloud !== undefined &&
+                                        cloud.tick !== 10 &&
+                                        `its breath came on tick ${cloud.tick}, not 10`,
+                                    cloud !== undefined &&
+                                        (Math.abs(ahead - 9) > 1 || Math.abs(cloud.at.y - origin.y) > 1) &&
+                                        `its breath landed ${ahead.toFixed(1)} blocks out at height ${(cloud.at.y - origin.y).toFixed(1)}, not on the ground 9 blocks ahead`,
+                                    cloudsLeft > 0 && 'its breath outlived the phase',
+                                    !after('sitting_scanning') && `it went through ${phases}, not back to scanning`
+                                ]);
+                            }
+                        }
                     }
                 )
         })

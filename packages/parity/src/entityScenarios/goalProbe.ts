@@ -71,6 +71,8 @@ export interface ProbeOptions {
     readonly keep?: readonly string[];
     /** The world's random draws while the probe runs, replayed in a loop. */
     readonly random?: readonly number[];
+    /** Entity-specific spawn data, such as where a dragon's fight is centered; given the patch origin. */
+    readonly data?: (origin: EntityPosition) => Readonly<Record<string, unknown>>;
 }
 
 /** One entity in its own patch of the private stack, and the means to drive it. */
@@ -138,7 +140,7 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
 
     const spawned: DataEntity[] = [];
     const players: ContentEntity[] = [];
-    const entity = runtime.spawn(bedrock, origin);
+    const entity = runtime.spawn(bedrock, origin, options.data === undefined ? {} : { data: options.data(origin) });
     if (entity === undefined) throw new Error(`the server could not spawn ${bedrock}`);
     spawned.push(entity);
     if (options.without !== undefined || (options.groups !== undefined && options.groups.length > 0)) {
