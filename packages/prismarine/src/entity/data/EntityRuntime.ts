@@ -7549,11 +7549,18 @@ export class EntityRuntime implements EntityScene {
     /**
      * Gives the player riders of a nautilus or a zombie nautilus Breath of the Nautilus for 60
      * ticks, as Java's `AbstractNautilus.applyEffects` does for its rider wherever the mount is,
-     * in water or out: when the rider has none, and again every 40 game ticks. Bedrock's file
-     * gives it only in water, through `minecraft:underwater_mount_breathing`.
+     * in water or out: when the rider has none, and again every 40 game ticks. Any other mount
+     * with `minecraft:underwater_mount_breathing` gives it only in water, as Bedrock's does.
      */
     private giveRidersBreath(vehicle: DataEntity): void {
-        if (!ABSTRACT_NAUTILUS.has(vehicle.identifier)) return;
+        if (
+            !ABSTRACT_NAUTILUS.has(vehicle.identifier) &&
+            !(
+                vehicle.instance.hasComponent('minecraft:underwater_mount_breathing') &&
+                vehicle.body.conditions.has('in_water')
+            )
+        )
+            return;
         const renew = this.world.level.gameTime() % NAUTILUS_BREATH_RENEW_TICKS === 0;
         for (const rider of this.rides.ridersOf(vehicle.id)) {
             const carried = this.store.get(rider);
