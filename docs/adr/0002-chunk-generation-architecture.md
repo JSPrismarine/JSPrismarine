@@ -63,7 +63,10 @@ earlier, so the patch carries the structure's positions and the merge drops inbo
 **A worker pool.** piscina, six workers, each holding one seed's compiled pipeline, fed the
 registry documents as one `SharedArrayBuffer` of UTF-8 JSON. Workers run status bodies and return
 transferable proto chunks. The main thread owns the holders, the scheduler, the patch merge and
-the translation from Java states to Bedrock runtime ids.
+the translation from Java states to Bedrock runtime ids. (Superseded for the merge: since
+2026-11-16 the `full` status only gathers a chunk's patches, and with a stage pool one worker task
+merges them over the terrain tile and runs the block pass. The main thread still owns the
+translation, and sends the Bedrock form of every block the merge can produce with the task.)
 
 ## Why the current shape costs 1572 ms
 

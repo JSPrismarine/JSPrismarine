@@ -278,6 +278,10 @@ export const forEachBlockWrite = (
     else for (const write of writes) visit(write.x, write.y, write.z, write.block);
 };
 
+/** The blocks a patch's writes place: a packed list's palette, or each record's block once. */
+export const paletteOfWrites = (writes: RegionBlockWrites): readonly RegionBlock[] =>
+    writes instanceof PackedBlockWrites ? writes.palette : [...new Set(writes.map((write) => write.block))];
+
 /** A block position in world coordinates. */
 export interface RegionBlockPosition {
     readonly x: number;
@@ -390,7 +394,7 @@ const bedrockPaletteKey = (state: BedrockBlockState): string => {
 };
 
 /** Where one palette entry sits in the key space, whichever edition wrote it. */
-const paletteKeyOf = (block: RegionBlock): string =>
+export const paletteKeyOf = (block: RegionBlock): string =>
     block.bedrock === undefined ? javaPaletteKey(block.java) : bedrockPaletteKey(block.bedrock);
 
 /**

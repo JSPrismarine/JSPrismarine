@@ -41,8 +41,19 @@ const unpackPositions = (buffer: ArrayBuffer): RegionBlockPosition[] => {
     return positions;
 };
 
+/** A typed array's own buffer when the array covers all of it, or a copy of just its bytes. */
+const wholeBuffer = (array: Int32Array | Uint32Array): ArrayBuffer =>
+    array.byteOffset === 0 && array.byteLength === array.buffer.byteLength && array.buffer instanceof ArrayBuffer
+        ? array.buffer
+        : array.slice().buffer;
+
 /**
- * Packs the patches a feature pass returns.
+ * Packs the patches a feature pass returns, or the patches a merge task carries back to a worker.
+ *
+ * Writes that are packed already, as the patches a worker sent are, keep their arrays. Those
+ * still belong to the patch, which a retried merge reads again, so they are left out of the
+ * transfer list and the boundary clones them.
+ *
  * @returns The packed patches, and the buffers a worker thread can move rather than copy.
  */
 export const packFeaturePatches = (
@@ -50,6 +61,18 @@ export const packFeaturePatches = (
 ): { readonly payload: PackedRegionChunkPatch[]; readonly transferList: ArrayBuffer[] } => {
     const transferList: ArrayBuffer[] = [];
     const payload = patches.map(({ blocks, structureBlocks, ...rest }): PackedRegionChunkPatch => {
+        if (blocks instanceof PackedBlockWrites) {
+            const packed = {
+                ...rest,
+                palette: blocks.palette,
+                writePositions: wholeBuffer(blocks.positions),
+                writeBlocks: wholeBuffer(blocks.slots),
+                structureBlocks: packPositions(structureBlocks).buffer
+            };
+            transferList.push(packed.structureBlocks);
+            return packed;
+        }
+
         const palette: RegionBlock[] = [];
         const slotOf = new Map<RegionBlock, number>();
         const writeBlocks = new Uint32Array(blocks.length);
@@ -81,7 +104,8 @@ export const packFeaturePatches = (
     return { payload, transferList };
 };
 
-const isPackedPatch = (patch: unknown): patch is PackedRegionChunkPatch =>
+/** Whether a value that crossed a thread or process boundary is one packed patch. */
+export const isPackedPatch = (patch: unknown): patch is PackedRegionChunkPatch =>
     isRecord(patch) &&
     typeof patch.chunkX === 'number' &&
     typeof patch.chunkZ === 'number' &&

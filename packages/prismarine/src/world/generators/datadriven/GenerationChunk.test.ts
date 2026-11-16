@@ -19,16 +19,16 @@ const region = (): GenerationRegion =>
     });
 
 describe('GenerationChunk', () => {
-    it('lets the merged region go once the Bedrock chunk is recorded, and keeps the terrain', () => {
+    it('lets the merge inputs go once the Bedrock chunk is recorded, and keeps the terrain', () => {
         const staged = new GenerationChunk(2, -1);
         const terrain = region();
         staged.recordTerrain(terrain);
-        staged.recordFinalRegion(region());
+        staged.recordMergeInputs({ own: undefined, inbound: [] });
 
         const chunk = new Chunk(2, -1);
         staged.recordChunk(chunk);
 
-        expect(staged.finalRegion).toBeUndefined();
+        expect(staged.mergeInputs).toBeUndefined();
         expect(staged.bedrockChunk).toBe(chunk);
         expect(staged.terrain).toBe(terrain);
     });

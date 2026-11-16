@@ -101,21 +101,28 @@ import type {
 } from '../../Generator';
 import { findClosestBiome } from './biomeSearch';
 import { GenerationChunk } from './GenerationChunk';
+import type { MergeInputs } from './GenerationChunk';
 import { GenerationQueue } from './GenerationQueue';
 import { urgencyAround } from './urgencyAround';
 import type { BedrockSection, BedrockSectionsInput } from './bedrockSections';
 import { buildBedrockSections, isBedrockSections } from './bedrockSections';
 import { carveColumn } from './carveColumn';
-import { GenerationRegion } from './GenerationRegion';
-import { unpackFeaturePatches } from './featurePatchWire';
+import { GenerationRegion, paletteOfWrites } from './GenerationRegion';
+import { packFeaturePatches, unpackFeaturePatches } from './featurePatchWire';
 import type {
     GenerationRegionOptions,
     GenerationRegionPayload,
     GenerationRegionTransfer,
     PackedBiomeSections,
     RegionBiomeCells,
-    RegionChunkPatch
+    RegionBlock,
+    RegionBlockEntity,
+    RegionBlockPosition,
+    RegionChunkPatch,
+    RegionEntitySpawn
 } from './GenerationRegion';
+import type { MergedChunkParts } from './mergedChunk';
+import { isMergedChunkParts, translatePalette, translateSlots } from './mergedChunk';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 import type { BeardJunction, BeardPiece } from './javaStructureBeard';
@@ -143,7 +150,7 @@ import type { TerrainProtoCacheOptions } from './TerrainProtoCache';
 import type { SharedTerrainTileStore } from './SharedTerrainTileStore';
 import { shareRegistryBundle } from './registryBundle';
 import { shareClimateTables } from './sharedClimateTables';
-import type { ChunkPipelineSetup, ChunkTaskInput, FeatureTaskInput } from './chunkPipeline';
+import type { ChunkPipelineSetup, ChunkTaskInput, FeatureTaskInput, MergedChunkTaskInput } from './chunkPipeline';
 import type { TerrainPipelineSetup } from './terrainPipeline';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 import type { ChunkCompletionScheduler } from '../../ChunkCompletionQueue';
@@ -693,7 +700,7 @@ const GENERATION_CACHE_SIZE = 128;
  * last request. At view distance 10, 317 chunks generated inline at seed 1234 ran 4654 terrain
  * fills and 1964 feature passes with 128 holders, and 501 and 405 with 512: every tile once.
  * 1024 ran the same 501 and 405. The 512 cost about 110 MiB more heap, which is one terrain tile
- * a holder once {@link GenerationChunk.recordChunk} lets the merged region go.
+ * a holder once {@link GenerationChunk.recordChunk} lets the merge inputs go.
  */
 const RETAINED_HOLDERS = 512;
 
@@ -1266,9 +1273,8 @@ export class DataDrivenGenerator implements Generator {
                 measure === undefined
                     ? this.adoptRegion(payload, pipeline)
                     : measure('worker-result/adopt', () => this.adoptRegion(payload, pipeline));
-            return measure === undefined
-                ? this.toChunk(cx, cz, region, pipeline)
-                : measure('worker-result/translate', () => this.toChunk(cx, cz, region, pipeline));
+            const translate = (): Chunk => this.toChunk(cx, cz, this.partsOf(region, pipeline), pipeline, region);
+            return measure === undefined ? translate() : measure('worker-result/translate', translate);
         });
     }
 
@@ -1458,15 +1464,30 @@ export class DataDrivenGenerator implements Generator {
                 const promoted = staged.bedrockChunk;
                 if (promoted !== undefined) return promoted;
 
-                // `full` leaves the merged region and `terrain` leaves only its own tile, which is
-                // what a generator with decoration off stops at.
-                const region = staged.finalRegion ?? staged.terrain;
-                // The block pass runs in a worker when there is one, and only the wrapping waits
-                // for this thread's completion slice.
-                const sections = await this.sectionsInWorker(cx, cz, region, pipeline);
-                const chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
-                    this.toChunk(cx, cz, region, pipeline, staged.terrain, sections)
-                );
+                // `full` leaves the merge inputs, which a worker merges and translates in one
+                // task; only the wrapping waits for this thread's completion slice.
+                const inputs = staged.mergeInputs;
+                const merged =
+                    inputs === undefined
+                        ? undefined
+                        : await this.mergeInWorker(cx, cz, staged.terrain, inputs, pipeline);
+                let chunk: Chunk;
+                if (merged === undefined) {
+                    // Without a worker the merge runs here. `terrain` leaves only its own tile,
+                    // which is what a generator with decoration off stops at.
+                    const region =
+                        inputs === undefined
+                            ? staged.terrain
+                            : this.mergeFull(cx, cz, staged.terrain, inputs, pipeline);
+                    const sections = await this.sectionsInWorker(cx, cz, region, pipeline);
+                    chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
+                        this.toChunk(cx, cz, this.partsOf(region, pipeline, sections), pipeline, staged.terrain)
+                    );
+                } else {
+                    chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
+                        this.toChunk(cx, cz, merged, pipeline, staged.terrain)
+                    );
+                }
                 staged.recordChunk(chunk);
                 return chunk;
             },
@@ -1497,22 +1518,21 @@ export class DataDrivenGenerator implements Generator {
      * One finished chunk's merged region, packed for the thread that asked for it.
      *
      * What a worker runs when the whole ladder is pooled. It climbs to `full` exactly as the
-     * main thread would and stops one step short of the Bedrock translation, which stays on
-     * the thread that holds the mapping tables.
+     * main thread would, merges, and stops one step short of the Bedrock translation, which
+     * stays on the thread that holds the mapping tables.
      *
-     * The region is copied rather than moved. Moving it would leave this worker's holder with
-     * a detached chunk, and a second request for the same position - two worlds on one seed,
-     * a chunk the main thread let go of - would find nothing there. A copy is about 60
-     * microseconds against a chunk that costs a couple of hundred milliseconds to build.
+     * The merged region is built for this request and nothing here keeps it, so its buffers
+     * move. The holder keeps its terrain tile and its patches, which is what a second request
+     * for the same position merges again.
      *
      * @param cx - Chunk x.
      * @param cz - Chunk z.
      * @param seed - The world seed, which with the key pins the pipeline.
      * @param key - The stem's settings and dimension. Defaults to the instance's own.
      * @param structureStartPlans - Layout data already built by their stable owner shards.
-     * @returns The merged region, copying its cached terrain buffers and transferring its new biome buffers.
-     * @throws When the ladder reached `full` without leaving a region, which would mean a
-     * status body stopped writing one.
+     * @returns The merged region and the buffers it gives up.
+     * @throws When the ladder reached `full` without leaving its merge inputs, which would mean a
+     * status body stopped recording them.
      */
     public async buildFullTile(
         cx: number,
@@ -1526,19 +1546,10 @@ export class DataDrivenGenerator implements Generator {
         this.retain(pipeline, cx, cz);
 
         const staged = await pipeline.scheduler.generate(cx, cz, 'full');
-        const region = staged.finalRegion;
-        if (region === undefined) {
-            throw new Error(`The chunk at ${cx}, ${cz} reached full without leaving a region to hand back.`);
-        }
+        const region = this.mergedHere(cx, cz, staged, pipeline);
 
         region.setBiomeSections(this.packBiomeSections(cx, cz, pipeline));
-        const transferred = region.transfer();
-        // The worker keeps its terrain tiles for later requests, so only these fresh promotion
-        // buffers move; the shared region buffers remain cloneable for future chunk reads.
-        const transferList = [transferred.payload.biomeSections, transferred.payload.biomeSectionOffsets].filter(
-            (buffer): buffer is ArrayBuffer => buffer !== undefined
-        );
-        return { payload: transferred.payload, transferList };
+        return region.transfer();
     }
 
     /**
@@ -2343,27 +2354,56 @@ export class DataDrivenGenerator implements Generator {
      * `features` first. ADR 0002 takes that deviation on purpose; this loop is where it is paid
      * for, and reading its eight neighbors is why the `full` step declares `features` at radius 1.
      */
-    private runFull(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): GenerationChunk {
+    private runFull(region: StepRegion<GenerationChunk>): GenerationChunk {
         const chunk = region.center;
-        const final = this.createRegion(chunk.chunkX, chunk.chunkZ, 0, pipeline);
-        final.copyCenterFrom(chunk.terrain);
-
-        const own = chunk.ownFeatureWrites;
-        if (own !== undefined) final.applyPatch(own);
-
-        // A neighbor decorated against this chunk's bare terrain, so an ore vein or a grass
-        // patch of its own chose its blocks without seeing the pieces this chunk placed. The
-        // structure's blocks are kept, which is the outcome Java reaches in either order.
-        const keep = own?.structureBlocks ?? [];
         const inbound = new InboundFeaturePatches<RegionChunkPatch>();
         for (const [dx, dz] of FEATURE_PATCH_ORDER) {
             const patch = region.neighbor(dx, dz, 'features').featureWritesInto(chunk.chunkX, chunk.chunkZ);
             if (patch !== undefined) inbound.receive(dx, dz, patch);
         }
-        for (const patch of inbound.inMergeOrder()) final.applyPatch(patch, { keep });
 
-        chunk.recordFinalRegion(final);
+        // The merge waits for whoever finishes the chunk: a generation worker that holds the
+        // terrain tile merges and translates in one task, and only the patches cross to it.
+        chunk.recordMergeInputs({ own: chunk.ownFeatureWrites, inbound: [...inbound.inMergeOrder()] });
         return chunk;
+    }
+
+    /**
+     * Lays a chunk's own feature writes and its inbound patches over a copy of its terrain tile.
+     *
+     * The same body wherever it runs, a generation worker or the thread that asked, so a chunk's
+     * blocks do not depend on which one merged it.
+     */
+    private mergeFull(
+        cx: number,
+        cz: number,
+        terrain: GenerationRegion,
+        inputs: MergeInputs,
+        pipeline: SeededPipeline
+    ): GenerationRegion {
+        const final = this.createRegion(cx, cz, 0, pipeline);
+        final.copyCenterFrom(terrain);
+        if (inputs.own !== undefined) final.applyPatch(inputs.own);
+
+        // A neighbor decorated against this chunk's bare terrain, so an ore vein or a grass
+        // patch of its own chose its blocks without seeing the pieces this chunk placed. The
+        // structure's blocks are kept, which is the outcome Java reaches in either order.
+        const keep = inputs.own?.structureBlocks ?? [];
+        for (const patch of inputs.inbound) final.applyPatch(patch, { keep });
+        return final;
+    }
+
+    /**
+     * The merged region of a chunk that reached `full`, merged on this thread.
+     * @throws When the ladder reached `full` without gathering merge inputs, which would mean a
+     * status body stopped recording them.
+     */
+    private mergedHere(cx: number, cz: number, staged: GenerationChunk, pipeline: SeededPipeline): GenerationRegion {
+        const inputs = staged.mergeInputs;
+        if (inputs === undefined) {
+            throw new Error(`The chunk at ${cx}, ${cz} reached full without leaving its merge inputs.`);
+        }
+        return this.mergeFull(cx, cz, staged.terrain, inputs, pipeline);
     }
 
     /**
@@ -2839,55 +2879,59 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /**
-     * Translates the region's Java states into the Bedrock chunk, and records the biomes.
+     * Builds the Bedrock chunk from its translated parts, and records the biomes.
      *
-     * By the palette, not block by block. The region holds its blocks as indices into a palette
-     * of a few hundred materials, and a sub chunk holds its own the same way, so the whole
-     * translation is one mapping lookup per material and then a reindexing of the buffer. The
-     * per-block form it replaces cost a mapping lookup and a sub chunk lookup for each of the
-     * column's blocks, which is the work that has to happen on the main thread after a worker
-     * hands a chunk back and therefore the work that caps the pool.
+     * The sections arrive already translated, by the palette rather than block by block: a region
+     * holds its blocks as indices into a palette of a few hundred materials, and a sub chunk holds
+     * its own the same way, so the translation is one mapping lookup per material and a reindexing
+     * of the buffer. What is left here is wrapping the sections and filing what features attached.
      */
     private toChunk(
         cx: number,
         cz: number,
-        region: GenerationRegion,
+        parts: MergedChunkParts,
         pipeline: SeededPipeline,
-        biomeRegion: GenerationRegion = region,
-        sections?: readonly BedrockSection[]
+        biomeRegion: GenerationRegion
     ): Chunk {
-        const chunk = new Chunk(
-            cx,
-            cz,
-            this.buildSubChunks(region, pipeline, sections),
-            this.chunkDimensionOf(pipeline)
-        );
+        const chunk = new Chunk(cx, cz, this.buildSubChunks(parts.sections), this.chunkDimensionOf(pipeline));
         // The constructor is a load rather than a write, so nothing has told the chunk it is
         // unsaved. A generated chunk is exactly the thing that has never been written to disk.
         chunk.markChanged();
 
-        this.recordBlockEntities(region, chunk, pipeline);
-        this.recordEntitySpawns(region, chunk);
-        this.recordFluidTicks(region, chunk);
+        this.recordBlockEntities(parts.blockEntities, chunk, pipeline);
+        this.recordEntitySpawns(parts.entitySpawns, chunk);
+        this.recordFluidTicks(parts.fluidTicks, chunk);
         this.recordBiomes(cx, cz, chunk, pipeline, biomeRegion);
         return chunk;
     }
 
     /**
-     * The region's center chunk as Bedrock sub chunks, one per 16 block slab that holds anything.
+     * A region's center chunk as the parts {@link toChunk} builds from, translated on this thread
+     * unless a worker already ran the block pass.
+     */
+    private partsOf(
+        region: GenerationRegion,
+        pipeline: SeededPipeline,
+        sections: readonly BedrockSection[] = buildBedrockSections(this.sectionsInput(region, pipeline))
+    ): MergedChunkParts {
+        return {
+            sections,
+            blockEntities: region.centerBlockEntities(),
+            entitySpawns: region.centerEntitySpawns(),
+            fluidTicks: region.centerFluidTicks()
+        };
+    }
+
+    /**
+     * The sections as Bedrock sub chunks, one per 16 block slab that holds anything.
      *
      * A slab whose palette never grows past air is left out, the same way a per-block fill never
      * created a sub chunk nothing was written into. An unmapped Java state becomes air for the
      * same reason: the per-block fill skipped the write, and skipping a write leaves air.
      */
-    private buildSubChunks(
-        region: GenerationRegion,
-        pipeline: SeededPipeline,
-        precomputed?: readonly BedrockSection[]
-    ): Map<number, SubChunk> {
+    private buildSubChunks(sections: readonly BedrockSection[]): Map<number, SubChunk> {
         const air = BlockRuntimeIds.getByName('minecraft:air');
         const water = BlockRuntimeIds.getByName('minecraft:water');
-        const sections = precomputed ?? buildBedrockSections(this.sectionsInput(region, pipeline));
 
         const subChunks = new Map<number, SubChunk>();
         for (const { section, blocks, palette, water: waterBlocks } of sections) {
@@ -2901,11 +2945,31 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /**
+     * One palette entry's Bedrock form: its runtime id, and whether it is waterlogged.
+     *
+     * A template block arrives as a Bedrock state already, so it skips the mapping. An unmapped
+     * Java state becomes air, the same way the per-block fill skipped the write and left air.
+     */
+    private bedrockOf(
+        block: RegionBlock,
+        pipeline: SeededPipeline,
+        air: number
+    ): { readonly runtimeId: number; readonly water: boolean } {
+        const runtimeId =
+            block.bedrock === undefined
+                ? pipeline.translator.runtimeIdOf(block.java.name, block.java.properties)
+                : pipeline.translator.bedrockRuntimeIdOf(block.bedrock.name, block.bedrock.states);
+        return {
+            runtimeId: runtimeId === UNKNOWN_RUNTIME_ID ? air : runtimeId,
+            // Bedrock keeps water from waterlogged Java states in storage layer 1.
+            water: block.java.name !== 'minecraft:water' && pipeline.oracle.fluid(block.java) === 'water'
+        };
+    }
+
+    /**
      * What the block pass reads: the center chunk's palette slots, and each slot's runtime id.
      *
-     * The translation of a slot is a table lookup on this thread, a few dozen per chunk. A template
-     * block arrives as a Bedrock state already, so it skips the mapping. An unmapped Java state
-     * becomes air, the same way the per-block fill skipped the write and left air.
+     * The translation of a slot is a table lookup on this thread, a few dozen per chunk.
      *
      * @param copy - Whether the slots must be this call's own, because they are about to be moved
      * to a worker and the region may still be using them.
@@ -2914,17 +2978,11 @@ export class DataDrivenGenerator implements Generator {
         const { palette, slots, columnTops } = region.centerBlockSlots();
         const air = BlockRuntimeIds.getByName('minecraft:air');
         const runtimeIds = new Int32Array(palette.length);
-        // Bedrock keeps water from waterlogged Java states in storage layer 1.
         const waterSlots = new Uint8Array(palette.length);
         for (let slot = 0; slot < palette.length; slot++) {
-            const block = palette[slot]!;
-            const runtimeId =
-                block.bedrock === undefined
-                    ? pipeline.translator.runtimeIdOf(block.java.name, block.java.properties)
-                    : pipeline.translator.bedrockRuntimeIdOf(block.bedrock.name, block.bedrock.states);
-            runtimeIds[slot] = runtimeId === UNKNOWN_RUNTIME_ID ? air : runtimeId;
-            waterSlots[slot] =
-                block.java.name !== 'minecraft:water' && pipeline.oracle.fluid(block.java) === 'water' ? 1 : 0;
+            const { runtimeId, water } = this.bedrockOf(palette[slot]!, pipeline, air);
+            runtimeIds[slot] = runtimeId;
+            waterSlots[slot] = water ? 1 : 0;
         }
 
         return {
@@ -2979,14 +3037,104 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /**
+     * Merges a chunk and runs its block pass in a generation worker, in one task.
+     *
+     * Merged here, a chunk cost this thread a copy of its terrain tile and a walk of every patch,
+     * and the merged slots, about 196 KB, then went to a worker for the block pass anyway. The
+     * worker usually holds the tile already, since the feature passes around the chunk sent it, so
+     * the task carries the patches and the translation of every block among them and the tile.
+     *
+     * @returns The chunk's parts, or undefined when there is no pool to ask and the caller merges
+     * here with the same body.
+     */
+    private async mergeInWorker(
+        cx: number,
+        cz: number,
+        terrain: GenerationRegion,
+        inputs: MergeInputs,
+        pipeline: SeededPipeline
+    ): Promise<MergedChunkParts | undefined> {
+        const pool = this.stagePool;
+        if (pool === undefined) return undefined;
+
+        const tile = terrain.workerInput();
+        const air = BlockRuntimeIds.getByName('minecraft:air');
+        const patches = inputs.own === undefined ? inputs.inbound : [inputs.own, ...inputs.inbound];
+        const input: Omit<MergedChunkTaskInput, 'terrain'> & { readonly terrain: ReusableInput } = {
+            ...this.taskInput(pipeline),
+            kind: 'merged-chunk',
+            terrain: reusableInput(this.tileKeyOf(terrain), tile),
+            ...(inputs.own === undefined ? {} : { own: packFeaturePatches([inputs.own]).payload[0]! }),
+            inbound: packFeaturePatches(inputs.inbound).payload,
+            translation: translatePalette(
+                [tile.palette, ...patches.map((patch) => paletteOfWrites(patch.blocks))].flat(),
+                (block) => this.bedrockOf(block, pipeline, air),
+                air
+            )
+        };
+
+        let result;
+        try {
+            result = await pool.run(
+                { status: 'full', chunkX: cx, chunkZ: cz, dimension: pipeline.dimension.bedrockId, input },
+                this.urgencyOf(pipeline, cx, cz)
+            );
+        } catch (error: unknown) {
+            if (this.stopped) throw new GenerationStopped(cx, cz);
+            // A pool that cannot merge is not a reason to lose the chunk.
+            if (this.abandonStagePool(error)) return undefined;
+            throw error;
+        }
+
+        if (!isMergedChunkParts(result.payload)) {
+            throw new TypeError(`The merge for the chunk at ${cx}, ${cz} came back in an unexpected shape.`);
+        }
+        return result.payload;
+    }
+
+    /**
+     * The worker half of {@link mergeInWorker}: the same merge, then the block pass, with the
+     * translation the server thread sent standing in for its mapping tables.
+     *
+     * @param cx - Chunk x.
+     * @param cz - Chunk z.
+     * @param input - The tile, the patches in merge order, and the translation of their blocks.
+     * @returns The sections and what the merge attached to the chunk.
+     * @throws RangeError when the merge produced a block the translation does not hold.
+     */
+    public buildMergedChunk(cx: number, cz: number, input: MergedChunkTaskInput): MergedChunkParts {
+        const pipeline = this.pipelineFor(input, BigInt(input.seed));
+        const terrain = this.adoptRegion(input.terrain, pipeline);
+        const [own] = input.own === undefined ? [] : unpackFeaturePatches([input.own]);
+        const final = this.mergeFull(cx, cz, terrain, { own, inbound: unpackFeaturePatches(input.inbound) }, pipeline);
+
+        const { palette, slots, columnTops } = final.centerBlockSlots();
+        const { runtimeIds, waterSlots } = translateSlots(palette, input.translation);
+        return this.partsOf(
+            final,
+            pipeline,
+            buildBedrockSections({
+                kind: 'bedrock-sections',
+                slots,
+                columnTops,
+                runtimeIds,
+                waterSlots,
+                air: input.translation.air,
+                minY: pipeline.dimension.minY,
+                height: pipeline.dimension.height
+            })
+        );
+    }
+
+    /**
      * Files the block entities the decoration pass attached.
      *
      * A chest without this is a chest with nothing in it and a spawner without it is an inert
      * block, so a type the rewrite has no Bedrock name for is skipped rather than guessed at.
      */
-    private recordBlockEntities(region: GenerationRegion, chunk: Chunk, pipeline: SeededPipeline): void {
-        for (const placed of region.centerBlockEntities()) {
-            const blockEntity = createBlockEntity(placed, pipeline.randomState.seed);
+    private recordBlockEntities(placed: readonly RegionBlockEntity[], chunk: Chunk, pipeline: SeededPipeline): void {
+        for (const entry of placed) {
+            const blockEntity = createBlockEntity(entry, pipeline.randomState.seed);
             if (blockEntity !== undefined) chunk.setBlockEntity(blockEntity);
         }
     }
@@ -2997,9 +3145,9 @@ export class DataDrivenGenerator implements Generator {
      * The generator has no world to add an entity to, so the chunk carries the request and the
      * world acts on it the first time the chunk is loaded.
      */
-    private recordEntitySpawns(region: GenerationRegion, chunk: Chunk): void {
+    private recordEntitySpawns(requests: readonly RegionEntitySpawn[], chunk: Chunk): void {
         const spawns = chunk.getEntitySpawns();
-        for (const requested of region.centerEntitySpawns()) {
+        for (const requested of requests) {
             const spawn = createEntitySpawn(requested);
             if (spawn !== undefined) spawns.push(spawn);
         }
@@ -3013,10 +3161,10 @@ export class DataDrivenGenerator implements Generator {
      * neighbor's patch can mark one position more than once; the world would drop the repeats,
      * and dropping them here keeps the list the chunk carries short.
      */
-    private recordFluidTicks(region: GenerationRegion, chunk: Chunk): void {
+    private recordFluidTicks(requested: readonly RegionBlockPosition[], chunk: Chunk): void {
         const ticks = chunk.getPendingFluidTicks();
         const seen = new Set<string>();
-        for (const { x, y, z } of region.centerFluidTicks()) {
+        for (const { x, y, z } of requested) {
             const key = `${x},${y},${z}`;
             if (seen.has(key)) continue;
             seen.add(key);
@@ -3287,7 +3435,7 @@ export class DataDrivenGenerator implements Generator {
                 tasks: {
                     terrain: (region) => this.runTerrain(region, pipeline),
                     features: (region) => this.runFeatures(region, pipeline),
-                    full: (region) => this.runFull(region, pipeline)
+                    full: (region) => this.runFull(region)
                 }
             }),
             retained: new Map(),
