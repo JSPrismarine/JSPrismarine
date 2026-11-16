@@ -5632,6 +5632,7 @@ export class EntityRuntime implements EntityScene {
 
         const buoyant = instance.componentParams('minecraft:buoyant');
         if (isRecord(buoyant) && this.coastBuoyant(entity, buoyant)) return;
+        if (this.floatOnLava(entity)) return;
 
         const componentFacts = this.componentFactsOf(entity);
         const position = body.position;
@@ -5646,7 +5647,7 @@ export class EntityRuntime implements EntityScene {
         const primedTnt = body.fuseTicks !== undefined && componentFacts.families.includes('tnt');
         const verticalAirDrag = componentFacts.usesUniformAirDrag ? DRAG : VERTICAL_AIR_DRAG;
         const horizontalDrag = inWater
-            ? WATER_DRAG
+            ? javaWaterDrag(entity)
             : inLava
               ? LAVA_DRAG
               : primedTnt
@@ -6278,9 +6279,52 @@ export class EntityRuntime implements EntityScene {
         return true;
     }
 
+    /**
+     * Holds a strider on a lava pool's surface, or floats it up to it.
+     *
+     * Java gives a mob whose `canStandOnFluid` takes lava a collision shape half a block tall on a
+     * lava source with no lava over it (`LiquidBlock.getCollisionShape`'s `STABLE_SHAPE`), once the
+     * mob is above that half; under it, `Strider.floatStrider` halves the strider's velocity and adds
+     * 0.05 blocks a tick upward until it gets there.
+     *
+     * @returns Whether the strider was in lava, which this tick's travel then was.
+     */
+    private floatOnLava(entity: DataEntity): boolean {
+        const { body } = entity;
+        if (!LAVA_WALKERS.has(entity.identifier) || !body.conditions.has('in_lava')) return false;
+        const navigation = this.navigation();
+        const position = body.position;
+        const cell = blockPositionOf(position);
+        const surface = cell.y + LAVA_STABLE_HEIGHT;
+        const standable = navigation.isLava(cell) && !navigation.isLava({ ...cell, y: cell.y + 1 });
+        const velocity = body.velocity;
+        if (standable && position.y >= surface - MOVEMENT_EPSILON) {
+            body.position = { ...position, y: surface };
+            body.velocity = { ...velocity, y: 0 };
+            body.conditions.add('on_ground');
+            return true;
+        }
+
+        const rising = velocity.y * 0.5 + LAVA_FLOAT_SPEED;
+        const risen = position.y + rising;
+        const capped = standable && risen > surface ? surface : risen;
+        body.position = { ...position, y: capped };
+        body.velocity = { x: velocity.x * 0.5, y: capped === surface ? 0 : rising, z: velocity.z * 0.5 };
+        body.conditions.delete('on_ground');
+        return true;
+    }
+
     /** Moves a body along its current waypoint using its active navigation rules. */
     private step(entity: DataEntity): void {
         if (entity.instance.hasComponent('minecraft:projectile') || !entity.body.walking) {
+            if (!entity.body.walking) {
+                const navigation = this.navigation();
+                const hasCollision = this.componentFactsOf(entity).hasCollision;
+                entity.body.driftInWater(
+                    javaWaterDrag(entity),
+                    (at) => !hasCollision || bodyCanOccupy(at, entity.facts.box, navigation)
+                );
+            }
             entity.body.rest();
             return;
         }
@@ -6607,6 +6651,46 @@ const FALL_DAMAGE_MULTIPLIER = 'minecraft:fall_damage_multiplier';
 
 /** What `LivingEntity.calculateFallPower` adds to a fall, so a fall of exactly a whole block counts it. */
 const FALL_EPSILON = 1e-6;
+
+/** The mobs whose Java `canStandOnFluid` takes lava: `Strider.canStandOnFluid`. */
+const LAVA_WALKERS: ReadonlySet<string> = new Set(['minecraft:strider']);
+
+/** The height of the surface a lava source gives a mob that stands on it, `LiquidBlock.STABLE_SHAPE`. */
+const LAVA_STABLE_HEIGHT = 0.5;
+
+/** What `Strider.floatStrider` adds to a sunk strider's upward speed each tick. */
+const LAVA_FLOAT_SPEED = 0.05;
+
+/**
+ * The mobs whose Java class keeps another share of its speed each tick in water than
+ * `LivingEntity.getWaterSlowDown`'s 0.8: the polar bear's and skeleton horse's own
+ * `getWaterSlowDown`, and the swimmers whose `travel` override scales the velocity by 0.9
+ * (`AbstractFish`, `Dolphin`, `Guardian`, `Turtle`, `Axolotl`, `Frog`, `Tadpole`, `Drowned` and
+ * `AbstractNautilus`).
+ */
+const JAVA_WATER_DRAG: ReadonlyMap<string, number> = new Map([
+    ['minecraft:polar_bear', 0.98],
+    ['minecraft:skeleton_horse', 0.96],
+    ...[
+        'minecraft:cod',
+        'minecraft:salmon',
+        'minecraft:pufferfish',
+        'minecraft:tropicalfish',
+        'minecraft:tadpole',
+        'minecraft:dolphin',
+        'minecraft:guardian',
+        'minecraft:elder_guardian',
+        'minecraft:turtle',
+        'minecraft:axolotl',
+        'minecraft:frog',
+        'minecraft:drowned',
+        'minecraft:nautilus',
+        'minecraft:zombie_nautilus'
+    ].map((identifier) => [identifier, 0.9] as const)
+]);
+
+/** The share of its horizontal speed an entity keeps each tick in water, by its Java class. */
+const javaWaterDrag = (entity: DataEntity): number => JAVA_WATER_DRAG.get(entity.identifier) ?? WATER_DRAG;
 
 /**
  * The mobs that ease their own body toward where they swim rather than have a move control turn

@@ -312,3 +312,102 @@ describe('a boat', () => {
         expect(lowest + 0.455).toBeGreaterThan(GROUND + 4);
     });
 });
+
+/** A fixture with a pool of `fluid` with no collision, as the pack's fluid blocks have none, `depth` blocks deep over the floor. */
+const fluidWorld = (extra: ExtraEntities, fluid = 'minecraft:water', depth = 3) => {
+    const world = new TestEntityWorld();
+    for (let x = -1; x <= 12; x += 1)
+        for (let z = -1; z <= 1; z += 1)
+            for (let y = GROUND; y < GROUND + depth; y += 1)
+                world.world.blocks.set({ x, y, z }, { identifier: fluid, states: {} }, false);
+    const stack = entityFixtureStack(extra);
+    const block = definitionOf('blocks', fluid, {
+        format_version: '1.26.20',
+        'minecraft:block': {
+            description: { identifier: fluid },
+            components: { 'minecraft:collision_box': false, 'minecraft:light_dampening': 0 }
+        }
+    });
+    return entityFixture(
+        world,
+        {
+            load: () => ({
+                definitions: { ...stack, blocks: new Map([...stack.blocks, [fluid, block]]) },
+                diagnostics: []
+            })
+        },
+        extra
+    );
+};
+
+describe('a strider', () => {
+    const STRIDER = {
+        components: {
+            'minecraft:health': { value: 20, max: 20 },
+            'minecraft:movement': { value: 0.175 },
+            'minecraft:physics': {},
+            'minecraft:collision_box': { width: 0.9, height: 1.7 },
+            'minecraft:navigation.walk': { can_walk_in_lava: true, can_sink: false }
+        }
+    };
+
+    it("stands on a lava pool's surface half a block into its top block", () => {
+        const { runtime } = fluidWorld({ 'minecraft:strider': STRIDER }, 'minecraft:lava', 1);
+        const strider = runtime.spawn('minecraft:strider', { x: 0.5, y: GROUND + 2, z: 0.5 });
+        if (strider === undefined) throw new Error('the fixture declares no strider');
+        for (let tick = 1; tick <= 40; tick += 1) runtime.tick(tick);
+
+        expect(strider.position.y).toBe(GROUND + 0.5);
+    });
+
+    it('floats up out of deep lava by 0.05 blocks a tick until it reaches the surface', () => {
+        const { runtime } = fluidWorld({ 'minecraft:strider': STRIDER }, 'minecraft:lava', 3);
+        const strider = runtime.spawn('minecraft:strider', { x: 0.5, y: GROUND, z: 0.5 });
+        if (strider === undefined) throw new Error('the fixture declares no strider');
+        runtime.tick(1);
+        expect(strider.position.y).toBeGreaterThan(GROUND);
+
+        for (let tick = 2; tick <= 200; tick += 1) runtime.tick(tick);
+        expect(strider.position.y).toBe(GROUND + 2.5);
+    });
+});
+
+describe('a mob in water', () => {
+    /** A mob that swims at a plain 0.1 blocks a tick and has no gravity to sink it. */
+    const SWIMMER = {
+        components: {
+            'minecraft:health': { value: 10, max: 10 },
+            'minecraft:movement': { value: 0.1 },
+            'minecraft:underwater_movement': { value: 0.1 },
+            'minecraft:physics': { has_gravity: false },
+            'minecraft:collision_box': { width: 0.6, height: 0.6 },
+            'minecraft:navigation.walk': {}
+        }
+    };
+
+    /** The share of its last tick's swim a mob covers on the tick after the swim stops. */
+    const kept = (identifier: string): number => {
+        const { runtime } = fluidWorld({ [identifier]: SWIMMER });
+        const mob = runtime.spawn(identifier, { x: 0.5, y: GROUND + 0.5, z: 0.5 });
+        if (mob === undefined) throw new Error(`the fixture declares no ${identifier}`);
+        mob.body.yaw = -90;
+        mob.body.moveTo({ x: 10.5, y: GROUND + 0.5, z: 0.5 }, 1);
+        let last = 0;
+        for (let tick = 1; tick <= 4; tick += 1) {
+            const before = mob.position.x;
+            runtime.tick(tick);
+            last = mob.position.x - before;
+        }
+        mob.body.stopMoving();
+        const before = mob.position.x;
+        runtime.tick(5);
+        return (mob.position.x - before) / last;
+    };
+
+    it("drifts on once its swim stops, keeping the share of its speed Java's water drag keeps", () => {
+        // LivingEntity.getWaterSlowDown, a swimmer's own travel, and PolarBear.getWaterSlowDown.
+        expect(kept('jsprismarine:wader')).toBeCloseTo(0.8, 6);
+        expect(kept('minecraft:cod')).toBeCloseTo(0.9, 6);
+        expect(kept('minecraft:polar_bear')).toBeCloseTo(0.98, 6);
+    });
+});

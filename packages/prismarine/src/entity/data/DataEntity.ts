@@ -660,6 +660,8 @@ export class MobBody {
     private speedMultiplier = 1;
     /** Blocks per tick a walk on land carries into the next tick, along the heading. */
     private walkMomentum = 0;
+    /** How far the last step swam the body on each horizontal axis, which it drifts on with once the swim stops. */
+    private swimDrift: { readonly x: number; readonly z: number } | undefined;
     /** Ticks a hopping mob still waits on the ground before its next hop. */
     private hopWait = 0;
     /** Draws a hopping mob's next wait, from the last step that walked it on land. */
@@ -891,6 +893,31 @@ export class MobBody {
     public rest(): void {
         this.walkMomentum = 0;
         this.takingOff = false;
+        this.swimDrift = undefined;
+    }
+
+    /**
+     * Carries a body that swam last tick and has stopped on through the water, as Java's
+     * `LivingEntity.travelInFluid` and the swimmers' own `travel` keep the velocity a swim built
+     * up and scale it by the water drag each tick: the body moves on by the last swim times
+     * `drag`, and keeps that times `drag` again as velocity for the physics to spend.
+     *
+     * @param drag - The share of its speed the mob keeps each tick in water.
+     * @param canOccupy - Whether the body fits at a position, which stops the drift at a wall.
+     */
+    public driftInWater(drag: number, canOccupy: (position: EntityPosition) => boolean): void {
+        const drift = this.swimDrift;
+        this.swimDrift = undefined;
+        if (drift === undefined || !this.conditions.has('in_water')) return;
+        const from = this.position;
+        let resolved = moveOnAxis(from, from.x + drift.x * drag, 'x', canOccupy);
+        resolved = moveOnAxis(resolved, from.z + drift.z * drag, 'z', canOccupy);
+        this.position = resolved;
+        this.velocity = {
+            x: this.velocity.x + (resolved.x - from.x) * drag,
+            y: this.velocity.y,
+            z: this.velocity.z + (resolved.z - from.z) * drag
+        };
     }
 
     /** Moves instantly, clears the current impulse, and counts a teleport, which clients snap to. */
@@ -944,7 +971,9 @@ export class MobBody {
      */
     public step(options?: MobBodyStepOptions): void {
         const destination = this.destination;
+        this.swimDrift = undefined;
         if (destination === undefined) return;
+        const start = this.position;
 
         // A rise a step covers is walked up rather than jumped, as Java's `MoveControl` jumps only
         // above the entity's step height.
@@ -1069,6 +1098,7 @@ export class MobBody {
 
             this.position = resolved;
         }
+        if (inWater) this.swimDrift = { x: this.position.x - start.x, z: this.position.z - start.z };
         // A walker on land turns toward its waypoint, which lies at its feet, and keeps the pitch
         // its goal's look gave it: looking at the waypoint aimed it at the ground beside it.
         if (steered) return;
