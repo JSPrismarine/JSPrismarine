@@ -11,7 +11,12 @@
 import { createHash } from 'node:crypto';
 
 import { AdvancementEngine, parseAdvancement } from '@jsprismarine/advancements';
-import { item_tags, java_entity_attributes, java_entity_navigation } from '@jsprismarine/bedrock-data';
+import {
+    item_tags,
+    java_entity_attributes,
+    java_entity_goals,
+    java_entity_navigation
+} from '@jsprismarine/bedrock-data';
 import { registerVanillaBlockBehaviors } from '@jsprismarine/block-behaviors';
 import type { BlockHooks } from '@jsprismarine/blocks';
 import type { BlockPalette, BlockState, BlockTable, BlockType } from '@jsprismarine/blocks';
@@ -57,6 +62,7 @@ import type { ContentWorldViews } from './world/views';
 import { javaAirSupplies, withJavaAirSupply } from '../entity/javaAirSupply';
 import { javaGoalRulings, withJavaGoals } from '../entity/javaGoals';
 import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
+import { javaGoalOverlay } from '../entity/javaGoalArguments';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
 
 /** The resolved block domain. */
@@ -360,15 +366,22 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const breedingFoods = javaBreedingFoods(tags);
     const airSupplies = javaAirSupplies();
     const goalRulings = javaGoalRulings();
+    const entityFiles = [...definitions.entities.values(), ...playerFallback];
+    const withJavaGoalArguments = javaGoalOverlay(
+        entityFiles.map((definition) => definition.data),
+        { goals: java_entity_goals, attributes: java_entity_attributes, tags }
+    );
     diagnostics.push(
         ...entityTypes.load(
-            [...definitions.entities.values(), ...playerFallback].map((definition) => ({
+            entityFiles.map((definition) => ({
                 pack: definition.pack,
                 path: definition.path,
                 data: withJavaGoals(
-                    withJavaAirSupply(
-                        withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
-                        airSupplies
+                    withJavaGoalArguments(
+                        withJavaAirSupply(
+                            withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
+                            airSupplies
+                        )
                     ),
                     goalRulings
                 )
@@ -472,6 +485,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         bedrockItemTags: item_tags,
         javaEntityAttributes: java_entity_attributes,
         javaEntityNavigation: java_entity_navigation,
+        javaEntityGoals: java_entity_goals,
         javaLootDefinitions,
         bedrockLootDefinitions,
         effectiveTags,

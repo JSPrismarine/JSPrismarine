@@ -2130,7 +2130,9 @@ describe('EntityRuntime', () => {
                 new TestEntityWorld({ dayTime: 2000, random: [0.61, 0.5, 0.5] }),
                 {},
                 {
-                    'minecraft:zombie': {
+                    // A vanilla identifier would run Java's stroll interval (ADR 0019), which this
+                    // test's one-tick interval stands in for.
+                    'jsprismarine:walker': {
                         components: {
                             'minecraft:health': { value: 20, max: 20 },
                             'minecraft:movement': { value: 2 },
@@ -2160,12 +2162,12 @@ describe('EntityRuntime', () => {
             );
             const zombieStart = { ...GROUND, y: GROUND.y + 0.5 };
             const villagerStart = { ...zombieStart, x: 5.5 };
-            const previouslySpawnedZombie = runtime.spawn('minecraft:zombie', zombieStart);
-            if (previouslySpawnedZombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
+            const previouslySpawnedZombie = runtime.spawn('jsprismarine:walker', zombieStart);
+            if (previouslySpawnedZombie === undefined) throw new Error('the fixture declares no jsprismarine:walker');
             const savedZombie = dataEntityRecordOf(previouslySpawnedZombie, undefined);
             runtime.remove(previouslySpawnedZombie.id, 'test restore');
             const zombie = runtime.restore(savedZombie, zombieStart);
-            if (zombie === undefined) throw new Error('the fixture could not restore minecraft:zombie');
+            if (zombie === undefined) throw new Error('the fixture could not restore jsprismarine:walker');
             const villager = runtime.spawn('minecraft:villager_v2', villagerStart);
 
             for (let tick = 1; tick <= 200; tick += 1) runtime.tick(tick);
@@ -2580,7 +2582,8 @@ describe('EntityRuntime', () => {
                 world,
                 {},
                 {
-                    'minecraft:zombie': {
+                    // A vanilla identifier would scan on Java's one-in-five draw (ADR 0019).
+                    'jsprismarine:hunter': {
                         components: {
                             'minecraft:health': { value: 20, max: 20 },
                             'minecraft:movement': { value: 1 },
@@ -2590,7 +2593,7 @@ describe('EntityRuntime', () => {
                             'minecraft:navigation.walk': {},
                             'minecraft:type_family': { family: ['zombie', 'monster', 'mob'] },
                             'minecraft:behavior.nearest_attackable_target': {
-                                // Scans every selector tick, so the test does not wait on Java's one-in-five draw.
+                                // Scans every selector tick, so the test does not wait on a draw.
                                 scan_interval: 0,
                                 priority: 1,
                                 within_radius: 24,
@@ -2602,7 +2605,7 @@ describe('EntityRuntime', () => {
                     }
                 }
             );
-            const zombie = runtime.spawn('minecraft:zombie', GROUND);
+            const zombie = runtime.spawn('jsprismarine:hunter', GROUND);
 
             for (let tick = 1; tick <= 20; tick += 1) runtime.tick(tick);
             expect(zombie?.target).toBeUndefined();

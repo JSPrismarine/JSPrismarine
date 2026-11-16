@@ -46,6 +46,16 @@ export const JAVA_BREEDING_FOOD_TAGS: Readonly<Record<string, string>> = {
     'minecraft:wolf': 'minecraft:wolf_food'
 };
 
+/** The Bedrock items Java items map to, each once, leaving out a Java item Bedrock has no counterpart for. */
+export const bedrockItemsOf = (javaItems: Iterable<string>): readonly string[] => [
+    ...new Set(
+        [...javaItems].flatMap((javaItem) => {
+            const item = javaItemToBedrock(javaItem);
+            return item.kind === 'mapped' || item.kind === 'passthrough' ? [item.bedrock.identifier] : [];
+        })
+    )
+];
+
 /** The Bedrock items that breed each Bedrock entity, by Bedrock identifier. */
 export type BreedingFoods = ReadonlyMap<string, readonly string[]>;
 
@@ -59,11 +69,7 @@ export const javaBreedingFoods = (tags: ContentTags): BreedingFoods => {
     for (const [javaEntity, tag] of Object.entries(JAVA_BREEDING_FOOD_TAGS)) {
         const entity = javaEntityTypeToBedrock(javaEntity);
         if (entity.kind !== 'mapped' || !tags.has('item', tag)) continue;
-        const items = tags.members('item', tag).flatMap((javaItem) => {
-            const item = javaItemToBedrock(javaItem);
-            return item.kind === 'mapped' || item.kind === 'passthrough' ? [item.bedrock.identifier] : [];
-        });
-        foods.set(entity.bedrock, [...new Set(items)]);
+        foods.set(entity.bedrock, bedrockItemsOf(tags.members('item', tag)));
     }
     return foods;
 };
