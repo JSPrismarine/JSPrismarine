@@ -5189,8 +5189,9 @@ export class EntityRuntime implements EntityScene {
      * {@link LIGHTNING_REACH} blocks of it across and {@link LIGHTNING_REACH} plus 6 above, as
      * Java's inflated box does: `Entity.thunderHit` sets it burning for 8 seconds and deals 5
      * lightning damage, which a `minecraft:damage_sensor` reads to turn a pig into a zombified
-     * piglin or power a creeper. The bolt goes once its `life` runs out, after
-     * {@link LIGHTNING_LIFE_TICKS}.
+     * piglin or power a creeper. The 5 lands whatever the sensor says of it, as Java's axolotl and
+     * creeper take it, but for the types in {@link JAVA_THUNDER_HIT_REPLACED}. The bolt goes once
+     * its `life` runs out, after {@link LIGHTNING_LIFE_TICKS}.
      */
     private tickLightning(bolt: DataEntity): void {
         const age = this.lightningAges.get(bolt.id) ?? 0;
@@ -5213,7 +5214,8 @@ export class EntityRuntime implements EntityScene {
             this.hurt(target, bolt.id, 'lightning', LIGHTNING_DAMAGE, {
                 route: 'component',
                 graced: true,
-                mitigated: clientOwnsMovement(target.identifier)
+                mitigated: clientOwnsMovement(target.identifier),
+                measured: !JAVA_THUNDER_HIT_REPLACED.has(target.identifier)
             });
         }
     }
@@ -6357,6 +6359,21 @@ const LIGHTNING_BOLT = 'minecraft:lightning_bolt';
 /** Java's `Entity.thunderHit`: 5 lightning damage, and 8 seconds of fire. */
 const LIGHTNING_DAMAGE = 5;
 const LIGHTNING_FIRE_TICKS = 160;
+
+/**
+ * The types whose Java `thunderHit` override deals no lightning damage of its own and does
+ * something else, which the type's damage sensor carries: `Pig.thunderHit` and
+ * `Villager.thunderHit` convert the mob, `MushroomCow.thunderHit` changes its variant and
+ * `Turtle.thunderHit` kills it. Every other type runs `Entity.thunderHit`'s 5 damage, or an
+ * override that calls it, as `Creeper.thunderHit` does before it powers the creeper.
+ */
+const JAVA_THUNDER_HIT_REPLACED: ReadonlySet<string> = new Set([
+    'minecraft:pig',
+    'minecraft:villager',
+    'minecraft:villager_v2',
+    'minecraft:mooshroom',
+    'minecraft:turtle'
+]);
 
 /** How far Java's `LightningBolt.tick` inflates the bolt's box to find what it strikes. */
 const LIGHTNING_REACH = 3;

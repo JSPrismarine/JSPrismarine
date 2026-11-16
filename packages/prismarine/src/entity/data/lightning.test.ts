@@ -27,6 +27,16 @@ const conductor = {
 
 const plain = { components: { 'minecraft:health': { value: 20, max: 20 } } };
 
+/** A mob whose pack multiplies lightning damage two thousandfold, as the axolotl's and the turtle's does. */
+const fragile = {
+    components: {
+        'minecraft:health': { value: 20, max: 20 },
+        'minecraft:damage_sensor': {
+            triggers: [{ cause: 'lightning', deals_damage: 'yes', damage_multiplier: 2000 }]
+        }
+    }
+};
+
 const ground = (x: number) => ({ x, y: FLOOR_Y + 1, z: 0.5 });
 
 const strike = () => {
@@ -34,15 +44,37 @@ const strike = () => {
     const fixture = entityFixture(
         world,
         {},
-        { 'minecraft:lightning_bolt': bolt, 'test:conductor': conductor, 'test:plain': plain }
+        {
+            'minecraft:lightning_bolt': bolt,
+            'test:conductor': conductor,
+            'minecraft:pig': conductor,
+            'test:plain': plain,
+            'test:fragile': fragile,
+            'minecraft:turtle': fragile
+        }
     );
-    const near = fixture.runtime.spawn('test:plain', ground(2.5));
-    const far = fixture.runtime.spawn('test:plain', ground(10.5));
-    const sensed = fixture.runtime.spawn('test:conductor', ground(-1.5));
-    const lightning = fixture.runtime.spawn('minecraft:lightning_bolt', ground(0.5));
-    if (near === undefined || far === undefined || sensed === undefined || lightning === undefined)
-        throw new Error('the fixture declared the test entities');
-    return { fixture, world, near, far, sensed, lightning };
+    const at = (identifier: string, x: number) => {
+        const spawned = fixture.runtime.spawn(identifier, { ...ground(x), z: x > 0 ? 0.5 : 2.5 });
+        if (spawned === undefined) throw new Error(`the fixture declares ${identifier}`);
+        return spawned;
+    };
+    const near = at('test:plain', 2.5);
+    const far = at('test:plain', 10.5);
+    const sensed = at('test:conductor', -1.5);
+    const pig = at('minecraft:pig', -0.5);
+    const axolotl = at('test:fragile', 1.5);
+    const turtle = at('minecraft:turtle', -2.5);
+    const lightning = at('minecraft:lightning_bolt', 0.5);
+    return { fixture, world, near, far, sensed, pig, axolotl, turtle, lightning };
+};
+
+const runStrike = (ticks: number) => {
+    const struck = strike();
+    for (let tick = 1; tick <= ticks; tick += 1) {
+        struck.world.advance();
+        struck.fixture.runtime.tick(tick);
+    }
+    return struck;
 };
 
 describe('a lightning bolt', () => {
@@ -58,15 +90,24 @@ describe('a lightning bolt', () => {
         expect(far.instance.attributes.get('health')?.current).toBe(20);
     });
 
-    it('reaches a damage sensor that names the lightning family', () => {
-        const { fixture, world, sensed } = strike();
-        for (let tick = 1; tick <= 2; tick += 1) {
-            world.advance();
-            fixture.runtime.tick(tick);
-        }
+    it("reaches a damage sensor that names the lightning family, and still deals Java's 5 as Creeper.thunderHit does", () => {
+        const { sensed } = runStrike(2);
 
         expect(sensed.instance.hasComponent('minecraft:is_charged')).toBe(true);
-        expect(sensed.instance.attributes.get('health')?.current).toBe(20);
+        expect(sensed.instance.attributes.get('health')?.current).toBe(15);
+    });
+
+    it("deals Java's 5 to a type whose pack multiplies lightning damage, as Java's axolotl takes it", () => {
+        expect(runStrike(2).axolotl.instance.attributes.get('health')?.current).toBe(15);
+    });
+
+    it("leaves the damage to the pack for a type whose Java thunderHit replaces it, such as the pig's and the turtle's", () => {
+        const { pig, turtle, world } = runStrike(2);
+
+        expect(pig.instance.hasComponent('minecraft:is_charged')).toBe(true);
+        const pigHealth = pig.instance.attributes.get('health');
+        expect(pigHealth?.current).toBe(pigHealth?.max);
+        expect(world.commits.some((commit) => commit.target.id === turtle.id && commit.died)).toBe(true);
     });
 
     it('strikes nothing when it is visual only, as the skeleton trap calls its bolt', () => {
