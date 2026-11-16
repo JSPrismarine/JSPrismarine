@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Activities, MemoryModuleTypes, entityTracker } from '@jsprismarine/entity-brains';
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { FilterEntityView } from '@jsprismarine/entities';
+import { trustedBy } from '@jsprismarine/entities/components/trust';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import type { ContentEntity } from '../../content/world/adapter';
 
@@ -802,6 +803,40 @@ describe('EntityRuntime', () => {
             runtime.tick(1);
 
             expect(wolf.instance.hasComponent('minecraft:is_tamed')).toBe(true);
+        });
+
+        it('makes a bred newborn with minecraft:trust trust the players who fed its parents', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:fox': {
+                        components: {
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:breedable': { require_tame: false, breed_items: ['sweet_berries'] }
+                        },
+                        component_groups: { trusting: { 'minecraft:trust': {} } },
+                        events: { 'minecraft:entity_born': { add: { component_groups: ['trusting'] } } }
+                    }
+                }
+            );
+            const first = runtime.spawn('jsprismarine:fox', GROUND);
+            const second = runtime.spawn('jsprismarine:fox', GROUND);
+            if (first === undefined || second === undefined) throw new Error('the fixture declares no fox');
+            runtime.interactWithItem(first.id, 42, 'minecraft:sweet_berries');
+            runtime.interactWithItem(second.id, 43, 'minecraft:sweet_berries');
+            const mate = runtime.mobById(second.id);
+            if (mate === undefined) throw new Error('the second fox has no goal view');
+
+            runtime.breedWith(first.body, mate);
+
+            const kit = [...runtime.entities()].find((entity) => entity.id !== first.id && entity.id !== second.id);
+            if (kit === undefined) throw new Error('breeding made no kit');
+            expect(trustedBy(kit.instance)).toEqual(['player-42', 'player-43']);
+            const trusts = kit.instance.filterContext().self.trusts;
+            expect(trusts?.({ id: () => 42 })).toBe(true);
+            expect(trusts?.({ id: () => 44 })).toBe(false);
+            expect(trustedBy(first.instance)).toEqual([]);
         });
 
         it('seats the riders minecraft:addrider names on the vehicle it spawns with', () => {

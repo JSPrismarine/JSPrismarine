@@ -262,6 +262,8 @@ export interface EntityItemInteractionState {
         readonly identifier: string;
         readonly offspringIdentifier: string;
     };
+    /** The Java item tags the used item is in, for the components that follow a Java rule. */
+    readonly javaItemTags?: readonly string[];
 }
 
 /** One status effect request passed across the entity runtime boundary. */

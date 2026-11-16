@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { EntityTypes } from '../entityTypes';
 import type { RandomSource } from '../filterContext';
+import { isBribed, spendBribe } from './bribeable';
 
 /** A definition that tames and trusts on the same item, at Bedrock's rounded 0.33. */
 const definition = (identifier: string) => ({
@@ -67,5 +68,47 @@ describe("Java's taming and trust odds", () => {
         expect(trusts('minecraft:ocelot', 1 / 3 - 0.001)).toBe(true);
         expect(trusts('minecraft:ocelot', 1 / 3 + 0.001)).toBe(false);
         expect(spawnAt('minecraft:ocelot', 0.9).interactWithItemResult('minecraft:stick')).toBe(false);
+    });
+});
+
+describe('minecraft:bribeable', () => {
+    const dolphin = (identifier: string) => {
+        const types = new EntityTypes();
+        types.load([
+            {
+                data: {
+                    format_version: '1.26.50',
+                    'minecraft:entity': {
+                        description: { identifier },
+                        components: { 'minecraft:bribeable': { bribe_items: ['fish', 'salmon'] } }
+                    }
+                },
+                pack: 'vanilla',
+                path: 'entities/dolphin.json'
+            }
+        ]);
+        return types.spawn(identifier);
+    };
+
+    it("takes any item of Java's fishes tag from a vanilla dolphin's player and holds the bribe", () => {
+        const entity = dolphin('minecraft:dolphin');
+        expect(isBribed(entity)).toBe(false);
+
+        const fishes = { javaItemTags: ['minecraft:fishes'] };
+        expect(entity.interactWithItemResult('minecraft:cooked_salmon', undefined, fishes)).toEqual({});
+        expect(isBribed(entity)).toBe(true);
+        // Java eats every fish it is offered, with no cooldown between them.
+        expect(entity.interactWithItemResult('minecraft:pufferfish', undefined, fishes)).toEqual({});
+
+        spendBribe(entity);
+        expect(isBribed(entity)).toBe(false);
+        expect(entity.interactWithItemResult('minecraft:cod', undefined, { javaItemTags: [] })).toBe(false);
+    });
+
+    it('keeps the listed items and the cooldown for a type Java does not have', () => {
+        const entity = dolphin('test:dolphin');
+        expect(entity.interactWithItemResult('minecraft:cooked_salmon')).toBe(false);
+        expect(entity.interactWithItemResult('minecraft:cod')).toEqual({});
+        expect(entity.interactWithItemResult('minecraft:salmon')).toBe(false);
     });
 });

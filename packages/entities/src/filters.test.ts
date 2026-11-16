@@ -159,6 +159,17 @@ describe('evaluateFilter', () => {
         expect(evaluate({ test: 'is_family', subject: 'other', value: 'player' }, context)).toBe(true);
     });
 
+    it("asks the entity whether it trusts the subject, which is Bedrock's trusts", () => {
+        const player: FilterEntityView = { id: () => 'steve', names: () => ['player'] };
+        const fox: FilterEntityView = { trusts: (other) => other.id?.() === 'steve' };
+        // Players trust nobody; a fox that trusts the player answers for the pair.
+        player.trusts = () => false;
+        expect(evaluate({ test: 'trusts', subject: 'other', value: true }, { self: fox, other: player })).toBe(true);
+        expect(
+            evaluate({ test: 'trusts', subject: 'other', value: true }, { self: fox, other: { id: () => 'alex' } })
+        ).toBe(false);
+    });
+
     it('reads the integer subject the 1.26 serializer writes', () => {
         expect(evaluate({ test: 'is_family', subject: 1, value: 'player' }, context)).toBe(true);
     });

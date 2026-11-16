@@ -267,7 +267,8 @@ const readers: ReadonlyMap<string, TestEntry> = new Map<string, TestEntry>([
     ['is_leashed_to', { read: (subject, context) => sameEntity(subject.leashHolder?.(), context.self) }],
     ['is_riding_self', { read: (subject, context) => sameEntity(subject.vehicle?.(), context.self) }],
     ['is_in_same_vehicle', { read: (subject, context) => sameEntity(subject.vehicle?.(), context.self.vehicle?.()) }],
-    ['trusts', { read: (subject, context) => subject.trusts?.(context.self) }],
+    // Bedrock: whether the subject is trusted by the entity, so the entity's own view answers.
+    ['trusts', { read: (subject, context) => context.self.trusts?.(subject) }],
     [
         'is_vehicle_family',
         folds((subject, _context, test) => {

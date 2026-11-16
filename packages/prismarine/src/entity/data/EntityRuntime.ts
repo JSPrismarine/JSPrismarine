@@ -59,6 +59,8 @@ import {
     parseEventTarget
 } from '@jsprismarine/entities';
 import { feedMount, mountTameEvent } from '@jsprismarine/entities/components/tamemount';
+import { addTrusted } from '@jsprismarine/entities/components/trust';
+import { javaItemTagsForBedrock } from '../../content/javaTags';
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
 import {
     admireGoldItem,
@@ -675,6 +677,8 @@ export class EntityRuntime implements EntityScene {
     private readonly fuses = new Map<number, FuseState>();
     /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
     private readonly merchants = new Map<number, Merchant>();
+    /** The player who put each animal in love, Java's `Animal.loveCause`, until it breeds or the entity goes. */
+    private readonly loveCauses = new Map<number, string>();
     /** When each trader last restocked, and how often that day. */
     private readonly restocks = new Map<
         number,
@@ -1689,6 +1693,7 @@ export class EntityRuntime implements EntityScene {
         entity.body.onMove = undefined;
         this.pools.delete(id);
         this.merchants.delete(id);
+        this.loveCauses.delete(id);
         this.restocks.delete(id);
         for (const [key, claimants] of this.poiClaims) {
             claimants.delete(id);
@@ -3900,11 +3905,18 @@ export class EntityRuntime implements EntityScene {
 
         spendLove(self);
         spendLove(other);
-        this.spawn(child.identifier, midpoint(self.position, other.position), {
+        // Java's Fox.FoxBreedGoal.breed: the newborn trusts the players who fed its parents.
+        const causes = [self, other].flatMap((parent) => {
+            const cause = this.loveCauses.get(parent.id);
+            this.loveCauses.delete(parent.id);
+            return cause === undefined ? [] : [cause];
+        });
+        const born = this.spawn(child.identifier, midpoint(self.position, other.position), {
             cause: 'born',
             parents: [self, other],
             ...(child.event === undefined ? {} : { event: child.event })
         });
+        if (born !== undefined) addTrusted(born.instance, causes);
     }
 
     /** Records who tamed an entity. */
@@ -4001,6 +4013,7 @@ export class EntityRuntime implements EntityScene {
             {
                 loveTicks: entity.body.loveTicks,
                 breedCooldown: entity.body.breedCooldown,
+                javaItemTags: javaItemTagsForBedrock(content.tags, itemIdentifier),
                 ...(spawnEgg === undefined ? {} : { spawnEgg })
             }
         );
@@ -4044,7 +4057,11 @@ export class EntityRuntime implements EntityScene {
                 return offspring === undefined ? { accepted: false } : { accepted: true };
             }
             const hasHeldItem = heldItem.count > 0 && heldItem.identifier !== 'minecraft:air';
-            if (breed === true) entity.body.loveTicks = 600;
+            if (breed === true) {
+                entity.body.loveTicks = 600;
+                const cause = this.host.playerIdentityOf?.(owner);
+                if (cause !== undefined) this.loveCauses.set(entity.id, cause);
+            }
             if (tame?.succeeded === true) {
                 this.setOwner(entity.id, owner);
                 entity.body.conditions.add('is_tamed');

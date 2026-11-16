@@ -23,6 +23,7 @@ import type {
     SlotFill
 } from '@jsprismarine/entities';
 
+import { trustedBy } from '@jsprismarine/entities/components/trust';
 import type { MobBody } from './DataEntity';
 import { distance } from './DataEntity';
 import { itemOfDrop } from '../../inventory/persistence';
@@ -124,6 +125,12 @@ export const entityFilterContextOf = (body: MobBody, scene: EntityScene): Filter
 /** One entity as a filter reads it, for the facts the runtime owns. */
 export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEntityView => ({
     id: () => body.id,
+    trusts: (other) => {
+        const id = other.id?.();
+        const identity = typeof id === 'number' ? scene.host.playerIdentityOf?.(id) : undefined;
+        const instance = scene.byId(body.id)?.instance;
+        return identity !== undefined && instance !== undefined && trustedBy(instance).includes(identity);
+    },
     flag: (name) => flagOf(body, scene, name),
     measure: (name) => measureOf(body, scene, name),
     names: (name) => {

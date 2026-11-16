@@ -1,4 +1,5 @@
 import type { EntityPosition, Goal } from '@jsprismarine/entities';
+import { isBribed, spendBribe } from '@jsprismarine/entities/components/bribeable';
 import { buckMount } from '@jsprismarine/entities/components/tamemount';
 import type { Filter } from '@jsprismarine/packs';
 import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
@@ -1512,7 +1513,9 @@ export const investigateSuspiciousLocation = goal<{ readonly speedMultiplier: nu
 /**
  * `minecraft:behavior.find_underwater_treasure`, which the dolphin carries.
  * It swims toward the nearest buried treasure and stops short of it, which is
- * what leads a player there.
+ * what leads a player there. Java's `DolphinSwimToTreasureGoal` runs only
+ * while the dolphin holds a bribe, and spends it when the swim ends; an entity
+ * with no `minecraft:bribeable` swims without one.
  */
 export const findUnderwaterTreasure = goal<{
     readonly speedMultiplier: number;
@@ -1526,13 +1529,22 @@ export const findUnderwaterTreasure = goal<{
         searchRange: numberAt(body, 'search_range', 30),
         stopDistance: numberAt(body, 'stop_distance', 2)
     })),
-    create: (params, support) =>
-        walkTo(support, {
+    create: (params, support) => {
+        const walk = walkTo(support, {
+            canStart: () => isBribed(support.entity) !== false,
             find: () => support.world.poi?.('buried_treasure', params.searchRange),
             speedMultiplier: params.speedMultiplier,
             interval: 0,
             goalRadius: params.stopDistance
-        })
+        });
+        return {
+            ...walk,
+            stop: () => {
+                walk.stop?.();
+                spendBribe(support.entity);
+            }
+        };
+    }
 });
 
 /** What `minecraft:behavior.circle_around_anchor` declares. */

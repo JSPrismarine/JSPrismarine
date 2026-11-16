@@ -6,11 +6,13 @@ import type { EntityHooks } from '../hooks';
 import { goalComponent } from '../goals';
 import { float, lookAtPlayer, randomStroll } from '../goals/reference';
 import { EVENT_TRIGGER_COMPONENTS } from '../triggers';
+import { bribeable } from './bribeable';
 import { dyeable } from './dyeable';
 import { genetics } from './genetics';
 import { home } from './home';
 import { trusting } from './interactions';
 import { tamemount } from './tamemount';
+import { trust } from './trust';
 import { nameable } from './nameable';
 import { dataComponent } from './schemas';
 import { shareables } from './shareables';
@@ -122,7 +124,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:boostable',
     'minecraft:boss',
     'minecraft:break_blocks',
-    'minecraft:bribeable',
     'minecraft:buoyant',
     'minecraft:can_climb',
     'minecraft:can_fly',
@@ -207,7 +208,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:trade_resupply',
     'minecraft:trade_table',
     'minecraft:trail',
-    'minecraft:trust',
     'minecraft:transient',
     'minecraft:underwater_mount_breathing',
     'minecraft:uses_legacy_friction',
@@ -294,6 +294,8 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(tameable);
     register(trusting);
     register(tamemount);
+    register(trust);
+    register(bribeable);
     register(targetNearbySensor);
     register(timer);
     register(transformation);
