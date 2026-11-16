@@ -4,14 +4,26 @@ import { placedEntityOf } from '@jsprismarine/item-behaviors/behaviors/placement
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 import type { ContentEntity, ContentItemDrop } from '@jsprismarine/prismarine/content/world/adapter';
 import type { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
+import { SURVIVAL_REACH, distanceToBody } from '@jsprismarine/prismarine/entity/Combat';
 import { savedWithChunk } from '@jsprismarine/prismarine/entity/data/storeActors';
+import { blockPosTracker } from '@jsprismarine/entity-brains/world';
+import { MemoryModuleTypes } from '@jsprismarine/entity-brains/memory';
 import { TestEntityWorld, spawnDeclared } from '@jsprismarine/prismarine/entity/data/testing';
 import type { FilterEntityView } from '@jsprismarine/entities';
 import { packJson } from '@jsprismarine/loot';
 import type { LootRollRequest } from '@jsprismarine/loot/registry';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
-import { javaFieldStores, javaMemberRefs, javaOperations, pinnedJavaClass } from '../javaClassFile.ts';
+import {
+    javaFieldStores,
+    javaMemberRefs,
+    javaOperations,
+    pinnedJavaClass,
+    pinnedJavaClassFile,
+    pinnedJavaClassNames,
+    pinnedJavaClassesNaming,
+    pinnedJavaConstants
+} from '../javaClassFile.ts';
 import type { JavaClass } from '../javaClassFile.ts';
 import { loadVanillaDatapack, vanillaLootRegistry } from '../javaDatapack.ts';
 import type { VanillaDatapack } from '../javaDatapack.ts';
@@ -946,6 +958,8 @@ const javaLootPickup = (javaId: string): JavaLootPickup => {
     const chain = javaChain(javaId);
     const getter = declaring(chain, 'canPickUpLoot');
     if (getter === 'Allay') return 'never';
+    // SulfurCube.canPickUpLoot is `!hasBodyItem()`, and a fresh cube's body is empty.
+    if (getter === 'SulfurCube') return 'always';
     if (getter !== 'Mob') throw new Error(`${javaId} runs ${String(getter)}.canPickUpLoot, which no rule here reads`);
     for (const javaClass of chain) {
         const setting = pickupSetting(javaClass);
@@ -967,11 +981,12 @@ const javaItemTag = (tag: string): readonly string[] => {
     );
 };
 
-/** What a mob holds where Java's pickup rules look. */
+/** What a mob holds where Java's pickup rules look, and whether it is a baby. */
 interface PickupHolder {
     readonly mainhand: string | undefined;
     readonly offhand: string | undefined;
     readonly head: string | undefined;
+    readonly baby: boolean;
 }
 
 /**
@@ -1008,6 +1023,14 @@ const javaPickupSlot = (
     }
     const holds = declaring(chain, 'canHoldItem');
     if (holds === 'Fox') return holder.mainhand === undefined ? 'mainhand' : undefined;
+    if (holds === 'SulfurCube') {
+        // SulfurCube.canHoldItem and pickUpItem: an adult with an empty body swallows one item of
+        // #sulfur_cube_swallowable into its body slot. Bedrock's cube keeps its block in the main
+        // hand, which its equip_item (can_wear_armor false) routes every pickup to and its client
+        // draws inside the cube, so the server's main hand stands for Java's body slot.
+        const swallowable = javaItemTag('sulfur_cube_swallowable').map(bedrockItemOf).includes(item);
+        return swallowable && holder.mainhand === undefined && !holder.baby ? 'mainhand' : undefined;
+    }
     // Zombie.canHoldItem refuses only an egg for a baby riding something, and
     // WitherSkeleton.canHoldItem the wither_skeleton_disliked_weapons tag; both then ask Mob's.
     if (holds === 'WitherSkeleton' && javaItemTag('wither_skeleton_disliked_weapons').includes(item)) return undefined;
@@ -1031,7 +1054,8 @@ const serverPickup = (
     const holder: PickupHolder = {
         mainhand: equipment.mainhand?.identifier,
         offhand: equipment.offhand?.identifier,
-        head: equipment.head?.identifier
+        head: equipment.head?.identifier,
+        baby: entity.instance.hasComponent('minecraft:is_baby')
     };
     world.host.drop({ x: Math.floor(ORIGIN.x), y: ORIGIN.y, z: Math.floor(ORIGIN.z) }, { identifier: item, count: 1 });
     runTicks(PICKUP_TICKS, () => (world.host.items?.() ?? []).length === 0);
@@ -1049,11 +1073,18 @@ const serverPickup = (
     return { slot, holder };
 };
 
-/** The items a pickup row lays at a fresh mob's feet: a gold ingot, and for a villager what it gathers. */
-const pickupItems = (javaId: string): readonly string[] =>
-    declaring(javaChain(javaId), 'wantsToPickUp') === 'Villager'
-        ? ['minecraft:gold_ingot', bedrockItemOf(javaItemTag('villager_picks_up')[0] ?? 'minecraft:bread')]
-        : ['minecraft:gold_ingot'];
+/**
+ * The items a pickup row lays at a fresh mob's feet: a gold ingot, for a villager what it
+ * gathers, and for a sulfur cube a block it swallows.
+ */
+const pickupItems = (javaId: string): readonly string[] => {
+    const chain = javaChain(javaId);
+    if (declaring(chain, 'wantsToPickUp') === 'Villager')
+        return ['minecraft:gold_ingot', bedrockItemOf(javaItemTag('villager_picks_up')[0] ?? 'minecraft:bread')];
+    if (declaring(chain, 'canHoldItem') === 'SulfurCube')
+        return ['minecraft:gold_ingot', bedrockItemOf(javaItemTag('sulfur_cube_swallowable')[0] ?? 'minecraft:dirt')];
+    return ['minecraft:gold_ingot'];
+};
 
 /**
  * Compares what a fresh mob in a fresh region does with each item laid at its feet, then, for a
@@ -1188,11 +1219,318 @@ const compareDoorRoute = (subject: EntitySubject): string | undefined =>
         const opens = java?.canOpenDoors ?? javaConstructorOpensDoors(subject.javaId);
         const javaRoutes = opens && (java?.pathfindingMalus['walkable_door'] ?? 0) >= 0;
         const server = routesThroughClosedDoor(entity);
-        if (server === javaRoutes) return undefined;
-        return server
-            ? 'the server plans its path through a closed wooden door, which Java never does for it'
-            : "the server will not plan its path through a closed wooden door, which Java's navigator opens";
+        if (server !== javaRoutes)
+            return server
+                ? 'the server plans its path through a closed wooden door, which Java never does for it'
+                : "the server will not plan its path through a closed wooden door, which Java's navigator opens";
+        if (!javaRoutes || entity.brain === undefined) return undefined;
+        // Java's InteractWithDoor, in the core activity of every brain mob whose navigator opens
+        // doors, opens the door on the mob's path.
+        const walk = serverWalksThroughDoor(subject);
+        const differences = [
+            !walk.opened && 'it never opened the closed door on its path, which Java opens',
+            !walk.out && `it did not get out through the door in ${DOOR_WALK_TICKS} ticks`
+        ].filter((difference) => difference !== false);
+        return differences.length === 0 ? undefined : differences.join('; ');
     });
+
+/** What Java's `BreakDoorGoal` does for one type. */
+interface JavaDoorBreaker {
+    /** The difficulties the type's `DOOR_BREAKING_PREDICATE` accepts, such as `hard`. */
+    readonly difficulties: ReadonlySet<string>;
+    /** Whether the goal also needs an active raid, as `Vindicator.VindicatorBreakDoorGoal.canUse` does. */
+    readonly raidOnly: boolean;
+    /**
+     * Game ticks from the goal's start to the break: `BreakDoorGoal.DEFAULT_DOOR_BREAK_TIME`, which
+     * `getDoorBreakTime` never goes below, counted in goal ticks. `Mob.serverAiStep` runs
+     * `GoalSelector.tick` on every other game tick and `tickRunningGoals(false)` between, which
+     * ticks only a goal whose `requiresUpdateEveryTick` is set, and no class of `BreakDoorGoal`'s
+     * sets it, so a goal tick is two game ticks.
+     */
+    readonly ticks: number;
+}
+
+/**
+ * The door breaking of a Java type, read from the pinned jar: the difficulties the static lambda
+ * behind its class's `DOOR_BREAKING_PREDICATE` compares with, whether a `BreakDoorGoal` subclass
+ * nested in that class asks `hasActiveRaid`, and the goal's break time.
+ */
+const javaDoorBreaker = (javaId: string): JavaDoorBreaker => {
+    const ticks = pinnedJavaConstants('net/minecraft/world/entity/ai/goal/BreakDoorGoal').get(
+        'DEFAULT_DOOR_BREAK_TIME'
+    );
+    if (ticks === undefined) throw new Error('BreakDoorGoal holds no DEFAULT_DOOR_BREAK_TIME');
+    const everyTick = javaClassChain('net/minecraft/world/entity/ai/goal/BreakDoorGoal').some(
+        (javaClass) =>
+            simpleName(javaClass) !== 'Goal' &&
+            javaClass.methods.some((method) => method.name === 'requiresUpdateEveryTick')
+    );
+    const gameTicks = everyTick ? ticks : ticks * 2;
+    for (const javaClass of javaChain(javaId)) {
+        const difficulties = new Set(
+            javaClass.methods
+                .filter((method) => method.name.startsWith('lambda$static$'))
+                .flatMap((method) => javaOperations(method))
+                .flatMap((operation) =>
+                    operation.kind === 'field' && operation.target.startsWith('Difficulty.')
+                        ? [operation.target.slice('Difficulty.'.length).toLowerCase()]
+                        : []
+                )
+        );
+        if (difficulties.size === 0) continue;
+        const raidOnly = pinnedJavaClassNames(`${javaClass.name}$`)
+            .filter((name) => name.endsWith('BreakDoorGoal'))
+            .some((name) =>
+                pinnedJavaClassFile(name)?.methods.some(
+                    (method) => method.name === 'canUse' && method.calls.some((call) => call.endsWith('.hasActiveRaid'))
+                )
+            );
+        return { difficulties, raidOnly, ticks: gameTicks };
+    }
+    throw new Error(`no class in ${javaId}'s chain builds a BreakDoorGoal predicate`);
+};
+
+/** Game ticks a door-breaking row watches: Java's 480-tick break and the walk to the door. */
+const DOOR_BREAK_WATCH = 560;
+
+/** What the server did with a closed door between a door breaker and its target. */
+interface ServerDoorBreak {
+    /** The tick, counted from the spawn, the door was gone at, or undefined when it stood. */
+    readonly brokeAt: number | undefined;
+    readonly drops: number;
+    /** Whether the door crash level event was played. */
+    readonly crashed: boolean;
+}
+
+/** The component Bedrock gives a mob while it may break doors. */
+const BREAK_DOOR = 'minecraft:annotation.break_door';
+
+/** Bedrock's door crash level event, which Java numbers 1021. */
+const SOUND_ZOMBIE_DOOR_CRASH = 1012;
+
+/**
+ * Pens a mob whose door-breaking group is active in stone walls whose one way out is a closed oak
+ * door, its target a player outside, and watches the door for {@link DOOR_BREAK_WATCH}
+ * ticks at one difficulty, with `mobGriefing` on or off.
+ */
+const serverDoorBreak = (subject: EntitySubject, difficulty: 'easy' | 'normal' | 'hard', griefing: boolean) => {
+    const { world } = realStack();
+    return inDoorPen(subject, true, (entity, door) => {
+        world.difficulty = difficulty;
+        world.gameRules.set('mobGriefing', griefing);
+        try {
+            const events = world.levelEvents.length;
+            const drops = world.drops.length;
+            activateGroupsDeclaring(entity, subject.bedrock, BREAK_DOOR);
+            entity.body.target = PLAYER_ID;
+            let brokeAt: number | undefined;
+            for (let tick = 1; tick <= DOOR_BREAK_WATCH && brokeAt === undefined; tick += 1) {
+                runTicks(1);
+                if (!isDoorAt(world, door)) brokeAt = tick;
+            }
+            return {
+                brokeAt,
+                drops: world.drops.length - drops,
+                crashed: world.levelEvents.slice(events).some((event) => event.event === SOUND_ZOMBIE_DOOR_CRASH)
+            };
+        } finally {
+            world.difficulty = 'normal';
+            world.gameRules.delete('mobGriefing');
+        }
+    });
+};
+
+/**
+ * Runs `body` with a mob of the type penned in stone walls three blocks across whose east wall
+ * holds a closed oak door, the one way out, and, with `withPlayer`, a player three blocks past the
+ * door, then takes the pen and the mob away.
+ */
+const inDoorPen = <Result>(
+    subject: EntitySubject,
+    withPlayer: boolean,
+    body: (entity: DataEntity, door: ContentEntity['position']) => Result
+): Result => {
+    const { runtime, world } = realStack();
+    const { x, y, z } = DOOR_COURSE;
+    const player: ContentEntity = {
+        id: PLAYER_ID,
+        identifier: 'minecraft:player',
+        position: { x: x + 3.5, y, z: z + 0.5 }
+    };
+    const wall: ContentEntity['position'][] = [];
+    for (let dx = -4; dx <= 0; dx += 1)
+        for (let dz = -2; dz <= 2; dz += 1)
+            for (let dy = 0; dy <= 2; dy += 1)
+                if (dx === -4 || dx === 0 || Math.abs(dz) === 2) wall.push({ x: x + dx, y: y + dy, z: z + dz });
+    return withWorld(withPlayer ? player : undefined, () => {
+        let entity: DataEntity | undefined;
+        try {
+            for (const cell of wall) {
+                const half = cell.x === x && cell.z === z && cell.y < y + 2 ? cell.y - y : undefined;
+                if (half === undefined) world.setBlock(cell, 'minecraft:stone');
+                else world.setBlock(cell, 'minecraft:wooden_door', { ...CLOSED_DOOR, upper_block_bit: half === 1 });
+            }
+            entity = runtime.spawn(subject.bedrock, { x: x - 2.5, y, z: z + 0.5 });
+            if (entity === undefined) throw new Error(`the runtime refused to spawn ${subject.bedrock}`);
+            return body(entity, { x, y, z });
+        } finally {
+            if (entity !== undefined) runtime.remove(entity.id, 'parity scenario cleanup');
+            for (const cell of wall) world.setBlock(cell, 'minecraft:air');
+        }
+    });
+};
+
+/** Ticks a door-opening row gives a mob to walk out of the pen and on past the door. */
+const DOOR_WALK_TICKS = 300;
+
+/**
+ * Sends a brain mob from the door pen to a block eight past the door, as its walk target, and
+ * reports whether it opened the door and got out. Whether it then closes the door depends on how
+ * far it walked while `InteractWithDoor` waited out its 20-tick recheck, which a fast villager
+ * outruns in Java as well, so the row does not ask.
+ */
+const serverWalksThroughDoor = (subject: EntitySubject) =>
+    inDoorPen(subject, false, (entity, door) => {
+        const { world } = realStack();
+        const brain = entity.brain;
+        if (brain === undefined) throw new Error(`${subject.bedrock} runs no brain`);
+        const outside = { x: door.x + 8, y: door.y, z: door.z };
+        // The pen writes `open_bit` as a boolean, and a door keeps the type it was written with.
+        const isOpen = (): boolean => world.world.blocks.get(door)?.states['open_bit'] === true;
+        let opened = false;
+        let out = false;
+        for (let tick = 0; tick < DOOR_WALK_TICKS && !out; tick += 1) {
+            brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
+                target: blockPosTracker(outside),
+                speedModifier: 0.6,
+                closeEnoughDist: 0
+            });
+            runTicks(1);
+            opened ||= isOpen();
+            out = entity.position.x > door.x + 1.5;
+        }
+        return { opened, out };
+    });
+
+/** The states of a closed oak door half, upright and hinged on the left. */
+const CLOSED_DOOR = { open_bit: false, 'minecraft:cardinal_direction': 'south', door_hinge_bit: false } as const;
+
+/** Whether a door half still stands at a position of the test world. */
+const isDoorAt = (world: TestEntityWorld, at: ContentEntity['position']): boolean =>
+    world.world.blocks.get(at)?.identifier === 'minecraft:wooden_door';
+
+/**
+ * Compares what a door breaker does with a closed wooden door in its way with Java's
+ * `BreakDoorGoal`: on a difficulty its predicate accepts it breaks the door 240 goal ticks after
+ * it starts beating on it, dropping nothing; below that difficulty, or with `mobGriefing` off, the
+ * door stands. A type whose goal needs a raid spawns unable to break doors.
+ */
+const compareDoorBreaking = (subject: EntitySubject): string | undefined => {
+    const java = javaDoorBreaker(subject.javaId);
+    const lowest = (['easy', 'normal', 'hard'] as const).find((difficulty) => java.difficulties.has(difficulty));
+    if (lowest === undefined) return `Java's predicate accepts no difficulty for ${subject.javaId}`;
+    const below = lowest === 'hard' ? 'normal' : 'easy';
+    const differences: string[] = [];
+    const breaks = serverDoorBreak(subject, lowest, true);
+    if (breaks.brokeAt === undefined)
+        differences.push(
+            `it left the door standing for ${DOOR_BREAK_WATCH} ticks on ${lowest}, where Java breaks it after ${java.ticks}`
+        );
+    else if (breaks.brokeAt < java.ticks)
+        differences.push(`it broke the door ${breaks.brokeAt} ticks after it spawned, before Java's ${java.ticks}`);
+    if (breaks.brokeAt !== undefined && breaks.drops > 0)
+        differences.push(`the broken door dropped ${breaks.drops} stacks, where Java's drops nothing`);
+    if (breaks.brokeAt !== undefined && !breaks.crashed)
+        differences.push('the door broke without the door crash level event Java plays');
+    if (serverDoorBreak(subject, below, true).brokeAt !== undefined)
+        differences.push(`it broke the door on ${below}, which Java's predicate refuses`);
+    if (serverDoorBreak(subject, lowest, false).brokeAt !== undefined)
+        differences.push('it broke the door with mobGriefing off, which Java refuses');
+    if (java.raidOnly && withWorld(undefined, () => spawn(subject.bedrock).instance.hasComponent(BREAK_DOOR)))
+        differences.push('it spawns able to break doors outside a raid, which Java only lets it do in one');
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
+/** One method of the pinned jar, as `Owner.name` with its descriptor. */
+interface JavaMethodRef {
+    readonly owner: string;
+    readonly name: string;
+    readonly descriptor: string;
+}
+
+/** Every method of the jar whose code calls a method, found through the classes that name it. */
+const javaCallersOf = (callee: string, matches: (member: string, descriptor: string | undefined) => boolean) =>
+    pinnedJavaClassesNaming(callee).flatMap((javaClass) =>
+        javaClass.methods
+            .filter((method) =>
+                method.instructions.some(
+                    (instruction) =>
+                        instruction.member !== undefined && matches(instruction.member, instruction.descriptor)
+                )
+            )
+            .map((method): JavaMethodRef => ({
+                owner: javaClass.name,
+                name: method.name,
+                descriptor: method.descriptor
+            }))
+    );
+
+let pickedFromInsideReaders: readonly string[] | undefined;
+
+/**
+ * The server-side code that reads `Entity.canBePickedFromInside`, Java's rule for whether a
+ * crosshair inside an entity's box picks it: each method of the server jar that calls it, then the
+ * methods that call those. In the 26.3 jar the one reader is the `ProjectileUtil.getEntityHitResult`
+ * overload with a `double` range, and nothing in the server jar calls that overload: its caller is
+ * the client's `GameRenderer.pick`, so the rule never reaches a server.
+ * @returns The server entry points that reach the flag, as `Owner.name`; none for a client rule.
+ */
+const javaServerPickedFromInsideReaders = (): readonly string[] => {
+    if (pickedFromInsideReaders !== undefined) return pickedFromInsideReaders;
+    const readers = javaCallersOf('canBePickedFromInside', (member) => member.endsWith('.canBePickedFromInside'));
+    if (readers.length === 0) throw new Error('no class of the jar calls Entity.canBePickedFromInside');
+    pickedFromInsideReaders = readers.flatMap((reader) =>
+        javaCallersOf(
+            reader.name,
+            (member, descriptor) => member === `${reader.owner}.${reader.name}` && descriptor === reader.descriptor
+        ).map((caller) => `${caller.owner.slice(caller.owner.lastIndexOf('/') + 1)}.${caller.name}`)
+    );
+    return pickedFromInsideReaders;
+};
+
+/** The client decision a `not_pickable_from_inside` row reports, which `classify` files under category 2. */
+const CLIENT_PICKING =
+    "Java decides it only in the client: Entity.canBePickedFromInside is read by ProjectileUtil.getEntityHitResult(Entity, Vec3, Vec3, AABB, Predicate, double), which no class of the pinned 26.3 server jar calls (the client's GameRenderer.pick does), and the server takes a blow from a player standing inside the box at reach 0 either way";
+
+/**
+ * Checks that a mob's `minecraft:not_pickable_from_inside` is a client rule on both sides: no Java
+ * server code reaches `canBePickedFromInside`, and the server's attack reach, `Combat.distanceToBody`
+ * against `SURVIVAL_REACH`, takes a blow from a player standing inside the mob's box while the
+ * component is active.
+ */
+const compareNotPickableFromInside = (subject: EntitySubject): string => {
+    const readers = javaServerPickedFromInsideReaders();
+    if (readers.length > 0) return `Java's server reads canBePickedFromInside through ${readers.join(', ')}`;
+    return withWorld(undefined, () => {
+        const entity = spawn(subject.bedrock);
+        activateGroupsDeclaring(entity, subject.bedrock, 'minecraft:not_pickable_from_inside');
+        if (!entity.instance.hasComponent('minecraft:not_pickable_from_inside'))
+            return 'no group that declares minecraft:not_pickable_from_inside stays active on it';
+        runTicks(1);
+        const at = entity.position;
+        const point = (x: number, y: number, z: number) => ({ getX: () => x, getY: () => y, getZ: () => z });
+        const body = {
+            getPosition: () => point(at.x, at.y, at.z),
+            getBox: () => entity.facts.box,
+            getFeetY: () => at.y
+        };
+        // A player's eyes in the middle of the box, as one standing inside a sulfur cube has them.
+        const reach = distanceToBody(point(at.x, at.y + entity.facts.box.height / 2, at.z), body);
+        return reach > SURVIVAL_REACH
+            ? `the server refuses a blow from inside its box, measuring ${reach} blocks`
+            : CLIENT_PICKING;
+    });
+};
 
 /** The scenarios this module adds to `ENTITY_SCENARIO_GROUPS`. */
 export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
@@ -1428,16 +1766,14 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'picks-up-loot',
-        java: "A mob picks up an item at its feet only when Java's canPickUpLoot and wantsToPickUp allow it, and wears or holds it where Java puts it: a fresh zombie or skeleton in a fresh region picks up nothing, a piglin takes gold, a villager what it gathers.",
+        java: "A mob picks up an item at its feet only when Java's canPickUpLoot and wantsToPickUp allow it, and wears or holds it where Java puts it: a fresh zombie or skeleton in a fresh region picks up nothing, a piglin takes gold, a villager what it gathers, a sulfur cube swallows a block.",
         reference:
-            'Java Mob.aiStep (canPickUpLoot, wantsToPickUp, pickUpItem), Zombie.finalizeSpawn and AbstractSkeleton.finalizeSpawn (nextFloat() < 0.55F * getSpecialMultiplier()), the setCanPickUpLoot(true) of Fox, AbstractPiglin and Villager, PiglinAi.wantsToPickup, Villager.wantsToPickUp (villager_picks_up), Fox.canHoldItem and Mob.equipItemIfPossible; issue #3179',
+            'Java Mob.aiStep (canPickUpLoot, wantsToPickUp, pickUpItem, ITEM_PICKUP_REACH), SulfurCube.canPickUpLoot, canHoldItem and pickUpItem (#sulfur_cube_swallowable), Zombie.finalizeSpawn and AbstractSkeleton.finalizeSpawn (nextFloat() < 0.55F * getSpecialMultiplier()), the setCanPickUpLoot(true) of Fox, AbstractPiglin and Villager, PiglinAi.wantsToPickup, Villager.wantsToPickUp (villager_picks_up), Fox.canHoldItem and Mob.equipItemIfPossible; issue #3179',
         subjects: () => {
             const seen = new Set<string>();
             return [...entitiesDeclaring('minecraft:shareables'), ...entitiesDeclaring('minecraft:equip_item')].filter(
                 (subject) => {
-                    // The sulfur cube swallows what it picks up into its body (SulfurCube.canHoldItem
-                    // and pickUpItem), a rule no row here reads.
-                    if (subject.javaId === 'minecraft:sulfur_cube' || seen.has(subject.javaId)) return false;
+                    if (seen.has(subject.javaId)) return false;
                     seen.add(subject.javaId);
                     return true;
                 }
@@ -1462,12 +1798,39 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'opens-doors',
-        java: "A mob that opens doors plans its path through a closed wooden door in a wall, as Java's WalkNodeEvaluator does for a navigator that can open doors.",
+        java: "A mob that opens doors plans its path through a closed wooden door in a wall, as Java's WalkNodeEvaluator does for a navigator that can open doors, and a brain mob opens the door on its path and walks through.",
         reference:
-            'Java GroundPathNavigation.setCanOpenDoors (Villager, AbstractPiglin), WalkNodeEvaluator.getPathTypeFromState (DOOR_WOOD_CLOSED, WALKABLE_DOOR), per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json',
+            'Java GroundPathNavigation.setCanOpenDoors (Villager, AbstractPiglin), WalkNodeEvaluator.getPathTypeFromState (DOOR_WOOD_CLOSED, WALKABLE_DOOR), per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json, and InteractWithDoor (MOB_INTERACTABLE_DOORS, closeDoorsThatIHaveOpenedOrPassedThrough); issue #3180',
         subjects: () => entitiesDeclaring('minecraft:annotation.open_door'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:annotation.open_door'],
         run: compareDoorRoute
+    },
+    {
+        name: 'breaks-doors',
+        java: 'A mob that breaks doors beats on a closed wooden door that blocks its path to its target and breaks it, both halves and no drops, 240 goal ticks (480 game ticks) after it starts, on a difficulty its Java predicate accepts (hard for a zombie, normal for a vindicator in a raid), and never below it or with mobGriefing off.',
+        reference:
+            'Java BreakDoorGoal (DEFAULT_DOOR_BREAK_TIME, no requiresUpdateEveryTick, which Mob.serverAiStep ticks every other game tick; canUse with MOB_GRIEFING, tick with removeBlock and level events 1021 and 2001), DoorInteractGoal.canUse (horizontalCollision, the next path nodes), Zombie.DOOR_BREAKING_PREDICATE and setCanBreakDoors, Vindicator.DOOR_BREAKING_PREDICATE and VindicatorBreakDoorGoal.canUse (hasActiveRaid); issue #3180',
+        subjects: () => entitiesDeclaring(BREAK_DOOR),
+        idOf: (subject) => subject.javaId,
+        aspects: () => [BREAK_DOOR],
+        run: compareDoorBreaking
+    },
+    {
+        name: 'not-pickable-from-inside',
+        java: "Whether a crosshair inside a mob's box picks it is the client's decision; the server takes a blow from a player standing inside the box either way.",
+        reference:
+            'Java Entity.canBePickedFromInside and SulfurCube.canBePickedFromInside (!hasBodyItem), read only by ProjectileUtil.getEntityHitResult(..., double), whose caller is the client GameRenderer.pick; ServerGamePacketListenerImpl.handleInteract measures reach to the bounding box',
+        subjects: () => entitiesDeclaring('minecraft:not_pickable_from_inside'),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:not_pickable_from_inside'],
+        classify: (_subject, difference) =>
+            difference === CLIENT_PICKING
+                ? {
+                      kind: 'intentional',
+                      reason: `Input handling (category 2 of docs/data-driven/parity.md): which entity a crosshair inside a box picks follows the player's device, not the server. ${difference}.`
+                  }
+                : undefined,
+        run: compareNotPickableFromInside
     }
 ];

@@ -451,6 +451,30 @@ export const pinnedJavaClassFile = (className: string): JavaClass | undefined =>
 };
 
 /**
+ * Every class of the pinned Java server jar under `net/minecraft/` whose constant pool names
+ * `text`, such as a method name, parsed. Any class that calls or overrides a method names it there,
+ * so this finds every caller without parsing the rest of the jar.
+ *
+ * @param text - The name to look for, such as `canBePickedFromInside`.
+ * @throws {Error} When the jar is not in the fetch cache.
+ */
+export const pinnedJavaClassesNaming = (text: string): readonly JavaClass[] => {
+    const jarPath = REFERENCES.javaServerJar.locate();
+    if (jarPath === undefined) throw new Error('the pinned Java server jar is not in the fetch cache');
+    const version = basename(dirname(jarPath)) || 'unknown';
+    const needle = Buffer.from(text, 'utf-8');
+    return pinnedJavaClassNames('net/minecraft/').flatMap((name) => {
+        const cached = join(FETCH_CACHE, 'java-classes', version, ...`${name}.class`.split('/'));
+        const bytes = existsSync(cached)
+            ? readFileSync(cached)
+            : (inflatedJar ??= readServerJar(jarPath)).get(`${name}.class`);
+        if (bytes === undefined || Buffer.from(bytes).indexOf(needle) < 0) return [];
+        const parsed = pinnedJavaClassFile(name);
+        return parsed === undefined ? [] : [parsed];
+    });
+};
+
+/**
  * The methods of one class in the pinned Java server jar.
  *
  * @param className - The class's binary name, such as
