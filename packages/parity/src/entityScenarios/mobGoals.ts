@@ -672,49 +672,94 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }),
     goalScenario({
         goals: ['summon_entity'],
-        java: 'An evoker with a target summons three vexes, then casts fangs: thirteen in two rings when the target is within 3 blocks, sixteen in a line otherwise.',
+        java: 'An evoker with a target summons three vexes it owns, then casts fangs: five in a ring 1.5 blocks out and eight 2.5 blocks out when the target is within 3 blocks, sixteen in a line toward it, 1.25 blocks apart, otherwise.',
         reference:
-            'Java Evoker.EvokerSummonSpellGoal (3 vexes, priority 4) and Evoker.EvokerAttackSpellGoal (5 + 8 fangs within distanceToSqr 9, otherwise 16 in a line)',
+            'Java Evoker.EvokerSummonSpellGoal (priority 4, 3 vexes with setOwner) and Evoker.EvokerAttackSpellGoal (priority 5; distanceToSqr < 9: 5 fangs at 1.5 and 8 at 2.5, otherwise 16 at 1.25 * (i + 1) along the heading)',
         run: (subject) =>
-            probeGoals(subject, ['summon_entity'], {}, (probe) => {
-                const player = probe.player(8, 0, 0);
-                probe.entity.target = player;
-                probe.tick(300);
-                const vexes = probe.runtime.countOfType('minecraft:vex', probe.at(0, 0, 0), 16);
-                const fangs = probe.runtime.countOfType('minecraft:evocation_fang', probe.at(0, 0, 0), 20);
-                for (const other of probe.runtime.near(probe.at(0, 0, 0), 24))
-                    if (other.id !== probe.entity.id) probe.runtime.remove(other.id, 'parity probe');
-                return differences([
-                    vexes !== 3 && `it summoned ${vexes} vexes, where Java's first spell summons 3`,
-                    fangs === 0 && 'it cast no fangs at a target 8 blocks away'
-                ]);
-            })
+            differences(
+                [8, 2].map((away) =>
+                    probeGoals(subject, ['summon_entity'], {}, (probe) => {
+                        const player = probe.player(away, 0, 0);
+                        probe.entity.target = player;
+                        const origin = probe.at(0, 0, 0);
+                        const vexes = new Map<number, number | undefined>();
+                        const casts: { tick: number; fangs: { x: number; z: number }[] }[] = [];
+                        const seen = new Set<number>();
+                        for (let tick = 0; tick < 300; tick += 1) {
+                            probe.tick();
+                            for (const other of probe.runtime.near(origin, 24)) {
+                                if (seen.has(other.id)) continue;
+                                seen.add(other.id);
+                                if (other.identifier === 'minecraft:vex') vexes.set(other.id, other.body.owner);
+                                if (other.identifier !== 'minecraft:evocation_fang') continue;
+                                const at = { x: other.position.x - origin.x, z: other.position.z - origin.z };
+                                const last = casts.at(-1);
+                                if (last !== undefined && last.tick === tick) last.fangs.push(at);
+                                else casts.push({ tick, fangs: [at] });
+                            }
+                        }
+                        for (const other of probe.runtime.near(origin, 32))
+                            if (other.id !== probe.entity.id) probe.runtime.remove(other.id, 'parity probe');
+                        const owned = [...vexes.values()].filter((owner) => owner === probe.entity.id).length;
+                        const first = casts[0]?.fangs ?? [];
+                        const radii = first.map((fang) => Math.hypot(fang.x, fang.z)).sort((a, b) => a - b);
+                        const shape =
+                            away <= 3
+                                ? radii.filter((radius) => Math.abs(radius - 1.5) < 0.05).length === 5 &&
+                                  radii.filter((radius) => Math.abs(radius - 2.5) < 0.05).length === 8
+                                : first.length === 16 &&
+                                  radii.every((radius, index) => Math.abs(radius - 1.25 * (index + 1)) < 0.05) &&
+                                  first.every((fang) => Math.abs(fang.z) < 0.05 && fang.x > 0);
+                        return differences([
+                            (vexes.size !== 3 || owned !== 3) &&
+                                `with a target ${away} blocks away it summoned ${vexes.size} vexes, ${owned} of them its own, where Java's first spell summons 3 it owns`,
+                            first.length === 0 && `it cast no fangs at a target ${away} blocks away`,
+                            first.length > 0 &&
+                                !shape &&
+                                `its first fangs at a target ${away} blocks away were ${first.length} at ${radii.map((radius) => radius.toFixed(2)).join(', ')} blocks out, where Java casts ${away <= 3 ? '5 at 1.5 and 8 at 2.5' : '16 in a line toward the target, 1.25 apart'}`
+                        ]);
+                    })
+                )
+            )
     }),
     goalScenario({
         goals: ['send_event'],
-        java: 'An evoker with no target turns a blue sheep within 16 blocks red.',
-        reference: 'Java Evoker.EvokerWololoSpellGoal (blue sheep within 16, setColor(DyeColor.RED))',
+        java: 'An evoker with no target turns a blue sheep within 16 blocks red, and one with a target casts no wololo.',
+        reference:
+            'Java Evoker.EvokerWololoSpellGoal (canUse needs no target and mobGriefing; blue sheep within 16; performSpellCasting setColor(DyeColor.RED))',
         run: (subject) =>
-            probeGoals(subject, ['send_event'], {}, (probe) => {
-                const sheep = probe.spawn('minecraft:sheep', 5, 0, 0);
-                sheep.instance.restoreComponentGroups([
-                    ...sheep.instance
-                        .activeComponentGroups()
-                        .filter(
-                            (group: string) =>
-                                !group.startsWith('minecraft:sheep_') ||
-                                group === 'minecraft:sheep_adult' ||
-                                group === 'minecraft:sheep_dyeable'
-                        ),
-                    'minecraft:sheep_blue'
-                ]);
-                for (const name of sheep.instance.goals.names()) sheep.instance.goals.remove(name);
-                const turned = probe.until(
-                    () => sheep.instance.activeComponentGroups().includes('minecraft:sheep_red'),
-                    300
-                );
-                return turned === undefined ? 'the blue sheep was not turned red within 300 ticks' : undefined;
-            })
+            differences(
+                [false, true].map((targeted) =>
+                    probeGoals(subject, ['send_event'], {}, (probe) => {
+                        const sheep = probe.spawn('minecraft:sheep', 5, 0, 0);
+                        sheep.instance.restoreComponentGroups([
+                            ...sheep.instance
+                                .activeComponentGroups()
+                                .filter(
+                                    (group: string) =>
+                                        !group.startsWith('minecraft:sheep_') ||
+                                        group === 'minecraft:sheep_adult' ||
+                                        group === 'minecraft:sheep_dyeable'
+                                ),
+                            'minecraft:sheep_blue'
+                        ]);
+                        for (const name of sheep.instance.goals.names()) sheep.instance.goals.remove(name);
+                        if (targeted) probe.entity.target = probe.player(10, 0, 0);
+                        const color = (): unknown => sheep.instance.componentParams('minecraft:color');
+                        const blue = color();
+                        const turned = probe.until(() => color() !== blue, 300);
+                        if (targeted)
+                            return turned === undefined
+                                ? undefined
+                                : 'an evoker with a target cast wololo, which Java casts only with none';
+                        return turned === undefined
+                            ? 'the blue sheep was not turned red within 300 ticks'
+                            : color() === 14
+                              ? undefined
+                              : `the blue sheep turned color ${String(color())}, not red (14)`;
+                    })
+                )
+            )
     }),
     goalScenario({
         goals: ['look_at_entity'],
