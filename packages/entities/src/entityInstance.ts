@@ -1240,7 +1240,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         return {
             id: () => outer.id?.() ?? this.identity,
             flag: (name: EntityFlag) => this.ownFlag(name) ?? outer.flag?.(name),
-            measure: (name: EntityMeasure) => this.ownMeasure(name) ?? outer.measure?.(name),
+            measure: (name: EntityMeasure) =>
+                // A host that seats riders itself counts them where the instance's own seats do not.
+                name === 'rider_count'
+                    ? Math.max(this.seated.length, outer.measure?.(name) ?? 0)
+                    : (this.ownMeasure(name) ?? outer.measure?.(name)),
             names: (name: EntityNameSet) => this.ownNames(name) ?? outer.names?.(name),
             property: (name: string) => this.properties.get(name),
             hasProperty: (name: string) => this.properties.has(name),

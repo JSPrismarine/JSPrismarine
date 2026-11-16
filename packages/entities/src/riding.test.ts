@@ -101,6 +101,19 @@ describe('minecraft:rideable', () => {
         expect(player.filterContext().self.vehicle?.()?.names?.('is_family')).toEqual(['horse', 'mob']);
     });
 
+    it('counts the riders a host seats itself, where the instance holds none in its own seats', () => {
+        const types = new EntityTypes();
+        types.load([{ data: horse, pack: 'vanilla', path: 'entities/horse.json' }]);
+        const mount = types.spawn('test:horse', {
+            environment: {
+                filterContext: () => ({ self: { measure: (name) => (name === 'rider_count' ? 2 : undefined) } })
+            }
+        });
+
+        expect(mount.riders).toEqual([]);
+        expect(mount.filterContext().self.measure?.('rider_count')).toBe(2);
+    });
+
     it('turns away a rider of a family the component does not list', () => {
         const spawn = world(horse, rider('test:pig', 'pig'));
         const mount = spawn('test:horse');
