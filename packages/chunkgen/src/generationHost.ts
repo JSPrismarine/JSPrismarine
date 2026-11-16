@@ -13,6 +13,7 @@ import type { GenerationPriority, GenerationTask } from './GenerationPool';
 import type { HostCommand, HostEvent, HostPoolOptions } from './hostProtocol';
 import { decodeShared } from './hostProtocol';
 import { decodeReusable, REUSABLE_CAPACITY, ReusableCache } from './reusableInput';
+import type { ReusableSlot } from './reusableInput';
 
 const send = (event: HostEvent): void => {
     process.send?.(event);
@@ -33,7 +34,12 @@ const start = (options: HostPoolOptions): void => {
     send({ type: 'ready' });
 };
 
-const run = (id: number, sent: GenerationTask, priority: GenerationPriority, reusable: boolean): void => {
+const run = (
+    id: number,
+    sent: GenerationTask,
+    priority: GenerationPriority,
+    reusable: readonly ReusableSlot[] | undefined
+): void => {
     const current = pool;
     if (current === undefined) {
         send({ type: 'result', id, ok: false, error: { name: 'Error', message: 'The generation host has no pool' } });
@@ -41,12 +47,11 @@ const run = (id: number, sent: GenerationTask, priority: GenerationPriority, reu
     }
 
     // Decoded as it arrives, before anything can be canceled, so the values kept are the ones the
-    // server's record says were sent, in the order it sent them. Only an input the server encoded
-    // is decoded, since an ordinary input may hold objects shaped like the wire forms.
+    // server's record says were sent, in the order it sent them.
     let task = sent;
-    if (reusable) {
+    if (reusable !== undefined) {
         try {
-            task = { ...sent, input: decodeReusable(sent.input, kept) };
+            task = { ...sent, input: decodeReusable(sent.input, reusable, kept) };
         } catch (error) {
             const thrown = error instanceof Error ? error : new Error(String(error));
             send({ type: 'result', id, ok: false, error: { name: thrown.name, message: thrown.message } });
@@ -93,7 +98,7 @@ process.on('message', (command: HostCommand) => {
             start(command.options);
             break;
         case 'run':
-            run(command.id, command.task, command.priority, command.reusable === true);
+            run(command.id, command.task, command.priority, command.reusable);
             break;
         case 'cancel': {
             const ids = new Set(command.ids);

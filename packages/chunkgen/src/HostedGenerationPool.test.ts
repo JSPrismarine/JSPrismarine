@@ -132,17 +132,21 @@ describe('HostedGenerationPool', () => {
     it('passes an ordinary input shaped like the reusable wire forms through untouched', async () => {
         const hosted = track(new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
         const local = track(new GenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
-        // A host that decoded this would answer a miss for `nothing` and be sent the task again.
-        const task = {
+        // A host that read these as protocol would answer a miss for `nothing` and be sent the task
+        // again, alone or beside a real marker.
+        const ordinary = { put: { __reusablePut: 'x', value: 9 }, ref: { __reusableRef: 'nothing' } };
+        const task = (value: unknown) => ({
             status: 'terrain' as const,
             chunkX: 1,
             chunkZ: 0,
             dimension: 0,
-            input: { value: 6, put: { __reusablePut: 'x', value: 9 }, ref: { __reusableRef: 'nothing' } }
-        };
+            input: { value, ...ordinary }
+        });
 
-        expect(bytesOf(await hosted.run(task))).toEqual(bytesOf(await local.run(task)));
-        expect(bytesOf(await hosted.run(task))[3]).toBe(6);
+        expect(bytesOf(await hosted.run(task(6)))).toEqual(bytesOf(await local.run(task(6))));
+        const mixed = task(reusableInput('six', 6));
+        expect(bytesOf(await hosted.run(mixed))).toEqual(bytesOf(await local.run(mixed)));
+        expect(bytesOf(await hosted.run(mixed))[3]).toBe(6);
     }, 60_000);
 
     it('runs a task submitted during a restart once on the replacement', async () => {
