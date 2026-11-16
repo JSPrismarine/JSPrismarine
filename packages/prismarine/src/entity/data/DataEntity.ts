@@ -990,17 +990,26 @@ export class MobBody {
             }
         }
 
-        // A walker whose move control turns by a limited step faces the waypoint first and walks
+        // A mob whose move control turns by a limited step faces the waypoint first and moves
         // along the heading it reached, which is the waypoint itself unless the turn was too wide.
-        const steered = options?.maxTurn !== undefined && !options.allowVertical;
-        if (steered) this.faceToward(destination, options.maxTurn);
-        const yaw = (this.yaw * Math.PI) / 180;
+        // The climb or dive keeps aiming at the waypoint, as Java's flying and swimming controls
+        // set the vertical speed apart from the heading.
+        const steered = options?.maxTurn !== undefined;
+        if (options?.maxTurn !== undefined) {
+            if (options.allowVertical) {
+                const before = this.yaw;
+                this.lookAt(destination);
+                this.yaw = turnToward(before, this.yaw, options.maxTurn);
+            } else this.faceToward(destination, options.maxTurn);
+        }
         const scale = Math.min(stride, remaining) / remaining;
+        const yaw = (this.yaw * Math.PI) / 180;
+        const across = horizontalDistance(this.position, destination) * scale;
         const proposed = steered
             ? {
-                  x: this.position.x - Math.sin(yaw) * Math.min(stride, remaining),
-                  y: this.position.y,
-                  z: this.position.z + Math.cos(yaw) * Math.min(stride, remaining)
+                  x: this.position.x - Math.sin(yaw) * across,
+                  y: this.position.y + (target.y - this.position.y) * scale,
+                  z: this.position.z + Math.cos(yaw) * across
               }
             : {
                   x: this.position.x + (destination.x - this.position.x) * scale,
@@ -1029,11 +1038,9 @@ export class MobBody {
         }
         // A walker on land turns toward its waypoint, which lies at its feet, and keeps the pitch
         // its goal's look gave it: looking at the waypoint aimed it at the ground beside it.
-        if (options === undefined || options.allowVertical) {
-            const before = this.yaw;
-            this.lookAt(destination);
-            if (options?.maxTurn !== undefined) this.yaw = turnToward(before, this.yaw, options.maxTurn);
-        } else if (!steered) this.faceToward(destination);
+        if (steered) return;
+        if (options === undefined || options.allowVertical) this.lookAt(destination);
+        else this.faceToward(destination);
     }
 }
 
