@@ -66,6 +66,7 @@ import { javaItemTagsForBedrock } from '../../content/javaTags';
 import { itemMatchesName } from '@jsprismarine/entities/itemNames';
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
 import { isLovedItem, PIGLIN, wantsToPickUp as wantsToPickUpAsPiglin } from '@jsprismarine/entity-brains/mobs/piglin';
+import { wardenHearsVibration } from '@jsprismarine/entity-brains/mobs/warden';
 
 import { containerSignal } from '@jsprismarine/block-behaviors/rules/container';
 import {
@@ -182,7 +183,7 @@ import { brainMobFor } from './brainIdentifiers';
 import type { CopperGolemStatueHost } from './copperGolemStatue';
 import { isCopperGolem, tickCopperGolemStatue } from './copperGolemStatue';
 
-import { brainItemOf, brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
+import { brainEntityById, brainItemOf, brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { flatInventoryRoom, inPickupReach, pickupQueryRadius, villagerWants } from './lootPickup';
 import type { LootPickupRule } from './lootPickup';
 import { entityFilterContextOf } from './filterView';
@@ -283,8 +284,9 @@ import { cushions } from '../playerFall';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
+import { playerAbilityNames } from '../playerAbilities';
 import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
-import type { Gametype } from '@jsprismarine/minecraft';
+import { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerMining } from '../playerComponents';
 import type { PlayerShownForm } from '../playerShown';
 import { cancelMeal } from '../playerMeal';
@@ -2451,6 +2453,34 @@ export class EntityRuntime implements EntityScene {
         if (definition.ticksBrain?.(context) === false) return;
         definition.updateActivity(context);
         brain.tick(context);
+        this.syncBrainTarget(entity);
+    }
+
+    /**
+     * Reports a brain mob's `ATTACK_TARGET` as its target, for a type whose Java class answers
+     * `Mob.getTarget` from its brain (`getTargetFromBrain`).
+     */
+    private syncBrainTarget(entity: DataEntity): void {
+        if (entity.brain === undefined || entity.brainMob?.targetFromBrain !== true) return;
+        const target = entity.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET);
+        entity.body.target = target === undefined ? undefined : Number(target.id);
+    }
+
+    /**
+     * Tells a brain mob a blow from a living attacker landed, Java's brain side of
+     * `<Mob>.hurtServer`. A blow is direct when nothing came between, no projectile.
+     */
+    private brainWasHurt(entity: DataEntity, intent: DamageIntent): void {
+        const definition = entity.brainMob;
+        if (entity.brain === undefined || definition?.wasHurtBy === undefined || intent.attacker === undefined) return;
+        const attacker = brainEntityById(intent.attacker, this);
+        if (attacker === undefined) return;
+        definition.wasHurtBy(
+            { world: this.brainWorld(), body: brainMobOf(entity, entity.brain, this) },
+            attacker,
+            intent.projectile === undefined
+        );
+        this.syncBrainTarget(entity);
     }
 
     /** Refreshes body facts that depend on the sniffer's live position and relationships. */
@@ -2640,14 +2670,34 @@ export class EntityRuntime implements EntityScene {
                 // `dampensVibrations` is true.
                 const source = event.sourceId === undefined ? undefined : this.store.get(event.sourceId);
                 if (source !== undefined && DAMPENS_VIBRATIONS.has(source.identifier)) return;
-                if (entity.identifier === 'minecraft:warden')
+                if (entity.identifier === 'minecraft:warden') {
                     this.recordPointOfInterest('suspicious_location', event.at);
+                    this.wardenHears(entity, event.at, event.sourceId);
+                }
                 if (entity.identifier === 'minecraft:allay' && event.event === 'minecraft:note_block_play')
                     this.recordPointOfInterest('noteblock', event.at);
             }
         };
         const remove = this.gameEvents?.add(listener);
         if (remove !== undefined) this.gameEventListeners.set(entity.id, { listener, remove });
+    }
+
+    /**
+     * Hands a vibration to a warden's brain, Java's `Warden$VibrationUser.onReceiveVibration`: the
+     * entity that made it, and the shooter when that entity is a projectile.
+     */
+    private wardenHears(entity: DataEntity, at: EntityPosition, sourceId: number | undefined): void {
+        if (entity.brain === undefined) return;
+        const source = sourceId === undefined ? undefined : brainEntityById(sourceId, this);
+        const projectile = sourceId === undefined ? undefined : this.store.get(sourceId);
+        const ownerId =
+            projectile?.instance.hasComponent('minecraft:projectile') === true ? projectile.body.owner : undefined;
+        wardenHearsVibration(
+            { world: this.brainWorld(), body: brainMobOf(entity, entity.brain, this) },
+            blockPositionOf(at),
+            source,
+            ownerId === undefined ? undefined : brainEntityById(ownerId, this)
+        );
     }
 
     /** Removes one entity's listener registration from the world. */
@@ -3095,6 +3145,7 @@ export class EntityRuntime implements EntityScene {
             this.setLastDamagedAt(entity, this.world.level.gameTime());
             this.disablePiglinAdmirationAfterDamage(entity);
         }
+        if (result.amount > 0 && !result.died) this.brainWasHurt(entity, intent);
         if (result.died) {
             this.setDying(entity.id, true);
             if (clientOwnsMovement(entity.identifier)) this.playerSystems.died(entity);
@@ -3643,7 +3694,20 @@ export class EntityRuntime implements EntityScene {
             const position = player.position;
             const view = this.host.playerView?.(player.id) ?? {
                 id: () => player.id,
-                names: (name) => (name === 'is_family' ? ['player'] : name === 'has_tag' ? player.tags : undefined)
+                names: (name) =>
+                    name === 'is_family'
+                        ? ['player']
+                        : name === 'has_tag'
+                          ? player.tags
+                          : name === 'has_ability'
+                            ? playerAbilityNames(
+                                  player.spectator === true
+                                      ? Gametype.SPECTATOR
+                                      : player.creative === true
+                                        ? Gametype.CREATIVE
+                                        : Gametype.SURVIVAL
+                              )
+                            : undefined
             };
             include(position, view);
         }

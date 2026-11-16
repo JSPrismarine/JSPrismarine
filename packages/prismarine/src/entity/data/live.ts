@@ -15,6 +15,7 @@
  * world of that dimension looks its own up by name and ticks it. Neither has
  * to know how the other got there.
  */
+import type { Gametype } from '@jsprismarine/minecraft';
 import type { SpawnWorld } from '@jsprismarine/spawning';
 import { Vector3 } from '@jsprismarine/math';
 import type { LaunchProjectileAction } from '@jsprismarine/item-behaviors';
@@ -52,6 +53,7 @@ import { reattachStorePlayer, StorePlayerActor, StorePlayers } from './storePlay
 import { storePlayerHostFacts } from './playerHostFacts';
 import { consumeHeldItem } from '../../item/interaction';
 import { clientOwnsMovement } from '../playerOverlay';
+import { playerAbilityNames } from '../playerAbilities';
 import type { StoreActorBlows } from './storeActors';
 import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
@@ -95,6 +97,7 @@ interface FilteredPlayer {
     getRuntimeId(): bigint;
     getInventory(): HumanInventory;
     getTags(): readonly string[];
+    readonly gamemode: Gametype;
     isSneaking(): boolean;
     isSleeping(): boolean;
 }
@@ -166,7 +169,14 @@ const playerFilterView = (player: FilteredPlayer): FilterEntityView => {
     };
     const view: FilterEntityView = {
         id: () => Number(player.getRuntimeId()),
-        names: (name) => (name === 'is_family' ? ['player'] : name === 'has_tag' ? player.getTags() : undefined),
+        names: (name) =>
+            name === 'is_family'
+                ? ['player']
+                : name === 'has_tag'
+                  ? player.getTags()
+                  : name === 'has_ability'
+                    ? playerAbilityNames(player.gamemode)
+                    : undefined,
         flag: (name) => {
             if (name === 'is_sneaking' || name === 'is_sneak_held') return player.isSneaking();
             if (name === 'is_sleeping') return player.isSleeping();

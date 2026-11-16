@@ -411,6 +411,18 @@ const attributeOf = (entity: DataEntity, attribute: string): number => {
     return 0;
 };
 
+/**
+ * The entity or player a runtime id names, as a brain sees it, or undefined when it names
+ * neither: the attacker a brain mob's hurt hook is told about.
+ */
+export const brainEntityById = (id: number, scene: EntityScene): BrainEntity | undefined => {
+    const entity = scene.byId(id);
+    if (entity !== undefined && !clientOwnsMovement(entity.identifier)) return brainEntityOf(entity, scene);
+    const player = playerById(scene, id);
+    if (player !== undefined) return brainPlayerOf(player, scene);
+    return entity === undefined ? undefined : brainEntityOf(entity, scene);
+};
+
 /** Builds the one `BrainWorld` for a dimension. */
 export const brainWorldOf = (scene: EntityScene): BrainWorld => {
     const livingNear = (
@@ -578,6 +590,13 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         villagerRestock: (body) => {
             const entity = scene.byId(Number(body.id));
             if (entity !== undefined) scene.villagerRestock(entity.body);
+        },
+        entityById: (id) => brainEntityById(Number(id), scene),
+        brainMobOf: (other) => {
+            const entity = scene.byId(Number(other.id));
+            return entity?.brain === undefined || entity.removed !== undefined
+                ? undefined
+                : brainMobOf(entity, entity.brain, scene);
         }
     };
 };
