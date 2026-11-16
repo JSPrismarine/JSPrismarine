@@ -1,13 +1,14 @@
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 
 import { dragonPhaseState } from '@jsprismarine/entity-goals/goals/dragonPhases';
+import type { DragonPhaseName } from '@jsprismarine/entity-goals/goals/dragonPhases';
 
 import type { BehaviorScenario, ScenarioOutcome } from '../behaviorScenarios.ts';
 import { serverContent } from '../serverStack.ts';
 import type { Probe, ProbeOptions } from './goalProbe.ts';
 import { withProbe } from './goalProbe.ts';
 import type { EntitySubject } from './subjects.ts';
-import { entitiesDeclaring } from './subjects.ts';
+import { entitiesDeclaring, mappedEntity } from './subjects.ts';
 
 /**
  * The scenarios for the mob-specific AI goals: every `minecraft:behavior.*` goal fewer than four
@@ -341,8 +342,175 @@ const brainScenarios = (): readonly BehaviorScenario<EntitySubject>[] =>
         )
     );
 
+/** The dragon's contact with the world, which Java runs outside its phases; issue #3171 if any differs. */
+const DRAGON_CONTACT_ISSUE = '#3171';
+
+/** A dragon in its own probe, centered on its fight, in one phase, with only that phase's goal. */
+const withDragon = <T>(subject: EntitySubject, goal: string, phase: DragonPhaseName, body: (probe: Probe) => T): T =>
+    probeGoals(
+        subject,
+        [goal],
+        {
+            groups: [goal === 'dragonholdingpattern' ? 'dragon_flying' : 'dragon_sitting'],
+            without: (name) => name.startsWith('dragon_'),
+            data: (origin) => ({ fight_origin: [origin.x, origin.y, origin.z] })
+        },
+        (probe) => {
+            probe.entity.instance.componentState.set(dragonPhaseState, { phase, flameCount: 0, chargeTarget: null });
+            return body(probe);
+        }
+    );
+
+/** The dragon and its fireball against the world: Java's rules outside the phase classes. */
+const dragonContactScenarios: readonly BehaviorScenario<EntitySubject>[] = [
+    {
+        name: 'dragon-fireball-breath',
+        java: "A dragon fireball that lands leaves a cloud of dragon's breath on the nearest living thing within 4 blocks: radius 3 growing to 7 over 600 ticks, instant damage II at a quarter of its duration, which hurts what stands in it.",
+        reference: `Java DragonFireball.onHit (AreaEffectCloud radius 3, duration 600, radiusPerTick (7 - 3) / 600, potionDurationScale 0.25, INSTANT_DAMAGE amplifier 1, set on the first LivingEntity within inflate(4, 2, 4) whose distanceToSqr < 16); issue ${DRAGON_CONTACT_ISSUE} if it differs`,
+        subjects: () => ['minecraft:dragon_fireball'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:projectile'],
+        run: (subject) =>
+            withProbe(subject.bedrock, {}, (probe) => {
+                const pig = still(probe.spawn('minecraft:pig', 2, 0, 0));
+                const health = (): number => pig.instance.attributes.get('health')?.current ?? 0;
+                const before = health();
+                probe.entity.position = probe.at(0, 1.5, 0);
+                probe.entity.body.velocity = { x: 0, y: -0.5, z: 0 };
+                probe.until(() => probe.entity.removed !== undefined, 20);
+                const clouds = probe.runtime
+                    .near(probe.at(0, 0, 0), 8)
+                    .filter((other) => other.identifier === 'minecraft:area_effect_cloud');
+                const [cloud] = clouds;
+                const data = cloud?.spawnData ?? {};
+                const effects = Array.isArray(data['effects']) ? data['effects'] : [];
+                probe.tick(40);
+                const taken = before - health();
+                for (const other of clouds) probe.runtime.remove(other.id, 'parity probe');
+                if (cloud === undefined) return 'it left no cloud where it landed';
+                return differences([
+                    clouds.length !== 1 && `it left ${clouds.length} clouds`,
+                    distanceBetween(cloud.position, pig.position) > 0.01 &&
+                        `its cloud formed ${distanceBetween(cloud.position, pig.position).toFixed(2)} blocks from the pig 2 blocks off, not on it`,
+                    (data['radius'] !== 3 || data['duration'] !== 600) &&
+                        `its cloud has radius ${String(data['radius'])} for ${String(data['duration'])} ticks, where Java's has 3 for 600`,
+                    data['radius_per_tick'] !== 4 / 600 &&
+                        `its cloud grows ${String(data['radius_per_tick'])} a tick, where Java's grows (7 - 3) / 600`,
+                    data['potion_duration_scale'] !== 0.25 &&
+                        `its cloud scales effects by ${String(data['potion_duration_scale'])}, where Java's by 0.25`,
+                    !effects.some(
+                        (effect) =>
+                            typeof effect === 'object' &&
+                            effect !== null &&
+                            'id' in effect &&
+                            effect.id === 'minecraft:instant_damage' &&
+                            'amplifier' in effect &&
+                            effect.amplifier === 1
+                    ) && 'its cloud carries no instant damage II',
+                    taken <= 0 && 'the pig in the cloud took no damage within 40 ticks'
+                ]);
+            })
+    },
+    {
+        name: 'dragon-perch-arrow',
+        java: 'An arrow that hits a perched dragon is set on fire, deals nothing and turns back, where it hurts a dragon in flight.',
+        reference: `Java AbstractDragonSittingPhase.onHurt (an AbstractArrow direct entity: igniteForSeconds(1.0F), 0 damage) and AbstractArrow.onHitEntity (a hurt that fails: ProjectileDeflection.REVERSE, then scale(0.2)); issue ${DRAGON_CONTACT_ISSUE} if it differs`,
+        subjects: () => ['minecraft:ender_dragon'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:behavior.dragonscanning', 'minecraft:behavior.dragonflaming'],
+        run: (subject) => {
+            const shoot = (goal: string, phase: DragonPhaseName) =>
+                withDragon(subject, goal, phase, (probe) => {
+                    const archer = probe.player(-12, 1, 0);
+                    const arrow = probe.runtime.spawn('minecraft:arrow', probe.at(-8, 1.5, 0), { ownerId: archer });
+                    if (arrow === undefined) throw new Error('the server could not spawn an arrow');
+                    arrow.body.velocity = { x: 2.5, y: 0, z: 0 };
+                    const before = healthOf(probe);
+                    probe.tick(6);
+                    const outcome = {
+                        taken: before - healthOf(probe),
+                        burning: arrow.body.fireTicks > 0,
+                        back: arrow.removed === undefined && arrow.body.velocity.x < 0
+                    };
+                    if (arrow.removed === undefined) probe.runtime.remove(arrow.id, 'parity probe');
+                    return outcome;
+                });
+            const perched = shoot('dragonscanning', 'sitting_scanning');
+            const flying = shoot('dragonholdingpattern', 'holding_pattern');
+            return differences([
+                perched.taken > 0 && `a perched dragon took ${perched.taken.toFixed(1)} from an arrow`,
+                !perched.burning && 'the arrow off a perched dragon was not set on fire',
+                !perched.back && 'the arrow off a perched dragon did not turn back',
+                flying.taken <= 0 && 'a dragon in flight took nothing from an arrow'
+            ]);
+        }
+    },
+    {
+        name: 'dragon-wings-and-head',
+        java: 'A dragon in flight shoves what its wings meet away from its body, 4 blocks a tick and 0.2 up, hurting it for 5, and its head hurts what it touches for 10.',
+        reference: `Java EnderDragon.aiStep (while hurtTime is 0: knockBack over each wing's box inflate(4, 2, 4).move(0, -2, 0), hurt over the head and neck boxes inflate(1.0)), EnderDragon.knockBack (push(dx / d * 4, 0.2, dz / d * 4), 5 mob attack damage unless sitting) and EnderDragon.hurt (10); issue ${DRAGON_CONTACT_ISSUE} if it differs`,
+        subjects: () => ['minecraft:ender_dragon'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:attack'],
+        run: (subject) =>
+            withDragon(subject, 'dragonholdingpattern', 'holding_pattern', (probe) => {
+                // Java's dragon starts at yRot 0: its wings reach east and west, its head north.
+                const wing = still(probe.spawn('minecraft:iron_golem', 5, 0, 0));
+                const head = still(probe.spawn('minecraft:iron_golem', 0, 0, -6.5));
+                const health = (golem: typeof wing): number => golem.instance.attributes.get('health')?.current ?? 0;
+                const wingBefore = health(wing);
+                const headBefore = health(head);
+                const pushedFrom = { ...wing.body.velocity };
+                probe.tick();
+                const shove = wing.body.velocity.x - pushedFrom.x;
+                return differences([
+                    shove <= 0 && 'its wing did not shove an iron golem beside it away from its body',
+                    wingBefore - health(wing) !== 5 &&
+                        `its wing hurt an iron golem for ${(wingBefore - health(wing)).toFixed(1)}, where Java's hurts for 5`,
+                    headBefore - health(head) !== 10 &&
+                        `its head hurt an iron golem for ${(headBefore - health(head)).toFixed(1)}, where Java's hurts for 10`
+                ]);
+            })
+    },
+    {
+        name: 'dragon-walls',
+        java: 'A dragon breaks every block its head, neck and body pass through, but the dragon-immune ones such as end stone and obsidian, dropping nothing.',
+        reference: `Java EnderDragon.checkWalls (with mobGriefing, level.removeBlock for every block but air, #dragon_transparent and #dragon_immune); issue ${DRAGON_CONTACT_ISSUE} if it differs`,
+        subjects: () => ['minecraft:ender_dragon'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:physics'],
+        run: (subject) =>
+            withDragon(subject, 'dragonholdingpattern', 'holding_pattern', (probe) => {
+                probe.entity.position = probe.at(0, 4, 0);
+                const placed = [
+                    [1, 5, 0, 'minecraft:stone'],
+                    [-1, 5, 0, 'minecraft:end_stone'],
+                    [0, 6, 0, 'minecraft:obsidian'],
+                    [2, 4, -1, 'minecraft:oak_planks']
+                ] as const;
+                for (const [x, y, z, block] of placed) probe.block(x, y, z, block);
+                const drops = probe.world.drops.length;
+                probe.tick();
+                const left = placed.map(([x, y, z, block]) => [block, probe.blockAt(x, y, z)] as const);
+                for (const [x, y, z] of placed) probe.block(x, y, z, 'minecraft:air');
+                return differences([
+                    ...left
+                        .filter(([block]) => block === 'minecraft:stone' || block === 'minecraft:oak_planks')
+                        .filter(([, now]) => now !== 'minecraft:air')
+                        .map(([block]) => `it flew through ${block} without breaking it`),
+                    ...left
+                        .filter(([block]) => block === 'minecraft:end_stone' || block === 'minecraft:obsidian')
+                        .filter(([block, now]) => now !== block)
+                        .map(([block]) => `it broke ${block}, which Java's dragon_immune tag spares`),
+                    probe.world.drops.length > drops && 'the blocks it broke dropped items'
+                ]);
+            })
+    }
+];
+
 /** Every mob-specific goal scenario. */
 export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
+    ...dragonContactScenarios,
     ...brainScenarios(),
     goalScenario({
         goals: ['swell', 'melee_attack'],
