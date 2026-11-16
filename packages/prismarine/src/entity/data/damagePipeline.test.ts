@@ -356,6 +356,46 @@ describe('the damage pipeline', () => {
         });
     });
 
+    describe('a mob whose Java class decides its bite', () => {
+        /** A fixture mob that names the Java mob and declares the pack's attack effect. */
+        const biter = (effect: string, seconds: number) => ({
+            components: {
+                'minecraft:collision_box': { width: 0.6, height: 1.95 },
+                'minecraft:health': { value: 20, max: 20 },
+                'minecraft:attack': { damage: 3, effect_name: effect, effect_duration: seconds }
+            }
+        });
+
+        /** The effects a cow carries after one bite from `identifier`. */
+        const bitten = (identifier: string, gameTime = 0) => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld({ gameTime }),
+                {},
+                {
+                    'minecraft:husk': biter('hunger', 30),
+                    'minecraft:stray': biter('slowness', 10)
+                }
+            );
+            const attacker = runtime.spawn(identifier, { ...GROUND, x: 1.5 });
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            const target = cow === undefined ? undefined : runtime.mobById(cow.id);
+            if (attacker === undefined || cow === undefined || target === undefined)
+                throw new Error(`the fixture declares no ${identifier} or cow`);
+            runtime.attack(attacker.body, target);
+            return [...cow.body.statusEffects.values()].map(({ id, durationTicks }) => ({ id, durationTicks }));
+        };
+
+        it("adds a husk's Hunger for 140 ticks per whole point of effective difficulty", () => {
+            // A fresh Normal world is at 1.5; one past the ramp under a full moon is at 2.5.
+            expect(bitten('minecraft:husk')).toEqual([{ id: 'minecraft:hunger', durationTicks: 140 }]);
+            expect(bitten('minecraft:husk', 800 * 24_000)).toEqual([{ id: 'minecraft:hunger', durationTicks: 280 }]);
+        });
+
+        it("adds nothing for a stray's melee blow, which Java slows only with arrows", () => {
+            expect(bitten('minecraft:stray')).toEqual([]);
+        });
+    });
+
     describe('the rules a swing keeps', () => {
         /** A swing from `origin`, which keeps the grace period and shoves away from where it came. */
         const swing = (target: number, amount: number, levels = 0, origin = { x: -1.5, y: GROUND.y, z: 0.5 }) =>

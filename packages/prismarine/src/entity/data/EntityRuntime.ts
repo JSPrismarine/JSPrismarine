@@ -235,6 +235,7 @@ import { cushions } from '../playerFall';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
+import { effectiveDifficulty } from '../localDifficulty';
 import type { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerMining } from '../playerComponents';
 import type { PlayerShownForm } from '../playerShown';
@@ -2637,8 +2638,18 @@ export class EntityRuntime implements EntityScene {
         }
     }
 
-    /** Applies the active attack component's configured effect after a melee hit. */
+    /**
+     * Applies the effect a melee hit adds: the one the mob's Java class adds where it decides its
+     * own, otherwise the active attack component's.
+     */
     private applyAttackStatusEffect(attacker: DataEntity, targetId: number): void {
+        const java = JAVA_MELEE_EFFECTS.get(attacker.identifier);
+        if (java !== undefined) {
+            const { level } = this.world;
+            const effect = java(effectiveDifficulty(level.difficulty(), level.gameTime()));
+            if (effect !== undefined) this.applyStatusEffectToId(attacker.instance, targetId, effect);
+            return;
+        }
         const params = attacker.instance.componentParams('minecraft:attack');
         if (
             !isRecord(params) ||
@@ -6568,6 +6579,23 @@ const FALL_DAMAGE_MULTIPLIER = 'minecraft:fall_damage_multiplier';
 
 /** What `LivingEntity.calculateFallPower` adds to a fall, so a fall of exactly a whole block counts it. */
 const FALL_EPSILON = 1e-6;
+
+/**
+ * The melee effects a mob's Java class decides in its own `doHurtTarget`, by the effective local
+ * difficulty, where they differ from the effect the pack's `minecraft:attack` declares.
+ */
+const JAVA_MELEE_EFFECTS: ReadonlyMap<string, (difficulty: number) => EntityStatusEffect | undefined> = new Map([
+    // Husk.doHurtTarget: Hunger for 140 ticks per whole point of effective difficulty.
+    [
+        'minecraft:husk',
+        (difficulty: number) => {
+            const durationTicks = 140 * Math.trunc(difficulty);
+            return durationTicks > 0 ? { id: 'hunger', durationTicks, amplifier: 0 } : undefined;
+        }
+    ],
+    // Java's stray slows only with its arrows; its melee blow adds nothing.
+    ['minecraft:stray', () => undefined]
+]);
 
 /** The mobs whose Java code slows a fall, and the share of the falling speed they keep each tick. */
 const SLOW_FALLERS: ReadonlySet<string> = new Set(['minecraft:chicken', 'minecraft:blaze', 'minecraft:parrot']);
