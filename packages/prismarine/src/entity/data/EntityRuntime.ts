@@ -6024,6 +6024,12 @@ export class EntityRuntime implements EntityScene {
     private route(trigger: OutgoingTrigger, from: EntityInstance): void {
         const source = this.bodyOf(from);
         if (source === undefined) return;
+        // Bedrock's engine event that stores an entity in the block it just turned into, as the
+        // copper golem does with its statue. Java's `CopperGolem.turnToStatue` discards the golem.
+        if (trigger.target === 'block' && trigger.event === SERIALIZE_INTO_BLOCK) {
+            this.remove(source.id, 'serialized');
+            return;
+        }
         this.trigger(source, trigger.event, trigger.target);
     }
 
@@ -6149,6 +6155,9 @@ const LIGHTNING_REACH = 3;
 
 /** Java's `LightningBolt.life` of 2, run down to below zero, so a bolt with no extra flashes lasts three ticks. */
 const LIGHTNING_LIFE_TICKS = 3;
+
+/** The engine event that turns an entity into the block it placed, which the copper golem's statue fires. */
+const SERIALIZE_INTO_BLOCK = 'minecraft:serialize_entity';
 
 /** Java's tag of the blocks a leash knot ties to, which `LeashFenceKnotEntity.survives` reads. */
 const FENCES_TAG = 'minecraft:fences';

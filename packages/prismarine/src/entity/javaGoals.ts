@@ -73,6 +73,31 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
         java: tuned('minecraft:behavior.eat_carried_item', { delay_before_eating: 30 })
     },
     {
+        // Java `Cat.CatRelaxOnOwnerGoal.giveMorningGift` rolls the `gameplay/cat_morning_gift` table.
+        entity: 'minecraft:cat',
+        component: 'minecraft:behavior.drop_item_for',
+        java: tuned('minecraft:behavior.drop_item_for', { loot_table: 'loot_tables/gameplay/cat_morning_gift.json' })
+    },
+    {
+        // Java `Panda.afterSneeze` rolls the `gameplay/panda_sneeze` table.
+        entity: 'minecraft:panda',
+        component: 'minecraft:behavior.sneeze',
+        java: tuned('minecraft:behavior.sneeze', { loot_table: 'loot_tables/gameplay/panda_sneeze.json' })
+    },
+    {
+        // Java `Dolphin.registerGoals` adds `DolphinJumpGoal(this, 10)`, which rolls
+        // `reducedTickDelay(10)`: one selector pass in 5.
+        entity: 'minecraft:dolphin',
+        component: 'minecraft:behavior.random_breach',
+        java: tuned('minecraft:behavior.random_breach', { interval: 5 })
+    },
+    {
+        // Java `Strider.floatStrider` lifts a strider in lava by 0.05 a tick.
+        entity: 'minecraft:strider',
+        component: 'minecraft:behavior.rise_to_liquid_level',
+        java: tuned('minecraft:behavior.rise_to_liquid_level', { rise_delta: 0.05 })
+    },
+    {
         // Java `IronGolem.registerGoals` adds `GolemRandomStrollInVillageGoal`, which has no time of day.
         entity: 'minecraft:iron_golem',
         component: 'minecraft:behavior.move_through_village',
