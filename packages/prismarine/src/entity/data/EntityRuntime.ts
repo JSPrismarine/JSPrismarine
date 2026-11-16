@@ -622,6 +622,8 @@ export class EntityRuntime implements EntityScene {
     >();
     /** Flight age and impacts already passed through for each active projectile. */
     private readonly projectiles = new Map<number, ProjectileState>();
+    /** Ticks each live lightning bolt has existed, which decides when it strikes and when it goes. */
+    private readonly lightningAges = new Map<number, number>();
     /**
      * The active explode component instance behind each body's ticking fuse. Written through
      * {@link EntityRuntime.setFuse}, so an undone unit puts it back.
@@ -1594,6 +1596,7 @@ export class EntityRuntime implements EntityScene {
         this.merchantSnapshots.delete(id);
         this.fallingBlocks.delete(id);
         this.projectiles.delete(id);
+        this.lightningAges.delete(id);
         // Not through `setFuse`: an undo adds the entity back through `restore`, which starts its fuse again.
         this.fuses.delete(id);
         this.rides.remove(id);
@@ -1792,6 +1795,10 @@ export class EntityRuntime implements EntityScene {
 
     /** One entity's update in the entity pass, which {@link EntityRuntime.tickEntities} runs as a unit. */
     private updateEntity(entity: DataEntity, tick: number): void {
+        if (entity.identifier === LIGHTNING_BOLT) {
+            this.tickLightning(entity);
+            return;
+        }
         if (isDroppedItem(entity)) {
             this.droppedItems.update(entity);
             return;
@@ -4820,6 +4827,41 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
+     * Runs one tick of a lightning bolt, Java's `LightningBolt.tick`.
+     *
+     * On its first tick the bolt strikes every entity whose position is within
+     * {@link LIGHTNING_REACH} blocks of it across and {@link LIGHTNING_REACH} plus 6 above, as
+     * Java's inflated box does: `Entity.thunderHit` sets it burning for 8 seconds and deals 5
+     * lightning damage, which a `minecraft:damage_sensor` reads to turn a pig into a zombified
+     * piglin or power a creeper. The bolt goes once its `life` runs out, after
+     * {@link LIGHTNING_LIFE_TICKS}.
+     */
+    private tickLightning(bolt: DataEntity): void {
+        const age = this.lightningAges.get(bolt.id) ?? 0;
+        this.lightningAges.set(bolt.id, age + 1);
+        if (age >= LIGHTNING_LIFE_TICKS) {
+            this.remove(bolt.id, 'lightning_spent');
+            return;
+        }
+        if (age > 0) return;
+
+        const at = bolt.position;
+        const struck = this.index.withinBox(
+            { x: at.x - LIGHTNING_REACH, y: at.y - LIGHTNING_REACH, z: at.z - LIGHTNING_REACH },
+            { x: at.x + LIGHTNING_REACH, y: at.y + LIGHTNING_REACH + 6, z: at.z + LIGHTNING_REACH }
+        );
+        for (const target of struck) {
+            if (target.id === bolt.id || target.identifier === LIGHTNING_BOLT || target.removed !== undefined) continue;
+            if (target.body.fireTicks <= 0) target.body.fireTicks = LIGHTNING_FIRE_TICKS;
+            this.hurt(target, bolt.id, 'lightning', LIGHTNING_DAMAGE, {
+                route: 'component',
+                graced: true,
+                mitigated: clientOwnsMovement(target.identifier)
+            });
+        }
+    }
+
+    /**
      * Takes an entity that fell out of the world.
      *
      * Java's `checkBelowWorld`, {@link VOID_DEPTH} blocks under the dimension's floor. A
@@ -5776,7 +5818,8 @@ export class EntityRuntime implements EntityScene {
         const entity = this.byInstance.get(instance);
         if (entity === undefined) return;
 
-        const replacement = this.spawn(request.identifier, entity.position, {
+        const into = LEGACY_ENTITY_IDENTIFIERS.get(request.identifier) ?? request.identifier;
+        const replacement = this.spawn(into, entity.position, {
             cause: 'transformed',
             event: request.event
         });
@@ -5788,6 +5831,15 @@ export class EntityRuntime implements EntityScene {
         this.remove(entity.id, 'transformation');
     }
 }
+
+/**
+ * Bedrock's legacy names for entity types, which a vanilla file can still write and the client
+ * resolves: the pig's `minecraft:transformation` names the zombified piglin by its old
+ * `pig_zombie`.
+ */
+const LEGACY_ENTITY_IDENTIFIERS: ReadonlyMap<string, string> = new Map([
+    ['minecraft:pig_zombie', 'minecraft:zombie_pigman']
+]);
 
 /** The effects of adding one component group, with nothing else in them. */
 const addGroup = (group: string) => ({ ...noEffects('minecraft:transformation'), addGroups: [group] });
@@ -5864,6 +5916,19 @@ const DAYLIGHT_BURN_TICKS = 160;
 
 /** The Java block tag of what a landing falling block may take the place of, Java's `canBeReplaced`. */
 const REPLACEABLE_TAG = 'minecraft:replaceable';
+
+/** The entity a lightning strike is. */
+const LIGHTNING_BOLT = 'minecraft:lightning_bolt';
+
+/** Java's `Entity.thunderHit`: 5 lightning damage, and 8 seconds of fire. */
+const LIGHTNING_DAMAGE = 5;
+const LIGHTNING_FIRE_TICKS = 160;
+
+/** How far Java's `LightningBolt.tick` inflates the bolt's box to find what it strikes. */
+const LIGHTNING_REACH = 3;
+
+/** Java's `LightningBolt.life` of 2, run down to below zero, so a bolt with no extra flashes lasts three ticks. */
+const LIGHTNING_LIFE_TICKS = 3;
 
 /** How often a burning entity takes fire damage, in ticks. */
 const FIRE_DAMAGE_INTERVAL_TICKS = 20;
