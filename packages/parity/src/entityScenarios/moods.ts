@@ -3,10 +3,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { EntityPosition } from '@jsprismarine/entities';
+import { peekAmount } from '@jsprismarine/entities/components/peek';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { isRecord } from '../isRecord.ts';
-import { serverContent } from '../serverStack.ts';
+import { serverContent, varyingRealStack } from '../serverStack.ts';
 import { javaEntityClassName, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import type { SandboxRun } from './sandbox.ts';
 import { SANDBOX_ORIGIN, inSandbox } from './sandbox.ts';
@@ -18,6 +19,10 @@ import { entitiesDeclaring, field } from './subjects.ts';
  * mob in the shared stack's sandbox, where goals and brains run, and compares what the mob does
  * about it with Java's targeting.
  */
+
+/** The straight-line distance between two positions. */
+const distance = (from: EntityPosition, to: EntityPosition): number =>
+    Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
 
 /** Where a scenario stands a bystander: beside the subject, `distance` blocks east. */
 const beside = (distance: number): EntityPosition => ({ ...SANDBOX_ORIGIN, x: SANDBOX_ORIGIN.x + distance });
@@ -217,25 +222,36 @@ export const moodScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             const peek = javaMethodOf(`${javaEntityClassName(subject.javaId)}$ShulkerPeekGoal`, 'canUse');
             const chance = peek === undefined ? undefined : pushedNumbers(peek.method).find((value) => value > 1);
             if (chance === undefined) return "Java's shulker no longer peeks";
-            const opened = inSandbox(subject.bedrock, 'air', (sandbox) => {
-                const closed = sandbox.entity.instance.activeComponentGroups().join();
-                for (let tick = 1; tick <= 20 * chance; tick += 1) {
-                    sandbox.tick(1);
-                    if (sandbox.entity.instance.activeComponentGroups().join() !== closed) return tick;
-                }
-                return undefined;
-            });
+            // The peek is a roll, so the stack's random must vary.
+            const opened = inSandbox(
+                subject.bedrock,
+                'air',
+                (sandbox) => {
+                    for (let tick = 1; tick <= 20 * chance; tick += 1) {
+                        sandbox.tick(1);
+                        const amount = peekAmount(sandbox.entity.instance) ?? 0;
+                        if (amount > 0) return { tick, amount };
+                    }
+                    return undefined;
+                },
+                { stack: varyingRealStack() }
+            );
             if (typeof opened === 'string') return opened;
-            return opened === undefined
-                ? `with no target it never opens in ${20 * chance} ticks, where Java's opens about every ${chance}`
-                : undefined;
+            // `ShulkerPeekGoal.start` pushes the peek time, then the amount it opens.
+            const javaPeek = javaMethodOf(`${javaEntityClassName(subject.javaId)}$ShulkerPeekGoal`, 'start');
+            const javaAmount = javaPeek === undefined ? undefined : pushedNumbers(javaPeek.method).at(-1);
+            if (opened === undefined)
+                return `with no target it never opens in ${20 * chance} ticks, where Java's opens about every ${chance}`;
+            return javaAmount === undefined || opened.amount === javaAmount
+                ? undefined
+                : `it opens its shell ${opened.amount}, where Java's peeks ${javaAmount}`;
         }
     },
     {
         name: 'stared-at',
-        java: "A player who stares at an enderman's head angers it, as Java's EnderMan$EndermanLookForPlayerGoal has it; a creaking within 12 blocks of a player who is not looking wakes and goes for the player, as Java's Creaking.checkCanMove does.",
+        java: "A player who stares at an enderman's head angers it, as Java's EnderMan$EndermanLookForPlayerGoal has it; a creaking a player within 12 blocks looks at wakes and targets the player, stands frozen while watched and goes for the player once the player looks away, as Java's Creaking.checkCanMove does.",
         reference:
-            'Java EnderMan.isBeingStaredBy and EnderMan$EndermanLookForPlayerGoal, and Creaking.checkCanMove (distanceToSqr < 144 activates, isLookingAtMe freezes), read from the pinned jar; issue #3189',
+            'Java EnderMan.isBeingStaredBy and EnderMan$EndermanLookForPlayerGoal, and Creaking.checkCanMove (isLookingAtMe with tolerance 0.5; distanceToSqr < 144 activates, a look freezes an active one), read from the pinned jar; issue #3189',
         subjects: () => entitiesDeclaring('minecraft:looked_at'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:looked_at'],
@@ -248,17 +264,28 @@ export const moodScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                     : "the server runs nothing for minecraft:looked_at, so a stare never angers it, where Java's turns on the player who stares";
             const engaged = inSandbox(subject.bedrock, 'air', (sandbox) => {
                 const at = beside(creaking ? 8 : 10);
-                const eyes = { ...sandbox.entity.position, y: sandbox.entity.position.y + 2.5 };
-                // The enderman's starer looks at its head; the creaking's player looks away.
-                const look = creaking ? facing(at, { ...at, x: at.x + 10 }) : facing({ ...at, y: at.y + 1.62 }, eyes);
-                const player = standBystander(sandbox, at, look);
-                return targetsWithin(sandbox, player.id, 100) !== undefined;
+                const eyes = { ...sandbox.entity.position, y: sandbox.entity.position.y + (creaking ? 1.5 : 2.5) };
+                const player = standBystander(sandbox, at, facing({ ...at, y: at.y + 1.62 }, eyes));
+                if (targetsWithin(sandbox, player.id, 100) === undefined)
+                    return creaking
+                        ? 'a player eight blocks away looking at it does not wake it, where Java activates it and it targets the player'
+                        : "a player ten blocks away staring at its head does not anger it in 100 ticks, where Java's turns on the player";
+                if (!creaking) return undefined;
+                const watched = { ...sandbox.entity.position };
+                sandbox.tick(40);
+                const crept = distance(watched, sandbox.entity.position);
+                if (crept > 0.1)
+                    return `watched, it moves ${crept.toFixed(2)} blocks in 40 ticks, where Java's stands frozen`;
+                // The player turns its back, looking further east, away from the creaking.
+                standBystander(sandbox, at, facing(at, { ...at, x: at.x + 10 }));
+                const before = distance(sandbox.entity.position, at);
+                sandbox.tick(60);
+                const after = distance(sandbox.entity.position, at);
+                return after < before - 1
+                    ? undefined
+                    : `once the player looks away it closes ${(before - after).toFixed(2)} blocks in 60 ticks, where Java's goes for the player`;
             });
-            if (typeof engaged === 'string') return engaged;
-            if (engaged) return undefined;
-            return creaking
-                ? 'a player eight blocks away looking elsewhere does not wake it, where Java activates it and it goes for the player'
-                : "a player ten blocks away staring at its head does not anger it in 100 ticks, where Java's turns on the player";
+            return engaged;
         }
     },
     {

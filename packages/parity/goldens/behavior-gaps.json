@@ -662,11 +662,6 @@
             "reason": "The parrot's sensor only switches where a perched parrot looks. A Java parrot on a shoulder is part of the player and is drawn by the client, so where it looks is rendered presentation, category 1 of docs/data-driven/parity.md.",
             "reference": "Java Armadillo (inflate 7, 2, 7), Pufferfish$PufferfishPuffGoal (inflate 2) and HappyGhast.scanPlayerAboveGhast (getBoundingBox, 1 past each side, maxY to maxY + getYsize() / 2); issue #3158"
         },
-        "shulker-peeks:minecraft:shulker": {
-            "kind": "defect",
-            "reason": "A shulker with no target opens its shell now and then, Java's ShulkerPeekGoal rolling one in 20 every other tick. Observed: with no target it never opens in 800 ticks, where Java's opens about every 40.",
-            "reference": "Java Shulker$ShulkerPeekGoal.canUse (getTarget() == null, random.nextInt(reducedTickDelay(40)) == 0) and start (peek 30 for 20 to 60 ticks), read from the pinned jar; issue #3188"
-        },
         "spawn-flying_speed:minecraft:bee": {
             "kind": "intentional",
             "reason": "Same as movement speed. The flying move controls scale the attribute differently in the two editions, and the happy ghast is ridden.",
@@ -941,16 +936,6 @@
             "kind": "intentional",
             "reason": "Bedrock spawns an ocelot with two kittens one time in seven, where Java's ocelot spawns alone. The litter is part of how Bedrock composes a natural spawn, and docs/data-driven/parity.md category 7 keeps Bedrock's spawn model.",
             "reference": "Java Chicken.aiStep and gameplay/chicken_lay, Armadillo.pickNextScuteDropTime and gameplay/armadillo_shed, CopperGolem.shear, Drowned.finalizeSpawn, Sniffer.spawnChildFromBreeding and WanderingTraderSpawner.spawn"
-        },
-        "stared-at:minecraft:creaking": {
-            "kind": "defect",
-            "reason": "A player who stares at an enderman's head angers it, as Java's EnderMan$EndermanLookForPlayerGoal has it; a creaking within 12 blocks of a player who is not looking wakes and goes for the player, as Java's Creaking.checkCanMove does. Observed: the server runs nothing for minecraft:looked_at, so a player near it never wakes it or freezes it, where Java activates it within 12 blocks and freezes it while looked at.",
-            "reference": "Java EnderMan.isBeingStaredBy and EnderMan$EndermanLookForPlayerGoal, and Creaking.checkCanMove (distanceToSqr < 144 activates, isLookingAtMe freezes), read from the pinned jar; issue #3189"
-        },
-        "stared-at:minecraft:enderman": {
-            "kind": "defect",
-            "reason": "A player who stares at an enderman's head angers it, as Java's EnderMan$EndermanLookForPlayerGoal has it; a creaking within 12 blocks of a player who is not looking wakes and goes for the player, as Java's Creaking.checkCanMove does. Observed: the server runs nothing for minecraft:looked_at, so a stare never angers it, where Java's turns on the player who stares.",
-            "reference": "Java EnderMan.isBeingStaredBy and EnderMan$EndermanLookForPlayerGoal, and Creaking.checkCanMove (distanceToSqr < 144 activates, isLookingAtMe freezes), read from the pinned jar; issue #3189"
         },
         "target-range:minecraft:creeper": {
             "kind": "defect",

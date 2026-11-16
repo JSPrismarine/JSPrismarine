@@ -36,6 +36,8 @@ export interface SandboxHit {
 export interface SandboxOptions {
     /** How many blocks above the floor the entity spawns, for a projectile that should fly before it lands. */
     readonly lift?: number;
+    /** The stack to run in, such as one whose random varies; the shared real stack by default. */
+    readonly stack?: RealStack;
 }
 
 /** Where a sandbox run's entity spawns, for a scenario that puts something beside it. */
@@ -88,7 +90,7 @@ export const inSandbox = <Result>(
     run: (sandbox: SandboxRun) => Result,
     options: SandboxOptions = {}
 ): Result | string => {
-    const stack = realStack();
+    const stack = options.stack ?? realStack();
     const players = stack.world.players;
     stack.world.players = [];
     shapePool(stack, medium);

@@ -61,5 +61,23 @@ export const buildRealStack = (world: TestEntityWorld): RealStack => {
     return { content, runtime, world, reports, reportContext };
 };
 
+let varyingStack: RealStack | undefined;
+
+/**
+ * A second stack whose world random varies, for a scenario whose rule rolls: the shared stack's
+ * world replays 0.5, so a one-in-twenty roll never lands there. The values come from a fixed
+ * linear congruential sequence, so every run sees the same draws.
+ */
+export const varyingRealStack = (): RealStack => {
+    if (varyingStack !== undefined) return varyingStack;
+    let state = 0x2545f491;
+    const values = Array.from({ length: 65_521 }, () => {
+        state = (Math.imul(state, 1_103_515_245) + 12_345) >>> 0;
+        return state / 2 ** 32;
+    });
+    varyingStack = buildRealStack(new TestEntityWorld({ random: values }));
+    return varyingStack;
+};
+
 /** The fetched Bedrock and Java content, for scenarios that only read registries, tags and resolved types. */
 export const serverContent = (): ServerContent => realStack().content;
