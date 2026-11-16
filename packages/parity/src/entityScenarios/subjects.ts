@@ -79,3 +79,10 @@ export const entitiesDeclaring = (component: string): readonly EntitySubject[] =
         const declared = serverContent().entities.registry.get(subject.bedrock)?.declaredComponents ?? [];
         return declared.includes(component) ? [subject] : [];
     });
+
+/** The component groups of a Bedrock entity definition that declare `component`. */
+export const groupsDeclaring = (bedrock: string, component: string): readonly string[] => {
+    const groups = field(definitionBody(bedrock), 'component_groups');
+    if (!isRecord(groups)) return [];
+    return Object.entries(groups).flatMap(([name, group]) => (field(group, component) === undefined ? [] : [name]));
+};

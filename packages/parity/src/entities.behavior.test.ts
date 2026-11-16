@@ -11,6 +11,7 @@ import { physicsScenarios } from './entityScenarios/physics.ts';
 import { damageScenarios } from './entityScenarios/damage.ts';
 import { goalScenarios } from './entityScenarios/goals.ts';
 import { lifecycleScenarios } from './entityScenarios/lifecycle.ts';
+import { lootScenarios } from './entityScenarios/loot.ts';
 import { spawnScenarios } from './entityScenarios/spawning.ts';
 import { statsScenarios } from './entityScenarios/stats.ts';
 import { javaEntityIds } from './entityScenarios/subjects.ts';
@@ -32,7 +33,8 @@ const ENTITY_SCENARIO_GROUPS: readonly ScenarioGroup[] = [
     scenarioGroup(damageScenarios),
     scenarioGroup(goalScenarios),
     scenarioGroup(statsScenarios),
-    scenarioGroup(lifecycleScenarios)
+    scenarioGroup(lifecycleScenarios),
+    scenarioGroup(lootScenarios)
 ];
 
 describeFamily(
@@ -44,6 +46,8 @@ describeFamily(
         REFERENCES.javaServerJar
     ],
     () => {
+        // Every theme's scenarios run in this one test, and the loot theme builds a second content
+        // stack for a random source that varies, so the budget covers several stack builds.
         it('exercises each Java entity behavior against the server runtime', { timeout: 900_000 }, () => {
             const rows = [
                 ...measureScenarios(FAMILIES.entitiesBehavior, import.meta.filename, ...ENTITY_SCENARIO_GROUPS)

@@ -30,9 +30,15 @@ let builtStack: RealStack | undefined;
 
 /** Builds the fetched Bedrock and Java content with a live data-driven entity runtime attached. */
 export const realStack = (): RealStack => {
-    if (builtStack !== undefined) return builtStack;
+    builtStack ??= buildRealStack(new TestEntityWorld());
+    return builtStack;
+};
 
-    const world = new TestEntityWorld();
+/**
+ * Builds a separate stack over the given world, for scenarios that need world state the shared
+ * stack does not have, such as a random source that varies.
+ */
+export const buildRealStack = (world: TestEntityWorld): RealStack => {
     let content: ServerContent | undefined;
     const reports: EntityRuntimeReport[] = [];
     const reportContext: EntityReportContext = { identifier: undefined };
@@ -52,9 +58,7 @@ export const realStack = (): RealStack => {
     };
 
     content = buildServerContent({ world: singleDimension(adapter) });
-    builtStack = { content, runtime, world, reports, reportContext };
-
-    return builtStack;
+    return { content, runtime, world, reports, reportContext };
 };
 
 /** The fetched Bedrock and Java content, for scenarios that only read registries, tags and resolved types. */

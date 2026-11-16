@@ -568,3 +568,52 @@ export const pinnedJavaConstants = (className: string): ReadonlyMap<string, numb
     if (parsed === undefined) throw new Error(`the server jar holds no ${className}.class`);
     return parsed.constants;
 };
+
+/** One member a method's code reaches: a call, a field read or a field write, as `Owner.name`. */
+export interface JavaMemberRef {
+    readonly kind: 'call' | 'get' | 'put';
+    readonly member: string;
+}
+
+/** One field write in a method's code. */
+export interface JavaFieldStore {
+    readonly field: string;
+    /** The int constant stored, or undefined when the value was computed. */
+    readonly value: number | undefined;
+}
+
+/**
+ * Every method call and field read and write a method's code makes, as `Owner.name` with the
+ * owner's simple name, in code order.
+ *
+ * @param method - A parsed method.
+ */
+export const javaMemberRefs = (method: Pick<JavaMethod, 'instructions'>): readonly JavaMemberRef[] =>
+    javaOperations(method).flatMap((operation): JavaMemberRef[] =>
+        operation.kind === 'call'
+            ? [{ kind: 'call', member: operation.target }]
+            : operation.kind === 'field'
+              ? [{ kind: operation.write ? 'put' : 'get', member: operation.target }]
+              : []
+    );
+
+/**
+ * Each `putfield` and `putstatic` in a method's code, in order, with the int constant the
+ * instruction before it pushed, when it pushed one. A constructor's `this.xpReward = 5` reads as
+ * `{ field: 'Mob.xpReward', value: 5 }`.
+ *
+ * @param method - A parsed method.
+ */
+export const javaFieldStores = (method: Pick<JavaMethod, 'instructions'>): readonly JavaFieldStore[] => {
+    const operations = javaOperations(method);
+    return operations.flatMap((operation, index): JavaFieldStore[] => {
+        if (operation.kind !== 'field' || !operation.write) return [];
+        const before = operations[index - 1];
+        return [
+            {
+                field: operation.target,
+                value: before?.kind === 'number' && Number.isInteger(before.value) ? before.value : undefined
+            }
+        ];
+    });
+};

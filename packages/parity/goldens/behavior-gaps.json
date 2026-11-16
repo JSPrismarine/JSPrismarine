@@ -252,505 +252,770 @@
         }
     },
     "entities.behavior": {
-        "brain-charge_held_item:minecraft:piglin": {
+        "breathes-underwater:minecraft:armor_stand": {
             "kind": "defect",
-            "reason": "Java runs CrossbowAttack from the mob's brain for what minecraft:behavior.charge_held_item does. Observed: its brain runs no CrossbowAttack.",
-            "reference": "Java PiglinAi.initFightActivity (new CrossbowAttack()); issue #3124 if it differs"
+            "reason": "A mob in Java's can_breathe_under_water tag does not drown, and every other mob that breathes air does. Observed: the server drowns it, though Java lets it breathe underwater.",
+            "reference": "Java entity type tag can_breathe_under_water and LivingEntity.canBreatheUnderwater"
         },
-        "breeding-food:minecraft:nautilus": {
+        "breathes-underwater:minecraft:copper_golem": {
             "kind": "defect",
-            "reason": "An adult, tamed where it must be, falls in love when fed exactly the items Java breeds it with. Observed: the server breeds it with minecraft:clownfish, minecraft:cod, minecraft:cod_bucket, minecraft:cooked_cod, minecraft:cooked_salmon, minecraft:pufferfish, minecraft:pufferfish_bucket, minecraft:salmon, minecraft:salmon_bucket, minecraft:tropical_fish, minecraft:tropical_fish_bucket; Java accepts minecraft:cod, minecraft:cod_bucket, minecraft:cooked_cod, minecraft:cooked_salmon, minecraft:pufferfish, minecraft:pufferfish_bucket, minecraft:salmon, minecraft:salmon_bucket, minecraft:tropical_fish, minecraft:tropical_fish_bucket.",
-            "reference": "Java Animal.isFood and the data/minecraft/tags/item/*_food tags, AbstractHorse.handleEating (golden carrot, golden apple, enchanted golden apple) and Llama.handleEating (hay block); issue #2911"
+            "reason": "A mob in Java's can_breathe_under_water tag does not drown, and every other mob that breathes air does. Observed: the server drowns it, though Java lets it breathe underwater.",
+            "reference": "Java entity type tag can_breathe_under_water and LivingEntity.canBreatheUnderwater"
         },
-        "climbs-ladders:minecraft:player": {
+        "breeding-food:minecraft:axolotl": {
+            "kind": "defect",
+            "reason": "An animal breeds with exactly the items in its Java food tag. Observed: the server breeds it with nothing; Java accepts minecraft:tropical_fish_bucket.",
+            "reference": "Java Animal.isFood and the data/minecraft/tags/item/*_food tags; issue #2911"
+        },
+        "breeding-food:minecraft:bee": {
+            "kind": "defect",
+            "reason": "An animal breeds with exactly the items in its Java food tag. Observed: the server breeds it with minecraft:allium, minecraft:azalea_leaves_flowered, minecraft:azure_bluet, minecraft:blue_orchid, minecraft:cactus_flower, minecraft:cherry_leaves, minecraft:chorus_flower, minecraft:cornflower, minecraft:dandelion, minecraft:flowering_azalea, minecraft:lilac, minecraft:lily_of_the_valley, minecraft:mangrove_propagule, minecraft:orange_tulip, minecraft:oxeye_daisy, minecraft:peony, minecraft:pink_petals, minecraft:pink_tulip, minecraft:pitcher_plant, minecraft:poppy, minecraft:red_tulip, minecraft:rose_bush, minecraft:spore_blossom, minecraft:sunflower, minecraft:torchflower, minecraft:white_tulip, minecraft:wildflowers, minecraft:wither_rose; Java accepts minecraft:allium, minecraft:azalea_leaves_flowered, minecraft:azure_bluet, minecraft:blue_orchid, minecraft:cactus_flower, minecraft:cherry_leaves, minecraft:chorus_flower, minecraft:cornflower, minecraft:dandelion, minecraft:flowering_azalea, minecraft:lilac, minecraft:lily_of_the_valley, minecraft:mangrove_propagule, minecraft:open_eyeblossom, minecraft:orange_tulip, minecraft:oxeye_daisy, minecraft:peony, minecraft:pink_petals, minecraft:pink_tulip, minecraft:pitcher_plant, minecraft:poppy, minecraft:red_tulip, minecraft:rose_bush, minecraft:spore_blossom, minecraft:sunflower, minecraft:torchflower, minecraft:white_tulip, minecraft:wildflowers, minecraft:wither_rose.",
+            "reference": "Java Animal.isFood and the data/minecraft/tags/item/*_food tags; issue #2911"
+        },
+        "breeding-food:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "An animal breeds with exactly the items in its Java food tag. Observed: the server breeds it with minecraft:beef, minecraft:chicken, minecraft:cooked_beef, minecraft:cooked_chicken, minecraft:cooked_mutton, minecraft:cooked_porkchop, minecraft:cooked_rabbit, minecraft:mutton, minecraft:porkchop, minecraft:rabbit, minecraft:rotten_flesh; Java accepts minecraft:beef, minecraft:chicken, minecraft:cod, minecraft:cooked_beef, minecraft:cooked_chicken, minecraft:cooked_cod, minecraft:cooked_mutton, minecraft:cooked_porkchop, minecraft:cooked_rabbit, minecraft:cooked_salmon, minecraft:mutton, minecraft:porkchop, minecraft:pufferfish, minecraft:rabbit, minecraft:rabbit_stew, minecraft:rotten_flesh, minecraft:salmon, minecraft:tropical_fish.",
+            "reference": "Java Animal.isFood and the data/minecraft/tags/item/*_food tags; issue #2911"
+        },
+        "burns-in-daylight:minecraft:magma_cube": {
+            "kind": "defect",
+            "reason": "A mob in Java's burn_in_daylight tag catches fire in sunlight, and no other mob does. Observed: the server burns it in daylight; Java does not.",
+            "reference": "Java entity type tag burn_in_daylight and Mob.isSunBurnTick"
+        },
+        "burns-in-daylight:minecraft:wither_skeleton": {
+            "kind": "defect",
+            "reason": "A mob in Java's burn_in_daylight tag catches fire in sunlight, and no other mob does. Observed: Java burns it in daylight; the server does not.",
+            "reference": "Java entity type tag burn_in_daylight and Mob.isSunBurnTick"
+        },
+        "death-loot:minecraft:acacia_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:acacia_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:bamboo_raft": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:bamboo_raft.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:birch_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:birch_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:cherry_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:cherry_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:dark_oak_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:dark_oak_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:jungle_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:jungle_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:mangrove_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:mangrove_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:oak_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:oak_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:pale_oak_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:pale_oak_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:poplar_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:poplar_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "death-loot:minecraft:spruce_boat": {
+            "kind": "defect",
+            "reason": "A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself. Observed: destroying it drops nothing, where Java drops one minecraft:spruce_boat.",
+            "reference": "Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151"
+        },
+        "despawn-distance:minecraft:armadillo": {
             "kind": "intentional",
-            "reason": "The player's client moves its own body in both editions and the server accepts the result (exclusion 3 of the parity claim: client-predicted simulation).",
-            "reference": "Java LivingEntity.onClimbable (block tag minecraft:climbable) and handleOnClimbable (fall clamped to -0.15)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "copper-golem-statue:minecraft:copper_golem": {
-            "kind": "defect",
-            "reason": "A fully oxidized copper golem that turns to a statue puts an oxidized copper golem statue block where it stood and is gone. Observed: it left minecraft:air where it stood, not a statue.",
-            "reference": "Java CopperGolem.turnToStatue (sets the oxidized copper golem statue block, facing its rotation, then discards the golem); issue #3131 if it differs"
-        },
-        "creeper-swell-range:minecraft:creeper": {
-            "kind": "defect",
-            "reason": "A creeper whose target stands still 2.75 blocks away swells and explodes; Java starts the swell inside 3 blocks. Observed: it did not swell with its target 2.75 blocks away, which Java does.",
-            "reference": "Java SwellGoal.canUse (distanceToSqr < 9) and Creeper.tick (maxSwell 30); issue #3129 if it differs"
-        },
-        "dolphin-bribe:minecraft:dolphin": {
-            "kind": "defect",
-            "reason": "Feeding a dolphin any item in Java's fishes tag makes it lead the player to treasure. Observed: it lists no minecraft:cooked_cod, minecraft:cooked_salmon, minecraft:pufferfish, minecraft:tropical_fish; the server never runs minecraft:bribeable, so a fed dolphin leads nowhere.",
-            "reference": "Java Dolphin.mobInteract (ItemTags.FISHES, setGotFish) and DolphinSwimToTreasureGoal; issue #3115"
-        },
-        "fox-trust:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox trusts the players it was bred by and defends them. Observed: the server never runs minecraft:trust, so a bred fox trusts nobody.",
-            "reference": "Java Fox.addTrustedEntity, called from Fox.FoxBreedGoal.breed for both parents and the breeding player; issue #3115"
-        },
-        "genes:minecraft:panda": {
-            "kind": "defect",
-            "reason": "A goat spawns screaming when nextDouble() is below 0.02, and a panda's genes follow Panda.Gene.getRandom's nextInt(16) table. Observed: a draw of 3 makes a aggressive panda, Java weak; a draw of 4 makes a weak panda, Java aggressive; a draw of 8 makes a brown panda, Java weak; a draw of 10 makes a normal panda, Java brown.",
-            "reference": "Java Goat.finalizeSpawn (0.02) and Panda.Gene.getRandom (0 lazy, 1 worried, 2 playful, 4 aggressive, below 9 weak, below 11 brown, else normal), Panda.getVariantFromGenes; issue #3119"
-        },
-        "goal-controlled_by_player:minecraft:pig": {
+        "despawn-distance:minecraft:camel": {
             "kind": "intentional",
-            "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
-            "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "goal-controlled_by_player:minecraft:strider": {
+        "despawn-distance:minecraft:cat": {
             "kind": "intentional",
-            "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
-            "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "goal-defend_trusted_target:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox that trusts a player attacks whatever hurts that player. Observed: it did not turn on the attacker of its trusted player.",
-            "reference": "Java Fox.DefendTrustedTargetGoal (targets the last attacker of a trusted player); issue #3125 and #3115 if it differs"
-        },
-        "goal-dragonchargeplayer:minecraft:ender_dragon": {
-            "kind": "defect",
-            "reason": "An ender dragon in this phase flies to within 10 blocks of the player it charges within 200 ticks. Observed: it never flies to within 10 blocks of the player it charges within 200 ticks on the server.",
-            "reference": "Java DragonChargePlayerPhase (flies at the target location, 200 tick limit); issue #3123 if it differs"
-        },
-        "goal-dragonflaming:minecraft:ender_dragon": {
-            "kind": "defect",
-            "reason": "An ender dragon in this phase breathes a dragon breath cloud within 100 ticks. Observed: it never breathes a dragon breath cloud within 100 ticks on the server.",
-            "reference": "Java DragonSittingFlamingPhase (spawns an AreaEffectCloud of dragon breath at its head); issue #3123 if it differs"
-        },
-        "goal-dragonholdingpattern:minecraft:ender_dragon": {
-            "kind": "defect",
-            "reason": "An ender dragon in this phase circles the arena: it moves at least 20 blocks in 100 ticks. Observed: it never circles the arena: it moves at least 20 blocks in 100 ticks on the server.",
-            "reference": "Java DragonHoldingPatternPhase (flies the node path around the fountain); issue #3123 if it differs"
-        },
-        "goal-dragonlanding:minecraft:ender_dragon": {
-            "kind": "defect",
-            "reason": "An ender dragon in this phase descends to the portal within 400 ticks. Observed: it never descends to the portal within 400 ticks on the server.",
-            "reference": "Java DragonLandingApproachPhase and DragonLandingPhase (flies to the top of the exit portal); issue #3123 if it differs"
-        },
-        "goal-dragonscanning:minecraft:ender_dragon": {
-            "kind": "defect",
-            "reason": "An ender dragon in this phase turns to face a player within 20 blocks while perched. Observed: it never turns to face a player within 20 blocks while perched on the server.",
-            "reference": "Java DragonSittingScanningPhase (turns toward a player within 20 blocks, then attacks after 25 ticks); issue #3123 if it differs"
-        },
-        "goal-dragonstrafeplayer:minecraft:ender_dragon": {
-            "kind": "defect",
-            "reason": "An ender dragon in this phase shoots a dragon fireball at a player in sight within 200 ticks. Observed: it never shoots a dragon fireball at a player in sight within 200 ticks on the server.",
-            "reference": "Java DragonStrafePlayerPhase (fireball after 5 ticks of sight within 64 blocks); issue #3123 if it differs"
-        },
-        "goal-dragontakeoff:minecraft:ender_dragon": {
-            "kind": "defect",
-            "reason": "An ender dragon in this phase climbs more than 10 blocks off the portal within 200 ticks. Observed: it never climbs more than 10 blocks off the portal within 200 ticks on the server.",
-            "reference": "Java DragonTakeoffPhase (climbs to the first node above the portal); issue #3123 if it differs"
-        },
-        "goal-drink_milk:minecraft:wandering_trader": {
-            "kind": "defect",
-            "reason": "An invisible wandering trader drinks milk in daylight and becomes visible. Observed: it stayed invisible in daylight.",
-            "reference": "Java WanderingTrader.registerGoals (UseItemGoal of milk when isBrightOutside and invisible); issue #3131 if it differs"
-        },
-        "goal-drink_potion:minecraft:wandering_trader": {
-            "kind": "defect",
-            "reason": "A hurt witch drinks a healing potion (a 1 in 20 roll each tick), and a wandering trader drinks invisibility whenever it is dark and it is visible. Observed: it drank no invisibility potion at night.",
-            "reference": "Java Witch.aiStep (nextFloat() < 0.05 with health below max: healing potion, drunk over its use time) and WanderingTrader.registerGoals (UseItemGoal of invisibility when isDarkOutside and not invisible); issue #3131 if it differs"
-        },
-        "goal-drink_potion:minecraft:witch": {
-            "kind": "defect",
-            "reason": "A hurt witch drinks a healing potion (a 1 in 20 roll each tick), and a wandering trader drinks invisibility whenever it is dark and it is visible. Observed: a hurt witch drank no healing potion.",
-            "reference": "Java Witch.aiStep (nextFloat() < 0.05 with health below max: healing potion, drunk over its use time) and WanderingTrader.registerGoals (UseItemGoal of invisibility when isDarkOutside and not invisible); issue #3131 if it differs"
-        },
-        "goal-drop_item_for:minecraft:cat": {
-            "kind": "defect",
-            "reason": "A cat that slept with its owner leaves a gift from the cat's morning gift table by the owner 70% of the time. Observed: it left its owner no gift.",
-            "reference": "Java Cat.CatRelaxOnOwnerGoal.giveMorningGift (random.nextFloat() < 0.7, loot table gameplay/cat_morning_gift); issue #3131 if it differs"
-        },
-        "goal-eat_carried_item:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox carrying food eats it once 600 ticks have passed since it last ate. Observed: it never ate the berries in its mouth.",
-            "reference": "Java Fox.aiStep (ticksSinceEaten > 600 with food in the mouth: eat and heal); issue #3131 if it differs"
-        },
-        "goal-find_cover:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox in daylight looks for shade: it walks under a roof when it stands in the sun. Observed: it stayed in the sun beside a roof.",
-            "reference": "Java Fox.SeekShelterGoal (FleeSunGoal subclass: in sunlight, walk to a spot that cannot see the sky); issue #3131 if it differs"
-        },
-        "goal-find_underwater_treasure:minecraft:dolphin": {
-            "kind": "defect",
-            "reason": "A dolphin leads a player to treasure only after the player feeds it fish; an unfed dolphin does not swim to it. Observed: an unfed dolphin swam off toward treasure.",
-            "reference": "Java Dolphin.DolphinSwimToTreasureGoal.canUse (gotFish and air supply at least 100); issue #3129 if it differs"
-        },
-        "goal-float_tempt:minecraft:happy_ghast": {
-            "kind": "defect",
-            "reason": "A happy ghast drifts toward a player holding a snowball. Observed: it stayed 10.0 blocks from a player holding a snowball.",
-            "reference": "Java HappyGhast.registerGoals (TemptGoal.ForNonPathfinders over #happy_ghast_tempt_items); issue #3131 if it differs"
-        },
-        "goal-knockback_roar:minecraft:ravager": {
-            "kind": "defect",
-            "reason": "A roaring ravager hurts every non-illager within 4 blocks for 6 and throws them back. Observed: its roar did not hurt a player 2 blocks away.",
-            "reference": "Java Ravager.roar (inflate(4.0) box, hurt 6.0F for non-illagers, strongKnockback) and Ravager.aiStep (roarTick from 20, roar at 10); issue #3131 if it differs"
-        },
-        "goal-lay_egg:minecraft:turtle": {
-            "kind": "defect",
-            "reason": "A turtle that wants to lay finds sand within 8 blocks and lays turtle eggs on it after 200 ticks of digging. Observed: it laid no turtle egg on sand within 400 ticks.",
-            "reference": "Java Turtle.TurtleLayEggGoal (MoveToBlockGoal over sand, layEggCounter past adjustedTickDelay(200), then 1 to 4 turtle eggs); issue #3131 if it differs"
-        },
-        "goal-move_through_village:minecraft:iron_golem": {
-            "kind": "defect",
-            "reason": "An iron golem strolls around its village at any time of day. Observed: it did not stroll through the village in the day.",
-            "reference": "Java IronGolem.registerGoals (GolemRandomStrollInVillageGoal(this, 0.6), with no time of day condition); issue #3129 if it differs"
-        },
-        "goal-move_to_liquid:minecraft:strider": {
-            "kind": "defect",
-            "reason": "A strider on land walks back to lava within 16 blocks. Observed: it did not walk to the lava 8 blocks away.",
-            "reference": "Java Strider.StriderGoToLavaGoal (MoveToBlockGoal over lava, range 16); issue #3131 if it differs"
-        },
-        "goal-move_to_random_block:minecraft:pillager": {
-            "kind": "defect",
-            "reason": "A patrol leader walks toward a far patrol target. Observed: it moved 0.0 blocks in 300 ticks.",
-            "reference": "Java PatrollingMonster.LongDistancePatrolGoal and findPatrolTarget (a point up to 500 blocks away); issue #3131 if it differs"
-        },
-        "goal-move_to_random_block:minecraft:vindicator": {
-            "kind": "defect",
-            "reason": "A patrol leader walks toward a far patrol target. Observed: it moved 0.0 blocks in 300 ticks.",
-            "reference": "Java PatrollingMonster.LongDistancePatrolGoal and findPatrolTarget (a point up to 500 blocks away); issue #3131 if it differs"
-        },
-        "goal-move_towards_dwelling_restriction:minecraft:cat": {
-            "kind": "defect",
-            "reason": "An iron golem outside a village walks back toward it; a cat has no such goal in Java and stays where it is. Observed: it walked 29.9 blocks toward a village.",
-            "reference": "Java IronGolem.registerGoals (MoveBackToVillageGoal) and Cat.registerGoals (no village goal); issue #3129 if it differs"
-        },
-        "goal-nap:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox naps in the day when nothing hostile is near and it is not in water. Observed: it never napped in the day.",
-            "reference": "Java Fox.SleepGoal (daytime, no hostile within 12, a 1 in 140 roll); issue #3131 if it differs"
-        },
-        "goal-offer_flower:minecraft:iron_golem": {
-            "kind": "defect",
-            "reason": "In the day an iron golem offers a flower to a villager within 6 blocks, on a 1 in 8000 roll, and holds it out for 400 ticks. Observed: it held the flower for over 600 ticks, where Java holds it 400.",
-            "reference": "Java OfferFlowerGoal (isDay, random.nextInt(8000) == 0, a villager within 6 blocks, tick = adjustedTickDelay(400)); issue #3129 if it differs"
-        },
-        "goal-owner_hurt_by_target:minecraft:wolf": {
-            "kind": "defect",
-            "reason": "A tame wolf attacks the mob that last hurt its owner. Observed: it did not target the mob that hurt its owner.",
-            "reference": "Java OwnerHurtByTargetGoal (owner.getLastHurtByMob); issue #3125 if it differs"
-        },
-        "goal-owner_hurt_target:minecraft:wolf": {
-            "kind": "defect",
-            "reason": "A tame wolf attacks the mob its owner last hurt. Observed: it did not target the mob its owner hurt.",
-            "reference": "Java OwnerHurtTargetGoal (owner.getLastHurtMob); issue #3125 if it differs"
-        },
-        "goal-raid_garden:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox picks ripe sweet berries from a bush, leaving it at age 1; a rabbit eats into a carrot crop. Observed: the berry bush 3 blocks away was left alone.",
-            "reference": "Java Fox.FoxEatBerriesGoal (pickSweetBerries: age set to 1, berries dropped) and Rabbit.RaidGardenGoal (carrots age lowered, or removed at age 0); issue #3131 if it differs"
-        },
-        "goal-random_breach:minecraft:dolphin": {
-            "kind": "defect",
-            "reason": "A dolphin near the surface leaps out of the water now and then. Observed: it never leapt out of the water.",
-            "reference": "Java Dolphin.registerGoals (DolphinJumpGoal(this, 10): a reducedTickDelay(10) roll, then an upward push out of the water); issue #3131 if it differs"
-        },
-        "goal-random_hover:minecraft:bee": {
-            "kind": "defect",
-            "reason": "A flier wanders to random spots within 8 blocks across that hover 1 to 3 blocks above solid ground, so it never climbs far off the ground. Observed: it climbed 8.9 blocks above the ground, where Java's targets stay within 3 of solid ground.",
-            "reference": "Java Bee.BeeWanderGoal (HoverRandomPos.getPos(bee, 8, 7, ..., 3, 1), falling back to AirAndWaterRandomPos.getPos(bee, 8, 4, -2, ...)); issue #3129 if it differs"
-        },
-        "goal-random_look_around_and_sit:minecraft:camel_husk": {
-            "kind": "defect",
-            "reason": "A fox perches and looks around on a 0.02 chance each tick; a camel husk sits down from time to time. Observed: it never sat down on a 0.01 roll each tick.",
-            "reference": "Java Fox.PerchAndSearchGoal (random.nextFloat() < 0.02) and CamelAi.RandomSitting; issue #3129 and #3131 if it differs"
-        },
-        "goal-random_look_around_and_sit:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox perches and looks around on a 0.02 chance each tick; a camel husk sits down from time to time. Observed: it never sat down on a 0.01 roll each tick.",
-            "reference": "Java Fox.PerchAndSearchGoal (random.nextFloat() < 0.02) and CamelAi.RandomSitting; issue #3129 and #3131 if it differs"
-        },
-        "goal-random_sitting:minecraft:panda": {
-            "kind": "defect",
-            "reason": "A panda sits only to eat: with no food in its paw or lying within 6 blocks, it never sits. Observed: it sat down with no food anywhere near.",
-            "reference": "Java Panda.PandaSitGoal.canUse (food items within 6 blocks or a held item); issue #3129 if it differs"
-        },
-        "goal-rise_to_liquid_level:minecraft:strider": {
-            "kind": "defect",
-            "reason": "A strider in lava floats up to stand on its surface. Observed: it stayed at y 61.00 under the lava surface.",
-            "reference": "Java Strider.floatStrider (in lava, rises 0.05 a tick until it stands on the surface); issue #3131 if it differs"
-        },
-        "goal-roll:minecraft:panda": {
-            "kind": "defect",
-            "reason": "A playful panda rolls over now and then, tumbling forward. Observed: it never rolled.",
-            "reference": "Java Panda.PandaRollGoal (playful or baby, a reducedTickDelay roll, then a forward push); issue #3131 if it differs"
-        },
-        "goal-send_event:minecraft:evoker": {
-            "kind": "defect",
-            "reason": "An evoker with no target turns a blue sheep within 16 blocks red. Observed: the blue sheep was not turned red within 300 ticks.",
-            "reference": "Java Evoker.EvokerWololoSpellGoal (blue sheep within 16, setColor(DyeColor.RED)); issue #3127 if it differs"
-        },
-        "goal-skeleton_horse_trap:minecraft:skeleton_horse": {
-            "kind": "defect",
-            "reason": "A trap skeleton horse that a player comes within 10 blocks of becomes a tamed horse ridden by a skeleton and calls three more skeleton horsemen. Observed: springing the trap left 1 skeleton horses and 0 skeletons, where Java has 4 of each.",
-            "reference": "Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (createHorse and createSkeleton for the trap horse and three more); issue #3126 if it differs"
-        },
-        "goal-snacking:minecraft:panda": {
-            "kind": "defect",
-            "reason": "A panda picks up bamboo lying within 6 blocks and eats it. Observed: it left the bamboo 2 blocks away on the ground.",
-            "reference": "Java Panda.PandaSitGoal (walks to PANDA_ITEMS within 6 blocks, picks it up, sits and eats); issue #3131 if it differs"
-        },
-        "goal-sneeze:minecraft:panda": {
-            "kind": "defect",
-            "reason": "A sneezing panda sneezes and may drop a slime ball. Observed: it never sneezed out a slime ball on rolls that always succeed.",
-            "reference": "Java Panda.afterSneeze (drops a slime ball one sneeze in 700) and Panda.tick (weak or baby sneeze rolls); issue #3131 if it differs"
-        },
-        "goal-stalk_and_pounce_on_target:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox stalks its prey and pounces on it, hurting it. Observed: it never pounced on its prey within 300 ticks.",
-            "reference": "Java Fox.StalkPreyGoal and Fox.FoxPounceGoal (leap at the target, then doHurtTarget on landing); issue #3131 if it differs"
-        },
-        "goal-stroll_towards_village:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox at night strolls toward a village it can find. Observed: it stayed 24.2 blocks from the village.",
-            "reference": "Java Fox.FoxStrollThroughVillageGoal (StrollThroughVillageGoal: nightly roll, walks toward a village POI); issue #3131 if it differs"
-        },
-        "goal-summon_entity:minecraft:evoker": {
-            "kind": "defect",
-            "reason": "An evoker with a target summons three vexes, then casts fangs: thirteen in two rings when the target is within 3 blocks, sixteen in a line otherwise. Observed: it summoned 0 vexes, where Java's first spell summons 3; it cast no fangs at a target 8 blocks away.",
-            "reference": "Java Evoker.EvokerSummonSpellGoal (3 vexes, priority 4) and Evoker.EvokerAttackSpellGoal (5 + 8 fangs within distanceToSqr 9, otherwise 16 in a line); issue #3127 if it differs"
-        },
-        "goal-swim_up_for_breath:minecraft:dolphin": {
-            "kind": "defect",
-            "reason": "A dolphin swims up for air only once its air supply is below 140 ticks; a dolphin that has just dived, with 4800, keeps swimming below. Observed: it swam up for air with full lungs.",
-            "reference": "Java BreathAirGoal.canUse (getAirSupply() < 140) and Dolphin.getMaxAirSupply (4800); issue #3129 if it differs"
-        },
-        "goal-trade_with_player:minecraft:wandering_trader": {
-            "kind": "defect",
-            "reason": "A trader trading with a player stops walking. Observed: it walked 10.0 blocks while trading.",
-            "reference": "Java TradeWithPlayerGoal (stops navigation while a player trades); issue #3131 if it differs"
-        },
-        "goal-wither_random_attack_pos_goal:minecraft:wither": {
-            "kind": "defect",
-            "reason": "A wither with a target flies toward it until it is within 3 blocks across, staying above it. Observed: after 200 ticks it is 11.1 blocks across from its target, where Java closes to 3.",
-            "reference": "Java WitherBoss.aiStep (horizontal approach while horizontalDistanceSqr > 9, climb while below target y + 5); issue #3131 if it differs"
-        },
-        "goal-wither_target_highest_damage:minecraft:wither": {
-            "kind": "defect",
-            "reason": "A wither turns on whoever hurt it last. Observed: it targets the attacker that dealt the most damage, where Java targets the last attacker.",
-            "reference": "Java WitherBoss.registerGoals (HurtByTargetGoal at target priority 1), which targets getLastHurtByMob; issue #3129 if it differs"
-        },
-        "hanging-entity-support:minecraft:leash_knot": {
-            "kind": "defect",
-            "reason": "A painting or a leash knot breaks once what it hangs from is gone, and a painting drops its item. Observed: the server would not spawn minecraft:leash_knot, so nothing hangs.",
-            "reference": "Java HangingEntity.tick (survives checked every 100 ticks), Painting.dropItem and LeashFenceKnotEntity.survives; issue #3136"
-        },
-        "hanging-entity-support:minecraft:painting": {
-            "kind": "defect",
-            "reason": "A painting or a leash knot breaks once what it hangs from is gone, and a painting drops its item. Observed: the server would not spawn minecraft:painting, so nothing hangs.",
-            "reference": "Java HangingEntity.tick (survives checked every 100 ticks), Painting.dropItem and LeashFenceKnotEntity.survives; issue #3136"
-        },
-        "happy-ghast-follow_mob:minecraft:happy_ghast": {
-            "kind": "defect",
-            "reason": "A ghastling follows a nearby player. Observed: it stayed 12.0 blocks from a player.",
-            "reference": "Java HappyGhastAi (a ghastling stays close to a nearby player); issue #3131 if it differs"
-        },
-        "held-item-interaction:minecraft:mooshroom": {
-            "kind": "defect",
-            "reason": "A mob takes, converts or ignores the item a player uses on it the way its Java mobInteract does. Observed: minecraft:bowl: the server answers accept, Java minecraft:mushroom_stew (MushroomCow fills a bowl).",
-            "reference": "Java mobInteract of AbstractCow, MushroomCow, Goat, Sheep, SnowGolem, Bogged, CopperGolem, Creeper, IronGolem, Armadillo, Allay, ZombieVillager, Pig, Strider, Camel, AbstractHorse, Llama, Piglin and Wolf, and Mob.interact for saddles and carpets; issue #3118"
-        },
-        "horse-temper:minecraft:donkey": {
-            "kind": "defect",
-            "reason": "Feeding an untamed horse or llama raises its temper by the item's amount, and each buck while ridden tames it when random.nextInt(maxTemper) falls below the temper; only the Java food tag's items feed it. Observed: its feed items differ from minecraft:horse_food: it lists no minecraft:hay_block; the server never runs minecraft:tamemount, so it keeps no temper and riding never tames it.",
-            "reference": "Java AbstractHorse.handleEating and Llama.handleEating (temper +3, +5, +10), AbstractHorse.modifyTemper, RunAroundLikeCrazyGoal.tick, and the horse_food, zombie_horse_food and llama_food tags; issue #3114"
-        },
-        "horse-temper:minecraft:horse": {
-            "kind": "defect",
-            "reason": "Feeding an untamed horse or llama raises its temper by the item's amount, and each buck while ridden tames it when random.nextInt(maxTemper) falls below the temper; only the Java food tag's items feed it. Observed: its feed items differ from minecraft:horse_food: it lists no minecraft:hay_block; the server never runs minecraft:tamemount, so it keeps no temper and riding never tames it.",
-            "reference": "Java AbstractHorse.handleEating and Llama.handleEating (temper +3, +5, +10), AbstractHorse.modifyTemper, RunAroundLikeCrazyGoal.tick, and the horse_food, zombie_horse_food and llama_food tags; issue #3114"
-        },
-        "horse-temper:minecraft:llama": {
-            "kind": "defect",
-            "reason": "Feeding an untamed horse or llama raises its temper by the item's amount, and each buck while ridden tames it when random.nextInt(maxTemper) falls below the temper; only the Java food tag's items feed it. Observed: the server never runs minecraft:tamemount, so it keeps no temper and riding never tames it.",
-            "reference": "Java AbstractHorse.handleEating and Llama.handleEating (temper +3, +5, +10), AbstractHorse.modifyTemper, RunAroundLikeCrazyGoal.tick, and the horse_food, zombie_horse_food and llama_food tags; issue #3114"
-        },
-        "horse-temper:minecraft:mule": {
-            "kind": "defect",
-            "reason": "Feeding an untamed horse or llama raises its temper by the item's amount, and each buck while ridden tames it when random.nextInt(maxTemper) falls below the temper; only the Java food tag's items feed it. Observed: its feed items differ from minecraft:horse_food: it lists no minecraft:hay_block; the server never runs minecraft:tamemount, so it keeps no temper and riding never tames it.",
-            "reference": "Java AbstractHorse.handleEating and Llama.handleEating (temper +3, +5, +10), AbstractHorse.modifyTemper, RunAroundLikeCrazyGoal.tick, and the horse_food, zombie_horse_food and llama_food tags; issue #3114"
-        },
-        "horse-temper:minecraft:trader_llama": {
-            "kind": "defect",
-            "reason": "Feeding an untamed horse or llama raises its temper by the item's amount, and each buck while ridden tames it when random.nextInt(maxTemper) falls below the temper; only the Java food tag's items feed it. Observed: the server never runs minecraft:tamemount, so it keeps no temper and riding never tames it.",
-            "reference": "Java AbstractHorse.handleEating and Llama.handleEating (temper +3, +5, +10), AbstractHorse.modifyTemper, RunAroundLikeCrazyGoal.tick, and the horse_food, zombie_horse_food and llama_food tags; issue #3114"
-        },
-        "horse-temper:minecraft:zombie_horse": {
-            "kind": "defect",
-            "reason": "Feeding an untamed horse or llama raises its temper by the item's amount, and each buck while ridden tames it when random.nextInt(maxTemper) falls below the temper; only the Java food tag's items feed it. Observed: the server never runs minecraft:tamemount, so it keeps no temper and riding never tames it.",
-            "reference": "Java AbstractHorse.handleEating and Llama.handleEating (temper +3, +5, +10), AbstractHorse.modifyTemper, RunAroundLikeCrazyGoal.tick, and the horse_food, zombie_horse_food and llama_food tags; issue #3114"
-        },
-        "jockey-riders:minecraft:camel_husk": {
-            "kind": "defect",
-            "reason": "Some mobs spawn carrying a rider: a spider or cave spider one in a hundred times a skeleton, a strider a zombified piglin, a camel husk a husk and a parched. Observed: the server never runs minecraft:addrider, so it spawns without the riders its definition names.",
-            "reference": "Java Spider.finalizeSpawn (random.nextInt(100) == 0), Strider.finalizeSpawn, CamelHusk spawning, Raid.joinRaid for ravager riders; issue #3116"
-        },
-        "jockey-riders:minecraft:cave_spider": {
-            "kind": "defect",
-            "reason": "Some mobs spawn carrying a rider: a spider or cave spider one in a hundred times a skeleton, a strider a zombified piglin, a camel husk a husk and a parched. Observed: the server never runs minecraft:addrider, so it spawns without the riders its definition names.",
-            "reference": "Java Spider.finalizeSpawn (random.nextInt(100) == 0), Strider.finalizeSpawn, CamelHusk spawning, Raid.joinRaid for ravager riders; issue #3116"
-        },
-        "jockey-riders:minecraft:ravager": {
-            "kind": "defect",
-            "reason": "Some mobs spawn carrying a rider: a spider or cave spider one in a hundred times a skeleton, a strider a zombified piglin, a camel husk a husk and a parched. Observed: the server never runs minecraft:addrider, so it spawns without the riders its definition names.",
-            "reference": "Java Spider.finalizeSpawn (random.nextInt(100) == 0), Strider.finalizeSpawn, CamelHusk spawning, Raid.joinRaid for ravager riders; issue #3116"
-        },
-        "jockey-riders:minecraft:spider": {
-            "kind": "defect",
-            "reason": "Some mobs spawn carrying a rider: a spider or cave spider one in a hundred times a skeleton, a strider a zombified piglin, a camel husk a husk and a parched. Observed: the server never runs minecraft:addrider, so it spawns without the riders its definition names.",
-            "reference": "Java Spider.finalizeSpawn (random.nextInt(100) == 0), Strider.finalizeSpawn, CamelHusk spawning, Raid.joinRaid for ravager riders; issue #3116"
-        },
-        "jockey-riders:minecraft:strider": {
-            "kind": "defect",
-            "reason": "Some mobs spawn carrying a rider: a spider or cave spider one in a hundred times a skeleton, a strider a zombified piglin, a camel husk a husk and a parched. Observed: the server never runs minecraft:addrider, so it spawns without the riders its definition names.",
-            "reference": "Java Spider.finalizeSpawn (random.nextInt(100) == 0), Strider.finalizeSpawn, CamelHusk spawning, Raid.joinRaid for ravager riders; issue #3116"
-        },
-        "jockey-riders:minecraft:zombie_horse": {
-            "kind": "defect",
-            "reason": "Some mobs spawn carrying a rider: a spider or cave spider one in a hundred times a skeleton, a strider a zombified piglin, a camel husk a husk and a parched. Observed: the server never runs minecraft:addrider, so it spawns without the riders its definition names.",
-            "reference": "Java Spider.finalizeSpawn (random.nextInt(100) == 0), Strider.finalizeSpawn, CamelHusk spawning, Raid.joinRaid for ravager riders; issue #3116"
-        },
-        "jump-apex:minecraft:dolphin": {
+        "despawn-distance:minecraft:chicken": {
             "kind": "intentional",
-            "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
-            "reference": "Java LivingEntity.jumpFromGround and getJumpPower (Attributes.JUMP_STRENGTH), travelInAir, and Rabbit.getJumpPower (0.3 for a walking hop)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "jump-apex:minecraft:donkey": {
+        "despawn-distance:minecraft:cod": {
             "kind": "intentional",
-            "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
-            "reference": "Java LivingEntity.jumpFromGround and getJumpPower (Attributes.JUMP_STRENGTH), travelInAir, and Rabbit.getJumpPower (0.3 for a walking hop)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "jump-apex:minecraft:horse": {
+        "despawn-distance:minecraft:cow": {
             "kind": "intentional",
-            "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
-            "reference": "Java LivingEntity.jumpFromGround and getJumpPower (Attributes.JUMP_STRENGTH), travelInAir, and Rabbit.getJumpPower (0.3 for a walking hop)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "jump-apex:minecraft:llama": {
+        "despawn-distance:minecraft:donkey": {
             "kind": "intentional",
-            "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
-            "reference": "Java LivingEntity.jumpFromGround and getJumpPower (Attributes.JUMP_STRENGTH), travelInAir, and Rabbit.getJumpPower (0.3 for a walking hop)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "jump-apex:minecraft:mule": {
+        "despawn-distance:minecraft:evoker": {
             "kind": "intentional",
-            "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
-            "reference": "Java LivingEntity.jumpFromGround and getJumpPower (Attributes.JUMP_STRENGTH), travelInAir, and Rabbit.getJumpPower (0.3 for a walking hop)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it stayed with a player 136 blocks away, where Java despawns it (as Bedrock's minecraft:despawn declares, with none active on a fresh spawn)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "jump-apex:minecraft:rabbit": {
+        "despawn-distance:minecraft:fox": {
             "kind": "intentional",
-            "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
-            "reference": "Java LivingEntity.jumpFromGround and getJumpPower (Attributes.JUMP_STRENGTH), travelInAir, and Rabbit.getJumpPower (0.3 for a walking hop)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "jump-apex:minecraft:skeleton_horse": {
+        "despawn-distance:minecraft:frog": {
             "kind": "intentional",
-            "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
-            "reference": "Java LivingEntity.jumpFromGround and getJumpPower (Attributes.JUMP_STRENGTH), travelInAir, and Rabbit.getJumpPower (0.3 for a walking hop)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "jump-apex:minecraft:trader_llama": {
+        "despawn-distance:minecraft:goat": {
             "kind": "intentional",
-            "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
-            "reference": "Java LivingEntity.jumpFromGround and getJumpPower (Attributes.JUMP_STRENGTH), travelInAir, and Rabbit.getJumpPower (0.3 for a walking hop)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "jump-apex:minecraft:zombie_horse": {
+        "despawn-distance:minecraft:happy_ghast": {
             "kind": "intentional",
-            "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
-            "reference": "Java LivingEntity.jumpFromGround and getJumpPower (Attributes.JUMP_STRENGTH), travelInAir, and Rabbit.getJumpPower (0.3 for a walking hop)"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "ocelot-trust:minecraft:ocelot": {
-            "kind": "defect",
-            "reason": "Feeding an ocelot cod or salmon makes it trust the player on a one in three roll. Observed: it trusts with probability 0.33, Java one in 3; the server never runs minecraft:trusting.",
-            "reference": "Java Ocelot.mobInteract (ocelot_food tag, RandomSource.nextInt(3), setTrusting); issue #3115 and #3117"
-        },
-        "ominous-item-spawner:minecraft:ominous_item_spawner": {
-            "kind": "defect",
-            "reason": "An ominous item spawner lets its item go within 120 ticks and leaves. Observed: it holds its arrow for 121 ticks and stays, where Java's lets the item go within 120 and leaves.",
-            "reference": "Java OminousItemSpawner.tick (spawnItemAfterTicks drawn from 60 to 120) and OminousItemSpawner.spawnItem; issue #3137"
-        },
-        "phantom-swoop:minecraft:phantom": {
-            "kind": "defect",
-            "reason": "A phantom circles above its target and swoops down to bite it for 6 damage. Observed: it never bit its target within 600 ticks.",
-            "reference": "Java Phantom.PhantomCircleAroundAnchorGoal, Phantom.PhantomSweepAttackGoal (doHurtTarget on contact) and Phantom.updatePhantomSizeInfo (ATTACK_DAMAGE 6 + size); issue #3131 if it differs"
-        },
-        "seats:minecraft:camel": {
-            "kind": "defect",
-            "reason": "A vehicle seats as many riders as Java's canAddPassenger admits: two in a boat or raft, one in a chest boat, four on a happy ghast, three on a camel, one elsewhere. Observed: the server seats 2, Java 3.",
-            "reference": "Java Entity.canAddPassenger and its overrides in AbstractBoat, AbstractChestBoat, Camel, HappyGhast, Strider and AbstractNautilus; issue #3120"
-        },
-        "seats:minecraft:camel_husk": {
-            "kind": "defect",
-            "reason": "A vehicle seats as many riders as Java's canAddPassenger admits: two in a boat or raft, one in a chest boat, four on a happy ghast, three on a camel, one elsewhere. Observed: the server seats 2, Java 3.",
-            "reference": "Java Entity.canAddPassenger and its overrides in AbstractBoat, AbstractChestBoat, Camel, HappyGhast, Strider and AbstractNautilus; issue #3120"
-        },
-        "seats:minecraft:hoglin": {
-            "kind": "defect",
-            "reason": "A vehicle seats as many riders as Java's canAddPassenger admits: two in a boat or raft, one in a chest boat, four on a happy ghast, three on a camel, one elsewhere. Observed: the server seats 3, Java 1.",
-            "reference": "Java Entity.canAddPassenger and its overrides in AbstractBoat, AbstractChestBoat, Camel, HappyGhast, Strider and AbstractNautilus; issue #3120"
-        },
-        "seats:minecraft:player": {
+        "despawn-distance:minecraft:horse": {
             "kind": "intentional",
-            "reason": "Bedrock seats a player's shoulder parrots as riders and draws them from its own seat data; Java keeps them as shoulder entity data. Rendered presentation, category 1 of docs/data-driven/parity.md.",
-            "reference": "Java Entity.canAddPassenger and its overrides in AbstractBoat, AbstractChestBoat, Camel, HappyGhast, Strider and AbstractNautilus; issue #3120"
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "sit-command:minecraft:cat": {
-            "kind": "defect",
-            "reason": "An owner's empty-handed use toggles a tamed wolf, cat or parrot between sitting and standing; an ocelot is never tamed and never sits on command. Observed: the owner's empty hand does not sit it down.",
-            "reference": "Java TamableAnimal.setOrderedToSit, called from Wolf.mobInteract, Cat.mobInteract and Parrot.mobInteract; Ocelot extends Animal; issue #3113"
+        "despawn-distance:minecraft:llama": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "sit-command:minecraft:parrot": {
-            "kind": "defect",
-            "reason": "An owner's empty-handed use toggles a tamed wolf, cat or parrot between sitting and standing; an ocelot is never tamed and never sits on command. Observed: the owner's empty hand does not sit it down.",
-            "reference": "Java TamableAnimal.setOrderedToSit, called from Wolf.mobInteract, Cat.mobInteract and Parrot.mobInteract; Ocelot extends Animal; issue #3113"
+        "despawn-distance:minecraft:mooshroom": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "sit-command:minecraft:wolf": {
-            "kind": "defect",
-            "reason": "An owner's empty-handed use toggles a tamed wolf, cat or parrot between sitting and standing; an ocelot is never tamed and never sits on command. Observed: the owner's empty hand does not sit it down.",
-            "reference": "Java TamableAnimal.setOrderedToSit, called from Wolf.mobInteract, Cat.mobInteract and Parrot.mobInteract; Ocelot extends Animal; issue #3113"
+        "despawn-distance:minecraft:mule": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "spawn-egg-offspring:minecraft:frog": {
-            "kind": "defect",
-            "reason": "A mob's own spawn egg used on it makes a baby of it, when the mob can be a baby. Observed: the egg makes an offspring, where Java refuses because the mob cannot be a baby.",
-            "reference": "Java SpawnEggItem.spawnOffspringFromSpawnEgg (setBaby(true), then refuses when isBaby is false); issue #3121"
+        "despawn-distance:minecraft:nautilus": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "spawn-egg-offspring:minecraft:sulfur_cube": {
-            "kind": "defect",
-            "reason": "A mob's own spawn egg used on it makes a baby of it, when the mob can be a baby. Observed: the egg makes an adult, where Java makes a baby.",
-            "reference": "Java SpawnEggItem.spawnOffspringFromSpawnEgg (setBaby(true), then refuses when isBaby is false); issue #3121"
+        "despawn-distance:minecraft:ocelot": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "squid-swim:minecraft:glow_squid": {
-            "kind": "defect",
-            "reason": "A squid in open water drifts at up to 0.2 blocks a tick along a heading it redraws about once in 50 ticks, flees away from an attacker, and lies still out of water. Observed: it did not flee from its attacker.",
-            "reference": "Java Squid.SquidRandomMovementGoal (nextInt(50), cos and sin times 0.2, y from -0.1 to 0.1), Squid.SquidFleeGoal (away from getLastHurtByMob, 3 times the speed) and Squid.aiStep (no swimming out of water); issue #3131 if it differs"
+        "despawn-distance:minecraft:panda": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "squid-swim:minecraft:squid": {
-            "kind": "defect",
-            "reason": "A squid in open water drifts at up to 0.2 blocks a tick along a heading it redraws about once in 50 ticks, flees away from an attacker, and lies still out of water. Observed: it did not flee from its attacker.",
-            "reference": "Java Squid.SquidRandomMovementGoal (nextInt(50), cos and sin times 0.2, y from -0.1 to 0.1), Squid.SquidFleeGoal (away from getLastHurtByMob, 3 times the speed) and Squid.aiStep (no swimming out of water); issue #3131 if it differs"
+        "despawn-distance:minecraft:parrot": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "tame-chance:minecraft:cat": {
-            "kind": "defect",
-            "reason": "Feeding a taming item tames on a one in n roll (three for the wolf, cat and nautili, ten for the parrot), and only the items Java names start a roll. Observed: a roll of 0.3323 fails, inside Java's one in 3.",
-            "reference": "Java Wolf.tryToTame, Cat.tryToTame, Parrot.mobInteract and AbstractNautilus.tryToTame (RandomSource.nextInt bounds), with items Items.BONE and the cat_food, parrot_food and nautilus_taming_items tags; issue #3117"
+        "despawn-distance:minecraft:pig": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "tame-chance:minecraft:nautilus": {
-            "kind": "defect",
-            "reason": "Feeding a taming item tames on a one in n roll (three for the wolf, cat and nautili, ten for the parrot), and only the items Java names start a roll. Observed: a roll of 0.3323 fails, inside Java's one in 3.",
-            "reference": "Java Wolf.tryToTame, Cat.tryToTame, Parrot.mobInteract and AbstractNautilus.tryToTame (RandomSource.nextInt bounds), with items Items.BONE and the cat_food, parrot_food and nautilus_taming_items tags; issue #3117"
+        "despawn-distance:minecraft:polar_bear": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "tame-chance:minecraft:parrot": {
-            "kind": "defect",
-            "reason": "Feeding a taming item tames on a one in n roll (three for the wolf, cat and nautili, ten for the parrot), and only the items Java names start a roll. Observed: a roll of 0.1010 tames, past Java's one in 10.",
-            "reference": "Java Wolf.tryToTame, Cat.tryToTame, Parrot.mobInteract and AbstractNautilus.tryToTame (RandomSource.nextInt bounds), with items Items.BONE and the cat_food, parrot_food and nautilus_taming_items tags; issue #3117"
+        "despawn-distance:minecraft:pufferfish": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "tame-chance:minecraft:wolf": {
-            "kind": "defect",
-            "reason": "Feeding a taming item tames on a one in n roll (three for the wolf, cat and nautili, ten for the parrot), and only the items Java names start a roll. Observed: a roll of 0.3323 fails, inside Java's one in 3.",
-            "reference": "Java Wolf.tryToTame, Cat.tryToTame, Parrot.mobInteract and AbstractNautilus.tryToTame (RandomSource.nextInt bounds), with items Items.BONE and the cat_food, parrot_food and nautilus_taming_items tags; issue #3117"
+        "despawn-distance:minecraft:rabbit": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "tame-chance:minecraft:zombie_nautilus": {
+        "despawn-distance:minecraft:salmon": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "despawn-distance:minecraft:sheep": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "despawn-distance:minecraft:skeleton_horse": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "despawn-distance:minecraft:strider": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "despawn-distance:minecraft:trader_llama": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "despawn-distance:minecraft:tropical_fish": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "despawn-distance:minecraft:turtle": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "despawn-distance:minecraft:vindicator": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it stayed with a player 136 blocks away, where Java despawns it (as Bedrock's minecraft:despawn declares, with none active on a fresh spawn)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "despawn-distance:minecraft:wolf": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 136 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 128 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "despawn-distance:minecraft:zombie_nautilus": {
+            "kind": "intentional",
+            "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
+            "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
+        },
+        "inventory-size:minecraft:camel": {
             "kind": "defect",
-            "reason": "Feeding a taming item tames on a one in n roll (three for the wolf, cat and nautili, ten for the parrot), and only the items Java names start a roll. Observed: a roll of 0.3323 fails, inside Java's one in 3.",
-            "reference": "Java Wolf.tryToTame, Cat.tryToTame, Parrot.mobInteract and AbstractNautilus.tryToTame (RandomSource.nextInt bounds), with items Items.BONE and the cat_food, parrot_food and nautilus_taming_items tags; issue #3117"
+            "reason": "A mob or vehicle that carries items holds as many as Java's container for it: 27 in a chest boat, 8 for a villager or a piglin, 15 in a chested donkey, three per strength in a llama. Observed: it has 4 storage slots, where Java gives it 0.",
+            "reference": "Java AbstractChestBoat.CONTAINER_SIZE, MinecartChest and MinecartHopper getContainerSize, the SimpleContainer sizes of Allay, Piglin and AbstractVillager, AbstractHorse, AbstractChestedHorse, Llama and AbstractNautilus getInventoryColumns with AbstractMountInventoryMenu.getInventorySize; issue #3155"
+        },
+        "inventory-size:minecraft:camel_husk": {
+            "kind": "defect",
+            "reason": "A mob or vehicle that carries items holds as many as Java's container for it: 27 in a chest boat, 8 for a villager or a piglin, 15 in a chested donkey, three per strength in a llama. Observed: it has 4 storage slots, where Java gives it 0.",
+            "reference": "Java AbstractChestBoat.CONTAINER_SIZE, MinecartChest and MinecartHopper getContainerSize, the SimpleContainer sizes of Allay, Piglin and AbstractVillager, AbstractHorse, AbstractChestedHorse, Llama and AbstractNautilus getInventoryColumns with AbstractMountInventoryMenu.getInventorySize; issue #3155"
+        },
+        "inventory-size:minecraft:command_block_minecart": {
+            "kind": "defect",
+            "reason": "A mob or vehicle that carries items holds as many as Java's container for it: 27 in a chest boat, 8 for a villager or a piglin, 15 in a chested donkey, three per strength in a llama. Observed: it has 5 storage slots, where Java gives it 0.",
+            "reference": "Java AbstractChestBoat.CONTAINER_SIZE, MinecartChest and MinecartHopper getContainerSize, the SimpleContainer sizes of Allay, Piglin and AbstractVillager, AbstractHorse, AbstractChestedHorse, Llama and AbstractNautilus getInventoryColumns with AbstractMountInventoryMenu.getInventorySize; issue #3155"
+        },
+        "inventory-size:minecraft:llama": {
+            "kind": "defect",
+            "reason": "A mob or vehicle that carries items holds as many as Java's container for it: 27 in a chest boat, 8 for a villager or a piglin, 15 in a chested donkey, three per strength in a llama. Observed: it has 17 storage slots at strength 1, where Java gives it 3.",
+            "reference": "Java AbstractChestBoat.CONTAINER_SIZE, MinecartChest and MinecartHopper getContainerSize, the SimpleContainer sizes of Allay, Piglin and AbstractVillager, AbstractHorse, AbstractChestedHorse, Llama and AbstractNautilus getInventoryColumns with AbstractMountInventoryMenu.getInventorySize; issue #3155"
+        },
+        "inventory-size:minecraft:nautilus": {
+            "kind": "defect",
+            "reason": "A mob or vehicle that carries items holds as many as Java's container for it: 27 in a chest boat, 8 for a villager or a piglin, 15 in a chested donkey, three per strength in a llama. Observed: it has 3 storage slots, where Java gives it 0.",
+            "reference": "Java AbstractChestBoat.CONTAINER_SIZE, MinecartChest and MinecartHopper getContainerSize, the SimpleContainer sizes of Allay, Piglin and AbstractVillager, AbstractHorse, AbstractChestedHorse, Llama and AbstractNautilus getInventoryColumns with AbstractMountInventoryMenu.getInventorySize; issue #3155"
+        },
+        "inventory-size:minecraft:trader_llama": {
+            "kind": "defect",
+            "reason": "A mob or vehicle that carries items holds as many as Java's container for it: 27 in a chest boat, 8 for a villager or a piglin, 15 in a chested donkey, three per strength in a llama. Observed: it has 20 storage slots at strength 2, where Java gives it 6.",
+            "reference": "Java AbstractChestBoat.CONTAINER_SIZE, MinecartChest and MinecartHopper getContainerSize, the SimpleContainer sizes of Allay, Piglin and AbstractVillager, AbstractHorse, AbstractChestedHorse, Llama and AbstractNautilus getInventoryColumns with AbstractMountInventoryMenu.getInventorySize; issue #3155"
+        },
+        "inventory-size:minecraft:zombie_nautilus": {
+            "kind": "defect",
+            "reason": "A mob or vehicle that carries items holds as many as Java's container for it: 27 in a chest boat, 8 for a villager or a piglin, 15 in a chested donkey, three per strength in a llama. Observed: it has 3 storage slots, where Java gives it 0.",
+            "reference": "Java AbstractChestBoat.CONTAINER_SIZE, MinecartChest and MinecartHopper getContainerSize, the SimpleContainer sizes of Allay, Piglin and AbstractVillager, AbstractHorse, AbstractChestedHorse, Llama and AbstractNautilus getInventoryColumns with AbstractMountInventoryMenu.getInventorySize; issue #3155"
+        },
+        "mount-gear:minecraft:trader_llama": {
+            "kind": "defect",
+            "reason": "A player puts a saddle on a tamed adult mount that Java's can_equip_saddle tag lists, horse or nautilus armor on the mobs their tags list, and a carpet on a llama, and nothing else on any of them. Observed: it refuses minecraft:white_carpet, which Java puts on it.",
+            "reference": "Java entity type tags can_equip_saddle, can_wear_horse_armor and can_wear_nautilus_armor, Equippable.llamaSwag, and Mob.mobInteract through Equippable.equipOnInteract and AbstractHorse.isEquippableInSlot; issue #3162"
+        },
+        "spawn-gear:minecraft:bogged": {
+            "kind": "defect",
+            "reason": "A freshly spawned mob holds and wears what Java gives it: a skeleton its bow, a piglin a crossbow or a golden sword, a zombie a rare iron tool. Observed: 2% spawn with minecraft:chainmail_boots in the feet slot, which Java never gives; 2% spawn with minecraft:chainmail_chestplate in the chest slot, which Java never gives; 2% spawn with minecraft:chainmail_helmet in the head slot, which Java never gives; 2% spawn with minecraft:chainmail_leggings in the legs slot, which Java never gives; 2% spawn with minecraft:copper_boots in the feet slot, which Java never gives; 2% spawn with minecraft:copper_chestplate in the chest slot, which Java never gives; 4% spawn with minecraft:copper_helmet in the head slot, which Java never gives; 2% spawn with minecraft:copper_leggings in the legs slot, which Java never gives; 2% spawn with minecraft:golden_chestplate in the chest slot, which Java never gives; 6% spawn with minecraft:golden_helmet in the head slot, which Java never gives; 2% spawn with minecraft:golden_leggings in the legs slot, which Java never gives; 2% spawn with minecraft:leather_helmet in the head slot, which Java never gives.",
+            "reference": "Java Mob.populateDefaultEquipmentSlots and its overrides in AbstractSkeleton, WitherSkeleton, Zombie, Drowned (and Drowned.finalizeSpawn), ZombifiedPiglin, Piglin (createSpawnWeapon, maybeWearArmor), PiglinBrute, Pillager, Vindicator, Vex and Fox; DifficultyInstance.getSpecialMultiplier; issues #3153 and #3154"
+        },
+        "spawn-gear:minecraft:drowned": {
+            "kind": "defect",
+            "reason": "A freshly spawned mob holds and wears what Java gives it: a skeleton its bow, a piglin a crossbow or a golden sword, a zombie a rare iron tool. Observed: 4% spawn with minecraft:nautilus_shell in the mainhand slot, which Java never gives.",
+            "reference": "Java Mob.populateDefaultEquipmentSlots and its overrides in AbstractSkeleton, WitherSkeleton, Zombie, Drowned (and Drowned.finalizeSpawn), ZombifiedPiglin, Piglin (createSpawnWeapon, maybeWearArmor), PiglinBrute, Pillager, Vindicator, Vex and Fox; DifficultyInstance.getSpecialMultiplier; issues #3153 and #3154"
+        },
+        "spawn-gear:minecraft:husk": {
+            "kind": "defect",
+            "reason": "A freshly spawned mob holds and wears what Java gives it: a skeleton its bow, a piglin a crossbow or a golden sword, a zombie a rare iron tool. Observed: 2% spawn with minecraft:copper_boots in the feet slot, which Java never gives; 2% spawn with minecraft:copper_chestplate in the chest slot, which Java never gives; 6% spawn with minecraft:copper_helmet in the head slot, which Java never gives; 2% spawn with minecraft:copper_leggings in the legs slot, which Java never gives; 2% spawn with minecraft:golden_boots in the feet slot, which Java never gives; 4% spawn with minecraft:golden_chestplate in the chest slot, which Java never gives; 4% spawn with minecraft:golden_helmet in the head slot, which Java never gives; 2% spawn with minecraft:golden_leggings in the legs slot, which Java never gives.",
+            "reference": "Java Mob.populateDefaultEquipmentSlots and its overrides in AbstractSkeleton, WitherSkeleton, Zombie, Drowned (and Drowned.finalizeSpawn), ZombifiedPiglin, Piglin (createSpawnWeapon, maybeWearArmor), PiglinBrute, Pillager, Vindicator, Vex and Fox; DifficultyInstance.getSpecialMultiplier; issues #3153 and #3154"
+        },
+        "spawn-gear:minecraft:parched": {
+            "kind": "defect",
+            "reason": "A freshly spawned mob holds and wears what Java gives it: a skeleton its bow, a piglin a crossbow or a golden sword, a zombie a rare iron tool. Observed: 2% spawn with minecraft:chainmail_chestplate in the chest slot, which Java never gives; 4% spawn with minecraft:chainmail_helmet in the head slot, which Java never gives; 2% spawn with minecraft:chainmail_leggings in the legs slot, which Java never gives; 2% spawn with minecraft:copper_chestplate in the chest slot, which Java never gives; 4% spawn with minecraft:copper_helmet in the head slot, which Java never gives; 2% spawn with minecraft:golden_chestplate in the chest slot, which Java never gives; 6% spawn with minecraft:golden_helmet in the head slot, which Java never gives; 4% spawn with minecraft:leather_chestplate in the chest slot, which Java never gives; 10% spawn with minecraft:leather_helmet in the head slot, which Java never gives; 2% spawn with minecraft:leather_leggings in the legs slot, which Java never gives.",
+            "reference": "Java Mob.populateDefaultEquipmentSlots and its overrides in AbstractSkeleton, WitherSkeleton, Zombie, Drowned (and Drowned.finalizeSpawn), ZombifiedPiglin, Piglin (createSpawnWeapon, maybeWearArmor), PiglinBrute, Pillager, Vindicator, Vex and Fox; DifficultyInstance.getSpecialMultiplier; issues #3153 and #3154"
+        },
+        "spawn-gear:minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A freshly spawned mob holds and wears what Java gives it: a skeleton its bow, a piglin a crossbow or a golden sword, a zombie a rare iron tool. Observed: 4% spawn with minecraft:golden_helmet in the head slot, which Java never gives.",
+            "reference": "Java Mob.populateDefaultEquipmentSlots and its overrides in AbstractSkeleton, WitherSkeleton, Zombie, Drowned (and Drowned.finalizeSpawn), ZombifiedPiglin, Piglin (createSpawnWeapon, maybeWearArmor), PiglinBrute, Pillager, Vindicator, Vex and Fox; DifficultyInstance.getSpecialMultiplier; issues #3153 and #3154"
+        },
+        "spawn-gear:minecraft:stray": {
+            "kind": "defect",
+            "reason": "A freshly spawned mob holds and wears what Java gives it: a skeleton its bow, a piglin a crossbow or a golden sword, a zombie a rare iron tool. Observed: 2% spawn with minecraft:chainmail_helmet in the head slot, which Java never gives; 4% spawn with minecraft:copper_chestplate in the chest slot, which Java never gives; 4% spawn with minecraft:copper_helmet in the head slot, which Java never gives; 2% spawn with minecraft:golden_boots in the feet slot, which Java never gives; 6% spawn with minecraft:golden_chestplate in the chest slot, which Java never gives; 6% spawn with minecraft:golden_helmet in the head slot, which Java never gives; 2% spawn with minecraft:golden_leggings in the legs slot, which Java never gives; 4% spawn with minecraft:leather_chestplate in the chest slot, which Java never gives; 6% spawn with minecraft:leather_helmet in the head slot, which Java never gives.",
+            "reference": "Java Mob.populateDefaultEquipmentSlots and its overrides in AbstractSkeleton, WitherSkeleton, Zombie, Drowned (and Drowned.finalizeSpawn), ZombifiedPiglin, Piglin (createSpawnWeapon, maybeWearArmor), PiglinBrute, Pillager, Vindicator, Vex and Fox; DifficultyInstance.getSpecialMultiplier; issues #3153 and #3154"
+        },
+        "spawn-gear:minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A freshly spawned mob holds and wears what Java gives it: a skeleton its bow, a piglin a crossbow or a golden sword, a zombie a rare iron tool. Observed: 4% spawn with minecraft:copper_chestplate in the chest slot, which Java never gives; 4% spawn with minecraft:copper_helmet in the head slot, which Java never gives; 2% spawn with minecraft:golden_boots in the feet slot, which Java never gives; 4% spawn with minecraft:golden_chestplate in the chest slot, which Java never gives; 8% spawn with minecraft:golden_helmet in the head slot, which Java never gives; 2% spawn with minecraft:golden_leggings in the legs slot, which Java never gives; 2% spawn with minecraft:leather_chestplate in the chest slot, which Java never gives; 2% spawn with minecraft:leather_helmet in the head slot, which Java never gives.",
+            "reference": "Java Mob.populateDefaultEquipmentSlots and its overrides in AbstractSkeleton, WitherSkeleton, Zombie, Drowned (and Drowned.finalizeSpawn), ZombifiedPiglin, Piglin (createSpawnWeapon, maybeWearArmor), PiglinBrute, Pillager, Vindicator, Vex and Fox; DifficultyInstance.getSpecialMultiplier; issues #3153 and #3154"
+        },
+        "spawns-in-biome:minecraft:badlands/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:bamboo_jungle/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:beach/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:birch_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:cherry_grove/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:cold_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:dappled_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:dark_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:deep_cold_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:deep_frozen_ocean/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:deep_frozen_ocean.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:deep_frozen_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:deep_lukewarm_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:deep_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:desert/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:dripstone_caves/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:eroded_badlands/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:flower_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_ocean/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:frozen_ocean.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_peaks/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:frozen_peaks.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_peaks/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:creeper": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:creeper spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:enderman": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:enderman spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:spider": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:spider spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:witch": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:witch spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:zombie spawn rule admits minecraft:frozen_river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:frozen_river/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:grove/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:ice_spikes/minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:rabbit spawn rule admits minecraft:ice_plains_spikes.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:ice_spikes/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:ice_plains_spikes.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:ice_spikes/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:jagged_peaks/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:jagged_peaks.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:jagged_peaks/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:jungle/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:lukewarm_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:lush_caves/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:mangrove_swamp/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:mangrove_swamp.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:mangrove_swamp/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:meadow/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:old_growth_birch_forest/minecraft:bat": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:bat spawn rule admits minecraft:birch_forest_mutated.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:old_growth_birch_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:old_growth_pine_taiga/minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:rabbit spawn rule admits minecraft:mega_taiga.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:old_growth_pine_taiga/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:old_growth_spruce_taiga/minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:rabbit spawn rule admits minecraft:redwood_taiga_mutated.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:old_growth_spruce_taiga/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:pale_garden/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:plains/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:creeper": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:creeper spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:enderman": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:enderman spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:slime": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:slime spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:spider": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:spider spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:witch": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:witch spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:zombie spawn rule admits minecraft:river.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:river/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:savanna_plateau/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:savanna/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_beach/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:creeper": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:creeper spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:enderman": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:enderman spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:rabbit spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:spider": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:spider spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:witch": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:witch spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:zombie spawn rule admits minecraft:ice_plains.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_plains/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_slopes/minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob in a biome's natural spawn list can spawn there. Observed: no minecraft:skeleton spawn rule admits minecraft:snowy_slopes.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_slopes/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:snowy_taiga/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:sparse_jungle/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:stony_peaks/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:stony_shore/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:sulfur_caves/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:sunflower_plains/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:swamp/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:taiga/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:warm_ocean/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:windswept_forest/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:windswept_gravelly_hills/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:windswept_hills/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:windswept_savanna/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-in-biome:minecraft:wooded_badlands/minecraft:zombie_villager": {
+            "kind": "intentional",
+            "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
+            "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "transient-save:minecraft:eye_of_ender": {
+            "kind": "defect",
+            "reason": "A fishing bobber is never saved with its chunk, and a thrown eye of ender is. Observed: the server never saves it, where Java does.",
+            "reference": "Java EntityTypes: FISHING_BOBBER's builder calls noSave, EYE_OF_ENDER's does not, which Entity.shouldBeSaved reads; issue #3156"
         }
     },
     "gameplay.datapack": {
