@@ -1,5 +1,6 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 
+import { gameRuleSpellings } from '../content/world/gameRules';
 import type Server from '../Server';
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 import { GameRuleValueType, writeGameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
@@ -68,6 +69,15 @@ const DEFAULTS: ReadonlyArray<readonly [name: string, value: boolean | number]> 
     [GameRules.TNTExplodes, true],
     [GameRules.sendCommandFeedback, true]
 ];
+
+/**
+ * The value every world starts a rule at, found by any spelling of its name.
+ * @returns The default, or undefined for a rule no world registers.
+ */
+export const defaultGameRule = (name: string): boolean | number | undefined => {
+    const spellings = new Set(gameRuleSpellings(name).map((spelling) => spelling.toLowerCase()));
+    return DEFAULTS.find(([rule]) => spellings.has(rule.toLowerCase()))?.[1];
+};
 
 /**
  * Shapes one stored rule as the protocol's `GameRule`.

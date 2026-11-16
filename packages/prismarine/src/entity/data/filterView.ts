@@ -27,6 +27,7 @@ import { trustedBy } from '@jsprismarine/entities/components/trust';
 import type { MobBody } from './DataEntity';
 import { distance } from './DataEntity';
 import { itemOfDrop } from '../../inventory/persistence';
+import { defaultGameRule } from '../../world/GameRuleManager';
 import { blockPositionOf } from './position';
 import type { EntityScene } from './scene';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
@@ -118,7 +119,9 @@ export const entityFilterContextOf = (body: MobBody, scene: EntityScene): Filter
         timeOfDay: () => scene.world.level.dayTime(),
         difficulty: () => scene.world.level.difficulty(),
         dimension: () => scene.world.level.dimension,
-        weather: () => scene.world.level.weather()
+        weather: () => scene.world.level.weather(),
+        // A world that registered no such rule reads as the default, as `ruleIsOn` reads it.
+        gameRule: (name) => scene.world.level.gameRule(name) ?? defaultGameRule(name)
     }
 });
 
