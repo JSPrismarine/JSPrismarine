@@ -2325,6 +2325,36 @@ describe('EntityRuntime', () => {
             expect(world.hits).toEqual([]);
         });
 
+        it('draws each melee blow from the damage range minecraft:attack declares', () => {
+            const dealt = (random: number): number => {
+                const { runtime } = entityFixture(
+                    new TestEntityWorld({ random: [random] }),
+                    {},
+                    {
+                        'jsprismarine:brute': {
+                            components: {
+                                'minecraft:health': { value: 20, max: 20 },
+                                'minecraft:attack': { damage: [3, 9] }
+                            }
+                        },
+                        'jsprismarine:dummy': { components: { 'minecraft:health': { value: 100, max: 100 } } }
+                    }
+                );
+                const brute = runtime.spawn('jsprismarine:brute', GROUND);
+                const dummy = runtime.spawn('jsprismarine:dummy', { ...GROUND, x: 1 });
+                const target = dummy === undefined ? undefined : runtime.mobById(dummy.id);
+                if (brute === undefined || dummy === undefined || target === undefined)
+                    throw new Error('the fixture cannot spawn the brute and its target');
+
+                runtime.attack(brute.body, target);
+                return 100 - (dummy.instance.attributes.get('health')?.current ?? 100);
+            };
+
+            expect(dealt(0)).toBe(3);
+            expect(dealt(0.5)).toBe(6);
+            expect(dealt(0.99)).toBe(9);
+        });
+
         it('ignores creative players and drops a target when a player switches to creative', () => {
             const player = {
                 id: 99,

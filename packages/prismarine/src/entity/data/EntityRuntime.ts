@@ -2358,7 +2358,8 @@ export class EntityRuntime implements EntityScene {
      */
     public attack(attacker: MobBody, target: GoalMob): void {
         if (typeof target.id !== 'number') return;
-        const damage = attacker.facts.attackDamage;
+        const attackerEntity = this.store.get(attacker.id);
+        const damage = this.meleeDamage(attacker, attackerEntity);
 
         const other = this.store.get(target.id);
         const hurtPlayer = this.host.hurt;
@@ -2367,7 +2368,6 @@ export class EntityRuntime implements EntityScene {
             return;
         }
 
-        const attackerEntity = this.store.get(attacker.id);
         const targetView = target.view();
         if (attackerEntity !== undefined) {
             if (!canEntityAttackView(attackerEntity.instance, targetView)) return;
@@ -2388,6 +2388,21 @@ export class EntityRuntime implements EntityScene {
 
         hurtPlayer?.(target.id, damage, 'entity_attack', attacker.id);
         if (attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
+    }
+
+    /**
+     * The damage one melee blow deals.
+     *
+     * `minecraft:attack` may declare a range, `[3, 9]` for an adult hoglin or 7 to 21 for the
+     * iron golem, and each blow draws a whole number from it, the way Java's `IronGolem` and
+     * `HoglinBase.hurtAndThrowTarget` draw each blow from their base damage. A single number
+     * deals that number.
+     */
+    private meleeDamage(attacker: MobBody, entity: DataEntity | undefined): number {
+        const declared = entity?.instance.attributes.get('attack_damage');
+        const damage = attacker.facts.attackDamage;
+        if (declared === undefined || declared.max <= damage) return damage;
+        return damage + this.world.random.nextInt(Math.floor(declared.max - damage) + 1);
     }
 
     /** Applies active `minecraft:area_attack` damage to nearby entities and players. */
