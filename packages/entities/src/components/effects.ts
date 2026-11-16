@@ -203,6 +203,9 @@ export const spellEffects: ComponentFactory<EntityHooks, SpellEffectsParams> = {
         onInitialize: (entity) => {
             if (entity.restoring) return;
             const target = entity.filterContext().self;
+            // Removal first, so a file that names one effect in both lists, as the bee's feeding
+            // groups do with poison and wither, replaces the effect rather than ending it.
+            for (const effect of params.removeEffects) entity.removeStatusEffect(target, effect);
             for (const effect of params.addEffects)
                 entity.applyStatusEffect(target, {
                     id: effect.id,
@@ -212,7 +215,6 @@ export const spellEffects: ComponentFactory<EntityHooks, SpellEffectsParams> = {
                     showParticles: effect.showParticles,
                     showIcon: effect.showIcon
                 });
-            for (const effect of params.removeEffects) entity.removeStatusEffect(target, effect);
         }
     })
 };

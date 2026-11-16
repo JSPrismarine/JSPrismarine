@@ -59,3 +59,38 @@ describe('minecraft:mob_effect state', () => {
         expect(run.undone).toEqual(run.before);
     });
 });
+
+describe('minecraft:spell_effects', () => {
+    it('removes before it adds, so an effect named in both lists is refreshed rather than ended', () => {
+        // The bee's feeding groups add poison or wither and name the same effect under remove_effects.
+        const active = new Map<string, number>();
+        const environment: EntityEnvironment = {
+            effects: {
+                applyStatusEffect: (_entity, _target, effect) => active.set(effect.id, effect.durationTicks).size > 0,
+                removeStatusEffect: (_entity, _target, identifier) => active.delete(identifier)
+            }
+        };
+        const types = new EntityTypes();
+        types.load([
+            {
+                data: {
+                    format_version: '1.26.50',
+                    'minecraft:entity': {
+                        description: { identifier: 'test:bee' },
+                        components: {
+                            'minecraft:spell_effects': {
+                                add_effects: [{ effect: 'poison', duration: 25 }],
+                                remove_effects: 'poison'
+                            }
+                        }
+                    }
+                },
+                pack: 'vanilla',
+                path: 'entities/bee.json'
+            }
+        ]);
+        types.spawn('test:bee', { environment });
+
+        expect([...active]).toEqual([['poison', 25 * 20]]);
+    });
+});
