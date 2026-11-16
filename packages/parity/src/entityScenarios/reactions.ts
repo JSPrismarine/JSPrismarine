@@ -442,6 +442,10 @@ export const reactionScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             const given = inSandbox(subject.bedrock, 'air', (sandbox) => {
                 const player = sandbox.stack.runtime.spawnPlayer(910_001, beside(6));
                 if (player === undefined) return 'the sandbox could not put a player beside it';
+                // A connected player is one the host reports, which is how the runtime finds it.
+                sandbox.stack.world.players = [
+                    { id: player.id, identifier: player.identifier, position: player.position }
+                ];
                 for (let tick = 1; tick <= interval + 5; tick += 1) {
                     sandbox.tick(1);
                     const effect = player.body.statusEffects.get('minecraft:darkness');

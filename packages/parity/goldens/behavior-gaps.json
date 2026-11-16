@@ -252,25 +252,10 @@
         }
     },
     "entities.behavior": {
-        "anger-alerts-kin:minecraft:hoglin": {
+        "breeding-cycle:minecraft:ocelot": {
             "kind": "defect",
-            "reason": "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others or its brain broadcasts the target. Observed: hit by a zombie, it never turns on the zombie itself, where Java's turns on its attacker.",
-            "reference": "Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187"
-        },
-        "anger-alerts-kin:minecraft:piglin": {
-            "kind": "defect",
-            "reason": "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others or its brain broadcasts the target. Observed: hit by a zombie, it never turns on the zombie itself, where Java's turns on its attacker.",
-            "reference": "Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187"
-        },
-        "anger-alerts-kin:minecraft:piglin_brute": {
-            "kind": "defect",
-            "reason": "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others or its brain broadcasts the target. Observed: hit by a zombie, it never turns on the zombie itself, where Java's turns on its attacker.",
-            "reference": "Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187"
-        },
-        "anger-alerts-kin:minecraft:zoglin": {
-            "kind": "defect",
-            "reason": "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others or its brain broadcasts the target. Observed: hit by a zombie, it never turns on the zombie itself, where Java's turns on its attacker.",
-            "reference": "Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187"
+            "reason": "A fed adult falls in love for 600 ticks, a pair breeds a baby of Java's type, and both parents wait 6000 ticks before breeding again. Observed: feeding it minecraft:cod puts it in love for 0 ticks, where Java's lasts 600.",
+            "reference": "Java Animal.setInLove (600), Animal.finalizeSpawnChildFromBreeding (setAge(6000) on both parents), AbstractHorse and Llama handleEating, and getBreedOffspring of each animal; issue #2911 (bee and wolf food)"
         },
         "breeze-ground-sound:minecraft:breeze": {
             "kind": "intentional",
@@ -281,6 +266,16 @@
             "kind": "intentional",
             "reason": "The player's client moves its own body in both editions and the server accepts the result (exclusion 3 of the parity claim: client-predicted simulation).",
             "reference": "Java LivingEntity.onClimbable (block tag minecraft:climbable) and handleOnClimbable (fall clamped to -0.15)"
+        },
+        "conversions:minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob converts into Java's type on each cause Java converts it on, after as many ticks as Java takes, and a mob Java never converts stays what it is. Observed: got_in_powder_snow converts it after 741 to 741 ticks, where the Skeleton freezing ConversionTracker (140 ticks in powder snow, then 300) takes 441 to 441.",
+            "reference": "Java ConversionTracker (Zombie, Husk, Skeleton), AbstractPiglin and Hoglin CONVERSION_TIME, Pig.thunderHit, Villager.thunderHit, Zombie.killedEntity, ZombieVillager.startConverting, MushroomCow.shear and Tadpole.ageUp; issue #3157"
+        },
+        "converts-in-environment:minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A zombie or a husk under water turns into a drowned or a zombie, a skeleton in powder snow into a stray, and a piglin or a hoglin outside the Nether into its zombified form, each after the time Java counts for it. Observed: it never converts in 481 ticks, where Java converts it after 441.",
+            "reference": "Java minecraft:zombie: Zombie.<init> (drowningTracker 600 then 300) and ConversionTracker.tick; minecraft:husk: Zombie.<init>, Husk.convertsInWater and Husk.doUnderWaterConversion; minecraft:skeleton: Skeleton.<init> (freezingTracker 140 then 300) and ConversionTracker.tick; minecraft:piglin: AbstractPiglin.customServerAiStep (timeInOverworld past 300); minecraft:piglin_brute: AbstractPiglin.customServerAiStep (timeInOverworld past 300); minecraft:hoglin: Hoglin.customServerAiStep (timeInOverworld past 300), read from the pinned jar"
         },
         "despawn-distance:minecraft:armadillo": {
             "kind": "intentional",
@@ -452,6 +447,11 @@
             "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
             "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
+        "goal-avoid-mob-type:minecraft:phantom": {
+            "kind": "defect",
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: Java's minecraft:phantom registers no AvoidEntityGoal, but the server runs minecraft:behavior.avoid_mob_type. Tracked in #3130.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
+        },
         "goal-controlled_by_player:minecraft:pig": {
             "kind": "intentional",
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
@@ -462,20 +462,85 @@
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
             "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
         },
-        "heals-when-fed:minecraft:nautilus": {
+        "goal-find_cover:minecraft:fox": {
             "kind": "defect",
-            "reason": "A tamed cat, wolf or nautilus fed a food its isFood takes heals by the food's nutrition times Java's scale for it, and a sniffer heals by nothing. Observed: minecraft:cod heals it 0, where Java heals 4; minecraft:salmon heals it 0, where Java heals 4; minecraft:tropical_fish heals it 0, where Java heals 2; minecraft:pufferfish heals it 0, where Java heals 2; minecraft:cooked_cod heals it 0, where Java heals 10; minecraft:cooked_salmon heals it 0, where Java heals 12.",
-            "reference": "Java Cat, Wolf and AbstractNautilus.mobInteract (TamableAnimal.feed with scale 1, 2 and 2) and isFood (item tags cat_food, wolf_food, nautilus_food), Sniffer.mobInteract (Animal.mobInteract, which breeds and heals nothing), and the items' food nutrition, read from the pinned jar and the item table; issue #3192"
+            "reason": "A fox in daylight looks for shade: it walks under a roof when it stands in the sun. Observed: it stayed in the sun beside a roof.",
+            "reference": "Java Fox.SeekShelterGoal (FleeSunGoal subclass: in sunlight, walk to a spot that cannot see the sky); issue #3131 if it differs"
+        },
+        "goal-melee-box-attack:minecraft:blaze": {
+            "kind": "defect",
+            "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: Java's minecraft:blaze registers no MeleeAttackGoal, but the server runs minecraft:behavior.melee_box_attack. Tracked in #3130.",
+            "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
+        },
+        "goal-mount-pathing:minecraft:camel_husk": {
+            "kind": "defect",
+            "reason": "A mob riding another mob steers it, as Java's Mob.getControllingPassenger has it. Observed: its walk does not move the chicken it rides, which Java's rider steers. Tracked in #3130.",
+            "reference": "Java Mob.getControllingPassenger, Mob.getNavigation and Mob.updateControlFlags, read from the pinned jar, which registers no mount_pathing goal in any class"
+        },
+        "goal-nearest-attackable-target:minecraft:phantom": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: Java's minecraft:phantom registers no NearestAttackableTargetGoal, but the server runs minecraft:behavior.nearest_attackable_target. Tracked in #3130.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-random-swim:minecraft:elder_guardian": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:elder_guardian registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:guardian": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:guardian registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:turtle": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:turtle registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:blaze": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:blaze registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:ghast": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:ghast registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:shulker": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:shulker registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-skeleton_horse_trap:minecraft:skeleton_horse": {
+            "kind": "deferred",
+            "reason": "Java's trap enchants each skeleton's bow and helmet through the mob_spawn_equipment enchantment provider, a registry the server does not load yet (#2912); everything else about the trap matches Java.",
+            "reference": "Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (setVisualOnly bolt, createSkeleton with an iron helmet when its head slot is empty and its main hand and head enchanted by VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, riding the trap horse and three more from createHorse, setTrap(false)); issue #2912 if it differs"
+        },
+        "goal-stalk_and_pounce_on_target:minecraft:fox": {
+            "kind": "defect",
+            "reason": "A fox stalks its prey and pounces on it, hurting it. Observed: it never pounced on its prey within 300 ticks.",
+            "reference": "Java Fox.StalkPreyGoal and Fox.FoxPounceGoal (leap at the target, then doHurtTarget on landing); issue #3131 if it differs"
         },
         "held-item-interaction:minecraft:tnt_minecart": {
             "kind": "defect",
             "reason": "A mob takes, converts or ignores the item a player uses on it the way its Java mobInteract does. Observed: minecraft:flint_and_steel: the server answers accept, Java reject (MinecartTNT has no interact; only fire, damage and an activator rail prime it).",
             "reference": "Java mobInteract of AbstractCow, MushroomCow, Goat, Sheep, SnowGolem, Bogged, CopperGolem, Creeper, IronGolem, Armadillo, Allay, Bee, ZombieVillager, Pig, Strider, Camel, AbstractHorse, Llama, AbstractNautilus, SulfurCube, Piglin and Wolf, Mob.interact for saddles, carpets and harnesses, DyeItem.interactLivingEntity, and MinecartTNT, which has no interact; issue #3118"
         },
+        "home-range:minecraft:bee": {
+            "kind": "defect",
+            "reason": "A mob Java gives a home keeps it from where Java takes it, and its random wandering stays within the radius Java's setHomeTo gives it, or within none. Observed: the server holds its wandering within 22 blocks of home, where Java holds it to no radius.",
+            "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, every Mob.setHomeTo call (HappyGhast and AbstractNautilus checkRestriction, ElderGuardian.customServerAiStep, WanderingTraderSpawner.spawn), GoalUtils.mobRestricted and isRestricted, and Bee$BeeWanderGoal.getWanderThreshold; issues #3159 and #3170 (the bee)"
+        },
         "insomnia-calls-phantoms:minecraft:player": {
             "kind": "defect",
             "reason": "Phantoms spawn over a player who has not slept for three days, and only over such a player, by Java's PhantomSpawner. Observed: the server never reads minecraft:insomnia and spawns phantoms from the pack's spawn rule by darkness alone, so a rested player sees them too, where Java spawns them only over a player 72000 ticks without rest.",
             "reference": "Java PhantomSpawner.tick (spawnPhantoms game rule, Stats.TIME_SINCE_REST, random.nextInt(timeSinceRest) >= 72000), read from the pinned jar; issue #3191"
+        },
+        "java-rule-lava_movement:minecraft:strider": {
+            "kind": "defect",
+            "reason": "A strider walks across a lava pool on its surface as it walks on land. Observed: it covers 0.03 blocks of lava in a second, where Java walks it across.",
+            "reference": "Java Strider.canStandOnFluid (lava) and StriderPathNavigation, which paths over lava"
         },
         "jump-apex:minecraft:dolphin": {
             "kind": "intentional",
@@ -547,6 +612,11 @@
             "reason": "A player puts a saddle on a tamed adult mount that Java's can_equip_saddle tag lists, horse or nautilus armor on the mobs their tags list, and a carpet on a llama, and nothing else on any of them. Observed: it refuses minecraft:saddle, which Java puts on it.",
             "reference": "Java entity type tags can_equip_saddle, can_wear_horse_armor and can_wear_nautilus_armor, Equippable.llamaSwag, and Mob.mobInteract through Equippable.equipOnInteract and AbstractHorse.isEquippableInSlot"
         },
+        "move-control-turn:minecraft:villager": {
+            "kind": "defect",
+            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: the server pins no Java navigation for minecraft:villager_v2.",
+            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
+        },
         "not-pickable-from-inside:minecraft:creaking": {
             "kind": "intentional",
             "reason": "Input handling (category 2 of docs/data-driven/parity.md): which entity a crosshair inside a box picks follows the player's device, not the server. Java decides it only in the client: Entity.canBePickedFromInside is read by ProjectileUtil.getEntityHitResult(Entity, Vec3, Vec3, AABB, Predicate, double), which no class of the pinned 26.3 server jar calls (the client's GameRenderer.pick does), and the server takes a blow from a player standing inside the box at reach 0 either way.",
@@ -557,15 +627,15 @@
             "reason": "Input handling (category 2 of docs/data-driven/parity.md): which entity a crosshair inside a box picks follows the player's device, not the server. Java decides it only in the client: Entity.canBePickedFromInside is read by ProjectileUtil.getEntityHitResult(Entity, Vec3, Vec3, AABB, Predicate, double), which no class of the pinned 26.3 server jar calls (the client's GameRenderer.pick does), and the server takes a blow from a player standing inside the box at reach 0 either way.",
             "reference": "Java Entity.canBePickedFromInside and SulfurCube.canBePickedFromInside (!hasBodyItem), read only by ProjectileUtil.getEntityHitResult(..., double), whose caller is the client GameRenderer.pick; ServerGamePacketListenerImpl.handleInteract measures reach to the bounding box"
         },
-        "parrot-poisoned-by-cookie:minecraft:parrot": {
+        "path-through:minecraft:navigation.hover/minecraft:happy_ghast": {
             "kind": "defect",
-            "reason": "A parrot fed a cookie dies on the spot, as Java hurts it for all its health and poisons it. Observed: three ticks after eating a cookie it is still alive, where Java kills it at once.",
-            "reference": "Java Parrot.mobInteract (item tag parrot_poisonous_food: Poison 900, hurtServer Float.MAX_VALUE), read from the pinned jar; issue #3193"
+            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server will not route it through water, which Java's navigator enters; the server will not route it through an open door, which Java's navigator enters.",
+            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3140 and #3181"
         },
-        "player-hunger:minecraft:player": {
+        "path-through:minecraft:navigation.walk/minecraft:villager": {
             "kind": "defect",
-            "reason": "A fresh player has Java's 5 saturation; exhaustion is capped at 40 and spends 4 into saturation or food only once it is above 4, one step a tick. Observed: a fresh player has 20 saturation, where Java's has 5; exhaustion of exactly 4 spends saturation, where Java spends it only above 4; 100 exhaustion at once leaves 0 saturation and 0 food, where Java caps it at 40 and spends one step a tick.",
-            "reference": "Java FoodData.<init> (foodLevel 20, saturationLevel 5), FoodData.addExhaustion (min(exhaustion + amount, 40)) and FoodData.tick (exhaustionLevel > 4: take 4, then one saturation or one food), read from the pinned jar; issue #3190"
+            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server pins no Java navigation for minecraft:villager_v2.",
+            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3140 and #3181"
         },
         "projectile-hits-entity:minecraft:lingering_potion": {
             "kind": "defect",
@@ -882,6 +952,21 @@
             "reason": "A player who stares at an enderman's head angers it, as Java's EnderMan$EndermanLookForPlayerGoal has it; a creaking within 12 blocks of a player who is not looking wakes and goes for the player, as Java's Creaking.checkCanMove does. Observed: the server runs nothing for minecraft:looked_at, so a stare never angers it, where Java's turns on the player who stares.",
             "reference": "Java EnderMan.isBeingStaredBy and EnderMan$EndermanLookForPlayerGoal, and Creaking.checkCanMove (distanceToSqr < 144 activates, isLookingAtMe freezes), read from the pinned jar; issue #3189"
         },
+        "target-range:minecraft:creeper": {
+            "kind": "defect",
+            "reason": "A mob that acts on its target's distance starts and stops at Java's distances. Observed: minecraft:start_exploding fires at 3 blocks as the target closes in, where SwellGoal: swells once distanceToSqr < 9 and stops past distanceToSqr > 49 acts at 2.75.",
+            "reference": "Java SwellGoal (creeper), Blaze$BlazeAttackGoal.tick, Guardian$GuardianAttackGoal.canContinueToUse and the Drowned goal setup (DrownedTridentAttackGoal before DrownedAttackGoal); issues #3129 (creeper) and #3158"
+        },
+        "timer-durations:minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "Each Bedrock timer stands in for a Java countdown and runs as long as Java's, from its shortest draw to its longest. Observed: the become_stray_event timer runs 440 to 440 ticks, where Skeleton's freezing ConversionTracker (FreezingTime 140) gives 140 to 140.",
+            "reference": "Java AbstractBoat.BUBBLE_TIME, AllayAi.ITEM_PICKUP_COOLDOWN_DURATION, Armadillo.SCARE_CHECK_INTERVAL, the Bee and BeehiveBlockEntity constants, CopperGolem.WEATHERING_TICK_FROM and _TO, Guardian$GuardianAttackGoal, AbstractPiglin and Hoglin CONVERSION_TIME, the Zombie and Skeleton ConversionTrackers, Pufferfish.tick, Ravager.STUN_DURATION, SulfurCube.PICKUP_TIMER_DURATION, Evoker$EvokerSummonSpellGoal and WanderingTraderSpawner.spawn; issue #3157"
+        },
+        "trader-upkeep:minecraft:villager": {
+            "kind": "defect",
+            "reason": "A villager restocks at most twice a day and never within 2400 ticks of its last restock, and a wandering trader leaves 48000 ticks after it arrives. Observed: the villager has no trades to restock.",
+            "reference": "Java Villager.allowedToRestock (numberOfRestocksToday < 2, gameTime > lastRestockGameTime + 2400) and WanderingTrader.maybeDespawn with WanderingTraderSpawner.setDespawnDelay(48000); issue #3157"
+        },
         "unrun-components:minecraft:bee": {
             "kind": "defect",
             "reason": "A bee carrying nectar grows the crops it passes over, Java's Bee$BeeGrowCropGoal, and a ravager a shield blocks is stunned or throws the defender back, Java's Ravager.blockedByItem. Observed: the server runs nothing for minecraft:grows_crop, so a bee grows no crop, where Java's does.",
@@ -891,16 +976,6 @@
             "kind": "defect",
             "reason": "A bee carrying nectar grows the crops it passes over, Java's Bee$BeeGrowCropGoal, and a ravager a shield blocks is stunned or throws the defender back, Java's Ravager.blockedByItem. Observed: the server runs nothing for minecraft:ravager_blocked, so a blocked ravager is never stunned or pushed back, where Java's does.",
             "reference": "Java Bee$BeeGrowCropGoal (nextInt(adjustedTickDelay(30)), bee_growables, 10 crops a pollination) and Ravager.blockedByItem (stunnedTick 40 half the time, strongKnockback otherwise), read from the pinned jar; issue #3194"
-        },
-        "warden-angers-when-hit:minecraft:warden": {
-            "kind": "defect",
-            "reason": "A warden a zombie hits is at once angry at it, Java's 80 plus 20, roars and goes for it. Observed: hit by a zombie, it is not after the zombie 300 ticks later, where Java angers at it at once and roars at it.",
-            "reference": "Java Warden.hurtServer (increaseAngerAt(attacker, AngerLevel.ANGRY.getMinimumAnger() + 20)), AngerManagement.increaseAnger and WardenAi (roar, then fight), read from the pinned jar; issue #3186"
-        },
-        "warden-darkens-players:minecraft:warden": {
-            "kind": "defect",
-            "reason": "A warden gives every player within 20 blocks Darkness for 260 ticks, once each 120 ticks. Observed: a player six blocks away gets no Darkness in 125 ticks, where Java gives it within 120.",
-            "reference": "Java Warden.customServerAiStep ((tickCount + id) % 120 == 0) and Warden.applyDarknessAround (Darkness 260, radius 20), read from the pinned jar; issue #3185"
         },
         "warden-heartbeat:minecraft:warden": {
             "kind": "intentional",
@@ -2067,6 +2142,41 @@
         "registry-entry-loaded:dialog/server_links": {
             "kind": "intentional",
             "reason": "Java dialogs are a Java client screen with no Bedrock packet.",
+            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
+        },
+        "registry-entry-loaded:enchantment_provider/enderman_loot_drop": {
+            "kind": "deferred",
+            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
+            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
+        },
+        "registry-entry-loaded:enchantment_provider/mob_spawn_equipment": {
+            "kind": "deferred",
+            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
+            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
+        },
+        "registry-entry-loaded:enchantment_provider/pillager_spawn_crossbow": {
+            "kind": "deferred",
+            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
+            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
+        },
+        "registry-entry-loaded:enchantment_provider/raid/pillager_post_wave_3": {
+            "kind": "deferred",
+            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
+            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
+        },
+        "registry-entry-loaded:enchantment_provider/raid/pillager_post_wave_5": {
+            "kind": "deferred",
+            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
+            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
+        },
+        "registry-entry-loaded:enchantment_provider/raid/vindicator": {
+            "kind": "deferred",
+            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
+            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
+        },
+        "registry-entry-loaded:enchantment_provider/raid/vindicator_post_wave_5": {
+            "kind": "deferred",
+            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
             "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
         },
         "registry-entry-loaded:frog_variant/cold": {

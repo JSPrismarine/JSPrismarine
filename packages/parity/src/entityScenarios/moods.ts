@@ -79,22 +79,27 @@ const javaTargetGoals = (javaId: string): readonly JavaTargetGoal[] | undefined 
 
 /**
  * The brain-driven types the goal capture does not hold: whether one a zombie hits on dry land turns
- * on it, and whether it alerts its kind. A nautilus picks no target out of water
- * (`NautilusAi.findNearestValidAttackTarget`).
+ * on it, and whether another of its kind beside it turns on the zombie too. A nautilus picks no
+ * target out of water (`NautilusAi.findNearestValidAttackTarget`). A zoglin alerts nobody, but its
+ * kin goes for any mob it sees but a zoglin or a creeper (`Zoglin.findNearestValidAttackTarget`),
+ * the zombie included.
  */
-const JAVA_BRAIN_RETALIATION: Readonly<Record<string, { readonly retaliates: boolean; readonly alerts: boolean }>> = {
-    'minecraft:hoglin': { retaliates: true, alerts: true },
-    'minecraft:piglin': { retaliates: true, alerts: true },
-    'minecraft:piglin_brute': { retaliates: true, alerts: true },
-    'minecraft:zoglin': { retaliates: true, alerts: false },
-    'minecraft:nautilus': { retaliates: false, alerts: false },
-    'minecraft:zombie_nautilus': { retaliates: false, alerts: false }
+const JAVA_BRAIN_RETALIATION: Readonly<Record<string, { readonly retaliates: boolean; readonly kinTurns: boolean }>> = {
+    'minecraft:hoglin': { retaliates: true, kinTurns: true },
+    'minecraft:piglin': { retaliates: true, kinTurns: true },
+    'minecraft:piglin_brute': { retaliates: true, kinTurns: true },
+    'minecraft:zoglin': { retaliates: true, kinTurns: true },
+    'minecraft:nautilus': { retaliates: false, kinTurns: false },
+    'minecraft:zombie_nautilus': { retaliates: false, kinTurns: false }
 };
 
-/** Whether a Java mob a zombie hits alerts others of its kind: `setAlertOthers` on its hurt-by goal, or its brain's broadcast. */
+/**
+ * Whether another of a Java mob's kind turns on the zombie that hit it: `setAlertOthers` on its
+ * hurt-by goal, or its brain's broadcast or own targeting.
+ */
 const javaAlertsKin = (javaId: string): boolean | undefined => {
     const brain = JAVA_BRAIN_RETALIATION[javaId];
-    if (brain !== undefined) return brain.alerts;
+    if (brain !== undefined) return brain.kinTurns;
     const goals = javaTargetGoals(javaId);
     if (goals === undefined) return undefined;
     return goals.some((goal) => goal.alertsOthers);
@@ -104,6 +109,9 @@ const javaAlertsKin = (javaId: string): boolean | undefined => {
 const javaRetaliates = (javaId: string): boolean =>
     JAVA_BRAIN_RETALIATION[javaId]?.retaliates ??
     (javaTargetGoals(javaId) ?? []).some((goal) => goal.classes.includes('HurtByTargetGoal'));
+
+/** Java's `Sensor.DEFAULT_SCAN_RATE`: ticks between two runs of a brain sensor. */
+const SENSOR_PERIOD = 20;
 
 /** Ticks the anger rows give a hurt mob's kin to turn on the attacker. */
 const ALERT_TICKS = 40;
@@ -155,9 +163,9 @@ const standBystander = (
 export const moodScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
         name: 'anger-alerts-kin',
-        java: "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others or its brain broadcasts the target.",
+        java: "A mob Java does not treat as neutral answers a blow through its own targeting: when a zombie hits it, another of its kind beside it turns on the zombie only where Java's HurtByTargetGoal alerts others, its brain broadcasts the target or, for a zoglin, goes for any mob it sees.",
         reference:
-            'Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187',
+            'Java registerGoals target selectors of the committed goal capture (HurtByTargetGoal.setAlertOthers in Dolphin, Panda, Silverfish and Vindicator; none in Spider, CaveSpider, Llama and TraderLlama), PiglinAi.maybeRetaliate and broadcastAngerTarget (piglins and brutes), HoglinAi.maybeRetaliate and broadcastAttackTarget, Zoglin.hurtServer and findNearestValidAttackTarget, and NautilusAi.setAngerTarget (no broadcast), read from the pinned jar; issue #3187',
         subjects: () => entitiesDeclaring('minecraft:angry').filter((subject) => !JAVA_NEUTRAL.has(subject.javaId)),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:angry'],
@@ -170,6 +178,9 @@ export const moodScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 const zombie = runtime.spawn('minecraft:zombie', beside(-5));
                 if (kin === undefined || zombie === undefined)
                     return 'the sandbox could not put a second one and a zombie beside it';
+                // One sensor period first, as Java's brain sensors start on a random offset within
+                // it, so a brain mob knows its kin before the blow.
+                sandbox.tick(SENSOR_PERIOD);
                 runtime.damage({
                     target: sandbox.entity.id,
                     attacker: zombie.id,
