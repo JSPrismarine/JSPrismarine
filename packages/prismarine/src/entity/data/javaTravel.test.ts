@@ -138,6 +138,27 @@ describe('a Java living body in the air', () => {
         expect(Math.max(...drops)).toBeCloseTo(0.15, 9);
         expect(drops.at(-1)).toBeCloseTo(0.15, 9);
     });
+
+    it('walks down a ladder at 0.15 blocks a tick when its Java move control steers it', () => {
+        const world = new TestEntityWorld();
+        for (let y = GROUND; y < GROUND + 10; y += 1) world.setBlock({ x: 0, y, z: 0 }, 'minecraft:ladder');
+        const climber = { ...PIG, components: { ...PIG.components, 'minecraft:can_climb': {} } };
+        const { runtime } = runtimeWith({ 'minecraft:pig': climber }, world);
+        const pig = runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND + 8, z: 0.5 });
+        if (pig === undefined) throw new Error('the fixture declares no pig');
+        // The pig's Java move control turns it, which steers its step along its heading.
+        expect(pig.instance.javaNavigation).toBeDefined();
+
+        const drops: number[] = [];
+        for (let tick = 1; tick <= 6; tick += 1) {
+            pig.body.moveTo({ x: 0.5, y: GROUND, z: 0.5 }, 1);
+            const before = pig.position.y;
+            runtime.tick(tick);
+            drops.push(before - pig.position.y);
+        }
+
+        expect(Math.max(...drops)).toBeLessThanOrEqual(0.15 + 1e-9);
+    });
 });
 
 describe('a body on the ground', () => {

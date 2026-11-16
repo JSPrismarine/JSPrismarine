@@ -7006,8 +7006,10 @@ export class EntityRuntime implements EntityScene {
             stepHeight: profile.stepHeight,
             maxUpStep: componentFacts.maxUpStep,
             ...(this.stuckInCobweb(entity) ? { stuckSpeed: COBWEB_HORIZONTAL_SPEED } : {}),
+            // In a ladder the body descends at most Java's 0.15 a tick. While it is airborne the
+            // fall already moves it down by that much, so the step adds no descent of its own.
             ...(componentFacts.movesBeforeGravity && this.onClimbable(entity.position)
-                ? { maxDescent: CLIMB_SPEED }
+                ? { maxDescent: entity.body.airborne ? 0 : CLIMB_SPEED }
                 : {}),
             groundFriction: this.groundFrictionAt(entity.position),
             floorAt: (waypoint) => floorUnder(waypoint, navigation),

@@ -1078,18 +1078,20 @@ export class MobBody {
         const scale = Math.min(stride, remaining) / remaining;
         const yaw = (this.yaw * Math.PI) / 180;
         const across = horizontalDistance(this.position, destination) * scale;
+        // A body in a ladder slides down no faster than the limit, steered or not.
+        const y = Math.max(
+            this.position.y + (target.y - this.position.y) * scale,
+            this.position.y - (options?.maxDescent ?? Number.POSITIVE_INFINITY)
+        );
         const proposed = steered
             ? {
                   x: this.position.x - Math.sin(yaw) * across,
-                  y: this.position.y + (target.y - this.position.y) * scale,
+                  y,
                   z: this.position.z + Math.cos(yaw) * across
               }
             : {
                   x: this.position.x + (destination.x - this.position.x) * scale,
-                  y: Math.max(
-                      this.position.y + (target.y - this.position.y) * scale,
-                      this.position.y - (options?.maxDescent ?? Number.POSITIVE_INFINITY)
-                  ),
+                  y,
                   z: this.position.z + (destination.z - this.position.z) * scale
               };
 
