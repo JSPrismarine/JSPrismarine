@@ -159,6 +159,7 @@ import { AreaEffectClouds, isAreaEffectCloud } from './areaEffectCloud';
 import { EvokerFangs, isEvokerFangs } from './evokerFangs';
 import { OminousItemSpawners, isOminousItemSpawner } from './ominousItemSpawner';
 import { HangingEntities, isHangingEntity } from './hangingEntities';
+import { placeablePaintingVariants } from './paintings';
 import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
 import { PlayerSystems } from './playerSystems';
 import { itemDropOf } from '../../inventory/persistence';
@@ -910,6 +911,8 @@ export class EntityRuntime implements EntityScene {
         });
         this.hangingEntities = new HangingEntities({
             isSolid: (at) => this.navigation().isSolid(at),
+            isOpen: (at) => !this.navigation().isSolid(at),
+            randomInt: (bound) => this.world.random.nextInt(bound),
             isFence: (at) => {
                 const block = this.world.blocks.get(at);
                 return (
@@ -1141,6 +1144,11 @@ export class EntityRuntime implements EntityScene {
             !this.eyesOfEnder.isValid(entity)
         ) {
             this.remove(entity.id, 'invalid_spawn_data');
+            return undefined;
+        }
+        // Java's `Painting.create` draws the picture, and places nothing where none fits.
+        if (isHangingEntity(entity) && !this.hangingEntities.place(entity, placeablePaintingVariants(this.content()))) {
+            this.remove(entity.id, 'no_room_to_hang');
             return undefined;
         }
 

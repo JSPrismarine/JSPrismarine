@@ -36,6 +36,7 @@ import type { DataEntity } from './DataEntity';
 import { ITEM_COMPONENT } from './droppedItems';
 import { EntityRuntime } from './EntityRuntime';
 import { EYE_OF_ENDER_SIGNAL_COMPONENT } from './eyeOfEnderSignals';
+import { HANGING_COMPONENT } from './hangingEntities';
 import type { ContentItemEntity, DamageCommit, EntityHostFacts, EntityWorldFacts } from './host';
 
 /**
@@ -220,6 +221,13 @@ export const entityFixtureDefinitions = () =>
 /** One entity type a test adds to the fixture, as the body of its behavior-pack file. */
 export type ExtraEntities = Readonly<Record<string, Record<string, unknown>>>;
 
+/** The painting variants the entity fixture carries: id, width and height. */
+const FIXTURE_PAINTINGS: readonly (readonly [string, number, number])[] = [
+    ['minecraft:kebab', 1, 1],
+    ['minecraft:aztec', 1, 1],
+    ['minecraft:pool', 2, 1]
+];
+
 /**
  * The definitions the entity fixture composes to.
  *
@@ -295,6 +303,22 @@ export const entityFixtureStack = (extra: ExtraEntities = {}): Definitions =>
                             ]
                         }
                     ]
+                })
+            ]
+        ]),
+        // Three of Java's painting variants, the 1 by 1 kebab and aztec and the 2 by 1 pool,
+        // which the `minecraft:placeable` tag lets a placed painting draw.
+        paintingVariants: new Map(
+            FIXTURE_PAINTINGS.map(([id, width, height]) => [
+                id,
+                definitionOf('paintingVariants', id, { asset_id: id, width, height })
+            ])
+        ),
+        tags: new Map([
+            [
+                'painting_variant/minecraft:placeable',
+                definitionOf('tags', 'painting_variant/minecraft:placeable', {
+                    values: FIXTURE_PAINTINGS.map(([id]) => id)
                 })
             ]
         ]),
@@ -772,5 +796,18 @@ export const spawnDeclared = (
         );
     if (declared.includes('jsprismarine:falling_block'))
         return runtime.spawn(identifier, at, { data: { block: 'minecraft:stone' } });
+    if (declared.includes(HANGING_COMPONENT)) {
+        // A painting hangs only on a wall, as Java's `Painting.create` places one, so a stone wall
+        // big enough for every variant goes up behind the block it faces south from.
+        const cell = { x: Math.floor(at.x), y: Math.floor(at.y), z: Math.floor(at.z) };
+        for (let dx = -3; dx <= 3; dx += 1)
+            for (let dy = -2; dy <= 3; dy += 1)
+                runtime.world.blocks.set(
+                    { x: cell.x + dx, y: cell.y + dy, z: cell.z - 1 },
+                    { identifier: 'minecraft:stone', states: {} },
+                    false
+                );
+        return runtime.spawn(identifier, at, { data: { facing: 'south' } });
+    }
     return runtime.spawn(identifier, at);
 };

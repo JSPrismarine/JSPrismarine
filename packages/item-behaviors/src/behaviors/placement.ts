@@ -138,6 +138,19 @@ export const entityPlacementBehavior: ItemBehaviorSpec = {
             return { onUseOn };
         }
 
+        if (context.identifier === 'minecraft:painting' && context.world.hangPainting !== undefined) {
+            const { hangPainting } = context.world;
+            // Java's `HangingEntityItem` hangs a painting only on a wall, never on a floor or a
+            // ceiling, and keeps the item when no picture fits there.
+            const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block, blockFace }) => {
+                if (blockFace === 'up' || blockFace === 'down') return undefined;
+                if (!hangPainting(againstFace(block, blockFace), blockFace)) return undefined;
+                return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };
+            };
+
+            return { onUseOn };
+        }
+
         const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block, blockFace }) => {
             context.world.perform({
                 kind: 'spawn-entity',

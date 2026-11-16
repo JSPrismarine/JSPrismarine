@@ -310,6 +310,7 @@ const itemActionsOf = (adapter: () => ServerWorldAdapter, content: ContentLookup
         canNameEntity: (target) => items().canNameEntity?.(target) ?? true,
         canDyeEntity: (target, color) => items().canDyeEntity?.(target, color) ?? true,
         placeEndCrystal: (base) => items().placeEndCrystal?.(base) ?? false,
+        hangPainting: (position, face) => items().hangPainting?.(position, face) ?? false,
         locate: (destination, origin) => items().locate?.(destination, origin),
         supports: (action) => items().supports?.(action) ?? true,
         includes: (set, member) => items().includes(set, member),

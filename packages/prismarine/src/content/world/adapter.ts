@@ -315,6 +315,8 @@ export interface ContentItemAccess {
     canDyeEntity?(target: ItemSource, color: string): boolean;
     /** Places an end crystal when its support and spawn box are valid. */
     placeEndCrystal?(base: BlockPosition): boolean;
+    /** Hangs a painting against a block's face when a picture fits there. */
+    hangPainting?(position: BlockPosition, face: BlockFace): boolean;
     /** The nearest structure in a structure tag, when the world has a structure search. */
     locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
     /** Whether an action of this kind is performed, so a behavior can keep its item when not. */

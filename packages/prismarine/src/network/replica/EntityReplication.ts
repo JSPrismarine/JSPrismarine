@@ -28,6 +28,8 @@ import type { ActorMetadataProjection } from '../../entity/data/actorMetadata';
 import { healthAttributesOf } from '../../entity/data/actorView';
 import type { EntityView, ShownHealth, ShownPose } from '../../entity/data/actorView';
 import { ITEM_STATE_FIELD, itemStackOfState } from '../../entity/data/droppedItems';
+import { HANGING_STATE_FIELD, paintingSightOf } from '../../entity/data/hangingEntities';
+import { PAINTING, PAINTING_STATE_FIELD } from '../../entity/data/paintings';
 import { boxOf } from '../../entity/data/facts';
 import { sameEquipmentItems, viewableEquipmentOf } from '../../entity/equipment';
 import { breathWorthSending } from '../../entity/playerBreath';
@@ -584,6 +586,14 @@ export class EntityReplication {
             return { kind: 'item', runtimeId: entity, view, metadata, stack: item ?? undefined };
         }
         const player = shown.kind === 'player' ? this.replica.player(held) : undefined;
+        if (held.shownIdentifier === PAINTING) {
+            const painting = paintingSightOf(
+                view.pose,
+                this.replica.field(held, PAINTING_STATE_FIELD),
+                this.replica.field(held, HANGING_STATE_FIELD)
+            );
+            if (painting !== undefined) return { kind: 'painting', runtimeId: entity, painting };
+        }
         if (player === undefined)
             return {
                 kind: 'actor',

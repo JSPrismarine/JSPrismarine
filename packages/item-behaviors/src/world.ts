@@ -460,6 +460,15 @@ export interface WorldActions {
      */
     placeEndCrystal?(base: BlockPosition): boolean;
     /**
+     * Hangs a painting on a block's face, as Java's `HangingEntityItem.useOn` places one: the host
+     * draws the picture that fits and places nothing when none does.
+     *
+     * @param position - The block against the face, where the painting hangs.
+     * @param face - The face it hangs on, which is the way it faces.
+     * @returns Whether the painting hung. A false answer leaves the item stack alone.
+     */
+    hangPainting?(position: BlockPosition, face: BlockFace): boolean;
+    /**
      * Whether the host performs an action of this kind, when it can say.
      *
      * `perform` returns nothing, so a host that has not written the system

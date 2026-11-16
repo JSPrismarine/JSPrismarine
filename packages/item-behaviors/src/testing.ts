@@ -11,6 +11,7 @@
 import type { ItemSource } from '@jsprismarine/items';
 
 import type {
+    BlockFace,
     BlockPlacement,
     EffectApplication,
     BlockPosition,
@@ -53,6 +54,8 @@ export interface TestWorldOptions {
     readonly structures?: Readonly<Record<string, BlockPosition>>;
     /** Whether the host accepts an end crystal on one base block. */
     readonly placeEndCrystal?: (base: BlockPosition) => boolean;
+    /** Whether the host hangs a painting against one face of a block. */
+    readonly hangPainting?: (position: BlockPosition, face: BlockFace) => boolean;
     /** The action kinds `supports` says no to; everything else is performed. */
     readonly unsupported?: readonly ItemWorldActionKind[];
 }
@@ -131,6 +134,7 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
         random: () => randoms[Math.min(draws++, randoms.length - 1)]!,
         locate: (destination) => structures.get(destination),
         ...(options.placeEndCrystal === undefined ? {} : { placeEndCrystal: options.placeEndCrystal }),
+        ...(options.hangPainting === undefined ? {} : { hangPainting: options.hangPainting }),
         supports: (action) => !unsupported.has(action),
         perform: (action) => {
             actions.push(action);

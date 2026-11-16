@@ -249,6 +249,7 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
         transform: (transformer, block, face) => transformers(transformer, block, face),
         effectsOf: (potion) => potions(potion),
         placeEndCrystal: (base) => options.placeEndCrystal?.(base) ?? false,
+        hangPainting: (position, face) => entities.spawn('minecraft:painting', position, { facing: face }) !== 0,
         perform
     };
 };

@@ -41,6 +41,7 @@ const world: WorldActions = {
     locate: (destination, origin) => current.locate?.(destination, origin),
     supports: (action) => current.supports?.(action) ?? true,
     placeEndCrystal: (base) => current.placeEndCrystal?.(base) ?? false,
+    hangPainting: (position, face) => current.hangPainting?.(position, face) ?? false,
     perform: (action) => current.perform(action)
 };
 
@@ -726,6 +727,24 @@ describe('placement', () => {
 
         withWorld({ placeEndCrystal: () => false });
         expect(useOn(stackOf('minecraft:end_crystal'))).toBeUndefined();
+    });
+
+    it('hangs a painting only on a wall face, and keeps the stack when no picture fits', () => {
+        const hung: (readonly [BlockPosition, BlockFace])[] = [];
+        withWorld({
+            hangPainting: (position, face) => {
+                hung.push([position, face]);
+                return true;
+            }
+        });
+        const block = testBlock('minecraft:stone', { x: 4, y: 64, z: -2 });
+        expect(useOn(stackOf('minecraft:painting', 3), block, 'north')?.stack?.count).toBe(2);
+        expect(useOn(stackOf('minecraft:painting', 3), block, 'up')).toBeUndefined();
+        expect(useOn(stackOf('minecraft:painting', 3), block, 'down')).toBeUndefined();
+        expect(hung).toEqual([[{ x: 4, y: 64, z: -3 }, 'north']]);
+
+        withWorld({ hangPainting: () => false });
+        expect(useOn(stackOf('minecraft:painting'), block, 'north')).toBeUndefined();
     });
 
     it('places a standing banner on a top face and a wall banner on a side', () => {

@@ -14,6 +14,8 @@ import type { ProtocolContext } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
+import AddPaintingPacket from '@jsprismarine/protocol/packet/AddPaintingPacket';
+import Vec3 from '@jsprismarine/protocol/structure/Vec3';
 import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
 import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
 import MobEffectPacket, { MobEffectEvent } from '@jsprismarine/protocol/packet/MobEffectPacket';
@@ -28,6 +30,7 @@ import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedP
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
 import { healthAttributesOf } from '../../entity/data/actorView';
+import type { PaintingSight } from '../../entity/data/hangingEntities';
 import type { EntityView } from '../../entity/data/actorView';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type { ShownPlayerState } from '../../entity/playerShown';
@@ -68,6 +71,11 @@ export type FirstSight =
           readonly stack: Item | undefined;
       }
     | {
+          readonly kind: 'painting';
+          readonly runtimeId: bigint;
+          readonly painting: PaintingSight;
+      }
+    | {
           readonly kind: 'player';
           readonly runtimeId: bigint;
           readonly view: EntityView;
@@ -97,6 +105,8 @@ export const firstSightPackets = (sight: FirstSight, context: ProtocolContext): 
             return actorSight(sight, context);
         case 'item':
             return itemSight(sight, context);
+        case 'painting':
+            return [paintingSight(sight)];
         case 'player':
             return playerSight(sight, context);
     }
@@ -133,6 +143,21 @@ const actorSight = (sight: Extract<FirstSight, { kind: 'actor' }>, context: Prot
 
     packets.push(...statusEffectsOf(runtimeId, view.statusEffects));
     return packets;
+};
+
+/**
+ * A painting, which a client draws only from `AddPaintingPacket`: the picture by its motif, hung
+ * the way it faces, with no actor metadata beside it.
+ */
+const paintingSight = (sight: Extract<FirstSight, { kind: 'painting' }>): AddPaintingPacket => {
+    const { position, direction, motif } = sight.painting;
+    return new AddPaintingPacket({
+        targetActorId: sight.runtimeId,
+        targetRuntimeId: sight.runtimeId,
+        position: new Vec3(position.x, position.y, position.z),
+        direction,
+        motif
+    });
 };
 
 /** A dropped stack, as Bedrock Dedicated Server sends it, so the client draws it leaving its block. */

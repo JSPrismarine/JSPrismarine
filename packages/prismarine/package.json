@@ -309,9 +309,17 @@
             "jsprismarine:dist": "./dist/entity/data/gravity.js",
             "default": "./src/entity/data/gravity.ts"
         },
+        "./entity/data/hangingEntities": {
+            "jsprismarine:dist": "./dist/entity/data/hangingEntities.js",
+            "default": "./src/entity/data/hangingEntities.ts"
+        },
         "./entity/data/host": {
             "jsprismarine:dist": "./dist/entity/data/host.js",
             "default": "./src/entity/data/host.ts"
+        },
+        "./entity/data/paintings": {
+            "jsprismarine:dist": "./dist/entity/data/paintings.js",
+            "default": "./src/entity/data/paintings.ts"
         },
         "./entity/data/storeActors": {
             "jsprismarine:dist": "./dist/entity/data/storeActors.js",
