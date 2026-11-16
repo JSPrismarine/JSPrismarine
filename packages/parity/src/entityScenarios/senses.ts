@@ -995,9 +995,9 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'enderman-dodges-projectiles',
-        java: "An enderman a projectile strikes takes no damage and teleports away, as Java's EnderMan.hurtServer has it do for every projectile.",
+        java: "An enderman a projectile strikes takes no damage and teleports, sending the teleport game event, as Java's EnderMan.hurtServer has it do for every projectile.",
         reference:
-            'Java Enderman.hurtServer (DamageTypeTags.IS_PROJECTILE: teleport up to 64 tries, no damage), read from the pinned jar; issue #3177',
+            'Java Enderman.hurtServer (DamageTypeTags.IS_PROJECTILE: teleport up to 64 tries, no damage) and Enderman.teleport (GameEvent.TELEPORT once it lands), read from the pinned jar; issue #3177',
         subjects: () => subjectsOf(['minecraft:enderman']),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:teleport'],
@@ -1010,10 +1010,17 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 });
                 if (arrow === undefined) return 'the sandbox could not fire an arrow';
                 arrow.body.velocity = { x: 1.5, y: 0, z: 0 };
-                const from = { ...sandbox.entity.position };
+                // The stack's random source replays one value, which draws every teleport onto the
+                // spot the enderman stands on, as Java's would; the game event shows it landed.
+                const { gameEvents } = sandbox.stack.world;
+                const before = gameEvents.length;
                 const hits = sandbox.tick(6);
-                const moved = Math.hypot(sandbox.entity.position.x - from.x, sandbox.entity.position.z - from.z);
-                return { hurt: hits.some((hit) => hit.taken > 0), teleported: moved > 2 };
+                return {
+                    hurt: hits.some((hit) => hit.taken > 0),
+                    teleported: gameEvents
+                        .slice(before)
+                        .some((event) => event.event === 'minecraft:teleport' && event.sourceId === sandbox.entity.id)
+                };
             });
             if (typeof outcome === 'string') return outcome;
             return !outcome.hurt && outcome.teleported

@@ -92,6 +92,13 @@ export interface EntityActuator {
     targetPosition?(): EntityPosition | undefined;
     /** Moves the entity instantly, stopping its current path. */
     teleportTo?(position: EntityPosition): void;
+    /**
+     * Java's `Enderman.teleport(x, y, z)`: drops the destination to the first block below it that
+     * blocks motion, and when that is not water, moves the entity there if its box fits clear of
+     * liquid, sending the `teleport` game event from where it stood.
+     * @returns Whether the entity moved.
+     */
+    randomTeleport?(destination: EntityPosition): boolean;
 }
 
 /** Operations an entity component delegates to the world outside this package. */

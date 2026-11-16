@@ -144,7 +144,11 @@ export const teleport: ComponentFactory<EntityHooks, TeleportParams> = {
                     })
                 )
                     return false;
-                return randomTeleport(entity, params.randomTeleportCube);
+                // `Enderman.hurtServer` takes no harm from a projectile, and tries up to 64
+                // teleports before it gives up.
+                for (let attempt = 0; attempt < PROJECTILE_TELEPORT_TRIES; attempt += 1)
+                    if (randomTeleport(entity, params.randomTeleportCube)) break;
+                return true;
             }
         };
     }
@@ -185,9 +189,26 @@ const nextRandomTeleportTicks = (entity: EntityInstance, params: TeleportParams)
     return Math.max(1, minimum + Math.floor(entity.random.next() * (maximum - minimum + 1)));
 };
 
-/** Tries a reachable random position around the entity. */
+/** How many teleports `Enderman.hurtServer` tries when a projectile strikes. */
+const PROJECTILE_TELEPORT_TRIES = 64;
+
+/**
+ * Tries one random position around the entity. A host with Java's landing rule draws the
+ * destination as `Enderman.teleport()` does, anywhere in the cube; otherwise the navigator picks
+ * a reachable one.
+ */
 const randomTeleport = (entity: EntityInstance, cube: RandomTeleportCube): boolean => {
     const actuator = entity.actuator;
+    if (actuator?.randomTeleport !== undefined) {
+        const here = actuator.position();
+        const { random } = entity;
+        const height = 2 * cube.y;
+        return actuator.randomTeleport({
+            x: here.x + (random.next() - 0.5) * 2 * cube.x,
+            y: here.y + (random.nextInt?.(height) ?? Math.floor(random.next() * height)) - cube.y,
+            z: here.z + (random.next() - 0.5) * 2 * cube.z
+        });
+    }
     if (actuator?.randomPosition === undefined) return false;
     const destination = actuator.randomPosition(actuator.position(), cube.x, cube.y, cube.z);
     return destination !== undefined && teleportTo(actuator, destination);

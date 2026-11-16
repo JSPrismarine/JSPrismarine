@@ -1635,7 +1635,10 @@ export class EntityRuntime implements EntityScene {
             restoring,
             ...(options.parents === undefined ? {} : { parents: options.parents.map((parent) => parent.instance) }),
             environment: {
-                actuator: actuatorOf(body, this),
+                actuator: {
+                    ...actuatorOf(body, this),
+                    randomTeleport: (destination) => this.endermanTeleport(id, destination)
+                },
                 broadcastAnger: (entity, request) => this.broadcastAnger(entity, request),
                 effects: {
                     playSound: (_source, sound) => this.world.effects.playSound(blockPositionOf(body.position), sound),
@@ -6608,6 +6611,33 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
+     * Java's `Enderman.teleport(x, y, z)` and the `LivingEntity.randomTeleport` it calls: the
+     * destination drops to the first block under it that blocks motion, and when that is no water
+     * the entity lands on it if its box fits there clear of liquid. A teleport that lands sends
+     * the `teleport` game event from where the entity stood.
+     * @returns Whether the entity moved.
+     */
+    private endermanTeleport(id: number, destination: EntityPosition): boolean {
+        const entity = this.store.get(id);
+        if (entity === undefined) return false;
+        const navigation = this.navigation();
+        const minY = this.world.level.minY;
+        const column = blockPositionOf(destination);
+        let y = column.y;
+        while (y > minY && !navigation.isSolid({ ...column, y: y - 1 })) y -= 1;
+        const ground = { ...column, y: y - 1 };
+        if (!navigation.isSolid(ground) || navigation.isWater(ground)) return false;
+        const landing = { ...destination, y: destination.y - (column.y - y) };
+        const box = entity.facts.box;
+        const [water, lava] = bodyIntersectsMedia(landing, box, navigation.isWater, navigation.isLava);
+        if (water || lava || !bodyCanOccupy(landing, box, navigation)) return false;
+        const from = blockPositionOf(entity.position);
+        entity.body.teleportTo(landing);
+        this.world.effects.emitGameEvent(TELEPORT_EVENT, from, entity.id);
+        return true;
+    }
+
+    /**
      * Whether the entity ran into a wall this tick, Java's `horizontalCollision`: its coast was
      * stopped on a horizontal axis, or it walks with a block pressed against its side.
      */
@@ -7088,6 +7118,9 @@ const SNOW_LAYER = 'minecraft:snow_layer';
 /** The blocks `SnowLayerBlock.canSurvive` refuses and accepts whatever their top face. */
 const SNOW_CANNOT_SURVIVE_ON_TAG = 'minecraft:snow_layer_cannot_survive_on';
 const SNOW_CAN_SURVIVE_ON_TAG = 'minecraft:snow_layer_can_survive_on';
+
+/** The game event an enderman's teleport sends. */
+const TELEPORT_EVENT = 'minecraft:teleport';
 
 /** The game event a placed block sends. */
 const BLOCK_PLACE_EVENT = 'minecraft:block_place';
