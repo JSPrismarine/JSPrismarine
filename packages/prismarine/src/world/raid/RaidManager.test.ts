@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RaidHost, RaidParticipant, RaidPosition } from './RaidManager';
-import { RaidManager, wavesFor } from './RaidManager';
+import { RAID_OMEN_TICKS, RaidManager, wavesFor } from './RaidManager';
 
 const CENTER: RaidPosition = { x: 100, y: 64, z: 100 };
+
+/** The tick a raid starts on: the Bad Omen turns on the first, and the Raid Omen then runs out. */
+const OMEN = RAID_OMEN_TICKS + 1;
 
 /** A world with one village, one player and raiders that die when a test says so. */
 const world = (overrides: Partial<RaidHost> = {}) => {
     const spawned: string[] = [];
     const dead = new Set<string>();
     const hero: number[][] = [];
+    const raidOmen: number[][] = [];
     let omen = 1;
     const player: RaidParticipant = {
         id: 1,
@@ -20,7 +24,8 @@ const world = (overrides: Partial<RaidHost> = {}) => {
         clearBadOmen: () => {
             omen = 0;
         },
-        grantHero: (amplifier, ticks) => void hero.push([amplifier, ticks])
+        grantHero: (amplifier, ticks) => void hero.push([amplifier, ticks]),
+        grantRaidOmen: (amplifier, ticks) => void raidOmen.push([amplifier, ticks])
     };
     let draws = 0;
     const host: RaidHost = {
@@ -38,7 +43,7 @@ const world = (overrides: Partial<RaidHost> = {}) => {
         raiderAlive: (identity) => !dead.has(identity),
         ...overrides
     };
-    return { host, spawned, dead, hero, player, giveOmen: (level: number) => void (omen = level) };
+    return { host, spawned, dead, hero, raidOmen, player, giveOmen: (level: number) => void (omen = level) };
 };
 
 const run = (manager: RaidManager, ticks: number): void => {
@@ -46,15 +51,44 @@ const run = (manager: RaidManager, ticks: number): void => {
 };
 
 describe('RaidManager', () => {
-    it('starts a raid for a player with Bad Omen in a village and spends the omen', () => {
-        const { host, player } = world();
+    it('turns Bad Omen into a 600-tick Raid Omen in a village, and starts the raid when it runs out', () => {
+        const { host, player, raidOmen } = world();
         const manager = new RaidManager(host);
 
-        run(manager, 20);
+        run(manager, 1);
+        expect(player.badOmenLevel).toBe(0);
+        expect(raidOmen).toEqual([[0, RAID_OMEN_TICKS]]);
+        run(manager, OMEN - 2);
+        expect(manager.records()).toEqual([]);
+        run(manager, 1);
 
         expect(manager.records()).toHaveLength(1);
         expect(manager.records()[0]).toMatchObject({ status: 'ongoing', omenLevel: 1, groupsSpawned: 0, numGroups: 5 });
         expect(player.badOmenLevel).toBe(0);
+    });
+
+    it('starts the raid where the player took the Raid Omen, even once they walk off', () => {
+        const { host, player } = world();
+        const manager = new RaidManager(host);
+        run(manager, 1);
+
+        Object.assign(player, { position: { x: 150, y: 64, z: 100 } });
+        run(manager, OMEN - 1);
+
+        expect(manager.records()[0]?.center).toEqual(CENTER);
+    });
+
+    it('lets a Raid Omen lapse when its player leaves before it runs out', () => {
+        const players: RaidParticipant[] = [];
+        const { host, player } = world({ players: () => players });
+        players.push(player);
+        const manager = new RaidManager(host);
+        run(manager, 1);
+
+        players.length = 0;
+        run(manager, OMEN);
+
+        expect(manager.records()).toEqual([]);
     });
 
     it('does not start a raid without an omen, outside a village or on peaceful', () => {
@@ -65,7 +99,7 @@ describe('RaidManager', () => {
 
         for (const { host } of [noOmen, outside, peaceful]) {
             const manager = new RaidManager(host);
-            run(manager, 100);
+            run(manager, OMEN + 100);
             expect(manager.records()).toEqual([]);
         }
     });
@@ -74,7 +108,7 @@ describe('RaidManager', () => {
         const { host, spawned, dead } = world();
         const manager = new RaidManager(host);
 
-        run(manager, 20 + 299);
+        run(manager, OMEN + 299);
         expect(spawned).toEqual([]);
         run(manager, 2);
         expect(manager.records()[0]?.groupsSpawned).toBe(1);
@@ -87,7 +121,7 @@ describe('RaidManager', () => {
         expect(spawned).toHaveLength(first);
 
         for (const identity of spawned) dead.add(identity);
-        run(manager, 400);
+        run(manager, OMEN + 380);
         expect(manager.records()[0]?.groupsSpawned).toBe(2);
     });
 
@@ -107,7 +141,7 @@ describe('RaidManager', () => {
         expect(manager.records()[0]?.status).toBe('victory');
         expect(hero).toEqual([[0, 48_000]]);
 
-        run(manager, 400);
+        run(manager, OMEN + 380);
         expect(manager.records()).toEqual([]);
     });
 
@@ -116,7 +150,7 @@ describe('RaidManager', () => {
         giveOmen(3);
         const manager = new RaidManager(host);
 
-        run(manager, 20);
+        run(manager, OMEN);
 
         expect(manager.records()[0]).toMatchObject({ omenLevel: 3, numGroups: 5 });
     });
@@ -126,7 +160,7 @@ describe('RaidManager', () => {
         const { host, spawned } = world({ isVillage: () => village });
         const manager = new RaidManager(host);
 
-        run(manager, 400);
+        run(manager, OMEN + 380);
         expect(spawned.length).toBeGreaterThan(0);
         village = false;
         run(manager, 2);
@@ -137,7 +171,7 @@ describe('RaidManager', () => {
     it('gives up on a raid when nobody is near it any more', () => {
         const { host, player } = world();
         const manager = new RaidManager(host);
-        run(manager, 20);
+        run(manager, OMEN);
 
         Object.assign(player, { position: { x: 5000, y: 64, z: 5000 } });
         run(manager, 2);
@@ -148,7 +182,7 @@ describe('RaidManager', () => {
     it('keeps an active raid across a save and a load', () => {
         const { host, dead, spawned } = world();
         const manager = new RaidManager(host);
-        run(manager, 400);
+        run(manager, OMEN + 380);
         const saved = JSON.parse(JSON.stringify(manager.records()));
 
         const restored = new RaidManager(host, saved);
@@ -165,7 +199,7 @@ describe('RaidManager', () => {
     it('reports the raid at a position, within the distance Java counts as the village', () => {
         const { host } = world();
         const manager = new RaidManager(host);
-        run(manager, 20);
+        run(manager, OMEN);
 
         expect(manager.raidAt({ x: 150, y: 64, z: 100 })).toBeDefined();
         expect(manager.raidAt({ x: 400, y: 64, z: 100 })).toBeUndefined();

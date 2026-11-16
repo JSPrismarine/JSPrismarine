@@ -3020,6 +3020,12 @@ export class World implements Service {
                             return omen === undefined ? 0 : omen.amplifier + 1;
                         },
                         clearBadOmen: () => void actor()?.removeStatusEffect('minecraft:bad_omen'),
+                        grantRaidOmen: (amplifier: number, ticks: number) =>
+                            void actor()?.addStatusEffect({
+                                id: 'minecraft:raid_omen',
+                                amplifier,
+                                durationTicks: ticks
+                            }),
                         grantHero: (amplifier: number, ticks: number) =>
                             void actor()?.addStatusEffect({
                                 id: 'minecraft:village_hero',

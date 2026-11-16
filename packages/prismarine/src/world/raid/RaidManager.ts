@@ -1,8 +1,8 @@
 /**
  * Java 26.3's village raids, kept by the world that owns the village.
  *
- * A raid starts when a player carrying Bad Omen stands in a village: the omen is spent, a short
- * countdown runs, and waves of raiders spawn around the village center one after another, each
+ * A player carrying Bad Omen who stands in a village trades it for Raid Omen, and the raid starts
+ * where they stood once the Raid Omen runs out 600 ticks later. A short countdown runs, and waves of raiders spawn around the village center one after another, each
  * only once the last is dead. Killing the last wave wins the raid and gives the players near the
  * village Hero of the Village; a village that stops being one, or a raid that outlasts its time,
  * ends it. Everything the manager knows about the world comes through {@link RaidHost}, so it
@@ -51,6 +51,11 @@ export interface RaidParticipant {
     readonly badOmenLevel: number;
     /** Spends the player's Bad Omen. */
     clearBadOmen(): void;
+    /**
+     * Gives the player Raid Omen at an amplifier for a number of ticks, which shows the countdown.
+     * The manager keeps the countdown itself, so a host without status effects may leave it out.
+     */
+    grantRaidOmen?(amplifier: number, ticks: number): void;
     /** Gives the player Hero of the Village at an amplifier for a number of ticks. */
     grantHero(amplifier: number, ticks: number): void;
 }
@@ -98,8 +103,15 @@ const PARTICIPANT_RADIUS = 96;
 const SPAWN_DISTANCE = 40;
 /** How long Hero of the Village lasts, Java's 48000 ticks. */
 const HERO_TICKS = 48_000;
-/** How many ticks pass between looks for a player who has brought an omen. */
-const START_CHECK_INTERVAL = 20;
+/** How long the Raid Omen a Bad Omen turns into lasts, from Java's `BadOmenMobEffect.applyEffectTick`. */
+export const RAID_OMEN_TICKS = 600;
+
+/** A Raid Omen counting down to a raid: Java keeps it as the effect and the player's `raidOmenPosition`. */
+interface RaidOmen {
+    readonly level: number;
+    readonly at: RaidPosition;
+    ticksLeft: number;
+}
 
 /** Java's `Raid.getNumGroups`: three waves on easy, five on normal, seven on hard. */
 export const wavesFor = (difficulty: number): number => (difficulty <= 1 ? 3 : difficulty === 2 ? 5 : 7);
@@ -142,8 +154,12 @@ const bonusSpawns = (
  */
 export class RaidManager {
     private readonly raids = new Map<number, RaidRecord>();
+    /**
+     * The Raid Omens counting down, by player. Not saved: a server stopped during the 600 ticks
+     * loses the omen, as the player has already spent their Bad Omen.
+     */
+    private readonly omens = new Map<number, RaidOmen>();
     private nextId = 1;
-    private ticks = 0;
 
     public constructor(
         private readonly host: RaidHost,
@@ -180,8 +196,8 @@ export class RaidManager {
 
     /** Advances every raid by a tick, and looks for a player who has brought an omen to a village. */
     public tick(): void {
-        this.ticks += 1;
-        if (this.ticks % START_CHECK_INTERVAL === 0) this.startRaids();
+        this.countDownOmens();
+        this.turnBadOmens();
 
         for (const raid of this.raids.values()) {
             if (raid.status === 'ongoing') this.advance(raid);
@@ -193,41 +209,77 @@ export class RaidManager {
     }
 
     /**
-     * Java's `RaidManager.createOrExtendRaid`: a player with Bad Omen in a village starts a raid
-     * there, or makes the one already running there harder.
+     * Java's `BadOmenMobEffect.applyEffectTick`: a player with Bad Omen in a village, where no raid
+     * has taken all the omen it can, spends it for a Raid Omen of the same level that remembers
+     * where they stood.
      */
-    private startRaids(): void {
+    private turnBadOmens(): void {
         if (this.host.difficulty() <= 0) return;
 
         for (const player of this.host.players()) {
-            if (player.badOmenLevel <= 0) continue;
+            const level = player.badOmenLevel;
+            if (level <= 0) continue;
             const center = this.host.villageCenterAt(player.position);
             if (center === undefined) continue;
+            const raid = this.raidAt(center);
+            if (raid !== undefined && raid.omenLevel >= MAX_OMEN_LEVEL) continue;
 
-            let raid = this.raidAt(center);
-            if (raid === undefined) {
-                const difficulty = this.host.difficulty();
-                raid = {
-                    id: this.nextId++,
-                    center,
-                    status: 'ongoing',
-                    omenLevel: 0,
-                    groupsSpawned: 0,
-                    numGroups: wavesFor(difficulty),
-                    ticksActive: 0,
-                    waveCountdown: WAVE_COUNTDOWN_TICKS,
-                    celebrationTicks: 0,
-                    raiders: []
-                };
-                this.raids.set(raid.id, raid);
-            }
-            if (raid.status !== 'ongoing') continue;
-            // A raid that has begun cannot be made harder than Java allows.
-            if (raid.groupsSpawned > 0 && raid.omenLevel >= MAX_OMEN_LEVEL) continue;
-
-            raid.omenLevel = Math.min(MAX_OMEN_LEVEL, raid.omenLevel + player.badOmenLevel);
+            this.omens.set(player.id, { level, at: { ...player.position }, ticksLeft: RAID_OMEN_TICKS });
             player.clearBadOmen();
+            player.grantRaidOmen?.(level - 1, RAID_OMEN_TICKS);
         }
+    }
+
+    /**
+     * Java's `RaidOmenMobEffect.applyEffectTick`: on the Raid Omen's last tick the raid starts where
+     * the player took it. An omen whose player has left, died or turned spectator lapses.
+     */
+    private countDownOmens(): void {
+        if (this.omens.size === 0) return;
+        const present = new Set(this.host.players().map((player) => player.id));
+        for (const [id, omen] of this.omens) {
+            if (!present.has(id)) {
+                this.omens.delete(id);
+                continue;
+            }
+            omen.ticksLeft -= 1;
+            if (omen.ticksLeft > 0) continue;
+            this.omens.delete(id);
+            this.createOrExtendRaid(omen.at, omen.level);
+        }
+    }
+
+    /**
+     * Java's `RaidManager.createOrExtendRaid`: a Raid Omen run out in a village starts a raid there,
+     * or makes the one already running there harder.
+     */
+    private createOrExtendRaid(at: RaidPosition, omenLevel: number): void {
+        if (this.host.difficulty() <= 0) return;
+        const center = this.host.villageCenterAt(at);
+        if (center === undefined) return;
+
+        let raid = this.raidAt(center);
+        if (raid === undefined) {
+            const difficulty = this.host.difficulty();
+            raid = {
+                id: this.nextId++,
+                center,
+                status: 'ongoing',
+                omenLevel: 0,
+                groupsSpawned: 0,
+                numGroups: wavesFor(difficulty),
+                ticksActive: 0,
+                waveCountdown: WAVE_COUNTDOWN_TICKS,
+                celebrationTicks: 0,
+                raiders: []
+            };
+            this.raids.set(raid.id, raid);
+        }
+        if (raid.status !== 'ongoing') return;
+        // A raid that has begun cannot be made harder than Java allows.
+        if (raid.groupsSpawned > 0 && raid.omenLevel >= MAX_OMEN_LEVEL) return;
+
+        raid.omenLevel = Math.min(MAX_OMEN_LEVEL, raid.omenLevel + omenLevel);
     }
 
     private totalWaves(raid: RaidRecord): number {
