@@ -4492,8 +4492,11 @@ export class EntityRuntime implements EntityScene {
         }
 
         const table = entity.facts.lootTable;
-        if (table !== undefined && ruleIsOn(this.world.level, MOB_DROPS)) this.dropDeathLoot(entity, table);
-        if (ruleIsOn(this.world.level, MOB_DROPS)) this.dropDeathExperience(entity);
+        // Only a type with a table or an experience rule drops anything, so only it reads the rule.
+        if ((table !== undefined || JAVA_EXPERIENCE.has(entity.identifier)) && ruleIsOn(this.world.level, MOB_DROPS)) {
+            if (table !== undefined) this.dropDeathLoot(entity, table);
+            this.dropDeathExperience(entity);
+        }
         this.remove(entity.id, 'death');
     }
 

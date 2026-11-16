@@ -35,7 +35,8 @@ const scene = ({ pvp = true } = {}) => {
         sendActorSound: (actor: StoreActor, sound: LevelSoundEvent) => void noises.push({ actor, sound }),
         sendWorldEvent: (_at: unknown, event: LevelEvent) => void effects.push(event),
         broadcastMove: async () => {},
-        getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [pvp, true] }),
+        getGameRuleManager: () =>
+            stub<GameRuleManager>({ getGameRule: () => [pvp, true], findGameRule: () => undefined }),
         getLoadedChunk: () => null,
         getTicks: () => 0,
         getActor: (runtimeId: bigint) => live.actors.actorOf(Number(runtimeId)) ?? null,
