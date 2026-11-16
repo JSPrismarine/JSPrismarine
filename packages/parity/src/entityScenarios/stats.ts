@@ -23,6 +23,7 @@ import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { chiSquaredTest } from '../chiSquared.ts';
 import { loadJavaEntityAttributes } from '../goldens.ts';
 import { realStack, serverContent } from '../serverStack.ts';
+import { withProbe } from './goalProbe.ts';
 import type { EntitySubject } from './subjects.ts';
 import { componentValues, entitiesDeclaring, field } from './subjects.ts';
 
@@ -1108,35 +1109,81 @@ const SERVER_RULES: readonly ServerRule[] = [
     },
     {
         component: 'minecraft:lava_movement',
-        java: 'A strider walks across a lava pool on its surface as it walks on land.',
-        reference: 'Java Strider.canStandOnFluid (lava) and StriderPathNavigation, which paths over lava',
+        java: 'A strider walks across a lava pool on its surface as it walks on land, and wanders about on it by its own goals, since Java floats it from Strider.tick rather than from a goal that holds it still.',
+        reference:
+            'Java Strider.canStandOnFluid (lava), StriderPathNavigation, which paths over lava, Strider.floatStrider, called from Strider.tick, and the RandomStrollGoal Strider.registerGoals adds',
         check: (subject) => {
             const { runtime, world } = realStack();
             const at = slotAt(5);
             const floor = (block: string) => {
-                for (let dx = -2; dx <= 10; dx += 1)
-                    for (let dz = -2; dz <= 2; dz += 1)
+                for (let dx = -12; dx <= 12; dx += 1)
+                    for (let dz = -12; dz <= 12; dz += 1)
                         world.setBlock({ x: Math.floor(at.x) + dx, y: 63, z: Math.floor(at.z) + dz }, block);
             };
             floor('minecraft:lava');
             try {
-                return withSpawned(
-                    subject.bedrock,
-                    (entity) => {
-                        entity.body.moveTo({ x: at.x + 8, y: at.y, z: at.z }, 1);
-                        for (let tick = 1; tick <= 20; tick += 1) runtime.tick(tick);
-                        const moved = entity.position.x - at.x;
-                        if (entity.position.y < 63.5)
-                            return 'it sinks into the lava, where Java stands it on the surface';
-                        // Java's ground travel moves a strider at its 0.175 speed about 0.037 blocks a
-                        // tick once up to speed (0.175 x 0.175 x 0.546 / 0.454), so it covers well over
-                        // half a block in its first second.
-                        return moved >= 0.5
-                            ? undefined
-                            : `it covers ${moved.toFixed(2)} blocks of lava in a second, where Java walks it across`;
-                    },
-                    at
+                const differences: string[] = [];
+                // An adult, since a strider's own spawn event may make a baby, which walks at half the speed.
+                const events = typeOf(subject.bedrock).entity.events;
+                const adult = ['minecraft:spawn_adult', 'spawn_adult'].find((event) => events.has(event));
+                const spawnAdult = (): DataEntity => {
+                    const entity = runtime.spawn(subject.bedrock, at, adult === undefined ? {} : { event: adult });
+                    if (entity === undefined) throw new Error(`the server spawned no ${subject.bedrock}`);
+                    return entity;
+                };
+                const walker = spawnAdult();
+                try {
+                    // Walked toward a spot across the pool every tick, as a goal that walks it would.
+                    for (let tick = 1; tick <= 20; tick += 1) {
+                        walker.body.moveTo({ x: at.x + 8, y: at.y, z: at.z }, 1);
+                        runtime.tick(tick);
+                    }
+                    if (walker.position.y < 63.5)
+                        differences.push('it sinks into the lava, where Java stands it on the surface');
+                    // Java's ground travel moves a strider at its 0.175 speed about 0.037 blocks a
+                    // tick once up to speed (0.175 x 0.175 x 0.546 / 0.454), so it covers well over
+                    // half a block in its first second.
+                    const moved = walker.position.x - at.x;
+                    if (moved < 0.5)
+                        differences.push(
+                            `it covers ${moved.toFixed(2)} blocks of lava in a second, where Java walks it across`
+                        );
+                } finally {
+                    runtime.remove(walker.id, 'parity stats scenario complete');
+                }
+                // Left to its own goals, Java's strider strolls about the pool: RandomStrollGoal starts
+                // on a 1 in reducedTickDelay(60) chance a goal update. The shared stack draws a fixed
+                // 0.5, so this runs in the goal probe's stack, whose draws vary, with a player 16
+                // blocks off to keep noActionTime at 0 as Java's Mob.checkDespawn does.
+                const adultGroups = [...typeOf(subject.bedrock).groups.keys()].filter(
+                    (group) => /adult|unsaddled|pathing/.test(group) && !/jockey/.test(group)
                 );
+                const wandered = withProbe(
+                    subject.bedrock,
+                    {
+                        groups: adultGroups,
+                        without: (group) => /baby|jockey/.test(group),
+                        random: [0.01, 0.82, 0.5, 0.13, 0.91, 0.5, 0.24, 0.68, 0.5]
+                    },
+                    (probe) => {
+                        probe.fill([-12, -2, -12], [12, -2, 12], 'minecraft:stone');
+                        probe.fill([-12, -1, -12], [12, -1, 12], 'minecraft:lava');
+                        probe.player(0, 0, 16);
+                        const start = probe.at(0, 0, 0);
+                        let farthest = 0;
+                        for (let tick = 0; tick < 600; tick += 1) {
+                            probe.tick();
+                            const { x, z } = probe.entity.position;
+                            farthest = Math.max(farthest, Math.hypot(x - start.x, z - start.z));
+                        }
+                        return farthest;
+                    }
+                );
+                if (wandered < 1)
+                    differences.push(
+                        `left on the lava for 600 ticks it wanders ${wandered.toFixed(2)} blocks, where Java's RandomStrollGoal walks it about`
+                    );
+                return differences.length === 0 ? undefined : differences.join('; ');
             } finally {
                 floor('minecraft:stone');
             }
