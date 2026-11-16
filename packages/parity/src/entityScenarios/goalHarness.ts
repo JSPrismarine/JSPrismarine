@@ -10,7 +10,6 @@ import { RecordingActuator } from '@jsprismarine/entity-goals/harness';
 import { createGoalEntityRegistry } from '@jsprismarine/entity-goals/register';
 import type { GoalWorld } from '@jsprismarine/entity-goals/world';
 
-import { isRecord } from '../isRecord.ts';
 import { realStack, serverContent } from '../serverStack.ts';
 import { field } from './subjects.ts';
 
@@ -204,33 +203,33 @@ export interface DeclaredGoal {
     readonly movement: number | undefined;
 }
 
-const movementOf = (components: unknown): number | undefined => {
-    const value = field(field(components, 'minecraft:movement'), 'value');
+const movementOf = (components: ReadonlyMap<string, unknown> | undefined): number | undefined => {
+    const value = field(components?.get('minecraft:movement'), 'value');
     return typeof value === 'number' && value > 0 ? value : undefined;
 };
 
 /**
- * Every body a Bedrock entity definition declares for a goal, in its base components and each
- * component group, each with the walking speed a goal's speed multiplier scales in that state.
+ * Every body a Bedrock entity declares for a goal, in its base components and each component
+ * group, each with the walking speed a goal's speed multiplier scales in that state.
+ *
+ * The bodies are the ones the server loaded, which is the pack's file after the server's
+ * overlays, such as the one that writes Java's goal arguments in.
  */
 export const declaredGoals = (bedrock: string, component: string): readonly DeclaredGoal[] => {
-    const data = serverContent().definitions.entities.get(bedrock)?.data;
-    const entity = field(data, 'minecraft:entity');
-    const body = isRecord(field(entity, 'minecraft:entity')) ? field(entity, 'minecraft:entity') : entity;
-    const base = field(body, 'components');
-    const groups = field(body, 'component_groups');
-    const groupList = isRecord(groups) ? Object.values(groups) : [];
+    const entity = serverContent().entities.registry.get(bedrock)?.entity;
+    if (entity === undefined) return [];
+    const groupList = [...entity.componentGroups.values()];
     // A definition that writes its speed only in component groups, such as the adult and baby
     // zombie, walks at the first group's speed in a state whose own section names none.
     const baseMovement =
-        movementOf(base) ??
+        movementOf(entity.components) ??
         groupList.map(movementOf).find((value) => value !== undefined) ??
         realStack().runtime.typeFacts().get(bedrock)?.movement;
     const found: DeclaredGoal[] = [];
-    const declared = field(base, component);
+    const declared = entity.components.get(component);
     if (declared !== undefined) found.push({ body: declared, movement: baseMovement });
     for (const group of groupList) {
-        const value = field(group, component);
+        const value = group.get(component);
         if (value !== undefined) found.push({ body: value, movement: movementOf(group) ?? baseMovement });
     }
     return found;

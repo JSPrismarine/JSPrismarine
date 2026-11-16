@@ -162,10 +162,12 @@ const brainOnly = (subject: EntitySubject): boolean => {
 const GOAL_ISSUES: readonly (readonly [issue: number, matches: RegExp])[] = [
     [3132, /beside its brain/],
     [3133, /only charges while mounted/],
-    [3134, /closes in to a different range/],
+    [3134, /closes in to a different range|closing in, it never walks/],
     [3135, /never calls nearby mobs/],
-    [3130, /registers no |has no |never jumps|not even below|iron sword 2\.5 blocks/],
-    // Everything else is a parameter of Bedrock's tuning where Java's registerGoals passes another.
+    [3130, /registers no |has no |runs no |but the server runs |never jumps|not even below|iron sword 2\.5 blocks/],
+    [3165, /does not pick up an item it stands on/],
+    [3166, /targets wither, which/],
+    // Anything else is a goal parameter, which Java's registerGoals arguments decide (ADR 0019).
     [3128, /./]
 ];
 
@@ -284,6 +286,20 @@ const holdDifference = (
 };
 
 const javaGoalClass = (name: string): string => `${GOAL_PACKAGE}${name}`;
+
+/**
+ * A mob's own goal class, such as `PolarBear$PolarBearPanicGoal`, found beside the mob class or one
+ * it extends, since a goal records only its simple name.
+ */
+const javaMobGoalClass = (javaId: string, simple: string): ReturnType<typeof javaClass> => {
+    const entityClass = javaEntityClass(javaId);
+    if (entityClass === undefined) return undefined;
+    for (const name of javaSuperChain(entityClass)) {
+        const found = javaClass(`${name.slice(0, name.lastIndexOf('/') + 1)}${simple}`);
+        if (found !== undefined) return found;
+    }
+    return undefined;
+};
 
 /**
  * Compares a wander goal: the bound of the draw that starts it, which Java's RandomStrollGoal takes
@@ -500,14 +516,19 @@ const comparisons: readonly GoalComparison[] = [
                 differences.push(
                     `a look starts on a ${show(chance)} chance, where Java's starts on ${show(probability)}`
                 );
-            // `start` loads 40 and 40 for `40 + nextInt(40)`; a look draws its chance first.
-            const hold = holdDifference(
-                'a look',
-                component,
-                body,
-                { world, before: 1 },
-                javaMethodNumbers(javaGoalClass('LookAtPlayerGoal'), 'start').slice(-2)
-            );
+            // `start` loads 40 and 40 for `40 + nextInt(40)`; a look draws its chance first. A goal
+            // that starts on every tick, such as a vindicator's InteractGoal, has no hold to see:
+            // `GoalSelector.tick` starts it again in the pass that stops it, so the look never ends.
+            const hold =
+                (probability ?? 0) >= 1
+                    ? undefined
+                    : holdDifference(
+                          'a look',
+                          component,
+                          body,
+                          { world, before: 1 },
+                          javaMethodNumbers(javaGoalClass('LookAtPlayerGoal'), 'start').slice(-2)
+                      );
             if (hold !== undefined) differences.push(hold);
             return differences;
         }
@@ -640,10 +661,11 @@ const comparisons: readonly GoalComparison[] = [
                     gameTicks(probe, 1);
                     return drawn[0];
                 });
-                const expected = reducedTickDelay(interval);
+                // `randomInterval` 0 skips the draw: NearestAttackableTargetGoal.canUse scans every selector tick.
+                const expected = interval > 0 ? reducedTickDelay(interval) : undefined;
                 if (bounds.some((bound) => bound !== expected)) {
                     differences.push(
-                        `it scans for a target ${bounds.map((bound) => (bound === undefined ? 'on a fixed cooldown' : `on one selector tick in ${bound}`)).join(' or ')}, where Java's scans on one in ${expected}`
+                        `it scans for a target ${bounds.map((bound) => (bound === undefined ? 'on a fixed cooldown' : `on one selector tick in ${bound}`)).join(' or ')}, where Java's scans ${expected === undefined ? 'on every one' : `on one in ${expected}`}`
                     );
                 }
             }
@@ -721,10 +743,20 @@ const comparisons: readonly GoalComparison[] = [
                 gameTicks(probe, 2);
                 return probe;
             };
-            const attacked = hit(
-                'entity_attack',
-                zombie === undefined ? undefined : candidateMob(zombie, { x: 2, y: 0, z: 0 })
-            );
+            // A mob's own panic goal that overrides shouldPanic, or a damage predicate of the mob's
+            // own, may refuse a mob's hit, but every Java panic takes fire.
+            const causes = java.params.get('panicCausingDamageTypes');
+            const defaultCauses = causes?.kind === 'lambda' && causes.target?.owner === javaGoalClass('PanicGoal');
+            // A polar bear's lambda picks panic_environmental_causes for an adult, which fire is in and a hit is not.
+            const ownPanic =
+                !defaultCauses ||
+                (java.classes[0] !== java.goal &&
+                    javaMobGoalClass(subject.javaId, java.classes[0] ?? '')?.methods.some(
+                        (method) => method.name === 'shouldPanic'
+                    ) === true);
+            const attacked = ownPanic
+                ? hit('fire', undefined)
+                : hit('entity_attack', zombie === undefined ? undefined : candidateMob(zombie, { x: 2, y: 0, z: 0 }));
             const speed = speedDifference(
                 subject,
                 declared,
@@ -732,9 +764,10 @@ const comparisons: readonly GoalComparison[] = [
                 walkSpeeds(attacked)[0],
                 param(java, 'speedModifier')
             );
-            if (speed !== undefined) differences.push(speed.replace('never walks', 'never panics when a mob hits it'));
-            const causes = java.params.get('panicCausingDamageTypes');
-            const defaultCauses = causes?.kind === 'lambda' && causes.target?.owner === javaGoalClass('PanicGoal');
+            if (speed !== undefined)
+                differences.push(
+                    speed.replace('never walks', ownPanic ? 'never panics in fire' : 'never panics when a mob hits it')
+                );
             if (
                 defaultCauses &&
                 !serverContent().tags.members('damage_type', 'minecraft:panic_causes').includes('minecraft:fall')
@@ -787,8 +820,11 @@ const comparisons: readonly GoalComparison[] = [
                 );
             const [item] = javaItems;
             if (item !== undefined) {
+                // Java's goal stops within its stopDistance, such as a happy ghast's 7 blocks, so the
+                // player stands beyond it.
+                const away = Math.max(6, ...java.map((goal) => (param(goal, 'stopDistance') ?? 0) + 2));
                 const speeds = declared.map((body) => {
-                    const speed = walkSpeeds(tempted(body.body, item, 6))[0];
+                    const speed = walkSpeeds(tempted(body.body, item, away))[0];
                     const options = java.map((goal) =>
                         speedDifference(subject, body, 'tempted, it', speed, param(goal, 'speedModifier'))
                     );
