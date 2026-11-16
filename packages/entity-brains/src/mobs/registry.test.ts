@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { BrainMobRegistry } from '../registry.js';
 import { SENSOR_TYPE_NAMES } from '../sensing/sensors.js';
+import { TestMob, TestWorld } from '../testWorld.js';
+import { HAPPY_GHAST_BRAIN } from './happyGhast.js';
 import { BRAIN_MOBS, DUAL_SYSTEM_MOBS, registerBrainMobs } from './index.js';
 
 /**
@@ -84,5 +86,25 @@ describe('the mobs that carry both AI systems', () => {
     it('marks only dual-system brain mobs for goals', () => {
         const alsoRunningGoals = BRAIN_MOBS.filter((mob) => mob.alsoRunsGoals).map((mob) => mob.id);
         expect(alsoRunningGoals.sort()).toEqual([...DUAL_SYSTEM_MOBS].sort());
+    });
+});
+
+describe('the happy ghast', () => {
+    it("ticks its brain only as a baby, as Java's HappyGhast.customServerAiStep does", () => {
+        const world = new TestWorld();
+        const brainFor = (baby: boolean) => {
+            const body = new TestMob(world, 'minecraft:happy_ghast', { baby });
+            body.attach(HAPPY_GHAST_BRAIN.makeBrain());
+            return HAPPY_GHAST_BRAIN.ticksBrain?.({ world, body });
+        };
+
+        expect(brainFor(true)).toBe(true);
+        expect(brainFor(false)).toBe(false);
+    });
+
+    it('leaves every other brain mob ticking its brain every tick', () => {
+        expect(BRAIN_MOBS.filter((mob) => mob.ticksBrain !== undefined).map((mob) => mob.id)).toEqual([
+            'minecraft:happy_ghast'
+        ]);
     });
 });

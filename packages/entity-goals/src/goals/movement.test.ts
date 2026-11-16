@@ -514,6 +514,32 @@ describe('minecraft:behavior.follow_mob', () => {
     });
 });
 
+describe('minecraft:behavior.follow_mob preferred_actor_type', () => {
+    it('follows the player a file names without a namespace, ahead of a mob nearer by', () => {
+        const player = testMob('player', { x: 14.5, y: 1, z: 8.5 }, { identifier: 'minecraft:player' });
+        const cow = testMob('cow', { x: 11.5, y: 1, z: 8.5 }, { identifier: 'minecraft:cow' });
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.follow_mob': {
+                    priority: 6,
+                    search_range: 16,
+                    stop_distance: 5,
+                    preferred_actor_type: 'player',
+                    filters: { test: 'is_family', subject: 'other', value: 'nothing' }
+                }
+            },
+            components: walker,
+            world: { ...flatWorld(), mobs: () => [cow, player] },
+            at: { x: 8.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.follow_mob');
+        expect(harness.actuator.log).toContain('lookAt 14.5,1,8.5');
+    });
+});
+
 describe('minecraft:behavior.flee_sun', () => {
     const openSky = flatWorld().navigation?.();
     if (openSky === undefined) throw new Error('flatWorld must provide a navigation view');

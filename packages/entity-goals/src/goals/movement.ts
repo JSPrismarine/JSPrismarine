@@ -1,5 +1,6 @@
 import type { EntityPosition, Goal } from '@jsprismarine/entities';
 import { isBribed, spendBribe } from '@jsprismarine/entities/components/bribeable';
+import { qualifiedSpawnIdentifier } from '@jsprismarine/entities/components/shared';
 import { buckMount } from '@jsprismarine/entities/components/tamemount';
 import type { Filter } from '@jsprismarine/packs';
 import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
@@ -1905,14 +1906,18 @@ const followLoop = (
 export const followMob = goal<FollowParams>({
     name: 'minecraft:behavior.follow_mob',
     controlFlags: ['move', 'look'],
-    schema: bodySchema((body) => ({
-        speedMultiplier: numberAt(body, 'speed_multiplier', 1),
-        searchRange: numberAt(body, 'search_range', 16),
-        stopDistance: numberAt(body, 'stop_distance', 2),
-        startDistance: numberAt(body, 'stop_distance', 2),
-        filters: filterAt(body, 'filters'),
-        preferredActorType: stringAt(body, 'preferred_actor_type')
-    })),
+    schema: bodySchema((body) => {
+        // The ghastling's file writes `player`, which a mob's identifier reads as `minecraft:player`.
+        const preferred = stringAt(body, 'preferred_actor_type');
+        return {
+            speedMultiplier: numberAt(body, 'speed_multiplier', 1),
+            searchRange: numberAt(body, 'search_range', 16),
+            stopDistance: numberAt(body, 'stop_distance', 2),
+            startDistance: numberAt(body, 'stop_distance', 2),
+            filters: filterAt(body, 'filters'),
+            preferredActorType: preferred === undefined ? undefined : qualifiedSpawnIdentifier(preferred)
+        };
+    }),
     create: (params, support) =>
         followLoop(support, params, () =>
             support

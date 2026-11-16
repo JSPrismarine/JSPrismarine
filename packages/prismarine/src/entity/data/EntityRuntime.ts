@@ -2271,6 +2271,7 @@ export class EntityRuntime implements EntityScene {
         this.updateBrainConditions(entity);
         // The context itself is tick-local; its world and mob views are cached and read live state.
         const context = { world: this.brainWorld(), body: brainMobOf(entity, brain, this) };
+        if (definition.ticksBrain?.(context) === false) return;
         definition.updateActivity(context);
         brain.tick(context);
     }

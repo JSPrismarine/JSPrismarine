@@ -128,6 +128,9 @@ export const HAPPY_GHAST_BRAIN: BrainMobDefinition = {
         'nearest_players'
     ],
     alsoRunsGoals: true,
+    // Java's `HappyGhast.customServerAiStep` ticks the brain and updates its activity only for a
+    // baby; a grown ghast follows its goals alone.
+    ticksBrain: (context) => context.body.baby,
     makeBrain: () =>
         new Brain({
             sensors: [

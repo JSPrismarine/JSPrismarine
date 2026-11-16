@@ -45,6 +45,11 @@ export interface BrainMobDefinition {
      * stand for Java's.
      */
     readonly goals?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    /**
+     * Whether the mob's own tick runs its brain this tick. Java's `HappyGhast.customServerAiStep`
+     * ticks the brain only while the ghast is a baby. Absent means every tick.
+     */
+    readonly ticksBrain?: (context: BrainContext) => boolean;
     /** Builds the brain. Java's `Brain.Provider.makeBrain`. */
     makeBrain(options?: BrainMobOptions): Brain;
     /** Java's `<Mob>Ai.initMemories`, run once when the mob is first placed in the world. */
