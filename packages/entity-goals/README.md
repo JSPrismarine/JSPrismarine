@@ -65,11 +65,32 @@ window and 1-in-5 roll in `leap_at_target` are `LeapAtTargetGoal`; the 8-block p
 60-tick courtship and 3-block distance in `breed` are `BreedGoal`; the 300-tick revenge memory in
 `hurt_by_target` is `HurtByTargetGoal`.
 
-Where the two editions disagree the Bedrock parameter wins, because these are Bedrock definitions.
+A goal's parameters come from its body, but a server that wants Java's numbers can rewrite the
+body first. `javaGoalBody` in `src/javaArguments.ts` takes one Bedrock body and the goals the mob's
+Java class registers. It writes the arguments of the Java goal it stands for into the keys that mean
+the same thing: `LookAtPlayerGoal`'s `lookDistance` becomes `look_distance`, a `TemptGoal`'s item
+predicate becomes `items`, a `NearestAttackableTargetGoal`'s class becomes a bound on
+`entity_types`. Keys Java has no counterpart for, such as sounds and events, stay as written.
+`JAVA_TRANSLATED_GOALS` lists the goals it rewrites.
+
+```typescript
+import { java_entity_goals } from '@jsprismarine/bedrock-data';
+import { javaGoalBody } from '@jsprismarine/entity-goals/javaArguments';
+
+const body = javaGoalBody('minecraft:behavior.look_at_player', zombieBody, java_entity_goals['minecraft:zombie'], context);
+```
+
+The goals arrive as data, `@jsprismarine/bedrock-data`'s `java_entity_goals`, which this package
+does not depend on. The caller's `JavaGoalContext` answers what the capture leaves to the server:
+the mob's Java attributes, a filter for a set of Java entity types, and the Bedrock items of a Java
+item tag. JSPrismarine's server applies it to every entity file it loads, because the Bedrock
+client runs no mob AI and [ADR 0019](../../docs/adr/0019-java-decides-server-decided-goal-parameters.md)
+gives those numbers to Java. A server that leaves it out runs the pack's numbers.
+
 Two cases are worth naming. Java's `TemptGoal` scares the entity off when the player moves more than
 0.1 blocks or turns more than 5 degrees; Bedrock spells that as the single `can_get_scared` flag,
 which is parsed and handed to the server, because the goal seam carries no player rotation. Java
-splits melee into one class; Bedrock has `melee_attack` and `melee_box_attack`, which differ in
+has one melee class; Bedrock has `melee_attack` and `melee_box_attack`, which differ in
 whether the reach test uses the distance or the collision boxes, and with no collision boxes in the
 seam both run the same loop with `reach_multiplier` as the only difference.
 
