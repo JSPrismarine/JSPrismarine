@@ -55,6 +55,7 @@ import { unwiredWorldSource } from './world/unwired';
 import { contentWorldViews } from './world/views';
 import type { ContentWorldViews } from './world/views';
 import { javaAirSupplies, withJavaAirSupply } from '../entity/javaAirSupply';
+import { javaGoalRulings, withJavaGoals } from '../entity/javaGoals';
 import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
 
@@ -358,14 +359,18 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         : [{ pack: 'jsprismarine:player', path: 'entities/player.json', data: FALLBACK_PLAYER_FILE }];
     const breedingFoods = javaBreedingFoods(tags);
     const airSupplies = javaAirSupplies();
+    const goalRulings = javaGoalRulings();
     diagnostics.push(
         ...entityTypes.load(
             [...definitions.entities.values(), ...playerFallback].map((definition) => ({
                 pack: definition.pack,
                 path: definition.path,
-                data: withJavaAirSupply(
-                    withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
-                    airSupplies
+                data: withJavaGoals(
+                    withJavaAirSupply(
+                        withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
+                        airSupplies
+                    ),
+                    goalRulings
                 )
             }))
         )

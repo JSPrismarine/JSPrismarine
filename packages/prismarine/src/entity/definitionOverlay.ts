@@ -25,6 +25,23 @@ export const withComponentRewritten = (
     data: unknown,
     component: string,
     rewrite: (body: Record<string, unknown>) => Record<string, unknown>
+): unknown => withComponentReplaced(data, component, (body) => ({ [component]: rewrite(body) }));
+
+/**
+ * Replaces every body of `component` the file declares with the components `replace` builds
+ * from it, in its base components and in each component group. An empty result removes the
+ * component; a result under another name swaps it for that component.
+ *
+ * @param data - The parsed JSON of an entity file.
+ * @param component - The component to replace, such as `minecraft:behavior.swell`.
+ * @param replace - Builds the components that take the declared body's place.
+ * @returns The same object when the file declares no such component; otherwise a copy with
+ *   each body replaced.
+ */
+export const withComponentReplaced = (
+    data: unknown,
+    component: string,
+    replace: (body: Record<string, unknown>) => Readonly<Record<string, Record<string, unknown>>>
 ): unknown => {
     if (!isRecord(data)) return data;
     const entity = data['minecraft:entity'];
@@ -36,20 +53,26 @@ export const withComponentRewritten = (
         (isRecord(groups) && Object.values(groups).some((group) => isRecord(group) && isRecord(group[component])));
     if (!declares) return data;
 
-    const rewritten = (map: unknown): unknown => {
+    const replaced = (map: unknown): unknown => {
         if (!isRecord(map)) return map;
         const body = map[component];
-        return isRecord(body) ? { ...map, [component]: rewrite(body) } : map;
+        if (!isRecord(body)) return map;
+        // In place, so the components keep the order the file wrote them in.
+        return Object.fromEntries(
+            Object.entries(map).flatMap(([name, value]) =>
+                name === component ? Object.entries(replace(body)) : [[name, value] as const]
+            )
+        );
     };
     return {
         ...data,
         'minecraft:entity': {
             ...entity,
-            ...(components === undefined ? {} : { components: rewritten(components) }),
+            ...(components === undefined ? {} : { components: replaced(components) }),
             ...(isRecord(groups)
                 ? {
                       component_groups: Object.fromEntries(
-                          Object.entries(groups).map(([name, group]) => [name, rewritten(group)])
+                          Object.entries(groups).map(([name, group]) => [name, replaced(group)])
                       )
                   }
                 : {})
