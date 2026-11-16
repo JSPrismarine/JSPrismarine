@@ -252,6 +252,11 @@ export interface EntityInstanceOptions {
     environment?: EntityEnvironment;
     /** Whether this instance is being restored from saved state instead of spawned. */
     restoring?: boolean;
+    /**
+     * The entities this one was bred from, for the components that inherit from them such as
+     * `minecraft:genetics`. A spawn egg's offspring names its one parent twice.
+     */
+    parents?: readonly EntityInstance[];
 }
 
 /**
@@ -285,6 +290,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     private noActionTimeTicks = 0;
     /** Whether this instance is being restored from saved state. */
     public readonly restoring: boolean;
+    /** The entities this one was bred from, empty for one that was not bred. */
+    public readonly parents: readonly EntityInstance[];
     private active = new Map<string, ActiveComponent>();
     private activeComponentNames: readonly string[] = Object.freeze([]);
     private familySource: Map<string, ActiveComponent> | undefined;
@@ -326,6 +333,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         this.environment = environment;
         this.identity = options.id ?? 0;
         this.restoring = options.restoring ?? false;
+        this.parents = options.parents ?? [];
         this.rebuild([], []);
     }
 

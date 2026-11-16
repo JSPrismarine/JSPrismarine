@@ -59,6 +59,8 @@ export interface SpawnOptions {
      * removed before any client hears of it and the spawn returns nothing.
      */
     readonly admit?: (entity: DataEntity) => boolean;
+    /** The entities a bred entity came from, which its inherited components read. */
+    readonly parents?: readonly DataEntity[];
 }
 
 /** The runtime as the AI projections read it. */

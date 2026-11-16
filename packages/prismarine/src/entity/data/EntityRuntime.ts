@@ -1455,6 +1455,7 @@ export class EntityRuntime implements EntityScene {
         const instance = new EntityInstance(registry.holder(reference), {
             id,
             restoring,
+            ...(options.parents === undefined ? {} : { parents: options.parents.map((parent) => parent.instance) }),
             environment: {
                 actuator: actuatorOf(body, this),
                 broadcastAnger: (entity, request) => this.broadcastAnger(entity, request),
@@ -3855,6 +3856,7 @@ export class EntityRuntime implements EntityScene {
         spendLove(other);
         this.spawn(child.identifier, midpoint(self.position, other.position), {
             cause: 'born',
+            parents: [self, other],
             ...(child.event === undefined ? {} : { event: child.event })
         });
     }
@@ -3981,6 +3983,7 @@ export class EntityRuntime implements EntityScene {
                 // spawn instead. Bedrock writes a baby as is_baby, or as a growing ageable.
                 const offspring = this.spawn(spawnOffspring, entity.position, {
                     cause: 'born',
+                    parents: [entity, entity],
                     admit: (child) =>
                         child.instance.hasComponent('minecraft:is_baby') ||
                         child.instance.hasComponent('minecraft:ageable')
