@@ -29,35 +29,42 @@ export class ReusableInput {
 /** Wraps a part of a task's input that later tasks may carry again. */
 export const reusableInput = (key: string, value: unknown): ReusableInput => new ReusableInput(key, value);
 
-/** A value sent to the host to keep under its key. */
-interface ReusablePut {
-    readonly __reusablePut: string;
-    readonly value: unknown;
+/**
+ * Where a marker sat in an encoded input, and what goes back there.
+ *
+ * Slots travel beside the input rather than inside it, so no value of the input itself can be
+ * read as one.
+ */
+export type ReusableSlot = {
+    /** The top-level field that held the marker. */
+    readonly field: string;
+    /** The marker's position when the field is an array. */
+    readonly index?: number;
+    /** The key the value is kept under. */
+    readonly key: string;
+} & ({ readonly sent: true; readonly value: unknown } | { readonly sent: false });
+
+/** An input with its markers taken out, and the slots that say what goes back in. */
+export interface EncodedReusable {
+    readonly input: Readonly<Record<string, unknown>>;
+    readonly slots: readonly ReusableSlot[];
 }
-
-/** A key whose value the host was sent before. */
-interface ReusableRef {
-    readonly __reusableRef: string;
-}
-
-const isPut = (value: unknown): value is ReusablePut =>
-    typeof value === 'object' && value !== null && '__reusablePut' in value && typeof value.__reusablePut === 'string';
-
-const isRef = (value: unknown): value is ReusableRef =>
-    typeof value === 'object' && value !== null && '__reusableRef' in value && typeof value.__reusableRef === 'string';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && Object.getPrototypeOf(value) === Object.prototype;
 
 /** Applies `replace` to each top-level field of an input and each element of a top-level array. */
-const mapTopLevel = (input: unknown, replace: (value: unknown) => unknown): unknown => {
-    if (!isPlainObject(input)) return input;
-    const each = (value: unknown): unknown => (Array.isArray(value) ? value.map(replace) : replace(value));
-    return Object.fromEntries(Object.entries(input).map(([key, value]) => [key, each(value)]));
+const mapTopLevel = (
+    input: Record<string, unknown>,
+    replace: (value: unknown, field: string, index?: number) => unknown
+): Record<string, unknown> => {
+    const each = (value: unknown, field: string): unknown =>
+        Array.isArray(value) ? value.map((element, index) => replace(element, field, index)) : replace(value, field);
+    return Object.fromEntries(Object.entries(input).map(([field, value]) => [field, each(value, field)]));
 };
 
 /** Whether an input holds a marker where markers may sit. */
-const hasMarkers = (input: unknown): boolean =>
+const hasMarkers = (input: unknown): input is Record<string, unknown> =>
     isPlainObject(input) &&
     Object.values(input).some(
         (value) =>
@@ -114,19 +121,27 @@ export class ReusableCache<Value> {
 export const REUSABLE_CAPACITY = 384;
 
 /**
- * Encodes an input for the host: a marker whose key the host holds becomes a reference, and any
- * other is sent with its value, which the host then keeps.
+ * Encodes an input for the host: each marker leaves the input for a slot, which carries its value
+ * when the host does not hold its key and only the key when it does.
  * @param held - The server's record of what the host holds, updated as the host's will be.
+ * @returns `undefined` for an input without markers, which goes to the host as it is.
  */
-export const encodeReusable = (input: unknown, held: ReusableCache<true>): unknown =>
-    hasMarkers(input)
-        ? mapTopLevel(input, (value) => {
-              if (!(value instanceof ReusableInput)) return value;
-              if (held.use(value.key) !== undefined) return { __reusableRef: value.key } satisfies ReusableRef;
-              held.put(value.key, true);
-              return { __reusablePut: value.key, value: value.value } satisfies ReusablePut;
-          })
-        : input;
+export const encodeReusable = (input: unknown, held: ReusableCache<true>): EncodedReusable | undefined => {
+    if (!hasMarkers(input)) return undefined;
+    const slots: ReusableSlot[] = [];
+    const stripped = mapTopLevel(input, (value, field, index) => {
+        if (!(value instanceof ReusableInput)) return value;
+        const at = { field, ...(index === undefined ? {} : { index }), key: value.key };
+        if (held.use(value.key) !== undefined) {
+            slots.push({ ...at, sent: false });
+        } else {
+            held.put(value.key, true);
+            slots.push({ ...at, sent: true, value: value.value });
+        }
+        return null;
+    });
+    return { input: stripped, slots };
+};
 
 /** A reference to a value the host does not hold, which the server answers by sending it. */
 export class ReusableMissError extends Error {
@@ -137,32 +152,39 @@ export class ReusableMissError extends Error {
 }
 
 /**
- * Decodes an input on the host: keeps each value sent with a key and puts back each one referred to.
- * The run command marks an input {@link encodeReusable} changed, and only that input is decoded: an
- * ordinary input may hold objects shaped like the wire forms.
- * @throws ReusableMissError when a reference names a key the host does not hold.
+ * Decodes an input on the host: keeps each value a slot carries and puts back each one a slot names.
+ * @throws ReusableMissError when a slot names a key the host does not hold.
  */
-export const decodeReusable = (input: unknown, kept: ReusableCache<unknown>): unknown => {
-    const isWire = (value: unknown): boolean => isPut(value) || isRef(value);
-    if (
-        !isPlainObject(input) ||
-        !Object.values(input).some((value) => isWire(value) || (Array.isArray(value) && value.some(isWire)))
-    ) {
-        return input;
-    }
+export const decodeReusable = (
+    input: unknown,
+    slots: readonly ReusableSlot[],
+    kept: ReusableCache<unknown>
+): Record<string, unknown> => {
+    if (!isPlainObject(input)) throw new TypeError('An encoded reusable input is a plain object');
+    const decoded = { ...input };
+    const copied = new Set<string>();
     const missing: string[] = [];
-    const decoded = mapTopLevel(input, (value) => {
-        if (isPut(value)) {
-            kept.put(value.__reusablePut, value.value);
-            return value.value;
+    for (const slot of slots) {
+        let value: unknown;
+        if (slot.sent) {
+            kept.put(slot.key, slot.value);
+            value = slot.value;
+        } else {
+            const found = kept.use(slot.key);
+            if (found === undefined) missing.push(slot.key);
+            value = found?.value;
         }
-        if (isRef(value)) {
-            const found = kept.use(value.__reusableRef);
-            if (found === undefined) missing.push(value.__reusableRef);
-            return found?.value;
+        if (slot.index === undefined) {
+            decoded[slot.field] = value;
+            continue;
         }
-        return value;
-    });
+        const array = decoded[slot.field];
+        if (!Array.isArray(array)) throw new TypeError(`Reusable slot field ${slot.field} is not an array`);
+        const target = copied.has(slot.field) ? array : [...array];
+        copied.add(slot.field);
+        target[slot.index] = value;
+        decoded[slot.field] = target;
+    }
     if (missing.length > 0) throw new ReusableMissError(missing.join(', '));
     return decoded;
 };

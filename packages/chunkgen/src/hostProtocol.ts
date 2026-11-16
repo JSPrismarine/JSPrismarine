@@ -4,6 +4,7 @@
  */
 import type { GenerationPoolOptions, GenerationPriority, GenerationTask } from './GenerationPool';
 import type { WorkerTaskStats } from './GenerationStats';
+import type { ReusableSlot } from './reusableInput';
 
 /** The part of {@link GenerationPoolOptions} that can cross a process boundary. */
 export interface HostPoolOptions {
@@ -23,8 +24,8 @@ export type HostCommand =
           readonly id: number;
           readonly task: GenerationTask;
           readonly priority: GenerationPriority;
-          /** Set when the server encoded the task's input with reusable markers for the host to decode. */
-          readonly reusable?: true;
+          /** The reusable parts taken out of the task's input, which the host puts back. */
+          readonly reusable?: readonly ReusableSlot[];
       }
     | { readonly type: 'cancel'; readonly ids: readonly number[] }
     | { readonly type: 'promote'; readonly ids: readonly number[]; readonly to: GenerationPriority }

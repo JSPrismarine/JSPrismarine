@@ -261,9 +261,13 @@ export class HostedGenerationPool implements GenerationTransport {
         if (child === undefined || entry.sentTo === child || !this.outstanding.has(entry.id)) return;
 
         entry.sentTo = child;
-        const input = encodeReusable(entry.task.input, this.held);
+        const encoded = encodeReusable(entry.task.input, this.held);
         const run = { type: 'run', id: entry.id, task: entry.task, priority: entry.priority } as const;
-        this.post(input === entry.task.input ? run : { ...run, task: { ...entry.task, input }, reusable: true });
+        this.post(
+            encoded === undefined
+                ? run
+                : { ...run, task: { ...entry.task, input: encoded.input }, reusable: encoded.slots }
+        );
     }
 
     private post(command: HostCommand): void {
