@@ -10,6 +10,8 @@
  * declares one gets the Bedrock behavior its file asks for. A ruling may also reach a component
  * that only exists to drive a goal, such as the sensor that lights a creeper's fuse.
  */
+import { TICKS_PER_SECOND } from '@jsprismarine/entities/hooks';
+import { BLAZE_ATTACK, GHAST_SHOOT_FIREBALL, SHULKER_ATTACK } from '@jsprismarine/entity-goals/goals/mobAttacks';
 import { LAND_ON_OWNERS_SHOULDER } from '@jsprismarine/entity-goals/goals/shoulder';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
@@ -20,6 +22,9 @@ import { under } from './javaComponentTuning';
 /** The Bedrock potion ids of Java's `Potions.SWIFTNESS` and `Potions.INVISIBILITY`. */
 const SWIFTNESS_POTION = 14;
 const INVISIBILITY_POTION = 7;
+
+/** The priority of the blaze's attack: the one its file gives the ranged and melee goals it replaces, ahead of its stroll. */
+const BLAZE_ATTACK_PRIORITY = 3;
 
 /** One Java ruling over a vanilla goal: the components that take the declared goal's place. */
 interface JavaGoalRuling {
@@ -62,6 +67,42 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
         entity: 'minecraft:creeper',
         component: 'minecraft:target_nearby_sensor',
         java: tuned('minecraft:target_nearby_sensor', { inside_range: under(3), outside_range: 7 })
+    },
+    {
+        // Java `Blaze.registerGoals` adds `BlazeAttackGoal`, which bites inside 2 blocks and
+        // otherwise charges and fires bursts of three. It runs whatever the range, so it goes in
+        // the group of the sensor that is always on, beside the sensor, which still swaps the
+        // blaze's melee damage in and out; it takes the place of the ranged and melee goals.
+        entity: 'minecraft:blaze',
+        component: 'minecraft:target_nearby_sensor',
+        java: (body) => ({
+            'minecraft:target_nearby_sensor': body,
+            [BLAZE_ATTACK]: { priority: BLAZE_ATTACK_PRIORITY, projectile: 'minecraft:small_fireball' }
+        })
+    },
+    { entity: 'minecraft:blaze', component: 'minecraft:behavior.ranged_attack', java: absent },
+    { entity: 'minecraft:blaze', component: 'minecraft:behavior.melee_box_attack', java: absent },
+    {
+        // Java `Ghast.registerGoals` adds `GhastShootFireballGoal`: a fireball every 60 ticks.
+        entity: 'minecraft:ghast',
+        component: 'minecraft:behavior.ranged_attack',
+        java: ({ priority }) => ({
+            [GHAST_SHOOT_FIREBALL]: {
+                ...(priority === undefined ? {} : { priority }),
+                projectile: 'minecraft:fireball'
+            }
+        })
+    },
+    {
+        // Java `Shulker.registerGoals` adds `ShulkerAttackGoal`: a bullet every 20 to 110 ticks.
+        entity: 'minecraft:shulker',
+        component: 'minecraft:behavior.ranged_attack',
+        java: ({ priority }) => ({
+            [SHULKER_ATTACK]: {
+                ...(priority === undefined ? {} : { priority }),
+                projectile: 'minecraft:shulker_bullet'
+            }
+        })
     },
     {
         // Java `Fox$StalkPreyGoal` walks the fox at 1.5 toward prey farther than 6 blocks

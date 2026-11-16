@@ -9,6 +9,7 @@ import { environmentGoals } from './goals/environment';
 import { lookingGoals } from './goals/looking';
 import { movementGoals } from './goals/movement';
 import { componentGoals } from './goals/schooling';
+import { mobAttackGoals } from './goals/mobAttacks';
 import { javaOnlyGoals } from './goals/shoulder';
 import { socialGoals } from './goals/social';
 import { specialGoals } from './goals/specials';
@@ -58,7 +59,7 @@ export interface VanillaGoalOptions {
  * Registers all 170 vanilla `minecraft:behavior.*` goals with an entity
  * component registry, the goals Bedrock writes as other components, such
  * as the fish school `minecraft:flocking` runs, and the goals Java registers
- * that Bedrock has none for, such as a parrot landing on its owner's shoulder.
+ * that Bedrock has none for, such as a parrot landing on its owner's shoulder or a blaze's attack.
  *
  * A name the registry already carries is left alone, which follows what
  * `registerEntityComponents` does in `@jsprismarine/entities`. That matters
@@ -81,7 +82,7 @@ export const registerVanillaGoals = (
 ): readonly string[] => {
     const source = options.support ?? supportSource((entity) => options.world?.(entity));
     const skipped: string[] = [];
-    for (const entry of [...vanillaGoals, ...componentGoals, ...javaOnlyGoals]) {
+    for (const entry of [...vanillaGoals, ...componentGoals, ...javaOnlyGoals, ...mobAttackGoals]) {
         if (registry.has(entry.name)) {
             skipped.push(entry.name);
             continue;

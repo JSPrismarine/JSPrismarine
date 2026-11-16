@@ -39,7 +39,8 @@ export interface JavaGoalSources {
 /**
  * The Java goals of a mob's own class that do a Bedrock goal's job under their own rule, by the
  * Bedrock goal. The Bedrock goal stays on such a mob, since without it the mob would not do the
- * job at all: a blaze would never shoot.
+ * job at all, or until `withJavaGoals` swaps it for the server goal that runs the Java one, as it
+ * does the blaze's, the ghast's and the shulker's attacks.
  */
 const STAND_INS: Readonly<Record<string, readonly string[]>> = {
     'minecraft:behavior.ranged_attack': [

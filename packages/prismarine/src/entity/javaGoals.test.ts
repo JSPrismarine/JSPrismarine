@@ -1,6 +1,8 @@
 import { EntityTypes } from '@jsprismarine/entities';
 import { describe, expect, it } from 'vitest';
 
+import { BLAZE_ATTACK, GHAST_SHOOT_FIREBALL, SHULKER_ATTACK } from '@jsprismarine/entity-goals/goals/mobAttacks';
+
 import { javaGoalRulings, withJavaGoals } from './javaGoals';
 
 const entityFile = (
@@ -83,6 +85,41 @@ describe('withJavaGoals', () => {
                 }
             }
         });
+    });
+
+    it("runs the blaze's, the ghast's and the shulker's own Java attack goals in place of Bedrock's", () => {
+        const blaze = withJavaGoals(
+            entityFile(
+                'minecraft:blaze',
+                {},
+                {
+                    mode_switcher: { 'minecraft:target_nearby_sensor': { inside_range: 2 } },
+                    melee_mode: { 'minecraft:behavior.melee_box_attack': { priority: 3 } },
+                    ranged_mode: { 'minecraft:behavior.ranged_attack': { priority: 3 } }
+                }
+            ),
+            javaGoalRulings()
+        );
+        const ghast = withJavaGoals(
+            entityFile('minecraft:ghast', { 'minecraft:behavior.ranged_attack': { priority: 2 } }),
+            javaGoalRulings()
+        );
+        const shulker = withJavaGoals(
+            entityFile('minecraft:shulker', { 'minecraft:behavior.ranged_attack': {} }),
+            javaGoalRulings()
+        );
+
+        expect([...declared(blaze, 'minecraft:blaze')].sort()).toEqual([
+            BLAZE_ATTACK,
+            'minecraft:target_nearby_sensor'
+        ]);
+        expect(declared(ghast, 'minecraft:ghast')).toEqual([GHAST_SHOOT_FIREBALL]);
+        expect(ghast).toMatchObject({
+            'minecraft:entity': {
+                components: { [GHAST_SHOOT_FIREBALL]: { priority: 2, projectile: 'minecraft:fireball' } }
+            }
+        });
+        expect(declared(shulker, 'minecraft:shulker')).toEqual([SHULKER_ATTACK]);
     });
 
     it('takes off a goal Java registers nothing for, and swaps one Java runs by another rule', () => {
