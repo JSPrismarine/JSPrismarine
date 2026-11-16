@@ -33,7 +33,7 @@ const start = (options: HostPoolOptions): void => {
     send({ type: 'ready' });
 };
 
-const run = (id: number, sent: GenerationTask, priority: GenerationPriority): void => {
+const run = (id: number, sent: GenerationTask, priority: GenerationPriority, reusable: boolean): void => {
     const current = pool;
     if (current === undefined) {
         send({ type: 'result', id, ok: false, error: { name: 'Error', message: 'The generation host has no pool' } });
@@ -41,15 +41,17 @@ const run = (id: number, sent: GenerationTask, priority: GenerationPriority): vo
     }
 
     // Decoded as it arrives, before anything can be canceled, so the values kept are the ones the
-    // server's record says were sent, in the order it sent them.
-    let task: GenerationTask;
-    try {
-        const input = decodeReusable(sent.input, kept);
-        task = input === sent.input ? sent : { ...sent, input };
-    } catch (error) {
-        const thrown = error instanceof Error ? error : new Error(String(error));
-        send({ type: 'result', id, ok: false, error: { name: thrown.name, message: thrown.message } });
-        return;
+    // server's record says were sent, in the order it sent them. Only an input the server encoded
+    // is decoded, since an ordinary input may hold objects shaped like the wire forms.
+    let task = sent;
+    if (reusable) {
+        try {
+            task = { ...sent, input: decodeReusable(sent.input, kept) };
+        } catch (error) {
+            const thrown = error instanceof Error ? error : new Error(String(error));
+            send({ type: 'result', id, ok: false, error: { name: thrown.name, message: thrown.message } });
+            return;
+        }
     }
 
     taskIds.set(task, id);
@@ -91,7 +93,7 @@ process.on('message', (command: HostCommand) => {
             start(command.options);
             break;
         case 'run':
-            run(command.id, command.task, command.priority);
+            run(command.id, command.task, command.priority, command.reusable === true);
             break;
         case 'cancel': {
             const ids = new Set(command.ids);

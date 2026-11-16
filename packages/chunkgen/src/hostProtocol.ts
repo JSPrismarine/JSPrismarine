@@ -23,6 +23,8 @@ export type HostCommand =
           readonly id: number;
           readonly task: GenerationTask;
           readonly priority: GenerationPriority;
+          /** Set when the server encoded the task's input with reusable markers for the host to decode. */
+          readonly reusable?: true;
       }
     | { readonly type: 'cancel'; readonly ids: readonly number[] }
     | { readonly type: 'promote'; readonly ids: readonly number[]; readonly to: GenerationPriority }
