@@ -1,5 +1,6 @@
 import type { Filter, FilterOperator, FilterSubject, FilterTest } from '@jsprismarine/packs';
 import { parseFilter } from '@jsprismarine/packs';
+import { legacy_item_aliases, legacy_item_aux_aliases } from '@jsprismarine/bedrock-data';
 
 import type {
     EntityFlag,
@@ -65,6 +66,35 @@ const splitItemValue = (value: unknown): { readonly name: string; readonly data?
 const sameItemName = (identifier: string, name: string): boolean =>
     identifier === name || identifier === `minecraft:${name}` || `minecraft:${identifier}` === name;
 
+/** An item identifier with the `minecraft:` namespace a bare name leaves out. */
+const namespaced = (name: string): string => (name.includes(':') ? name : `minecraft:${name}`);
+
+/**
+ * Whether a held item is the one a `has_equipment` value names.
+ *
+ * Vanilla definitions still name some items by their pre-flattening identifier: the llama's
+ * carpet interaction asks for `carpet`, which Bedrock now holds as sixteen `*_carpet` items. Bedrock's
+ * own table maps such a name, with an auxiliary value to one item and without one to every item it
+ * stood for.
+ */
+const holdsNamedItem = (
+    identifier: string,
+    data: number | undefined,
+    wanted: { readonly name: string; readonly data?: number | undefined }
+): boolean => {
+    if (sameItemName(identifier, wanted.name)) return wanted.data === undefined || data === wanted.data;
+    const legacy = namespaced(wanted.name);
+    const variants = legacy_item_aux_aliases[legacy];
+    if (variants !== undefined) {
+        const held = namespaced(identifier);
+        return wanted.data === undefined
+            ? Object.values(variants).includes(held)
+            : variants[String(wanted.data)] === held;
+    }
+    const renamed = legacy_item_aliases[legacy];
+    return renamed !== undefined && wanted.data === undefined && sameItemName(identifier, renamed);
+};
+
 /** Reads a flag the view answers under its own test name. */
 const flag =
     (name: EntityFlag): TestReader =>
@@ -129,13 +159,11 @@ const readers: ReadonlyMap<string, TestEntry> = new Map<string, TestEntry>([
                 return slots.some((item) =>
                     item === undefined
                         ? wanted.name === 'air' || wanted.name === 'minecraft:air'
-                        : sameItemName(item.identifier(), wanted.name) &&
-                          (wanted.data === undefined || item.data?.() === wanted.data)
+                        : holdsNamedItem(item.identifier(), item.data?.(), wanted)
                 );
             const item = equipmentIn(subject, test);
             if (item === undefined) return sameItemName('minecraft:air', wanted.name);
-            if (!sameItemName(item.identifier(), wanted.name)) return false;
-            return wanted.data === undefined || item.data?.() === wanted.data;
+            return holdsNamedItem(item.identifier(), item.data?.(), wanted);
         })
     ],
     [

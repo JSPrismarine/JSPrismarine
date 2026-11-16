@@ -337,6 +337,20 @@ describe('evaluateFilter', () => {
             expect(evaluate({ test: 'any_slot_empty', subject: 'other', domain: 'inventory' }, carrier)).toBe(true);
         });
 
+        it('reads a pre-flattening item name such as carpet as every item it became', () => {
+            const holding = (identifier: string): FilterContext => ({
+                self: {},
+                other: { equipment: (slot) => (slot === 'hand' ? item(identifier) : undefined) }
+            });
+            const test = (value: string) =>
+                ({ test: 'has_equipment', subject: 'other', domain: 'hand', value }) as const;
+
+            expect(evaluate(test('carpet'), holding('minecraft:red_carpet'))).toBe(true);
+            expect(evaluate(test('carpet:14'), holding('minecraft:red_carpet'))).toBe(true);
+            expect(evaluate(test('carpet:0'), holding('minecraft:red_carpet'))).toBe(false);
+            expect(evaluate(test('carpet'), holding('minecraft:red_wool'))).toBe(false);
+        });
+
         it('scans every slot in an equipment domain for item filters', () => {
             const helmet = item('minecraft:iron_helmet', {
                 tags: () => ['minecraft:armor'],
