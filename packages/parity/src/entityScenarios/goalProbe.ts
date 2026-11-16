@@ -81,7 +81,13 @@ export interface Probe {
     /** A position relative to the probe's patch origin, which stands on the floor at `y` 0. */
     readonly at: (x: number, y: number, z: number) => EntityPosition;
     /** Places a block relative to the patch origin, where `y` 0 is the first air layer. */
-    readonly block: (x: number, y: number, z: number, identifier: string) => void;
+    readonly block: (
+        x: number,
+        y: number,
+        z: number,
+        identifier: string,
+        states?: Readonly<Record<string, string | number | boolean>>
+    ) => void;
     /** Fills a box of blocks relative to the patch origin, corners included. */
     readonly fill: (
         from: readonly [number, number, number],
@@ -90,6 +96,8 @@ export interface Probe {
     ) => void;
     /** The block relative to the patch origin. */
     readonly blockAt: (x: number, y: number, z: number) => string | undefined;
+    /** The states of the block relative to the patch origin. */
+    readonly statesAt: (x: number, y: number, z: number) => Readonly<Record<string, unknown>> | undefined;
     /** Puts a player in the world relative to the patch origin, and returns its runtime id. */
     readonly player: (x: number, y: number, z: number) => number;
     /** Spawns another entity relative to the patch origin, which the probe removes with its own. */
@@ -98,6 +106,8 @@ export interface Probe {
     readonly tick: (count?: number) => void;
     /** Runs ticks until the predicate holds, and returns how many ran, or undefined when it never did. */
     readonly until: (predicate: () => boolean, limit: number) => number | undefined;
+    /** Replaces the world's random draws from here on, replayed in a loop. */
+    readonly reroll: (values: readonly number[]) => void;
 }
 
 /**
@@ -149,7 +159,10 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
         runtime,
         world,
         at,
-        block: (x, y, z, identifier) => world.setBlock(cell(x, y, z), identifier),
+        block: (x, y, z, identifier, states) =>
+            states === undefined
+                ? world.setBlock(cell(x, y, z), identifier)
+                : world.world.blocks.set(cell(x, y, z), { identifier, states }, false),
         fill: (from, to, identifier) => {
             for (let x = Math.min(from[0], to[0]); x <= Math.max(from[0], to[0]); x += 1)
                 for (let y = Math.min(from[1], to[1]); y <= Math.max(from[1], to[1]); y += 1)
@@ -157,6 +170,7 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
                         world.setBlock(cell(x, y, z), identifier);
         },
         blockAt: (x, y, z) => world.world.blocks.get(cell(x, y, z))?.identifier,
+        statesAt: (x, y, z) => world.world.blocks.get(cell(x, y, z))?.states,
         player: (x, y, z) => {
             nextPlayer += 1;
             const player: ContentEntity = { id: nextPlayer, identifier: 'minecraft:player', position: at(x, y, z) };
@@ -176,6 +190,9 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
                 world.advance(1);
                 runtime.tick(clock);
             }
+        },
+        reroll: (values) => {
+            draws.splice(0, draws.length, ...values);
         },
         until: (predicate, limit) => {
             for (let ticks = 1; ticks <= limit; ticks += 1) {

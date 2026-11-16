@@ -46,12 +46,12 @@ const OPEN_ISSUES: Readonly<Record<string, string>> = {
     'brain-charge_held_item': '#3124',
     'goal-owner_hurt_target': '#3125',
     'goal-owner_hurt_by_target': '#3125',
-    'goal-defend_trusted_target': '#3125 and #3115',
+    'goal-defend_trusted_target': '#3115',
     'goal-skeleton_horse_trap': '#3126',
     'goal-summon_entity': '#3127',
     'goal-send_event': '#3127',
     'creeper-swell-range': '#3129',
-    'goal-random_look_around_and_sit': '#3129 and #3131',
+    'goal-random_look_around_and_sit': '#3129',
     'goal-random_sitting': '#3129',
     'goal-move_through_village': '#3129',
     'goal-offer_flower': '#3129',
@@ -149,6 +149,14 @@ const still = <
 ): T => {
     for (const name of entity.instance.goals.names()) entity.instance.goals.remove(name);
     return entity;
+};
+
+/**
+ * Winds the probes' shared clock on to the next time the day reads `time`, so a scenario that
+ * needs night or morning gets it whatever the scenarios before it left the clock at.
+ */
+const windTo = (probe: Probe, time: number): void => {
+    probe.world.advance((time - (probe.world.world.level.dayTime() % 24_000) + 24_000) % 24_000);
 };
 
 /** The entity's current health. */
@@ -285,6 +293,13 @@ const BRAIN_COUNTERPARTS: Readonly<Record<string, readonly BrainCounterpart[]>> 
     ],
     'minecraft:camel': [
         ['random_look_around_and_sit', ['RandomLookAround', 'RandomSitting'], 'Java CamelAi.initIdleActivity']
+    ],
+    'minecraft:camel_husk': [
+        [
+            'random_look_around_and_sit',
+            ['RandomLookAround', 'RandomSitting'],
+            "Java CamelAi.initIdleActivity, which CamelHusk inherits from Camel's brainProvider"
+        ]
     ]
 };
 
@@ -1062,7 +1077,13 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                         found.push(
                             `it drifted ${fastest.toFixed(2)} blocks in one tick, where Java's drift is at most 0.2`
                         );
-                    const attacker = probe.player(-3, 10, 0);
+                    // Java flees only an attacker within 10 blocks, so it stands 3 blocks from where the squid drifted.
+                    const drifted = probe.entity.position;
+                    const attacker = probe.player(
+                        drifted.x - probe.at(0, 0, 0).x - 3,
+                        drifted.y - probe.at(0, 0, 0).y,
+                        drifted.z - probe.at(0, 0, 0).z
+                    );
                     const before = probe.entity.position.x;
                     probe.runtime.hurt(probe.entity, attacker, 'entity_attack', 1);
                     probe.tick(20);
@@ -1294,9 +1315,13 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 if (subject.javaId === 'minecraft:witch') {
                     probe.entity.instance.attributes.set('health', 10);
                     probe.tick(80);
-                    return healthOf(probe) > 10 ? undefined : 'a hurt witch drank no healing potion';
+                    // The world's effect system spends the instant health it took on the next actor
+                    // tick, which this runtime-only probe does not run.
+                    return healthOf(probe) > 10 || hasEffect(probe, 'instant_health')
+                        ? undefined
+                        : 'a hurt witch drank no healing potion';
                 }
-                probe.world.advance(18000);
+                windTo(probe, 18000);
                 probe.tick(80);
                 return hasEffect(probe, 'invisibility') ? undefined : 'it drank no invisibility potion at night';
             })
@@ -1315,6 +1340,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                         amplifier: 0
                     });
                 if (!hasEffect(probe, 'invisibility')) return 'the probe could not make it invisible';
+                windTo(probe, 1000);
                 probe.tick(80);
                 return hasEffect(probe, 'invisibility') ? 'it stayed invisible in daylight' : undefined;
             })
@@ -1350,10 +1376,16 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         run: (subject) =>
             probeGoals(subject, ['trade_with_player'], {}, (probe) => {
                 const player = probe.player(2, 0, 0);
-                probe.runtime.beginTrade(probe.entity.id, player);
+                if (!probe.runtime.beginTrade(probe.entity.id, player)) return 'the probe could not open a trade';
                 probe.entity.body.moveTo(probe.at(10, 0, 0), 1);
+                // The goal starts on the next selector pass; what it does from then on is the rule.
+                const started = probe.until(
+                    () => probe.entity.instance.goals.runningGoals().includes(behavior('trade_with_player')),
+                    10
+                );
+                if (started === undefined) return 'it never started trading with a player beside it';
                 const moved = movedOver(probe, 40);
-                return moved > 0.5 ? `it walked ${moved.toFixed(1)} blocks while trading` : undefined;
+                return moved > 1 ? `it walked ${moved.toFixed(1)} blocks while trading` : undefined;
             })
     }),
     goalScenario({
@@ -1453,9 +1485,9 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }),
     goalScenario({
         goals: ['random_look_around_and_sit'],
-        java: 'A fox perches and looks around on a 0.02 chance each tick; a camel husk sits down from time to time.',
-        reference: 'Java Fox.PerchAndSearchGoal (random.nextFloat() < 0.02) and CamelAi.RandomSitting',
-        entities: ['minecraft:fox', 'minecraft:camel_husk'],
+        java: 'A fox perches and looks around on a 0.02 chance each tick.',
+        reference: 'Java Fox.PerchAndSearchGoal (random.nextFloat() < 0.02)',
+        entities: ['minecraft:fox'],
         run: (subject) =>
             probeGoals(subject, ['random_look_around_and_sit'], { random: [0.01] }, (probe) => {
                 const sat = probe.until(
@@ -1469,24 +1501,34 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }),
     goalScenario({
         goals: ['raid_garden'],
-        java: 'A fox picks ripe sweet berries from a bush, leaving it at age 1; a rabbit eats into a carrot crop.',
+        java: 'A fox picks a ripe sweet berry bush back to age 1 and takes the berries; a rabbit eats a fully grown carrot crop down a stage.',
         reference:
-            'Java Fox.FoxEatBerriesGoal (pickSweetBerries: age set to 1, berries dropped) and Rabbit.RaidGardenGoal (carrots age lowered, or removed at age 0)',
+            'Java Fox.FoxEatBerriesGoal (isValidTarget: age at least 2; pickSweetBerries: age set to 1, 1 to 2 berries and 1 more at age 3, one kept in the mouth) and Rabbit.RaidGardenGoal (isMaxAge carrots, age lowered by one, removed at age 0)',
         run: (subject) =>
             probeGoals(subject, ['raid_garden'], { random: [0.01] }, (probe) => {
                 const fox = subject.javaId === 'minecraft:fox';
-                probe.block(3, 0, 0, fox ? 'minecraft:sweet_berry_bush' : 'minecraft:carrots');
-                if (!fox) probe.block(3, -1, 0, 'minecraft:farmland');
+                if (fox) probe.block(3, 0, 0, 'minecraft:sweet_berry_bush', { growth: 3 });
+                else {
+                    probe.block(3, -1, 0, 'minecraft:farmland');
+                    probe.block(3, 0, 0, 'minecraft:carrots', { growth: 7 });
+                }
+                const before = probe.world.drops.length;
                 probe.tick(400);
-                const block = probe.world.world.blocks.get({
-                    x: Math.floor(probe.at(3, 0, 0).x),
-                    y: Math.floor(probe.at(3, 0, 0).y),
-                    z: Math.floor(probe.at(3, 0, 0).z)
-                });
-                const unchanged =
-                    block?.identifier === (fox ? 'minecraft:sweet_berry_bush' : 'minecraft:carrots') &&
-                    Object.keys(block.states).length === 0;
-                return unchanged ? `the ${fox ? 'berry bush' : 'carrot crop'} 3 blocks away was left alone` : undefined;
+                const growth = probe.statesAt(3, 0, 0)?.['growth'];
+                if (fox) {
+                    const berries =
+                        probe.world.drops
+                            .slice(before)
+                            .filter((drop) => drop.item.identifier === 'minecraft:sweet_berries').length +
+                        (probe.entity.carried === 'minecraft:sweet_berries' ? 1 : 0);
+                    return differences([
+                        growth !== 1 && `the ripe berry bush 3 blocks away was left at growth ${String(growth)}, not 1`,
+                        growth === 1 &&
+                            (berries < 2 || berries > 3) &&
+                            `picking a full bush gave ${berries} berries, where Java gives 2 or 3`
+                    ]);
+                }
+                return growth === 6 ? undefined : `the grown carrot crop was left at growth ${String(growth)}, not 6`;
             })
     }),
     goalScenario({
@@ -1507,6 +1549,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         reference: 'Java Fox.SleepGoal (daytime, no hostile within 12, a 1 in 140 roll)',
         run: (subject) =>
             probeGoals(subject, ['nap'], { groups: ['minecraft:fox_day'], random: [0.001] }, (probe) => {
+                windTo(probe, 1000);
                 const slept = probe.until(() => probe.entity.body.sleeping, 300);
                 return slept === undefined ? 'it never napped in the day' : undefined;
             })
@@ -1522,6 +1565,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 ['find_cover'],
                 { groups: ['minecraft:fox_day'], random: [0.001, 0.5, 0.9] },
                 (probe) => {
+                    windTo(probe, 6000);
                     probe.fill([3, 3, -2], [7, 3, 2], 'minecraft:stone');
                     probe.tick(300);
                     const x = probe.entity.position.x - probe.at(0, 0, 0).x;
@@ -1541,7 +1585,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 { groups: ['minecraft:fox_night'], random: [0.001, 0.5] },
                 (probe) => {
                     probe.runtime.recordPointOfInterest('village', probe.at(20, 0, 0));
-                    probe.world.advance(18000);
+                    windTo(probe, 18000);
                     probe.tick(400);
                     const closer = distanceBetween(probe.entity.position, probe.at(20, 0, 0));
                     return closer < 15 ? undefined : `it stayed ${closer.toFixed(1)} blocks from the village`;
@@ -1689,7 +1733,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 (probe) => {
                     const owner = probe.player(3, 0, 0);
                     probe.runtime.setOwner(probe.entity.id, owner);
-                    probe.world.advance(18500);
+                    windTo(probe, 18500);
                     const before = probe.world.drops.length;
                     probe.tick(400);
                     return probe.world.drops.length > before ? undefined : 'it left its owner no gift';
@@ -1723,6 +1767,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             'Java IronGolem.registerGoals (GolemRandomStrollInVillageGoal(this, 0.6), with no time of day condition)',
         run: (subject) =>
             probeGoals(subject, ['move_through_village'], { random: [0.001, 0.6, 0.3] }, (probe) => {
+                windTo(probe, 6000);
                 probe.runtime.recordPointOfInterest('village', probe.at(0, 0, 0));
                 probe.runtime.recordPointOfInterest('bed', probe.at(12, 0, 4));
                 const moved = movedOver(probe, 400);
@@ -1736,12 +1781,15 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             'Java OfferFlowerGoal (isDay, random.nextInt(8000) == 0, a villager within 6 blocks, tick = adjustedTickDelay(400))',
         run: (subject) =>
             probeGoals(subject, ['offer_flower'], { random: [0.00001] }, (probe) => {
+                windTo(probe, 1000);
                 still(probe.spawn('minecraft:villager_v2', 3, 0, 0));
                 const started = probe.until(
                     () => probe.entity.instance.goals.runningGoals().includes(behavior('offer_flower')),
                     100
                 );
                 if (started === undefined) return 'it never offered a flower to a villager 3 blocks away';
+                // Rolls that never pass from here on, so the offer that started is the one measured.
+                probe.reroll([0.99]);
                 const held = probe.until(
                     () => !probe.entity.instance.goals.runningGoals().includes(behavior('offer_flower')),
                     600
