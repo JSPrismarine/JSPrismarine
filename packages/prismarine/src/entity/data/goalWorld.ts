@@ -24,7 +24,8 @@ import { EYE_HEIGHT } from '../playerEyes';
 import type { DataEntity, MobBody } from './DataEntity';
 import { isReadyToBreed } from './breeding';
 import { distance, squaredDistance } from './DataEntity';
-import { setDoorOpen } from './doors';
+import { doorBreakEvents, removeDoor, setDoorOpen } from './doors';
+import type { LevelEventSink } from './doors';
 
 import { javaBlockTagsForBedrock } from '../../content/javaTags';
 import { blockPositionOf, entityEyePosition } from './position';
@@ -212,6 +213,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
     // Read on the first sight check, not here: a mob restored with its chunk is built before its
     // world has finished enabling, and the world answers nothing until then.
     let sightStep: number | undefined;
+    const levelEvent: LevelEventSink = (at, event, data) => scene.host.levelEvent?.(at, event, data);
 
     return {
         navigation: () => scene.navigation(),
@@ -342,6 +344,14 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             scene.world.blocks.set(blockPositionOf(position), { identifier, states }, true),
         blockAt: (position) => scene.world.blocks.get(blockPositionOf(position)),
         setDoorOpen: (position, open) => setDoorOpen(scene.world.blocks, blockPositionOf(position), open),
+        horizontalCollision: () => entity.horizontalCollision,
+        breakDoor: (position) => {
+            const at = blockPositionOf(position);
+            const runtimeId = removeDoor(scene.world.blocks, at);
+            if (runtimeId !== undefined) doorBreakEvents.crash(levelEvent, at, runtimeId);
+        },
+        doorBreakProgress: (position, stage) => doorBreakEvents.progress(levelEvent, blockPositionOf(position), stage),
+        knockOnDoor: (position) => doorBreakEvents.knock(levelEvent, blockPositionOf(position)),
         breakBlock: (position) => scene.breakBlock(position),
         blockHasTag: (position, tag) => {
             const block = scene.world.blocks.get(blockPositionOf(position));

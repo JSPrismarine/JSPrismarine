@@ -670,6 +670,11 @@ export class MobBody {
     private takingOff = false;
     /** Ticks since the destination was set without the entity getting any closer. */
     private idleTicks = 0;
+    /**
+     * Whether the body's last step was stopped short across x or z, Java's
+     * `Entity.horizontalCollision`, which `DoorInteractGoal` reads to find the door in the way.
+     */
+    public horizontalCollision = false;
     private lastDistance = Number.POSITIVE_INFINITY;
     private live: EntityFacts;
 
@@ -893,6 +898,7 @@ export class MobBody {
     public rest(): void {
         this.walkMomentum = 0;
         this.takingOff = false;
+        this.horizontalCollision = false;
         this.swimDrift = undefined;
     }
 
@@ -970,6 +976,7 @@ export class MobBody {
      * does in the behavior pack.
      */
     public step(options?: MobBodyStepOptions): void {
+        this.horizontalCollision = false;
         const destination = this.destination;
         this.swimDrift = undefined;
         if (destination === undefined) return;
@@ -1100,6 +1107,7 @@ export class MobBody {
             if (!options.allowVertical && !this.airborne && (resolved.x !== proposed.x || resolved.z !== proposed.z))
                 resolved = stepUp(from, proposed, resolved, maxUpStep, options.canOccupy);
 
+            this.horizontalCollision = resolved.x !== proposed.x || resolved.z !== proposed.z;
             this.position = resolved;
         }
         if (inWater) this.swimDrift = { x: this.position.x - start.x, z: this.position.z - start.z };

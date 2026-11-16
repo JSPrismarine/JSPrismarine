@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isDoor, setDoorOpen } from './doors';
+import { doorBreakEvents, isDoor, removeDoor, setDoorOpen } from './doors';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
 
 const LOWER = { x: 3, y: FLOOR_Y + 1, z: 0 };
@@ -50,5 +50,36 @@ describe('doors', () => {
 
         const iron = withDoor('minecraft:iron_door');
         expect(entityFixture(iron).runtime.navigation().doorAt?.(LOWER)).toEqual({ open: false, iron: true });
+    });
+
+    it('breaks both halves of a door from either half, and nothing that is no door', () => {
+        const world = withDoor();
+        expect(removeDoor(world.world.blocks, UPPER)).toBeTypeOf('number');
+        expect(world.world.blocks.get(LOWER)?.identifier).toBe('minecraft:air');
+        expect(world.world.blocks.get(UPPER)?.identifier).toBe('minecraft:air');
+        expect(world.drops).toEqual([]);
+
+        world.setBlock(LOWER, 'minecraft:stone');
+        expect(removeDoor(world.world.blocks, LOWER)).toBeUndefined();
+        expect(world.world.blocks.get(LOWER)?.identifier).toBe('minecraft:stone');
+    });
+
+    it("sends a door breaker's knock, cracks and crash as Bedrock level events", () => {
+        const events: { event: number; data: number }[] = [];
+        const sink = (_at: unknown, event: number, data: number) => void events.push({ event, data });
+        doorBreakEvents.knock(sink, UPPER);
+        doorBreakEvents.progress(sink, UPPER, 0);
+        doorBreakEvents.progress(sink, UPPER, 5);
+        doorBreakEvents.progress(sink, UPPER, -1);
+        doorBreakEvents.crash(sink, UPPER, 42);
+        // SOUND_ZOMBIE_WOODEN_DOOR, START_BLOCK_CRACKING at 65535 over 240 ticks, STOP_BLOCK_CRACKING,
+        // SOUND_ZOMBIE_DOOR_CRASH and PARTICLES_DESTROY_BLOCK with the door's runtime id.
+        expect(events).toEqual([
+            { event: 1010, data: 0 },
+            { event: 3600, data: 273 },
+            { event: 3601, data: 0 },
+            { event: 1012, data: 0 },
+            { event: 2001, data: 42 }
+        ]);
     });
 });

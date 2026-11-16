@@ -59,6 +59,8 @@ import {
     parseEventTarget
 } from '@jsprismarine/entities';
 import { feedMount, mountTameEvent } from '@jsprismarine/entities/components/tamemount';
+import { spawnEventFor } from '@jsprismarine/entities/eventEngine';
+import type { EventNode } from '@jsprismarine/entities/events';
 import { addTrusted } from '@jsprismarine/entities/components/trust';
 import { javaItemTagsForBedrock } from '../../content/javaTags';
 import { itemMatchesName } from '@jsprismarine/entities/itemNames';
@@ -128,7 +130,12 @@ import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf, PLAYER_BOX } from './facts';
 import { fallsUnderGravity } from './gravity';
 import { equippableSlotCount, equippableSlotsOf } from './equippable';
-import { canPickUpLootChance, moonBrightnessAt } from '../regionalDifficulty';
+import {
+    canPickUpLootChance,
+    clampedRegionalDifficulty,
+    moonBrightnessAt,
+    regionalDifficulty
+} from '../regionalDifficulty';
 import type { RegionalDifficultyInputs } from '../regionalDifficulty';
 import { VEHICLE_DAMAGE_DECAY_PER_TICK, boatItemOf, isBreakableVehicle, vehicleBlow } from './vehicleDamage';
 import { ITEM_HOPPER, ITEM_HOPPER_QUERY_RADIUS, inHopperReach, insertStack } from './itemHopper';
@@ -1257,6 +1264,7 @@ export class EntityRuntime implements EntityScene {
         // would leave the client a frame of an empty-handed skeleton.
         this.watchEquipment(entity);
         this.equip(entity);
+        this.rollDoorBreaking(entity, spawnEventFor(options.cause ?? 'spawned', options.event));
         // Everything up to here built the entity, so it enters the log with the form it has now.
         this.store.enter(entity, this.savedFormOf(entity));
         // After the spawn event, so the body a client is sent already carries whatever the
@@ -5225,6 +5233,31 @@ export class EntityRuntime implements EntityScene {
         );
     }
 
+    /**
+     * Java's `Zombie.finalizeSpawn` door-breaking roll, `setCanBreakDoors(random.nextFloat() < 0.1F *
+     * difficulty.getSpecialMultiplier())`, in place of Bedrock's flat draw: the spawn event of a
+     * zombie, husk, drowned or zombie villager adds the group that declares
+     * `minecraft:annotation.break_door` on one draw in ten wherever it spawns, where Java's chance
+     * is none in a fresh region and one in ten only in a long-inhabited one. A group a raid adds,
+     * as the vindicator's, is no spawn event's, and is left to the raid.
+     */
+    private rollDoorBreaking(entity: DataEntity, event: string): void {
+        const definition = entity.instance.type.entity;
+        const node = definition.events.get(event);
+        if (node === undefined) return;
+        const rolled = [...definition.componentGroups]
+            .filter(([name, components]) => components.has(BREAK_DOOR) && eventMayAdd(node, name))
+            .map(([name]) => name);
+        if (rolled.length === 0) return;
+        const random = entity.instance.random;
+        const chance =
+            JAVA_BREAK_DOORS_CHANCE *
+            clampedRegionalDifficulty(regionalDifficulty(this.regionalDifficultyInputs(entity.position)));
+        const breaks = random.next() < chance;
+        const kept = entity.instance.activeComponentGroups().filter((group) => !rolled.includes(group));
+        entity.instance.restoreComponentGroups(breaks ? [...kept, ...rolled] : kept);
+    }
+
     /** Routes default equipment changes to the active slot-specific component. */
     private watchEquipment(entity: DataEntity): void {
         entity.body.onEquipmentChanged = (previous, next) => {
@@ -7468,6 +7501,19 @@ const RESTOCKS_PER_DAY = 2;
 
 /** The Java loot table a piglin's barter rolls, from `PiglinAi.getBarterResponseItems`. */
 const JAVA_BARTER_TABLE = 'minecraft:gameplay/piglin_bartering';
+
+/** The component a mob carries while Java's `Zombie.canBreakDoors` or a raid lets it break doors. */
+const BREAK_DOOR = 'minecraft:annotation.break_door';
+
+/** `Zombie.finalizeSpawn`'s door-breaking chance, which the special multiplier scales. */
+const JAVA_BREAK_DOORS_CHANCE = 0.1;
+
+/** Whether an event node, or a node under it, adds a component group. */
+const eventMayAdd = (node: EventNode, group: string): boolean =>
+    node.add.includes(group) ||
+    node.sequence.some((child) => eventMayAdd(child, group)) ||
+    node.firstValid.some((child) => eventMayAdd(child, group)) ||
+    node.randomize.some((child) => eventMayAdd(child.node, group));
 
 /** The fox, whose Java class holds one item in its mouth. */
 const FOX = 'minecraft:fox';
