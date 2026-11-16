@@ -228,6 +228,9 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         destroyBlock: destroy && ((position, options) => destroy(position, options)),
         spawnEntity: (position, identifier, data) => adapter.entities.spawn(identifier, position, data),
         removeEntity: (entity) => adapter.entities.remove(entity),
+        ...(adapter.entities.move === undefined
+            ? {}
+            : { moveEntity: (entity: number, by: ContentPosition) => adapter.entities.move?.(entity, by) }),
         entitiesAt: (position) =>
             adapter.entities.at(position).map((entity): WorldEntity => ({
                 id: entity.id,

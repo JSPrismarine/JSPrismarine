@@ -191,6 +191,8 @@ export interface ContentEntityAccess {
     spawn(identifier: string, at: ContentPosition, data?: BlockEntityData): number;
     /** Removes an entity by its runtime id. */
     remove(id: number): void;
+    /** Moves an entity by an offset, as a piston carries one. Absent where entities cannot be moved. */
+    move?(id: number, by: ContentPosition): void;
     /** Drops an item stack as an entity at a position. */
     drop(at: ContentPosition, item: ContentItemDrop): void;
     /** How many entities of one type stand within a radius of a position. */

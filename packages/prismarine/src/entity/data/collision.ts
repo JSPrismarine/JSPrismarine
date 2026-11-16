@@ -83,6 +83,29 @@ export const bodyIntersectsMedia = (
 };
 
 /**
+ * Whether any block a body's box overlaps passes a test, such as being a cobweb.
+ * @param position - The body's feet, centered horizontally.
+ * @param box - The body's box.
+ * @param matches - The test for one block position.
+ */
+export const bodyTouchesBlock = (
+    position: EntityPosition,
+    box: EntityBox,
+    matches: (block: EntityPosition) => boolean
+): boolean => {
+    const minX = Math.floor(position.x - box.width / 2 + COLLISION_EPSILON);
+    const maxX = Math.floor(position.x + box.width / 2 - COLLISION_EPSILON);
+    const minY = Math.floor(position.y + COLLISION_EPSILON);
+    const maxY = Math.floor(position.y + box.height - COLLISION_EPSILON);
+    const minZ = Math.floor(position.z - box.width / 2 + COLLISION_EPSILON);
+    const maxZ = Math.floor(position.z + box.width / 2 - COLLISION_EPSILON);
+    for (let x = minX; x <= maxX; x += 1)
+        for (let y = minY; y <= maxY; y += 1)
+            for (let z = minZ; z <= maxZ; z += 1) if (matches({ x, y, z })) return true;
+    return false;
+};
+
+/**
  * Whether a line between two eye positions crosses a solid block.
  *
  * Walks the crossed block cells directly, stopping before the target's cell so

@@ -54,6 +54,18 @@ interface MobBodyStepOptions {
     readonly canJump: boolean;
     /** The height of one step the entity may jump, in blocks. */
     readonly stepHeight: number;
+    /**
+     * How high the entity's feet rise over a ledge without a jump, Java's `step_height`
+     * attribute for its type. Absent means {@link MAX_UP_STEP}, Java's default.
+     */
+    readonly maxUpStep?: number;
+    /**
+     * The share of this tick's walk a block the body is stuck in lets through, Java's
+     * `Entity.stuckSpeedMultiplier`: a cobweb's 0.25. Absent when nothing holds the body.
+     */
+    readonly stuckSpeed?: number;
+    /** The farthest the step may take the body down, Java's 0.15 for a body in a ladder. Absent means no limit. */
+    readonly maxDescent?: number;
     /** Whether the entity's collision box fits at the proposed position. */
     readonly canOccupy: (position: EntityPosition) => boolean;
     /** The Java friction of the block under the entity, which a walk on land accelerates against. */
@@ -878,11 +890,12 @@ export class MobBody {
         // A rise a step covers is walked up rather than jumped, as Java's `MoveControl` jumps only
         // above the entity's step height.
         const floor = options?.floorAt?.(destination) ?? destination.y;
+        const maxUpStep = options?.maxUpStep ?? MAX_UP_STEP;
         if (
             options !== undefined &&
             !options.allowVertical &&
             options.canJump &&
-            floor > this.position.y + MAX_UP_STEP &&
+            floor > this.position.y + maxUpStep &&
             floor <= this.position.y + options.stepHeight + ARRIVAL_RADIUS &&
             !this.airborne
         )
@@ -944,12 +957,20 @@ export class MobBody {
             const next = walkStride(this.walkMomentum, speed, grounded, options.groundFriction);
             this.walkMomentum = next.momentum;
             stride = next.stride;
+            // Java's `Entity.move` scales a stuck body's movement and then zeroes its velocity.
+            if (options.stuckSpeed !== undefined) {
+                stride *= options.stuckSpeed;
+                this.walkMomentum = 0;
+            }
         }
 
         const scale = Math.min(stride, remaining) / remaining;
         const proposed = {
             x: this.position.x + (destination.x - this.position.x) * scale,
-            y: this.position.y + (target.y - this.position.y) * scale,
+            y: Math.max(
+                this.position.y + (target.y - this.position.y) * scale,
+                this.position.y - (options?.maxDescent ?? Number.POSITIVE_INFINITY)
+            ),
             z: this.position.z + (destination.z - this.position.z) * scale
         };
 
@@ -965,7 +986,7 @@ export class MobBody {
             resolved = moveOnAxis(resolved, proposed.x, 'x', options.canOccupy);
             resolved = moveOnAxis(resolved, proposed.z, 'z', options.canOccupy);
             if (!options.allowVertical && !this.airborne && (resolved.x !== proposed.x || resolved.z !== proposed.z))
-                resolved = stepUp(from, proposed, resolved, MAX_UP_STEP, options.canOccupy);
+                resolved = stepUp(from, proposed, resolved, maxUpStep, options.canOccupy);
 
             this.position = resolved;
         }

@@ -86,7 +86,7 @@ export const boxOf = (registry: Registry<EntityType>, identifier: string): Entit
 export interface EntityFacts {
     /** The namespaced identifier, such as `minecraft:zombie`. */
     readonly identifier: string;
-    /** The hitbox, from `minecraft:collision_box`. */
+    /** The hitbox, from `minecraft:collision_box`, times the active `minecraft:scale` on a live entity. */
     readonly box: EntityBox;
     /** Maximum health, from `minecraft:health`. */
     readonly health: number;
@@ -265,7 +265,7 @@ class LiveFacts implements EntityFacts {
         if (token === this.componentToken) return;
 
         const families = this.instance.families();
-        this.cachedBox = activeBox(this.instance) ?? this.type.box;
+        this.cachedBox = scaledBox(activeBox(this.instance) ?? this.type.box, this.instance);
         this.cachedFamilies = Object.freeze([...(families.length > 0 ? families : this.type.families)]);
         this.componentToken = token;
     }
@@ -286,6 +286,19 @@ const activeBox = (instance: EntityInstance): EntityBox | undefined => {
     if (!('width' in params) || !('height' in params)) return undefined;
     const { width, height } = params;
     return typeof width === 'number' && typeof height === 'number' ? { width, height } : undefined;
+};
+
+/**
+ * A box multiplied by the active `minecraft:scale`, which is how both editions size a body: Java's
+ * `LivingEntity.getDimensions` scales the type's dimensions by `getScale()`, and Bedrock scales
+ * the collision box by the component. A baby's `0.5` is what lets it through a one-block gap.
+ *
+ * @returns The box unchanged when no scale is active or the scale is 1.
+ */
+const scaledBox = (box: EntityBox, instance: EntityInstance): EntityBox => {
+    const scale = instance.componentParams('minecraft:scale');
+    if (typeof scale !== 'number' || scale === 1 || !(scale > 0)) return box;
+    return { width: box.width * scale, height: box.height * scale };
 };
 
 /**

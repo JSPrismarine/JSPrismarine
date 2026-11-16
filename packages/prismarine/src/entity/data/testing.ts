@@ -43,14 +43,15 @@ import type { ContentItemEntity, DamageCommit, EntityHostFacts, EntityWorldFacts
  *
  * A floor, an air block to walk through, a lamp to break and a bed, which is
  * the block Java's `PoiTypes` makes a home and so the one the sleep and
- * shelter goals search for.
+ * shelter goals search for, and a ladder and a cobweb to move through.
  */
 export const FIXTURE_BLOCKS = [
     'minecraft:air',
     'minecraft:stone',
     'minecraft:redstone_lamp',
     'minecraft:bed',
-    'minecraft:ladder'
+    'minecraft:ladder',
+    'minecraft:web'
 ] as const;
 
 /** The y the fixture world's stone floor sits at; everything above it is air. */
@@ -86,7 +87,8 @@ export const entityFixturePalette = (): BlockPalette =>
         ['minecraft:stone', new BlockStateModel([])],
         ['minecraft:redstone_lamp', new BlockStateModel([])],
         ['minecraft:bed', new BlockStateModel([])],
-        ['minecraft:ladder', new BlockStateModel([])]
+        ['minecraft:ladder', new BlockStateModel([])],
+        ['minecraft:web', new BlockStateModel([])]
     ]);
 
 /** One entity file, in the shape a behavior pack writes. */
@@ -233,7 +235,13 @@ export const entityFixtureStack = (extra: ExtraEntities = {}): Definitions =>
                 definitionOf(
                     'blocks',
                     identifier,
-                    blockFile(identifier, 1.5, identifier === 'minecraft:air' || identifier === 'minecraft:ladder')
+                    blockFile(
+                        identifier,
+                        1.5,
+                        identifier === 'minecraft:air' ||
+                            identifier === 'minecraft:ladder' ||
+                            identifier === 'minecraft:web'
+                    )
                 )
             ])
         ),

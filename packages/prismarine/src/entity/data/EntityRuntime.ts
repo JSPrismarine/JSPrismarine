@@ -52,6 +52,7 @@ import {
     isRecord,
     isStrengthParams,
     javaEntityNavigation,
+    javaEntityStats,
     MAX_BLOCK_SENSOR_RADIUS,
     noEffects,
     parseEventTarget
@@ -120,6 +121,7 @@ import type { EntityFacts } from './facts';
 import {
     bodyCanOccupy,
     bodyIntersectsMedia,
+    bodyTouchesBlock,
     floorUnder,
     hasLineOfSight as hasBlockLineOfSight,
     isSupported,
@@ -269,9 +271,17 @@ const TNT_DRAG = 0.98;
 /** Scales the amount of velocity removed by one tick of drag. */
 const dragWithModifier = (drag: number, modifier: number): number => 1 - (1 - drag) * modifier;
 
-/** Applies an entity's friction modifier without reversing its remaining momentum. */
-const groundDragWithModifier = (drag: number, modifier: number): number =>
-    Math.max(0, dragWithModifier(drag, modifier));
+/** Java's `LivingEntity.computeModifiedFriction`: a friction with its loss scaled, kept within 0 and 1. */
+const modifiedFriction = (friction: number, modifier: number): number =>
+    Math.min(1, Math.max(0, 1 - (1 - friction) * modifier));
+
+/**
+ * The share of its speed a body keeps after a tick on the ground, as Java's
+ * `LivingEntity.travelInAir` works it out: the block's friction modified by the friction
+ * modifier, times the 0.91 air drag modified by the air drag modifier.
+ */
+const groundDrag = (blockFriction: number, frictionModifier: number, airDragModifier: number): number =>
+    modifiedFriction(blockFriction, frictionModifier) * modifiedFriction(DRAG, airDragModifier);
 
 /** The immutable recipe facts `craftInto` uses after a book accepts its trial grid. */
 interface CraftIntoCandidate {
@@ -318,6 +328,18 @@ interface RuntimeComponentFacts {
     readonly frictionModifier: number;
     readonly bounciness: number;
     readonly families: readonly string[];
+    /**
+     * Whether the body travels as Java's `LivingEntity` does, moving by its velocity before
+     * gravity applies; every other Java body applies its gravity first.
+     */
+    readonly movesBeforeGravity: boolean;
+    /** Whether gravity the definition turns off still pulls the body out of water, as Java's fish. */
+    readonly fallsOutOfWater: boolean;
+    /**
+     * How high the body walks up a ledge without jumping: Java's `step_height` attribute for its
+     * type, or the base of its `minecraft:variable_max_auto_step` for a type Java has no row for.
+     */
+    readonly maxUpStep: number | undefined;
 }
 
 /** The last medium sample, which only stays valid while its inputs stay identical. */
@@ -540,6 +562,8 @@ export class EntityRuntime implements EntityScene {
     private readonly areaAttackLastHitTicks = new WeakMap<DataEntity, Map<number, number>>();
     /** Component-derived physics values, valid until an entity rebuilds its active component map. */
     private readonly componentFactsByEntity = new WeakMap<DataEntity, RuntimeComponentFacts>();
+    /** Whether each buoyant body was in a liquid on its last tick, for the boat's landing on water. */
+    private readonly wasInLiquid = new WeakMap<DataEntity, boolean>();
     /** Medium samples can be reused until position, dimensions, or block writes change. */
     private readonly mediumByEntity = new WeakMap<DataEntity, MediumCache>();
     /** Area attackers whose player hit route has already been reported as unavailable. */
@@ -1934,6 +1958,9 @@ export class EntityRuntime implements EntityScene {
         const airDrag = instance.componentParams('minecraft:air_drag_modifier');
         const friction = instance.componentParams('minecraft:friction_modifier');
         const bounciness = instance.componentParams('minecraft:bounciness');
+        const javaStats = javaEntityStats(entity.identifier, this.content().entities.javaStats);
+        const autoStep = instance.componentParams('minecraft:variable_max_auto_step');
+        const javaStep = javaStats?.attributes['minecraft:step_height'];
         const componentFacts: RuntimeComponentFacts = {
             componentToken,
             hasGravity: fallsUnderGravity(instance),
@@ -1943,7 +1970,19 @@ export class EntityRuntime implements EntityScene {
             airDragModifier: typeof airDrag === 'number' ? airDrag : 1,
             frictionModifier: typeof friction === 'number' ? friction : 1,
             bounciness: typeof bounciness === 'number' ? bounciness : 0,
-            families: instance.families()
+            families: instance.families(),
+            // Java's attribute dump lists exactly the `LivingEntity` types.
+            movesBeforeGravity: javaStats !== undefined,
+            fallsOutOfWater:
+                instance.javaNavigation?.navigationClass.endsWith('WaterBoundPathNavigation') === true &&
+                !fallsUnderGravity(instance) &&
+                !instance.hasComponent('minecraft:can_fly'),
+            maxUpStep:
+                typeof javaStep === 'number'
+                    ? javaStep
+                    : isRecord(autoStep) && typeof autoStep.base_value === 'number'
+                      ? autoStep.base_value
+                      : undefined
         };
         this.componentFactsByEntity.set(entity, componentFacts);
         return componentFacts;
@@ -4866,7 +4905,11 @@ export class EntityRuntime implements EntityScene {
               : primedTnt
                 ? TNT_DRAG
                 : grounded
-                  ? groundDragWithModifier(this.groundFrictionAt(position) * DRAG, componentFacts.frictionModifier)
+                  ? groundDrag(
+                        this.groundFrictionAt(position),
+                        componentFacts.frictionModifier,
+                        componentFacts.airDragModifier
+                    )
                   : dragWithModifier(DRAG, componentFacts.airDragModifier);
         const verticalDrag = inFluid
             ? FLUID_DRAG
@@ -4874,23 +4917,53 @@ export class EntityRuntime implements EntityScene {
               ? TNT_DRAG
               : dragWithModifier(verticalAirDrag, componentFacts.airDragModifier);
         const bounciness = componentFacts.bounciness;
-        const gravity = componentFacts.hasGravity ? (inFluid ? FLUID_GRAVITY : primedTnt ? TNT_GRAVITY : GRAVITY) : 0;
+        // A fish's definition turns gravity off, but Java's `WaterAnimal` falls like any body once it is out of water.
+        const pulled = componentFacts.hasGravity || (componentFacts.fallsOutOfWater && !inFluid);
+        const gravity = pulled
+            ? inFluid
+                ? FLUID_GRAVITY
+                : primedTnt
+                  ? TNT_GRAVITY
+                  : (JAVA_DEFAULT_GRAVITY.get(entity.identifier) ?? GRAVITY)
+            : 0;
 
         if (grounded) body.conditions.add('on_ground');
         else body.conditions.delete('on_ground');
 
-        if (!body.airborne && (!componentFacts.hasGravity || grounded)) return;
+        if (!body.airborne && (gravity === 0 || grounded)) return;
+
+        // Java's `LivingEntity.handleOnClimbable` holds a body in a ladder or a vine to 0.15 blocks
+        // a tick on each horizontal axis and as a fall, before the tick's move.
+        if (componentFacts.movesBeforeGravity && this.onClimbable(position)) {
+            const climbing = body.velocity;
+            body.velocity = {
+                x: Math.min(CLIMB_SPEED, Math.max(-CLIMB_SPEED, climbing.x)),
+                y: Math.max(-CLIMB_SPEED, climbing.y),
+                z: Math.min(CLIMB_SPEED, Math.max(-CLIMB_SPEED, climbing.z))
+            };
+        }
 
         const velocity = body.velocity;
-        const fallingY = grounded && velocity.y <= 0 ? 0 : velocity.y - gravity;
-        const nextY = position.y + (grounded && velocity.y <= 0 ? 0 : fallingY);
+        const resting = grounded && velocity.y <= 0;
+        const fallingY = resting ? 0 : velocity.y - gravity;
+        // Java's `LivingEntity.travelInAir` moves the body by its velocity and then applies gravity
+        // and drag; an item, a minecart or a primed TNT applies its gravity before it moves.
+        // A cobweb scales the move itself and then stops the body, as Java's `Entity.move` does.
+        const stuck = this.stuckInCobweb(entity);
+        const horizontalShare = stuck ? COBWEB_HORIZONTAL_SPEED : 1;
+        const travelY =
+            (resting ? 0 : componentFacts.movesBeforeGravity ? velocity.y : fallingY) *
+            (stuck ? COBWEB_VERTICAL_SPEED : 1);
+        const nextY = position.y + travelY;
         const canOccupy = (at: EntityPosition) =>
             !componentFacts.hasCollision ||
             bodyCanOccupy(at, entity.facts.box, navigation, componentFacts.canStandOnPowderSnow);
-        let next = moveOnAxis(position, position.x + velocity.x, 'x', canOccupy);
-        const hitHorizontalX = Math.abs(next.x - (position.x + velocity.x)) > MOVEMENT_EPSILON;
-        next = moveOnAxis(next, position.z + velocity.z, 'z', canOccupy);
-        const hitHorizontalZ = Math.abs(next.z - (position.z + velocity.z)) > MOVEMENT_EPSILON;
+        const travelX = velocity.x * horizontalShare;
+        const travelZ = velocity.z * horizontalShare;
+        let next = moveOnAxis(position, position.x + travelX, 'x', canOccupy);
+        const hitHorizontalX = Math.abs(next.x - (position.x + travelX)) > MOVEMENT_EPSILON;
+        next = moveOnAxis(next, position.z + travelZ, 'z', canOccupy);
+        const hitHorizontalZ = Math.abs(next.z - (position.z + travelZ)) > MOVEMENT_EPSILON;
         const nextVertical = moveOnAxis(next, nextY, 'y', canOccupy);
         const hitVerticalCollision = Math.abs(nextVertical.y - nextY) > MOVEMENT_EPSILON;
         const horizontalVelocity = {
@@ -4899,7 +4972,7 @@ export class EntityRuntime implements EntityScene {
         };
 
         if (hitVerticalCollision) {
-            if (fallingY <= 0) {
+            if (travelY <= 0) {
                 const landed = {
                     ...nextVertical,
                     y: landingY(
@@ -4912,7 +4985,7 @@ export class EntityRuntime implements EntityScene {
                 };
                 body.position = landed;
                 if (bounciness > 0) {
-                    body.velocity = { ...horizontalVelocity, y: -fallingY * bounciness };
+                    body.velocity = { ...horizontalVelocity, y: -travelY * bounciness };
                     body.conditions.delete('jumping');
                     body.conditions.delete('on_ground');
                 } else {
@@ -4922,16 +4995,50 @@ export class EntityRuntime implements EntityScene {
             }
 
             next = nextVertical;
-            body.velocity = { ...horizontalVelocity, y: bounciness > 0 ? -fallingY * bounciness : 0 };
+            body.velocity = { ...horizontalVelocity, y: bounciness > 0 ? -travelY * bounciness : 0 };
         } else {
             next = nextVertical;
+            const fell = fallingY * verticalDrag;
             body.velocity = {
                 ...horizontalVelocity,
-                y: fallingY * verticalDrag
+                // `Chicken.aiStep`, `Blaze.aiStep` and `Parrot.calculateFlapping` slow a fall to 0.6 a tick.
+                y: fell < 0 && SLOW_FALLERS.has(entity.identifier) ? fell * SLOW_FALL : fell
             };
         }
+        // A living body's gravity applies after the move that zeroed it, so it keeps sinking.
+        if (stuck)
+            body.velocity = {
+                x: 0,
+                y: componentFacts.movesBeforeGravity ? -gravity * verticalDrag : 0,
+                z: 0
+            };
 
         body.position = next;
+    }
+
+    /**
+     * Whether a cobweb holds the body: Java's `WebBlock.entityInside` sticks every entity whose
+     * box is in one, but a type whose `minecraft:block_movement_slowdown_immunity` lists the web,
+     * which is the spider's `Spider.makeStuckInBlock` skipping cobwebs.
+     */
+    private stuckInCobweb(entity: DataEntity): boolean {
+        const immunity = entity.instance.componentParams('minecraft:block_movement_slowdown_immunity');
+        const immune = isRecord(immunity) && Array.isArray(immunity.blocks) && immunity.blocks.includes(COBWEB);
+        if (immune) return false;
+        return bodyTouchesBlock(
+            entity.position,
+            entity.facts.box,
+            (at) => this.world.blocks.get(at)?.identifier === COBWEB
+        );
+    }
+
+    /**
+     * Whether the block a body's feet are in is one Java lets a living body climb: a member of
+     * the `minecraft:climbable` block tag, which `LivingEntity.onClimbable` reads.
+     */
+    private onClimbable(position: EntityPosition): boolean {
+        const block = this.world.blocks.get(blockPositionOf(position));
+        return block !== undefined && this.content().tags.includes('block', CLIMBABLE_TAG, block.identifier);
     }
 
     /** Applies projectile gravity, swept collisions, and the active component's hit actions. */
@@ -5332,6 +5439,25 @@ export class EntityRuntime implements EntityScene {
         if (grounded) body.conditions.add('on_ground');
         else body.conditions.delete('on_ground');
 
+        // Java's `AbstractBoat.floatBoat`: a boat that comes down out of the air onto water is set
+        // on the water's surface, 0.101 blocks under its own top, and stops falling.
+        const touchesLiquid = liquidSurface !== undefined || underwaterSource || underwaterFlowing;
+        const cameFromAir = this.wasInLiquid.get(entity) === false && !grounded;
+        this.wasInLiquid.set(entity, touchesLiquid);
+        if (touchesLiquid && cameFromAir && componentFacts.families.includes('boat')) {
+            let top = Math.floor(position.y);
+            while (
+                names.has(
+                    this.world.blocks.get({ x: Math.floor(position.x), y: top + 1, z: Math.floor(position.z) })
+                        ?.identifier ?? ''
+                )
+            )
+                top += 1;
+            body.position = { ...position, y: top + 1 - box.height + BOAT_WATERLINE };
+            body.velocity = { ...body.velocity, y: 0 };
+            return true;
+        }
+
         const baseBuoyancy = typeof buoyant.base_buoyancy === 'number' ? buoyant.base_buoyancy : 1;
         const submerged = underwaterFlowing ? 'flowing' : underwaterSource ? 'source' : undefined;
         const inLiquid = submerged === undefined && liquidSurface !== undefined;
@@ -5351,7 +5477,7 @@ export class EntityRuntime implements EntityScene {
                 : inLiquid || submerged !== undefined
                   ? BUOYANT_DRAG
                   : grounded
-                    ? groundDragWithModifier(this.groundFrictionAt(position) * DRAG, frictionModifier)
+                    ? groundDrag(this.groundFrictionAt(position), frictionModifier, airDragModifier)
                     : dragWithModifier(BUOYANT_DRAG, airDragModifier);
         const verticalAirDrag = uniformAirDrag ? BUOYANT_DRAG : 1;
         const verticalDrag =
@@ -5435,6 +5561,11 @@ export class EntityRuntime implements EntityScene {
             allowVertical: profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || swims || climbs,
             canJump: profile.canJump,
             stepHeight: profile.stepHeight,
+            maxUpStep: componentFacts.maxUpStep,
+            ...(this.stuckInCobweb(entity) ? { stuckSpeed: COBWEB_HORIZONTAL_SPEED } : {}),
+            ...(componentFacts.movesBeforeGravity && this.onClimbable(entity.position)
+                ? { maxDescent: CLIMB_SPEED }
+                : {}),
             groundFriction: this.groundFrictionAt(entity.position),
             floorAt: (waypoint) => floorUnder(waypoint, navigation),
             ...(typeof shortest === 'number' && typeof longest === 'number'
@@ -5528,16 +5659,53 @@ export class EntityRuntime implements EntityScene {
         return this.componentFactsOf(entity).hasCollision;
     }
 
-    /** Whether Java's entity type or its active custom component allows pushing. */
+    /**
+     * Whether Java's entity type or its active custom component allows pushing.
+     *
+     * A mob answers from Java's navigation dump. Any other living body is pushable unless its
+     * `minecraft:pushable` says otherwise, as `LivingEntity.isPushable` is. A vanilla body that is
+     * not living is pushable only as a boat or a minecart, whose `AbstractBoat.isPushable` and
+     * `AbstractMinecart.isPushable` return true where `Entity.isPushable` returns false: Bedrock
+     * marks a fireball, a trident or an end crystal pushable as well, and Java does not. A pack's
+     * own entity type, which Java has no class for, answers from its components.
+     */
     private isPushable(entity: DataEntity): boolean {
         // The client pushes its own body; it still pushes mobs it walks into.
         if (clientOwnsMovement(entity.identifier)) return false;
         const java = entity.instance.javaNavigation;
         if (java !== undefined) return java.pushable;
 
+        const facts = this.componentFactsOf(entity);
         const component = entity.instance.componentParams('minecraft:pushable');
-        if (isRecord(component) && typeof component.isPushable === 'boolean') return component.isPushable;
-        return entity.instance.attributes.get('health') !== undefined;
+        const declared =
+            isRecord(component) && typeof component.isPushable === 'boolean' ? component.isPushable : undefined;
+        if (facts.movesBeforeGravity) return declared ?? true;
+        if (entity.identifier.startsWith(VANILLA_NAMESPACE))
+            return facts.families.includes('boat') || facts.families.includes('minecart');
+        return (
+            declared ??
+            (entity.instance.hasComponent('minecraft:pushable_by_entity') ||
+                entity.instance.attributes.get('health') !== undefined)
+        );
+    }
+
+    /**
+     * Moves an entity by an offset where its body fits, as a piston carries one: Java's
+     * `PistonMovingBlockEntity.moveCollidedEntities` moves it with `MoverType.PISTON`, which
+     * collides with the blocks around it. A player's client moves its own body, so it is left alone.
+     */
+    public carry(id: number, by: EntityPosition): void {
+        const entity = this.store.get(id);
+        if (entity === undefined || entity.removed !== undefined || clientOwnsMovement(entity.identifier)) return;
+        const facts = this.componentFactsOf(entity);
+        const navigation = this.navigation();
+        const canOccupy = (at: EntityPosition) =>
+            !facts.hasCollision || bodyCanOccupy(at, entity.facts.box, navigation, facts.canStandOnPowderSnow);
+        let next = entity.position;
+        next = moveOnAxis(next, next.x + by.x, 'x', canOccupy);
+        next = moveOnAxis(next, next.y + by.y, 'y', canOccupy);
+        next = moveOnAxis(next, next.z + by.z, 'z', canOccupy);
+        entity.position = next;
     }
 
     /** Keeps every rider where its vehicle is, which is what being carried means. */
@@ -5616,6 +5784,48 @@ const GRAVITY = 0.08;
 /** Java's vertical air drag, applied after gravity once a tick. */
 const VERTICAL_AIR_DRAG = 0.98;
 
+/** The fastest a body moves on each axis in a climbable block, from Java's `LivingEntity.handleOnClimbable`. */
+const CLIMB_SPEED = 0.15;
+
+/** The block tag Java's `LivingEntity.onClimbable` reads. */
+const CLIMBABLE_TAG = 'minecraft:climbable';
+
+/**
+ * The gravity Java gives a body that is not a living entity, where it differs from the living
+ * entity's 0.08, by the Bedrock type it spawns as: each class's `getDefaultGravity`. An end
+ * crystal, an area effect cloud and a firework keep `Entity`'s 0.
+ */
+const JAVA_DEFAULT_GRAVITY: ReadonlyMap<string, number> = new Map([
+    // `AbstractMinecart.getDefaultGravity` out of water.
+    ...[
+        'minecraft:minecart',
+        'minecraft:chest_minecart',
+        'minecraft:hopper_minecart',
+        'minecraft:tnt_minecart',
+        'minecraft:command_block_minecart'
+    ].map((identifier) => [identifier, 0.04] as const),
+    ['minecraft:xp_orb', 0.03],
+    ['minecraft:ender_crystal', 0],
+    ['minecraft:area_effect_cloud', 0],
+    ['minecraft:fireworks_rocket', 0]
+]);
+
+/** The mobs whose Java code slows a fall, and the share of the falling speed they keep each tick. */
+const SLOW_FALLERS: ReadonlySet<string> = new Set(['minecraft:chicken', 'minecraft:blaze', 'minecraft:parrot']);
+const SLOW_FALL = 0.6;
+
+/** The namespace of the vanilla entity types, whose Java classes decide how they behave. */
+const VANILLA_NAMESPACE = 'minecraft:';
+
+/** Bedrock's name for the cobweb. */
+const COBWEB = 'minecraft:web';
+
+/** The horizontal share of a move a cobweb lets through, from Java's `WebBlock.entityInside`. */
+const COBWEB_HORIZONTAL_SPEED = 0.25;
+
+/** The vertical share of a move a cobweb lets through, from Java's `WebBlock.entityInside`. */
+const COBWEB_VERTICAL_SPEED = 0.05;
+
 /** The fire timeout sunlight maintains until an entity reaches shade, in ticks. */
 const DAYLIGHT_BURN_TICKS = 160;
 
@@ -5657,6 +5867,9 @@ const BUOYANT_DRAG = 0.9;
 
 /** Java damps vertical velocity after applying the water surface impulse. */
 const BUOYANT_WATER_VERTICAL_DRAG = 0.75;
+
+/** How far a boat that lands on water sits over the water level less its height, from `AbstractBoat.floatBoat`. */
+const BOAT_WATERLINE = 0.101;
 
 /** The waterline fraction `AbstractBoat.floatBoat` uses to counter gravity. */
 const BUOYANT_STEADY_FRACTION = 0.65;

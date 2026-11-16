@@ -1571,7 +1571,9 @@ describe('the data-driven entity runtime over a live world', () => {
         const mob = live.runtime.spawn('minecraft:warden', { x: 0.5, y: GROUND_Y, z: 0.5 });
         if (mob === undefined) throw new Error('the fixture declares no minecraft:warden');
 
+        // Java's living travel moves before gravity applies, so the first tick only gives it speed.
         await live.tick(1);
+        await live.tick(2);
 
         expect(mob.position.y).toBeLessThan(GROUND_Y);
     });

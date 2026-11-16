@@ -2194,7 +2194,7 @@ describe('EntityRuntime', () => {
             expect(entity.body.velocity.y).toBeCloseTo(1.04 * 0.9);
         });
 
-        it('does not lose ground speed when the active friction modifier is zero', () => {
+        it('loses only air drag on the ground when the active friction modifier is zero', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),
                 {},
@@ -2213,7 +2213,8 @@ describe('EntityRuntime', () => {
 
             runtime.tick(1);
 
-            expect(entity.body.velocity.x).toBe(1);
+            // Java's computeModifiedFriction(0.6, 0) is 1, and the 0.91 air drag still applies.
+            expect(entity.body.velocity.x).toBeCloseTo(0.91, 9);
         });
 
         it('applies the block ground friction with a regular friction modifier', () => {
@@ -2238,7 +2239,7 @@ describe('EntityRuntime', () => {
             expect(entity.body.velocity.x).toBeCloseTo(0.546);
         });
 
-        it('doubles ground friction when the active friction modifier is two', () => {
+        it('doubles the friction loss when the active friction modifier is two', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),
                 {},
@@ -2257,7 +2258,8 @@ describe('EntityRuntime', () => {
 
             runtime.tick(1);
 
-            expect(entity.body.velocity.x).toBeCloseTo(0.092);
+            // Java's computeModifiedFriction(0.6, 2) is 1 - 0.4 * 2, times the 0.91 air drag.
+            expect(entity.body.velocity.x).toBeCloseTo(0.2 * 0.91);
         });
     });
 
