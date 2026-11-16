@@ -552,40 +552,15 @@
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
             "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
         },
-        "goal-find_cover:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox in daylight looks for shade: it walks under a roof when it stands in the sun. Observed: it stayed in the sun beside a roof.",
-            "reference": "Java Fox.SeekShelterGoal (FleeSunGoal subclass: in sunlight, walk to a spot that cannot see the sky); issue #3131 if it differs"
-        },
         "goal-melee-box-attack:minecraft:blaze": {
             "kind": "defect",
             "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: Java's minecraft:blaze registers no MeleeAttackGoal, but the server runs minecraft:behavior.melee_box_attack. Tracked in #3130.",
             "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
         },
-        "goal-mount-pathing:minecraft:camel_husk": {
-            "kind": "defect",
-            "reason": "A mob riding another mob steers it, as Java's Mob.getControllingPassenger has it. Observed: its walk does not move the chicken it rides, which Java's rider steers. Tracked in #3130.",
-            "reference": "Java Mob.getControllingPassenger, Mob.getNavigation and Mob.updateControlFlags, read from the pinned jar, which registers no mount_pathing goal in any class"
-        },
         "goal-nearest-attackable-target:minecraft:phantom": {
             "kind": "defect",
             "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: Java's minecraft:phantom registers no NearestAttackableTargetGoal, but the server runs minecraft:behavior.nearest_attackable_target. Tracked in #3130.",
             "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
-        },
-        "goal-random-swim:minecraft:elder_guardian": {
-            "kind": "defect",
-            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:elder_guardian registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
-            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
-        },
-        "goal-random-swim:minecraft:guardian": {
-            "kind": "defect",
-            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:guardian registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
-            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
-        },
-        "goal-random-swim:minecraft:turtle": {
-            "kind": "defect",
-            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:turtle registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
-            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
         },
         "goal-ranged-attack:minecraft:blaze": {
             "kind": "defect",
@@ -606,11 +581,6 @@
             "kind": "deferred",
             "reason": "Java's trap enchants each skeleton's bow and helmet through the mob_spawn_equipment enchantment provider, a registry the server does not load yet (#2912); everything else about the trap matches Java.",
             "reference": "Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (setVisualOnly bolt, createSkeleton with an iron helmet when its head slot is empty and its main hand and head enchanted by VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, riding the trap horse and three more from createHorse, setTrap(false)); issue #2912 if it differs"
-        },
-        "goal-stalk_and_pounce_on_target:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox stalks its prey and pounces on it, hurting it. Observed: it never pounced on its prey within 300 ticks.",
-            "reference": "Java Fox.StalkPreyGoal and Fox.FoxPounceGoal (leap at the target, then doHurtTarget on landing); issue #3131 if it differs"
         },
         "home-range:minecraft:bee": {
             "kind": "defect",

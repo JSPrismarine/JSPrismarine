@@ -2,6 +2,8 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import type { NavigationView } from '@jsprismarine/entity-goals/navigation/view';
 import type { BlockQuery, GoalMob, GoalWorld } from '@jsprismarine/entity-goals/world';
 import { item_tags, java_entity_navigation } from '@jsprismarine/bedrock-data';
+import { MemoryModuleTypes } from '@jsprismarine/entity-brains/memory';
+import { blockPosTracker } from '@jsprismarine/entity-brains/world';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
@@ -1837,7 +1839,19 @@ const riderSteeringScenario: BehaviorScenario<EntitySubject> = {
                 return;
             }
             const start = chicken.position.x;
-            probe.entity.instance.actuator?.moveTo(probe.at(12, 0, 0), 1);
+            const destination = probe.at(12, 0, 0);
+            probe.entity.instance.actuator?.moveTo(destination, 1);
+            // A rider whose AI is a brain walks where its walk target memory points, which its own
+            // MoveToTargetSink paths to; a direct walk would give way to the next target its brain picks.
+            probe.entity.brain?.setMemory(MemoryModuleTypes.WALK_TARGET, {
+                target: blockPosTracker({
+                    x: Math.floor(destination.x),
+                    y: Math.floor(destination.y),
+                    z: Math.floor(destination.z)
+                }),
+                speedModifier: 1,
+                closeEnoughDist: 0
+            });
             probe.tick(40);
             if (chicken.position.x - start < 3)
                 differences.push("its walk does not move the chicken it rides, which Java's rider steers");

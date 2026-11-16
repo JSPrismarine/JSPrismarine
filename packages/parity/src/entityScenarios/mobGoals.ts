@@ -1943,15 +1943,28 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }),
     goalScenario({
         goals: ['stalk_and_pounce_on_target'],
-        java: 'A fox stalks its prey and pounces on it, hurting it.',
-        reference: 'Java Fox.StalkPreyGoal and Fox.FoxPounceGoal (leap at the target, then doHurtTarget on landing)',
-        run: (subject) =>
-            probeGoals(subject, ['stalk_and_pounce_on_target'], { random: [0.01] }, (probe) => {
-                const player = probe.player(5, 0, 0);
+        java: 'A fox stalks a chicken or a rabbit until it is within 6 blocks, crouches and pounces on it, hurting it; it never stalks a player.',
+        reference:
+            'Java Fox.StalkPreyGoal (STALKABLE_PREY chickens and rabbits, distanceToSqr > 36, moveTo at 1.5, crouches within 6), Fox.tick (crouchAmount up 0.2 a tick to 3) and Fox.FoxPounceGoal (leaps by 0.8 and 0.9, doHurtTarget within 2)',
+        run: (subject) => {
+            const pounced = probeGoals(subject, ['stalk_and_pounce_on_target'], { random: [0.01] }, (probe) => {
+                const chicken = probe.spawn('minecraft:chicken', 9, 0, 0);
+                const health = (): number => chicken.instance.attributes.get('health')?.current ?? 0;
+                const before = health();
+                probe.entity.target = chicken.id;
+                return probe.until(() => health() < before, 300) !== undefined;
+            });
+            const stalkedPlayer = probeGoals(subject, ['stalk_and_pounce_on_target'], { random: [0.01] }, (probe) => {
+                const player = probe.player(9, 0, 0);
                 probe.entity.target = player;
-                const hit = probe.until(() => hitsOn(probe, player).length > 0, 300);
-                return hit === undefined ? 'it never pounced on its prey within 300 ticks' : undefined;
-            })
+                probe.tick(60);
+                return probe.entity.instance.goals.runningGoals().length > 0;
+            });
+            return differences([
+                !pounced && 'it never pounced on a chicken 9 blocks off within 300 ticks',
+                stalkedPlayer && 'it stalks a player, which Java never stalks'
+            ]);
+        }
     }),
     goalScenario({
         goals: ['nap'],
@@ -1973,20 +1986,27 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }),
     goalScenario({
         goals: ['find_cover'],
-        java: 'A fox in daylight looks for shade: it walks under a roof when it stands in the sun.',
+        java: 'A fox under open sky in daylight looks for shelter: it walks to a spot that cannot see the sky and is dark enough that an animal rates it below zero.',
         reference:
-            'Java Fox.SeekShelterGoal (FleeSunGoal subclass: in sunlight, walk to a spot that cannot see the sky)',
+            'Java Fox.SeekShelterGoal.canUse (isBrightOutside and canSeeSky at its feet, every 100 updates) and FleeSunGoal.getHidePos (ten spots in a 20 by 6 by 20 box: !canSeeSky and Animal.getWalkTargetValue, getPathfindingCostFromLightLevels off grass, below zero)',
         run: (subject) =>
             probeGoals(
                 subject,
                 ['find_cover'],
-                { groups: ['minecraft:fox_day'], random: [0.001, 0.5, 0.9] },
+                // getHidePos draws x, y and z in turn: 0.85 puts a spot 7 blocks into the hall at
+                // its floor and 0.55 one block out under the sky, so every other spot is in the dark.
+                { groups: ['minecraft:fox_day'], random: [0.85, 0.55] },
                 (probe) => {
                     windTo(probe, 6000);
-                    probe.fill([3, 3, -2], [7, 3, 2], 'minecraft:stone');
+                    // A hall open toward the fox, deep enough that its back lies below light 12,
+                    // where Java's light cost turns negative.
+                    probe.fill([2, 3, -10], [13, 3, 10], 'minecraft:stone');
+                    probe.fill([2, 0, -10], [13, 2, -10], 'minecraft:stone');
+                    probe.fill([2, 0, 10], [13, 2, 10], 'minecraft:stone');
+                    probe.fill([13, 0, -10], [13, 2, 10], 'minecraft:stone');
                     probe.tick(300);
                     const x = probe.entity.position.x - probe.at(0, 0, 0).x;
-                    return x >= 2.5 && x <= 7.5 ? undefined : 'it stayed in the sun beside a roof';
+                    return x >= 4 ? undefined : 'it stayed in the sun beside a dark hall';
                 }
             )
     }),
