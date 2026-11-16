@@ -9,6 +9,7 @@ import { mobGoalScenarios } from './entityScenarios/mobGoals.ts';
 import { engineScenarios } from './entityScenarios/engine.ts';
 import { physicsScenarios } from './entityScenarios/physics.ts';
 import { damageScenarios } from './entityScenarios/damage.ts';
+import { sensesScenarios } from './entityScenarios/senses.ts';
 import { goalScenarios } from './entityScenarios/goals.ts';
 import { lifecycleScenarios } from './entityScenarios/lifecycle.ts';
 import { lootScenarios } from './entityScenarios/loot.ts';
@@ -44,6 +45,7 @@ const ENTITY_THEMES: readonly EntityTheme[] = [
     theme('engine', engineScenarios),
     theme('physics', physicsScenarios),
     theme('damage', damageScenarios),
+    theme('senses', sensesScenarios),
     theme('goals', goalScenarios),
     theme('stats', statsScenarios),
     theme('lifecycle', lifecycleScenarios),

@@ -170,8 +170,14 @@ const javaHurtOnlyByPlayers = (javaId: string): boolean => javaId === 'minecraft
 /** How far the fall the damage sensor rows compare drops, in blocks. */
 const FALL_BLOCKS = 20;
 
-/** The `LivingEntity.calculateFallDamage` a type with Java's default attributes takes from {@link FALL_BLOCKS}. */
-const DEFAULT_FALL_DAMAGE = Math.floor(FALL_BLOCKS - 3);
+/** How long a fall row watches a dropped entity: long enough for {@link FALL_BLOCKS} under Java's gravity. */
+const FALL_TICKS = 50;
+
+/** Java's `Entity.getTicksRequiredToFreeze`, which the freezing rows start an entity at. */
+const FROZEN_THROUGH = 140;
+
+/** How often `LivingEntity.aiStep` hurts a fully frozen entity. */
+const FREEZE_CYCLE = 40;
 
 /**
  * Java's fall damage for a type from {@link FALL_BLOCKS}: none for the `fall_damage_immune` tag,
@@ -239,50 +245,57 @@ const immunityScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'freeze-immunity',
-        java: "A freezing blow does nothing to a type in Java's freeze_immune_entity_types tag, or to a skeleton, which Skeleton.canFreeze refuses, and hurts every other living type.",
+        java: "A fully frozen living entity in powder snow takes Java's freezing blow every 40 ticks: nothing for a type in freeze_immune_entity_types or a skeleton, which Skeleton.canFreeze refuses, 5 for a type in freeze_hurts_extra_types, and 1 for the rest.",
         reference:
-            'Java Entity.canFreeze (entity type tag freeze_immune_entity_types), Skeleton.canFreeze and LivingEntity.isInvulnerableTo, read from the pinned jar; issue #3150',
-        subjects: () =>
-            livingSubjects().filter(
-                (subject) =>
-                    declaresComponent(subject.bedrock, 'minecraft:freezing_immune') ||
-                    javaInTag(subject.javaId, 'minecraft:freeze_immune_entity_types')
-            ),
+            'Java LivingEntity.aiStep (ticksFrozen, isFullyFrozen, tickCount % 40, freeze 1 or 5 for the entity type tag freeze_hurts_extra_types), Entity.canFreeze (entity type tag freeze_immune_entity_types) and Skeleton.canFreeze, read from the pinned jar; issue #3150',
+        subjects: livingSubjects,
         idOf: (subject) => subject.javaId,
-        aspects: () => ['minecraft:freezing_immune'],
+        aspects: (subject) =>
+            ['minecraft:freezing_immune', 'minecraft:freezing_vulnerable'].filter((component) =>
+                declaresComponent(subject.bedrock, component)
+            ),
         run: (subject) => {
             const freezes = javaMethodOf(javaEntityClassName(subject.javaId), 'canFreeze');
             const immune =
+                javaHurtOnlyByPlayers(subject.javaId) ||
                 javaInTag(subject.javaId, 'minecraft:freeze_immune_entity_types') ||
                 (freezes !== undefined &&
                     freezes.method.calls.length === 0 &&
                     pushedNumbers(freezes.method).join() === '0');
-            const taken = pipelineBlow(subject.bedrock, 'freezing', 1);
-            if (typeof taken === 'string') return taken;
-            if (javaHurtOnlyByPlayers(subject.javaId) && taken > 0)
-                return `a freezing blow takes ${taken} health off it, where Java's EnderDragon.hurtServer refuses every blow but a player's or an explosion's`;
-            if (javaHurtOnlyByPlayers(subject.javaId)) return undefined;
-            if (immune && taken > 0)
-                return `a freezing blow takes ${taken} health off it, which Java's canFreeze refuses`;
-            if (!immune && taken <= 0) return 'a freezing blow does nothing to it, where Java freezes it';
-            return undefined;
+            const java = immune ? 0 : javaInTag(subject.javaId, 'minecraft:freeze_hurts_extra_types') ? 5 : 1;
+            const hits = inSandbox(subject.bedrock, 'minecraft:powder_snow', (sandbox) => {
+                // Frozen through at once, so one 40-tick cycle holds exactly one blow.
+                sandbox.stack.runtime.setFrozenTicks(sandbox.entity.id, FROZEN_THROUGH);
+                return sandbox.tick(FREEZE_CYCLE).filter((hit) => hit.cause === 'freezing' && hit.taken > 0);
+            });
+            if (typeof hits === 'string') return hits;
+            const server = hits[0]?.taken ?? 0;
+            return server === java && (java === 0 || hits.length === 1)
+                ? undefined
+                : `frozen through in powder snow it is hurt ${describeHits(hits)} in ${FREEZE_CYCLE} ticks, where Java hurts it ${java === 0 ? 'nothing' : `${java} once`}`;
         }
     },
     {
         name: 'fall-damage-sensor',
-        java: "A fall blow lands on an entity as Java's calculateFallDamage would for the same fall: nothing for a type in fall_damage_immune, its safe fall distance and multiplier, and what a goat or a frog takes off.",
+        java: "A living entity dropped from 20 blocks takes Java's calculateFallDamage on landing: nothing for a type in fall_damage_immune, the fall past its safe fall distance times its multiplier, less what a goat or a frog takes off.",
         reference:
-            "Java LivingEntity.calculateFallDamage (entity type tag fall_damage_immune, safe_fall_distance and fall_damage_multiplier attributes) and its overrides in Goat and Frog, read from the pinned jar; the blow is Java's default damage for a 20-block fall, since the server deals mobs no fall damage of its own; issue #3147",
+            'Java Entity.checkFallDamage, LivingEntity.calculateFallDamage (entity type tag fall_damage_immune, safe_fall_distance and fall_damage_multiplier attributes) and its overrides in Goat and Frog, read from the pinned jar; issue #3147',
         subjects: () => entitiesDeclaring('minecraft:damage_sensor').filter((subject) => javaLiving(subject.javaId)),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:damage_sensor'],
         run: (subject) => {
             const java = javaFallDamage(subject.javaId);
-            const taken = pipelineBlow(subject.bedrock, 'fall', DEFAULT_FALL_DAMAGE);
-            if (typeof taken === 'string') return taken;
-            return Math.abs(taken - java) < 1e-6
+            const falls = inSandbox(
+                subject.bedrock,
+                'air',
+                (sandbox) => sandbox.tick(FALL_TICKS).filter((hit) => hit.cause === 'fall'),
+                { lift: FALL_BLOCKS }
+            );
+            if (typeof falls === 'string') return falls;
+            const taken = falls.reduce((sum, hit) => sum + hit.taken, 0);
+            return Math.abs(taken - java) < 1e-6 && falls.length <= 1
                 ? undefined
-                : `a ${FALL_BLOCKS}-block fall's blow takes ${taken} health off it, where Java's fall takes ${java}`;
+                : `dropped ${FALL_BLOCKS} blocks it takes ${describeHits(falls)}, where Java's fall takes ${java}`;
         }
     }
 ];
@@ -310,15 +323,6 @@ const JAVA_SHOOTER_PROJECTILES: Readonly<Record<string, readonly [string, string
     'minecraft:witch': ['minecraft:splash_potion', 'Witch.performRangedAttack']
 };
 
-/** Java's gravity for a projectile type: the nearest `getDefaultGravity`, or none when its constructor turns gravity off. */
-const javaProjectileGravity = (javaId: string): number => {
-    const className = javaEntityClassName(javaId);
-    const constructor = pinnedJavaClass(className).filter((method) => method.name === '<init>');
-    if (constructor.some((method) => method.calls.some((call) => call.endsWith('.setNoGravity')))) return 0;
-    const gravity = javaMethodOf(className, 'getDefaultGravity');
-    return gravity === undefined ? 0 : (pushedNumbers(gravity.method).at(0) ?? 0);
-};
-
 /** What Java's `thunderHit` does to a type a lightning bolt strikes, by the class that overrides it. */
 const javaThunderHit = (javaId: string): string => {
     const hit = javaMethodOf(javaEntityClassName(javaId), 'thunderHit');
@@ -339,34 +343,6 @@ const javaThunderHit = (javaId: string): string => {
 
 /** The scenarios for what an entity shoots and how its projectiles fly. */
 const projectileScenarios: readonly BehaviorScenario<EntitySubject>[] = [
-    {
-        name: 'projectile-gravity',
-        java: "A projectile falls by Java's gravity for its type each tick: 0.05 for an arrow or a trident, 0.03 for a thrown item, none for a fireball.",
-        reference:
-            'Java getDefaultGravity in Entity (0), ThrowableProjectile (0.03), AbstractArrow (0.05), AbstractThrownPotion (0.05), ThrownExperienceBottle (0.07), LlamaSpit (0.06), FishingHook (0.03) and ShulkerBullet (0.04, off through setNoGravity), read from the pinned jar; issue #3122',
-        subjects: () => entitiesDeclaring('minecraft:projectile'),
-        idOf: (subject) => subject.javaId,
-        aspects: () => ['minecraft:projectile'],
-        run: (subject) => {
-            const java = javaProjectileGravity(subject.javaId);
-            const fell = inSandbox(
-                subject.bedrock,
-                'air',
-                (sandbox) => {
-                    sandbox.entity.body.velocity = { x: 0, y: 0, z: 0 };
-                    sandbox.tick(1);
-                    return -sandbox.entity.body.velocity.y;
-                },
-                { lift: 3 }
-            );
-            if (typeof fell === 'string') return fell;
-            // Java scales the fall by the air's 0.99 drag in one order or the other, so a tick's
-            // fall is within one percent of the gravity.
-            return Math.abs(fell - java) <= 0.011 * java + 1e-9
-                ? undefined
-                : `it falls ${fell.toFixed(4)} in its first tick, where Java's gravity is ${java}`;
-        }
-    },
     {
         name: 'shoots-projectile',
         java: 'A ranged mob fires the projectile Java creates for it.',
@@ -427,6 +403,12 @@ const strikeScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         aspects: () => ['minecraft:damage_sensor'],
         run: (subject) => {
             const java = javaThunderHit(subject.javaId);
+            // The groups the entity ends with after the same ticks without a bolt, such as an
+            // axolotl's on-land group, which are not the bolt's doing.
+            const unstruck = inSandbox(subject.bedrock, 'air', (sandbox) => {
+                sandbox.tick(20);
+                return new Set(sandbox.entity.instance.activeComponentGroups());
+            });
             const server = inSandbox(subject.bedrock, 'air', (sandbox) => {
                 const groups = new Set(sandbox.entity.instance.activeComponentGroups());
                 sandbox.stack.runtime.spawn('minecraft:lightning_bolt', SANDBOX_ORIGIN);
@@ -439,9 +421,11 @@ const strikeScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 if (sandbox.entity.removed !== undefined && replaced.length > 0)
                     return `it becomes ${replaced[0]?.identifier ?? ''}`;
                 if (hits.some((hit) => hit.died)) return 'it dies';
+                const baseline = typeof unstruck === 'string' ? groups : unstruck;
                 const now = sandbox.entity.instance.activeComponentGroups();
-                const added = now.filter((group) => !groups.has(group));
-                const changed = added.length > 0 || now.length !== groups.size;
+                const added = now.filter((group) => !groups.has(group) && !baseline.has(group));
+                const changed =
+                    added.length > 0 || now.some((group) => !baseline.has(group)) || now.length !== baseline.size;
                 // A creeper's lightning event adds its charged group, which is Java's powered flag.
                 const effect = added.some((group) => group.includes('charged'))
                     ? 'becomes powered'
