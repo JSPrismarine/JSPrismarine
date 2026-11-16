@@ -46,6 +46,8 @@ export interface JavaGoalEntry {
     readonly params: Readonly<Record<string, JavaGoalArgument | undefined>>;
     /** The instance methods called on the goal after construction, such as `setAlertOthers`. */
     readonly calls: readonly { readonly name: string; readonly args: readonly JavaGoalArgument[] }[];
+    /** On a goal that calls `setAlertOthers`, the entity types of the mob's class and its subclasses. */
+    readonly selfEntities?: readonly string[];
 }
 
 /** Every Java mob's goals by Java entity type, which is the shape of `java_entity_goals`. */
@@ -211,9 +213,19 @@ const revenge: Translate = (body, goals, context) => {
         });
     });
     const filter = ignored.length === 0 ? undefined : context.entityFilter([...new Set(ignored)]);
-    // `setAlertOthers` calls the mob's own kind onto the attacker.
-    const alerts = goals.some((goal) => goal.calls.some((call) => call.name === 'setAlertOthers'));
-    const rest = withKeys(withoutKeys(body, 'entity_types'), { alert_same_type: alerts ? true : undefined });
+    // `setAlertOthers` calls the mob's own kind onto the attacker: every mob of its class and its
+    // subclasses, but the classes the call names.
+    const alerting = goals.find((goal) => goal.calls.some((call) => call.name === 'setAlertOthers'));
+    const skipped = (alerting?.calls ?? [])
+        .filter((call) => call.name === 'setAlertOthers')
+        .flatMap((call) => call.args)
+        .flatMap((arg) => (isRecord(arg) && 'array' in arg ? arg.array : []))
+        .flatMap((item) => (isRecord(item) && 'entities' in item ? item.entities : []));
+    const kin = (alerting?.selfEntities ?? []).filter((entity) => !skipped.includes(entity));
+    const rest = withKeys(withoutKeys(body, 'entity_types'), {
+        alert_same_type: alerting === undefined ? undefined : true,
+        alert_filters: kin.some((entity) => entity !== context.self) ? context.entityFilter(kin) : undefined
+    });
     return filter === undefined ? rest : { ...rest, entity_types: [{ filters: { none_of: [filter] } }] };
 };
 

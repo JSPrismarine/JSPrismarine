@@ -1,11 +1,22 @@
 import type { Goal } from '@jsprismarine/entities';
+import type { Filter } from '@jsprismarine/packs';
 
 import { goal } from '../goal';
 import type { RegisterableGoal } from '../goal';
 import type { GoalSupport } from '../support';
 import type { GoalCombatMark, GoalMob } from '../world';
 import type { GoalEvent, TargetEntityType } from '../params';
-import { bodySchema, booleanAt, entityTypesAt, eventAt, numberAt, stringAt, ticksAt, tickRangeAt } from '../params';
+import {
+    bodySchema,
+    booleanAt,
+    entityTypesAt,
+    eventAt,
+    filterAt,
+    numberAt,
+    stringAt,
+    ticksAt,
+    tickRangeAt
+} from '../params';
 
 /**
  * The goals that choose what an entity attacks.
@@ -218,6 +229,12 @@ export interface HurtByTargetParams {
     readonly hurtOwner: boolean;
     /** Whether the goal calls nearby mobs of the entity's type onto the attacker. */
     readonly alertSameType: boolean;
+    /**
+     * The other mobs, as `other`, that `alert_same_type` calls too: Java's `alertOthers` searches
+     * the mob's class with its subclasses, so a zombie calls husks. `alert_filters` is the
+     * server's key; Bedrock's goal has none.
+     */
+    readonly alertFilters: Filter | undefined;
 }
 
 /**
@@ -232,9 +249,10 @@ const DEFAULT_FOLLOW_RANGE = 16;
 /**
  * Calls the mobs of the entity's type near it onto its attacker, as Java's
  * `HurtByTargetGoal.alertOthers` does: every one within the entity's follow range across and
- * {@link ALERT_HEIGHT} up and down that has no target yet and shares the entity's owner.
+ * {@link ALERT_HEIGHT} up and down that has no target yet and shares the entity's owner. A mob of
+ * another type that `kin` accepts counts as one of its type.
  */
-const alertOthers = (support: GoalSupport, attacker: GoalMob): void => {
+const alertOthers = (support: GoalSupport, attacker: GoalMob, kin: Filter | undefined): void => {
     const across = support.entity.attributes.value('follow_range', DEFAULT_FOLLOW_RANGE);
     const here = support.position();
     const type = support.entity.type.identifier;
@@ -242,7 +260,8 @@ const alertOthers = (support: GoalSupport, attacker: GoalMob): void => {
     // The sphere that holds the search box's corners.
     const radius = Math.hypot(across + 1, across + 1, ALERT_HEIGHT + 1);
     for (const mob of support.mobs(radius)) {
-        if (mob.id === attacker.id || mob.identifier?.() !== type) continue;
+        if (mob.id === attacker.id) continue;
+        if (mob.identifier?.() !== type && (kin === undefined || !support.matches(kin, mob))) continue;
         const at = mob.position();
         // Java's box runs from the block corner, so it reaches one block further on the positive side.
         const corner = { x: Math.floor(here.x), y: Math.floor(here.y), z: Math.floor(here.z) };
@@ -269,7 +288,8 @@ export const hurtByTarget = goal<HurtByTargetParams>({
     schema: bodySchema((body) => ({
         entityTypes: entityTypesAt(body),
         hurtOwner: booleanAt(body, 'hurt_owner', false),
-        alertSameType: booleanAt(body, 'alert_same_type', false)
+        alertSameType: booleanAt(body, 'alert_same_type', false),
+        alertFilters: filterAt(body, 'alert_filters')
     })),
     create: (params, support) => {
         const hold = holdTarget(support, {
@@ -296,7 +316,7 @@ export const hurtByTarget = goal<HurtByTargetParams>({
             start: () => {
                 hold.start?.();
                 const attacker = support.target();
-                if (attacker !== undefined) alertOthers(support, attacker);
+                if (attacker !== undefined) alertOthers(support, attacker, params.alertFilters);
             }
         };
     }

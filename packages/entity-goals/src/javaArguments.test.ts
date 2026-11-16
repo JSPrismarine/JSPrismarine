@@ -125,6 +125,30 @@ describe('javaGoalBody', () => {
         });
     });
 
+    it("alerts the mob's subclasses Java's alertOthers finds, but the classes setAlertOthers names", () => {
+        const hurtBy = (selfEntities: readonly string[]) => [
+            goal(
+                'HurtByTargetGoal',
+                {},
+                {
+                    calls: [{ name: 'setAlertOthers', args: [{ array: [classOf('minecraft:zombified_piglin')] }] }],
+                    selfEntities
+                }
+            )
+        ];
+        const zombie = hurtBy(['minecraft:husk', 'minecraft:zombie', 'minecraft:zombified_piglin']);
+        expect(javaGoalBody('minecraft:behavior.hurt_by_target', { priority: 1 }, zombie, context)).toEqual({
+            priority: 1,
+            alert_same_type: true,
+            alert_filters: { types: ['minecraft:husk', 'minecraft:zombie'] }
+        });
+        const own = hurtBy(['minecraft:zombie']);
+        expect(javaGoalBody('minecraft:behavior.hurt_by_target', { priority: 1 }, own, context)).toEqual({
+            priority: 1,
+            alert_same_type: true
+        });
+    });
+
     it("avoids Java's classes at Java's distance and speeds, keeping the pack's conditions on a narrowed goal", () => {
         const java = [
             goal('AvoidEntityGoal', {

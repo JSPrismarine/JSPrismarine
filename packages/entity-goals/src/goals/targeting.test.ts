@@ -230,6 +230,17 @@ describe('minecraft:behavior.hurt_by_target', () => {
             expect(alerting({}, [near])).toEqual([]);
         });
 
+        it('also calls the mobs its alert_filters accept, as Java calls its subclasses', () => {
+            const husk = testMob('husk', { x: 2, y: 0, z: 0 }, { identifier: 'test:husk', families: ['husk'] });
+            const piglin = testMob('piglin', { x: 2, y: 0, z: 1 }, { identifier: 'test:piglin', families: ['piglin'] });
+            const alertFilters = { test: 'is_family', subject: 'other', value: 'husk' };
+
+            expect(alerting({ alert_same_type: true, alert_filters: alertFilters }, [husk, piglin])).toEqual([
+                ['husk', 'attacker']
+            ]);
+            expect(alerting({ alert_same_type: true }, [husk])).toEqual([]);
+        });
+
         it('alerts only mobs that share its owner', () => {
             const owner = testMob('owner', { x: 5, y: 0, z: 0 });
             const stranger = testMob('stranger', { x: 6, y: 0, z: 0 });
