@@ -138,6 +138,11 @@ export interface GoalSpawnOptions {
     readonly fillEmptySlots?: Readonly<Record<string, string>>;
     /** The velocity the new entity starts with. */
     readonly velocity?: EntityPosition;
+    /**
+     * Enchants what the new entity holds and wears in these slots through a Java enchantment
+     * provider, such as `minecraft:mob_spawn_equipment`, once the empty slots are filled.
+     */
+    readonly enchantFromProvider?: { readonly provider: string; readonly slots: readonly string[] };
 }
 
 /** One block a block search found. */

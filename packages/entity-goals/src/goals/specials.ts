@@ -543,6 +543,9 @@ const trapState = defineComponentState('minecraft:behavior.skeleton_horse_trap',
 /** How many skeleton horsemen ride in beside the trap horse, Java's `SkeletonTrapGoal.tick` loop. */
 const TRAP_HORSEMEN = 3;
 
+/** The provider `SkeletonTrapGoal.enchant` draws each skeleton's bow and helmet enchantments from. */
+const TRAP_ENCHANTMENT_PROVIDER = 'minecraft:mob_spawn_equipment';
+
 /** The spread of the horsemen's push, Java's `triangle(0.0, 1.1485)` on each horizontal axis. */
 const TRAP_HORSEMAN_SPREAD = 1.1485;
 
@@ -560,7 +563,8 @@ const SPRING_TRAP_EVENT = 'minecraft:spring_trap';
  * Once a player comes within the radius the trap springs, once: a visual-only lightning bolt
  * strikes the horse, the horse becomes a rideable adult with a skeleton on its back, and three
  * more skeleton horses, each with a skeleton rider, spawn beside it and scatter. Every skeleton
- * wears an iron helmet when its own equipment left its head bare. A trap nobody springs within its
+ * wears an iron helmet when its own equipment left its head bare, and its bow and helmet are
+ * enchanted from the `mob_spawn_equipment` provider. A trap nobody springs within its
  * duration takes the horse away, as Java's `SkeletonHorse.aiStep` discards a trap horse after
  * 18000 ticks. The trap's state is component state, so a sprung trap stays sprung across a save.
  *
@@ -583,7 +587,8 @@ export const skeletonHorseTrap = goal<SkeletonHorseTrapParams>({
         const horseman = (horse: GoalMob, at: EntityPosition): void => {
             support.world.spawn?.('minecraft:skeleton', at, undefined, {
                 rides: horse,
-                fillEmptySlots: { head: 'minecraft:iron_helmet' }
+                fillEmptySlots: { head: 'minecraft:iron_helmet' },
+                enchantFromProvider: { provider: TRAP_ENCHANTMENT_PROVIDER, slots: ['mainhand', 'head'] }
             });
         };
 

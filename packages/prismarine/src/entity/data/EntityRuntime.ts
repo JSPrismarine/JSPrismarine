@@ -129,6 +129,7 @@ import {
     withoutEquipmentSlot
 } from '../equipment';
 import type { MobEquipmentSlot } from '../equipment';
+import { enchantFromProvider, enchantmentProviderSourceOf } from '../enchantmentProvider';
 import { EntityFactsLookup, javaLootIdOf, PLAYER_BOX } from './facts';
 import { fallsUnderGravity } from './gravity';
 import { equippableSlotCount, equippableSlotsOf } from './equippable';
@@ -4009,6 +4010,31 @@ export class EntityRuntime implements EntityScene {
             random !== undefined && random.next() < canPickUpLootChance(this.regionalDifficultyInputs(taker.position));
         taker.canPickUpLoot = rolled;
         return rolled;
+    }
+
+    /**
+     * Enchants what a mob holds and wears in the given slots through a Java enchantment provider,
+     * with the mob's own random and the regional difficulty where it stands, as Java's
+     * `EnchantmentHelper.enchantItemFromProvider` does for a trap skeleton's bow and helmet.
+     */
+    public enchantEquipmentFromProvider(entity: DataEntity, provider: string, slots: readonly string[]): void {
+        const source = enchantmentProviderSourceOf(this.content());
+        const own = entity.instance.random;
+        const random = {
+            nextFloat: () => own.next(),
+            nextInt: (bound: number) => own.nextInt?.(bound) ?? Math.floor(own.next() * bound)
+        };
+        const multiplier = clampedRegionalDifficulty(
+            regionalDifficulty(this.regionalDifficultyInputs(entity.position))
+        );
+        const equipment: Partial<Record<MobEquipmentSlot, ContentItemDrop>> = { ...entity.body.equipment };
+        for (const name of slots) {
+            const slot = mobEquipmentSlotOf(name);
+            const item = slot === undefined ? undefined : equipment[slot];
+            if (slot === undefined || item === undefined) continue;
+            equipment[slot] = enchantFromProvider(source, provider, item, random, multiplier);
+        }
+        entity.body.setEquipment(equipment);
     }
 
     /** Takes up to `count` items from a stack lying in the world into an entity's inventory. */

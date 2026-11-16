@@ -131,6 +131,8 @@ export interface EntityScene {
     pickUp(taker: MobBody, item: GoalItem, count?: number, options?: GoalPickupOptions): void;
     /** Whether a mob that picks up by chance may pick up at all, rolled once per mob. */
     canPickUpLoot(taker: MobBody): boolean;
+    /** Enchants what a mob holds and wears in some slots through a Java enchantment provider. */
+    enchantEquipmentFromProvider(entity: DataEntity, provider: string, slots: readonly string[]): void;
     /** Moves one item from an entity's inventory to another entity. */
     giveItem(giver: MobBody, taker: GoalMob, identifier: string, count?: number): void;
     /** Finds a loaded crafting recipe that converts one item into another. */

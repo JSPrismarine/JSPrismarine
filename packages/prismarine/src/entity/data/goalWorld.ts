@@ -378,6 +378,8 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
                 }
                 spawned.body.setEquipment(equipment);
             }
+            const enchant = options?.enchantFromProvider;
+            if (enchant !== undefined) scene.enchantEquipmentFromProvider(spawned, enchant.provider, enchant.slots);
             if (options?.velocity !== undefined) spawned.body.velocity = options.velocity;
             if (options?.rides !== undefined) scene.mount(spawned.body, options.rides);
             return goalMobOf(spawned, scene);
