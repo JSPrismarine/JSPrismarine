@@ -300,6 +300,24 @@ export interface GoalWorld {
     blockAt?(position: EntityPosition): { readonly identifier: string; readonly states: GoalBlockStates } | undefined;
     /** Opens or closes the door at a position, either half; anything else is left alone. */
     setDoorOpen?(position: EntityPosition, open: boolean): void;
+    /**
+     * Whether the entity's last move was stopped short sideways, Java's `Entity.horizontalCollision`,
+     * which tells a door breaker that the door is in its way.
+     */
+    horizontalCollision?(): boolean;
+    /**
+     * Breaks the door at a position, both halves, dropping nothing, with Java's door crash sound
+     * and break particles (`BreakDoorGoal.tick`'s `removeBlock` and level events 1021 and 2001).
+     * `mobGriefing` is the goal's to check.
+     */
+    breakDoor?(position: EntityPosition): void;
+    /**
+     * Shows the cracks on a door a mob is breaking, Java's `Level.destroyBlockProgress`: `stage`
+     * from 0 to 9, or -1 to take them away.
+     */
+    doorBreakProgress?(position: EntityPosition, stage: number): void;
+    /** Plays the sound of a mob beating on a wooden door, Java's level event 1019. */
+    knockOnDoor?(position: EntityPosition): void;
     /** Breaks a block, for the eat, harvest and dig goals. */
     breakBlock?(position: EntityPosition): void;
     /** Whether the block at a position is in a Java block tag, such as `minecraft:dragon_immune`. */

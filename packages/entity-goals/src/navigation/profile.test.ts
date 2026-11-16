@@ -48,7 +48,7 @@ describe('navigationProfile', () => {
         expect(navigationProfile(fish).canPassDoors).toBe(false);
     });
 
-    it("opens closed doors only as the Java navigator does, and breaks them only with Bedrock's break_door", () => {
+    it("opens and breaks closed doors only once break_door is on, as Java's setCanBreakDoors also opens them", () => {
         const zombie = (annotated: boolean): NavigationSource => ({
             componentSetToken: {},
             componentParams: (name) =>
@@ -69,7 +69,7 @@ describe('navigationProfile', () => {
         });
 
         expect(navigationProfile(zombie(false))).toMatchObject({ canOpenDoors: false, canBreakDoors: false });
-        expect(navigationProfile(zombie(true))).toMatchObject({ canOpenDoors: false, canBreakDoors: true });
+        expect(navigationProfile(zombie(true))).toMatchObject({ canOpenDoors: true, canBreakDoors: true });
     });
 
     it("sizes path cells by Java's floor(width + 1)", () => {

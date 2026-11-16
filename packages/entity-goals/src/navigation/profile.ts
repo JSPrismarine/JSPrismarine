@@ -234,6 +234,9 @@ const buildNavigationProfile = (entity: NavigationSource): NavigationProfile => 
     );
 };
 
+/** The component Bedrock gives a mob while Java's `Zombie.canBreakDoors` or a raid lets it break doors. */
+const BREAK_DOOR = 'minecraft:annotation.break_door';
+
 /** Lets the pinned Java navigator decide which media its path can enter and hold, and which doors it passes. */
 const withJavaNavigation = (entity: NavigationSource, profile: NavigationProfile): NavigationProfile => {
     const java = entity.javaNavigation;
@@ -245,6 +248,11 @@ const withJavaNavigation = (entity: NavigationSource, profile: NavigationProfile
     const isClimber = navigationClass.endsWith('WallClimberNavigation');
     const isFlying = navigationClass.endsWith('FlyingPathNavigation') || profile.canFly;
     const kind: NavigationKind = isWaterBound ? 'swim' : isFlying ? 'fly' : isClimber ? 'climb' : 'walk';
+    // Java's `Zombie.setCanBreakDoors(true)` also calls `setCanOpenDoors(true)`, so a door breaker's
+    // path enters a closed wooden door. Bedrock's door breaker carries `annotation.break_door`
+    // exactly while Java's flag is set; without it Java plans no path through the door, whatever
+    // Bedrock's `can_break_doors` says.
+    const breaksDoors = entity.hasComponent(BREAK_DOOR);
 
     return {
         ...profile,
@@ -252,12 +260,9 @@ const withJavaNavigation = (entity: NavigationSource, profile: NavigationProfile
         canFloat: java.canFloat,
         canSwim: isWaterBound || isAmphibious,
         canWalk: java.canNavigateGround,
+        canOpenDoors: (java.canOpenDoors ?? profile.canOpenDoors) || breaksDoors,
+        canBreakDoors: breaksDoors,
         canPassDoors: java.canPassDoors ?? profile.canPassDoors,
-        // Java's evaluator opens a closed wooden door only for a navigator set to open doors, and
-        // a zombie's navigator is set so only once it can break them, which Bedrock writes as the
-        // `minecraft:annotation.break_door` its door-breaking group adds.
-        canOpenDoors: java.canOpenDoors ?? profile.canOpenDoors,
-        canBreakDoors: profile.canBreakDoors && entity.hasComponent('minecraft:annotation.break_door'),
         canFly: isFlying,
         isAmphibious,
         pathfindingMalus: java.pathfindingMalus

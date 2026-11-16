@@ -88,7 +88,29 @@ export interface NavigatorContext {
     profile(): NavigationProfile;
     /** The home the entity's random movement is held to, or undefined when it has none. */
     homeRestriction?(): HomeRestriction | undefined;
+    /**
+     * The entity every navigator of one mob shares, so {@link walkedPathOf} finds the path any of
+     * them planned last. Each goal plans with a navigator of its own, where Java's mob has one
+     * `PathNavigation`.
+     */
+    readonly owner?: object;
 }
+
+/** The path an entity last planned and the node it walks to, keyed by {@link NavigatorContext.owner}. */
+const walkedPaths = new WeakMap<object, { readonly nodes: readonly EntityPosition[]; waypoint: number }>();
+
+/**
+ * The nodes of the path an entity last planned, whichever goal planned it, from its first through
+ * `ahead` past the one the entity walks to: Java's `Path.getNode(0)` up to
+ * `getNextNodeIndex() + ahead`, as `DoorInteractGoal` reads the mob's one `PathNavigation`. A goal
+ * that stops its walk leaves the path here, as Java's path stays on the navigation while another
+ * goal looks at it.
+ */
+export const walkedPathOf = (owner: object, ahead: number): readonly EntityPosition[] => {
+    const walked = walkedPaths.get(owner);
+    if (walked === undefined || walked.waypoint >= walked.nodes.length) return [];
+    return walked.nodes.slice(0, Math.min(walked.waypoint + ahead, walked.nodes.length));
+};
 
 /** A home position and the radius around it, Java's `Mob.getHomePosition` and `getHomeRadius`. */
 export interface HomeRestriction {
@@ -201,6 +223,8 @@ export class Navigator {
             return false;
         }
 
+        if (this.context.owner !== undefined)
+            walkedPaths.set(this.context.owner, { nodes: this.path.nodes, waypoint: 0 });
         this.plannedTarget = target;
         this.plannedGoalRadius = goalRadiusBlocks;
         this.plannedProfile = profile;
@@ -272,6 +296,8 @@ export class Navigator {
         }
         if (distanceBetween(here, entityPositionAtNode(current, this.plannedProfile?.width)) <= WAYPOINT_RADIUS) {
             this.waypoint += 1;
+            const walked = this.context.owner === undefined ? undefined : walkedPaths.get(this.context.owner);
+            if (walked?.nodes === path.nodes) walked.waypoint = this.waypoint;
             if (this.waypoint >= path.nodes.length) {
                 this.pathNeedsRecompute = true;
                 return false;

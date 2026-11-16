@@ -11,7 +11,7 @@ import { evaluateFilter } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 
 import type { HomeRestriction } from './navigator';
-import { Navigator } from './navigator';
+import { Navigator, walkedPathOf } from './navigator';
 import type { NavigationProfile } from './navigation/profile';
 import { navigationProfile } from './navigation/profile';
 import type { NavigationView } from './navigation/view';
@@ -95,8 +95,14 @@ export class GoalSupport {
             actuator: entity.actuator,
             navigation: () => this.navigation(),
             profile: () => this.profile(),
-            homeRestriction: () => this.homeRestriction()
+            homeRestriction: () => this.homeRestriction(),
+            owner: entity
         });
+    }
+
+    /** The path the entity last planned, whichever goal planned it; see {@link walkedPathOf}. */
+    public pathAhead(ahead: number): readonly EntityPosition[] {
+        return walkedPathOf(this.entity, ahead);
     }
 
     /**

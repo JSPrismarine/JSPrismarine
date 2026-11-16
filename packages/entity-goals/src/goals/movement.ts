@@ -2144,6 +2144,106 @@ export const openDoor = goal<{ readonly closeDoorAfter: boolean }>({
     }
 });
 
+/** Java's difficulties in order, which `min_difficulty` and the world's difficulty compare by. */
+const DIFFICULTIES = ['peaceful', 'easy', 'normal', 'hard'] as const;
+
+/** Where a difficulty name stands in {@link DIFFICULTIES}, or -1 for a name that is not one. */
+const difficultyRank = (name: string | undefined): number => DIFFICULTIES.findIndex((known) => known === name);
+
+/**
+ * `BreakDoorGoal.getDoorBreakTime`: `Math.max(240, doorBreakTime)`. Every vanilla caller passes
+ * less than 240 (the zombie none, the vindicator 6), so every door breaker takes 240 ticks.
+ * Bedrock's `break_time` (12 seconds, and 30 for the vindicator) is not read.
+ */
+const DOOR_BREAK_TICKS = 240;
+
+/** `DoorInteractGoal.canUse`: a path node within this squared distance of the mob may hold its door. */
+const DOOR_NODE_REACH_SQUARED = 2.25;
+
+/** `BreakDoorGoal.canContinueToUse`: the mob keeps at a door while within this distance of its center. */
+const DOOR_KEEP_REACH = 2;
+
+/**
+ * `minecraft:annotation.break_door`, run as Java's `BreakDoorGoal`, which `Zombie.setCanBreakDoors`
+ * adds for a zombie its spawn let break doors and `Vindicator` adds for a raid.
+ *
+ * A mob walking a path that a closed wooden door stops (`horizontalCollision`) beats on it for 240
+ * ticks and then breaks it, when `mobGriefing` is on and the world is at least `min_difficulty`
+ * (Bedrock's default is hard, Java's `Zombie.DOOR_BREAKING_PREDICATE`; the vindicator's normal is
+ * Java's `Vindicator.DOOR_BREAKING_PREDICATE`). It holds no control flags, as Java's holds none,
+ * so the mob keeps chasing what it chases while it breaks the door.
+ */
+export const breakDoor = goal<{ readonly minDifficulty: string }>({
+    name: 'minecraft:annotation.break_door',
+    controlFlags: [],
+    schema: bodySchema((body) => ({ minDifficulty: stringAt(body, 'min_difficulty') ?? 'hard' })),
+    create: (params, support) => {
+        let door: EntityPosition | undefined;
+        let breakTime = 0;
+        let lastStage = -1;
+
+        const validDifficulty = (): boolean =>
+            difficultyRank(support.worldView()?.difficulty?.()) >= Math.max(1, difficultyRank(params.minDifficulty));
+        /** `DoorBlock.isWoodenDoor`: a door a hand opens, which leaves out the iron door. */
+        const isWoodenDoor = (position: EntityPosition): boolean => {
+            const state = support.navigation()?.doorAt?.(position);
+            return state !== undefined && !state.iron;
+        };
+        /** `DoorInteractGoal.isOpen`: false once the door is gone. */
+        const isOpen = (): boolean => door !== undefined && support.navigation()?.doorAt?.(door)?.open === true;
+        /** `DoorInteractGoal.canUse`: the wooden door on the next path nodes, or above the mob's feet. */
+        const findDoor = (): EntityPosition | undefined => {
+            if (support.world.horizontalCollision?.() !== true) return undefined;
+            const nodes = support.pathAhead(2);
+            if (nodes.length === 0) return undefined;
+            const here = support.position();
+            for (const node of nodes) {
+                const candidate = { x: node.x, y: node.y + 1, z: node.z };
+                // Java measures to the door block's corner at the mob's own height.
+                const dx = candidate.x - here.x;
+                const dz = candidate.z - here.z;
+                if (dx * dx + dz * dz > DOOR_NODE_REACH_SQUARED) continue;
+                if (isWoodenDoor(candidate)) return candidate;
+            }
+            const above = { x: Math.floor(here.x), y: Math.floor(here.y) + 1, z: Math.floor(here.z) };
+            return isWoodenDoor(above) ? above : undefined;
+        };
+
+        return {
+            canStart: () => {
+                door = findDoor();
+                if (door === undefined) return false;
+                if (support.world.gameRule?.('mobGriefing') === false) return false;
+                return validDifficulty() && !isOpen();
+            },
+            canContinue: () => {
+                if (door === undefined || breakTime > DOOR_BREAK_TICKS || isOpen() || !validDifficulty()) return false;
+                const here = support.position();
+                const center = { x: door.x + 0.5, y: door.y + 0.5, z: door.z + 0.5 };
+                return Math.hypot(center.x - here.x, center.y - here.y, center.z - here.z) < DOOR_KEEP_REACH;
+            },
+            start: () => {
+                breakTime = 0;
+            },
+            tick: () => {
+                if (door === undefined) return;
+                if (support.randomInt(20) === 0) support.world.knockOnDoor?.(door);
+                breakTime += 1;
+                const stage = Math.floor((breakTime / DOOR_BREAK_TICKS) * 10);
+                if (stage !== lastStage) {
+                    support.world.doorBreakProgress?.(door, stage);
+                    lastStage = stage;
+                }
+                if (breakTime === DOOR_BREAK_TICKS && validDifficulty()) support.world.breakDoor?.(door);
+            },
+            stop: () => {
+                if (door !== undefined) support.world.doorBreakProgress?.(door, -1);
+                door = undefined;
+            }
+        };
+    }
+});
+
 /**
  * `minecraft:behavior.restrict_open_door`, which the villager carries. It
  * keeps the entity from opening doors at night, which is what sends villagers

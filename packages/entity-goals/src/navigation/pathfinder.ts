@@ -303,11 +303,12 @@ class CellReader {
             }
         }
 
-        // Headroom: every block the entity occupies has to be free.
+        // Headroom: every block the entity occupies has to be free. A door the rule above let
+        // through counts as free, the closed one Java's `WALKABLE_DOOR` included.
         for (let offset = 0; offset < profile.height; offset += 1) {
             const block = this.cell(x, y + offset, z);
             if (view.isPassable(block)) continue;
-            if (offset > 0 && view.doorAt?.(block) !== undefined) continue;
+            if (view.doorAt?.(block) !== undefined) continue;
             return undefined;
         }
 
