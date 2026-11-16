@@ -106,3 +106,34 @@ describe('javaGoalOverlay', () => {
         expect(overlay(file)).toBe(file);
     });
 });
+
+describe('familyFilter with components', () => {
+    const families = new Map<string, readonly string[]>([
+        ['minecraft:wither_skeleton', ['wither', 'skeleton', 'monster', 'mob']],
+        ['minecraft:skeleton', ['skeleton', 'monster', 'mob']],
+        ['minecraft:wither', ['wither', 'skeleton', 'monster', 'mob']],
+        ['minecraft:ender_dragon', ['dragon', 'mob']]
+    ]);
+    const components = new Map<string, readonly string[]>([
+        ['minecraft:wither_skeleton', ['minecraft:health']],
+        ['minecraft:skeleton', ['minecraft:health']],
+        ['minecraft:wither', ['minecraft:health', 'minecraft:boss', 'minecraft:can_fly']],
+        ['minecraft:ender_dragon', ['minecraft:boss', 'minecraft:can_fly', 'minecraft:health']]
+    ]);
+
+    it('excludes a type that carries every family a wanted type does by a component of its own', () => {
+        const filter = familyFilter(families, components);
+        expect(filter(new Set(['minecraft:wither_skeleton', 'minecraft:skeleton']))).toEqual({
+            all_of: [
+                family('skeleton'),
+                { none_of: [{ test: 'has_component', subject: 'other', operator: '==', value: 'minecraft:boss' }] }
+            ]
+        });
+    });
+
+    it('accepts such a type when it reads no components', () => {
+        expect(familyFilter(families)(new Set(['minecraft:wither_skeleton', 'minecraft:skeleton']))).toEqual(
+            family('skeleton')
+        );
+    });
+});

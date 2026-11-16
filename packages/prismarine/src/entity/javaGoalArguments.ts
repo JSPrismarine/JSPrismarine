@@ -109,11 +109,28 @@ const declaredFamilies = (data: unknown): readonly string[] => {
     ];
 };
 
+/** The prefix every goal component carries. Goals come off files, so no filter reads them. */
+const GOAL_PREFIX = 'minecraft:behavior.';
+
+/** The components each entity file declares in its base components, other than its goals. */
+const declaredComponents = (data: unknown): readonly string[] => {
+    const entity = isRecord(data) ? data['minecraft:entity'] : undefined;
+    const components = isRecord(entity) ? entity['components'] : undefined;
+    return isRecord(components) ? Object.keys(components).filter((name) => !name.startsWith(GOAL_PREFIX)) : [];
+};
+
 const familyTest = (family: string): GoalBody => ({
     test: 'is_family',
     subject: 'other',
     operator: '==',
     value: family
+});
+
+const componentTest = (component: string): GoalBody => ({
+    test: 'has_component',
+    subject: 'other',
+    operator: '==',
+    value: component
 });
 
 /**
@@ -125,9 +142,16 @@ const familyTest = (family: string): GoalBody => ({
  * covers is matched by its family the fewest unwanted types share, and each unwanted type that
  * then matches is excluded by a family of its own that no wanted type carries. A husk carries
  * `zombie`, so a filter for the zombie alone reads `is_family zombie` and not `is_family husk`.
+ * An unwanted type with no family of its own is excluded by a component of its own instead: the
+ * wither carries every family the wither skeleton does, so a filter for Java's skeletons leaves
+ * it out as the one with `minecraft:boss`.
+ *
+ * @param families - Each type's families.
+ * @param components - Each type's base components, which exclude a type no family can.
  */
 export const familyFilter = (
-    families: ReadonlyMap<string, readonly string[]>
+    families: ReadonlyMap<string, readonly string[]>,
+    components: ReadonlyMap<string, readonly string[]> = new Map()
 ): ((wanted: ReadonlySet<string>) => GoalBody | undefined) => {
     const carriers = new Map<string, Set<string>>();
     for (const [entity, names] of families) {
@@ -138,6 +162,15 @@ export const familyFilter = (
         }
     }
     const carriersOf = (family: string): readonly string[] => [...(carriers.get(family) ?? [])];
+    const declarers = new Map<string, Set<string>>();
+    for (const [entity, names] of components) {
+        for (const name of names) {
+            let set = declarers.get(name);
+            if (set === undefined) declarers.set(name, (set = new Set()));
+            set.add(entity);
+        }
+    }
+    const declarersOf = (component: string): readonly string[] => [...(declarers.get(component) ?? [])];
     const outside = (family: string, wanted: ReadonlySet<string>): number =>
         carriersOf(family).filter((entity) => !wanted.has(entity)).length;
     const covers = (family: string, left: ReadonlySet<string>): number =>
@@ -174,6 +207,7 @@ export const familyFilter = (
         if (chosen.size === 0) return undefined;
 
         const excluded = new Set<string>();
+        const excludedComponents = new Set<string>();
         const strays = new Set([...chosen].flatMap(carriersOf).filter((entity) => !wanted.has(entity)));
         for (const stray of strays) {
             const own = [...(families.get(stray) ?? [])]
@@ -182,12 +216,27 @@ export const familyFilter = (
                     (one, other) => carriersOf(other).length - carriersOf(one).length || one.localeCompare(other, 'en')
                 );
             if (own.some((family) => excluded.has(family))) continue;
-            if (own[0] !== undefined) excluded.add(own[0]);
+            if (own[0] !== undefined) {
+                excluded.add(own[0]);
+                continue;
+            }
+            // The rarest component of its own, so the test reads as the type it leaves out.
+            const [component] = [...(components.get(stray) ?? [])]
+                .filter((name) => declarersOf(name).every((entity) => !wanted.has(entity)))
+                .sort(
+                    (one, other) =>
+                        declarersOf(one).length - declarersOf(other).length || one.localeCompare(other, 'en')
+                );
+            if (component !== undefined) excludedComponents.add(component);
         }
 
         const accept = [...chosen].sort().map(familyTest);
         const anyOf = accept.length === 1 && accept[0] !== undefined ? accept[0] : { any_of: accept };
-        return excluded.size === 0 ? anyOf : { all_of: [anyOf, { none_of: [...excluded].sort().map(familyTest) }] };
+        const rejected = [
+            ...[...excluded].sort().map(familyTest),
+            ...[...excludedComponents].sort().map(componentTest)
+        ];
+        return rejected.length === 0 ? anyOf : { all_of: [anyOf, { none_of: rejected }] };
     };
 };
 
@@ -202,11 +251,14 @@ export const familyFilter = (
  */
 export const javaGoalOverlay = (files: Iterable<unknown>, sources: JavaGoalSources): ((data: unknown) => unknown) => {
     const families = new Map<string, readonly string[]>();
+    const components = new Map<string, readonly string[]>();
     for (const data of files) {
         const identifier = entityFileIdentifier(data);
-        if (identifier !== undefined) families.set(identifier, declaredFamilies(data));
+        if (identifier === undefined) continue;
+        families.set(identifier, declaredFamilies(data));
+        components.set(identifier, declaredComponents(data));
     }
-    const filterFor = familyFilter(families);
+    const filterFor = familyFilter(families, components);
 
     const javaByBedrock = new Map<string, string>();
     for (const javaId of Object.keys(sources.goals)) {
