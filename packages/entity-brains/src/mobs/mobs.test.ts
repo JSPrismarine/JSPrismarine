@@ -42,7 +42,15 @@ import {
     VILLAGER_SCHEDULE,
     villagerMakeLove
 } from './villager.js';
-import { AngerManagement, makeWardenBrain, WARDEN, angerLevelByAnger, setDisturbanceLocation } from './warden.js';
+import {
+    AngerManagement,
+    makeWardenBrain,
+    WARDEN,
+    angerLevelByAnger,
+    setDisturbanceLocation,
+    wardenAnger,
+    wardenHearsVibration
+} from './warden.js';
 import { ZOGLIN } from './zoglin.js';
 import {
     ALLAY_BRAIN,
@@ -642,6 +650,33 @@ describe('the hoglin', () => {
     });
 });
 
+describe('a hurt hoglin', () => {
+    it('turns on its attacker for 200 ticks and sets the adult hoglins it sees on it too', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(HOGLIN_BRAIN, { world });
+        const { body: kin, brain: kinBrain } = spawn(HOGLIN_BRAIN, { world, position: { x: 2, y: 64, z: 0 } });
+        const zombie = world.place('minecraft:zombie', { x: -5, y: 64, z: 0 });
+        brain.setMemory(MemoryModuleTypes.NEAREST_VISIBLE_ADULT_HOGLINS, [kin]);
+        HOGLIN_BRAIN.wasHurtBy?.(body.context, zombie, true);
+        expect(brain.getMemory(MemoryModuleTypes.ATTACK_TARGET)).toBe(zombie);
+        expect(brain.getTimeUntilExpiry(MemoryModuleTypes.ATTACK_TARGET)).toBe(HOGLIN.attackDuration);
+        expect(kinBrain.getMemory(MemoryModuleTypes.ATTACK_TARGET)).toBe(zombie);
+    });
+
+    it('lets another hoglin hit it, and a baby runs instead of fighting', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(HOGLIN_BRAIN, { world });
+        HOGLIN_BRAIN.wasHurtBy?.(body.context, world.place('minecraft:hoglin', { x: 1, y: 64, z: 0 }), true);
+        expect(brain.hasMemoryValue(MemoryModuleTypes.ATTACK_TARGET)).toBe(false);
+
+        const { body: baby, brain: babyBrain } = spawn(HOGLIN_BRAIN, { world, entity: { baby: true } });
+        const zombie = world.place('minecraft:zombie', { x: -5, y: 64, z: 0 });
+        HOGLIN_BRAIN.wasHurtBy?.(baby.context, zombie, true);
+        expect(babyBrain.hasMemoryValue(MemoryModuleTypes.ATTACK_TARGET)).toBe(false);
+        expect(babyBrain.getMemory(MemoryModuleTypes.AVOID_TARGET)).toBe(zombie);
+    });
+});
+
 describe('the zoglin', () => {
     it('attacks anything that is neither a zoglin nor a creeper', () => {
         const world = new TestWorld();
@@ -653,6 +688,23 @@ describe('the zoglin', () => {
         expect(brain.getMemory(MemoryModuleTypes.ATTACK_TARGET)).toBe(villager);
         expect(ZOGLIN.attackInterval).toBe(40);
         expect(ZOGLIN.babyAttackInterval).toBe(15);
+    });
+});
+
+describe('a hurt zoglin', () => {
+    it('turns on its attacker for 200 ticks unless that one is much further than its target', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(ZOGLIN_BRAIN, { world });
+        const near = world.place('minecraft:villager', { x: 2, y: 64, z: 0 });
+        brain.setMemory(MemoryModuleTypes.ATTACK_TARGET, near);
+        // 2 blocks away against 10: more than 4 blocks further, squared, so it keeps its target.
+        ZOGLIN_BRAIN.wasHurtBy?.(body.context, world.place('minecraft:zombie', { x: 10, y: 64, z: 0 }), true);
+        expect(brain.getMemory(MemoryModuleTypes.ATTACK_TARGET)).toBe(near);
+
+        const attacker = world.place('minecraft:zombie', { x: 3, y: 64, z: 0 });
+        ZOGLIN_BRAIN.wasHurtBy?.(body.context, attacker, true);
+        expect(brain.getMemory(MemoryModuleTypes.ATTACK_TARGET)).toBe(attacker);
+        expect(brain.getTimeUntilExpiry(MemoryModuleTypes.ATTACK_TARGET)).toBe(ZOGLIN.attackDuration);
     });
 });
 
@@ -848,6 +900,45 @@ describe('the piglin', () => {
     });
 });
 
+describe('a hurt piglin', () => {
+    it('holds a 600-tick grudge against its attacker and passes it to the adult piglins nearby', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(PIGLIN_BRAIN, { world });
+        const { body: kin, brain: kinBrain } = spawn(PIGLIN_BRUTE_BRAIN, { world, position: { x: 2, y: 64, z: 0 } });
+        const zombie = world.place('minecraft:zombie', { x: -5, y: 64, z: 0 });
+        brain.setMemory(MemoryModuleTypes.NEARBY_ADULT_PIGLINS, [kin]);
+        PIGLIN_BRAIN.wasHurtBy?.(body.context, zombie, true);
+        expect(brain.getMemory(MemoryModuleTypes.ANGRY_AT)).toBe(zombie.id);
+        expect(brain.getTimeUntilExpiry(MemoryModuleTypes.ANGRY_AT)).toBe(PIGLIN.angerDuration);
+        expect(kinBrain.getMemory(MemoryModuleTypes.ANGRY_AT)).toBe(zombie.id);
+
+        run(body, PIGLIN_BRAIN, 2);
+        expect(brain.getMemory(MemoryModuleTypes.ATTACK_TARGET)).toBe(zombie);
+    });
+
+    it('keeps the grudge while its target is alive and out of sight, and drops it once the target dies', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(PIGLIN_BRAIN, { world });
+        const zombie = world.place('minecraft:zombie', { x: -40, y: 64, z: 0 });
+        PIGLIN_BRAIN.wasHurtBy?.(body.context, zombie, false);
+        run(body, PIGLIN_BRAIN, 3);
+        expect(brain.getMemory(MemoryModuleTypes.ANGRY_AT)).toBe(zombie.id);
+        zombie.alive = false;
+        run(body, PIGLIN_BRAIN, 1);
+        expect(brain.hasMemoryValue(MemoryModuleTypes.ANGRY_AT)).toBe(false);
+    });
+
+    it('takes no grudge against another piglin, and a brute none against a piglin', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(PIGLIN_BRAIN, { world });
+        const { body: brute, brain: bruteBrain } = spawn(PIGLIN_BRUTE_BRAIN, { world });
+        PIGLIN_BRAIN.wasHurtBy?.(body.context, world.place('minecraft:piglin', { x: 1, y: 64, z: 0 }), true);
+        PIGLIN_BRUTE_BRAIN.wasHurtBy?.(brute.context, world.place('minecraft:piglin', { x: 1, y: 64, z: 0 }), true);
+        expect(brain.hasMemoryValue(MemoryModuleTypes.ANGRY_AT)).toBe(false);
+        expect(bruteBrain.hasMemoryValue(MemoryModuleTypes.ANGRY_AT)).toBe(false);
+    });
+});
+
 describe('the piglin brute', () => {
     it('remembers where it spawned as HOME', () => {
         const { brain } = spawn(PIGLIN_BRUTE_BRAIN, { position: { x: 7, y: 70, z: -3 } });
@@ -983,6 +1074,40 @@ describe('the warden', () => {
 
         expect(world.sonicBooms).toEqual([{ source: body.id, target: target.id }]);
         expect(brain.getMemory(MemoryModuleTypes.SONIC_BOOM_SOUND_COOLDOWN)).toBe(UNIT);
+    });
+});
+
+describe('a hurt or disturbed warden', () => {
+    it("is at once angry at what hits it, ANGRY's 80 plus 20, and goes for a direct attacker", () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(WARDEN_BRAIN, { world });
+        const zombie = world.place('minecraft:zombie', { x: 9, y: 64, z: 0 });
+        WARDEN_BRAIN.wasHurtBy?.(body.context, zombie, true);
+        expect(wardenAnger(brain)).toBe(100);
+        expect(brain.getMemory(MemoryModuleTypes.ATTACK_TARGET)).toBe(zombie);
+        expect(brain.getTimeUntilExpiry(MemoryModuleTypes.SONIC_BOOM_COOLDOWN)).toBe(200);
+    });
+
+    it('only grows angry at a shooter beyond 5 blocks, and ages its anger every 20 ticks', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(WARDEN_BRAIN, { world });
+        const skeleton = world.place('minecraft:skeleton', { x: 9, y: 64, z: 0 });
+        WARDEN_BRAIN.wasHurtBy?.(body.context, skeleton, false);
+        expect(wardenAnger(brain)).toBe(100);
+        expect(brain.hasMemoryValue(MemoryModuleTypes.ATTACK_TARGET)).toBe(false);
+        for (let tick = 0; tick < 20; tick++) WARDEN_BRAIN.updateActivity(body.context);
+        expect(wardenAnger(brain)).toBe(99);
+    });
+
+    it("grows angry by DEFAULT_ANGER, 35, at what it hears, then waits out VIBRATION_COOLDOWN's 40 ticks", () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(WARDEN_BRAIN, { world });
+        const cow = world.place('minecraft:cow', { x: 6, y: 64, z: 0 });
+        expect(wardenHearsVibration(body.context, { x: 6, y: 64, z: 0 }, cow, undefined)).toBe(true);
+        expect(wardenAnger(brain)).toBe(WARDEN.defaultAnger);
+        expect(brain.getMemory(MemoryModuleTypes.DISTURBANCE_LOCATION)).toEqual({ x: 6, y: 64, z: 0 });
+        expect(wardenHearsVibration(body.context, { x: 6, y: 64, z: 0 }, cow, undefined)).toBe(false);
+        expect(wardenAnger(brain)).toBe(WARDEN.defaultAnger);
     });
 });
 

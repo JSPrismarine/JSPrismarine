@@ -103,6 +103,7 @@ export const CREAKING_BRAIN: BrainMobDefinition = {
     memories: [],
     sensorTypes: ['nearest_living_entities', 'nearest_players'],
     alsoRunsGoals: false,
+    targetFromBrain: true,
     makeBrain: () =>
         new Brain({
             sensors: [new NearestLivingEntitySensor(), new PlayerSensor()],

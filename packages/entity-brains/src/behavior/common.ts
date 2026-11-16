@@ -540,6 +540,63 @@ export function startAttacking(
         });
 }
 
+/**
+ * Java's `BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget`: whether `other` stands
+ * more than `buffer` blocks further, compared squared, than the attack target the mob already has.
+ */
+export function isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(
+    body: BrainMob,
+    other: BrainEntity,
+    buffer: number
+): boolean {
+    const current = body.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET);
+    if (current === undefined) return false;
+    return (
+        distanceSquared(body.position, other.position) >
+        distanceSquared(body.position, current.position) + buffer * buffer
+    );
+}
+
+/** Java's `BehaviorUtils.getNearestTarget`: `other`, or `current` when that is nearer to the mob. */
+export function nearestTarget(body: BrainEntity, current: BrainEntity | undefined, other: BrainEntity): BrainEntity {
+    if (current === undefined) return other;
+    return distanceSquared(body.position, current.position) < distanceSquared(body.position, other.position)
+        ? current
+        : other;
+}
+
+/**
+ * Java's `BehaviorUtils.getLivingEntityFromUUIDMemory`: the entity a remembered id names, looked
+ * up in the level. A world that cannot look ids up answers from the living entities the mob last
+ * sensed.
+ */
+export function livingEntityFromIdMemory(
+    context: BrainContext,
+    memory: MemoryModuleType<string>
+): BrainEntity | undefined {
+    const id = context.body.brain.getMemory(memory);
+    if (id === undefined) return undefined;
+    if (context.world.entityById !== undefined) return context.world.entityById(id);
+    return (context.body.brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES) ?? []).find(
+        (entity) => entity.id === id
+    );
+}
+
+/**
+ * Java's `StopBeingAngryIfTargetDead`, which the piglin and the piglin brute share: the grudge
+ * ends once the entity it names is dead. One the level no longer holds is kept until the grudge
+ * expires, and the `forgiveDeadPlayers` game rule is taken at its default, true.
+ */
+export function stopBeingAngryIfTargetDead(): BehaviorControl {
+    return behavior('StopBeingAngryIfTargetDead')
+        .present(MemoryModuleTypes.ANGRY_AT)
+        .build((context, angryAt) => {
+            const target = livingEntityFromIdMemory(context, MemoryModuleTypes.ANGRY_AT);
+            if (target !== undefined && !target.alive) angryAt.erase();
+            return true;
+        });
+}
+
 /** Java's `StopAttackingIfTargetInvalid.TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE`. */
 export const TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE = 200;
 

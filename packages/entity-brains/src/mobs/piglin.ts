@@ -21,10 +21,13 @@ import {
     has,
     interactWith,
     interactWithDoor,
+    isOtherTargetMuchFurtherAwayThanCurrentAttackTarget,
     isWithinAttackRange,
+    livingEntityFromIdMemory,
     lookAtTargetSink,
     meleeAttack,
     moveToTargetSink,
+    nearestTarget,
     ofType,
     rangeOfSeconds,
     randomStroll,
@@ -34,6 +37,7 @@ import {
     setWalkTargetAwayFrom,
     setWalkTargetFromAttackTargetIfTargetOutOfReach,
     setWalkTargetFromLookTarget,
+    stopBeingAngryIfTargetDead,
     stopAttackingIfTargetInvalid
 } from '../behavior/common.js';
 import type { BehaviorControl } from '../behavior/control.js';
@@ -194,6 +198,138 @@ export function setPiglinAngerTarget(context: BrainContext, target: BrainEntity)
     context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.ANGRY_AT, target.id, PIGLIN.angerDuration);
 }
 
+/** The entity types Java's `AbstractPiglin` covers: the piglin and the piglin brute. */
+const ABSTRACT_PIGLINS: ReadonlySet<string> = new Set(['minecraft:piglin', 'minecraft:piglin_brute']);
+
+/** Java's `AbstractPiglin.canHunt`: a piglin hunts hoglins, and `PiglinBrute.canHunt` is false. */
+const canHunt = (entity: BrainEntity): boolean => entity.type === 'minecraft:piglin';
+
+/** Java's `PiglinAi.dontKillAnyMoreHoglinsForAWhile`: the 30 to 120 second hunt cooldown. */
+function dontKillAnyMoreHoglinsForAWhile(context: BrainContext): void {
+    context.body.brain.setMemoryWithExpiry(
+        MemoryModuleTypes.HUNTED_RECENTLY,
+        true,
+        sample(PIGLIN.timeBetweenHunts, (bound) => context.world.randomInt(bound))
+    );
+}
+
+/**
+ * Java's `PiglinAi.setAngerTarget`: the 600-tick grudge, and a piglin that turns on a hoglin waits
+ * out its hunt cooldown.
+ */
+function setAngerTarget(context: BrainContext, target: BrainEntity): void {
+    if (!context.world.isAttackable(context.body, target)) return;
+    setPiglinAngerTarget(context, target);
+    if (target.type === 'minecraft:hoglin' && canHunt(context.body)) dontKillAnyMoreHoglinsForAWhile(context);
+}
+
+/**
+ * Java's `PiglinAi.broadcastAngerTarget`: every adult piglin nearby turns on the target unless the
+ * grudge it already holds is nearer to it, and only a piglin that hunts turns on a hoglin.
+ */
+function broadcastAngerTarget(context: BrainContext, target: BrainEntity): void {
+    for (const piglin of context.body.brain.getMemory(MemoryModuleTypes.NEARBY_ADULT_PIGLINS) ?? []) {
+        if (target.type === 'minecraft:hoglin' && !canHunt(piglin)) continue;
+        const body = context.world.brainMobOf?.(piglin);
+        if (body === undefined || body.id === context.body.id) continue;
+        const kin = { world: context.world, body };
+        // `setAngerTargetIfCloserThanCurrent`.
+        const current = livingEntityFromIdMemory(kin, MemoryModuleTypes.ANGRY_AT);
+        const nearest = nearestTarget(body, current, target);
+        if (current !== undefined && current === nearest) continue;
+        setAngerTarget(kin, nearest);
+    }
+}
+
+/**
+ * Java's `PiglinAi.setAvoidTargetAndDontHuntForAWhile`: drop the grudge and the fight, and run
+ * from the target.
+ */
+function setAvoidTargetAndDontHuntForAWhile(context: BrainContext, target: BrainEntity): void {
+    const { brain } = context.body;
+    brain.eraseMemory(MemoryModuleTypes.ANGRY_AT);
+    brain.eraseMemory(MemoryModuleTypes.ATTACK_TARGET);
+    brain.eraseMemory(MemoryModuleTypes.WALK_TARGET);
+    brain.setMemoryWithExpiry(
+        MemoryModuleTypes.AVOID_TARGET,
+        target,
+        sample(PIGLIN.retreatDuration, (bound) => context.world.randomInt(bound))
+    );
+    dontKillAnyMoreHoglinsForAWhile(context);
+}
+
+/**
+ * Java's `PiglinAi.broadcastRetreat` and `retreatFromNearestTarget`: each piglin in sight runs from
+ * the nearest of the target, the mob it already avoids and the one it already attacks.
+ */
+function broadcastRetreat(context: BrainContext, target: BrainEntity): void {
+    for (const piglin of context.body.brain.getMemory(MemoryModuleTypes.NEAREST_VISIBLE_ADULT_PIGLINS) ?? []) {
+        if (piglin.type !== 'minecraft:piglin') continue;
+        const body = context.world.brainMobOf?.(piglin);
+        if (body === undefined) continue;
+        const avoided = nearestTarget(body, body.brain.getMemory(MemoryModuleTypes.AVOID_TARGET), target);
+        const nearest = nearestTarget(body, body.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET), avoided);
+        setAvoidTargetAndDontHuntForAWhile({ world: context.world, body }, nearest);
+    }
+}
+
+/** Java's `PiglinAi.hoglinsOutnumberPiglins`: more adult hoglins in sight than piglins, itself included. */
+function hoglinsOutnumberPiglins(body: BrainMob): boolean {
+    const piglins = (body.brain.getMemory(MemoryModuleTypes.VISIBLE_ADULT_PIGLIN_COUNT) ?? 0) + 1;
+    const hoglins = body.brain.getMemory(MemoryModuleTypes.VISIBLE_ADULT_HOGLIN_COUNT) ?? 0;
+    return hoglins > piglins;
+}
+
+/**
+ * Java's `PiglinAi.maybeRetaliate`, which a piglin and a piglin brute share: unless it is fleeing,
+ * a hurt piglin takes a grudge against an attacker it may attack, and every adult piglin nearby
+ * takes it too. An attacker much further away than its current target is ignored. The
+ * `universalAnger` game rule's branch is not run, since no brain reads the game rules.
+ */
+export function maybeRetaliate(context: BrainContext, attacker: BrainEntity): void {
+    const { body, world } = context;
+    if (body.brain.isActive(Activities.AVOID)) return;
+    if (!world.isAttackable(body, attacker)) return;
+    if (isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(body, attacker, 4)) return;
+    setAngerTarget(context, attacker);
+    broadcastAngerTarget(context, attacker);
+}
+
+/**
+ * Java's `PiglinAi.wasHurtBy`: a piglin hurt by anything but a piglin stops celebrating and
+ * admiring, and a player's blow keeps it from admiring for 400 ticks. A baby runs and calls the
+ * adults on the attacker; an adult outnumbered by hoglins retreats from a hoglin with the piglins
+ * it sees; otherwise it retaliates.
+ */
+export function piglinWasHurtBy(context: BrainContext, attacker: BrainEntity): void {
+    if (attacker.type === 'minecraft:piglin') return;
+    const { body } = context;
+    const { brain } = body;
+    brain.eraseMemory(MemoryModuleTypes.CELEBRATE_LOCATION);
+    brain.eraseMemory(MemoryModuleTypes.DANCING);
+    brain.eraseMemory(MemoryModuleTypes.ADMIRING_ITEM);
+    if (attacker.type === 'minecraft:player')
+        brain.setMemoryWithExpiry(MemoryModuleTypes.ADMIRING_DISABLED, true, PIGLIN.hitByPlayerMemoryTimeout);
+    const avoided = brain.getMemory(MemoryModuleTypes.AVOID_TARGET);
+    if (avoided !== undefined && avoided.type !== attacker.type) brain.eraseMemory(MemoryModuleTypes.AVOID_TARGET);
+    if (body.baby) {
+        brain.setMemoryWithExpiry(MemoryModuleTypes.AVOID_TARGET, attacker, PIGLIN.babyFleeDurationAfterGettingHit);
+        if (context.world.isAttackable(body, attacker)) broadcastAngerTarget(context, attacker);
+        return;
+    }
+    if (attacker.type === 'minecraft:hoglin' && hoglinsOutnumberPiglins(body)) {
+        setAvoidTargetAndDontHuntForAWhile(context, attacker);
+        broadcastRetreat(context, attacker);
+        return;
+    }
+    maybeRetaliate(context, attacker);
+}
+
+/** Java's `PiglinBruteAi.wasHurtBy`: a brute retaliates against anything but another piglin. */
+export function piglinBruteWasHurtBy(context: BrainContext, attacker: BrainEntity): void {
+    if (!ABSTRACT_PIGLINS.has(attacker.type)) maybeRetaliate(context, attacker);
+}
+
 /** Java's `PiglinAi.isNearZombified`: a zombified piglin within six blocks pacifies a piglin. */
 export function isNearZombified(body: BrainMob): boolean {
     const zombified = body.brain.getMemory(MemoryModuleTypes.NEAREST_VISIBLE_ZOMBIFIED);
@@ -215,11 +351,8 @@ export function findPiglinAttackTarget(context: BrainContext): BrainEntity | und
     if (isNearZombified(context.body)) {
         return undefined;
     }
-    const angryAtId = brain.getMemory(MemoryModuleTypes.ANGRY_AT);
-    const angryAt = (brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES) ?? []).find(
-        (entity) => entity.id === angryAtId && context.world.isAttackable(context.body, entity)
-    );
-    if (angryAt !== undefined) {
+    const angryAt = livingEntityFromIdMemory(context, MemoryModuleTypes.ANGRY_AT);
+    if (angryAt !== undefined && context.world.isAttackable(context.body, angryAt)) {
         return angryAt;
     }
     if (brain.hasMemoryValue(MemoryModuleTypes.UNIVERSAL_ANGER)) {
@@ -375,23 +508,6 @@ function startCelebratingIfTargetDead(celebrationTime: number): BehaviorControl 
             );
             angryAt.erase();
             attackTarget.erase();
-            return true;
-        });
-}
-
-/** Java's `StopBeingAngryIfTargetDead`: drops the grudge once the target is gone. */
-function stopBeingAngryIfTargetDead(): BehaviorControl {
-    return behavior('StopBeingAngryIfTargetDead')
-        .present(MemoryModuleTypes.ANGRY_AT)
-        .build((context, angryAt) => {
-            const id = angryAt.get();
-            const alive = (context.body.brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES) ?? []).some(
-                (entity) => entity.id === id && entity.alive
-            );
-            if (alive) {
-                return false;
-            }
-            angryAt.erase();
             return true;
         });
 }
@@ -877,6 +993,8 @@ export const PIGLIN_BRAIN: BrainMobDefinition = {
     ],
     sensorTypes: ['nearest_living_entities', 'nearest_players', 'nearest_items', 'hurt_by', 'piglin_specific_sensor'],
     alsoRunsGoals: false,
+    targetFromBrain: true,
+    wasHurtBy: (context, attacker) => piglinWasHurtBy(context, attacker),
     makeBrain: (options) => makePiglinBrain(options?.onBarter),
     /** Java's `PiglinAi.initMemories`: the first hunt is one full interval away. */
     initMemories: (context) =>

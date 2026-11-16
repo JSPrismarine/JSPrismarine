@@ -9,10 +9,10 @@
 import { Activities } from '../activity.js';
 import type { ActivityData } from '../brain.js';
 import { activityData, Brain, prioritized } from '../brain.js';
-import { behavior } from '../behavior/builder.js';
 import {
     interactWith,
     interactWithDoor,
+    livingEntityFromIdMemory,
     lookAtTargetSink,
     meleeAttack,
     moveToTargetSink,
@@ -23,14 +23,15 @@ import {
     setWalkTargetFromAttackTargetIfTargetOutOfReach,
     startAttacking,
     stopAttackingIfTargetInvalid,
+    stopBeingAngryIfTargetDead,
     strollAroundPoi,
     strollToPoi
 } from '../behavior/common.js';
-import type { BehaviorControl } from '../behavior/control.js';
 import { DoNothing } from '../behavior/control.js';
 import { RunOne } from '../behavior/gate.js';
 import { MemoryModuleTypes } from '../memory.js';
 import type { BrainMobDefinition } from '../registry.js';
+import { piglinBruteWasHurtBy } from './piglin.js';
 import {
     HurtBySensor,
     NearestItemSensor,
@@ -64,11 +65,8 @@ export const PIGLIN_BRUTE = {
  */
 export function findPiglinBruteAttackTarget(context: BrainContext): BrainEntity | undefined {
     const brain = context.body.brain;
-    const angryAtId = brain.getMemory(MemoryModuleTypes.ANGRY_AT);
-    const angryAt = (brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES) ?? []).find(
-        (entity) => entity.id === angryAtId && context.world.isAttackable(context.body, entity)
-    );
-    if (angryAt !== undefined) {
+    const angryAt = livingEntityFromIdMemory(context, MemoryModuleTypes.ANGRY_AT);
+    if (angryAt !== undefined && context.world.isAttackable(context.body, angryAt)) {
         return angryAt;
     }
     return (
@@ -81,23 +79,6 @@ export function findPiglinBruteAttackTarget(context: BrainContext): BrainEntity 
 export function setPiglinBruteAngerTarget(context: BrainContext, target: BrainEntity): void {
     context.body.brain.eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE);
     context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.ANGRY_AT, target.id, PIGLIN_BRUTE.angerDuration);
-}
-
-/** Java's `StopBeingAngryIfTargetDead`, shared with the piglin. */
-function stopBeingAngryIfTargetDead(): BehaviorControl {
-    return behavior('StopBeingAngryIfTargetDead')
-        .present(MemoryModuleTypes.ANGRY_AT)
-        .build((context, angryAt) => {
-            const id = angryAt.get();
-            const alive = (context.body.brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES) ?? []).some(
-                (entity) => entity.id === id && entity.alive
-            );
-            if (alive) {
-                return false;
-            }
-            angryAt.erase();
-            return true;
-        });
 }
 
 /** Java's `PiglinBruteAi.createIdleLookBehaviors`, which adds the brute to the piglin's list. */
@@ -209,6 +190,8 @@ export const PIGLIN_BRUTE_BRAIN: BrainMobDefinition = {
         'piglin_brute_specific_sensor'
     ],
     alsoRunsGoals: false,
+    targetFromBrain: true,
+    wasHurtBy: (context, attacker) => piglinBruteWasHurtBy(context, attacker),
     makeBrain: () =>
         new Brain({
             memories: PIGLIN_BRUTE_BRAIN.memories,

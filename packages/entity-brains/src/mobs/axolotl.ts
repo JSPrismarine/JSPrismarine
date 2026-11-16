@@ -227,6 +227,7 @@ export const AXOLOTL_BRAIN: BrainMobDefinition = {
     memories: [],
     sensorTypes: ['nearest_living_entities', 'nearest_adult', 'hurt_by', 'axolotl_attackables', 'food_temptations'],
     alsoRunsGoals: false,
+    targetFromBrain: true,
     makeBrain: () =>
         new Brain({
             sensors: [

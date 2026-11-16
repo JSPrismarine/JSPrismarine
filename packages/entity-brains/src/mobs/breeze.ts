@@ -259,6 +259,7 @@ export const BREEZE_BRAIN: BrainMobDefinition = {
     memories: [],
     sensorTypes: ['nearest_living_entities', 'hurt_by', 'nearest_players', 'breeze_attack_entity_sensor'],
     alsoRunsGoals: false,
+    targetFromBrain: true,
     makeBrain: () =>
         new Brain({
             sensors: [

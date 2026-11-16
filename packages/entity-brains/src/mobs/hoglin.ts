@@ -10,11 +10,14 @@ import {
     becomePassiveIfMemoryPresent,
     eraseMemoryIf,
     isBreeding,
+    isOtherTargetMuchFurtherAwayThanCurrentAttackTarget,
     lookAtTargetSink,
     meleeAttack,
     moveToTargetSink,
+    nearestTarget,
     randomStroll,
     rangeOfSeconds,
+    sample,
     setEntityLookTargetSometimes,
     setWalkTargetAwayFrom,
     setWalkTargetFromAttackTargetIfTargetOutOfReach,
@@ -167,6 +170,59 @@ function retreatActivity(): ActivityData {
     );
 }
 
+/** Java's `HoglinAi.setAttackTarget`: a 200-tick attack target, which ends any courtship. */
+function setHoglinAttackTarget(body: BrainMob, target: BrainEntity): void {
+    body.brain.eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE);
+    body.brain.eraseMemory(MemoryModuleTypes.BREED_TARGET);
+    body.brain.setMemoryWithExpiry(MemoryModuleTypes.ATTACK_TARGET, target, HOGLIN.attackDuration);
+}
+
+/**
+ * Java's `HoglinAi.retreatFromNearestTarget`: a hurt baby runs from whichever of its attacker, the
+ * mob it already avoids and the one it already attacks is nearest.
+ */
+function retreatFromNearestTarget(context: BrainContext, attacker: BrainEntity): void {
+    const { body } = context;
+    const avoided = nearestTarget(body, body.brain.getMemory(MemoryModuleTypes.AVOID_TARGET), attacker);
+    const nearest = nearestTarget(body, body.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET), avoided);
+    body.brain.eraseMemory(MemoryModuleTypes.ATTACK_TARGET);
+    body.brain.eraseMemory(MemoryModuleTypes.WALK_TARGET);
+    body.brain.setMemoryWithExpiry(
+        MemoryModuleTypes.AVOID_TARGET,
+        nearest,
+        sample(HOGLIN.retreatDuration, (bound) => context.world.randomInt(bound))
+    );
+}
+
+/**
+ * Java's `HoglinAi.wasHurtBy` and `maybeRetaliate`: a hurt hoglin forgets its calm and its mate, a
+ * baby runs, and an adult turns on an attacker it can see that is not a hoglin, nor a piglin while
+ * it is retreating, and tells the adult hoglins it sees to do the same
+ * (`broadcastAttackTarget`), each keeping whichever target is nearer to it.
+ */
+export function hoglinWasHurtBy(context: BrainContext, attacker: BrainEntity): void {
+    const { body, world } = context;
+    body.brain.eraseMemory(MemoryModuleTypes.PACIFIED);
+    body.brain.eraseMemory(MemoryModuleTypes.BREED_TARGET);
+    if (body.baby) {
+        retreatFromNearestTarget(context, attacker);
+        return;
+    }
+    if (body.brain.isActive(Activities.AVOID) && attacker.type === 'minecraft:piglin') return;
+    if (attacker.type === 'minecraft:hoglin') return;
+    if (isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(body, attacker, 4)) return;
+    if (!world.isAttackable(body, attacker) || !world.canSee(body, attacker)) return;
+    setHoglinAttackTarget(body, attacker);
+    for (const hoglin of body.brain.getMemory(MemoryModuleTypes.NEAREST_VISIBLE_ADULT_HOGLINS) ?? []) {
+        const other = world.brainMobOf?.(hoglin);
+        if (other === undefined || other.id === body.id) continue;
+        setHoglinAttackTarget(
+            other,
+            nearestTarget(other, other.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET), attacker)
+        );
+    }
+}
+
 /** The hoglin's four activities: the core package, `idle`, `fight` and the `avoid` retreat. */
 export function hoglinActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), fightActivity(), retreatActivity()];
@@ -181,6 +237,8 @@ export const HOGLIN_BRAIN: BrainMobDefinition = {
     memories: [],
     sensorTypes: ['nearest_living_entities', 'nearest_players', 'nearest_adult', 'hoglin_specific_sensor'],
     alsoRunsGoals: false,
+    targetFromBrain: true,
+    wasHurtBy: (context, attacker) => hoglinWasHurtBy(context, attacker),
     makeBrain: () =>
         new Brain({
             sensors: [

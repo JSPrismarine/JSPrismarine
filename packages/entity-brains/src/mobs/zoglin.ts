@@ -11,6 +11,7 @@ import type { ActivityData } from '../brain.js';
 import { activityData, Brain, prioritized } from '../brain.js';
 import { gatedBy } from '../behavior/builder.js';
 import {
+    isOtherTargetMuchFurtherAwayThanCurrentAttackTarget,
     lookAtTargetSink,
     meleeAttack,
     moveToTargetSink,
@@ -99,12 +100,26 @@ export function zoglinActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), fightActivity()];
 }
 
+/**
+ * Java's `Zoglin.hurtServer`: a hurt zoglin turns on an attacker it may attack for 200 ticks,
+ * unless that attacker stands much further away than the target it already has.
+ */
+export function zoglinWasHurtBy(context: BrainContext, attacker: BrainEntity): void {
+    const { body } = context;
+    if (!context.world.isAttackable(body, attacker)) return;
+    if (isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(body, attacker, 4)) return;
+    body.brain.eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE);
+    body.brain.setMemoryWithExpiry(MemoryModuleTypes.ATTACK_TARGET, attacker, ZOGLIN.attackDuration);
+}
+
 /** The zoglin's registry entry. Two sensors and no starting memories: it attacks whatever it can see. */
 export const ZOGLIN_BRAIN: BrainMobDefinition = {
     id: 'minecraft:zoglin',
     memories: [],
     sensorTypes: ['nearest_living_entities', 'nearest_players'],
     alsoRunsGoals: false,
+    targetFromBrain: true,
+    wasHurtBy: (context, attacker) => zoglinWasHurtBy(context, attacker),
     makeBrain: () =>
         new Brain({
             sensors: [new NearestLivingEntitySensor(), new PlayerSensor()],

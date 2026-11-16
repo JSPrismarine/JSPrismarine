@@ -399,6 +399,17 @@ export interface BrainWorld {
     isVillageHero(player: BrainEntity): boolean;
     /** Whether two villagers are both willing and able to have a child now. */
     villagerCanBreed(body: BrainMob, partner: BrainEntity): boolean;
+    /**
+     * Another brain mob as its own brain sees it, for Java's broadcasts that write into a
+     * neighbor's brain, such as `PiglinAi.broadcastAngerTarget`. Undefined for an entity with no
+     * brain.
+     */
+    brainMobOf?(entity: BrainEntity): BrainMob | undefined;
+    /**
+     * Java's `ServerLevel.getEntity`: the living entity or player the level holds under an id,
+     * wherever it stands, or undefined for one it no longer holds.
+     */
+    entityById?(id: string): BrainEntity | undefined;
 }
 
 /** Everything one brain tick needs. Every behavior and sensor takes exactly this. */

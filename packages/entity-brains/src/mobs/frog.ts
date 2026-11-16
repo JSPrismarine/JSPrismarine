@@ -332,6 +332,7 @@ export const FROG_BRAIN: BrainMobDefinition = {
     memories: [],
     sensorTypes: ['nearest_living_entities', 'hurt_by', 'frog_attackables', 'frog_temptations', 'is_in_water'],
     alsoRunsGoals: false,
+    targetFromBrain: true,
     makeBrain: () =>
         new Brain({
             sensors: [

@@ -8,7 +8,7 @@
 import type { Brain } from './brain.js';
 import type { MemoryModuleType } from './memory.js';
 import type { SensorTypeName } from './sensing/sensors.js';
-import type { BrainContext } from './world.js';
+import type { BrainContext, BrainEntity } from './world.js';
 
 /** What a host knows about a body before its brain exists. */
 export interface BrainMobOptions {
@@ -61,6 +61,17 @@ export interface BrainMobDefinition {
      * activity, it only answers whether one is possible.
      */
     updateActivity(context: BrainContext): void;
+    /**
+     * Java's brain side of `<Mob>.hurtServer`: what a blow from a living attacker that landed does
+     * to the brain, such as `PiglinAi.wasHurtBy` or `Warden.increaseAngerAt`. `direct` is Java's
+     * `DamageSource.isDirect`: the attacker dealt the blow itself rather than through a projectile.
+     */
+    wasHurtBy?(context: BrainContext, attacker: BrainEntity, direct: boolean): void;
+    /**
+     * Whether Java's class answers `Mob.getTarget` from the brain's `ATTACK_TARGET`
+     * (`getTargetFromBrain`), so a host reports that memory as the mob's target.
+     */
+    readonly targetFromBrain?: boolean;
 }
 
 /** A mutable registry of brain mobs. */

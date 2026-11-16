@@ -29,8 +29,8 @@ import { RunOne } from '../behavior/gate.js';
 import { MemoryModuleTypes, UNIT } from '../memory.js';
 import type { BrainMobDefinition } from '../registry.js';
 import { PlayerSensor, WardenEntitySensor } from '../sensing/sensors.js';
-import type { BrainContext, BrainEntity } from '../world.js';
-import { blockContaining, blockPosTracker } from '../world.js';
+import type { BlockPos, BrainContext, BrainEntity, BrainMob } from '../world.js';
+import { blockContaining, blockPosTracker, distanceSquared } from '../world.js';
 
 /**
  * The named constants of `WardenAi`.
@@ -634,16 +634,142 @@ export const WARDEN_FOLLOW_RANGE = 24;
  * builds the manager itself and calls this, because the anger outlives any one brain.
  */
 export function makeWardenBrain(anger: AngerManagement, canTargetEntity: (entity: BrainEntity) => boolean): Brain {
-    return new Brain({
+    const state: WardenState = { anger, canTarget: canTargetEntity, ticks: 0 };
+    const brain = new Brain({
         memories: WARDEN_BRAIN.memories,
         sensors: [new PlayerSensor(), new WardenEntitySensor((_context, entity) => canTargetEntity(entity))],
-        activities: wardenActivities(angerFrom(anger, canTargetEntity), WARDEN_FOLLOW_RANGE)
+        activities: wardenActivities(
+            {
+                ...angerFrom(anger, canTargetEntity),
+                increaseAngerAt: (context, entity, amount) => increaseWardenAngerAt(context, state, entity, amount)
+            },
+            WARDEN_FOLLOW_RANGE
+        )
     });
+    WARDEN_STATES.set(brain, state);
+    return brain;
 }
 
-/** A warden's live combat target rule, including player game-mode immunity. */
+/** What a warden carries beside its brain: its anger, its targeting rule and its own tick count. */
+interface WardenState {
+    readonly anger: AngerManagement;
+    readonly canTarget: (entity: BrainEntity) => boolean;
+    ticks: number;
+}
+
+/** The state of each brain {@link makeWardenBrain} built, which the hooks from outside the brain reach. */
+const WARDEN_STATES = new WeakMap<Brain, WardenState>();
+
+/** Java's `Warden.isDiggingOrEmerging`: the poses no blow or vibration reaches. */
+const isDiggingOrEmerging = (body: BrainMob): boolean =>
+    body.brain.hasMemoryValue(MemoryModuleTypes.IS_EMERGING) || body.brain.isActive(Activities.DIG);
+
+/** Java's `AngerLevel.ANGRY.getMinimumAnger`. */
+const ANGRY_MINIMUM = ANGER_LEVELS[2].minimumAnger;
+
+/** Java's `SonicBoom.setCooldown` after `Warden.setAttackTarget`. */
+const SONIC_BOOM_COOLDOWN_ON_TARGET = 200;
+
+/** Java's `RECENT_PROJECTILE` expiry, set by each projectile a warden hears. */
+const RECENT_PROJECTILE_TICKS = 100;
+
+/**
+ * Java's `Warden.increaseAngerAt`: anger at an entity the warden may target, which also puts off
+ * its digging. A player who makes it angry while it is fighting something else that is not a
+ * player draws it off that fight.
+ */
+function increaseWardenAngerAt(context: BrainContext, state: WardenState, entity: BrainEntity, amount: number): void {
+    if (!state.canTarget(entity)) return;
+    setDigCooldown(context);
+    const { brain } = context.body;
+    const fightingNoPlayer = brain.getMemory(MemoryModuleTypes.ATTACK_TARGET)?.type !== 'minecraft:player';
+    const anger = state.anger.increaseAnger(entity, amount);
+    if (entity.type === 'minecraft:player' && fightingNoPlayer && angerLevelByAnger(anger) === 'angry')
+        brain.eraseMemory(MemoryModuleTypes.ATTACK_TARGET);
+}
+
+/** Java's `Warden.setAttackTarget`. */
+function setWardenAttackTarget(body: BrainMob, target: BrainEntity): void {
+    body.brain.eraseMemory(MemoryModuleTypes.ROAR_TARGET);
+    body.brain.setMemory(MemoryModuleTypes.ATTACK_TARGET, target);
+    body.brain.eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE);
+    body.brain.setMemoryWithExpiry(MemoryModuleTypes.SONIC_BOOM_COOLDOWN, UNIT, SONIC_BOOM_COOLDOWN_ON_TARGET);
+}
+
+/**
+ * Java's `Warden.hurtServer`: a blow makes the warden angry at its attacker at once, `ANGRY`'s
+ * minimum plus 20, and a warden with no target goes for an attacker that hit it directly or from
+ * within 5 blocks.
+ */
+export function wardenWasHurtBy(context: BrainContext, attacker: BrainEntity, direct: boolean): void {
+    const state = WARDEN_STATES.get(context.body.brain);
+    if (state === undefined || isDiggingOrEmerging(context.body)) return;
+    increaseWardenAngerAt(context, state, attacker, ANGRY_MINIMUM + WARDEN.onHurtAngerBoost);
+    const { body } = context;
+    if (
+        !body.brain.hasMemoryValue(MemoryModuleTypes.ATTACK_TARGET) &&
+        (direct || distanceSquared(body.position, attacker.position) < 5 * 5)
+    )
+        setWardenAttackTarget(body, attacker);
+}
+
+/**
+ * Java's `Warden$VibrationUser.canReceiveVibration` and `onReceiveVibration`: a warden that is not
+ * cooling down, digging or emerging takes in a vibration, grows angry at whoever made it, or more
+ * slowly at the shooter of a projectile within 30 blocks, and investigates the spot unless it is
+ * already angry at something else.
+ *
+ * @param at - Where the vibration came from.
+ * @param source - The entity that made it, if any.
+ * @param projectileOwner - The shooter, when the source is a projectile.
+ * @returns Whether the warden took the vibration in.
+ */
+export function wardenHearsVibration(
+    context: BrainContext,
+    at: BlockPos,
+    source: BrainEntity | undefined,
+    projectileOwner: BrainEntity | undefined
+): boolean {
+    const state = WARDEN_STATES.get(context.body.brain);
+    const { body } = context;
+    const { brain } = body;
+    if (state === undefined || !body.alive) return false;
+    if (brain.hasMemoryValue(MemoryModuleTypes.VIBRATION_COOLDOWN) || isDiggingOrEmerging(body)) return false;
+    brain.setMemoryWithExpiry(MemoryModuleTypes.VIBRATION_COOLDOWN, UNIT, WARDEN.vibrationCooldownTicks);
+    let position = at;
+    if (projectileOwner !== undefined) {
+        if (distanceSquared(body.position, projectileOwner.position) < WARDEN.projectileAngerDistance ** 2) {
+            if (brain.hasMemoryValue(MemoryModuleTypes.RECENT_PROJECTILE)) {
+                if (state.canTarget(projectileOwner)) position = blockContaining(projectileOwner.position);
+                increaseWardenAngerAt(context, state, projectileOwner, WARDEN.defaultAnger);
+            } else {
+                increaseWardenAngerAt(context, state, projectileOwner, WARDEN.projectileAnger);
+            }
+        }
+        brain.setMemoryWithExpiry(MemoryModuleTypes.RECENT_PROJECTILE, UNIT, RECENT_PROJECTILE_TICKS);
+    } else if (source !== undefined) {
+        increaseWardenAngerAt(context, state, source, WARDEN.defaultAnger);
+    }
+    if (state.anger.angerLevel !== 'angry') {
+        const active = state.anger.getActiveEntity();
+        if (projectileOwner !== undefined || active === undefined || active === source)
+            setDisturbanceLocation(context, position);
+    }
+    return true;
+}
+
+/** The anger a warden brain holds at its most angered suspect, Java's `Warden.getActiveAnger` with no target. */
+export function wardenAnger(brain: Brain): number | undefined {
+    return WARDEN_STATES.get(brain)?.anger.getActiveAnger();
+}
+
+/** Java's `Warden.canTargetEntity`, less the world border and the alliance: not a warden, an armor stand or a creative player. */
 const canTargetWardenSuspect = (entity: BrainEntity): boolean =>
-    entity.alive && !entity.spectator && entity.canBeTargeted?.() !== false;
+    entity.alive &&
+    !entity.spectator &&
+    entity.type !== 'minecraft:warden' &&
+    entity.type !== 'minecraft:armor_stand' &&
+    entity.canBeTargeted?.() !== false;
 
 /**
  * The warden's registry entry. `initMemories` holds `DIG_COOLDOWN` for 1200 ticks, so a warden that
@@ -659,6 +785,8 @@ export const WARDEN_BRAIN: BrainMobDefinition = {
     ],
     sensorTypes: ['nearest_players', 'warden_entity_sensor'],
     alsoRunsGoals: false,
+    targetFromBrain: true,
+    wasHurtBy: (context, attacker, direct) => wardenWasHurtBy(context, attacker, direct),
     makeBrain: () => makeWardenBrain(new AngerManagement(canTargetWardenSuspect), canTargetWardenSuspect),
     /**
      * Java's `Warden.finalizeSpawn`: a fresh warden holds `DIG_COOLDOWN` for 1200 ticks, which is
@@ -666,7 +794,13 @@ export const WARDEN_BRAIN: BrainMobDefinition = {
      */
     initMemories: (context) =>
         context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.DIG_COOLDOWN, UNIT, WARDEN.diggingCooldown),
-    updateActivity: (context) =>
+    updateActivity: (context) => {
+        // `Warden.customServerAiStep` ages the anger every 20 ticks of the warden's own count.
+        const state = WARDEN_STATES.get(context.body.brain);
+        if (state !== undefined) {
+            state.ticks += 1;
+            if (state.ticks % WARDEN.angerManagementTickDelay === 0) state.anger.tick();
+        }
         context.body.brain.setActiveActivityToFirstValid([
             Activities.EMERGE,
             Activities.DIG,
@@ -675,5 +809,6 @@ export const WARDEN_BRAIN: BrainMobDefinition = {
             Activities.INVESTIGATE,
             Activities.SNIFF,
             Activities.IDLE
-        ])
+        ]);
+    }
 };

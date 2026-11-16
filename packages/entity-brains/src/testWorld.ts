@@ -201,6 +201,11 @@ export class TestMob extends TestEntity implements BrainMob {
         return this;
     }
 
+    /** Whether {@link TestMob.attach} gave the mob a brain. */
+    public get hasBrain(): boolean {
+        return this.attached !== undefined;
+    }
+
     public get brain(): Brain {
         if (this.attached === undefined) {
             throw new Error(`${this.type} has no brain attached; call attach() first`);
@@ -335,6 +340,17 @@ export class TestWorld implements BrainWorld {
         const mob = new TestMob(this, type, { ...options, position });
         this.entities.push(mob);
         return mob;
+    }
+
+    /** A mob with a brain attached, as its brain sees it, which a broadcast writes into. */
+    public brainMobOf(entity: BrainEntity): BrainMob | undefined {
+        const found = this.entities.find((candidate) => candidate.id === entity.id);
+        return found instanceof TestMob && found.hasBrain ? found : undefined;
+    }
+
+    /** Any entity the world holds under an id. */
+    public entityById(id: string): BrainEntity | undefined {
+        return this.entities.find((candidate) => candidate.id === id);
     }
 
     /** Places a non-mob entity, such as a player or a target. */
