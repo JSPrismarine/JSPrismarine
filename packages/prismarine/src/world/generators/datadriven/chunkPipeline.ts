@@ -18,7 +18,9 @@
  *
  * What stays on the main thread is the Bedrock translation, which reads this server's
  * Java-to-Bedrock tables. It is a palette lookup and a reindex rather than a per-block walk,
- * and keeping it in one place is what keeps one set of tables.
+ * and keeping it in one place is what keeps one set of tables. A staged chunk's merge and block
+ * pass still run here: the main thread translates every block the merge can produce and sends
+ * that table with the task.
  *
  * The registries arrive as one `SharedArrayBuffer` of UTF-8 JSON, which gets eight workers to
  * parsed registries in 75 ms against 540 reading the 1514 files each.
@@ -37,7 +39,10 @@ import type { GenerationRegionPayload } from './GenerationRegion';
 import { SharedTerrainTileStore } from './SharedTerrainTileStore';
 import type { OldChunkRecord } from './javaBlending';
 import { hasValidBlending } from './javaBlending';
-import { packFeaturePatches } from './featurePatchWire';
+import type { PackedRegionChunkPatch } from './featurePatchWire';
+import { isPackedPatch, packFeaturePatches } from './featurePatchWire';
+import type { PaletteTranslation } from './mergedChunk';
+import { isPaletteTranslation } from './mergedChunk';
 
 /**
  * What a worker is handed once, to build its generator from.
@@ -97,6 +102,20 @@ export interface FeatureTaskInput extends ChunkTaskInput {
      * that owns the starts, so the worker places pieces without assembling the structures again.
      */
     readonly structureStartPlans?: readonly StructureStartPlanEntry[];
+}
+
+/**
+ * What a merged `full` task carries: the chunk's terrain tile, its own feature writes and the
+ * eight inbound patches in merge order, and the Bedrock form of every block among them.
+ */
+export interface MergedChunkTaskInput extends ChunkTaskInput {
+    readonly kind: 'merged-chunk';
+    readonly terrain: GenerationRegionPayload;
+    /** The chunk's own feature writes, absent when its pass wrote nothing into itself. */
+    readonly own?: PackedRegionChunkPatch;
+    /** The patches its neighbors' passes wrote into it, in `FEATURE_PATCH_ORDER`. */
+    readonly inbound: readonly PackedRegionChunkPatch[];
+    readonly translation: PaletteTranslation;
 }
 
 /** Raised when the pool hands a worker a task it has no body for. */
@@ -233,6 +252,20 @@ const isRegionPayload = (value: unknown): value is GenerationRegionPayload =>
     Array.isArray(value.entitySpawns) &&
     isOptionalFluidTickList('fluidTicks' in value ? value.fluidTicks : undefined);
 
+/** Whether a value carries a merge's tile, patches and translation along with its key and seed. */
+const isMergedChunkInput = (value: unknown): value is MergedChunkTaskInput =>
+    isChunkInput(value) &&
+    'kind' in value &&
+    value.kind === 'merged-chunk' &&
+    'terrain' in value &&
+    isRegionPayload(value.terrain) &&
+    (!('own' in value) || isPackedPatch(value.own)) &&
+    'inbound' in value &&
+    Array.isArray(value.inbound) &&
+    value.inbound.every(isPackedPatch) &&
+    'translation' in value &&
+    isPaletteTranslation(value.translation);
+
 /** Whether a value carries nine valid terrain tiles along with its key and seed. */
 const isFeatureInput = (value: unknown): value is FeatureTaskInput =>
     isChunkInput(value) &&
@@ -335,6 +368,13 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                         task.input.structureStartPlans
                     )
                 );
+            }
+
+            // The merge and the block pass of a staged chunk, which the server thread used to run
+            // apart: it merged, then sent the merged slots here for the block pass.
+            if (task.status === 'full' && isMergedChunkInput(task.input)) {
+                const parts = generator.buildMergedChunk(task.chunkX, task.chunkZ, task.input);
+                return { payload: parts, transferList: sectionBuffers(parts.sections) };
             }
 
             // The block pass of a chunk's translation, which reads no generator state at all.

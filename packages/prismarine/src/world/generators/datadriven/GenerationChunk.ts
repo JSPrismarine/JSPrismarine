@@ -12,6 +12,19 @@ import { ChunkStatusRegressionError, isOrAfter } from '@jsprismarine/chunkgen';
 import type Chunk from '../../chunk/Chunk';
 import type { GenerationRegion, RegionChunkPatch } from './GenerationRegion';
 
+/**
+ * What a chunk's merge lays over its terrain tile, gathered by the `full` body.
+ *
+ * The merge itself runs wherever the chunk is finished: in a generation worker that already holds
+ * the tile, or on the thread that asked when there is none.
+ */
+export interface MergeInputs {
+    /** The chunk's own feature writes, applied first; undefined when its pass wrote nothing into itself. */
+    readonly own: RegionChunkPatch | undefined;
+    /** The patches the eight neighbors' passes wrote into the chunk, in merge order. */
+    readonly inbound: readonly RegionChunkPatch[];
+}
+
 /** Raised when a status body reads a part of the chunk the status below it never wrote. */
 export class MissingGenerationStateError extends Error {
     public override name = 'MissingGenerationStateError';
@@ -35,8 +48,9 @@ export class MissingGenerationStateError extends Error {
  * Its own chunk's share is {@link GenerationChunk.ownFeatureWrites}; the other eight are collected
  * by whichever neighbor is being promoted, through {@link GenerationChunk.featureWritesInto}.
  *
- * `full` leaves the Bedrock chunk. Once it exists the generator hands out that object and never
- * changes it again, which is the other half of what the old generator got wrong.
+ * `full` gathers what the merge lays over the tile, and the chunk is finished from that. Once the
+ * Bedrock chunk exists the generator hands out that object and never changes it again, which is
+ * the other half of what the old generator got wrong.
  */
 export class GenerationChunk implements StagedChunk {
     private persistedStatus: ChunkStatus = 'empty';
@@ -44,7 +58,7 @@ export class GenerationChunk implements StagedChunk {
     private ownWrites: RegionChunkPatch | undefined;
     private outbound: ReadonlyMap<string, RegionChunkPatch> = new Map();
     private finished: Chunk | undefined;
-    private finalTile: GenerationRegion | undefined;
+    private merge: MergeInputs | undefined;
 
     public constructor(
         public readonly chunkX: number,
@@ -114,31 +128,28 @@ export class GenerationChunk implements StagedChunk {
     }
 
     /**
-     * Records the finished Bedrock chunk. Called once the region has been translated.
+     * Records the finished Bedrock chunk. Called once the chunk has been merged and translated.
      *
-     * The merged region is let go here: the chunk is what a later request for this position
-     * gets, and a neighbor reads the terrain tile and the feature patches, never the merge. A
-     * retained holder then keeps one copy of its blocks rather than two.
+     * The merge inputs are let go here: the chunk is what a later request for this position gets.
      */
     public recordChunk(chunk: Chunk): void {
         this.finished = chunk;
-        this.finalTile = undefined;
+        this.merge = undefined;
     }
 
     /**
-     * The merged region `full` produced, before it was translated to Bedrock.
+     * What `full` gathered for the merge, or undefined before it has run.
      *
-     * The `full` body stops here rather than translating, because the two belong to different
-     * threads: merging is a chunk's own work and runs wherever the chunk is built, while the
-     * translation reads this server's Java-to-Bedrock tables and belongs to whichever thread
-     * holds them. A worker hands this region back and the main thread finishes the job.
+     * The `full` body stops short of merging, because the merge belongs with the translation:
+     * a generation worker that holds the terrain tile does both and sends back sections, and
+     * without one the thread that asked does both.
      */
-    public get finalRegion(): GenerationRegion | undefined {
-        return this.finalTile;
+    public get mergeInputs(): MergeInputs | undefined {
+        return this.merge;
     }
 
-    /** Records the merged region. Called once, by the `full` body. */
-    public recordFinalRegion(region: GenerationRegion): void {
-        this.finalTile = region;
+    /** Records the merge inputs. Called once, by the `full` body. */
+    public recordMergeInputs(inputs: MergeInputs): void {
+        this.merge = inputs;
     }
 }

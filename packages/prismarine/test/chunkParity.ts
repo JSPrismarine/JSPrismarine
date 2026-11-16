@@ -1,8 +1,8 @@
 /**
  * Builds the same chunks four ways: on this thread, through the legacy whole-chunk pool, through
  * the shared status pool, and through that pool in a generation host process. Reports whether each
- * worker path matches inline output, and that every stage-pool chunk had its block pass run in a
- * worker.
+ * worker path matches inline output, entity spawns and fluid ticks included, and that every
+ * stage-pool chunk was merged and had its block pass run in a worker.
  *
  * Two dimensions go through each pool at once, the Overworld as the generator's own key and the
  * End through `forStem`, because one pool serves every dimension of a server and a worker that
@@ -20,6 +20,7 @@ import { Dimensions } from '../src/world/DimensionType';
 import type { Generator } from '../src/world/Generator';
 import type { PipelineKey } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultChunkPipeline } from '../src/world/generators/datadriven/DataDrivenGenerator';
+import { GenerationRegion } from '../src/world/generators/datadriven/GenerationRegion';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
 import { cacheRoot, findJavaWorldgenSources } from '../src/world/generators/datadriven/javaWorldgenSources';
 import { loadJavaWorldgenRegistries } from '../src/world/generators/datadriven/javaWorldgenData';
@@ -115,8 +116,25 @@ const open = (
     return generator;
 };
 
-/** The blocks, the biomes and the block entities, as the wire carries them. */
-const built = (chunk: Chunk): string => chunk.networkSerialize().toString('base64');
+/**
+ * The blocks, the biomes and the block entities, as the wire carries them, and the entity spawns
+ * and fluid ticks the chunk carries into a world.
+ */
+const built = (chunk: Chunk): string =>
+    JSON.stringify({
+        wire: chunk.networkSerialize().toString('base64'),
+        spawns: chunk.getEntitySpawns(),
+        ticks: chunk.getPendingFluidTicks()
+    });
+
+/** Merges run on this thread, counted by the one call each merge starts with. */
+let mergesHere = 0;
+const copyCenterFrom = GenerationRegion.prototype.copyCenterFrom;
+GenerationRegion.prototype.copyCenterFrom = function (this: GenerationRegion, source: GenerationRegion): void {
+    mergesHere++;
+    copyCenterFrom.call(this, source);
+};
+const mergesBy = new Map<DataDrivenGenerator, number>();
 
 const inline = open('inline');
 const chunkPool = open('chunks');
@@ -146,8 +164,11 @@ let hostDifferences: string[] = [];
 const blockPassProblems: string[] = [];
 try {
     const expected = await buildAll(inline);
+    mergesBy.set(inline, mergesHere);
     const compare = async (generator: DataDrivenGenerator): Promise<string[]> => {
+        const before = mergesHere;
         const actual = await buildAll(generator);
+        mergesBy.set(generator, mergesHere - before);
         return [...expected]
             .filter(([position, chunk]) => actual.get(position) !== chunk)
             .map(([position]) => position);
@@ -171,6 +192,14 @@ try {
             .reduce((total, entry) => total + entry.tasks - entry.failed, 0);
         if (blockPasses !== chunksPerBuild) {
             blockPassProblems.push(`${name} ran ${blockPasses} block passes in workers for ${chunksPerBuild} chunks`);
+        }
+        // And the merge went with it: the server thread merged none of these chunks, where the
+        // inline generator merged every one.
+        const merges = mergesBy.get(generator) ?? 0;
+        if (merges !== 0 || (mergesBy.get(inline) ?? 0) < chunksPerBuild) {
+            blockPassProblems.push(
+                `${name} merged ${merges} chunks on this thread, inline ${mergesBy.get(inline) ?? 0}`
+            );
         }
         // Counted the same way: the workers laid out every structure start, so none stalled
         // the server thread. The inline count shows the chunks reach candidates at all.

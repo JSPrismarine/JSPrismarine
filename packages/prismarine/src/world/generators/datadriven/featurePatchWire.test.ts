@@ -54,6 +54,20 @@ describe('featurePatchWire', () => {
         expect(twice.map((each) => writesOf(each.blocks))).toEqual([patch(30).blocks]);
     });
 
+    it('passes packed writes on with their own arrays, and keeps them off the transfer list', () => {
+        const [once] = unpackFeaturePatches(packFeaturePatches([patch(30)]).payload);
+        if (!(once?.blocks instanceof PackedBlockWrites)) throw new Error('the writes came back unpacked');
+
+        const { payload, transferList } = packFeaturePatches([once]);
+
+        // The patch still belongs to the chunk that holds it, which a retried merge reads again.
+        expect(payload[0]?.palette).toBe(once.blocks.palette);
+        expect(payload[0]?.writePositions).toBe(once.blocks.positions.buffer);
+        expect(payload[0]?.writeBlocks).toBe(once.blocks.slots.buffer);
+        expect(transferList).not.toContain(once.blocks.positions.buffer);
+        expect(transferList).not.toContain(once.blocks.slots.buffer);
+    });
+
     it('carries one palette entry per distinct block, however many writes there are', () => {
         const [packed] = packFeaturePatches([patch(5000)]).payload;
 
