@@ -52,6 +52,13 @@ describe('reusable task inputs', () => {
         expect(() => decodeReusable(overChannel(again), new ReusableCache(8))).toThrow(ReusableMissError);
     });
 
+    it('holds a key kept with an undefined value', () => {
+        const held = new ReusableCache<true>(8);
+        const sent = encodeReusable({ parts: [reusableInput('x', undefined), reusableInput('x', undefined)] }, held);
+
+        expect(decodeReusable(overChannel(sent), new ReusableCache(8))).toEqual({ parts: [undefined, undefined] });
+    });
+
     it('unwraps markers for a runner that keeps nothing, and leaves an input without them as it is', () => {
         const plain = { seed: '1', terrain: [tile(1)] };
 

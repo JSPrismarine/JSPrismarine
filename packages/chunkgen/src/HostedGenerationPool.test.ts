@@ -129,6 +129,22 @@ describe('HostedGenerationPool', () => {
         expect(bytesOf(await local.run(task(4)))[3]).toBe(5);
     }, 60_000);
 
+    it('passes an ordinary input shaped like the reusable wire forms through untouched', async () => {
+        const hosted = track(new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
+        const local = track(new GenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
+        // A host that decoded this would answer a miss for `nothing` and be sent the task again.
+        const task = {
+            status: 'terrain' as const,
+            chunkX: 1,
+            chunkZ: 0,
+            dimension: 0,
+            input: { value: 6, put: { __reusablePut: 'x', value: 9 }, ref: { __reusableRef: 'nothing' } }
+        };
+
+        expect(bytesOf(await hosted.run(task))).toEqual(bytesOf(await local.run(task)));
+        expect(bytesOf(await hosted.run(task))[3]).toBe(6);
+    }, 60_000);
+
     it('runs a task submitted during a restart once on the replacement', async () => {
         const logFile = join(mkdtempSync(join(tmpdir(), 'jsp-host-')), 'runs.log');
         const hosted = track(

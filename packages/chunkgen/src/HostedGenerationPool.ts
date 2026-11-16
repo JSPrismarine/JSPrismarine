@@ -262,8 +262,8 @@ export class HostedGenerationPool implements GenerationTransport {
 
         entry.sentTo = child;
         const input = encodeReusable(entry.task.input, this.held);
-        const task = input === entry.task.input ? entry.task : { ...entry.task, input };
-        this.post({ type: 'run', id: entry.id, task, priority: entry.priority });
+        const run = { type: 'run', id: entry.id, task: entry.task, priority: entry.priority } as const;
+        this.post(input === entry.task.input ? run : { ...run, task: { ...entry.task, input }, reusable: true });
     }
 
     private post(command: HostCommand): void {

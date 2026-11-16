@@ -77,23 +77,26 @@ export const unwrapReusable = (input: unknown): unknown =>
  * keys the host still holds without asking.
  */
 export class ReusableCache<Value> {
-    private readonly entries = new Map<string, Value>();
+    private readonly entries = new Map<string, { readonly value: Value }>();
 
     public constructor(private readonly capacity: number) {}
 
-    /** The value under a key, which becomes the most recently used. */
-    public use(key: string): Value | undefined {
-        const value = this.entries.get(key);
-        if (value === undefined) return undefined;
+    /**
+     * The entry under a key, which becomes the most recently used. The entry wraps the value, so a
+     * key kept with `undefined` still reads as present.
+     */
+    public use(key: string): { readonly value: Value } | undefined {
+        const entry = this.entries.get(key);
+        if (entry === undefined) return undefined;
         this.entries.delete(key);
-        this.entries.set(key, value);
-        return value;
+        this.entries.set(key, entry);
+        return entry;
     }
 
     /** Keeps a value under a key, dropping the least recently used beyond the capacity. */
     public put(key: string, value: Value): void {
         this.entries.delete(key);
-        this.entries.set(key, value);
+        this.entries.set(key, { value });
         while (this.entries.size > this.capacity) {
             const oldest = this.entries.keys().next();
             if (oldest.done === true) break;
@@ -135,6 +138,8 @@ export class ReusableMissError extends Error {
 
 /**
  * Decodes an input on the host: keeps each value sent with a key and puts back each one referred to.
+ * The run command marks an input {@link encodeReusable} changed, and only that input is decoded: an
+ * ordinary input may hold objects shaped like the wire forms.
  * @throws ReusableMissError when a reference names a key the host does not hold.
  */
 export const decodeReusable = (input: unknown, kept: ReusableCache<unknown>): unknown => {
@@ -154,7 +159,7 @@ export const decodeReusable = (input: unknown, kept: ReusableCache<unknown>): un
         if (isRef(value)) {
             const found = kept.use(value.__reusableRef);
             if (found === undefined) missing.push(value.__reusableRef);
-            return found;
+            return found?.value;
         }
         return value;
     });
