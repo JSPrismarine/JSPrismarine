@@ -485,8 +485,10 @@ export const slimeFloat = goal<{ readonly jumpChance: number; readonly speedMult
 });
 
 /**
- * `minecraft:behavior.rise_to_liquid_level`, which the strider carries. It
- * keeps the entity floating at a fixed offset from the lava surface.
+ * `minecraft:behavior.rise_to_liquid_level`, which the strider carries. In a liquid the entity
+ * floats up until it stands `liquid_y_offset` into the top liquid block, and sinks back when it
+ * is above that, as Java's `Strider.floatStrider` lifts a strider 0.05 a tick until it stands on
+ * the lava's surface.
  */
 export const riseToLiquidLevel = goal<{
     readonly liquidYOffset: number;
@@ -500,12 +502,32 @@ export const riseToLiquidLevel = goal<{
         riseDelta: numberAt(body, 'rise_delta', 0.01),
         sinkDelta: numberAt(body, 'sink_delta', 0.01)
     })),
-    create: (params, support) => ({
-        canStart: () => support.flag('in_lava') || support.flag('in_water'),
-        tick: () => {
-            support.world.push?.({ x: 0, y: params.riseDelta - params.sinkDelta, z: 0 });
-        }
-    })
+    create: (params, support) => {
+        const inLiquid = (): boolean => support.flag('in_lava') || support.flag('in_water');
+        /** The y the entity's feet float at: the top liquid block over it, `liquid_y_offset` down from its top. */
+        const level = (): number | undefined => {
+            const view = support.navigation();
+            if (view === undefined) return undefined;
+            const feet = blockOf(support.position());
+            const liquid = (y: number): boolean => view.isLava({ ...feet, y }) || view.isWater({ ...feet, y });
+            if (!liquid(feet.y)) return undefined;
+            let top = feet.y;
+            while (liquid(top + 1) && top - feet.y < 64) top += 1;
+            return top + 1 - params.liquidYOffset;
+        };
+        return {
+            canStart: inLiquid,
+            canContinue: inLiquid,
+            tick: () => {
+                const target = level();
+                if (target === undefined) return;
+                const y = support.position().y;
+                if (y < target) support.world.push?.({ x: 0, y: params.riseDelta, z: 0 });
+                else if (y > target + params.sinkDelta) support.world.push?.({ x: 0, y: -params.sinkDelta, z: 0 });
+            },
+            requiresUpdateEveryTick: () => true
+        };
+    }
 });
 
 /** What `minecraft:behavior.panic` declares. */
@@ -1038,18 +1060,29 @@ export const moveToLiquid = goal<MoveToBlockParams & { readonly materialType: st
     controlFlags: ['move'],
     schema: bodySchema((body) => {
         const material = stringAt(body, 'material_type') ?? 'Water';
+        const params = moveToBlockFrom(body, { targetBlocks: [`minecraft:${material.toLowerCase()}`] });
         return {
-            ...moveToBlockFrom(body, { targetBlocks: [`minecraft:${material.toLowerCase()}`] }),
+            ...params,
+            // Java's `MoveToBlockGoal.getMoveToTarget` walks to the block over the liquid it found,
+            // which is where a strider stands on lava, unless the body names its own offset.
+            targetOffset: Array.isArray(body.target_offset) ? params.targetOffset : { x: 0, y: 1, z: 0 },
             materialType: material
         };
     }),
     create: (params, support) => walkToBlock(support, params)
 });
 
+/** How far one hop toward a patrol target goes, Java's `LongDistancePatrolGoal` cap of 10 blocks. */
+const PATROL_HOP = 10;
+
+/** How long a patrol waits after a hop it could not path, Java's `cooldown = tickCount + 200`, in ticks. */
+const PATROL_COOLDOWN = 200;
+
 /**
- * `minecraft:behavior.move_to_random_block`, which the ravager and the
- * piglin carry. It walks to a block inside its radius without caring which
- * block it is, which is how a raid mob mills about a village.
+ * `minecraft:behavior.move_to_random_block`, which a patrol captain carries. Java's
+ * `PatrollingMonster.LongDistancePatrolGoal`: the captain draws a patrol target up to
+ * `block_distance` away across, as `findPatrolTarget` draws one up to 500 blocks away, and walks to
+ * it in hops of at most 10 blocks, wandering a step and waiting 200 ticks when a hop has no path.
  */
 export const moveToRandomBlock = goal<{
     readonly speedMultiplier: number;
@@ -1063,14 +1096,52 @@ export const moveToRandomBlock = goal<{
         withinRadius: numberAt(body, 'within_radius', 10),
         blockDistance: numberAt(body, 'block_distance', 16)
     })),
-    create: (params, support) =>
-        walkTo(support, {
-            find: () =>
-                support.navigator.randomTarget(params.blockDistance, params.withinRadius, () => support.random()),
-            speedMultiplier: params.speedMultiplier,
-            interval: 0,
-            goalRadius: DEFAULT_GOAL_RADIUS
-        })
+    create: (params, support) => {
+        let target: EntityPosition | undefined;
+        let cooldown = 0;
+        const hop = (): boolean => {
+            const here = support.position();
+            if (target === undefined) {
+                const reach = Math.floor(params.blockDistance);
+                target = {
+                    x: here.x - reach + support.randomInt(reach * 2 + 1),
+                    y: here.y,
+                    z: here.z - reach + support.randomInt(reach * 2 + 1)
+                };
+            }
+            const dx = target.x - here.x;
+            const dz = target.z - here.z;
+            const length = Math.hypot(dx, dz);
+            if (length <= params.withinRadius) {
+                target = undefined;
+                return false;
+            }
+            const scale = Math.min(1, PATROL_HOP / length);
+            const step = { x: here.x + dx * scale, y: here.y, z: here.z + dz * scale };
+            if (support.navigator.moveTo(step, params.speedMultiplier, DEFAULT_GOAL_RADIUS)) return true;
+            const wander = support.navigator.randomTarget(8, 4, () => support.random());
+            cooldown = PATROL_COOLDOWN;
+            return (
+                wander !== undefined && support.navigator.moveTo(wander, params.speedMultiplier, DEFAULT_GOAL_RADIUS)
+            );
+        };
+        return {
+            canStart: () => {
+                if (cooldown > 0) {
+                    cooldown -= 1;
+                    return false;
+                }
+                return hop();
+            },
+            canContinue: () => support.navigator.walking,
+            tick: () => {
+                support.navigator.tick();
+            },
+            stop: () => {
+                support.navigator.stop();
+            }
+        };
+    }
 });
 
 /** What the home and dwelling restriction goals declare. */

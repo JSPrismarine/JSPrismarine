@@ -4,7 +4,7 @@ import type { Filter } from '@jsprismarine/packs';
 import type { RegisterableGoal } from '../goal';
 import { blockIdentifiersOf } from '../blockNames';
 import { goal } from '../goal';
-import { centerOf } from '../navigation/view';
+import { blockOf, centerOf } from '../navigation/view';
 import type { GoalEvent, Range, TargetEntityType } from '../params';
 import {
     bodySchema,
@@ -20,6 +20,7 @@ import {
     ticksAt
 } from '../params';
 import type { GoalSupport } from '../support';
+import type { GoalItem } from '../world';
 
 /**
  * The goals about the world around the entity rather than another entity:
@@ -554,9 +555,16 @@ export interface SnackingParams {
     readonly stopChance: number;
 }
 
+/** How far a panda looks for food lying on the ground, Java's `PandaSitGoal` box inflated by 6. */
+const SNACK_SEARCH_RANGE = 6;
+
+/** How close the panda has to get to a lying item to take it, in blocks. */
+const SNACK_REACH = 1.5;
+
 /**
- * `minecraft:behavior.snacking`, which the panda carries. The panda sits down
- * with the bamboo it holds and chews until it loses interest.
+ * `minecraft:behavior.snacking`, which the panda carries. Java's `Panda.PandaSitGoal`: a panda
+ * holding one of its foods sits down and chews it until it loses interest; one holding nothing
+ * walks to a food lying within 6 blocks and takes it first.
  */
 export const snacking = goal<SnackingParams>({
     name: 'minecraft:behavior.snacking',
@@ -566,12 +574,13 @@ export const snacking = goal<SnackingParams>({
         cooldown: [ticksAt(body, 'snacking_cooldown_min', 0.5), ticksAt(body, 'snacking_cooldown', 1)] as const,
         stopChance: numberAt(body, 'snacking_stop_chance', 0.0017)
     })),
-    create: (params, support) =>
-        holdStill(support, {
-            ready: () => {
-                const held = support.world.carriedItem?.();
-                return held !== undefined && params.items.includes(held);
-            },
+    create: (params, support) => {
+        const holdsFood = (): boolean => {
+            const held = support.world.carriedItem?.();
+            return held !== undefined && params.items.includes(held);
+        };
+        const sit = holdStill(support, {
+            ready: holdsFood,
             // `snacking_stop_chance` is a per-tick roll in vanilla; drawing the
             // sitting time from it up front gives the same expected length.
             duration: [20, params.stopChance > 0 ? Math.round(1 / params.stopChance) : 200],
@@ -579,7 +588,54 @@ export const snacking = goal<SnackingParams>({
             probability: 1,
             onStart: () => support.world.setSitting?.(true),
             onEnd: () => support.world.setSitting?.(false)
-        })
+        });
+        let fetching: GoalItem | undefined;
+        /** Goal ticks left to reach the food before the panda gives up on it. */
+        let patience = 0;
+        const lyingFood = (): GoalItem | undefined =>
+            support.world.carriedItem?.() === undefined
+                ? (support.world.items?.(SNACK_SEARCH_RANGE) ?? []).find((item) =>
+                      params.items.includes(item.identifier())
+                  )
+                : undefined;
+        return {
+            canStart: () => {
+                if (sit.canStart()) return true;
+                fetching = lyingFood();
+                return fetching !== undefined;
+            },
+            canContinue: () => (fetching === undefined ? (sit.canContinue?.() ?? false) : patience > 0),
+            start: () => {
+                if (fetching === undefined) {
+                    sit.start?.();
+                    return;
+                }
+                patience = 100;
+                support.navigator.moveTo(fetching.position(), 1.2, 1);
+            },
+            tick: () => {
+                if (fetching === undefined) {
+                    sit.tick?.();
+                    return;
+                }
+                patience -= 1;
+                if (!support.navigator.tick()) support.navigator.moveTo(fetching.position(), 1.2, 1);
+                if (support.distanceTo(fetching.position()) > SNACK_REACH) return;
+                support.world.pickUp?.(fetching, 1);
+                fetching = undefined;
+                support.navigator.stop();
+                sit.start?.();
+            },
+            stop: () => {
+                if (fetching !== undefined) {
+                    fetching = undefined;
+                    support.navigator.stop();
+                    return;
+                }
+                sit.stop?.();
+            }
+        };
+    }
 });
 
 /** What `minecraft:behavior.croak` declares. */
@@ -692,23 +748,49 @@ export interface RollParams {
     readonly probability: number;
 }
 
+/** How long one roll lasts, Java's `Panda.handleRoll` stopping past a counter of 32, in ticks. */
+const ROLL_TICKS = 32;
+
+/** The ticks of a roll on which Java's panda bounces up again. */
+const ROLL_BOUNCES: ReadonlySet<number> = new Set([7, 15, 23]);
+
 /**
- * `minecraft:behavior.roll`, which the armadillo carries. The entity rolls
- * into a ball, which is a short animation rather than a move.
+ * `minecraft:behavior.roll`, which a playful or baby panda carries. Java's `Panda.PandaRollGoal`
+ * starts the roll and `Panda.handleRoll` runs it: a hop forward at 0.2 blocks a tick, 0.1 for a
+ * baby, with a bounce of 0.27 up at the start and on ticks 7, 15 and 23, for 32 ticks.
  */
-export const roll = goal<RollParams>({
+export const roll = goal<{ readonly probability: number }>({
     name: 'minecraft:behavior.roll',
     controlFlags: ['move'],
     schema: bodySchema((body) => ({ probability: numberAt(body, 'probability', 0.0016) })),
-    create: (params, support) =>
-        holdStill(support, {
-            ready: () => true,
-            duration: [20, 20],
-            cooldown: [0, 0],
-            probability: params.probability
-        })
+    create: (params, support) => {
+        let elapsed = 0;
+        let heading = { x: 0, z: 0 };
+        const push = (lift: number): void => {
+            support.world.push?.({ x: heading.x, y: lift, z: heading.z });
+        };
+        return {
+            canStart: () => support.flag('on_ground') && support.chance(params.probability),
+            canContinue: () => elapsed < ROLL_TICKS,
+            start: () => {
+                elapsed = 0;
+                support.navigator.stop();
+                const angle = support.random() * Math.PI * 2;
+                const speed = support.flag('is_baby') ? 0.1 : 0.2;
+                heading = { x: Math.cos(angle) * speed, z: Math.sin(angle) * speed };
+                push(0.27);
+            },
+            tick: () => {
+                elapsed += 1;
+                if (ROLL_BOUNCES.has(elapsed)) push(0.27);
+            },
+            stop: () => {
+                elapsed = ROLL_TICKS;
+            },
+            requiresUpdateEveryTick: () => true
+        };
+    }
 });
-
 /** What `minecraft:behavior.play_dead` declares. */
 export interface PlayDeadParams {
     /** How long the entity stays down, in ticks. */
@@ -826,54 +908,71 @@ export interface RandomBreachParams {
     readonly xzDistance: number;
 }
 
-/**
- * `minecraft:behavior.random_breach`, which the dolphin carries. The entity
- * jumps clear of the water, which is why it aims above the surface.
- */
-export const randomBreach = goal<RandomBreachParams>({
-    name: 'minecraft:behavior.random_breach',
-    controlFlags: ['move'],
-    schema: bodySchema((body) => ({
-        interval: numberAt(body, 'interval', 120),
-        cooldown: ticksAt(body, 'cooldown_time', 2),
-        xzDistance: numberAt(body, 'xz_dist', 10)
-    })),
-    create: (params, support) => {
-        let cooldown = 0;
-        return {
-            canStart: () => {
-                if (cooldown > 0) {
-                    cooldown -= 1;
-                    return false;
-                }
-                if (!support.flag('in_water')) return false;
-                return params.interval <= 0 || support.chance(1 / params.interval);
-            },
-            canContinue: () => support.navigator.walking,
-            start: () => {
-                const here = support.position();
-                const angle = support.random() * Math.PI * 2;
-                support.navigator.moveTo(
-                    {
-                        x: here.x + Math.cos(angle) * params.xzDistance,
-                        y: here.y + 3,
-                        z: here.z + Math.sin(angle) * params.xzDistance
-                    },
-                    1,
-                    1
-                );
-            },
-            tick: () => {
-                support.navigator.tick();
-            },
-            stop: () => {
-                cooldown = params.cooldown;
-                support.navigator.stop();
-            }
-        };
-    }
-});
+/** The steps ahead Java's `DolphinJumpGoal` checks for open water and open air, `STEPS_TO_CHECK`. */
+const BREACH_STEPS = [0, 1, 4, 5, 6, 7] as const;
 
+/**
+ * `minecraft:behavior.random_breach`, which the dolphin carries. Java's `DolphinJumpGoal`: one
+ * selector pass in `interval`, a dolphin at the surface with clear water along its heading and
+ * clear air over it leaps out, pushed 0.6 along the heading and 0.7 up.
+ */
+export const randomBreach = goal<{ readonly interval: number; readonly cooldown: number; readonly xzDistance: number }>(
+    {
+        name: 'minecraft:behavior.random_breach',
+        controlFlags: ['move'],
+        schema: bodySchema((body) => ({
+            interval: numberAt(body, 'interval', 120),
+            cooldown: ticksAt(body, 'cooldown_time', 2),
+            xzDistance: numberAt(body, 'xz_dist', 10)
+        })),
+        create: (params, support) => {
+            let cooldown = 0;
+            let heading: { readonly x: number; readonly z: number } | undefined;
+            /** Whether the water and the air along a heading are clear for a leap, as Java checks them. */
+            const clear = (step: { readonly x: number; readonly z: number }): boolean => {
+                const view = support.navigation();
+                if (view === undefined) return false;
+                const here = blockOf(support.position());
+                return BREACH_STEPS.every((ahead) => {
+                    const at = { x: here.x + step.x * ahead, y: here.y, z: here.z + step.z * ahead };
+                    const open = (dy: number): boolean => {
+                        const above = { ...at, y: at.y + dy };
+                        return view.isPassable(above) && !view.isWater(above);
+                    };
+                    return view.isWater(at) && open(1) && open(2);
+                });
+            };
+            return {
+                canStart: () => {
+                    if (cooldown > 0) {
+                        cooldown -= 1;
+                        return false;
+                    }
+                    if (!support.flag('in_water')) return false;
+                    if (params.interval > 0 && support.randomInt(params.interval) !== 0) return false;
+                    const steps = [
+                        { x: 1, z: 0 },
+                        { x: -1, z: 0 },
+                        { x: 0, z: 1 },
+                        { x: 0, z: -1 }
+                    ];
+                    const step = steps[support.randomInt(steps.length)];
+                    heading = step !== undefined && clear(step) ? step : undefined;
+                    return heading !== undefined;
+                },
+                canContinue: () => false,
+                start: () => {
+                    support.navigator.stop();
+                    if (heading !== undefined) support.world.push?.({ x: heading.x * 0.6, y: 0.7, z: heading.z * 0.6 });
+                },
+                stop: () => {
+                    cooldown = params.cooldown;
+                    heading = undefined;
+                }
+            };
+        }
+    }
+);
 /** Every goal in the environment family. */
 export const environmentGoals: readonly RegisterableGoal[] = [
     sleep,

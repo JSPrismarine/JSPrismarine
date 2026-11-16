@@ -228,6 +228,42 @@ describe('minecraft:behavior.place_block', () => {
         expect(placed).toEqual(['minecraft:snow_layer']);
     });
 
+    it('places the entry whose filter passes, with its states, as the copper golem writes its statue', () => {
+        const placed: { identifier: string; states: unknown }[] = [];
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.place_block': {
+                    priority: 1,
+                    chance: 1,
+                    affected_by_griefing_rule: false,
+                    randomly_placeable_blocks: [
+                        {
+                            block: { name: 'minecraft:stone' },
+                            filter: { test: 'is_family', subject: 'self', value: 'nothing_is_this' }
+                        },
+                        {
+                            block: {
+                                name: 'minecraft:oxidized_copper_golem_statue',
+                                states: { 'minecraft:cardinal_direction': 'west' }
+                            }
+                        }
+                    ]
+                }
+            },
+            world: { setBlock: (_position, identifier, states) => placed.push({ identifier, states }) },
+            at: { x: 8.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(placed).toEqual([
+            {
+                identifier: 'minecraft:oxidized_copper_golem_statue',
+                states: { 'minecraft:cardinal_direction': 'west' }
+            }
+        ]);
+    });
+
     it('does nothing when the chance does not come up', () => {
         const placed: string[] = [];
         const harness = new GoalHarness({
@@ -352,5 +388,74 @@ describe('minecraft:behavior.place_block, putting down a carried block', () => {
                 { x: 0, y: 1, z: 0 }
             ]).placed
         ).toEqual([]);
+    });
+});
+
+describe('minecraft:behavior.lay_egg', () => {
+    it('lays turtle eggs in the open block over sand once it has dug for 200 ticks', () => {
+        const laid: { at: EntityPosition; identifier: string; states: unknown }[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.lay_egg': { priority: 1, goal_radius: 1.5 } },
+            components: walker,
+            world: {
+                ...flatWorld(),
+                blocks: () => [{ position: { x: 9, y: 0, z: 8 }, identifier: 'minecraft:sand' }],
+                blockAt: () => ({ identifier: 'minecraft:air', states: {} }),
+                setBlock: (at, identifier, states) => laid.push({ at, identifier, states })
+            },
+            at: { x: 8.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick(150);
+        expect(laid).toEqual([]);
+        harness.tick(100);
+
+        expect(laid).toHaveLength(1);
+        expect(laid[0]?.identifier).toBe('minecraft:turtle_egg');
+        expect(laid[0]?.at.y).toBe(1);
+        expect(laid[0]?.states).toHaveProperty('turtle_egg_count');
+    });
+});
+
+describe('minecraft:behavior.raid_garden', () => {
+    it("picks a ripe berry bush back to growth 1, as Java's FoxEatBerriesGoal does", () => {
+        const written: { identifier: string; states: { readonly growth?: number } }[] = [];
+        const dropped: string[] = [];
+        let carried: string | undefined;
+        let growth = 3;
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.raid_garden': {
+                    priority: 1,
+                    blocks: ['minecraft:sweet_berry_bush'],
+                    max_to_eat: 0,
+                    goal_radius: 0.8
+                }
+            },
+            components: walker,
+            world: {
+                ...flatWorld(),
+                blocks: () => [{ position: { x: 9, y: 1, z: 8 }, identifier: 'minecraft:sweet_berry_bush' }],
+                blockAt: () => ({ identifier: 'minecraft:sweet_berry_bush', states: { growth } }),
+                setBlock: (_at, identifier, states = {}) => {
+                    written.push({ identifier, states });
+                    growth = typeof states['growth'] === 'number' ? states['growth'] : growth;
+                },
+                carriedItem: () => carried,
+                setCarriedItem: (identifier) => {
+                    carried = identifier;
+                },
+                dropItem: (identifier) => dropped.push(identifier)
+            },
+            at: { x: 9.5, y: 1, z: 8.5 },
+            randomInt: () => 1
+        });
+
+        harness.tick(20);
+
+        expect(written[0]).toEqual({ identifier: 'minecraft:sweet_berry_bush', states: { growth: 1 } });
+        // 1 + 1 from the draw + 1 for a full bush: one kept in the mouth, two dropped.
+        expect(carried).toBe('minecraft:sweet_berries');
+        expect(dropped).toEqual(['minecraft:sweet_berries', 'minecraft:sweet_berries']);
     });
 });

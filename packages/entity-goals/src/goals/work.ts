@@ -12,8 +12,10 @@ import {
     booleanAt,
     eventAt,
     filterAt,
+    isRecord,
     numberAt,
     rangeAt,
+    recordsAt,
     stringAt,
     stringsAt,
     tickRangeAt,
@@ -856,7 +858,7 @@ export interface LayEggParams {
     /** How long the laying takes, in ticks. */
     readonly laySeconds: number;
     /** The egg block or entity to leave behind. */
-    readonly eggType: string | undefined;
+    readonly eggType: string;
     readonly laySound: string | undefined;
     /** Whether the entity may lay while standing under the nest. */
     readonly allowLayingFromBelow: boolean;
@@ -864,43 +866,58 @@ export interface LayEggParams {
     readonly onLay: GoalEvent | undefined;
 }
 
+/** Bedrock's `turtle_egg_count` values, one to four eggs. */
+const TURTLE_EGG_COUNTS = ['one_egg', 'two_egg', 'three_egg', 'four_egg'] as const;
+
 /**
  * `minecraft:behavior.lay_egg`, which the turtle and the frog carry. The
- * entity walks to sand or a spawn-friendly block and leaves an egg there.
+ * entity walks to sand or a spawn-friendly block and leaves an egg in the open block over it.
  */
 export const layEgg = goal<LayEggParams>({
     name: 'minecraft:behavior.lay_egg',
     controlFlags: ['move'],
-    schema: bodySchema((body) => ({
-        speedMultiplier: numberAt(body, 'speed_multiplier', 1),
-        targetBlocks: stringsAt(body, 'target_blocks'),
-        targetMaterialsAboveBlock: stringsAt(body, 'target_materials_above_block'),
-        searchRange: numberAt(body, 'search_range', 16),
-        searchHeight: numberAt(body, 'search_height', 4),
-        goalRadius: numberAt(body, 'goal_radius', 1.5),
-        laySeconds: ticksAt(body, 'lay_seconds', 10),
-        eggType: stringAt(body, 'egg_type'),
-        laySound: stringAt(body, 'lay_egg_sound'),
-        allowLayingFromBelow: booleanAt(body, 'allow_laying_from_below', false),
-        useDefaultAnimation: booleanAt(body, 'use_default_animation', true),
-        onLay: eventAt(body, 'on_lay')
-    })),
+    schema: bodySchema((body) => {
+        const targets = stringsAt(body, 'target_blocks');
+        return {
+            speedMultiplier: numberAt(body, 'speed_multiplier', 1),
+            // Bedrock's documented defaults, which the turtle's file leaves to them.
+            targetBlocks: targets.length > 0 ? targets : ['minecraft:sand'],
+            targetMaterialsAboveBlock: stringsAt(body, 'target_materials_above_block'),
+            searchRange: numberAt(body, 'search_range', 16),
+            searchHeight: numberAt(body, 'search_height', 4),
+            goalRadius: numberAt(body, 'goal_radius', 1.5),
+            laySeconds: ticksAt(body, 'lay_seconds', 10),
+            eggType: stringAt(body, 'egg_type') ?? 'minecraft:turtle_egg',
+            laySound: stringAt(body, 'lay_egg_sound'),
+            allowLayingFromBelow: booleanAt(body, 'allow_laying_from_below', false),
+            useDefaultAnimation: booleanAt(body, 'use_default_animation', true),
+            onLay: eventAt(body, 'on_lay')
+        };
+    }),
     create: (params, support) => {
+        /** The cell the egg goes in: the open block over a target block. */
         let nest: EntityPosition | undefined;
         let laying = 0;
+        const open = (at: EntityPosition): boolean => {
+            const above = support.world.blockAt?.(at)?.identifier ?? support.navigation()?.blockAt(at);
+            return above === undefined || above === 'minecraft:air';
+        };
 
         return {
             canStart: () => {
-                const found = support.world.blocks?.({
-                    identifiers: params.targetBlocks,
-                    range: params.searchRange,
-                    height: params.searchHeight,
-                    limit: 1
-                })[0];
-                nest = found === undefined ? undefined : centerOf(found.position);
+                const found = (
+                    support.world.blocks?.({
+                        identifiers: params.targetBlocks,
+                        range: params.searchRange,
+                        height: params.searchHeight
+                    }) ?? []
+                ).find((block) => open({ ...block.position, y: block.position.y + 1 }));
+                nest = found === undefined ? undefined : centerOf({ ...found.position, y: found.position.y + 1 });
                 return nest !== undefined;
             },
-            canContinue: () => laying > 0 || support.navigator.walking,
+            canContinue: () =>
+                nest !== undefined &&
+                (laying > 0 || support.navigator.walking || support.distanceTo(nest) <= params.goalRadius),
             start: () => {
                 laying = 0;
                 if (nest !== undefined) support.navigator.moveTo(nest, params.speedMultiplier, params.goalRadius);
@@ -908,19 +925,32 @@ export const layEgg = goal<LayEggParams>({
             tick: () => {
                 if (support.navigator.tick()) return;
                 if (laying === 0) {
+                    // Java's `TurtleLayEggGoal` digs for `adjustedTickDelay(200)` game ticks first.
                     laying = params.laySeconds;
                     support.playSound(params.laySound);
                     return;
                 }
                 if ((laying -= 1) > 0) return;
-                if (params.eggType !== undefined && nest !== undefined) support.world.setBlock?.(nest, params.eggType);
+                if (nest !== undefined) {
+                    // Java lays 1 to 4 turtle eggs, `random.nextInt(4) + 1`.
+                    const states: GoalBlockStates =
+                        params.eggType === 'minecraft:turtle_egg'
+                            ? {
+                                  turtle_egg_count:
+                                      TURTLE_EGG_COUNTS[support.randomInt(TURTLE_EGG_COUNTS.length)] ?? 'one_egg'
+                              }
+                            : {};
+                    support.world.setBlock?.(nest, params.eggType, states);
+                }
                 support.fire(params.onLay);
+                nest = undefined;
             },
             stop: () => {
                 laying = 0;
                 nest = undefined;
                 support.navigator.stop();
-            }
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });
@@ -933,13 +963,32 @@ export interface PlaceBlockParams {
     readonly xzRange: Range;
     readonly yRange: Range;
     /** The blocks the entity may place. */
-    readonly placeableBlocks: readonly string[];
+    readonly placeableBlocks: readonly PlaceableBlock[];
     /** Whether the `mobGriefing` game rule gates the placement. */
     readonly affectedByGriefingRule: boolean;
     /** What has to be true of the position for the placement to happen. */
     readonly canPlace: Filter | undefined;
     readonly onPlace: GoalEvent | undefined;
 }
+
+/** One entry of `randomly_placeable_blocks`: a block, its states, and when it may be placed. */
+interface PlaceableBlock {
+    readonly name: string;
+    readonly states: GoalBlockStates;
+    readonly filter: Filter | undefined;
+}
+
+/** Reads an entry written as `{"block": {"name", "states"}, "filter"}`, or as `{"block": "name"}`. */
+const placeableOf = (entry: GoalBody): PlaceableBlock => {
+    const block = entry['block'];
+    const name =
+        typeof block === 'string' ? block : isRecord(block) && typeof block['name'] === 'string' ? block['name'] : '';
+    const rawStates = isRecord(block) && isRecord(block['states']) ? block['states'] : {};
+    const states: Record<string, string | number | boolean> = {};
+    for (const [key, value] of Object.entries(rawStates))
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') states[key] = value;
+    return { name, states, filter: filterAt(entry, 'filter') };
+};
 
 /**
  * `minecraft:behavior.place_block`, which the enderman and the snow golem
@@ -953,7 +1002,16 @@ export const placeBlock = goal<PlaceBlockParams>({
         chance: numberAt(body, 'chance', 0.02),
         xzRange: rangeAt(body, 'xz_range', [0, 0]),
         yRange: rangeAt(body, 'y_range', [0, 0]),
-        placeableBlocks: stringsAt(body, 'randomly_placeable_blocks'),
+        placeableBlocks: recordsAt(body, 'randomly_placeable_blocks')
+            .map(placeableOf)
+            .concat(
+                stringsAt(body, 'randomly_placeable_blocks').map((name) => ({
+                    name,
+                    states: {},
+                    filter: undefined
+                }))
+            )
+            .filter((entry) => entry.name !== ''),
         affectedByGriefingRule: booleanAt(body, 'affected_by_griefing_rule', true),
         canPlace: filterAt(body, 'can_place'),
         onPlace: eventAt(body, 'on_place')
@@ -962,8 +1020,10 @@ export const placeBlock = goal<PlaceBlockParams>({
         canStart: () => support.chance(params.chance) && support.matches(params.canPlace),
         start: () => {
             const here = support.position();
-            const listed = params.placeableBlocks[Math.floor(support.random() * params.placeableBlocks.length)];
-            const block = listed ?? support.world.carriedItem?.();
+            // Only the entries whose filter passes for the entity, such as the statue facing its way.
+            const fitting = params.placeableBlocks.filter((entry) => support.matches(entry.filter));
+            const listed = fitting[Math.floor(support.random() * fitting.length)];
+            const block = listed?.name ?? support.world.carriedItem?.();
             if (block === undefined) return;
             if (params.affectedByGriefingRule && support.world.gameRule?.('mobGriefing') === false) return;
             const target = {
@@ -986,7 +1046,7 @@ export const placeBlock = goal<PlaceBlockParams>({
                     );
                 if (!isAir(target.y) || isAir(target.y - 1)) return;
             }
-            support.world.setBlock?.(target, block);
+            support.world.setBlock?.(target, block, listed?.states);
             // A carried block is put down, as Java's EndermanLeaveBlockGoal empties the arms.
             if (listed === undefined) support.world.setCarriedItem?.(undefined);
             support.fire(params.onPlace);

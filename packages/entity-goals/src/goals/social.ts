@@ -277,7 +277,7 @@ const temptFrom = (body: GoalBody): TemptParams => ({
 });
 
 /** The shared tempt loop, used by `tempt` and by the ghast's `float_tempt`. */
-const temptLoop = (support: GoalSupport, params: TemptParams): Goal => {
+const temptLoop = (support: GoalSupport, params: TemptParams, steer: 'path' | 'direct' = 'path'): Goal => {
     let player: GoalMob | undefined;
     let soundTimer = 0;
 
@@ -310,6 +310,10 @@ const temptLoop = (support: GoalSupport, params: TemptParams): Goal => {
             }
             if (support.distanceTo(holder.position()) <= params.stopDistance) {
                 support.navigator.stop();
+                return;
+            }
+            if (steer === 'direct') {
+                support.actuator?.moveTo(holder.position(), params.speedMultiplier);
                 return;
             }
             support.navigator.moveTo(holder.position(), params.speedMultiplier, params.stopDistance);
@@ -350,7 +354,9 @@ export const floatTempt = goal<TemptParams>({
         ...temptFrom(body),
         canTemptVertically: booleanAt(body, 'can_tempt_vertically', true)
     })),
-    create: (params, support) => temptLoop(support, params)
+    // Java's `TemptGoal.ForNonPathfinders` sets the move control's wanted position on the player
+    // every tick rather than planning a path.
+    create: (params, support) => temptLoop(support, params, 'direct')
 });
 
 /** What `minecraft:behavior.follow_owner` declares. */
@@ -1185,6 +1191,8 @@ export const dropItemFor = goal<DropItemForParams>({
     create: (params, support) => {
         let recipient: GoalMob | undefined;
         let cooldown = 0;
+        /** Goal ticks left to reach the recipient before the entity gives up on the gift. */
+        let patience = 0;
 
         return {
             canStart: () => {
@@ -1192,18 +1200,25 @@ export const dropItemFor = goal<DropItemForParams>({
                     cooldown -= 1;
                     return false;
                 }
-                const time = support.timeOfDay();
+                const clock = support.timeOfDay();
+                // The range is a fraction of one day, and the clock counts every day since the first.
+                const time = clock === undefined ? undefined : ((clock % 24000) + 24000) % 24000;
                 if (time !== undefined && (time < params.timeOfDayRange[0] || time > params.timeOfDayRange[1]))
                     return false;
                 recipient = support.findTarget(params.entityTypes, params.searchRange);
                 return recipient !== undefined;
             },
-            canContinue: () => recipient !== undefined && support.navigator.walking,
+            // It keeps going until it reaches the recipient and drops, even when it starts within reach.
+            canContinue: () => recipient !== undefined && patience > 0,
             start: () => {
+                patience = 200;
                 if (recipient !== undefined) support.navigator.moveTo(recipient.position(), 1, params.offeringDistance);
             },
             tick: () => {
+                patience -= 1;
                 if (support.navigator.tick()) return;
+                if (recipient !== undefined && support.distanceTo(recipient.position()) > params.offeringDistance + 1)
+                    return;
                 support.fire(params.onDropAttempt, recipient);
                 if (params.lootTable !== undefined && support.chance(params.dropChance))
                     support.world.dropLoot?.(params.lootTable, support.position());
