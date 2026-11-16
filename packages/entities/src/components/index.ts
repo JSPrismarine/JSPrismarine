@@ -10,6 +10,8 @@ import { bribeable } from './bribeable';
 import { dyeable } from './dyeable';
 import { genetics } from './genetics';
 import { home } from './home';
+import { lookedAt } from './lookedAt';
+import { peek } from './peek';
 import { trusting } from './interactions';
 import { tamemount } from './tamemount';
 import { trust } from './trust';
@@ -174,7 +176,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:item_hopper',
     'minecraft:leashable',
     'minecraft:leashable_to',
-    'minecraft:looked_at',
     'minecraft:managed_wandering_trader',
     'minecraft:mob_effect_immunity',
     'minecraft:movement_sound_distance_offset',
@@ -182,7 +183,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:npc',
     'minecraft:offspring_data',
     'minecraft:out_of_control',
-    'minecraft:peek',
     'minecraft:persistent',
     'minecraft:player.exhaustion',
     'minecraft:player.experience',
@@ -278,6 +278,8 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(strength);
     register(jumpStatic);
     register(loot);
+    register(lookedAt);
+    register(peek);
     register(mobEffect);
     register(nameable);
     register(physics);

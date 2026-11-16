@@ -148,6 +148,33 @@ export interface EntitySensorCandidate {
     readonly view: FilterEntityView;
 }
 
+/** A part of the entity a `minecraft:looked_at` stare may land on, and how far above it. */
+export interface LookedAtLocation {
+    readonly location: 'head' | 'body' | 'feet';
+    readonly verticalOffset: number;
+}
+
+/** The limits of one `minecraft:looked_at` search for players looking at the entity. */
+export interface LookedAtQuery {
+    /** How far a player may stand, in blocks. */
+    readonly searchRadius: number;
+    /**
+     * Java's `LivingEntity.isLookingAtMe` tolerance: a look counts when the cosine between it and the
+     * line to a location is above `1 - tolerance`.
+     */
+    readonly tolerance: number;
+    /** Whether the tolerance is divided by the distance, so a stare from further away must be truer. */
+    readonly scaleByDistance: boolean;
+    readonly locations: readonly LookedAtLocation[];
+}
+
+/** One player looking at the entity. */
+export interface LookedAtCandidate {
+    readonly id: number;
+    /** The facts filters can read about the player as `other`. */
+    readonly view: FilterEntityView;
+}
+
 /** What an entity needs from the world around it. */
 export interface EntityEnvironment {
     /** Refreshes world indexes when an event changes the active component set. */
@@ -185,6 +212,10 @@ export interface EntityEnvironment {
     targetProximity?(entity: EntityInstance): EntityTargetProximity | undefined;
     /** Finds live entities a `minecraft:entity_sensor` can sense. */
     entitySensorCandidates?(entity: EntityInstance, query: EntitySensorQuery): readonly EntitySensorCandidate[];
+    /** Finds the players looking at the entity, for `minecraft:looked_at`. */
+    lookers?(entity: EntityInstance, query: LookedAtQuery): readonly LookedAtCandidate[];
+    /** Makes an entity that looked at this one its target, for `minecraft:looked_at`'s `set_target`. */
+    targetLooker?(entity: EntityInstance, looker: LookedAtCandidate): void;
     /**
      * Reads a block at an integer world position, or leaves it unknown when the chunk is unloaded.
      * @param position - The integer block position to read.
@@ -1213,6 +1244,16 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /** Returns entities in the configured range for the active `minecraft:entity_sensor`. */
     public entitySensorCandidates(query: EntitySensorQuery): readonly EntitySensorCandidate[] {
         return this.environment.entitySensorCandidates?.(this, query) ?? [];
+    }
+
+    /** Returns the players looking at the entity, for the active `minecraft:looked_at`. */
+    public lookers(query: LookedAtQuery): readonly LookedAtCandidate[] {
+        return this.environment.lookers?.(this, query) ?? [];
+    }
+
+    /** Targets a player that looked at the entity, for `minecraft:looked_at`'s `set_target`. */
+    public targetLooker(looker: LookedAtCandidate): void {
+        this.environment.targetLooker?.(this, looker);
     }
 
     /** Applies a status effect to the entity represented by a filter view. */

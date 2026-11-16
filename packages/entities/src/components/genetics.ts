@@ -5,6 +5,7 @@ import { defineComponentState, stateField } from '../componentState';
 import type { EntityInstance } from '../entityInstance';
 import type { EntityHooks } from '../hooks';
 import type { RandomSource } from '../filterContext';
+import { nextInt } from '../randomInt';
 import { asList, isRecord, numberAt, stringAt } from './schemas';
 import type { SensorTrigger } from './shared';
 import { parseComponentTrigger } from './shared';
@@ -117,10 +118,6 @@ const rangeOf = (value: unknown): AlleleRange | undefined => {
 
 const within = (range: AlleleRange | undefined, allele: number): boolean =>
     range === undefined || (allele >= range.min && allele <= range.max);
-
-/** A uniform draw in `[0, bound)`. */
-const nextInt = (random: RandomSource, bound: number): number =>
-    Math.min(bound - 1, Math.max(0, random.nextInt?.(bound) ?? Math.floor(random.next() * bound)));
 
 /** Java's `RandomSource.nextBoolean`. */
 const nextBoolean = (random: RandomSource): boolean => random.next() < 0.5;
