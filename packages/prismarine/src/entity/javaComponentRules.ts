@@ -100,7 +100,12 @@ export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponen
         { component: 'minecraft:drying_out_timer', rewrite: (body) => ({ ...body, total_time: 301 }) }
     ],
     // `MinecartTNT.<init>` sets `explosionPowerBase` to 4, which a minecart at rest explodes with.
-    'minecraft:tnt_minecart': [{ component: 'minecraft:explode', rewrite: (body) => ({ ...body, power: 4 }) }],
+    // `MinecartTNT` has no `interact`, so a player's flint and steel lights nothing: only fire,
+    // damage and an activator rail prime it. The pack primes it from the hand.
+    'minecraft:tnt_minecart': [
+        { component: 'minecraft:explode', rewrite: (body) => ({ ...body, power: 4 }) },
+        { component: 'minecraft:interact', rewrite: () => undefined }
+    ],
     // Java's creaking is not in `freeze_immune_entity_types` and `Creaking` keeps `Entity.canFreeze`,
     // so powder snow freezes it.
     'minecraft:creaking': [{ component: 'minecraft:freezing_immune', rewrite: () => undefined }],

@@ -44,6 +44,15 @@ describe('withJavaComponentRules', () => {
         });
     });
 
+    it("takes the TNT minecart's flint and steel priming out, which Java's minecart has no interact for", () => {
+        const interact = { interactions: [{ on_interact: { event: 'minecraft:on_prime' } }] };
+        const data = withJavaComponentRules(
+            entityFile('minecraft:tnt_minecart', { 'minecraft:inactive': { 'minecraft:interact': interact } })
+        );
+
+        expect(data).toEqual(entityFile('minecraft:tnt_minecart', { 'minecraft:inactive': {} }));
+    });
+
     it("takes the creaking's freezing immunity out, which Java's creaking does not have", () => {
         const data = withJavaComponentRules(
             entityFile('minecraft:creaking', {}, { 'minecraft:freezing_immune': {}, 'minecraft:health': { value: 1 } })
