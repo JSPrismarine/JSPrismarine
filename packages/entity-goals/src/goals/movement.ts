@@ -253,25 +253,57 @@ const surfaceUnder = (support: GoalSupport, position: EntityPosition, reach: num
 };
 
 /**
+ * Java's `Bee$BeeWanderGoal.findPos` steering: once the entity's block is `distance` or more from
+ * its home's, a wander keeps to the half of the circle that faces home, as `HoverRandomPos` keeps
+ * within 90 degrees of the direction to the hive. Nearer home, or with no home, it draws freely.
+ */
+const towardHome = (
+    support: GoalSupport,
+    distance: number | undefined
+): ((candidate: EntityPosition) => boolean) | undefined => {
+    const home = support.entity.homePosition;
+    if (distance === undefined || home === undefined) return undefined;
+    const here = blockOf(support.position());
+    const center = blockOf(home);
+    const dx = center.x - here.x;
+    const dz = center.z - here.z;
+    const dy = center.y - here.y;
+    if (dx * dx + dy * dy + dz * dz < distance * distance) return undefined;
+    return (candidate) => (candidate.x - here.x) * dx + (candidate.z - here.z) * dz >= 0;
+};
+
+/**
  * `minecraft:behavior.random_hover`, which the bee and the allay carry. It is
  * the flying wander with the destination's height pinned to a band above the
  * ground: `hover_height` blocks above the surface under the drawn spot, as
  * Java's `HoverRandomPos` moves a drawn solid block up to 1 to 3 blocks over
  * it. A spot over a drop deeper than the vertical range is no destination.
  */
-export const randomHover = goal<WanderParams & { readonly hoverHeight: Range; readonly yOffset: number }>({
+export const randomHover = goal<
+    WanderParams & {
+        readonly hoverHeight: Range;
+        readonly yOffset: number;
+        /** How far from home the wander turns back toward it, in blocks; a server key, absent never. */
+        readonly homeSteerDistance: number | undefined;
+    }
+>({
     name: 'minecraft:behavior.random_hover',
     controlFlags: ['move'],
     schema: bodySchema((body) => ({
         ...wanderFrom(body, { xzDistance: 10, yDistance: 7, interval: 120 }),
         hoverHeight: rangeAt(body, 'hover_height', [0, 0]),
-        yOffset: numberAt(body, 'y_offset', 0)
+        yOffset: numberAt(body, 'y_offset', 0),
+        homeSteerDistance: typeof body.home_steer_distance === 'number' ? body.home_steer_distance : undefined
     })),
     create: (params, support) =>
         walkTo(support, {
             find: () => {
-                const candidate = support.navigator.randomTarget(params.xzDistance, params.yDistance, () =>
-                    support.random()
+                const candidate = support.navigator.randomTarget(
+                    params.xzDistance,
+                    params.yDistance,
+                    () => support.random(),
+                    undefined,
+                    towardHome(support, params.homeSteerDistance)
                 );
                 if (candidate === undefined) return undefined;
                 const hover = support.between(params.hoverHeight[0], params.hoverHeight[1]);

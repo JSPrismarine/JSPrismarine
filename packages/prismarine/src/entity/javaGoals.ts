@@ -74,6 +74,13 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
         java: tuned('minecraft:target_nearby_sensor', { inside_range: under(3), outside_range: 7 })
     },
     {
+        // Java `Bee$BeeWanderGoal.findPos` heads a wander toward the hive once the bee is
+        // `getWanderThreshold` blocks from it, 48 less 24 for a bee with a hive.
+        entity: 'minecraft:bee',
+        component: 'minecraft:behavior.random_hover',
+        java: (body) => ({ 'minecraft:behavior.random_hover': { ...body, home_steer_distance: 24 } })
+    },
+    {
         // Java `Blaze.registerGoals` adds `BlazeAttackGoal`, which bites inside 2 blocks and
         // otherwise charges and fires bursts of three. It runs whatever the range, so it goes in
         // the group of the sensor that is always on, beside the sensor, which still swaps the

@@ -352,12 +352,15 @@ export class Navigator {
      * ({@link breaksHomeRestriction}), as Java's `RandomPos` refuses it.
      *
      * @param random - Draws the candidate offsets, in [0, 1).
+     * @param accept - Refuses a candidate before the path finder sees it, such as one that does not
+     *   head where the goal steers.
      */
     public randomTarget(
         xzDistance: number,
         yDistance: number,
         random: () => number,
-        attempts = 10
+        attempts = 10,
+        accept?: (candidate: EntityPosition) => boolean
     ): EntityPosition | undefined {
         const actuator = this.context.actuator;
         if (actuator === undefined) return undefined;
@@ -370,7 +373,9 @@ export class Navigator {
         const view = this.context.navigation();
         if (view === undefined) {
             const candidate = actuator.randomTarget(xzDistance, yDistance);
-            return candidate === undefined || restricted(candidate) ? undefined : candidate;
+            return candidate === undefined || restricted(candidate) || accept?.(candidate) === false
+                ? undefined
+                : candidate;
         }
 
         const here = blockOf(position);
@@ -382,6 +387,7 @@ export class Navigator {
                 z: here.z + Math.round((random() * 2 - 1) * xzDistance)
             };
             if (restricted(candidate)) continue;
+            if (accept !== undefined && !accept(candidate)) continue;
             if (profile.avoidWater && view.isWater(candidate)) continue;
 
             const path = findPath(view, profile, { from: here, to: candidate });

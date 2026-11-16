@@ -121,6 +121,9 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
         timerTicks('find_hive', 2400),
         // `Bee.COOLDOWN_BEFORE_LOCATING_NEW_HIVE`.
         timerTicks('hive_full', 200),
+        // Java's bee never calls `Mob.setHomeTo`: `Bee$BeeWanderGoal` steers back toward its hive
+        // instead, which its hover goal does on the server.
+        unrestrictedHome,
         // `BeehiveBlock.angerNearbyBees` angers the bees in the hive's box inflated by 8.
         {
             component: 'minecraft:block_sensor',

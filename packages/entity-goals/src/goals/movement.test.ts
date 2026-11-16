@@ -118,6 +118,52 @@ describe('minecraft:behavior.find_cover', () => {
     });
 });
 
+describe('minecraft:behavior.random_hover steering', () => {
+    /** The x of the first step of one wander per seed, for a bee at x 40 whose home is at x 2. */
+    const firstSteps = (steer: number | undefined): readonly number[] =>
+        Array.from({ length: 30 }, (_, seed) => {
+            let state = seed + 1;
+            const size = 48;
+            const floor = Array.from({ length: size }, () => '#'.repeat(size));
+            const air = Array.from({ length: size }, () => '.'.repeat(size));
+            const harness = new GoalHarness({
+                goals: {
+                    'minecraft:behavior.random_hover': {
+                        priority: 12,
+                        interval: 0,
+                        xz_dist: 8,
+                        y_dist: 2,
+                        hover_height: [1, 1],
+                        ...(steer === undefined ? {} : { home_steer_distance: steer })
+                    }
+                },
+                components: { 'minecraft:navigation.fly': {}, 'minecraft:can_fly': {} },
+                world: { navigation: () => voxelGrid([floor, air, air, air, air, air]) },
+                at: { x: 40.5, y: 2, z: 24.5 },
+                // Park and Miller's generator, so each seed draws its own wander.
+                random: () => {
+                    state = (state * 16807) % 2147483647;
+                    return state / 2147483647;
+                }
+            });
+            harness.entity.setHomePosition({ x: 2.5, y: 2, z: 24.5 });
+            harness.tick();
+            const step = harness.actuator.log.find((entry) => entry.startsWith('moveTo'));
+            return Number(step?.match(/^moveTo ([^,]+),/)?.[1] ?? Number.NaN);
+        });
+
+    it('heads back toward home once it is past the steering distance, as Java steers a bee to its hive', () => {
+        const steered = firstSteps(24).filter((x) => !Number.isNaN(x));
+        expect(steered.length).toBeGreaterThan(10);
+        expect(steered.every((x) => x <= 40.5)).toBe(true);
+
+        // With no steering distance, a wander heads any way.
+        expect(firstSteps(undefined).some((x) => x > 40.5)).toBe(true);
+        // Within the steering distance, it does too.
+        expect(firstSteps(64).some((x) => x > 40.5)).toBe(true);
+    });
+});
+
 describe('minecraft:behavior.random_stroll', () => {
     it('claims the move flag and walks to a position the path finder reached', () => {
         const harness = new GoalHarness({
