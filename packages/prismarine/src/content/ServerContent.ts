@@ -66,6 +66,7 @@ import { javaBabyFoods, withJavaBabyFood } from '../entity/javaBabyFood';
 import { brainGoalsOf, withBrainGoals } from '../entity/brainGoals';
 import { withoutMountPathing } from '../entity/data/riderControl';
 import { withJavaComponentRules } from '../entity/javaComponentRules';
+import { javaSpawnRulings, withJavaSpawnEvents } from '../entity/javaSpawnEvents';
 import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
 import { javaGoalOverlay } from '../entity/javaGoalArguments';
 import { withJavaComponentTuning } from '../entity/javaComponentTuning';
@@ -388,32 +389,29 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const brains = new BrainMobRegistry();
     registerBrainMobs(brains);
     const brainGoals = brainGoalsOf(brains.all);
+
+    const spawnRulings = javaSpawnRulings();
+    // Java's rules written over each vanilla entity file as it loads, applied in this order: each
+    // overlay sees the file the ones before it wrote, so a later, more specific ruling wins.
+    const overlays: readonly ((data: unknown) => unknown)[] = [
+        withPlayerOverlay,
+        (data) => withJavaBreedingFood(data, breedingFoods),
+        (data) => withJavaBabyFood(data, babyFoods),
+        (data) => withJavaAirSupply(data, airSupplies),
+        withJavaComponentTuning,
+        withJavaComponentRules,
+        (data) => withBrainGoals(data, brainGoals),
+        withoutMountPathing,
+        withJavaGoalArguments,
+        (data) => withJavaGoals(data, goalRulings),
+        (data) => withJavaSpawnEvents(data, spawnRulings)
+    ];
     diagnostics.push(
         ...entityTypes.load(
             entityFiles.map((definition) => ({
                 pack: definition.pack,
                 path: definition.path,
-                data: withJavaGoals(
-                    withJavaGoalArguments(
-                        withoutMountPathing(
-                            withBrainGoals(
-                                withJavaComponentRules(
-                                    withJavaComponentTuning(
-                                        withJavaAirSupply(
-                                            withJavaBabyFood(
-                                                withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
-                                                babyFoods
-                                            ),
-                                            airSupplies
-                                        )
-                                    )
-                                ),
-                                brainGoals
-                            )
-                        )
-                    ),
-                    goalRulings
-                )
+                data: overlays.reduce((data, overlay) => overlay(data), definition.data)
             }))
         )
     );

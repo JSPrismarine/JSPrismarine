@@ -549,6 +549,16 @@ Its `spawn_rules/` files let skeletons into mangrove swamps and rabbits into the
 Each is Mojang's file with that one change. The `spawns-in-biome` rows of the `entities.behavior`
 parity family check every Java biome's list against the rules.
 
+What a mob is when it spawns follows Java as well, since the client draws whatever variant the server
+sends. [`javaSpawnEvents.ts`](../../packages/prismarine/src/entity/javaSpawnEvents.ts) rewrites the
+vanilla spawn events as the files load, so they roll Java's `finalizeSpawn` tables through the groups
+the files already have: a spider's skeleton jockey, a strider's riders, a rabbit's coat, a fox's
+color, a villager's missing profession, a tropical fish's pattern and colors, and a sulfur cube's
+size. The overlay's `biomes/` files tag the snowy taiga and the ice spikes for snow foxes and white
+rabbits as Java's biome tags do, and its sulfur cube spawn rule gives a herd's later members the small
+roll Java gives them. The `variant-at-spawn`, `tropical-fish-look`, `jockey-riders` and
+`jockey-chance` rows check each rule against Java.
+
 One cycle reads the pool's cap, samples 8 chunks within 4 chunks of each player, tries 3 positions
 per chunk for the surface pass and 3 for the underground pass, collects every rule condition that
 passes at a position, draws one by weight, applies its `rarity` roll, places a herd, and gives each
