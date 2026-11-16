@@ -1,6 +1,14 @@
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { packJson } from '@jsprismarine/loot';
+import { hangingState, paintingSightOf } from '@jsprismarine/prismarine/entity/data/hangingEntities';
+import { bedrockPaintingMotif, paintingState } from '@jsprismarine/prismarine/entity/data/paintings';
 import { FLOOR_Y } from '@jsprismarine/prismarine/entity/data/testing';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
+import { loadVanillaDatapack } from '../javaDatapack.ts';
+import { FETCH_CACHE, REFERENCES } from '../references.ts';
 import { stage, tickStage } from './stage.ts';
 import type { StagedEntity } from './stage.ts';
 import type { EntitySubject } from './subjects.ts';
@@ -230,6 +238,208 @@ const hangingDifferences = (javaId: string, bedrock: string): readonly string[] 
     return differences;
 };
 
+/** One Java painting variant: its id, texture and size, from the vanilla datapack. */
+interface JavaPainting {
+    readonly id: string;
+    readonly assetId: string;
+    readonly width: number;
+    readonly height: number;
+}
+
+let javaPaintings: readonly JavaPainting[] | undefined;
+
+/** The variants Java's `minecraft:placeable` tag holds, read from the vanilla datapack's files. */
+const placeableJavaPaintings = (): readonly JavaPainting[] => {
+    if (javaPaintings !== undefined) return javaPaintings;
+    const { definitions } = loadVanillaDatapack();
+    const tag = packJson(definitions.tags.get('painting_variant/minecraft:placeable'));
+    const ids =
+        typeof tag === 'object' && tag !== null && 'values' in tag && Array.isArray(tag.values) ? tag.values : [];
+    javaPaintings = ids.flatMap((id): JavaPainting[] => {
+        if (typeof id !== 'string') return [];
+        const file = packJson(definitions.paintingVariants.get(id));
+        if (typeof file !== 'object' || file === null) return [];
+        const {
+            asset_id: assetId,
+            width,
+            height
+        } = { asset_id: undefined, width: undefined, height: undefined, ...file };
+        return typeof assetId === 'string' && typeof width === 'number' && typeof height === 'number'
+            ? [{ id, assetId, width, height }]
+            : [];
+    });
+    return javaPaintings;
+};
+
+/**
+ * The blocks a Java painting of one size covers along one axis, counted from the block it hangs
+ * in: `Painting.calculateBoundingBox` centers the face on that block, half a block further along
+ * for an even size.
+ */
+const javaCovered = (size: number): readonly number[] => {
+    const center = 0.5 + (size % 2 === 0 ? 0.5 : 0);
+    const covered: number[] = [];
+    for (let block = Math.floor(center - size / 2); block < Math.ceil(center + size / 2); block += 1)
+        covered.push(block);
+    return covered;
+};
+
+/**
+ * Walls a painting is placed on facing south, from the block in front of one: its width and
+ * height in blocks, and where in it the painting's block is, counted from its lower west corner.
+ */
+const PAINTING_WALLS: readonly (readonly [width: number, height: number, across: number, up: number])[] = [
+    [0, 0, 0, 0],
+    [1, 1, 0, 0],
+    [2, 1, 0, 0],
+    [2, 1, 1, 0],
+    [3, 3, 1, 1],
+    [4, 2, 1, 0],
+    [4, 3, 1, 1],
+    [4, 4, 1, 1],
+    [4, 4, 2, 2]
+];
+
+/** Placing a painting from the item against each wall: Java's `Painting.create` against the server's. */
+const paintingPlacementDifferences = (bedrock: string): readonly string[] => {
+    const { runtime, world } = stage();
+    const javaVariants = placeableJavaPaintings();
+    if (javaVariants.length === 0) return ["Java's placeable painting variants could not be read"];
+    const differences: string[] = [];
+    for (const [index, [width, height, across, up]] of PAINTING_WALLS.entries()) {
+        const { x } = column(20 + index * 6);
+        const bottom = FLOOR_Y + 3;
+        const wall = (block: string): void => {
+            for (let dx = 0; dx < width; dx += 1)
+                for (let dy = 0; dy < height; dy += 1) world.setBlock({ x: x + dx, y: bottom + dy, z: 0 }, block);
+        };
+        wall('minecraft:stone');
+        const fits = javaVariants.filter(
+            (variant) =>
+                javaCovered(variant.width).every((dx) => across + dx >= 0 && across + dx < width) &&
+                javaCovered(variant.height).every((dy) => up + dy >= 0 && up + dy < height)
+        );
+        const largest = Math.max(0, ...fits.map((variant) => variant.width * variant.height));
+        const expected = fits.filter((variant) => variant.width * variant.height === largest);
+        const cell = { x: x + across, y: bottom + up, z: 1 };
+        const painting = runtime.spawn(
+            bedrock,
+            { x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 },
+            { data: { facing: 'south' } }
+        );
+        const picture = painting?.instance.componentState.get(paintingState);
+        const sight =
+            painting === undefined
+                ? undefined
+                : paintingSightOf(painting.position, picture, painting.instance.componentState.get(hangingState));
+        clear(painting);
+        wall('minecraft:air');
+
+        const on = `on a ${width} by ${height} wall`;
+        if (expected.length === 0) {
+            if (painting !== undefined)
+                differences.push(`it hangs ${picture?.variant ?? 'a painting'} ${on}, where Java's places none`);
+            continue;
+        }
+        const chosen = expected.find((variant) => variant.id === picture?.variant);
+        if (chosen === undefined) {
+            differences.push(
+                `it hangs ${picture?.variant ?? 'nothing'} ${on}, where Java's hangs one of ${expected.map((variant) => variant.id).join(', ')}`
+            );
+            continue;
+        }
+        // Java's painting stands at the center of its face: half a block in front of the wall,
+        // shifted east and up by half a block for an even width or height.
+        const center = {
+            x: cell.x + 0.5 + (chosen.width % 2 === 0 ? 0.5 : 0),
+            y: cell.y + 0.5 + (chosen.height % 2 === 0 ? 0.5 : 0),
+            z: cell.z + 0.5 - 0.46875
+        };
+        const off =
+            sight === undefined
+                ? Number.POSITIVE_INFINITY
+                : Math.hypot(sight.position.x - center.x, sight.position.y - center.y, sight.position.z - center.z);
+        if (sight?.direction !== 0 || off > 1e-9)
+            differences.push(
+                `a client is shown ${chosen.id} ${on} at ${JSON.stringify(sight?.position)} facing ${String(sight?.direction)}, where Java's stands at ${JSON.stringify(center)} facing south (0)`
+            );
+    }
+    return differences;
+};
+
+/** Whether a byte is an ASCII letter or digit. */
+const isWordByte = (byte: number | undefined): boolean =>
+    byte !== undefined &&
+    ((byte >= 0x30 && byte <= 0x39) || (byte >= 0x41 && byte <= 0x5a) || (byte >= 0x61 && byte <= 0x7a));
+
+/** Whether a byte is a lower-case ASCII letter or a digit, which would carry a name on. */
+const continuesName = (byte: number | undefined): boolean =>
+    byte !== undefined && ((byte >= 0x30 && byte <= 0x39) || (byte >= 0x61 && byte <= 0x7a));
+
+/**
+ * The names a Bedrock client knows a painting by: the files of its resource pack's
+ * `textures/painting/`, and the tile names the pinned dedicated server carries for the paintings
+ * drawn from the `kz` atlas, which it holds as strings or, at eight letters or fewer, inlined in
+ * its instructions.
+ */
+const bedrockPaintingNames = (): {
+    readonly textures: ReadonlySet<string>;
+    readonly inServer: (name: string) => boolean;
+} => {
+    const checkout = REFERENCES.bedrockBehaviorPack.locate();
+    if (checkout === undefined) throw new Error('the vanilla Bedrock packs are not in the fetch cache');
+    const folder = join(checkout, 'resource_pack', 'textures', 'painting');
+    const textures = new Set(
+        readdirSync(folder)
+            .filter((name) => name.endsWith('.png'))
+            .map((name) => name.slice(0, -'.png'.length))
+    );
+    let bytes: Buffer | undefined;
+    return {
+        textures,
+        // The dedicated server binary, read once and only when a motif is not a texture file: the
+        // name standing on its own, not inside a longer word.
+        inServer: (name) => {
+            if (bytes === undefined) {
+                const root = join(FETCH_CACHE, 'bds');
+                const binary = existsSync(root)
+                    ? readdirSync(root)
+                          .map((version) => join(root, version, 'unpacked', 'bedrock_server'))
+                          .find((path) => existsSync(path))
+                    : undefined;
+                if (binary === undefined)
+                    throw new Error('the pinned Bedrock Dedicated Server is not in the fetch cache');
+                bytes = readFileSync(binary);
+            }
+            const needle = Buffer.from(name, 'latin1');
+            for (let at = bytes.indexOf(needle); at >= 0; at = bytes.indexOf(needle, at + 1))
+                if (!isWordByte(bytes[at - 1]) && !continuesName(bytes[at + needle.length])) return true;
+            return false;
+        }
+    };
+};
+
+/** Every placeable painting's motif, against the names a Bedrock client draws. */
+const paintingMotifDifferences = (): readonly string[] => {
+    const names = bedrockPaintingNames();
+    const unknown = placeableJavaPaintings()
+        .map((variant) => ({ variant, motif: bedrockPaintingMotif(variant.assetId) }))
+        .filter(({ motif }) => !names.textures.has(motif) && !names.inServer(motif));
+    const ownTextures = placeableJavaPaintings().filter((variant) =>
+        names.textures.has(variant.assetId.replace('minecraft:', ''))
+    );
+    const misnamed = ownTextures.filter(
+        (variant) => bedrockPaintingMotif(variant.assetId) !== variant.assetId.replace('minecraft:', '')
+    );
+    return [
+        ...unknown.map(({ variant, motif }) => `${variant.id} is sent as ${motif}, which no Bedrock painting is named`),
+        ...misnamed.map(
+            (variant) =>
+                `${variant.id} is sent as ${bedrockPaintingMotif(variant.assetId)}, where Bedrock names its own texture ${variant.assetId.replace('minecraft:', '')}`
+        )
+    ];
+};
+
 /** Java's `OminousItemSpawner` lets its item go within 120 ticks and is gone. */
 const OMINOUS_SPAWN_TICKS = 120;
 
@@ -289,9 +499,35 @@ export const engineScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             'Java HangingEntity.tick (survives checked every 100 ticks), Painting.dropItem and LeashFenceKnotEntity.survives; issue #3136',
         subjects: () => ['minecraft:painting', 'minecraft:leash_knot'].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
-        aspects: () => ['engine'],
+        aspects: () => ['jsprismarine:hanging'],
         run: (subject) => {
             const differences = hangingDifferences(subject.javaId, subject.bedrock);
+            return differences.length === 0 ? undefined : differences.join('; ');
+        }
+    },
+    {
+        name: 'painting-placement',
+        java: 'A painting placed on a wall shows one of the placeable variants that fit there with the largest area, or is not placed when none fits, and a client is shown it at the center of its face.',
+        reference:
+            'Java Painting.create (the minecraft:placeable painting_variant tag, survives, variantArea, Util.getRandomSafe) and Painting.calculateBoundingBox (0.46875 off the wall, half a block further for an even size); issue #3136',
+        subjects: () => ['minecraft:painting'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['jsprismarine:hanging'],
+        run: (subject) => {
+            const differences = paintingPlacementDifferences(subject.bedrock);
+            return differences.length === 0 ? undefined : differences.join('; ');
+        }
+    },
+    {
+        name: 'painting-motif',
+        java: 'A client draws each placeable painting by the name its Bedrock resource pack gives that picture.',
+        reference:
+            "Bedrock's resource pack textures/painting/ and the kz atlas tile names in the pinned Bedrock Dedicated Server, against each Java variant's asset_id",
+        subjects: () => ['minecraft:painting'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['jsprismarine:hanging'],
+        run: () => {
+            const differences = paintingMotifDifferences();
             return differences.length === 0 ? undefined : differences.join('; ');
         }
     },
@@ -302,7 +538,7 @@ export const engineScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             'Java OminousItemSpawner.tick (spawnItemAfterTicks drawn from 60 to 120) and OminousItemSpawner.spawnItem; issue #3137',
         subjects: () => ['minecraft:ominous_item_spawner'].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
-        aspects: () => ['engine'],
+        aspects: () => ['jsprismarine:ominous_item_spawner'],
         run: (subject) => {
             const differences = ominousDifferences(subject.bedrock);
             return differences.length === 0 ? undefined : differences.join('; ');
