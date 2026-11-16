@@ -32,7 +32,8 @@ export const controllingRiderOf = (vehicle: DataEntity, scene: EntityScene): Dat
     if (!isMob(vehicle)) return undefined;
     const [first] = scene.ridersOf(vehicle.body);
     const rider = typeof first?.id === 'number' ? scene.byId(first.id) : undefined;
-    if (rider === undefined || !isMob(rider)) return undefined;
+    // Any mob passenger steers, whatever goals it runs; a player steers through its client.
+    if (rider === undefined || clientOwnsMovement(rider.identifier)) return undefined;
     if (bedrockEntityTypeTagsFor(scene.content().tags, rider.identifier).includes(NON_CONTROLLING_RIDER))
         return undefined;
     return rider;
