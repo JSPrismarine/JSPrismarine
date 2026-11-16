@@ -15,7 +15,9 @@ import { FLOOR_Y, TestEntityWorld } from '@jsprismarine/prismarine/entity/data/t
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import type { JavaEntityState } from '../javaEntityClasses.ts';
-import { pinnedJavaClass } from '../javaClassFile.ts';
+import { LegacyRandomSource } from '@jsprismarine/worldgen/random/LegacyRandomSource';
+
+import { javaOperations, numericConstants, pinnedJavaClass } from '../javaClassFile.ts';
 import { unpackVanillaDatapack } from '../javaDatapack.ts';
 import {
     evaluateJavaMethod,
@@ -77,6 +79,8 @@ interface Bench {
     readonly world: TestEntityWorld;
     /** The value every random draw returns until the scenario changes it. */
     roll: number;
+    /** A source each draw takes its value from instead of {@link Bench.roll}, when a scenario sets one. */
+    draw?: () => number;
     /** Moves the scenario's player. */
     readonly placePlayer: (position: ContentPosition) => void;
 }
@@ -112,8 +116,9 @@ const bench = (dayTime?: number, biome?: string): Bench => {
                     ? {}
                     : { blocks: { ...world.world.blocks, biome: () => biome, biomeTags: () => tags } }),
                 random: {
-                    nextFloat: () => state.roll,
-                    nextInt: (bound) => (bound <= 0 ? 0 : Math.min(bound - 1, Math.floor(state.roll * bound)))
+                    nextFloat: () => state.draw?.() ?? state.roll,
+                    nextInt: (bound) =>
+                        bound <= 0 ? 0 : Math.min(bound - 1, Math.floor((state.draw?.() ?? state.roll) * bound))
                 }
             },
             host: {
@@ -208,6 +213,25 @@ const tickBench = (current: Bench, ticks: number): void => {
 /** The entity types the server resolved, with its overlays, which a scenario spawns bare instances from. */
 const serverTypes = () => realStack().content.entities.types;
 
+/**
+ * A bare instance of a server type, outside any runtime. Its spawn event draws the middle of every
+ * `randomize`, so the same type spawns the same way on every run.
+ */
+const bareSpawn = (bedrock: string): EntityInstance =>
+    serverTypes().spawn(bedrock, { environment: { random: { next: () => 0.5 } } });
+
+/**
+ * Every value the server's loaded type gives one component, in its base components and each
+ * component group: the definition after the server's overlays, which is what it spawns from.
+ */
+const loadedComponentValues = (bedrock: string, component: string): readonly unknown[] => {
+    const type = serverTypes().registry.get(bedrock);
+    if (type === undefined) return [];
+    return [type.components, ...[...type.groups.values()].map((group) => group.components)].flatMap((components) =>
+        components.filter((bound) => bound.name === component).map((bound) => bound.params)
+    );
+};
+
 let familyCarriers: ReadonlyMap<string, readonly [identifier: string, group: string | undefined]> | undefined;
 
 /**
@@ -219,7 +243,7 @@ const riderFor = (families: readonly string[]): EntityInstance | undefined => {
     if (familyCarriers === undefined) {
         const found = new Map<string, readonly [string, string | undefined]>();
         for (const identifier of types.registry.keys()) {
-            for (const family of types.spawn(identifier).families())
+            for (const family of bareSpawn(identifier).families())
                 if (!found.has(family)) found.set(family, [identifier, undefined]);
             for (const group of types.registry.get(identifier)?.groups.values() ?? []) {
                 const params = group.components.find((component) => component.name === 'minecraft:type_family')?.params;
@@ -234,7 +258,7 @@ const riderFor = (families: readonly string[]): EntityInstance | undefined => {
         .find((candidate) => candidate !== undefined);
     if (carrier === undefined) return undefined;
     const [identifier, group] = carrier;
-    const rider = types.spawn(identifier);
+    const rider = bareSpawn(identifier);
     if (group !== undefined) rider.restoreComponentGroups([...rider.activeComponentGroups(), group]);
     return rider;
 };
@@ -266,15 +290,14 @@ const javaSeats = (javaId: string): number => {
 
 /** How many riders the server seats on an entity in the rideable state that seats the most, by mounting them. */
 const serverSeats = (bedrock: string): number => {
-    const types = serverTypes();
-    const vehicle = types.spawn(bedrock);
+    const vehicle = bareSpawn(bedrock);
     const groups = [...vehicle.type.groups.values()]
         .filter((group) => group.components.some((component) => component.name === 'minecraft:rideable'))
         .map((group) => group.name);
     const base = vehicle.activeComponentGroups();
     let most = 0;
     for (const extra of [undefined, ...groups]) {
-        const fresh = types.spawn(bedrock);
+        const fresh = bareSpawn(bedrock);
         fresh.restoreComponentGroups(extra === undefined ? base : [...base, extra]);
         const params = fresh.componentParams('minecraft:rideable');
         if (!isRideableParams(params)) continue;
@@ -610,8 +633,14 @@ const SPIDER_JOCKEY: JockeySource = {
 
 const JOCKEY_SOURCES: Readonly<Record<string, JockeySource>> = {
     'minecraft:spider': SPIDER_JOCKEY,
-    // CaveSpider inherits Spider.finalizeSpawn.
-    'minecraft:cave_spider': SPIDER_JOCKEY,
+    // CaveSpider.finalizeSpawn returns the group data without running Spider's roll, so it seats
+    // no one; a cave spider that declares a rider again reads as carrying one Java never seats.
+    'minecraft:cave_spider': {
+        className: `${ENTITY}/monster/spider/CaveSpider`,
+        method: 'finalizeSpawn',
+        exclude: [],
+        roll: 0.001
+    },
     'minecraft:strider': {
         className: `${ENTITY}/monster/Strider`,
         method: 'finalizeSpawn',
@@ -666,14 +695,16 @@ interface JockeyChance {
     readonly java: (bounds: readonly number[]) => readonly (readonly [rider: string, chance: number])[];
 }
 
-const SPIDER_CHANCE: JockeyChance = {
-    className: `${ENTITY}/monster/spider/Spider`,
-    java: ([jockey = 0]) => [['minecraft:skeleton', 1 / jockey]]
-};
-
 const JOCKEY_CHANCES: Readonly<Record<string, JockeyChance>> = {
-    'minecraft:spider': SPIDER_CHANCE,
-    'minecraft:cave_spider': SPIDER_CHANCE,
+    'minecraft:spider': {
+        className: `${ENTITY}/monster/spider/Spider`,
+        java: ([jockey = 0]) => [['minecraft:skeleton', 1 / jockey]]
+    },
+    // CaveSpider.finalizeSpawn rolls nothing.
+    'minecraft:cave_spider': {
+        className: `${ENTITY}/monster/spider/CaveSpider`,
+        java: () => []
+    },
     'minecraft:strider': {
         className: `${ENTITY}/monster/Strider`,
         java: ([piglin = 0, parent = 0]) => [
@@ -841,6 +872,8 @@ interface LookRule {
     readonly biomes?: readonly string[];
     /** Whether the rule reads only grown spawns, or a tamed entity, rather than any spawn. */
     readonly how?: 'adult' | 'tamed';
+    /** How many rolls to sweep, for a fixed Java value that Bedrock departs from only on rare rolls. */
+    readonly steps?: number;
     readonly java: (bedrock: string, javaBiome: string) => Distribution;
 }
 
@@ -952,6 +985,10 @@ const LOOK_RULES: Readonly<Record<string, readonly LookRule[]>> = {
         }
     ],
     'minecraft:sheep': [{ aspect: 'minecraft:color', java: () => javaSheepColors() }],
+    // AgeableMob.finalizeSpawn makes no baby of a spawn's first member, and SulfurCube.setSpawnSize
+    // sizes anything but a baby 2, which Bedrock writes as variant 2.
+    // Bedrock spawns a small cube on one roll in twenty, which only the full sweep reaches.
+    'minecraft:sulfur_cube': [{ aspect: 'minecraft:variant', steps: SWEEP, java: () => always(2) }],
     // A shulker spawns undyed, which Bedrock writes as variant 16.
     'minecraft:shulker': [{ aspect: 'minecraft:variant', java: () => always(16) }],
     // Pufferfish start deflated, puff state 0.
@@ -1029,6 +1066,105 @@ const LOOK_FILTER_TESTS: Readonly<Record<LookAspect, string>> = {
     'minecraft:skin_id': 'is_skin_id'
 };
 
+const FISH = `${ENTITY}/animal/fish/TropicalFish`;
+
+/** A Java enum's constants in ordinal order: the static fields its initializer writes before `$VALUES`. */
+const javaEnumConstants = (className: string): readonly string[] => {
+    const initializer = pinnedJavaClass(className).find((method) => method.name === '<clinit>');
+    const owner = `${className.slice(className.lastIndexOf('/') + 1)}.`;
+    const names: string[] = [];
+    for (const operation of javaOperations(initializer ?? { instructions: [] })) {
+        if (operation.kind !== 'field' || !operation.write || !operation.target.startsWith(owner)) continue;
+        const name = operation.target.slice(owner.length);
+        if (name === '$VALUES') break;
+        names.push(name);
+    }
+    return names;
+};
+
+/** A tropical fish's look in Bedrock's four components. */
+interface FishLook {
+    /** The pattern's base, `minecraft:variant`: 0 small, 1 large. */
+    readonly variant: number;
+    /** The pattern's index within its base, `minecraft:mark_variant`. */
+    readonly mark: number;
+    /** The body's and the pattern's dye colors, `minecraft:color` and `minecraft:color2`. */
+    readonly color: number;
+    readonly color2: number;
+}
+
+const fishKey = (look: FishLook): string => `${look.variant}/${look.mark}/${look.color}/${look.color2}`;
+
+/**
+ * Java's tropical fish patterns as Bedrock's variant and mark variant: each `TropicalFish.Pattern`
+ * constant is built with its `Base` and its index within the base.
+ */
+const javaFishPatterns = (): ReadonlyMap<string, Pick<FishLook, 'variant' | 'mark'>> => {
+    const bases = javaEnumConstants(`${FISH}$Base`);
+    const constants = new Set(javaEnumConstants(`${FISH}$Pattern`));
+    const initializer = pinnedJavaClass(`${FISH}$Pattern`).find((method) => method.name === '<clinit>');
+    const patterns = new Map<string, Pick<FishLook, 'variant' | 'mark'>>();
+    let base: number | undefined;
+    let index: number | undefined;
+    for (const operation of javaOperations(initializer ?? { instructions: [] })) {
+        if (operation.kind === 'field' && !operation.write && operation.target.startsWith('TropicalFish$Base.')) {
+            base = bases.indexOf(operation.target.slice('TropicalFish$Base.'.length));
+            index = undefined;
+        } else if (operation.kind === 'number' && base !== undefined && index === undefined) index = operation.value;
+        else if (
+            operation.kind === 'field' &&
+            operation.write &&
+            operation.target.startsWith('TropicalFish$Pattern.')
+        ) {
+            const name = operation.target.slice('TropicalFish$Pattern.'.length);
+            if (constants.has(name) && base !== undefined && index !== undefined)
+                patterns.set(name, { variant: base, mark: index });
+            base = undefined;
+        }
+    }
+    return patterns;
+};
+
+/** Java's `TropicalFish.COMMON_VARIANTS`: the pattern and two dye colors its initializer builds each from. */
+const javaCommonFish = (): readonly FishLook[] => {
+    const patterns = javaFishPatterns();
+    const dyes = javaEnumConstants('net/minecraft/world/item/DyeColor');
+    const initializer = pinnedJavaClass(FISH).find((method) => method.name === '<clinit>');
+    let looks: FishLook[] = [];
+    let parts: string[] = [];
+    for (const operation of javaOperations(initializer ?? { instructions: [] })) {
+        if (operation.kind !== 'field') continue;
+        if (operation.write) {
+            if (operation.target === 'TropicalFish.COMMON_VARIANTS') return looks;
+            // The default variant is built the same way, before the common ones.
+            if (operation.target === 'TropicalFish.DEFAULT_VARIANT') looks = [];
+            continue;
+        }
+        if (operation.target.startsWith('TropicalFish$Pattern.')) parts = [operation.target];
+        else if (operation.target.startsWith('DyeColor.') && parts.length > 0) parts.push(operation.target);
+        if (parts.length !== 3) continue;
+        const [pattern, color, color2] = parts.map((part) => part.slice(part.indexOf('.') + 1));
+        const shape = patterns.get(pattern ?? '');
+        if (shape !== undefined)
+            looks.push({ ...shape, color: dyes.indexOf(color ?? ''), color2: dyes.indexOf(color2 ?? '') });
+        parts = [];
+    }
+    return looks;
+};
+
+/** How many tropical fish the scenario spawns, each drawing from one seeded generator. */
+const FISH_SPAWNS = 4000;
+
+/** A share above this marks a look as one of the common variants rather than a random one. */
+const COMMON_SHARE = 0.01;
+
+/** One numeric look component of a spawned entity. */
+const lookValue = (entity: DataEntity, component: string): number => {
+    const params = entity.instance.componentParams(component);
+    const value = typeof params === 'number' ? params : field(params, 'value');
+    return typeof value === 'number' ? value : Number.NaN;
+};
+
 /** Java's slime and magma cube sizes, Slime.finalizeSpawn: 1 << nextInt(3) at a fresh chunk's difficulty. */
 const CUBE_SIZES = [1, 2, 4] as const;
 
@@ -1043,7 +1179,7 @@ export const interactionScenarios: readonly BehaviorScenario<EntitySubject>[] = 
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:type_family'],
         run: (subject) => {
-            const families = serverTypes().spawn(subject.bedrock).families();
+            const families = bareSpawn(subject.bedrock).families();
             const tags = realStack().content.tags;
             const differences = FAMILY_TAGS.flatMap(([tag, family, rule]) => {
                 const java = tags.members('entity_type', tag).includes(subject.javaId);
@@ -1509,9 +1645,9 @@ export const interactionScenarios: readonly BehaviorScenario<EntitySubject>[] = 
     },
     {
         name: 'jockey-riders',
-        java: 'A jockey arrives with the rider types Java seats on it: a skeleton on a spider or cave spider, a zombified piglin or a baby strider on a strider, a zombie on a zombie horse, a husk and a parched on a camel husk, and a pillager, evoker or vindicator on a raid ravager.',
+        java: 'A jockey arrives with the rider types Java seats on it: a skeleton on a spider and nothing on a cave spider, a zombified piglin or a baby strider on a strider, a zombie on a zombie horse, a husk and a parched on a camel husk, and a pillager, evoker or vindicator on a raid ravager.',
         reference:
-            'Java Spider.finalizeSpawn, Strider.finalizeSpawn and spawnJockey, ZombieHorse.finalizeSpawn, Husk.finalizeSpawn (the camel husk and its parched) and Raid (the ravager riders): the EntityTypes each creates and seats; issues #3116 and #3164',
+            'Java Spider.finalizeSpawn, CaveSpider.finalizeSpawn (which skips the spider roll), Strider.finalizeSpawn and spawnJockey, ZombieHorse.finalizeSpawn, Husk.finalizeSpawn (the camel husk and its parched) and Raid (the ravager riders): the EntityTypes each creates and seats; issues #3116 and #3164',
         subjects: subjectsDeclaring('minecraft:addrider'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:addrider'],
@@ -1519,7 +1655,7 @@ export const interactionScenarios: readonly BehaviorScenario<EntitySubject>[] = 
             const source = JOCKEY_SOURCES[subject.javaId];
             if (source === undefined) return `no Java jockey rule is recorded for ${subject.javaId}`;
             const java = new Set([...javaRiderTypes(source, subject.javaId)].map(bedrockEntity));
-            const declared = componentValues(subject.bedrock, 'minecraft:addrider').flatMap((value) => {
+            const declared = loadedComponentValues(subject.bedrock, 'minecraft:addrider').flatMap((value) => {
                 const riders = field(value, 'riders');
                 return (Array.isArray(riders) ? riders : [value]).flatMap((rider) =>
                     stringList(field(rider, 'entity_type'))
@@ -1551,8 +1687,9 @@ export const interactionScenarios: readonly BehaviorScenario<EntitySubject>[] = 
     },
     {
         name: 'jockey-chance',
-        java: 'A spider or cave spider spawns a skeleton jockey on random.nextInt(100) == 0 whatever the time and biome, and an adult strider spawns a zombified piglin jockey on nextInt(30) == 0 and otherwise a baby strider jockey on nextInt(10) == 0.',
-        reference: 'Java Spider.finalizeSpawn and Strider.finalizeSpawn (RandomSource.nextInt bounds); issue #3164',
+        java: 'A spider spawns a skeleton jockey on random.nextInt(100) == 0 whatever the time and biome, a cave spider never spawns one, and an adult strider spawns a zombified piglin jockey on nextInt(30) == 0 and otherwise a baby strider jockey on nextInt(10) == 0.',
+        reference:
+            'Java Spider.finalizeSpawn, CaveSpider.finalizeSpawn and Strider.finalizeSpawn (RandomSource.nextInt bounds); issue #3164',
         subjects: () =>
             entitiesDeclaring('minecraft:addrider').filter((subject) => JOCKEY_CHANCES[subject.javaId] !== undefined),
         idOf: (subject) => subject.javaId,
@@ -1587,11 +1724,13 @@ export const interactionScenarios: readonly BehaviorScenario<EntitySubject>[] = 
                         if (typeof rider.id === 'number') current.runtime.remove(rider.id, 'parity');
                     current.runtime.remove(vehicle.id, 'parity');
                 }
-                for (const [rider, java] of chance.java(bounds)) {
+                const java = new Map(chance.java(bounds));
+                for (const rider of new Set([...java.keys(), ...share.keys()])) {
                     const server = adults === 0 ? 0 : (share.get(rider) ?? 0) / adults;
-                    if (Math.abs(server - java) > 0.0025)
+                    const javaShare = java.get(rider) ?? 0;
+                    if (Math.abs(server - javaShare) > 0.0025)
                         differences.push(
-                            `${when} ${(server * 100).toFixed(2)}% of adults carry ${rider}, Java ${(java * 100).toFixed(2)}%`
+                            `${when} ${(server * 100).toFixed(2)}% of adults carry ${rider}, Java ${(javaShare * 100).toFixed(2)}%`
                         );
                 }
             }
@@ -1657,7 +1796,7 @@ export const interactionScenarios: readonly BehaviorScenario<EntitySubject>[] = 
         name: 'variant-at-spawn',
         java: "A spawned mob's variant, markings and colors follow Java's spawn rule for its type: a datapack variant registry's biome conditions, a uniform pick, a biome table, or a fixed starting value.",
         reference:
-            'Java wolf_variant, cat_variant and frog_variant spawn_conditions; Axolotl, Horse, Llama, Parrot, Fox, Rabbit, Villager, ZombieVillager, MushroomCow, Shulker, Pufferfish, Bee and Piglin finalizeSpawn; SheepColorSpawnRules; Cat and Wolf DEFAULT_COLLAR_COLOR; issue #3172',
+            'Java wolf_variant, cat_variant and frog_variant spawn_conditions; Axolotl, Horse, Llama, Parrot, Fox, Rabbit, Villager, ZombieVillager, MushroomCow, Shulker, Pufferfish, Bee and Piglin finalizeSpawn; AgeableMob.finalizeSpawn and SulfurCube.setSpawnSize; SheepColorSpawnRules; Cat and Wolf DEFAULT_COLLAR_COLOR; issue #3172',
         subjects: () =>
             javaEntityIds().flatMap((javaId) => (LOOK_RULES[javaId] === undefined ? [] : (mappedEntity(javaId) ?? []))),
         idOf: (subject) => subject.javaId,
@@ -1668,7 +1807,7 @@ export const interactionScenarios: readonly BehaviorScenario<EntitySubject>[] = 
                     const biome = rule.biomes === undefined ? undefined : bedrockBiome(javaBiome);
                     const java = rule.java(subject.bedrock, javaBiome);
                     // A fixed Java value needs only a few rolls to show any spread.
-                    const steps = java.size === 1 ? 8 : SWEEP;
+                    const steps = rule.steps ?? (java.size === 1 ? 8 : SWEEP);
                     const server = sweepLook(subject.bedrock, rule.aspect, biome, rule.how, steps);
                     const difference = distributionDifference(server, java);
                     return difference === undefined
@@ -1676,6 +1815,88 @@ export const interactionScenarios: readonly BehaviorScenario<EntitySubject>[] = 
                         : [`${rule.aspect}${rule.biomes === undefined ? '' : ` in ${javaBiome}`}: ${difference}`];
                 })
             );
+            return differences.length === 0 ? undefined : differences.join('; ');
+        }
+    },
+    {
+        name: 'tropical-fish-look',
+        java: 'A spawned tropical fish is one of the common variants, each alike, on nextFloat() < 0.9, and otherwise any of the twelve patterns with two dye colors of all sixteen, each alike.',
+        reference:
+            'Java TropicalFish.finalizeSpawn (the 0.9 roll, Util.getRandom over COMMON_VARIANTS, Pattern.values() and DyeColor.values()), TropicalFish.COMMON_VARIANTS and TropicalFish.Pattern (base and index), read from the pinned jar',
+        subjects: () => [mappedEntity('minecraft:tropical_fish') ?? []].flat(),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:variant', 'minecraft:mark_variant', 'minecraft:color', 'minecraft:color2'],
+        run: (subject) => {
+            const common = javaCommonFish();
+            const finalize = pinnedJavaClass(FISH).find((method) => method.name === 'finalizeSpawn');
+            const commonChance = numericConstants(finalize).find((value) => value > 0 && value < 1);
+            if (common.length === 0 || commonChance === undefined)
+                return 'the pinned jar has no TropicalFish.COMMON_VARIANTS or finalizeSpawn roll';
+            const patterns = [...javaFishPatterns().values()];
+            const dyes = javaEnumConstants('net/minecraft/world/item/DyeColor').length;
+
+            const current = bench();
+            const random = new LegacyRandomSource(3172n);
+            current.draw = () => random.nextFloat();
+            const counts = new Map<string, number>();
+            const looks: FishLook[] = [];
+            for (let spawn = 0; spawn < FISH_SPAWNS; spawn++) {
+                const fish = spawnIn(current, subject.bedrock);
+                const look: FishLook = {
+                    variant: lookValue(fish, 'minecraft:variant'),
+                    mark: lookValue(fish, 'minecraft:mark_variant'),
+                    color: lookValue(fish, 'minecraft:color'),
+                    color2: lookValue(fish, 'minecraft:color2')
+                };
+                looks.push(look);
+                counts.set(fishKey(look), (counts.get(fishKey(look)) ?? 0) + 1);
+                current.runtime.remove(fish.id, 'parity');
+            }
+            const share = (key: string): number => (counts.get(key) ?? 0) / FISH_SPAWNS;
+            const percent = (value: number): string => `${(value * 100).toFixed(1)}%`;
+            const differences: string[] = [];
+
+            // Each common variant comes up near one in 22 of nine spawns in ten; a random look
+            // comes up about once in 30000 spawns.
+            const javaCommon = new Set(common.map(fishKey));
+            const frequent = new Set([...counts.keys()].filter((key) => share(key) >= COMMON_SHARE));
+            for (const key of javaCommon)
+                if (!frequent.has(key)) differences.push(`Java's common fish ${key} spawns ${percent(share(key))}`);
+            for (const key of frequent)
+                if (!javaCommon.has(key))
+                    differences.push(`${key} spawns ${percent(share(key))}, which is no Java common fish`);
+            const randomLooks = patterns.length * dyes * dyes;
+            const javaShare = commonChance + ((1 - commonChance) * javaCommon.size) / randomLooks;
+            const commonShare = [...javaCommon].reduce((sum, key) => sum + share(key), 0);
+            if (Math.abs(commonShare - javaShare) > 0.03)
+                differences.push(`the common fish make ${percent(commonShare)} of spawns, Java ${percent(javaShare)}`);
+
+            // The rest draw a pattern and two colors, each alike: every value turns up, none at
+            // twice its share.
+            const rest = looks.filter((look) => !javaCommon.has(fishKey(look)));
+            const axes: readonly (readonly [string, (look: FishLook) => string, readonly string[]])[] = [
+                [
+                    'pattern',
+                    (look) => `${look.variant}/${look.mark}`,
+                    patterns.map((pattern) => `${pattern.variant}/${pattern.mark}`)
+                ],
+                ['color', (look) => String(look.color), Array.from({ length: dyes }, (_, dye) => String(dye))],
+                ['color2', (look) => String(look.color2), Array.from({ length: dyes }, (_, dye) => String(dye))]
+            ];
+            for (const [axis, valueOf, javaValues] of axes) {
+                const seen = new Map<string, number>();
+                for (const look of rest) seen.set(valueOf(look), (seen.get(valueOf(look)) ?? 0) + 1);
+                const missing = javaValues.filter((value) => !seen.has(value));
+                const extra = [...seen.keys()].filter((value) => !javaValues.includes(value));
+                const heavy = javaValues.filter(
+                    (value) => (seen.get(value) ?? 0) > (2 * rest.length) / javaValues.length
+                );
+                if (missing.length > 0) differences.push(`a random fish never takes ${axis} ${missing.join(', ')}`);
+                if (extra.length > 0)
+                    differences.push(`a random fish takes ${axis} ${extra.join(', ')}, which Java never draws`);
+                if (heavy.length > 0)
+                    differences.push(`a random fish takes ${axis} ${heavy.join(', ')} over twice as often as Java`);
+            }
             return differences.length === 0 ? undefined : differences.join('; ');
         }
     },
