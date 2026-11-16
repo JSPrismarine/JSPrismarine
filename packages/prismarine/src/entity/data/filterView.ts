@@ -168,7 +168,14 @@ const flagOf = (body: MobBody, scene: EntityScene, name: EntityFlag): boolean | 
         case 'is_navigating':
             return body.walking;
         case 'on_ground':
-            return body.conditions.has('on_ground');
+        case 'in_water':
+        case 'in_lava':
+        case 'in_contact_with_water':
+        case 'is_underwater':
+            // The runtime sets each of these every tick it moves the body, so an absent one is false.
+            return body.conditions.has(name);
+        case 'is_visible':
+            return !body.statusEffects.has('minecraft:invisibility') && !body.statusEffects.has('invisibility');
         default:
             // Everything else is either the entity's own (`is_baby`, `is_tamed`) or a fact
             // about the blocks the runtime does not track yet, and an unanswered flag makes

@@ -2699,6 +2699,26 @@ describe('EntityRuntime', () => {
             expect(world.hits).toEqual([{ id: 99, amount: 2, cause: 'entity_attack', sourceId: cow!.id }]);
         });
 
+        it("remembers a player's last blow each way, as Java's getLastHurtMob and getLastHurtByMob", () => {
+            const player = { id: 99, identifier: 'minecraft:player', position: { x: 1, y: FLOOR_Y + 1, z: 0 } };
+            const world = new TestEntityWorld({ players: [player] });
+            const { runtime } = runtimeOf(world);
+
+            const attacker = runtime.spawn('minecraft:cow', GROUND);
+            const victim = runtime.spawn('minecraft:cow', GROUND);
+            runtime.attack(attacker!.body, runtime.mobById(99)!);
+            runtime.hurt(victim!, 99, 'entity_attack', 1);
+
+            const owner = runtime.mobById(99);
+            expect(owner?.lastHurtBy?.()?.mob.id).toBe(attacker!.id);
+            expect(owner?.lastHurt?.()?.mob.id).toBe(victim!.id);
+
+            // Java's LivingEntity.tick forgets the mob that hurt it 100 ticks on.
+            world.advance(101);
+            expect(runtime.mobById(99)?.lastHurtBy?.()).toBeUndefined();
+            expect(runtime.mobById(99)?.lastHurt?.()?.mob.id).toBe(victim!.id);
+        });
+
         it('takes health off an entity this index does hold', () => {
             const { runtime } = runtimeOf();
 

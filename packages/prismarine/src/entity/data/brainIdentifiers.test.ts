@@ -18,6 +18,7 @@ const SPAWNED_AS: Readonly<Record<string, string>> = {
     'minecraft:axolotl': 'minecraft:axolotl',
     'minecraft:breeze': 'minecraft:breeze',
     'minecraft:camel': 'minecraft:camel',
+    'minecraft:camel_husk': 'minecraft:camel_husk',
     'minecraft:copper_golem': 'minecraft:copper_golem',
     'minecraft:creaking': 'minecraft:creaking',
     'minecraft:frog': 'minecraft:frog',

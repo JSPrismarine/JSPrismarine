@@ -82,7 +82,8 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
         lastDamager: () => {
             const last = entity.body.damage.last()?.sourceId;
             return last === undefined ? undefined : scene.mobById(last);
-        }
+        },
+        ...(clientOwnsMovement(entity.identifier) ? scene.playerCombat(entity.id) : {})
     };
     sceneViews.set(entity, view);
     return view;
@@ -248,7 +249,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         setHome: (position) => {
             entity.home = position;
         },
-        attack: (mob) => scene.attack(entity, mob),
+        attack: (mob, damage) => scene.attack(entity, mob, damage),
         shoot: (mob, projectile) => scene.shoot(entity, mob, projectile),
         knockback: (mob, horizontal, vertical) => scene.knockback(entity, mob, horizontal, vertical),
         push: (velocity) => entity.push(velocity),
@@ -286,8 +287,9 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         giveCraftedItem: (mob, craft) => scene.giveCraftedItem(entity, mob, craft),
         dropItem: (identifier, position) =>
             scene.host.drop(blockPositionOf(position ?? entity.position), { identifier, count: 1 }),
-        setBlock: (position, identifier) =>
-            scene.world.blocks.set(blockPositionOf(position), { identifier, states: {} }, true),
+        setBlock: (position, identifier, states = {}) =>
+            scene.world.blocks.set(blockPositionOf(position), { identifier, states }, true),
+        blockAt: (position) => scene.world.blocks.get(blockPositionOf(position)),
         breakBlock: (position) => scene.breakBlock(position),
         spawn: (identifier, position, event) => {
             scene.spawn(identifier, position, { event });
@@ -368,7 +370,8 @@ const appendPlayers = (found: Ranked[], here: EntityPosition, radius: number, sc
                     player.identifier,
                     player.position,
                     player.tags,
-                    scene.host.playerView?.(player.id)
+                    scene.host.playerView?.(player.id),
+                    scene.playerCombat(player.id)
                 ),
                 away
             });
@@ -417,8 +420,10 @@ export const playerGoalMob = (
     identifier: string,
     position: EntityPosition,
     tags: readonly string[] = [],
-    filterView?: FilterEntityView
+    filterView?: FilterEntityView,
+    combat?: Pick<GoalMob, 'lastHurt' | 'lastHurtBy'>
 ): GoalMob => ({
+    ...combat,
     id,
     position: () => position,
     lookPosition: () => ({ x: position.x, y: position.y + EYE_HEIGHT, z: position.z }),

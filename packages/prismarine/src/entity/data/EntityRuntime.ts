@@ -77,6 +77,7 @@ import type {
     GoalBlock,
     GoalItem,
     GoalItemCraft,
+    GoalCombatMark,
     GoalMob,
     GoalPickupOptions,
     GoalWorld
@@ -242,6 +243,21 @@ const EXPERIENCE_ORB = 'minecraft:xp_orb';
 
 /** Java's mob no-despawn distance; a nearby player resets `noActionTime`. */
 const MOB_NO_DESPAWN_DISTANCE = 32;
+/** How long Java's `LivingEntity.tick` keeps `lastHurtByMob` after the blow, in ticks. */
+const LAST_HURT_BY_MEMORY_TICKS = 100;
+
+/** One remembered blow: the runtime id on its other side, and the game tick it landed. */
+interface PlayerBlow {
+    readonly id: number;
+    readonly tick: number;
+}
+
+/** The last blow a player dealt and the last one it took. */
+interface PlayerBlows {
+    readonly hurt?: PlayerBlow;
+    readonly hurtBy?: PlayerBlow;
+}
+
 const PROJECTILE_KNOCKBACK = 0.4;
 const PROJECTILE_KNOCKBACK_LIFT = 0.1;
 
@@ -552,6 +568,13 @@ export class EntityRuntime implements EntityScene {
      * {@link EntityRuntime.setHitGrace}, so an undone unit puts it back.
      */
     private readonly hitGraces = new Map<number, HitGrace>();
+    /**
+     * The last blow each player dealt and the last one it took, by player runtime id, which the
+     * owner and trust goals read as Java's `getLastHurtMob` and `getLastHurtByMob`. A mob's own
+     * are its damage record. Written through {@link EntityRuntime.markPlayerBlow}, so an undone
+     * unit puts it back.
+     */
+    private readonly playerBlows = new Map<number, PlayerBlows>();
     /** The sensing of the damage run in progress, which the sensor guard and modifier share. */
     private readonly damageSensing: DamageSensingSlot;
     /**
@@ -2241,7 +2264,8 @@ export class EntityRuntime implements EntityScene {
                   player.identifier,
                   player.position,
                   player.tags,
-                  this.host.playerView?.(player.id)
+                  this.host.playerView?.(player.id),
+                  this.playerCombat(player.id)
               );
     }
 
@@ -2358,17 +2382,17 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * Deals one entity's melee damage to another.
+     * Deals one entity's melee damage to another, or `damage` in its place for a blow a goal sizes.
      *
      * A target this index does not hold goes out through {@link EntityHostFacts.hurt}, and a
      * host that supplies no route for it is told once per swing rather than letting the mob
      * connect with nothing. A player in the store takes the blow here, with the armor,
      * resistance, absorption and grace period the host's route gives a player.
      */
-    public attack(attacker: MobBody, target: GoalMob): void {
+    public attack(attacker: MobBody, target: GoalMob, override?: number): void {
         if (typeof target.id !== 'number') return;
         const attackerEntity = this.store.get(attacker.id);
-        const damage = this.meleeDamage(attacker, attackerEntity);
+        const damage = override ?? this.meleeDamage(attacker, attackerEntity);
 
         const other = this.store.get(target.id);
         const hurtPlayer = this.host.hurt;
@@ -2396,6 +2420,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         hurtPlayer?.(target.id, damage, 'entity_attack', attacker.id);
+        this.markPlayerBlow(target.id, 'hurtBy', attacker.id);
         if (attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
     }
 
@@ -2475,6 +2500,7 @@ export class EntityRuntime implements EntityScene {
                     return;
                 }
                 this.host.hurt(id, damage, cause, sourceId, params.deathMessageOverride);
+                if (sourceId !== undefined) this.markPlayerBlow(id, 'hurtBy', sourceId);
             } else this.hurt(target, sourceId, cause, damage, { route: 'area_attack' });
 
             if (params.playAttackSound) this.host.attackSound?.(entity.id);
@@ -2665,6 +2691,10 @@ export class EntityRuntime implements EntityScene {
         if (result.amount > 0 && source.remembered !== false) {
             this.keepDamageRecord(entity);
             entity.body.damage.record(intent.attacker, intent.cause, result.amount);
+            if (intent.attacker !== undefined) {
+                this.markPlayerBlow(intent.attacker, 'hurt', entity.id);
+                this.markPlayerBlow(entity.id, 'hurtBy', intent.attacker);
+            }
             this.setLastDamagedAt(entity, this.world.level.gameTime());
             this.disablePiglinAdmirationAfterDamage(entity);
         }
@@ -2955,6 +2985,53 @@ export class EntityRuntime implements EntityScene {
      * Sets or clears an entity's grace period, with an undo as {@link EntityRuntime.setDying}
      * has: a grace an undone blow left would refuse that blow when it comes again.
      */
+    /**
+     * Remembers one blow on a player's side of it: `hurt` for a blow the player dealt to `other`,
+     * `hurtBy` for one `other` dealt the player. Anything that is not a player keeps its blows in
+     * its damage record instead, so this leaves it alone.
+     */
+    private markPlayerBlow(player: number, side: keyof PlayerBlows, other: number): void {
+        if (player === other || !this.isPlayer(player)) return;
+        const before = this.playerBlows.get(player);
+        this.playerBlows.set(player, { ...before, [side]: { id: other, tick: this.world.level.gameTime() } });
+        this.store.undoWith(() => {
+            if (before === undefined) this.playerBlows.delete(player);
+            else this.playerBlows.set(player, before);
+        });
+    }
+
+    /** Whether a runtime id is a player: one the host holds, or a player entity in the store. */
+    private isPlayer(id: number): boolean {
+        const entity = this.store.get(id);
+        return entity === undefined ? this.host.playerById(id) !== undefined : clientOwnsMovement(entity.identifier);
+    }
+
+    /**
+     * A player's remembered blow on one side, as a goal reads it, or undefined when there is none
+     * or the other side is gone. The blow it took is forgotten after
+     * {@link LAST_HURT_BY_MEMORY_TICKS}, as Java's `LivingEntity.tick` forgets `lastHurtByMob`.
+     */
+    private playerBlow(player: number, side: keyof PlayerBlows): GoalCombatMark | undefined {
+        const blows = this.playerBlows.get(player);
+        if (blows !== undefined && this.store.get(player) === undefined && this.host.playerById(player) === undefined) {
+            this.playerBlows.delete(player);
+            return undefined;
+        }
+        const mark = blows?.[side];
+        if (mark === undefined) return undefined;
+        if (side === 'hurtBy' && this.world.level.gameTime() - mark.tick > LAST_HURT_BY_MEMORY_TICKS) return undefined;
+        const mob = this.mobById(mark.id);
+        return mob === undefined ? undefined : { mob, tick: mark.tick };
+    }
+
+    /** The blows a player remembers, as a player's goal mob answers them. */
+    public playerCombat(player: number): Pick<GoalMob, 'lastHurt' | 'lastHurtBy'> {
+        return {
+            lastHurt: () => this.playerBlow(player, 'hurt'),
+            lastHurtBy: () => this.playerBlow(player, 'hurtBy')
+        };
+    }
+
     private setHitGrace(id: number, grace: HitGrace | undefined): void {
         const before = this.hitGraces.get(id);
         if (before === grace) return;
@@ -5368,9 +5445,13 @@ export class EntityRuntime implements EntityScene {
             if (damage > 0) {
                 if (target instanceof DataEntity)
                     this.hurt(target, projectile.body.owner, 'projectile', damage, { route: 'projectile' });
-                else if (this.host.hurtByProjectile !== undefined)
-                    this.host.hurtByProjectile(target.id, damage, projectile.id, projectile.body.owner);
-                else this.host.hurt?.(target.id, damage, 'projectile', projectile.body.owner);
+                else {
+                    if (this.host.hurtByProjectile !== undefined)
+                        this.host.hurtByProjectile(target.id, damage, projectile.id, projectile.body.owner);
+                    else this.host.hurt?.(target.id, damage, 'projectile', projectile.body.owner);
+                    if (projectile.body.owner !== undefined)
+                        this.markPlayerBlow(target.id, 'hurtBy', projectile.body.owner);
+                }
             }
         }
 
@@ -5718,7 +5799,11 @@ export class EntityRuntime implements EntityScene {
         const componentFacts = this.componentFactsOf(entity);
         const feet = blockPositionOf(entity.position);
         const inLiquid = navigation.isWater(feet) || navigation.isLava(feet);
-        const swims = inLiquid && (profile.canSwim || profile.canFloat || profile.isAmphibious);
+        // A mob that breathes water swims it in three dimensions whatever its navigation says, as
+        // Java's squid does along its movement vector with no path finder at all.
+        const breathable = entity.instance.componentParams('minecraft:breathable');
+        const aquatic = isRecord(breathable) && breathable['breathesWater'] === true;
+        const swims = inLiquid && (profile.canSwim || profile.canFloat || profile.isAmphibious || aquatic);
         const climbs =
             (profile.kind === 'climb' && navigation.isClimbable?.(feet) === true) ||
             (profile.canClimbLadders === true && navigation.isLadder?.(feet) === true);
@@ -5727,9 +5812,13 @@ export class EntityRuntime implements EntityScene {
         const [shortest, longest]: unknown[] = isRecord(hop) && Array.isArray(hop.jumpDelay) ? hop.jumpDelay : [];
         const java = entity.instance.javaNavigation;
         const maxTurn = java === undefined ? undefined : javaMoveControlTurn(java);
+        // `minecraft:movement.glide` is the phantom's flight, which declares no navigation: Java's
+        // `PhantomMoveControl` steers it in three dimensions.
+        const glides = entity.instance.hasComponent('minecraft:movement.glide');
         entity.step({
             ...(maxTurn === undefined ? {} : { maxTurn }),
-            allowVertical: profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || swims || climbs,
+            allowVertical:
+                profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || glides || swims || climbs,
             canJump: profile.canJump,
             stepHeight: profile.stepHeight,
             maxUpStep: componentFacts.maxUpStep,

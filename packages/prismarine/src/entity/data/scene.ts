@@ -88,14 +88,16 @@ export interface EntityScene {
      * does not care which index answered.
      */
     mobById(id: number): GoalMob | undefined;
+    /** The blows a player remembers dealing and taking, which its goal mob answers. */
+    playerCombat(player: number): Pick<GoalMob, 'lastHurt' | 'lastHurtBy'>;
     /** Item stacks lying within a radius, nearest first. */
     items(center: EntityPosition, radius: number): readonly GoalItem[];
     /** Blocks matching a query around a position, nearest first and up to its optional limit. */
     blocks(center: EntityPosition, query: BlockQuery): readonly GoalBlock[];
     /** The nearest point of interest of a kind, for the eleven goals that ask. */
     poi(kind: string, center: EntityPosition, radius: number): EntityPosition | undefined;
-    /** Deals one entity's melee damage to another. */
-    attack(attacker: MobBody, target: GoalMob): void;
+    /** Deals one entity's melee damage to another, or `damage` in its place. */
+    attack(attacker: MobBody, target: GoalMob, damage?: number): void;
     /** Fires one entity's projectile at a mob. */
     shoot(shooter: MobBody, target: GoalMob, projectile: string | undefined): void;
     /** Knocks a mob away from the entity. */
