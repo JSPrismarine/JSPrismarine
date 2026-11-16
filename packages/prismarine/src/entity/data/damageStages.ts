@@ -80,6 +80,9 @@ const WITCH = 'minecraft:witch';
 /** The share of a `witch_resistant_to` blow `Witch.getDamageAfterMagicAbsorb` lets through. */
 const WITCH_RESISTED_SHARE = 0.15;
 
+/** The entity type Java's `EndCrystal.hurtServer` breaks on any blow it takes. */
+const END_CRYSTAL = 'minecraft:ender_crystal';
+
 /** Causes whose `cannot_be_attacked` and type rules are asked, which is every blow an entity deals. */
 const ATTACK_CAUSES: ReadonlySet<string> = new Set(['entity_attack', 'entity_explosion', 'projectile']);
 
@@ -316,6 +319,18 @@ export const damageModifiers = (reads: DamageStageReads, sensing: DamageSensingS
             modifier: (intent) => {
                 const multiplier = sensing.of(intent)?.multiplier ?? 1;
                 return multiplier === 1 ? undefined : { operation: 'multiply', value: multiplier };
+            }
+        },
+        {
+            // Java's end crystal has no health to wear down: `EndCrystal.hurtServer` removes it on
+            // any blow that lands, however small, so a blow that lands takes all it has.
+            name: 'end_crystal',
+            priority: 700,
+            modifier: (intent, amount) => {
+                const target = reads.target(intent.target);
+                if (target?.identifier !== END_CRYSTAL || amount <= 0) return undefined;
+                const health = target.instance.attributes.get('health')?.current ?? 0;
+                return amount >= health ? undefined : { operation: 'add', value: health - amount };
             }
         }
     ];

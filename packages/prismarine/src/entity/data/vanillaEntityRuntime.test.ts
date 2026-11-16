@@ -108,6 +108,15 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             });
         });
 
+        it('breaks an end crystal on a blow under its one health, as Java breaks it on any blow', () => {
+            const crystal = runtime.spawn('minecraft:ender_crystal', { x: 220.5, y: 64, z: 220.5 });
+            if (crystal === undefined) throw new Error('the vanilla pack declares no minecraft:ender_crystal');
+
+            runtime.hurt(crystal, undefined, 'entity_attack', 0.5);
+
+            expect(crystal.removed).toBe('explosion');
+        });
+
         it('spawns the dragon with the pack’s 200 health and lands only the hits Java counts', () => {
             const dragon = runtime.spawn('minecraft:ender_dragon', { x: 240.5, y: 64, z: 240.5 });
             if (dragon === undefined) throw new Error('the vanilla pack declares no minecraft:ender_dragon');
