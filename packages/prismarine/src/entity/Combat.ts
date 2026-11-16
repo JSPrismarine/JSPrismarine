@@ -74,7 +74,10 @@ export interface MeleeOptions {
  * @param {StoreActor} target - Who is being reached for.
  * @returns {number} Blocks to the nearest point of the target's body; zero if inside it.
  */
-export const distanceToBody = (from: Vector3, target: StoreActor): number => {
+export const distanceToBody = (
+    from: Pick<Vector3, 'getX' | 'getY' | 'getZ'>,
+    target: Pick<StoreActor, 'getBox' | 'getFeetY'> & { getPosition(): Pick<Vector3, 'getX' | 'getZ'> }
+): number => {
     const at = target.getPosition();
     const { width, height } = target.getBox();
     const half = width / 2;
