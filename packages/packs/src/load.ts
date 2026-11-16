@@ -181,6 +181,7 @@ const emptyRegistries = (): DefinitionRegistries => ({
     itemModifiers: new Map(),
     functions: new Map(),
     dimensionTypes: new Map(),
+    paintingVariants: new Map(),
     dimensions: new Map(),
     worldgen: new Map()
 });
@@ -305,6 +306,7 @@ const loadCachedPrefix = (stack: PackStack, validator: DefinitionValidator, cach
         itemModifiers: new Map(prefixResult.definitions.itemModifiers),
         functions: new Map(prefixResult.definitions.functions),
         dimensionTypes: new Map(prefixResult.definitions.dimensionTypes),
+        paintingVariants: new Map(prefixResult.definitions.paintingVariants),
         dimensions: new Map(prefixResult.definitions.dimensions),
         worldgen: new Map(prefixResult.definitions.worldgen)
     };

@@ -304,7 +304,7 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
     const cache: PrefixCacheOptions | undefined =
         prefixLength > 0 && version !== undefined
             ? {
-                  filePath: join(cacheRoot(), 'composed-vanilla-prefix.v8'),
+                  filePath: join(cacheRoot(), 'composed-vanilla-prefix.v9'),
                   prefixLength,
                   fingerprint: fingerprintPackDirectories(overlayDirectories),
                   validatorKey: 'structural-validator-v1'

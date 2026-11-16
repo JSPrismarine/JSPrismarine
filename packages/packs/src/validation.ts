@@ -153,6 +153,7 @@ const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
         optional: { logical_height: 'number', coordinate_scale: 'number', attributes: 'object' }
     },
     dimensions: { required: { type: 'string', generator: 'object' } },
+    paintingVariants: { required: { asset_id: 'string', width: 'number', height: 'number' } },
     worldgen: { allowsAnyRoot: true }
 };
 

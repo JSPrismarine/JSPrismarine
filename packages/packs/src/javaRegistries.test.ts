@@ -71,6 +71,13 @@ describe('routeDatapackPath', () => {
         });
     });
 
+    it('routes painting variants by namespaced id', () => {
+        expect(routeDatapackPath('data/minecraft/painting_variant/kebab.json')).toEqual({
+            registry: 'paintingVariants',
+            identifier: 'minecraft:kebab'
+        });
+    });
+
     it('routes every worldgen kind into one registry keyed by kind then namespaced id', () => {
         expect(routeDatapackPath('data/minecraft/worldgen/noise_settings/overworld.json')).toEqual({
             registry: 'worldgen',
