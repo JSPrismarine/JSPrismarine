@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { GoalHarness, testMob } from '../harness';
+import type { GoalMob, GoalWorld } from '../world';
 
 /** The single-entity family: the dragon phases, the squid states and the timer flags. */
 
@@ -174,26 +175,91 @@ describe('minecraft:behavior.timer_flag_1', () => {
 });
 
 describe('minecraft:behavior.skeleton_horse_trap', () => {
-    it('springs when a player comes inside the radius', () => {
+    /** A trap world that records every spawn and who each spawn was told to ride. */
+    const trapWorld = (players: () => readonly GoalMob[]) => {
+        let clock = 0;
+        const spawned: {
+            identifier: string;
+            event: string | undefined;
+            rides: string | number | undefined;
+            head: string | undefined;
+            visual: unknown;
+        }[] = [];
+        let removed = false;
+        const world: GoalWorld = {
+            players,
+            gameTime: () => clock,
+            self: () => testMob('trap', { x: 0, y: 0, z: 0 }),
+            removeSelf: () => {
+                removed = true;
+            },
+            spawn: (identifier, position, event, options) => {
+                spawned.push({
+                    identifier,
+                    event,
+                    rides: options?.rides?.id,
+                    head: options?.fillEmptySlots?.['head'],
+                    visual: options?.data?.['visual_only']
+                });
+                return testMob(`${identifier}-${spawned.length}`, position, { identifier });
+            }
+        };
+        return {
+            world,
+            spawned,
+            removed: () => removed,
+            run: (harness: GoalHarness, ticks: number) => {
+                for (let index = 0; index < ticks; index += 1) {
+                    clock += 1;
+                    harness.tick();
+                }
+            }
+        };
+    };
+
+    it("springs once, with a visual bolt, a skeleton on the trap horse and Java's three horsemen", () => {
+        const trap = trapWorld(() => [testMob('player', { x: 4, y: 0, z: 0 })]);
         const harness = new GoalHarness({
-            goals: { 'minecraft:behavior.skeleton_horse_trap': { priority: 0, within_radius: 10, duration: 1 } },
-            world: { players: () => [testMob('player', { x: 4, y: 0, z: 0 })] }
+            goals: { 'minecraft:behavior.skeleton_horse_trap': { priority: 0, within_radius: 10, duration: 900 } },
+            world: trap.world
         });
 
-        harness.tick();
+        trap.run(harness, 40);
 
-        expect(harness.isRunning('minecraft:behavior.skeleton_horse_trap')).toBe(true);
+        expect(trap.spawned.filter((entry) => entry.identifier === 'minecraft:lightning_bolt')).toEqual([
+            {
+                identifier: 'minecraft:lightning_bolt',
+                event: undefined,
+                rides: undefined,
+                head: undefined,
+                visual: true
+            }
+        ]);
+        const horses = trap.spawned.filter((entry) => entry.identifier === 'minecraft:skeleton_horse');
+        expect(horses.map((horse) => horse.event)).toEqual(Array(3).fill('minecraft:spring_trap'));
+        const skeletons = trap.spawned.filter((entry) => entry.identifier === 'minecraft:skeleton');
+        expect(skeletons.map((skeleton) => skeleton.rides)).toEqual([
+            'trap',
+            ...trap.spawned.flatMap((entry, index) =>
+                entry.identifier === 'minecraft:skeleton_horse' ? [`minecraft:skeleton_horse-${index + 1}`] : []
+            )
+        ]);
+        expect(skeletons.every((skeleton) => skeleton.head === 'minecraft:iron_helmet')).toBe(true);
     });
 
-    it('stays armed while nobody is near', () => {
+    it('stays armed while nobody is near, and takes the horse away once its duration runs out', () => {
+        const trap = trapWorld(() => []);
         const harness = new GoalHarness({
-            goals: { 'minecraft:behavior.skeleton_horse_trap': { priority: 0, within_radius: 10 } },
-            world: { players: () => [] }
+            goals: { 'minecraft:behavior.skeleton_horse_trap': { priority: 0, within_radius: 10, duration: 5 } },
+            world: trap.world
         });
 
-        harness.tick();
+        trap.run(harness, 50);
+        expect(trap.spawned).toEqual([]);
+        expect(trap.removed()).toBe(false);
 
-        expect(harness.running()).toEqual([]);
+        trap.run(harness, 60);
+        expect(trap.removed()).toBe(true);
     });
 });
 

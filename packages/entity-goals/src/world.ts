@@ -116,6 +116,12 @@ export interface GoalSpawnOptions {
     readonly yaw?: number;
     /** Entity-specific fields, such as how long a set of evoker fangs waits before it rises. */
     readonly data?: Readonly<Record<string, unknown>>;
+    /** A mob the new entity mounts once it exists, as a trap skeleton mounts its horse. */
+    readonly rides?: GoalMob;
+    /** Items for equipment slots, such as `head`, that the new entity's own equipment left empty. */
+    readonly fillEmptySlots?: Readonly<Record<string, string>>;
+    /** The velocity the new entity starts with. */
+    readonly velocity?: EntityPosition;
 }
 
 /** One block a block search found. */
@@ -269,6 +275,8 @@ export interface GoalWorld {
         event: string | undefined,
         options?: GoalSpawnOptions
     ): GoalMob | undefined;
+    /** The entity itself as another goal's world would see it, to hand to a mob that rides it. */
+    self?(): GoalMob | undefined;
     /** Fires an entity event on another entity, as the evoker's wololo spell does on a sheep. */
     fireOn?(mob: GoalMob, event: string): void;
     /** Java's `Level.getGameTime`: ticks since the world was created, which spell intervals count against. */

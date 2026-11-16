@@ -165,6 +165,30 @@ const run = (fixture: EntityFixture, ticks: number): void => {
 };
 
 describe('the goal world over the entity runtime', () => {
+    describe('spawning', () => {
+        it('owns, mounts, equips and pushes what a goal spawns, and hands it back', () => {
+            const fixture = fixtureOf();
+            const mount = spawned(fixture, 'jsprismarine:mount', groundAt(0, 0));
+            const caster = spawned(fixture, 'jsprismarine:pet', groundAt(3, 0));
+            const world = goalWorldOf(caster.body, fixture.runtime);
+            const vehicle = goalWorldOf(mount.body, fixture.runtime).self();
+            if (vehicle === undefined) throw new Error('the mount has no goal view');
+
+            const rider = world.spawn('jsprismarine:rider', groundAt(0, 0), undefined, {
+                owned: true,
+                rides: vehicle,
+                fillEmptySlots: { head: 'minecraft:iron_helmet' },
+                velocity: { x: 0.5, y: 0, z: 0 }
+            });
+            const entity = typeof rider?.id === 'number' ? fixture.runtime.byId(rider.id) : undefined;
+
+            expect(entity?.body.owner).toBe(caster.id);
+            expect(fixture.runtime.ridersOf(mount.body).map((seated) => seated.id)).toEqual([rider?.id]);
+            expect(entity?.body.equipment.head?.identifier).toBe('minecraft:iron_helmet');
+            expect(entity?.body.velocity.x).toBe(0.5);
+        });
+    });
+
     describe('daylight', () => {
         it("answers Java's bright-outside window from the level clock", () => {
             const daylight = fixtureOf(new TestEntityWorld({ dayTime: 6000 }));

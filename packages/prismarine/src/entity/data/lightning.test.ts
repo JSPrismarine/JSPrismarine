@@ -69,6 +69,20 @@ describe('a lightning bolt', () => {
         expect(sensed.instance.attributes.get('health')?.current).toBe(20);
     });
 
+    it('strikes nothing when it is visual only, as the skeleton trap calls its bolt', () => {
+        const world = new TestEntityWorld();
+        const fixture = entityFixture(world, {}, { 'minecraft:lightning_bolt': bolt, 'test:plain': plain });
+        const near = fixture.runtime.spawn('test:plain', ground(1.5));
+        fixture.runtime.spawn('minecraft:lightning_bolt', ground(0.5), { data: { visual_only: true } });
+        for (let tick = 1; tick <= 3; tick += 1) {
+            world.advance();
+            fixture.runtime.tick(tick);
+        }
+
+        expect(near?.instance.attributes.get('health')?.current).toBe(20);
+        expect(near?.body.fireTicks).toBe(0);
+    });
+
     it('goes once its life has run out', () => {
         const { fixture, lightning } = strike();
         for (let tick = 1; tick <= 4; tick += 1) fixture.runtime.tick(tick);

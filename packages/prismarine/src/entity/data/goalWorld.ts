@@ -16,7 +16,10 @@ import { canEntityAttack, canEntityAttackView, isShareablesParams } from '@jspri
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
+import type { ContentItemDrop } from '../../content/world/adapter';
 import { isDay } from '../../world/DayCycle';
+import { MOB_EQUIPMENT_SLOTS } from '../equipment';
+import type { MobEquipmentSlot } from '../equipment';
 import { EYE_HEIGHT } from '../playerEyes';
 import type { DataEntity, MobBody } from './DataEntity';
 import { isReadyToBreed } from './breeding';
@@ -300,8 +303,22 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
                 ...(options?.yaw === undefined ? {} : { yaw: options.yaw }),
                 ...(options?.data === undefined ? {} : { data: options.data })
             });
-            return spawned === undefined ? undefined : goalMobOf(spawned, scene);
+            if (spawned === undefined) return undefined;
+            const fill = options?.fillEmptySlots;
+            if (fill !== undefined) {
+                const equipment: Partial<Record<MobEquipmentSlot, ContentItemDrop>> = { ...spawned.body.equipment };
+                for (const slot of MOB_EQUIPMENT_SLOTS) {
+                    const item = fill[slot];
+                    if (item !== undefined && equipment[slot] === undefined)
+                        equipment[slot] = { identifier: item, count: 1 };
+                }
+                spawned.body.setEquipment(equipment);
+            }
+            if (options?.velocity !== undefined) spawned.body.velocity = options.velocity;
+            if (options?.rides !== undefined) scene.mount(spawned.body, options.rides);
+            return goalMobOf(spawned, scene);
         },
+        self: () => scene.mobById(entity.id),
         fireOn: (mob, event) => {
             if (typeof mob.id === 'number') scene.byId(mob.id)?.instance.fire(event);
         },

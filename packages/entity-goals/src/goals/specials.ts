@@ -1,4 +1,5 @@
 import type { ControlFlag, EntityPosition, Goal } from '@jsprismarine/entities';
+import { defineComponentState, stateField } from '@jsprismarine/entities/componentState';
 
 import type { RegisterableGoal } from '../goal';
 import { goal } from '../goal';
@@ -512,38 +513,106 @@ export const silverfishWakeUpFriends = goal<GoalBody>({
 
 /** What `minecraft:behavior.skeleton_horse_trap` declares. */
 export interface SkeletonHorseTrapParams {
-    /** How long the trap stays armed, in ticks. */
+    /** How long the trap stays armed before the horse is gone, in ticks. */
     readonly duration: number;
     /** How close a player has to come, in blocks. */
     readonly withinRadius: number;
 }
 
+/** A trap's saved state: when it was first seen armed, and whether it has been sprung. */
+const trapState = defineComponentState('minecraft:behavior.skeleton_horse_trap', {
+    armedAt: stateField.number,
+    sprung: stateField.boolean
+});
+
+/** How many skeleton horsemen ride in beside the trap horse, Java's `SkeletonTrapGoal.tick` loop. */
+const TRAP_HORSEMEN = 3;
+
+/** The spread of the horsemen's push, Java's `triangle(0.0, 1.1485)` on each horizontal axis. */
+const TRAP_HORSEMAN_SPREAD = 1.1485;
+
 /**
- * `minecraft:behavior.skeleton_horse_trap`, which the skeleton horse carries.
- * A player who comes within the radius springs the lightning trap.
+ * The event the trap's horses run, which makes a skeleton horse an adult that a skeleton can ride
+ * and that lightning does not hurt. The vanilla file declares it and nothing in the file fires it:
+ * it is the event Bedrock's trap runs.
+ */
+const SPRING_TRAP_EVENT = 'minecraft:spring_trap';
+
+/**
+ * `minecraft:behavior.skeleton_horse_trap`, which the skeleton horse carries: Java's
+ * `SkeletonTrapGoal`.
+ *
+ * Once a player comes within the radius the trap springs, once: a visual-only lightning bolt
+ * strikes the horse, the horse becomes a rideable adult with a skeleton on its back, and three
+ * more skeleton horses, each with a skeleton rider, spawn beside it and scatter. Every skeleton
+ * wears an iron helmet when its own equipment left its head bare. A trap nobody springs within its
+ * duration takes the horse away, as Java's `SkeletonHorse.aiStep` discards a trap horse after
+ * 18000 ticks. The trap's state is component state, so a sprung trap stays sprung across a save.
+ *
+ * The riders come the tick after the strike, once the horse's `spring_trap` event has made it
+ * rideable.
  */
 export const skeletonHorseTrap = goal<SkeletonHorseTrapParams>({
     name: 'minecraft:behavior.skeleton_horse_trap',
     controlFlags: [],
     schema: bodySchema((body) => ({
-        duration: ticksAt(body, 'duration', 1),
+        duration: ticksAt(body, 'duration', 900),
         withinRadius: numberAt(body, 'within_radius', 10)
     })),
     create: (params, support) => {
-        let remaining = 0;
+        const states = support.entity.componentState;
+        let ridersDue = false;
+        let ticked = 0;
+
+        const triangle = (): number => TRAP_HORSEMAN_SPREAD * (support.random() - support.random());
+        const horseman = (horse: GoalMob, at: EntityPosition): void => {
+            support.world.spawn?.('minecraft:skeleton', at, undefined, {
+                rides: horse,
+                fillEmptySlots: { head: 'minecraft:iron_helmet' }
+            });
+        };
+
         return {
-            canStart: () => support.nearestPlayer(params.withinRadius) !== undefined,
-            canContinue: () => remaining > 0,
+            canStart: () => {
+                const state = states.get(trapState);
+                if (state?.sprung === true) return false;
+                const now = support.world.gameTime?.();
+                if (now !== undefined) {
+                    if (state === undefined) states.set(trapState, { armedAt: now, sprung: false });
+                    else if (now - state.armedAt >= params.duration) {
+                        support.world.removeSelf?.();
+                        return false;
+                    }
+                }
+                return support.nearestPlayer(params.withinRadius) !== undefined;
+            },
+            canContinue: () => ridersDue,
             start: () => {
-                remaining = params.duration;
-                support.entity.fire('minecraft:spawn_trap');
+                const here = support.position();
+                states.set(trapState, { armedAt: states.get(trapState)?.armedAt ?? 0, sprung: true });
+                support.entity.fire(SPRING_TRAP_EVENT);
+                support.world.spawn?.('minecraft:lightning_bolt', here, undefined, { data: { visual_only: true } });
+                ridersDue = true;
+                ticked = 0;
             },
             tick: () => {
-                remaining -= 1;
+                ticked += 1;
+                if (!ridersDue || ticked < 2) return;
+                ridersDue = false;
+                const here = support.position();
+                const self = support.world.self?.();
+                if (self !== undefined) horseman(self, here);
+                for (let index = 0; index < TRAP_HORSEMEN; index += 1) {
+                    const horse = support.world.spawn?.('minecraft:skeleton_horse', here, SPRING_TRAP_EVENT, {
+                        velocity: { x: triangle(), y: 0, z: triangle() }
+                    });
+                    if (horse !== undefined) horseman(horse, here);
+                }
             },
             stop: () => {
-                remaining = 0;
-            }
+                ridersDue = false;
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });

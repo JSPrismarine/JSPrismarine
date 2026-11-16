@@ -5169,7 +5169,8 @@ export class EntityRuntime implements EntityScene {
             this.remove(bolt.id, 'lightning_spent');
             return;
         }
-        if (age > 0) return;
+        // Java's `setVisualOnly`, which the skeleton trap's bolt carries: a flash and nothing else.
+        if (age > 0 || bolt.spawnData?.['visual_only'] === true) return;
 
         const at = bolt.position;
         const struck = this.index.withinBox(
