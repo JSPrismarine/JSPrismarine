@@ -12,7 +12,7 @@ const DAY = 24_000;
 const RAMPED: TestWorldOptions = { difficulty: 'hard', gameTime: 100 * 8 * DAY, inhabitedTime: 3_600_000 };
 
 /**
- * A zombie-like mob whose spawn event always adds its door-breaking group, as Bedrock's zombie
+ * A zombie whose spawn event always adds its door-breaking group, as Bedrock's zombie
  * does on one draw in ten, and whose pickup goal rolls Java's `canPickUpLoot`.
  */
 const doorZombie = (options: TestWorldOptions) => {
@@ -21,7 +21,7 @@ const doorZombie = (options: TestWorldOptions) => {
         world,
         {},
         {
-            'jsprismarine:door_zombie': {
+            'minecraft:zombie': {
                 components: {
                     'minecraft:health': { value: 20, max: 20 },
                     'minecraft:collision_box': { width: 0.6, height: 1.95 },
@@ -36,8 +36,8 @@ const doorZombie = (options: TestWorldOptions) => {
             }
         }
     );
-    const zombie = runtime.spawn('jsprismarine:door_zombie', GROUND);
-    if (zombie === undefined) throw new Error('the fixture declares no jsprismarine:door_zombie');
+    const zombie = runtime.spawn('minecraft:zombie', GROUND);
+    if (zombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
     return { runtime, zombie };
 };
 

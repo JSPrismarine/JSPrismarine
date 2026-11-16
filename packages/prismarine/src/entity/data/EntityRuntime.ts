@@ -268,7 +268,6 @@ import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
 import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
-import { effectiveDifficulty, specialMultiplier } from '../localDifficulty';
 import type { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerMining } from '../playerComponents';
 import type { PlayerShownForm } from '../playerShown';
@@ -1254,7 +1253,6 @@ export class EntityRuntime implements EntityScene {
             this.remove(entity.id, 'refused_spawn');
             return undefined;
         }
-        this.decideDoorBreaking(entity);
         this.syncGameEventListener(entity);
         this.startFuse(entity);
         // Between the spawn event and the body, for the same reason the body comes last. The
@@ -1338,31 +1336,6 @@ export class EntityRuntime implements EntityScene {
                 this.remove(spawned.id, 'unseated_rider');
             }
         }
-    }
-
-    /**
-     * Decides whether a fresh zombie breaks doors by Java's chance rather than the pack's.
-     *
-     * Java's `Zombie.finalizeSpawn` lets one break doors, and so path through them, when
-     * `nextFloat()` falls under a tenth of the local difficulty's special multiplier, which is 0 on
-     * a fresh Normal world; a drowned never does (`Drowned.supportsBreakDoorGoal`). Bedrock's spawn
-     * event adds the door-breaking group one time in ten whatever the difficulty.
-     */
-    private decideDoorBreaking(entity: DataEntity): void {
-        const supports = JAVA_DOOR_BREAKERS.get(entity.identifier);
-        const { groups } = entity.instance.type;
-        const group = BREAK_DOORS_GROUPS.find((name) => groups.has(name));
-        if (supports === undefined || group === undefined) return;
-        const { level } = this.world;
-        const chance = supports
-            ? specialMultiplier(effectiveDifficulty(level.difficulty(), level.gameTime())) * 0.1
-            : 0;
-        const breaks = chance > 0 && this.world.random.nextFloat() < chance;
-        if (breaks === entity.instance.hasComponent(BREAK_DOOR_ANNOTATION)) return;
-        const effects = noEffects('jsprismarine:java_door_breaking');
-        entity.instance.applyEffects(
-            breaks ? { ...effects, addGroups: [group] } : { ...effects, removeGroups: [group] }
-        );
     }
 
     /**
@@ -2856,8 +2829,7 @@ export class EntityRuntime implements EntityScene {
     private applyAttackStatusEffect(attacker: DataEntity, targetId: number): void {
         const java = JAVA_MELEE_EFFECTS.get(attacker.identifier);
         if (java !== undefined) {
-            const { level } = this.world;
-            const effect = java(effectiveDifficulty(level.difficulty(), level.gameTime()));
+            const effect = java(regionalDifficulty(this.regionalDifficultyInputs(attacker.position)));
             if (effect !== undefined) this.applyStatusEffectToId(attacker.instance, targetId, effect);
             return;
         }
@@ -5242,6 +5214,9 @@ export class EntityRuntime implements EntityScene {
      * as the vindicator's, is no spawn event's, and is left to the raid.
      */
     private rollDoorBreaking(entity: DataEntity, event: string): void {
+        // Only Java's `Zombie` and its subclasses roll; the drowned's `supportsBreakDoorGoal` is false.
+        const supports = JAVA_DOOR_BREAKERS.get(entity.identifier);
+        if (supports === undefined) return;
         const definition = entity.instance.type.entity;
         const node = definition.events.get(event);
         if (node === undefined) return;
@@ -5250,9 +5225,10 @@ export class EntityRuntime implements EntityScene {
             .map(([name]) => name);
         if (rolled.length === 0) return;
         const random = entity.instance.random;
-        const chance =
-            JAVA_BREAK_DOORS_CHANCE *
-            clampedRegionalDifficulty(regionalDifficulty(this.regionalDifficultyInputs(entity.position)));
+        const chance = supports
+            ? JAVA_BREAK_DOORS_CHANCE *
+              clampedRegionalDifficulty(regionalDifficulty(this.regionalDifficultyInputs(entity.position)))
+            : 0;
         const breaks = random.next() < chance;
         const kept = entity.instance.activeComponentGroups().filter((group) => !rolled.includes(group));
         entity.instance.restoreComponentGroups(breaks ? [...kept, ...rolled] : kept);
@@ -7373,10 +7349,6 @@ const JAVA_EASED_TURNS: ReadonlyMap<string, number> = new Map([
     ['minecraft:squid', 0.1],
     ['minecraft:glow_squid', 0.1]
 ]);
-
-/** The group Bedrock's zombies break doors with, which the zombie villager files name without a namespace, and the component it adds. */
-const BREAK_DOORS_GROUPS = ['minecraft:can_break_doors', 'can_break_doors'];
-const BREAK_DOOR_ANNOTATION = 'minecraft:annotation.break_door';
 
 /** The zombies whose pack draws door breaking at spawn, with whether their Java class can break doors at all. */
 const JAVA_DOOR_BREAKERS: ReadonlyMap<string, boolean> = new Map([

@@ -48,7 +48,11 @@ const doorWorld = (gameRules: Readonly<Record<string, boolean>> = {}): DoorWorld
 /** A door breaker behind the door, chasing its target with `melee_box_attack`, on a difficulty. */
 const breaker = (difficulty: string, world: DoorWorld, minDifficulty?: string): GoalHarness => {
     const harness = new GoalHarness({
-        components: { 'minecraft:navigation.walk': { can_break_doors: true } },
+        components: {
+            'minecraft:navigation.walk': { can_break_doors: true },
+            // A zombie's box, so its path is one block wide as Java's floor(width + 1) makes it.
+            'minecraft:collision_box': { width: 0.6, height: 1.95 }
+        },
         goals: {
             'minecraft:annotation.break_door': minDifficulty === undefined ? {} : { min_difficulty: minDifficulty },
             'minecraft:behavior.melee_box_attack': { priority: 2, track_target: true }
