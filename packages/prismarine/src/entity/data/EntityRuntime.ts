@@ -1116,7 +1116,34 @@ export class EntityRuntime implements EntityScene {
         // After the spawn event, so the body a client is sent already carries whatever the
         // event added: a baby is born a baby rather than growing into one on the next tick.
         this.onSpawn(entity);
+        this.addRiders(entity);
         return entity;
+    }
+
+    /**
+     * `minecraft:addrider`: a vehicle whose spawn gave it the component arrives carrying the
+     * riders it names, each spawned with its own event, the way Java's `Spider.finalizeSpawn`
+     * seats a skeleton on its spider. A rider that names its own riders, such as a strider's
+     * baby strider jockey, brings them in turn.
+     */
+    private addRiders(vehicle: DataEntity): void {
+        const params = vehicle.instance.componentParams('minecraft:addrider');
+        if (!isRecord(params)) return;
+        const riders = Array.isArray(params.riders) ? params.riders : [params];
+        for (const rider of riders) {
+            if (!isRecord(rider) || typeof rider.entity_type !== 'string') continue;
+            const event = typeof rider.spawn_event === 'string' ? rider.spawn_event : undefined;
+            const spawned = this.spawn(rider.entity_type, vehicle.position, {
+                cause: 'spawned',
+                ...(event === undefined ? {} : { event })
+            });
+            if (spawned === undefined) continue;
+            if (this.rides.ridersOf(vehicle.id).length < seatCountOf(vehicle)) this.rides.mount(spawned.id, vehicle.id);
+            if (this.rides.vehicleOf(spawned.id) !== vehicle.id) {
+                this.report(`${vehicle.identifier} has no seat for the ${spawned.identifier} it adds as a rider`);
+                this.remove(spawned.id, 'unseated_rider');
+            }
+        }
     }
 
     /**

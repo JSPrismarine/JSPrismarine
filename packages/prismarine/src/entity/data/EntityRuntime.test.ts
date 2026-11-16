@@ -804,6 +804,61 @@ describe('EntityRuntime', () => {
             expect(wolf.instance.hasComponent('minecraft:is_tamed')).toBe(true);
         });
 
+        it('seats the riders minecraft:addrider names on the vehicle it spawns with', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:jockey_mount': {
+                        components: {
+                            'minecraft:health': { value: 16, max: 16 },
+                            'minecraft:rideable': {
+                                seat_count: 1,
+                                family_types: ['rider'],
+                                seats: { position: [0, 1, 0] }
+                            }
+                        },
+                        component_groups: {
+                            jockey: {
+                                'minecraft:addrider': {
+                                    riders: [
+                                        {
+                                            entity_type: 'jsprismarine:jockey_rider',
+                                            spawn_event: 'jsprismarine:as_rider'
+                                        },
+                                        { entity_type: 'jsprismarine:jockey_rider' }
+                                    ]
+                                }
+                            }
+                        },
+                        events: { 'jsprismarine:with_jockey': { add: { component_groups: ['jockey'] } } }
+                    },
+                    'jsprismarine:jockey_rider': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:type_family': { family: ['rider'] }
+                        },
+                        component_groups: { riding: { 'minecraft:is_shaking': {} } },
+                        events: { 'jsprismarine:as_rider': { add: { component_groups: ['riding'] } } }
+                    }
+                }
+            );
+
+            const plain = runtime.spawn('jsprismarine:jockey_mount', GROUND);
+            if (plain === undefined) throw new Error('the fixture declares no mount');
+            expect(runtime.ridersOf(plain.body)).toEqual([]);
+
+            const vehicle = runtime.spawn('jsprismarine:jockey_mount', GROUND, { event: 'jsprismarine:with_jockey' });
+            if (vehicle === undefined) throw new Error('the fixture declares no mount');
+            const riders = runtime.ridersOf(vehicle.body);
+            expect(riders).toHaveLength(1);
+            const [rider] = [...runtime.entities()].filter(
+                (entity) => entity.identifier === 'jsprismarine:jockey_rider'
+            );
+            expect(rider?.instance.activeComponentGroups()).toEqual(['riding']);
+            expect(riders[0]?.id).toBe(rider?.id);
+        });
+
         it('refuses a spawn its admission check rejects after the spawn event ran', () => {
             const { runtime } = entityFixture(new TestEntityWorld());
             const seen: boolean[] = [];
