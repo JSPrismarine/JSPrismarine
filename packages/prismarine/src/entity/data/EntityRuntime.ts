@@ -155,9 +155,11 @@ import { entityFilterContextOf } from './filterView';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { DroppedItems, isDroppedItem } from './droppedItems';
 import { javaBlockTagsForBedrock } from '../../content/javaTags';
-import { AreaEffectClouds, isAreaEffectCloud } from './areaEffectCloud';
+import { AREA_EFFECT_CLOUD, AreaEffectClouds, isAreaEffectCloud } from './areaEffectCloud';
 import { EvokerFangs, isEvokerFangs } from './evokerFangs';
 import { OminousItemSpawners, isOminousItemSpawner } from './ominousItemSpawner';
+import { DEFLECTED_ARROW_FIRE_TICKS, DEFLECTED_ARROW_SPEED, deflectsArrow } from './dragonArrows';
+import { DRAGON_FIREBALL, breathSearchBox, dragonBreathOf } from './dragonFireball';
 import { HangingEntities, isHangingEntity } from './hangingEntities';
 import { placeablePaintingVariants } from './paintings';
 import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
@@ -5925,6 +5927,18 @@ export class EntityRuntime implements EntityScene {
                     state.hitEntities.add(target.id);
                     continue;
                 }
+                // A perched dragon sets the arrow alight, takes nothing and turns it back.
+                if (target instanceof DataEntity && deflectsArrow(target, entity.identifier)) {
+                    state.hitEntities.add(target.id);
+                    body.fireTicks = Math.max(body.fireTicks, DEFLECTED_ARROW_FIRE_TICKS);
+                    body.velocity = {
+                        x: velocity.x * DEFLECTED_ARROW_SPEED,
+                        y: velocity.y * DEFLECTED_ARROW_SPEED,
+                        z: velocity.z * DEFLECTED_ARROW_SPEED
+                    };
+                    body.position = lastSafe;
+                    return;
+                }
                 if (this.hitProjectile(entity, target, params, at) && entity.removed !== undefined) return;
             }
 
@@ -5934,6 +5948,7 @@ export class EntityRuntime implements EntityScene {
             ) {
                 const onHit = isRecord(params.on_hit) ? params.on_hit : {};
                 this.applyProjectileHitEffects(onHit, at, false);
+                if (entity.identifier === DRAGON_FIREBALL) this.breathe(entity, at);
                 const sound = typeof params.hit_ground_sound === 'string' ? params.hit_ground_sound : undefined;
                 if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
 
@@ -6042,6 +6057,9 @@ export class EntityRuntime implements EntityScene {
 
         this.projectiles.get(projectile.id)?.hitEntities.add(target.id);
         this.applyProjectileHitEffects(onHit, at, true);
+        // Java's `DragonFireball.onHit` leaves no cloud on the dragon that breathed it.
+        if (projectile.identifier === DRAGON_FIREBALL && target.id !== projectile.body.owner)
+            this.breathe(projectile, at);
         const sound = typeof params.hit_sound === 'string' ? params.hit_sound : undefined;
         if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
 
@@ -6069,6 +6087,30 @@ export class EntityRuntime implements EntityScene {
         const destroyOnHit = impact?.destroy_on_hit === true || onHit.remove_on_hit !== undefined;
         if (destroyOnHit) this.remove(projectile.id, 'projectile_hit_entity');
         return destroyOnHit;
+    }
+
+    /** Leaves the cloud of dragon's breath a dragon fireball makes where it lands; see {@link dragonBreathOf}. */
+    private breathe(fireball: DataEntity, at: EntityPosition): void {
+        const { min, max } = breathSearchBox(at, fireball.facts.box.width / 2);
+        const inside = (position: EntityPosition): boolean =>
+            position.x >= min.x &&
+            position.x <= max.x &&
+            position.y >= min.y &&
+            position.y <= max.y &&
+            position.z >= min.z &&
+            position.z <= max.z;
+        const living = [
+            ...this.index
+                .withinBox(min, max)
+                .filter((other) => other.id !== fireball.id && other.instance.attributes.get('health') !== undefined),
+            ...this.host.players().filter((player) => inside(player.position))
+        ];
+        const breath = dragonBreathOf(at, living);
+        const owner = fireball.body.owner;
+        this.spawn(AREA_EFFECT_CLOUD, breath.at, {
+            data: breath.data,
+            ...(owner === undefined ? {} : { ownerId: owner })
+        });
     }
 
     /** Applies the particle and child-spawn actions carried by `on_hit`. */
