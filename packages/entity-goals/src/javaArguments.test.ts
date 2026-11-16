@@ -36,6 +36,12 @@ describe('javaGoalBody', () => {
         expect(matchingJavaGoals('minecraft:behavior.not_a_goal', [float])).toBeUndefined();
     });
 
+    it('matches no Java goal for a Bedrock goal no Java class has, such as walking to a mount', () => {
+        expect(matchingJavaGoals('minecraft:behavior.find_mount', [goal('FloatGoal', {})])).toEqual([]);
+        const look = goal('RandomLookAroundGoal', {});
+        expect(matchingJavaGoals('minecraft:behavior.random_look_around', [look])).toEqual([look]);
+    });
+
     it("leaves a body alone when the mob's Java class registers no matching goal", () => {
         const body = { priority: 7, look_distance: 6 };
         expect(javaGoalBody('minecraft:behavior.look_at_player', body, [], context)).toBe(body);

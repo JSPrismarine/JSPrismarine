@@ -294,6 +294,12 @@ const TRANSLATIONS: Readonly<Record<string, Translation>> = {
         translate: wander
     },
     'minecraft:behavior.random_swim': { javaClasses: ['RandomSwimmingGoal'], translate: wander },
+    // `RandomLookAroundGoal` and `SitWhenOrderedToGoal` take no arguments.
+    'minecraft:behavior.random_look_around': { javaClasses: ['RandomLookAroundGoal'], translate: (body) => body },
+    'minecraft:behavior.stay_while_sitting': { javaClasses: ['SitWhenOrderedToGoal'], translate: (body) => body },
+    // No Java goal walks a mob to a mount: `Zombie.finalizeSpawn` seats a chicken jockey as it
+    // spawns, and `LandOnOwnersShoulderGoal` puts a tamed parrot on its owner.
+    'minecraft:behavior.find_mount': { javaClasses: [], translate: (body) => body },
     'minecraft:behavior.swim_wander': {
         javaClasses: ['RandomSwimmingGoal'],
         // The body's `interval` is a tenth of the one-in-n draw a swim starts on.
