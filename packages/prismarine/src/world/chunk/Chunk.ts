@@ -18,7 +18,7 @@ import type { DimensionType } from '../DimensionType';
 import type { EntitySpawn } from '../EntitySpawn';
 import { ChunkBiomes } from './ChunkBiomes';
 import type { ReadonlyChunkBiomes } from './ChunkBiomes';
-import BlockStorage from './BlockStorage';
+import BlockStorage, { BlockWriteCounter } from './BlockStorage';
 import SubChunk from './SubChunk';
 import type { ReadonlySubChunk } from './SubChunk';
 import { sectionTakesRandomTicks } from '../randomTickSections';
@@ -155,13 +155,17 @@ export default class Chunk {
     private readonly subChunks: Array<SubChunk | undefined>;
     private readonly subChunkOrder: number[] = [];
     private storedSubChunkCount = 0;
-    /** The block revision and the write epoch and layout it was summed under. */
-    private readonly blockRevisionCache = { epoch: -1, layout: -1, total: 0 };
+    /** Counts writes to this chunk's own storages, which its sub chunks hand on to them. */
+    private readonly blockWrites = new BlockWriteCounter();
+    /** The block revision and the write counts and layout it was summed under. */
+    private readonly blockRevisionCache = { epoch: -1, writes: -1, layout: -1, total: 0 };
     private subChunkLayoutRevision = 0;
     private cachedRandomTickLayoutRevision = -1;
     private cachedRandomTickSectionRevision = -1;
     /** The process-wide write count at the last check, which no write has moved since if it still matches. */
     private cachedRandomTickEpoch = -1;
+    /** This chunk's own write count at the last check. */
+    private cachedRandomTickWrites = -1;
     private cachedRandomTickSections: readonly number[] = [];
 
     /**
@@ -809,20 +813,22 @@ export default class Chunk {
         }
         if (this.subChunks[offset] !== subChunk) this.subChunkLayoutRevision++;
         this.subChunks[offset] = subChunk;
+        subChunk.attachWriteCounter(this.blockWrites);
     }
 
     /** Sections that can draw random-tick positions, cached until their stored blocks change. */
     public getRandomTickSections(): readonly number[] {
-        // No block was written anywhere since the last check, so there is nothing to sum.
+        // No block of this chunk was written since the last check, so there is nothing to sum.
         if (
-            this.cachedRandomTickEpoch === BlockStorage.writeEpoch &&
-            this.cachedRandomTickLayoutRevision === this.subChunkLayoutRevision
+            this.cachedRandomTickLayoutRevision === this.subChunkLayoutRevision &&
+            this.blocksUnwrittenSince(this.cachedRandomTickEpoch, this.cachedRandomTickWrites)
         )
             return this.cachedRandomTickSections;
 
         // SubChunk revisions only increase, so their sum changes on every block write. The
         // separate layout revision catches replacing a section with another at a lower revision.
         const epoch = BlockStorage.writeEpoch;
+        const writes = this.blockWrites.count;
         let sectionRevision = 0;
         for (const index of this.subChunkOrder)
             sectionRevision += this.subChunks[index - this.minSubChunkY]!.getRevision();
@@ -832,6 +838,7 @@ export default class Chunk {
             this.cachedRandomTickSectionRevision === sectionRevision
         ) {
             this.cachedRandomTickEpoch = epoch;
+            this.cachedRandomTickWrites = writes;
             return this.cachedRandomTickSections;
         }
 
@@ -843,8 +850,18 @@ export default class Chunk {
         this.cachedRandomTickLayoutRevision = this.subChunkLayoutRevision;
         this.cachedRandomTickSectionRevision = sectionRevision;
         this.cachedRandomTickEpoch = epoch;
+        this.cachedRandomTickWrites = writes;
         this.cachedRandomTickSections = sections;
         return sections;
+    }
+
+    /**
+     * Whether no block of this chunk was written since a check that saw these counts. A write
+     * anywhere moves the process-wide epoch, so the chunk's own count answers more often; it is
+     * trusted only while no sub chunk or storage of the chunk was also handed to another.
+     */
+    private blocksUnwrittenSince(epoch: number, writes: number): boolean {
+        return epoch === BlockStorage.writeEpoch || (!this.blockWrites.shared && writes === this.blockWrites.count);
     }
 
     /**
@@ -1275,11 +1292,13 @@ export default class Chunk {
      */
     public getBlockRevision(): number {
         const cache = this.blockRevisionCache;
-        if (cache.epoch === BlockStorage.writeEpoch && cache.layout === this.subChunkLayoutRevision) return cache.total;
+        if (cache.layout === this.subChunkLayoutRevision && this.blocksUnwrittenSince(cache.epoch, cache.writes))
+            return cache.total;
 
         let total = this.storedSubChunkCount;
         for (const index of this.subChunkOrder) total += this.subChunkAtIndex(index)!.getRevision();
         cache.epoch = BlockStorage.writeEpoch;
+        cache.writes = this.blockWrites.count;
         cache.layout = this.subChunkLayoutRevision;
         cache.total = total;
         return total;
