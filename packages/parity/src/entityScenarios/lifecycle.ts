@@ -2053,6 +2053,9 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                     [2401, true],
                     [4802, false]
                 ];
+                // Every restock falls in one day, Java's count of restocks today, whatever time the
+                // scenarios before this one left the shared world at.
+                world.advance((24_000 - (world.world.level.gameTime() % 24_000)) % 24_000);
                 let elapsed = 0;
                 for (const [offset, expected] of java) {
                     world.advance(offset - elapsed);
