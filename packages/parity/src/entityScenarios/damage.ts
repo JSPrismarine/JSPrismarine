@@ -26,6 +26,8 @@ import type { SandboxHit, SandboxMedium } from './sandbox.ts';
 import { SANDBOX_ORIGIN, inSandbox } from './sandbox.ts';
 import type { EntitySubject } from './subjects.ts';
 import { componentValues, entitiesDeclaring, field, mappedEntity } from './subjects.ts';
+import { playerRuleScenarios } from './playerRules.ts';
+import { projectileHitScenarios } from './projectileHits.ts';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 /**
@@ -868,5 +870,7 @@ export const damageScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     ...projectileScenarios,
     ...strikeScenarios,
     ...explosionScenarios,
-    ...conditionScenarios
+    ...conditionScenarios,
+    ...projectileHitScenarios,
+    ...playerRuleScenarios
 ];

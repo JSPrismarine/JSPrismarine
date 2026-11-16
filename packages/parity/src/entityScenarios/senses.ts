@@ -17,6 +17,8 @@ import type { SandboxMedium, SandboxRun } from './sandbox.ts';
 import { SANDBOX_ORIGIN, inSandbox } from './sandbox.ts';
 import type { EntitySubject } from './subjects.ts';
 import { entitiesDeclaring, mappedEntity } from './subjects.ts';
+import { moodScenarios } from './moods.ts';
+import { reactionScenarios } from './reactions.ts';
 
 /**
  * Senses, round two: what an entity notices about where it is and what happens to it, and what it
@@ -1066,5 +1068,7 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             }
             return differences.length === 0 ? undefined : differences.join('; ');
         }
-    }
+    },
+    ...reactionScenarios,
+    ...moodScenarios
 ];
