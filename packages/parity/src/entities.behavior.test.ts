@@ -4,6 +4,7 @@ import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScena
 import type { ScenarioGroup } from './behaviorScenarios.ts';
 import { entityAspects } from './entityScenarios/aspects.ts';
 import { coreScenarios } from './entityScenarios/core.ts';
+import { interactionScenarios } from './entityScenarios/interaction.ts';
 import { spawnScenarios } from './entityScenarios/spawning.ts';
 import { javaEntityIds } from './entityScenarios/subjects.ts';
 import { FAMILIES } from './families.ts';
@@ -14,7 +15,11 @@ import { REFERENCES } from './references.ts';
  * Every entity scenario group. Each theme keeps its scenarios in its own module under
  * `entityScenarios/`; add a theme's group here.
  */
-const ENTITY_SCENARIO_GROUPS: readonly ScenarioGroup[] = [scenarioGroup(spawnScenarios), scenarioGroup(coreScenarios)];
+const ENTITY_SCENARIO_GROUPS: readonly ScenarioGroup[] = [
+    scenarioGroup(spawnScenarios),
+    scenarioGroup(coreScenarios),
+    scenarioGroup(interactionScenarios)
+];
 
 describeFamily(
     FAMILIES.entitiesBehavior,
