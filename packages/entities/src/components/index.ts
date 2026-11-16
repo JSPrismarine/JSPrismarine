@@ -7,6 +7,7 @@ import { goalComponent } from '../goals';
 import { float, lookAtPlayer, randomStroll } from '../goals/reference';
 import { EVENT_TRIGGER_COMPONENTS } from '../triggers';
 import { dyeable } from './dyeable';
+import { genetics } from './genetics';
 import { home } from './home';
 import { nameable } from './nameable';
 import { dataComponent } from './schemas';
@@ -146,7 +147,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:freezing_vulnerable',
     'minecraft:game_event_movement_tracking',
     'minecraft:giveable',
-    'minecraft:genetics',
     'minecraft:grows_crop',
     'minecraft:group_size',
     'minecraft:heartbeat',
@@ -266,6 +266,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(environmentSensor);
     register(equipment);
     register(experienceReward);
+    register(genetics);
     register(healable);
     register(hurtOnCondition);
     register(ignoreCannotBeAttacked);
