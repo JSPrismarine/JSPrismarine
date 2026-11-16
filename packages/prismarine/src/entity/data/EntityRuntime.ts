@@ -131,6 +131,10 @@ import {
 } from './collision';
 import { actuatorOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
 import { ENTITY_EYE_HEIGHT_FRACTION, blockPositionOf, entityEyePosition } from './position';
+import { mobLootTableOf, rollMobDrops } from '../mobLoot';
+import { deathDamageSource, deathLootState, killerView } from './deathLoot';
+import type { DeathKiller } from './deathLoot';
+import { JAVA_EXPERIENCE, deathExperience, experienceOrbs } from './deathExperience';
 import { brainMobFor } from './brainIdentifiers';
 import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
@@ -233,6 +237,9 @@ const PLAYER_LEASH_HOLDER_PREFIX = 'player:';
 /** How long a projectile ignores its owner and stays alive, in ticks. */
 const PROJECTILE_OWNER_GRACE = 5;
 const PROJECTILE_MAX_LIFE = 1200;
+/** The entity a death's experience drops as. */
+const EXPERIENCE_ORB = 'minecraft:xp_orb';
+
 /** Java's mob no-despawn distance; a nearby player resets `noActionTime`. */
 const MOB_NO_DESPAWN_DISTANCE = 32;
 const PROJECTILE_KNOCKBACK = 0.4;
@@ -4266,9 +4273,70 @@ export class EntityRuntime implements EntityScene {
         }
 
         const table = entity.facts.lootTable;
-        if (table !== undefined && ruleIsOn(this.world.level, MOB_DROPS)) this.dropLoot(table, entity.position);
+        if (table !== undefined && ruleIsOn(this.world.level, MOB_DROPS)) this.dropDeathLoot(entity, table);
+        if (ruleIsOn(this.world.level, MOB_DROPS)) this.dropDeathExperience(entity);
         this.remove(entity.id, 'death');
     }
+
+    /**
+     * Drops what a dead mob's loot table rolls for its death.
+     *
+     * Java's `LivingEntity.dropFromLootTable` rolls the type's own `entities/<id>` table with the
+     * mob and the blow that killed it, so a player's kill unlocks the rare drops, a sheep drops
+     * its own wool and a slime drops slime balls only at the smallest size. The active
+     * `minecraft:loot` still decides whether anything drops, which keeps a calf from dropping a
+     * cow's beef. A type Java has no table for rolls the table the component names.
+     */
+    private dropDeathLoot(entity: DataEntity, table: string): void {
+        const content = this.content();
+        if (mobLootTableOf(content, entity.identifier) === undefined) {
+            this.dropLoot(table, entity.position);
+            return;
+        }
+
+        const drops = rollMobDrops(content, entity.identifier, {
+            position: entity.position,
+            self: deathLootState(entity),
+            damage: deathDamageSource(content, entity.body.damage.last(), this.killerViewOf)
+        });
+        const position = blockPositionOf(entity.position);
+        for (const drop of drops) this.host.drop(position, drop);
+    }
+
+    /**
+     * Drops the experience a dead mob pays out, as orbs at the spot it died.
+     *
+     * Java's `LivingEntity.dropExperience` pays only for a mob a player hurt; Java forgets that
+     * player after 100 ticks, and this server credits any player in the mob's damage record.
+     */
+    private dropDeathExperience(entity: DataEntity): void {
+        const rule = JAVA_EXPERIENCE.get(entity.identifier);
+        if (rule === undefined) return;
+        const hurtByPlayer = entity.body.damage
+            .records()
+            .some((record) => record.sourceId !== undefined && this.host.playerById(record.sourceId) !== undefined);
+        if (!hurtByPlayer) return;
+
+        const variant = entity.instance.componentParams('minecraft:variant');
+        const points = deathExperience(rule, {
+            baby: entity.instance.hasComponent('minecraft:is_baby'),
+            equippedItems: Object.entries(entity.body.equipment).filter(
+                ([slot, item]) => slot !== 'body' && item !== undefined
+            ).length,
+            size: typeof variant === 'number' ? variant : 1,
+            random: entity.instance.random
+        });
+        for (const value of experienceOrbs(points))
+            this.spawn(EXPERIENCE_ORB, { ...entity.position }, { data: { value } });
+    }
+
+    /** The player or mob behind a blow, as a loot predicate reads a killer. */
+    private killerViewOf: DeathKiller = (id) => {
+        const player = this.host.playerById(id);
+        if (player !== undefined) return killerView(this.content(), 'minecraft:player', player.position);
+        const mob = this.store.get(id);
+        return mob === undefined ? undefined : killerView(this.content(), mob.identifier, mob.position);
+    };
 
     /**
      * Gives one entity what its `minecraft:equipment` table rolls.

@@ -124,6 +124,50 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             runtime.remove(dragon.id, 'vanilla dragon coverage');
         });
 
+        describe('a mob’s death', () => {
+            const KILLER = 7778;
+            const at = { x: 300.5, y: 64, z: 300.5 };
+            const killed = (
+                identifier: string,
+                attacker: number | undefined,
+                cause = 'entity_attack',
+                prepare: (mob: NonNullable<ReturnType<EntityRuntime['spawn']>>) => void = () => undefined
+            ) => {
+                world.drops.length = 0;
+                world.players = [{ id: KILLER, identifier: 'minecraft:player', position: { ...at, x: at.x + 1 } }];
+                const mob = runtime.spawn(identifier, at);
+                if (mob === undefined) throw new Error(`the vanilla pack declares no ${identifier}`);
+                prepare(mob);
+                runtime.hurt(mob, attacker, cause, 10_000);
+                const orbs = runtime
+                    .near(at, 4)
+                    .filter((entity) => entity.identifier === 'minecraft:xp_orb')
+                    .map((orb) => orb.spawnData?.['value']);
+                for (const entity of runtime.near(at, 8)) runtime.remove(entity.id, 'vanilla death coverage');
+                world.players = [];
+                return { mob, drops: world.drops.map((drop) => drop.item.identifier), orbs };
+            };
+
+            it('rolls Java’s table with the player who killed it, so a blaze drops rods only for a player', () => {
+                expect(killed('minecraft:blaze', KILLER).drops).toContain('minecraft:blaze_rod');
+                expect(killed('minecraft:blaze', undefined, 'fall').drops).not.toContain('minecraft:blaze_rod');
+            });
+
+            it('drops a sheep’s wool in the sheep’s own color', () => {
+                // Index 14 of Bedrock's palette is red.
+                const { drops } = killed('minecraft:sheep', KILLER, 'entity_attack', (sheep) => {
+                    sheep.body.color = 14;
+                });
+                expect(drops.filter((identifier) => identifier.endsWith('_wool'))).toEqual(['minecraft:red_wool']);
+            });
+
+            it('pays Java’s experience as orbs for a player’s kill and none for a fall', () => {
+                // Monster.xpReward is 5, with no gear to add to it.
+                expect(killed('minecraft:creeper', KILLER).orbs).toEqual([3, 1, 1]);
+                expect(killed('minecraft:creeper', undefined, 'fall').orbs).toEqual([]);
+            });
+        });
+
         it('spawns and restores every declared entity through its components', () => {
             for (const [index, identifier] of identifiers.entries()) {
                 const position = {
