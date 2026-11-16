@@ -17,6 +17,7 @@ import { navigationProfile } from '@jsprismarine/entity-goals/navigation/profile
 import type { NavigationSource } from '@jsprismarine/entity-goals/navigation/profile';
 import { isRecord } from '@jsprismarine/entities';
 import type { EntityPosition } from '@jsprismarine/entities';
+import { peekAmount } from '@jsprismarine/entities/components/peek';
 import { Vector3 } from '@jsprismarine/math';
 import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
@@ -212,6 +213,8 @@ export interface ActorMetadataState {
     readonly showBottom: boolean;
     /** The `block` its spawn data names, which only a falling block shows. */
     readonly spawnBlock: unknown;
+    /** How far a shulker's shell is open, from 0 to 100, for an entity with `minecraft:peek`. */
+    readonly peek?: number;
 }
 
 /**
@@ -233,7 +236,8 @@ export const actorMetadataStateOf = (entity: DataEntity, leashHolderId?: number)
         beamY: beam === undefined ? undefined : Math.floor(beam.y),
         beamZ: beam === undefined ? undefined : Math.floor(beam.z),
         showBottom: body.showBottom !== false,
-        spawnBlock: entity.spawnData?.['block']
+        spawnBlock: entity.spawnData?.['block'],
+        peek: peekAmount(entity.instance)
     };
 };
 
@@ -322,6 +326,7 @@ export const projectActorMetadata = (
     }
 
     if (typeof color === 'number') properties.push({ kind: 'byte', id: MetadataFlag.COLOR, value: color });
+    if (state.peek !== undefined) properties.push({ kind: 'byte', id: ActorDataID.PEEK_ID, value: state.peek });
     if (typeof facts.color2 === 'number')
         properties.push({ kind: 'byte', id: ActorDataID.COLOR_2_INDEX, value: facts.color2 });
 

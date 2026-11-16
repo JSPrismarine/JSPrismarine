@@ -42,6 +42,7 @@ import type {
     OutgoingTrigger,
     TransformRequest
 } from '@jsprismarine/entities';
+import type { LookedAtCandidate, LookedAtQuery } from '@jsprismarine/entities/entityInstance';
 import {
     canEntityAttack,
     canEntityAttackView,
@@ -175,6 +176,8 @@ import {
 } from './collision';
 import { actuatorOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
 import { ENTITY_EYE_HEIGHT_FRACTION, blockPositionOf, entityEyePosition } from './position';
+import type { Look } from './lookingAt';
+import { isLookingAt } from './lookingAt';
 import { mobLootTableOf, rollMobDrops } from '../mobLoot';
 import { deathDamageSource, deathLootState, killerView } from './deathLoot';
 import type { DeathKiller } from './deathLoot';
@@ -285,6 +288,7 @@ import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
 import { playerAbilityNames } from '../playerAbilities';
+import { EYE_HEIGHT } from '../playerEyes';
 import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
 import { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerMining } from '../playerComponents';
@@ -311,6 +315,13 @@ const EXPERIENCE_ORB = 'minecraft:xp_orb';
 const MOB_NO_DESPAWN_DISTANCE = 32;
 /** How long Java's `LivingEntity.tick` keeps `lastHurtByMob` after the blow, in ticks. */
 const LAST_HURT_BY_MEMORY_TICKS = 100;
+/** `Creaking.checkCanMove`'s `isLookingAtMe` tolerance, and the height above its feet it also checks. */
+const CREAKING_LOOK_TOLERANCE = 0.5;
+const CREAKING_LOOK_HEIGHT = 0.5;
+/** `Creaking.checkCanMove` wakes a creaking for a player closer than this, `distanceToSqr < 144`. */
+const CREAKING_ACTIVATION_RANGE = 12;
+/** Java's item tag of the head equipment no creaking or enderman notices a look from. */
+const GAZE_DISGUISE_TAG = 'minecraft:gaze_disguise_equipment';
 
 /** One remembered blow: the runtime id on its other side, and the game tick it landed. */
 interface PlayerBlow {
@@ -1782,6 +1793,8 @@ export class EntityRuntime implements EntityScene {
                 componentGroupsWritten: (changed, write) =>
                     this.instanceWritten(changed, 'groups', write.before, write.after),
                 entitySensorCandidates: (_entity, query) => this.entitySensorCandidates(body, query),
+                lookers: (_entity, query) => this.lookers(body, query),
+                targetLooker: (looking, looker) => this.targetLooker(body, looking, looker),
                 random: {
                     next: () => this.world.random.nextFloat(),
                     nextInt: (bound) => this.world.random.nextInt(bound)
@@ -2483,8 +2496,49 @@ export class EntityRuntime implements EntityScene {
         this.syncBrainTarget(entity);
     }
 
+    /**
+     * Java's `Creaking.checkCanMove`, which decides the `can_move` and `active` conditions the
+     * creaking's brain reads. Of the players its brain senses, one it may attack, wearing no gaze
+     * disguise and looking at it (`isLookingAtMe` with tolerance 0.5 over its eyes, half a block
+     * up and halfway between) freezes it while it is active, and wakes it while idle when within 12
+     * blocks: it then targets that player. An active creaking with no such player near goes idle.
+     */
+    private creakingCanMove(entity: DataEntity): boolean {
+        const { body, brain } = entity;
+        if (brain === undefined) return true;
+        const active = body.conditions.has(EntityCondition.ACTIVE);
+        const seen = brain.getMemory(MemoryModuleTypes.NEAREST_PLAYERS) ?? [];
+        const feet = body.position.y;
+        const eyes = feet + body.facts.box.height * ENTITY_EYE_HEIGHT_FRACTION;
+        const heights = [eyes, feet + CREAKING_LOOK_HEIGHT, (eyes + feet) / 2];
+        const disguises = this.content().tags.members('item', GAZE_DISGUISE_TAG);
+        let attackable = false;
+        for (const sensed of seen) {
+            const player = this.host.playerById(Number(sensed.id));
+            if (player === undefined || player.creative === true || player.spectator === true) continue;
+            attackable = true;
+            const head = this.playerFilterView(player).equipment?.('head', 0)?.identifier();
+            if (head !== undefined && disguises.includes(head)) continue;
+            if (!this.looksAt(player, body, heights, CREAKING_LOOK_TOLERANCE, false)) continue;
+            if (active) return false;
+            if (distance(player.position, body.position) < CREAKING_ACTIVATION_RANGE) {
+                // `Creaking.activate`.
+                brain.setMemory(MemoryModuleTypes.ATTACK_TARGET, sensed);
+                setCondition(body.conditions, EntityCondition.ACTIVE, true);
+                return false;
+            }
+        }
+        // `Creaking.deactivate`.
+        if (active && !attackable) setCondition(body.conditions, EntityCondition.ACTIVE, false);
+        return true;
+    }
+
     /** Refreshes body facts that depend on the sniffer's live position and relationships. */
     private updateBrainConditions(entity: DataEntity): void {
+        if (entity.identifier === 'minecraft:creaking') {
+            setCondition(entity.body.conditions, EntityCondition.CAN_MOVE, this.creakingCanMove(entity));
+            return;
+        }
         if (entity.identifier !== 'minecraft:sniffer') return;
 
         const { body } = entity;
@@ -3690,9 +3744,14 @@ export class EntityRuntime implements EntityScene {
             }
         }
 
-        for (const player of this.host.players()) {
-            const position = player.position;
-            const view = this.host.playerView?.(player.id) ?? {
+        for (const player of this.host.players()) include(player.position, this.playerFilterView(player));
+        return candidates;
+    }
+
+    /** A host player as a filter reads it: the host's own view, or its family, tags and abilities. */
+    private playerFilterView(player: ContentEntity): FilterEntityView {
+        return (
+            this.host.playerView?.(player.id) ?? {
                 id: () => player.id,
                 names: (name) =>
                     name === 'is_family'
@@ -3708,10 +3767,61 @@ export class EntityRuntime implements EntityScene {
                                         : Gametype.SURVIVAL
                               )
                             : undefined
-            };
-            include(position, view);
+            }
+        );
+    }
+
+    /** Where a host player looks: what the host says, or the store player's own rotation. */
+    private lookOf(player: ContentEntity): Look | undefined {
+        if (player.yaw !== undefined && player.pitch !== undefined) return { yaw: player.yaw, pitch: player.pitch };
+        const stored = this.store.get(player.id);
+        return stored === undefined ? undefined : { yaw: stored.body.yaw, pitch: stored.body.pitch };
+    }
+
+    /** Whether a host player looks at a body, Java's `isLookingAtMe` over the given heights. */
+    private looksAt(
+        player: ContentEntity,
+        body: MobBody,
+        heights: readonly number[],
+        tolerance: number,
+        scaleByDistance: boolean
+    ): boolean {
+        const look = this.lookOf(player);
+        if (look === undefined) return false;
+        return isLookingAt({
+            eye: { ...player.position, y: player.position.y + EYE_HEIGHT },
+            look,
+            at: body.position,
+            heights,
+            tolerance,
+            scaleByDistance,
+            clear: (from, to) => this.hasLineOfSight(from, to)
+        });
+    }
+
+    /** The players looking at one body, for `minecraft:looked_at`. */
+    private lookers(body: MobBody, query: LookedAtQuery): readonly LookedAtCandidate[] {
+        const feet = body.position.y;
+        const eyes = feet + body.facts.box.height * ENTITY_EYE_HEIGHT_FRACTION;
+        const heights = query.locations.map(
+            ({ location, verticalOffset }) =>
+                (location === 'head' ? eyes : location === 'body' ? (eyes + feet) / 2 : feet) + verticalOffset
+        );
+        const found: LookedAtCandidate[] = [];
+        for (const player of this.host.players()) {
+            if (player.spectator === true || distance(player.position, body.position) > query.searchRadius) continue;
+            if (!this.looksAt(player, body, heights, query.tolerance, query.scaleByDistance)) continue;
+            found.push({ id: player.id, view: this.playerFilterView(player) });
         }
-        return candidates;
+        return found;
+    }
+
+    /** Makes a player that looked at a body its target, unless the player is creative or a spectator. */
+    private targetLooker(body: MobBody, instance: EntityInstance, looker: LookedAtCandidate): void {
+        const player = this.host.playerById(looker.id);
+        if (player?.creative === true || player?.spectator === true) return;
+        body.target = looker.id;
+        instance.setAttackTarget(looker.view);
     }
 
     /**

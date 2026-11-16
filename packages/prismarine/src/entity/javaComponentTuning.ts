@@ -177,6 +177,16 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
             rewrite: ({ on_inside_range: _melee, ...sensor }) => sensor
         }
     ],
+    // `EnderMan.isBeingStaredBy` counts a look within `isLookingAtMe`'s tolerance 0.025, scaled by
+    // distance, which `minecraft:looked_at` reads as the field of view `2 acos(1 - 0.025)`; the pack's
+    // default 26 degrees is a tolerance of 0.0256.
+    'minecraft:enderman': [
+        {
+            component: 'minecraft:looked_at',
+            group: undefined,
+            rewrite: (lookedAt) => ({ ...lookedAt, field_of_view: (2 * Math.acos(1 - 0.025) * 180) / Math.PI })
+        }
+    ],
     // `Pufferfish$PufferfishPuffGoal` puffs up at a threat within its box inflated by 2.
     'minecraft:pufferfish': [sensorBox(undefined, 2, 2)],
     // `HappyGhast.scanPlayerAboveGhast` looks for a player in the box one block past each side of

@@ -73,6 +73,10 @@ export interface ContentEntity {
     readonly creative?: boolean;
     /** Whether this player is in spectator mode; absent for non-players. */
     readonly spectator?: boolean;
+    /** Where this player's head faces, in degrees; absent when the host does not say. */
+    readonly yaw?: number;
+    /** This player's head pitch, in degrees; absent when the host does not say. */
+    readonly pitch?: number;
 }
 
 /**

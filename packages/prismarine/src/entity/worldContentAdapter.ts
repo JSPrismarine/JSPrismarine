@@ -140,7 +140,9 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
                                   ...contentEntityOf(actor),
                                   identifier: PLAYER_IDENTIFIER,
                                   creative: session.gamemode === Gametype.CREATIVE,
-                                  spectator: session.gamemode === Gametype.SPECTATOR
+                                  spectator: session.gamemode === Gametype.SPECTATOR,
+                                  yaw: actor.headYaw,
+                                  pitch: actor.pitch
                               }
                           ];
                 }),
