@@ -298,6 +298,13 @@ describe.skipIf(!java)('what Java’s own tables drop', { tags: ['real-data'] },
         expect(spread(totalsOf(rolls, 'minecraft:gunpowder'))).toEqual({ min: 0, max: 2 });
     });
 
+    it('drops no empty stack when a count rolls nought, as Entity.spawnAtLocation skips one', () => {
+        const rolls = rollsOf(vanilla(), 'minecraft:creeper', 300, { damage: killedByPlayer() });
+
+        expect(rolls.flat().filter((drop) => drop.count <= 0)).toEqual([]);
+        expect(rolls.filter((drops) => drops.length === 0).length).toBeGreaterThan(0);
+    });
+
     it('drops a cow’s beef one to three and its leather nought to two', () => {
         const rolls = rollsOf(vanilla(), 'minecraft:cow', 300, { damage: killedByPlayer() });
 

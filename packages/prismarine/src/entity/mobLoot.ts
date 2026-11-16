@@ -173,8 +173,10 @@ export const rollMobDrops = (
     });
 
     // Java ids, because the table is Java's; `bedrockItemDrops` turns them into the names a
-    // Bedrock client resolves.
-    return bedrockItemDrops(rolled.map(dropOfRolledStack));
+    // Bedrock client resolves. A roll that came to nothing, such as a blaze rod a
+    // `set_count` of 0 to 1 left at 0, drops no item: `Entity.spawnAtLocation` skips an
+    // empty stack.
+    return bedrockItemDrops(rolled.filter((stack) => stack.count > 0).map(dropOfRolledStack));
 };
 
 /**
