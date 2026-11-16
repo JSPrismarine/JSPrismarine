@@ -363,10 +363,10 @@ export const slimeRandomDirection = goal<SlimeRandomDirectionParams>({
             start: () => {
                 remaining =
                     params.minChangeDirectionTime + Math.round(support.random() * params.addRandomTimeRange * 20);
-                const here = support.position();
+                // Java's `SlimeRandomDirectionGoal` only hands the direction to the move control,
+                // which turns the body toward it by `rotlerp(yaw, direction, 90)` a tick.
                 const angle = ((support.random() * params.turnRange - params.turnRange / 2) * Math.PI) / 180;
                 slimeHeadingOf(support.entity).set(angle);
-                support.lookAt({ x: here.x + Math.cos(angle) * 4, y: here.y, z: here.z + Math.sin(angle) * 4 });
             },
             tick: () => {
                 remaining -= 1;

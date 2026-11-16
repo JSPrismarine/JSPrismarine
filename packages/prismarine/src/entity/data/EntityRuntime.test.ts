@@ -1953,6 +1953,33 @@ describe('EntityRuntime', () => {
             expect(zombie.position.z).toBeLessThan(0.5);
         });
 
+        it("eases a squid's body a tenth of the way toward its waypoint each tick, as Squid.aiStep does", () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'minecraft:squid': {
+                        components: {
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:movement': { value: 0.2 },
+                            'minecraft:collision_box': { width: 0.8, height: 0.8 },
+                            'minecraft:physics': {},
+                            'minecraft:navigation.walk': { can_walk: true }
+                        }
+                    }
+                }
+            );
+            const squid = runtime.spawn('minecraft:squid', { x: 0.5, y: GROUND.y, z: 0.5 });
+            if (squid === undefined) throw new Error('the fixture declares no squid');
+            squid.body.yaw = 0;
+            squid.body.moveTo({ x: 0.5, y: GROUND.y, z: -9.5 }, 1);
+
+            runtime.tick(1);
+
+            expect(Math.abs(squid.body.yaw)).toBeCloseTo(18, 6);
+            expect(squid.position.z).toBeLessThan(0.5);
+        });
+
         it('keeps a walk’s momentum when its goal stops and starts it again within the tick', () => {
             const { runtime } = moverRuntime();
             const mover = runtime.spawn('jsprismarine:mover', GROUND);

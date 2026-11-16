@@ -6306,8 +6306,10 @@ export class EntityRuntime implements EntityScene {
         // `minecraft:movement.glide` is the phantom's flight, which declares no navigation: Java's
         // `PhantomMoveControl` steers it in three dimensions.
         const glides = entity.instance.hasComponent('minecraft:movement.glide');
+        const turnShare = JAVA_EASED_TURNS.get(entity.identifier);
         entity.step({
             ...(maxTurn === undefined ? {} : { maxTurn }),
+            ...(turnShare === undefined ? {} : { turnShare }),
             allowVertical:
                 profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || glides || swims || climbs,
             canJump: profile.canJump,
@@ -6605,6 +6607,16 @@ const FALL_DAMAGE_MULTIPLIER = 'minecraft:fall_damage_multiplier';
 
 /** What `LivingEntity.calculateFallPower` adds to a fall, so a fall of exactly a whole block counts it. */
 const FALL_EPSILON = 1e-6;
+
+/**
+ * The mobs that ease their own body toward where they swim rather than have a move control turn
+ * it, with the share of the turn left they take each tick: `Squid.aiStep` adds a tenth of the
+ * difference to `yBodyRot`.
+ */
+const JAVA_EASED_TURNS: ReadonlyMap<string, number> = new Map([
+    ['minecraft:squid', 0.1],
+    ['minecraft:glow_squid', 0.1]
+]);
 
 /** The group Bedrock's zombies break doors with, which the zombie villager files name without a namespace, and the component it adds. */
 const BREAK_DOORS_GROUPS = ['minecraft:can_break_doors', 'can_break_doors'];

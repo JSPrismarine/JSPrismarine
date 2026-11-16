@@ -276,6 +276,20 @@ describe('minecraft:behavior.slime_keep_on_jumping', () => {
     });
 });
 
+describe('minecraft:behavior.slime_random_direction', () => {
+    it("leaves the turn to the move control, as Java's goal only sets its direction", () => {
+        const harness = new GoalHarness({
+            identifier: 'minecraft:slime',
+            goals: { 'minecraft:behavior.slime_random_direction': { priority: 4 } },
+            flags: { on_ground: true }
+        });
+
+        harness.tick(40);
+
+        expect(harness.actuator.count('lookAt')).toBe(0);
+    });
+});
+
 describe('minecraft:behavior.timer_flag_1', () => {
     it('raises the flag for duration_range and then waits out cooldown_range', () => {
         const harness = new GoalHarness({

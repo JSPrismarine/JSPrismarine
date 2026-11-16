@@ -88,6 +88,13 @@ interface MobBodyStepOptions {
      * entity at once.
      */
     readonly maxTurn?: number;
+    /**
+     * The share of the remaining turn toward the waypoint the body takes each tick, for a mob
+     * that eases its own body rather than having a move control turn it: Java's `Squid.aiStep`
+     * eases a tenth of the way. The mob moves toward the waypoint whatever it faces. Takes
+     * precedence over {@link MobBodyStepOptions.maxTurn}.
+     */
+    readonly turnShare?: number;
 }
 
 /** An angle in degrees, wrapped into the half-open range -180 to 180. */
@@ -1020,8 +1027,8 @@ export class MobBody {
         // along the heading it reached, which is the waypoint itself unless the turn was too wide.
         // The climb or dive keeps aiming at the waypoint, as Java's flying and swimming controls
         // set the vertical speed apart from the heading.
-        const steered = options?.maxTurn !== undefined;
-        if (options?.maxTurn !== undefined) {
+        const steered = options?.maxTurn !== undefined && options.turnShare === undefined;
+        if (steered && options?.maxTurn !== undefined) {
             if (options.allowVertical) {
                 const before = this.yaw;
                 this.lookAt(destination);
@@ -1065,8 +1072,11 @@ export class MobBody {
         // A walker on land turns toward its waypoint, which lies at its feet, and keeps the pitch
         // its goal's look gave it: looking at the waypoint aimed it at the ground beside it.
         if (steered) return;
+        const before = this.yaw;
         if (options === undefined || options.allowVertical) this.lookAt(destination);
         else this.faceToward(destination);
+        if (options?.turnShare !== undefined)
+            this.yaw = wrapDegrees(before + wrapDegrees(this.yaw - before) * options.turnShare);
     }
 }
 
