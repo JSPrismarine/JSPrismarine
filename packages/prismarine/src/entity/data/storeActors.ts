@@ -63,6 +63,14 @@ import { boxOf } from './facts';
 import { actorMetadataProjection, applyActorMetadataProjection } from './actorMetadata';
 import type { ActorMetadataProjection } from './actorMetadata';
 
+/**
+ * Whether a world save writes a store entity with its chunk, which Bedrock's `minecraft:transient`
+ * turns off.
+ *
+ * @param entity - The store entity.
+ */
+export const savedWithChunk = (entity: DataEntity): boolean => !entity.instance.hasComponent('minecraft:transient');
+
 /** Where a store actor sends the blows and heals the rest of the server gives it. */
 export interface StoreActorBlows {
     /** A blow through {@link StoreActor.damage} or a status effect, run through the store's pipeline. */
@@ -250,7 +258,7 @@ export class StoreActor implements ShownActor {
 
     /** Whether a save writes the entity, which Bedrock's `minecraft:transient` turns off. */
     public shouldPersist(): boolean {
-        return !this.entity.instance.hasComponent('minecraft:transient');
+        return savedWithChunk(this.entity);
     }
 
     /**

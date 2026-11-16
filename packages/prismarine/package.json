@@ -313,6 +313,10 @@
             "jsprismarine:dist": "./dist/entity/data/host.js",
             "default": "./src/entity/data/host.ts"
         },
+        "./entity/data/storeActors": {
+            "jsprismarine:dist": "./dist/entity/data/storeActors.js",
+            "default": "./src/entity/data/storeActors.ts"
+        },
         "./entity/data/testing": {
             "jsprismarine:dist": "./dist/entity/data/testing.js",
             "default": "./src/entity/data/testing.ts"
