@@ -5,6 +5,7 @@ import type { ScenarioGroup } from './behaviorScenarios.ts';
 import { entityAspects } from './entityScenarios/aspects.ts';
 import { coreScenarios } from './entityScenarios/core.ts';
 import { interactionScenarios } from './entityScenarios/interaction.ts';
+import { mobGoalScenarios } from './entityScenarios/mobGoals.ts';
 import { spawnScenarios } from './entityScenarios/spawning.ts';
 import { javaEntityIds } from './entityScenarios/subjects.ts';
 import { FAMILIES } from './families.ts';
@@ -18,14 +19,15 @@ import { REFERENCES } from './references.ts';
 const ENTITY_SCENARIO_GROUPS: readonly ScenarioGroup[] = [
     scenarioGroup(spawnScenarios),
     scenarioGroup(coreScenarios),
-    scenarioGroup(interactionScenarios)
+    scenarioGroup(interactionScenarios),
+    scenarioGroup(mobGoalScenarios)
 ];
 
 describeFamily(
     FAMILIES.entitiesBehavior,
     [REFERENCES.javaEntityRegistry, REFERENCES.bedrockBehaviorPack, REFERENCES.javaWorldgenData],
     () => {
-        it('exercises each Java entity behavior against the server runtime', { timeout: 180_000 }, () => {
+        it('exercises each Java entity behavior against the server runtime', { timeout: 900_000 }, () => {
             const rows = [
                 ...measureScenarios(FAMILIES.entitiesBehavior, import.meta.filename, ...ENTITY_SCENARIO_GROUPS)
             ];
