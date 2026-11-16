@@ -62,6 +62,7 @@ import type { ContentWorldViews } from './world/views';
 import { javaAirSupplies, withJavaAirSupply } from '../entity/javaAirSupply';
 import { javaGoalRulings, withJavaGoals } from '../entity/javaGoals';
 import { javaBabyFoods, withJavaBabyFood } from '../entity/javaBabyFood';
+import { brainGoalsOf, withBrainGoals } from '../entity/brainGoals';
 import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
 import { javaGoalOverlay } from '../entity/javaGoalArguments';
 import { withJavaComponentTuning } from '../entity/javaComponentTuning';
@@ -374,6 +375,9 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         entityFiles.map((definition) => definition.data),
         { goals: java_entity_goals, attributes: java_entity_attributes, tags }
     );
+    const brains = new BrainMobRegistry();
+    registerBrainMobs(brains);
+    const brainGoals = brainGoalsOf(brains.all);
     diagnostics.push(
         ...entityTypes.load(
             entityFiles.map((definition) => ({
@@ -381,14 +385,17 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
                 path: definition.path,
                 data: withJavaGoals(
                     withJavaGoalArguments(
-                        withJavaComponentTuning(
-                            withJavaAirSupply(
-                                withJavaBabyFood(
-                                    withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
-                                    babyFoods
-                                ),
-                                airSupplies
-                            )
+                        withBrainGoals(
+                            withJavaComponentTuning(
+                                withJavaAirSupply(
+                                    withJavaBabyFood(
+                                        withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
+                                        babyFoods
+                                    ),
+                                    airSupplies
+                                )
+                            ),
+                            brainGoals
                         )
                     ),
                     goalRulings
@@ -396,9 +403,6 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
             }))
         )
     );
-
-    const brains = new BrainMobRegistry();
-    registerBrainMobs(brains);
 
     // The loader wraps each file in a record carrying its pack and path; the recipe grammar
     // reads the file itself. Tags go in because without them every `#tag` ingredient parses

@@ -72,11 +72,12 @@ describe('registerBrainMobs', () => {
 });
 
 describe('the mobs that carry both AI systems', () => {
-    it('is exactly the camel, the camel husk and the happy ghast', () => {
+    it('is exactly the camel, the camel husk, the happy ghast and the tadpole', () => {
         expect([...DUAL_SYSTEM_MOBS].sort()).toEqual([
             'minecraft:camel',
             'minecraft:camel_husk',
-            'minecraft:happy_ghast'
+            'minecraft:happy_ghast',
+            'minecraft:tadpole'
         ]);
     });
 

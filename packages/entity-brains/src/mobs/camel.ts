@@ -1,7 +1,7 @@
 /**
  * The camel's brain. Transcribed from `CamelAi` in the 26.3 server jar.
  *
- * The camel is one of the two mobs that carry both AI systems: `Camel` has a `registerGoals` and a
+ * The camel is one of the three mobs that carry both AI systems: `Camel` has a `registerGoals` and a
  * `brainProvider`. Its brain runs the idling, sitting and temptation; its goals run riding,
  * leashing and breeding interaction. {@link CAMEL_BRAIN} reports that through `alsoRunsGoals`.
  */

@@ -55,7 +55,7 @@ export const BRAIN_MOBS: readonly BrainMobDefinition[] = [
 
 /**
  * The mobs that carry both AI systems, `registerGoals` and `brainProvider`: the camel, the camel
- * husk that inherits the camel's, and the happy ghast.
+ * husk that inherits the camel's, the happy ghast, and the tadpole that inherits the fish goals.
  *
  * A server running `@jsprismarine/entity-goals` beside this package must run both schedulers for
  * these and neither system's alone.

@@ -34,10 +34,17 @@ export interface BrainMobDefinition {
     /**
      * Whether the mob also runs the Bedrock goal scheduler.
      *
-     * Two do: `Camel` and `HappyGhast` carry both `registerGoals` and `brainProvider`. Everything
-     * else is one system or the other.
+     * Three do: `Camel` and `HappyGhast` carry both `registerGoals` and `brainProvider`, and
+     * `Tadpole` inherits `AbstractFish.registerGoals`. Everything else is one system or the other.
      */
     readonly alsoRunsGoals: boolean;
+    /**
+     * The goals Java's `registerGoals` adds beside the brain, as Bedrock goal components and their
+     * bodies, for a mob whose Bedrock file declares other goals than its Java class registers.
+     * A server runs these in place of every goal the file declares. Absent means the file's goals
+     * stand for Java's.
+     */
+    readonly goals?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
     /** Builds the brain. Java's `Brain.Provider.makeBrain`. */
     makeBrain(options?: BrainMobOptions): Brain;
     /** Java's `<Mob>Ai.initMemories`, run once when the mob is first placed in the world. */

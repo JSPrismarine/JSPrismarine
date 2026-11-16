@@ -1155,9 +1155,10 @@ export class DataEntity {
     /**
      * Whether the entity runs the goal scheduler.
      *
-     * Every entity that is not a brain mob does, and so do the two that run
+     * Every entity that is not a brain mob does, and so do the three that run
      * both systems: `Camel` and `HappyGhast` carry `registerGoals` as well as
-     * `brainProvider` in Java, which is what `alsoRunsGoals` records.
+     * `brainProvider` in Java, and `Tadpole` inherits `AbstractFish`'s, which
+     * is what `alsoRunsGoals` records.
      */
     public get runsGoals(): boolean {
         return this.brainMob === undefined || this.brainMob.alsoRunsGoals;

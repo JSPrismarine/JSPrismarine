@@ -36,10 +36,13 @@ finds 21 classes, and the twenty-first is `LivingEntity`, which holds the base. 
 the game, including every zombie, skeleton, farm animal, slime, guardian and the ender dragon, is
 goals only.
 
-Two of the twenty carry both systems. `Camel` and `HappyGhast` have a `registerGoals` and a
-`brainProvider`, so a server must run both schedulers for them. `CamelHusk` extends `Camel` and
-inherits both, so it is registered too, with its own food tag. `DUAL_SYSTEM_MOBS` reports that
-list, and `BrainMobDefinition.alsoRunsGoals` reports it per mob.
+Four of the twenty carry both systems. `Camel` and `HappyGhast` have a `registerGoals` and a
+`brainProvider`, `CamelHusk` extends `Camel` and inherits both, and `Tadpole` inherits
+`AbstractFish.registerGoals`, so a server must run both schedulers for them. The camel husk is
+registered with its own food tag. `DUAL_SYSTEM_MOBS` reports that list, and
+`BrainMobDefinition.alsoRunsGoals` reports it per mob. The tadpole's Bedrock file declares other
+goals than Java's, so its entry also carries Java's goals as Bedrock goal bodies in
+`BrainMobDefinition.goals`, for the server to run in place of the file's.
 
 [docs/research/java-code-only-behavior.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/java-code-only-behavior.md) section 4
 is the source for the two-system split and for the twenty-mob list.

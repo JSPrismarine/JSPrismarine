@@ -17,7 +17,7 @@
  *    answers whether one is possible.
  * 4. The body takes one step along whatever walk the two systems asked for.
  *
- * The camel and the happy ghast run both 1 and 2, which is what
+ * The camel, the happy ghast and the tadpole run both 1 and 3, which is what
  * `BrainMobDefinition.alsoRunsGoals` is for.
  */
 import { legacy_item_aliases } from '@jsprismarine/bedrock-data';

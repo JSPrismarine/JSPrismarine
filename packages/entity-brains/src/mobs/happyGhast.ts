@@ -1,8 +1,8 @@
 /**
  * The happy ghast's brain. Transcribed from `HappyGhastAi` in the 26.3 server jar.
  *
- * The happy ghast is the second of the two mobs that carry both AI systems, and it is the clearer
- * of the two: its brain is 67 lines and holds only idling and following, while its goals run the
+ * The happy ghast is one of the three mobs that carry both AI systems, and it is the clearest
+ * case: its brain is 67 lines and holds only idling and following, while its goals run the
  * harness, the riding and the flight control. Its `panic` activity is the most striking thing in
  * the table, because it has no behaviors at all: it exists so that `IS_PANICKING` suppresses every
  * idle behavior while the core activity's `AnimalPanic` flies the ghast away.

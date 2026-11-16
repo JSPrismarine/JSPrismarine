@@ -1,4 +1,9 @@
-/** The tadpole's brain. Transcribed from `TadpoleAi` in the 26.3 server jar. */
+/**
+ * The tadpole's brain. Transcribed from `TadpoleAi` in the 26.3 server jar.
+ *
+ * `Tadpole` extends `AbstractFish` and does not override its `registerGoals`, so Java's tadpole
+ * also runs the fish goals beside the brain: {@link TADPOLE_GOALS}.
+ */
 
 import { Activities } from '../activity.js';
 import type { ActivityData } from '../brain.js';
@@ -62,6 +67,28 @@ function idleActivity(): ActivityData {
     ]);
 }
 
+/**
+ * `AbstractFish.registerGoals` as Bedrock goal bodies: a `PanicGoal` at 1.25, an
+ * `AvoidEntityGoal` that flees players within 8 blocks (1.6 walking, 1.4 sprinting) and the
+ * `FishSwimGoal`, a `RandomSwimmingGoal` at speed 1 on an interval of 40 that draws within 10
+ * blocks across and 7 up and down, the box `BehaviorUtils.getRandomSwimmablePos` searches.
+ */
+export const TADPOLE_GOALS = {
+    'minecraft:behavior.panic': { priority: 0, speed_multiplier: 1.25 },
+    'minecraft:behavior.avoid_mob_type': {
+        priority: 2,
+        entity_types: [
+            {
+                filters: { test: 'is_family', subject: 'other', value: 'player' },
+                max_dist: 8,
+                walk_speed_multiplier: 1.6,
+                sprint_speed_multiplier: 1.4
+            }
+        ]
+    },
+    'minecraft:behavior.random_swim': { priority: 4, speed_multiplier: 1, interval: 40, xz_dist: 10, y_dist: 7 }
+} as const;
+
 /** The tadpole's two activities: the core package and `idle`. */
 export function tadpoleActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity()];
@@ -72,7 +99,8 @@ export const TADPOLE_BRAIN: BrainMobDefinition = {
     id: 'minecraft:tadpole',
     memories: [],
     sensorTypes: ['nearest_living_entities', 'nearest_players', 'hurt_by', 'frog_temptations'],
-    alsoRunsGoals: false,
+    alsoRunsGoals: true,
+    goals: TADPOLE_GOALS,
     makeBrain: () =>
         new Brain({
             sensors: [
