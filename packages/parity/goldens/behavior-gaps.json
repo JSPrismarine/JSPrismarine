@@ -552,11 +552,6 @@
             "reason": "Java's trap enchants each skeleton's bow and helmet through the mob_spawn_equipment enchantment provider, a registry the server does not load yet (#2912); everything else about the trap matches Java.",
             "reference": "Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (setVisualOnly bolt, createSkeleton with an iron helmet when its head slot is empty and its main hand and head enchanted by VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, riding the trap horse and three more from createHorse, setTrap(false)); issue #2912 if it differs"
         },
-        "home-range:minecraft:bee": {
-            "kind": "defect",
-            "reason": "A mob Java gives a home keeps it from where Java takes it, and its random wandering stays within the radius Java's setHomeTo gives it, or within none. Observed: the server holds its wandering within 22 blocks of home, where Java holds it to no radius.",
-            "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, every Mob.setHomeTo call (HappyGhast and AbstractNautilus checkRestriction, ElderGuardian.customServerAiStep, WanderingTraderSpawner.spawn), GoalUtils.mobRestricted and isRestricted, and Bee$BeeWanderGoal.getWanderThreshold; issues #3159 and #3170 (the bee)"
-        },
         "java-rule-out_of_control:minecraft:acacia_boat": {
             "kind": "defect",
             "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",

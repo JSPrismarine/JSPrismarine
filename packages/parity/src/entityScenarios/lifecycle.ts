@@ -27,6 +27,8 @@ import type { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityR
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { pinnedJavaConstants } from '../javaClassFile.ts';
 import { unpackVanillaDatapack } from '../javaDatapack.ts';
+import { voxelGrid } from '@jsprismarine/entity-goals/navigation/voxelGrid';
+import { javaMethodNumbers } from '../javaGoals.ts';
 import { gameTicks, probeGoal, walkSpeeds } from './goalHarness.ts';
 import { javaClassChain, javaEntityClassName, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import { realStack, serverContent } from '../serverStack.ts';
@@ -957,6 +959,120 @@ const wandersTo = (home: unknown, standing: number, away: number): boolean => {
     return walkSpeeds(probed).length > 0;
 };
 
+/**
+ * Java's `Bee$BeeWanderGoal`: whether the bee's hover wander heads toward its hive, on every draw,
+ * when the bee stands `standing` blocks from it. `findPos` aims within 90 degrees of the hive once
+ * the bee is `getWanderThreshold` blocks from it, and along its own facing otherwise.
+ *
+ * @returns How many of the first steps of 30 wanders head away from home, of how many it drew.
+ */
+const hoverStepsAway = (body: unknown, standing: number): { readonly away: number; readonly drawn: number } => {
+    const size = standing + 16;
+    const floor = Array.from({ length: size }, () => '#'.repeat(size));
+    const air = Array.from({ length: size }, () => '.'.repeat(size));
+    const view = voxelGrid([floor, air, air, air, air, air, air]);
+    let away = 0;
+    let drawn = 0;
+    for (let seed = 1; seed <= 30; seed += 1) {
+        let state = seed;
+        const probed = probeGoal('minecraft:behavior.random_hover', body, {
+            at: { x: 2.5, y: 2, z: 8.5 },
+            components: { 'minecraft:navigation.hover': {}, 'minecraft:can_fly': {} },
+            world: { navigation: () => view },
+            // Park and Miller's generator, so each seed draws its own wander.
+            random: () => {
+                state = (state * 16807) % 2147483647;
+                return state / 2147483647;
+            }
+        });
+        probed.entity.setHomePosition({ x: 2.5, y: 2, z: 8.5 });
+        probed.actuator.at = { x: standing + 2.5, y: 2, z: 8.5 };
+        // The hover goal starts on one selector tick in its interval, and the probe's actuator
+        // jumps to each waypoint, so the wander ends where the goal stops running.
+        let started = false;
+        for (let tick = 0; tick < 200; tick += 1) {
+            gameTicks(probed, 1);
+            const running = probed.isRunning('minecraft:behavior.random_hover');
+            if (started && !running) break;
+            started ||= running;
+        }
+        if (!started) continue;
+        drawn += 1;
+        // Within the walk's one-block goal radius of a spot square to home counts as heading back.
+        if (probed.actuator.at.x > standing + 2.5 + 1) away += 1;
+    }
+    return { away, drawn };
+};
+
+/**
+ * The mobs whose Java class moves their home to where they are once they stray far from it, with
+ * the class whose `checkRestriction` does it and whether it only does so for a tamed mob.
+ */
+const REHOMING: Readonly<Record<string, { readonly javaClass: string; readonly tamedOnly: boolean }>> = {
+    'minecraft:happy_ghast': { javaClass: 'net/minecraft/world/entity/animal/happyghast/HappyGhast', tamedOnly: false },
+    'minecraft:nautilus': { javaClass: 'net/minecraft/world/entity/animal/nautilus/AbstractNautilus', tamedOnly: true },
+    'minecraft:zombie_nautilus': {
+        javaClass: 'net/minecraft/world/entity/animal/nautilus/AbstractNautilus',
+        tamedOnly: true
+    }
+};
+
+/**
+ * Java's `checkRestriction`: a mob more than its restriction radius plus the margin the method
+ * adds from home, not leashed and carrying no rider, and tamed for the nautilus, takes the block
+ * it is in as its new home. Moves a live mob that far and reports what the server did.
+ */
+const rehomingDifferences = (subject: EntitySubject): readonly string[] => {
+    const rule = REHOMING[subject.javaId];
+    if (rule === undefined) return [];
+    const [margin] = javaMethodNumbers(rule.javaClass, 'checkRestriction');
+    if (margin === undefined) return ["Java's checkRestriction margin could not be read"];
+    const { runtime } = realStack();
+    const differences: string[] = [];
+    const at = freshSpot();
+    const mob = spawnLive(subject.bedrock, at);
+    try {
+        const strayTo = (distance: number): boolean => {
+            const home = mob.instance.homePosition;
+            mob.position = { ...mob.position, x: (home?.x ?? at.x) + distance };
+            runtime.tick(1);
+            runtime.tick(2);
+            const moved = mob.instance.homePosition;
+            return moved !== undefined && Math.abs(moved.x - mob.position.x) < 2;
+        };
+        if (rule.tamedOnly) {
+            if (strayTo(64)) differences.push("an untamed one moves its home, where Java's only moves a tamed one's");
+            // Tamed the way a player's food tames it: its own tame event, which brings its home radius.
+            const tame = field(field(mob.instance.componentParams('minecraft:tameable'), 'tameEvent'), 'event');
+            if (typeof tame !== 'string') return [...differences, 'it has no tame event to tame it by'];
+            runtime.setOwner(mob.id, FEEDER);
+            mob.instance.fire(tame);
+            mob.instance.applyQueuedEvents();
+        }
+        const radius = field(mob.instance.componentParams('minecraft:home'), 'restriction_radius');
+        if (typeof radius !== 'number') return [...differences, 'it has no home radius to stray past'];
+        if (strayTo(radius + margin - 2))
+            differences.push(`it moves its home when it is ${radius + margin - 2} blocks off`);
+        if (!strayTo(radius + margin + 2))
+            differences.push(
+                `its home stays where it was ${radius + margin + 2} blocks off, where Java moves it to the mob past ${radius} plus ${margin}`
+            );
+        const rider = spawnLive('minecraft:zombie', mob.position);
+        try {
+            const seat = runtime.mobById(mob.id);
+            if (seat !== undefined) runtime.mount(rider.body, seat);
+            // A rider the mob throws off on its next tick leaves it unridden, which Java re-homes too.
+            if (strayTo(radius + margin + 2) && runtime.ridersOf(mob.body).length > 0)
+                differences.push("a ridden one moves its home, where Java's leaves it while ridden");
+        } finally {
+            cleanUp([rider]);
+        }
+    } finally {
+        cleanUp([mob]);
+    }
+    return differences;
+};
+
 /** The mobs Java gives a home position when they spawn: `Turtle.finalizeSpawn`, `PiglinBruteAi.initMemories`, `WanderingTraderSpawner`. */
 const HOME_AT_SPAWN: ReadonlySet<string> = new Set([
     'minecraft:turtle',
@@ -1694,9 +1810,9 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'home-range',
-        java: "A mob Java gives a home keeps it from where Java takes it, and its random wandering stays within the radius Java's setHomeTo gives it, or within none.",
+        java: "A mob Java gives a home keeps it from where Java takes it, and its random wandering stays within the radius Java's setHomeTo gives it, or within none; a happy ghast or a tamed nautilus that strays past its radius plus Java's margin, unridden, takes a new home where it is, and a bee past its wander threshold heads back to its hive.",
         reference:
-            'Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, every Mob.setHomeTo call (HappyGhast and AbstractNautilus checkRestriction, ElderGuardian.customServerAiStep, WanderingTraderSpawner.spawn), GoalUtils.mobRestricted and isRestricted, and Bee$BeeWanderGoal.getWanderThreshold; issues #3159 and #3170 (the bee)',
+            'Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, every Mob.setHomeTo call (HappyGhast and AbstractNautilus checkRestriction, ElderGuardian.customServerAiStep, WanderingTraderSpawner.spawn), GoalUtils.mobRestricted and isRestricted, and Bee$BeeWanderGoal.getWanderThreshold and findPos; issues #3159 and #3170',
         subjects: () => entitiesDeclaring('minecraft:home'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:home'],
@@ -1724,6 +1840,29 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 if (!inside || !strayed) differences.push(`a stroll ${radius} blocks from home never starts at all`);
                 return outside ? [] : [radius];
             });
+            differences.push(...rehomingDifferences(subject));
+            if (subject.javaId === 'minecraft:bee') {
+                // `getWanderThreshold`: 48 less 24 for a bee with a hive.
+                const [withHive, , reach] = javaMethodNumbers(
+                    'net/minecraft/world/entity/animal/bee/Bee$BeeWanderGoal',
+                    'getWanderThreshold'
+                );
+                const threshold = reach === undefined || withHive === undefined ? undefined : reach - withHive;
+                if (threshold === undefined) differences.push("Java's bee wander threshold could not be read");
+                for (const body of loadedComponentValues(subject.bedrock, 'minecraft:behavior.random_hover')) {
+                    if (threshold === undefined) break;
+                    const far = hoverStepsAway(body, threshold + 6);
+                    const near = hoverStepsAway(body, threshold - 6);
+                    if (far.drawn === 0 || far.away > 0)
+                        differences.push(
+                            `${far.away} of ${far.drawn} wanders ${threshold + 6} blocks from its hive head away from it, where Java's bee heads back past ${threshold}`
+                        );
+                    if (near.away === 0)
+                        differences.push(
+                            `${threshold - 6} blocks from its hive every wander heads back, where Java's bee only turns back past ${threshold}`
+                        );
+                }
+            }
             const server = [...new Set(held)].sort((left, right) => left - right).join(' or ');
             const expected = [...(java?.radii ?? [])].sort((left, right) => left - right).join(' or ');
             if (server !== expected)
