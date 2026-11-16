@@ -212,6 +212,10 @@ export interface GoalWorld {
     mount?(mob: GoalMob): void;
     /** Takes the entity off whatever it rides. */
     dismount?(): void;
+    /** Throws every rider off the entity, which is Java's `ejectPassengers`. */
+    ejectRiders?(): void;
+    /** Tames the entity for a player, as a mount whose temper roll won. */
+    tameBy?(player: GoalMob): void;
     /** Takes up to `count` items from the stack into the entity's inventory or hand. */
     pickUp?(item: GoalItem, count?: number, options?: GoalPickupOptions): void;
     /** Drops an item at a position, or at the entity when none is given. */

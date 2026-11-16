@@ -1,3 +1,4 @@
+import { feedMount, temperOfMount } from '@jsprismarine/entities/components/tamemount';
 import { describe, expect, it } from 'vitest';
 
 import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
@@ -590,5 +591,56 @@ describe('minecraft:behavior.mount_pathing', () => {
 
         expect(harness.holderOf('move')).toBe('minecraft:behavior.mount_pathing');
         expect(harness.actuator.count('moveTo')).toBeGreaterThan(0);
+    });
+});
+
+describe('minecraft:behavior.run_around_like_crazy', () => {
+    /** An untamed horse with a player on its back, whose rolls the test sets. */
+    const buckingHorse = (draw: number) => {
+        const player = testMob('rider', { x: 4.5, y: 1, z: 4.5 }, { identifier: 'minecraft:player' });
+        const calls: string[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.run_around_like_crazy': { priority: 1, speed_multiplier: 1.2 } },
+            components: {
+                ...walker,
+                'minecraft:tamemount': {
+                    min_temper: 0,
+                    max_temper: 100,
+                    feed_items: [{ item: 'golden_carrot', temper_mod: 5 }]
+                }
+            },
+            // No block view, so the walk takes the actuator's random target.
+            world: {
+                riders: () => [player],
+                ejectRiders: () => calls.push('eject'),
+                tameBy: (mob) => calls.push(`tame ${mob.id}`)
+            },
+            at: { x: 16.5, y: 1, z: 16.5 },
+            // Every chance passes, so the horse bucks on the first tick it runs.
+            random: () => 0,
+            randomInt: () => draw
+        });
+        harness.actuator.wander = { x: 20.5, y: 1, z: 16.5 };
+        return { harness, calls };
+    };
+
+    it("throws the player off and grows 5 more patient when Java's temper roll fails", () => {
+        const { harness, calls } = buckingHorse(0);
+
+        for (let tick = 0; tick < 4 && calls.length === 0; tick++) harness.tick();
+
+        // nextInt(100) of 0 is not below a fresh horse's temper of 0.
+        expect(calls).toEqual(['eject']);
+        expect(temperOfMount(harness.entity)).toBe(5);
+    });
+
+    it('tames the horse for its rider once the roll falls below the temper', () => {
+        const { harness, calls } = buckingHorse(4);
+        // Two failed bucks would raise it to 10; feeding a golden carrot raises it by Java's 5.
+        expect(feedMount(harness.entity, 'minecraft:golden_carrot')).toBe(true);
+
+        for (let tick = 0; tick < 4 && calls.length === 0; tick++) harness.tick();
+
+        expect(calls).toEqual(['tame rider']);
     });
 });

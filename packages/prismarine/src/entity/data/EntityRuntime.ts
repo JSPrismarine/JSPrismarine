@@ -58,6 +58,7 @@ import {
     noEffects,
     parseEventTarget
 } from '@jsprismarine/entities';
+import { feedMount, mountTameEvent } from '@jsprismarine/entities/components/tamemount';
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
 import {
     admireGoldItem,
@@ -3474,6 +3475,24 @@ export class EntityRuntime implements EntityScene {
         this.rides.dismount(rider.id);
     }
 
+    /** Throws every rider off an entity, which is Java's `ejectPassengers`. */
+    public ejectRiders(vehicle: MobBody): void {
+        for (const rider of [...this.rides.ridersOf(vehicle.id)]) this.rides.dismount(rider);
+    }
+
+    /**
+     * Tames a mount for a player, as Java's `AbstractHorse.tameWithName` does when a buck's temper
+     * roll wins: the player owns it and its `minecraft:tamemount` tame event runs.
+     */
+    public tameMount(mount: MobBody, player: GoalMob): void {
+        const entity = this.store.get(mount.id);
+        if (entity === undefined || typeof player.id !== 'number') return;
+        this.setOwner(entity.id, player.id);
+        entity.body.conditions.add('is_tamed');
+        const trigger = mountTameEvent(entity.instance);
+        fireTameEvent(entity, trigger?.event, trigger?.target);
+    }
+
     /** What an entity rides, or undefined when it rides nothing. */
     public vehicleOf(rider: MobBody): GoalMob | undefined {
         const vehicle = this.rides.vehicleOf(rider.id);
@@ -3938,6 +3957,11 @@ export class EntityRuntime implements EntityScene {
         const entity = this.store.get(id);
         if (entity === undefined || entity.removed !== undefined) return { accepted: false };
 
+        // Java's handleEating raises an untamed mount's temper alongside whatever else the food
+        // does, and eats the food for the temper alone.
+        const temperRose =
+            heldItem.count > 0 && entity.body.owner === undefined && feedMount(entity.instance, itemIdentifier);
+
         if (itemIdentifier === 'minecraft:shears' && heldItem.count > 0 && this.cutLeashesAt(entity)) {
             return { accepted: true, hurtItem: 1, consumeItem: false };
         }
@@ -3980,10 +4004,12 @@ export class EntityRuntime implements EntityScene {
                 ...(spawnEgg === undefined ? {} : { spawnEgg })
             }
         );
-        if (interaction === false)
+        if (interaction === false) {
+            if (temperRose) return { accepted: true };
             return this.toggleOrderedToSit(entity, owner)
                 ? { accepted: true, consumeItem: false }
                 : { accepted: false };
+        }
         if (typeof interaction === 'object') {
             const {
                 addItems,

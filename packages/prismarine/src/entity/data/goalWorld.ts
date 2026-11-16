@@ -258,6 +258,8 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         removeSelf: () => scene.remove(entity.id, 'death_behavior'),
         mount: (mob) => scene.mount(entity, mob),
         dismount: () => scene.dismount(entity),
+        ejectRiders: () => scene.ejectRiders(entity),
+        tameBy: (player) => scene.tameMount(entity, player),
         pickUp: (item, count, options) => scene.pickUp(entity, item, count, options),
         craftInto: (inputIdentifier, outputIdentifier, availableInput, wantedOutput) =>
             scene.craftInto(inputIdentifier, outputIdentifier, availableInput, wantedOutput),

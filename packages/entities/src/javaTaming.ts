@@ -50,3 +50,50 @@ export const trustChance = (identifier: string, declared: number): number => {
     const odds = JAVA_TRUST_ODDS[identifier];
     return odds === undefined ? declared : 1 / odds;
 };
+
+/**
+ * The temper Java's `AbstractHorse.handleEating` adds for each food a horse, donkey or mule eats
+ * from its `horse_food` tag. Hay feeds and heals but adds none.
+ */
+const HORSE_TEMPER: Readonly<Record<string, number>> = {
+    'minecraft:wheat': 3,
+    'minecraft:sugar': 3,
+    'minecraft:apple': 3,
+    'minecraft:carrot': 3,
+    'minecraft:golden_carrot': 5,
+    'minecraft:golden_apple': 10,
+    'minecraft:enchanted_golden_apple': 10
+};
+
+/**
+ * The temper each food adds to an untamed vanilla mount, from the food tag its Java `isFood`
+ * reads and the amounts its `handleEating` adds. A zombie horse eats the red mushrooms of
+ * `zombie_horse_food` through `AbstractHorse.handleEating` for 3, where Bedrock writes 10; a llama
+ * eats `llama_food` through `Llama.handleEating`, wheat for 3 and hay for 6.
+ */
+const JAVA_TEMPER: Readonly<Record<string, Readonly<Record<string, number>>>> = {
+    'minecraft:horse': HORSE_TEMPER,
+    'minecraft:donkey': HORSE_TEMPER,
+    'minecraft:mule': HORSE_TEMPER,
+    'minecraft:zombie_horse': { 'minecraft:red_mushroom': 3 },
+    'minecraft:llama': { 'minecraft:wheat': 3, 'minecraft:hay_block': 6 },
+    'minecraft:trader_llama': { 'minecraft:wheat': 3, 'minecraft:hay_block': 6 }
+};
+
+/**
+ * The temper one food adds to an untamed mount.
+ *
+ * @param identifier - The mount's entity type.
+ * @param item - The food, namespaced.
+ * @param declared - What its `minecraft:tamemount` feed items give each item.
+ * @returns Java's amount for a vanilla type, otherwise the declared one; undefined when the food
+ *   adds no temper.
+ */
+export const temperOf = (
+    identifier: string,
+    item: string,
+    declared: ReadonlyMap<string, number>
+): number | undefined => {
+    const java = JAVA_TEMPER[identifier];
+    return java === undefined ? declared.get(item) : java[item];
+};

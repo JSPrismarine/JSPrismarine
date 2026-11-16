@@ -1,4 +1,5 @@
 import type { EntityPosition, Goal } from '@jsprismarine/entities';
+import { buckMount } from '@jsprismarine/entities/components/tamemount';
 import type { Filter } from '@jsprismarine/packs';
 import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
 
@@ -1994,9 +1995,10 @@ export const mountPathing = goal<{
  * `minecraft:behavior.run_around_like_crazy`, which the six horse types
  * carry.
  *
- * Java's `RunAroundLikeCrazyGoal` bucks the rider off on a 1-in-50 chance per
- * tick while the horse is untamed, and the temper roll decides whether the
- * horse tames instead.
+ * Java's `RunAroundLikeCrazyGoal` bucks on a 1-in-50 chance per tick while the
+ * horse is untamed. With a player on its back the temper roll decides whether
+ * the horse tames instead; otherwise it grows more patient and throws every
+ * rider off.
  */
 export const runAroundLikeCrazy = goal<{ readonly speedMultiplier: number }>({
     name: 'minecraft:behavior.run_around_like_crazy',
@@ -2018,7 +2020,14 @@ export const runAroundLikeCrazy = goal<{ readonly speedMultiplier: number }>({
             },
             tick: () => {
                 walk.tick?.();
-                if (support.chance(1 / 50)) support.world.dismount?.();
+                if (!support.chance(1 / 50)) return;
+                const [rider] = support.world.riders?.() ?? [];
+                if (rider === undefined) return;
+                if (rider.identifier?.() === 'minecraft:player' && buckMount(support.entity) === true) {
+                    support.world.tameBy?.(rider);
+                    return;
+                }
+                support.world.ejectRiders?.();
             }
         };
     }

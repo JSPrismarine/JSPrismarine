@@ -115,6 +115,10 @@ export interface EntityScene {
     mount(rider: MobBody, vehicle: GoalMob): void;
     /** Takes an entity off whatever it rides. */
     dismount(rider: MobBody): void;
+    /** Throws every rider off an entity. */
+    ejectRiders(vehicle: MobBody): void;
+    /** Tames a mount for the player whose ride won its temper roll. */
+    tameMount(mount: MobBody, player: GoalMob): void;
     /** What an entity rides, or undefined when it rides nothing. */
     vehicleOf(rider: MobBody): GoalMob | undefined;
     /** The entity holding this one's leash, or undefined when it is not leashed. */

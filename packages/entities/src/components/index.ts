@@ -10,6 +10,7 @@ import { dyeable } from './dyeable';
 import { genetics } from './genetics';
 import { home } from './home';
 import { trusting } from './interactions';
+import { tamemount } from './tamemount';
 import { nameable } from './nameable';
 import { dataComponent } from './schemas';
 import { shareables } from './shareables';
@@ -202,7 +203,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:shooter',
     'minecraft:sittable',
     'minecraft:suspect_tracking',
-    'minecraft:tamemount',
     'minecraft:tick_world',
     'minecraft:trade_resupply',
     'minecraft:trade_table',
@@ -293,6 +293,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(spellEffects);
     register(tameable);
     register(trusting);
+    register(tamemount);
     register(targetNearbySensor);
     register(timer);
     register(transformation);
