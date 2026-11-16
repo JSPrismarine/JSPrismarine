@@ -1,3 +1,6 @@
+import { findPath } from '@jsprismarine/entity-goals/navigation/pathfinder';
+import { navigationProfile } from '@jsprismarine/entity-goals/navigation/profile';
+import { placedEntityOf } from '@jsprismarine/item-behaviors/behaviors/placement';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 import type { ContentEntity, ContentItemDrop } from '@jsprismarine/prismarine/content/world/adapter';
 import type { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
@@ -8,12 +11,14 @@ import { packJson } from '@jsprismarine/loot';
 import type { LootRollRequest } from '@jsprismarine/loot/registry';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
-import { javaFieldStores, javaMemberRefs, pinnedJavaClass, pinnedJavaClassFile } from '../javaClassFile.ts';
+import { javaFieldStores, javaMemberRefs, javaOperations, pinnedJavaClass } from '../javaClassFile.ts';
 import type { JavaClass } from '../javaClassFile.ts';
 import { loadVanillaDatapack, vanillaLootRegistry } from '../javaDatapack.ts';
 import type { VanillaDatapack } from '../javaDatapack.ts';
-import { buildRealStack } from '../serverStack.ts';
+import { javaEntityClasses } from '../javaEntityClasses.ts';
+import { buildRealStack, serverContent } from '../serverStack.ts';
 import type { RealStack } from '../serverStack.ts';
+import { javaClassChain, javaEntityClassName, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
 import { componentValues, entitiesDeclaring, field, groupsDeclaring } from './subjects.ts';
 
@@ -66,21 +71,29 @@ const playerAt = (distance: number): ContentEntity => ({
     position: { x: ORIGIN.x + distance, y: ORIGIN.y, z: ORIGIN.z }
 });
 
+/** Takes every item lying in the loot stack's world off the ground. */
+const clearLyingItems = (): void => {
+    const { host } = realStack().world;
+    for (const lying of host.items?.() ?? []) host.takeItem?.(lying.id);
+};
+
 /**
- * Runs `body` with one player in the shared test world and every entity it spawned removed
- * afterwards, so one scenario's mobs never stand in the next one's way.
+ * Runs `body` with one player in the shared test world and every entity and dropped item it left
+ * removed afterwards, so one scenario's mobs and drops never stand in the next one's way.
  */
 const withWorld = <Result>(player: ContentEntity | undefined, body: () => Result): Result => {
     const { runtime, world } = realStack();
     const before = world.players;
     world.players = player === undefined ? [] : [player];
     world.drops.length = 0;
+    clearLyingItems();
     try {
         return body();
     } finally {
         for (const entity of runtime.near(ORIGIN, 512)) runtime.remove(entity.id, 'parity scenario cleanup');
         world.players = before;
         world.drops.length = 0;
+        clearLyingItems();
     }
 };
 
@@ -195,136 +208,25 @@ const javaDeathRoll = (table: string, self: EntityView): Map<string, number> => 
 const equippedItems = (entity: DataEntity): ReadonlySet<string> =>
     new Set(Object.values(entity.body.equipment).flatMap((drop) => (drop === undefined ? [] : [drop.identifier])));
 
+/** A class's simple name, such as `Monster` for `net/minecraft/world/entity/monster/Monster`. */
+const simpleName = (javaClass: JavaClass): string => javaClass.name.slice(javaClass.name.lastIndexOf('/') + 1);
+
 /**
- * The class each Java entity type is built from, under `net/minecraft/world/entity/`, as
- * `EntityTypes` registers it. A wrong entry fails the row that reads it: the jar holds no such
- * class, or the class's rules are not the type's.
+ * A Java entity's class and every superclass, nearest first: the class `EntityTypes` registers the
+ * type's factory with, or, for the player, which has no factory, the class named after it.
  */
-const JAVA_CLASSES: ReadonlyMap<string, string> = new Map([
-    ['minecraft:armadillo', 'animal/armadillo/Armadillo'],
-    ['minecraft:axolotl', 'animal/axolotl/Axolotl'],
-    ['minecraft:bee', 'animal/bee/Bee'],
-    ['minecraft:blaze', 'monster/Blaze'],
-    ['minecraft:bogged', 'monster/skeleton/Bogged'],
-    ['minecraft:breeze', 'monster/breeze/Breeze'],
-    ['minecraft:camel', 'animal/camel/Camel'],
-    ['minecraft:camel_husk', 'animal/camel/CamelHusk'],
-    ['minecraft:cat', 'animal/feline/Cat'],
-    ['minecraft:cave_spider', 'monster/spider/CaveSpider'],
-    ['minecraft:chicken', 'animal/chicken/Chicken'],
-    ['minecraft:cod', 'animal/fish/Cod'],
-    ['minecraft:cow', 'animal/cow/Cow'],
-    ['minecraft:creeper', 'monster/Creeper'],
-    ['minecraft:dolphin', 'animal/dolphin/Dolphin'],
-    ['minecraft:donkey', 'animal/equine/Donkey'],
-    ['minecraft:drowned', 'monster/zombie/Drowned'],
-    ['minecraft:elder_guardian', 'monster/ElderGuardian'],
-    ['minecraft:enderman', 'monster/Enderman'],
-    ['minecraft:endermite', 'monster/Endermite'],
-    ['minecraft:evoker', 'monster/illager/Evoker'],
-    ['minecraft:fox', 'animal/fox/Fox'],
-    ['minecraft:frog', 'animal/frog/Frog'],
-    ['minecraft:ghast', 'monster/Ghast'],
-    ['minecraft:glow_squid', 'animal/squid/GlowSquid'],
-    ['minecraft:goat', 'animal/goat/Goat'],
-    ['minecraft:guardian', 'monster/Guardian'],
-    ['minecraft:happy_ghast', 'animal/happyghast/HappyGhast'],
-    ['minecraft:hoglin', 'monster/hoglin/Hoglin'],
-    ['minecraft:horse', 'animal/equine/Horse'],
-    ['minecraft:husk', 'monster/zombie/Husk'],
-    ['minecraft:llama', 'animal/equine/Llama'],
-    ['minecraft:magma_cube', 'monster/cubemob/MagmaCube'],
-    ['minecraft:mooshroom', 'animal/cow/MushroomCow'],
-    ['minecraft:mule', 'animal/equine/Mule'],
-    ['minecraft:nautilus', 'animal/nautilus/Nautilus'],
-    ['minecraft:ocelot', 'animal/feline/Ocelot'],
-    ['minecraft:panda', 'animal/panda/Panda'],
-    ['minecraft:parched', 'monster/skeleton/Parched'],
-    ['minecraft:parrot', 'animal/parrot/Parrot'],
-    ['minecraft:phantom', 'monster/Phantom'],
-    ['minecraft:pig', 'animal/pig/Pig'],
-    ['minecraft:piglin', 'monster/piglin/Piglin'],
-    ['minecraft:piglin_brute', 'monster/piglin/PiglinBrute'],
-    ['minecraft:pillager', 'monster/illager/Pillager'],
-    ['minecraft:player', 'player/Player'],
-    ['minecraft:polar_bear', 'animal/polarbear/PolarBear'],
-    ['minecraft:pufferfish', 'animal/fish/Pufferfish'],
-    ['minecraft:rabbit', 'animal/rabbit/Rabbit'],
-    ['minecraft:ravager', 'monster/Ravager'],
-    ['minecraft:salmon', 'animal/fish/Salmon'],
-    ['minecraft:sheep', 'animal/sheep/Sheep'],
-    ['minecraft:shulker', 'monster/Shulker'],
-    ['minecraft:silverfish', 'monster/Silverfish'],
-    ['minecraft:skeleton', 'monster/skeleton/Skeleton'],
-    ['minecraft:skeleton_horse', 'animal/equine/SkeletonHorse'],
-    ['minecraft:slime', 'monster/cubemob/Slime'],
-    ['minecraft:sniffer', 'animal/sniffer/Sniffer'],
-    ['minecraft:spider', 'monster/spider/Spider'],
-    ['minecraft:squid', 'animal/squid/Squid'],
-    ['minecraft:stray', 'monster/skeleton/Stray'],
-    ['minecraft:strider', 'monster/Strider'],
-    ['minecraft:sulfur_cube', 'monster/cubemob/SulfurCube'],
-    ['minecraft:trader_llama', 'animal/equine/TraderLlama'],
-    ['minecraft:tropical_fish', 'animal/fish/TropicalFish'],
-    ['minecraft:turtle', 'animal/turtle/Turtle'],
-    ['minecraft:vex', 'monster/Vex'],
-    ['minecraft:vindicator', 'monster/illager/Vindicator'],
-    ['minecraft:warden', 'monster/warden/Warden'],
-    ['minecraft:witch', 'monster/Witch'],
-    ['minecraft:wither', 'boss/wither/WitherBoss'],
-    ['minecraft:wither_skeleton', 'monster/skeleton/WitherSkeleton'],
-    ['minecraft:wolf', 'animal/wolf/Wolf'],
-    ['minecraft:zoglin', 'monster/Zoglin'],
-    ['minecraft:zombie', 'monster/zombie/Zombie'],
-    ['minecraft:zombie_horse', 'animal/equine/ZombieHorse'],
-    ['minecraft:zombie_nautilus', 'animal/nautilus/ZombieNautilus'],
-    ['minecraft:zombie_villager', 'monster/zombie/ZombieVillager'],
-    ['minecraft:zombified_piglin', 'monster/zombie/ZombifiedPiglin'],
-    ['minecraft:iron_golem', 'animal/golem/IronGolem'],
-    ['minecraft:snow_golem', 'animal/golem/SnowGolem'],
-    ['minecraft:copper_golem', 'animal/golem/CopperGolem'],
-    ['minecraft:armor_stand', 'decoration/ArmorStand'],
-    ['minecraft:bat', 'ambient/Bat'],
-    ['minecraft:creaking', 'monster/creaking/Creaking'],
-    ['minecraft:tadpole', 'animal/frog/Tadpole'],
-    ['minecraft:wandering_trader', 'npc/wanderingtrader/WanderingTrader'],
-    ['minecraft:villager', 'npc/villager/Villager'],
-    ['minecraft:allay', 'animal/allay/Allay'],
-    ['minecraft:ender_dragon', 'boss/enderdragon/EnderDragon']
-]);
-
-/** One class of a Java entity's hierarchy: its short name and its parsed class file. */
-interface JavaLink {
-    readonly name: string;
-    readonly file: JavaClass;
-}
-
-const chains = new Map<string, readonly JavaLink[]>();
-
-/** A Java entity's class and every superclass up to `Entity`, read out of the pinned jar once per type. */
-const javaChain = (javaId: string): readonly JavaLink[] => {
-    const cached = chains.get(javaId);
-    if (cached !== undefined) return cached;
-    const leaf = JAVA_CLASSES.get(javaId);
-    if (leaf === undefined) throw new Error(`no Java class is listed for ${javaId}`);
-    const chain: JavaLink[] = [];
-    let name: string | undefined = `net/minecraft/world/entity/${leaf}`;
-    while (name?.startsWith('net/minecraft/world/entity/') === true) {
-        const file = pinnedJavaClassFile(name);
-        if (file === undefined) break;
-        chain.push({ name: name.slice(name.lastIndexOf('/') + 1), file });
-        name = file.superName;
-    }
-    chains.set(javaId, chain);
-    return chain;
-};
+const javaChain = (javaId: string): readonly JavaClass[] =>
+    javaClassChain(javaEntityClasses().get(javaId) ?? javaEntityClassName(javaId));
 
 /** The most derived class in a chain that declares `method`, which is the one Java runs. */
-const declaring = (chain: readonly JavaLink[], method: string): string | undefined =>
-    chain.find((link) => link.file.methods.some((candidate) => candidate.name === method))?.name;
+const declaring = (chain: readonly JavaClass[], method: string): string | undefined => {
+    const owner = chain.find((javaClass) => javaClass.methods.some((candidate) => candidate.name === method));
+    return owner === undefined ? undefined : simpleName(owner);
+};
 
 /** Whether the type is a `Monster`, whose babies still drop loot (`Monster.shouldDropLoot`). */
-const isMonster = (javaId: string): boolean => javaChain(javaId).some((link) => link.name === 'Monster');
+const isMonster = (javaId: string): boolean =>
+    javaChain(javaId).some((javaClass) => simpleName(javaClass) === 'Monster');
 
 /** Mean and standard deviation of a list of numbers. */
 const moments = (values: readonly number[]): { readonly mean: number; readonly sd: number } => {
@@ -400,9 +302,9 @@ interface DeathFacts {
 }
 
 /** The `xpReward` a Java class's constructor sets, walking from the type's own class up. */
-const xpRewardOf = (chain: readonly JavaLink[]): number | undefined => {
-    for (const link of chain) {
-        const store = link.file.methods
+const xpRewardOf = (chain: readonly JavaClass[]): number | undefined => {
+    for (const javaClass of chain) {
+        const store = javaClass.methods
             .filter((method) => method.name === '<init>')
             .flatMap((method) => javaFieldStores(method))
             .find((candidate) => candidate.field.endsWith('.xpReward') && candidate.value !== undefined);
@@ -432,8 +334,8 @@ const javaExperience = (javaId: string, facts: DeathFacts): Distribution => {
     if (!drops) return point(0);
 
     // `Slime.setSize` and `MagmaCube.setSize` write the size into `xpReward`.
-    const sized = chain.some((link) =>
-        link.file.methods.some(
+    const sized = chain.some((javaClass) =>
+        javaClass.methods.some(
             (method) =>
                 method.name === 'setSize' && javaFieldStores(method).some((store) => store.field.endsWith('.xpReward'))
         )
@@ -661,6 +563,54 @@ const BEDROCK_MODEL = "as Bedrock's minecraft:despawn declares";
 const boatItemOf = (subject: EntitySubject): string | undefined =>
     subject.bedrock === 'minecraft:boat' || subject.bedrock === 'minecraft:chest_boat' ? subject.javaId : undefined;
 
+/**
+ * How many one-point blows in a row break a boat in Java: `VehicleEntity.hurtServer` adds ten
+ * times a blow to the damage and destroys the vehicle once it passes 40, both read from the jar.
+ */
+const javaBoatBlows = (): number => {
+    const hurt = javaMethodOf('net/minecraft/world/entity/vehicle/VehicleEntity', 'hurtServer');
+    const pushed = hurt === undefined ? [] : pushedNumbers(hurt.method);
+    if (!pushed.includes(10) || !pushed.includes(40))
+        throw new Error('VehicleEntity.hurtServer no longer scales a blow by 10 and breaks past 40');
+    return Math.floor(40 / 10) + 1;
+};
+
+/**
+ * Places a boat the way its item does and punches it once per tick-less blow: it must hold for
+ * one blow fewer than Java needs, break on the next, and drop its own item.
+ */
+const compareBoatBreaking = (boatItem: string): string | undefined =>
+    withWorld(playerAt(1), () => {
+        const { runtime, world } = realStack();
+        const placed = placedEntityOf(boatItem);
+        const entity = runtime.spawn(
+            placed.entity,
+            ORIGIN,
+            placed.variant === undefined ? {} : { data: { variant: placed.variant } }
+        );
+        if (entity === undefined) throw new Error(`the runtime refused to spawn ${placed.entity}`);
+        const blows = javaBoatBlows();
+        const punch = (): void => {
+            runtime.damage({
+                target: entity.id,
+                attacker: PLAYER_ID,
+                cause: 'entity_attack',
+                amount: 1,
+                source: { route: 'melee', graced: false, mitigated: false, bypassesGrace: true }
+            });
+        };
+        for (let blow = 1; blow < blows; blow += 1) punch();
+        if (entity.removed !== undefined)
+            return `${blows - 1} punches broke it, where Java's boat holds until its damage passes 40`;
+        punch();
+        if (entity.removed === undefined) return `${blows} punches in a row left it whole, where Java breaks it`;
+        const dropped = tally(world.drops.map((drop) => drop.item));
+        const expected = bedrockItemOf(boatItem);
+        return dropped.size === 1 && (dropped.get(expected) ?? 0) === 1
+            ? undefined
+            : `breaking it drops ${[...dropped].map(([item, count]) => `${count} ${item}`).join(', ') || 'nothing'}, where Java drops one ${expected}`;
+    });
+
 /** Java's default loot table for an entity type: `EntityType.getDefaultLootTable`, `entities/<path>`. */
 const javaDeathTable = (javaId: string): string => `minecraft:entities/${javaId.slice('minecraft:'.length)}`;
 
@@ -792,7 +742,9 @@ const gearRuleMismatch = (javaId: string, rule: JavaGearRule): string | undefine
     if (owner !== rule.owner)
         return `${javaId} runs ${String(owner)}.populateDefaultEquipmentSlots, where the rule here reads ${rule.owner}`;
     const named = new Set(
-        chain.flatMap((link) => link.file.methods.flatMap((method) => javaMemberRefs(method).map((ref) => ref.member)))
+        chain.flatMap((javaClass) =>
+            javaClass.methods.flatMap((method) => javaMemberRefs(method).map((ref) => ref.member))
+        )
     );
     const items = Object.values({ ...rule.gear(false), ...rule.gear(true) }).flatMap((odds) => Object.keys(odds ?? {}));
     const missing = items.filter((item) => !named.has(itemsField(item)));
@@ -873,19 +825,22 @@ const JAVA_STORAGE: ReadonlyMap<string, (strength: number) => number> = new Map<
     ['minecraft:command_block_minecart', () => 0]
 ]);
 
-/** The equipment slots a Bedrock `minecraft:equippable` puts at the front of a mount's container. */
+/**
+ * The equipment slots a Bedrock `minecraft:equippable` puts at the front of a mount's container:
+ * one per slot it lists, as the llama's carpet sits in container slot 0 though its screen calls it
+ * slot 1.
+ */
 const equippableSlots = (bedrock: string): number =>
     componentValues(bedrock, 'minecraft:equippable').reduce<number>((most, declared) => {
         const slots = field(declared, 'slots');
-        if (!Array.isArray(slots)) return most;
-        return Math.max(most, ...slots.map((slot) => Number(field(slot, 'slot') ?? 0) + 1));
+        return Array.isArray(slots) ? Math.max(most, slots.length) : most;
     }, 0);
 
 /** The members of one of Java's entity type tags, as the vanilla datapack lists them. */
 const javaEntityTag = (tag: string): ReadonlySet<string> => {
-    const file = packJson(javaLoot().datapack.definitions.tags.get(`entity_type/${tag}`));
-    const values = field(file, 'values');
-    return new Set(Array.isArray(values) ? values.filter((value) => typeof value === 'string') : []);
+    const values = field(packJson(javaLoot().datapack.definitions.tags.get(`entity_type/minecraft:${tag}`)), 'values');
+    if (!Array.isArray(values)) throw new Error(`Java's datapack has no entity type tag ${tag}`);
+    return new Set(values.filter((value) => typeof value === 'string'));
 };
 
 /** The entity types `Equippable.llamaSwag` lets wear a carpet, read out of the pinned jar. */
@@ -966,29 +921,292 @@ const serverTakesGear = (bedrock: string, item: string): boolean =>
         return result.accepted && held.some((drop) => drop?.identifier === item);
     });
 
+/** How Java sets `Mob.canPickUpLoot` for a fresh mob of a type. */
+type JavaLootPickup = 'always' | 'never' | 'regional';
+
+/** Whether one of a class's own methods calls `setCanPickUpLoot`, and with what. */
+const pickupSetting = (javaClass: JavaClass): JavaLootPickup | undefined => {
+    for (const method of javaClass.methods) {
+        if (method.name !== '<init>' && method.name !== 'finalizeSpawn') continue;
+        const calls = javaMemberRefs(method).flatMap((ref) => (ref.kind === 'call' ? [ref.member] : []));
+        if (!calls.some((member) => member.endsWith('.setCanPickUpLoot'))) continue;
+        // `Zombie` and `AbstractSkeleton` roll `nextFloat() < 0.55F * getSpecialMultiplier()`;
+        // `Fox`, `AbstractPiglin` and `Villager` pass `true`.
+        return calls.some((member) => member.endsWith('.getSpecialMultiplier')) ? 'regional' : 'always';
+    }
+    return undefined;
+};
+
+/**
+ * Java's `Mob.canPickUpLoot` for a freshly spawned mob, read from the pinned jar: the value the
+ * nearest class's constructor or `finalizeSpawn` sets, `false` when none does, and the
+ * `canPickUpLoot` overrides of `Allay` (only with an item in hand, which a fresh allay lacks).
+ */
+const javaLootPickup = (javaId: string): JavaLootPickup => {
+    const chain = javaChain(javaId);
+    const getter = declaring(chain, 'canPickUpLoot');
+    if (getter === 'Allay') return 'never';
+    if (getter !== 'Mob') throw new Error(`${javaId} runs ${String(getter)}.canPickUpLoot, which no rule here reads`);
+    for (const javaClass of chain) {
+        const setting = pickupSetting(javaClass);
+        if (setting !== undefined) return setting;
+    }
+    return 'never';
+};
+
+/** The items one of Java's item tags holds, with the tags it names expanded. */
+const javaItemTag = (tag: string): readonly string[] => {
+    const values = field(packJson(javaLoot().datapack.definitions.tags.get(`item/minecraft:${tag}`)), 'values');
+    if (!Array.isArray(values)) throw new Error(`Java's datapack has no item tag ${tag}`);
+    return values.flatMap((value) =>
+        typeof value !== 'string'
+            ? []
+            : value.startsWith('#minecraft:')
+              ? javaItemTag(value.slice('#minecraft:'.length))
+              : [value]
+    );
+};
+
+/** What a mob holds where Java's pickup rules look. */
+interface PickupHolder {
+    readonly mainhand: string | undefined;
+    readonly offhand: string | undefined;
+    readonly head: string | undefined;
+}
+
+/**
+ * Whether Java's `Mob.wantsToPickUp` takes one item, and the slot `Mob.pickUpItem` puts it in:
+ * `undefined` for an item the mob leaves on the ground, `'taken'` for one it takes elsewhere.
+ * Reads which class's `wantsToPickUp` and `canHoldItem` the type runs.
+ */
+const javaPickupSlot = (
+    javaId: string,
+    item: string,
+    holder: PickupHolder
+): 'mainhand' | 'head' | 'taken' | undefined => {
+    const chain = javaChain(javaId);
+    const wants = declaring(chain, 'wantsToPickUp');
+    const armor = item.endsWith('_helmet');
+    switch (wants) {
+        case 'Piglin':
+            // PiglinAi.wantsToPickup: gold ingots are barter currency, wanted while the off hand
+            // is free; anything else that is not food or loved replaces what the slot holds.
+            if (item === 'minecraft:gold_ingot') return holder.offhand === undefined ? 'taken' : undefined;
+            return armor && holder.head === undefined ? 'head' : undefined;
+        case 'Villager':
+            // Villager.wantsToPickUp: the villager_picks_up tag, or what an unemployed villager's
+            // profession requests, which is nothing.
+            return javaItemTag('villager_picks_up').includes(item) ? 'taken' : undefined;
+        case 'Mob':
+        case 'Zombie':
+        case 'Drowned':
+        case 'AbstractSkeleton':
+        case 'ZombifiedPiglin':
+            break;
+        default:
+            throw new Error(`${javaId} runs ${String(wants)}.wantsToPickUp, which no rule here reads`);
+    }
+    const holds = declaring(chain, 'canHoldItem');
+    if (holds === 'Fox') return holder.mainhand === undefined ? 'mainhand' : undefined;
+    // Zombie.canHoldItem refuses only an egg for a baby riding something, and
+    // WitherSkeleton.canHoldItem the wither_skeleton_disliked_weapons tag; both then ask Mob's.
+    if (holds === 'WitherSkeleton' && javaItemTag('wither_skeleton_disliked_weapons').includes(item)) return undefined;
+    if (holds !== 'Mob' && holds !== 'Zombie' && holds !== 'WitherSkeleton')
+        throw new Error(`${javaId} runs ${String(holds)}.canHoldItem, which no rule here reads`);
+    // Mob.pickUpItem equips the item where getEquipmentSlotForItem puts it, when that slot is free.
+    if (armor) return holder.head === undefined ? 'head' : undefined;
+    return holder.mainhand === undefined ? 'mainhand' : undefined;
+};
+
+/** Ticks a mob gets to take an item lying at its feet. */
+const PICKUP_TICKS = 60;
+
+/** Where a picked-up item sits on the server's mob: the slot it is worn or held in, or `'taken'`. */
+const serverPickup = (
+    entity: DataEntity,
+    item: string
+): { readonly slot: 'mainhand' | 'head' | 'taken' | undefined; readonly holder: PickupHolder } => {
+    const { runtime, world } = realStack();
+    const equipment = entity.body.equipment;
+    const holder: PickupHolder = {
+        mainhand: equipment.mainhand?.identifier,
+        offhand: equipment.offhand?.identifier,
+        head: equipment.head?.identifier
+    };
+    world.host.drop({ x: Math.floor(ORIGIN.x), y: ORIGIN.y, z: Math.floor(ORIGIN.z) }, { identifier: item, count: 1 });
+    runTicks(PICKUP_TICKS, () => (world.host.items?.() ?? []).length === 0);
+    const lying = (world.host.items?.() ?? []).some((stack) => stack.item.identifier === item);
+    clearLyingItems();
+    if (lying || entity.removed !== undefined) return { slot: undefined, holder };
+    const now = entity.body.equipment;
+    const slot =
+        now.head?.identifier === item && holder.head !== item
+            ? 'head'
+            : now.mainhand?.identifier === item && holder.mainhand !== item
+              ? 'mainhand'
+              : 'taken';
+    runtime.remove(entity.id, 'parity scenario counted');
+    return { slot, holder };
+};
+
+/** The items a pickup row lays at a fresh mob's feet: a gold ingot, and for a villager what it gathers. */
+const pickupItems = (javaId: string): readonly string[] =>
+    declaring(javaChain(javaId), 'wantsToPickUp') === 'Villager'
+        ? ['minecraft:gold_ingot', bedrockItemOf(javaItemTag('villager_picks_up')[0] ?? 'minecraft:bread')]
+        : ['minecraft:gold_ingot'];
+
+/**
+ * Compares what a fresh mob in a fresh region does with each item laid at its feet, then, for a
+ * mob that equips what it picks up, what it does with an iron helmet once it may pick up at all,
+ * as a mob in a hard region whose `canPickUpLoot` roll passed may.
+ */
+const comparePickup = (subject: EntitySubject): string | undefined => {
+    const loot = javaLootPickup(subject.javaId);
+    const differences: string[] = [];
+    const check = (item: string, mayPickUp: boolean, force: boolean): void =>
+        withWorld(playerAt(8), () => {
+            const entity = spawn(subject.bedrock);
+            if (force) entity.body.canPickUpLoot = true;
+            const server = serverPickup(entity, item);
+            const java = mayPickUp ? javaPickupSlot(subject.javaId, item, server.holder) : undefined;
+            if (server.slot === java) return;
+            const describe = (slot: string | undefined): string =>
+                slot === undefined ? 'leaves it' : slot === 'taken' ? 'takes it' : `puts it in its ${slot} slot`;
+            differences.push(
+                `${force ? 'once it may pick up, ' : ''}it ${describe(server.slot)} with ${item} at its feet, where Java ${describe(java)}`
+            );
+        });
+    for (const item of pickupItems(subject.javaId)) check(item, loot === 'always', false);
+    if (serverContent().entities.registry.get(subject.bedrock)?.declaredComponents.includes('minecraft:equip_item'))
+        check('minecraft:iron_helmet', loot !== 'never', loot === 'regional');
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
+/**
+ * How far sideways Java's `MinecartHopper.suckInItems` grows the cart's box to find items, read
+ * from the jar.
+ */
+const javaHopperReach = (javaId: string): number => {
+    const className = javaEntityClasses().get(javaId);
+    const method = className === undefined ? undefined : javaMethodOf(className, 'suckInItems');
+    const reach = method === undefined ? undefined : pushedNumbers(method.method).find((value) => value > 0);
+    if (reach === undefined) throw new Error(`${javaId} runs no suckInItems that grows its box`);
+    return reach;
+};
+
+/**
+ * Lays three stacks on a fresh hopper minecart and one a little beyond Java's reach, then counts
+ * what the cart took after one tick and after five.
+ */
+const compareHopperCollecting = (subject: EntitySubject): string | undefined =>
+    withWorld(playerAt(8), () => {
+        const { world } = realStack();
+        const cart = spawn(subject.bedrock);
+        runTicks(1);
+        const width = cart.facts.box.width;
+        // Past the box grown by Java's reach and an item's own half width, and past the suck box.
+        const far = {
+            x: ORIGIN.x + Math.max(width / 2 + javaHopperReach(subject.javaId), 0.5) + 0.5,
+            y: ORIGIN.y,
+            z: ORIGIN.z
+        };
+        const stacks = [
+            { identifier: 'minecraft:dirt', count: 5 },
+            { identifier: 'minecraft:cobblestone', count: 3 },
+            { identifier: 'minecraft:oak_log', count: 2 }
+        ];
+        for (const stack of stacks) world.host.drop(ORIGIN, stack);
+        world.host.drop(far, { identifier: 'minecraft:diamond', count: 1 });
+        // Only the stacks laid here count: the shared world may hold items other rows dropped.
+        const near = () =>
+            (world.host.items?.() ?? []).filter(
+                (stack) => Math.abs(stack.position.x - ORIGIN.x) < 4 && Math.abs(stack.position.z - ORIGIN.z) < 4
+            );
+        const lying = (): number => near().filter((stack) => stack.item.identifier !== 'minecraft:diamond').length;
+        const held = (): number => cart.body.containerSlots.reduce((sum, stack) => sum + (stack?.count ?? 0), 0);
+        const differences: string[] = [];
+        runTicks(1);
+        if (lying() !== stacks.length - 1)
+            differences.push(`one tick left ${lying()} of the three stacks in reach, where Java takes one a tick`);
+        runTicks(4);
+        if (held() !== 10)
+            differences.push(`it holds ${held()} items after five ticks, where Java takes all 10 in reach`);
+        if (!near().some((stack) => stack.item.identifier === 'minecraft:diamond'))
+            differences.push("it took a diamond lying past Java's reach");
+        return differences.length === 0 ? undefined : differences.join('; ');
+    });
+
+/** Where the door course stands, far from every other scenario's mobs. */
+const DOOR_COURSE = { x: 4096, y: ORIGIN.y, z: 0 } as const;
+
+/**
+ * Builds a stone wall across x with a closed oak door in it, plans a path for the mob from one
+ * side to the other through the server's live block view, and takes the course down again.
+ * @returns Whether the path reached the far side.
+ */
+const routesThroughClosedDoor = (entity: DataEntity): boolean => {
+    const { runtime, world } = realStack();
+    const { x, y, z } = DOOR_COURSE;
+    const wall: ContentEntity['position'][] = [];
+    for (let dz = -3; dz <= 3; dz += 1) for (let dy = 0; dy <= 2; dy += 1) wall.push({ x, y: y + dy, z: z + dz });
+    try {
+        for (const cell of wall)
+            world.setBlock(cell, cell.z === z && cell.y < y + 2 ? 'minecraft:wooden_door' : 'minecraft:stone');
+        const path = findPath(runtime.navigation(), navigationProfile(entity.instance), {
+            from: { x: x - 3 + 0.5, y, z: z + 0.5 },
+            to: { x: x + 3 + 0.5, y, z: z + 0.5 },
+            maxNodes: 4096
+        });
+        return path?.reachedGoal === true;
+    } finally {
+        for (const cell of wall) world.setBlock(cell, 'minecraft:air');
+    }
+};
+
+/** Whether a type's constructor calls `PathNavigation.setCanOpenDoors(true)`, as `Villager`'s does. */
+const javaConstructorOpensDoors = (javaId: string): boolean =>
+    javaChain(javaId).some((javaClass) =>
+        javaClass.methods.some((method) => {
+            if (method.name !== '<init>') return false;
+            const operations = javaOperations(method);
+            const call = operations.findIndex(
+                (operation) => operation.kind === 'call' && operation.target.endsWith('.setCanOpenDoors')
+            );
+            const pushed = call > 0 ? operations[call - 1] : undefined;
+            return pushed?.kind === 'number' && pushed.value === 1;
+        })
+    );
+
+/** Compares whether the server plans a mob's path through a closed wooden door with Java's navigator. */
+const compareDoorRoute = (subject: EntitySubject): string | undefined =>
+    withWorld(playerAt(8), () => {
+        const entity = spawn(subject.bedrock);
+        // WalkNodeEvaluator reads a closed wooden door as WALKABLE_DOOR only for a navigator
+        // that opens doors, and as DOOR_WOOD_CLOSED, which no path enters, otherwise. A type the
+        // navigation dump leaves out, such as the villager, answers from its constructor.
+        const java = entity.instance.javaNavigation;
+        const opens = java?.canOpenDoors ?? javaConstructorOpensDoors(subject.javaId);
+        const javaRoutes = opens && (java?.pathfindingMalus['walkable_door'] ?? 0) >= 0;
+        const server = routesThroughClosedDoor(entity);
+        if (server === javaRoutes) return undefined;
+        return server
+            ? 'the server plans its path through a closed wooden door, which Java never does for it'
+            : "the server will not plan its path through a closed wooden door, which Java's navigator opens";
+    });
+
 /** The scenarios this module adds to `ENTITY_SCENARIO_GROUPS`. */
 export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
         name: 'death-loot',
-        java: 'A mob killed by a player drops what its Java entity loot table rolls for that kill, and a destroyed boat drops itself.',
+        java: 'A mob killed by a player drops what its Java entity loot table rolls for that kill, and a boat breaks under five punches in a row and drops itself.',
         reference:
-            'Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.destroy with AbstractBoat.getDropItem; issue #3151',
+            'Java LivingEntity.dropAllDeathLoot and dropFromLootTable (THIS_ENTITY, DAMAGE_SOURCE, ATTACKING_ENTITY and LAST_DAMAGE_PLAYER), EntityType.getDefaultLootTable (entities/<id>), and VehicleEntity.hurtServer and destroy with AbstractBoat.getDropItem',
         subjects: () => entitiesDeclaring('minecraft:loot'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:loot'],
         run: (subject) => {
             const boat = boatItemOf(subject);
-            if (boat !== undefined) {
-                return withWorld(playerAt(1), () => {
-                    const entity = spawn(subject.bedrock);
-                    killByPlayer(entity);
-                    const dropped = tally(realStack().world.drops.map((drop) => drop.item));
-                    const expected = bedrockItemOf(boat);
-                    return dropped.size === 1 && (dropped.get(expected) ?? 0) === 1
-                        ? undefined
-                        : `destroying it drops ${[...dropped].map(([item, count]) => `${count} ${item}`).join(', ') || 'nothing'}, where Java drops one ${expected}`;
-                });
-            }
+            if (boat !== undefined) return compareBoatBreaking(boat);
             if (subject.javaId === 'minecraft:fishing_bobber') {
                 // The bobber's own table is the catch, which Java rolls from gameplay/fishing when
                 // the line is reeled in, not on any death.
@@ -1131,7 +1349,7 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'transient-save',
         java: 'A fishing bobber is never saved with its chunk, and a thrown eye of ender is.',
         reference:
-            "Java EntityTypes: FISHING_BOBBER's builder calls noSave, EYE_OF_ENDER's does not, which Entity.shouldBeSaved reads; issue #3156",
+            "Java EntityTypes: FISHING_BOBBER's builder calls noSave, EYE_OF_ENDER's does not, which Entity.shouldBeSaved reads",
         subjects: () => entitiesDeclaring('minecraft:transient'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:transient'],
@@ -1150,7 +1368,7 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'spawn-gear',
         java: 'A freshly spawned mob holds and wears what Java gives it: a skeleton its bow, a piglin a crossbow or a golden sword, a zombie a rare iron tool.',
         reference:
-            'Java Mob.populateDefaultEquipmentSlots and its overrides in AbstractSkeleton, WitherSkeleton, Zombie, Drowned (and Drowned.finalizeSpawn), ZombifiedPiglin, Piglin (createSpawnWeapon, maybeWearArmor), PiglinBrute, Pillager, Vindicator, Vex and Fox; DifficultyInstance.getSpecialMultiplier; issues #3153 and #3154',
+            'Java Mob.populateDefaultEquipmentSlots and its overrides in AbstractSkeleton, WitherSkeleton, Zombie, Drowned (and Drowned.finalizeSpawn), ZombifiedPiglin, Piglin (createSpawnWeapon, maybeWearArmor), PiglinBrute, Pillager, Vindicator, Vex and Fox; DifficultyInstance.getSpecialMultiplier',
         subjects: () => entitiesDeclaring('minecraft:equipment'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:equipment'],
@@ -1160,7 +1378,7 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'inventory-size',
         java: "A mob or vehicle that carries items holds as many as Java's container for it: 27 in a chest boat, 8 for a villager or a piglin, 15 in a chested donkey, three per strength in a llama.",
         reference:
-            'Java AbstractChestBoat.CONTAINER_SIZE, MinecartChest and MinecartHopper getContainerSize, the SimpleContainer sizes of Allay, Piglin and AbstractVillager, AbstractHorse, AbstractChestedHorse, Llama and AbstractNautilus getInventoryColumns with AbstractMountInventoryMenu.getInventorySize; issue #3155',
+            'Java AbstractChestBoat.CONTAINER_SIZE, MinecartChest and MinecartHopper getContainerSize, the SimpleContainer sizes of Allay, Piglin and AbstractVillager, AbstractHorse, AbstractChestedHorse, Llama and AbstractNautilus getInventoryColumns with AbstractMountInventoryMenu.getInventorySize',
         subjects: () => entitiesDeclaring('minecraft:inventory'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:inventory'],
@@ -1189,7 +1407,7 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'mount-gear',
         java: "A player puts a saddle on a tamed adult mount that Java's can_equip_saddle tag lists, horse or nautilus armor on the mobs their tags list, and a carpet on a llama, and nothing else on any of them.",
         reference:
-            'Java entity type tags can_equip_saddle, can_wear_horse_armor and can_wear_nautilus_armor, Equippable.llamaSwag, and Mob.mobInteract through Equippable.equipOnInteract and AbstractHorse.isEquippableInSlot; issue #3162',
+            'Java entity type tags can_equip_saddle, can_wear_horse_armor and can_wear_nautilus_armor, Equippable.llamaSwag, and Mob.mobInteract through Equippable.equipOnInteract and AbstractHorse.isEquippableInSlot',
         subjects: () => entitiesDeclaring('minecraft:equippable'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:equippable'],
@@ -1207,5 +1425,49 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             });
             return differences.length === 0 ? undefined : differences.join('; ');
         }
+    },
+    {
+        name: 'picks-up-loot',
+        java: "A mob picks up an item at its feet only when Java's canPickUpLoot and wantsToPickUp allow it, and wears or holds it where Java puts it: a fresh zombie or skeleton in a fresh region picks up nothing, a piglin takes gold, a villager what it gathers.",
+        reference:
+            'Java Mob.aiStep (canPickUpLoot, wantsToPickUp, pickUpItem), Zombie.finalizeSpawn and AbstractSkeleton.finalizeSpawn (nextFloat() < 0.55F * getSpecialMultiplier()), the setCanPickUpLoot(true) of Fox, AbstractPiglin and Villager, PiglinAi.wantsToPickup, Villager.wantsToPickUp (villager_picks_up), Fox.canHoldItem and Mob.equipItemIfPossible; issue #3179',
+        subjects: () => {
+            const seen = new Set<string>();
+            return [...entitiesDeclaring('minecraft:shareables'), ...entitiesDeclaring('minecraft:equip_item')].filter(
+                (subject) => {
+                    // The sulfur cube swallows what it picks up into its body (SulfurCube.canHoldItem
+                    // and pickUpItem), a rule no row here reads.
+                    if (subject.javaId === 'minecraft:sulfur_cube' || seen.has(subject.javaId)) return false;
+                    seen.add(subject.javaId);
+                    return true;
+                }
+            );
+        },
+        idOf: (subject) => subject.javaId,
+        aspects: (subject) =>
+            ['minecraft:shareables', 'minecraft:equip_item'].filter((component) =>
+                serverContent().entities.registry.get(subject.bedrock)?.declaredComponents.includes(component)
+            ),
+        run: comparePickup
+    },
+    {
+        name: 'hopper-minecart-collects',
+        java: 'An enabled hopper minecart takes one item entity in reach a tick into its container, the whole stack when it fits, and leaves an item beyond its reach.',
+        reference:
+            "Java MinecartHopper.suckInItems (the cart's box grown by 0.25 sideways) and HopperBlockEntity.suckInItems, getItemsAtAndAbove (Hopper.SUCK_AABB) and addItem",
+        subjects: () => entitiesDeclaring('minecraft:item_hopper'),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:item_hopper'],
+        run: compareHopperCollecting
+    },
+    {
+        name: 'opens-doors',
+        java: "A mob that opens doors plans its path through a closed wooden door in a wall, as Java's WalkNodeEvaluator does for a navigator that can open doors.",
+        reference:
+            'Java GroundPathNavigation.setCanOpenDoors (Villager, AbstractPiglin), WalkNodeEvaluator.getPathTypeFromState (DOOR_WOOD_CLOSED, WALKABLE_DOOR), per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json',
+        subjects: () => entitiesDeclaring('minecraft:annotation.open_door'),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:annotation.open_door'],
+        run: compareDoorRoute
     }
 ];
