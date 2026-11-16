@@ -327,31 +327,6 @@
             "reason": "A fall blow lands on an entity as Java's calculateFallDamage would for the same fall: nothing for a type in fall_damage_immune, its safe fall distance and multiplier, and what a goat or a frog takes off. Observed: a 20-block fall's blow takes 17 health off it, where Java's fall takes 7.",
             "reference": "Java LivingEntity.calculateFallDamage (entity type tag fall_damage_immune, safe_fall_distance and fall_damage_multiplier attributes) and its overrides in Goat and Frog, read from the pinned jar; the blow is Java's default damage for a 20-block fall, since the server deals mobs no fall damage of its own; issue #3147"
         },
-        "falls-under-gravity:minecraft:ender_dragon": {
-            "kind": "defect",
-            "reason": "A body in open air falls by its Java gravity: a living one moves by its velocity before gravity and the 0.98 drag apply, a hovering flyer stays put, and a non-living one gains its class's default gravity on the first tick. Observed: it fell 0, 0, 0.0001, 0.0001 over four ticks where Java's travel holds it in the air.",
-            "reference": "Java LivingEntity.travelInAir (move, then Attributes.GRAVITY and 0.98), getDefaultGravity of each entity class in the pinned jar, FlyingMob.travel, Chicken.aiStep, Blaze.aiStep and Parrot.calculateFlapping (0.6 slow fall); projectile gravity is issue #3122"
-        },
-        "falls-under-gravity:minecraft:ender_pearl": {
-            "kind": "defect",
-            "reason": "A body in open air falls by its Java gravity: a living one moves by its velocity before gravity and the 0.98 drag apply, a hovering flyer stays put, and a non-living one gains its class's default gravity on the first tick. Observed: its first tick took its vertical speed from 0 to -0.025 where Java's gravity of 0.03 gives -0.03 to -0.027.",
-            "reference": "Java LivingEntity.travelInAir (move, then Attributes.GRAVITY and 0.98), getDefaultGravity of each entity class in the pinned jar, FlyingMob.travel, Chicken.aiStep, Blaze.aiStep and Parrot.calculateFlapping (0.6 slow fall); projectile gravity is issue #3122"
-        },
-        "falls-under-gravity:minecraft:experience_bottle": {
-            "kind": "defect",
-            "reason": "A body in open air falls by its Java gravity: a living one moves by its velocity before gravity and the 0.98 drag apply, a hovering flyer stays put, and a non-living one gains its class's default gravity on the first tick. Observed: its first tick took its vertical speed from 0 to -0.0495 where Java's gravity of 0.07 gives -0.07 to -0.063.",
-            "reference": "Java LivingEntity.travelInAir (move, then Attributes.GRAVITY and 0.98), getDefaultGravity of each entity class in the pinned jar, FlyingMob.travel, Chicken.aiStep, Blaze.aiStep and Parrot.calculateFlapping (0.6 slow fall); projectile gravity is issue #3122"
-        },
-        "falls-under-gravity:minecraft:shulker_bullet": {
-            "kind": "defect",
-            "reason": "A body in open air falls by its Java gravity: a living one moves by its velocity before gravity and the 0.98 drag apply, a hovering flyer stays put, and a non-living one gains its class's default gravity on the first tick. Observed: its first tick took its vertical speed from 0 to -0.0495 where Java's gravity of 0.04 gives -0.04 to -0.036.",
-            "reference": "Java LivingEntity.travelInAir (move, then Attributes.GRAVITY and 0.98), getDefaultGravity of each entity class in the pinned jar, FlyingMob.travel, Chicken.aiStep, Blaze.aiStep and Parrot.calculateFlapping (0.6 slow fall); projectile gravity is issue #3122"
-        },
-        "falls-under-gravity:minecraft:trident": {
-            "kind": "defect",
-            "reason": "A body in open air falls by its Java gravity: a living one moves by its velocity before gravity and the 0.98 drag apply, a hovering flyer stays put, and a non-living one gains its class's default gravity on the first tick. Observed: its first tick took its vertical speed from 0 to -0.099 where Java's gravity of 0.05 gives -0.05 to -0.045.",
-            "reference": "Java LivingEntity.travelInAir (move, then Attributes.GRAVITY and 0.98), getDefaultGravity of each entity class in the pinned jar, FlyingMob.travel, Chicken.aiStep, Blaze.aiStep and Parrot.calculateFlapping (0.6 slow fall); projectile gravity is issue #3122"
-        },
         "fox-trust:minecraft:fox": {
             "kind": "defect",
             "reason": "A fox trusts the players it was bred by and defends them. Observed: the server never runs minecraft:trust, so a bred fox trusts nobody.",

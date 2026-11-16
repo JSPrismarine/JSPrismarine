@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { performPush } from '@jsprismarine/block-behaviors/rules/piston';
 import { createVoxelWorld } from '@jsprismarine/block-behaviors';
 import { collisionBox, statRuling } from '@jsprismarine/entities';
+import { dragonPhaseState } from '@jsprismarine/entity-goals/goals/dragonPhases';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { loadJavaEntityAttributes } from '../goldens.ts';
@@ -317,6 +318,14 @@ export const physicsScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             const { launch, drops, velocities } = measureOnce('falls-under-gravity', subject.bedrock, () => {
                 const at = lane();
                 return withEntity(subject.bedrock, { x: at.x + 0.5, y: 150, z: at.z + 0.5 }, (entity) => {
+                    // The dragon's flight phases move it on purpose; Java's hover phase holds it
+                    // still, so only its travel, which has no gravity, acts on it.
+                    if (subject.javaId === 'minecraft:ender_dragon')
+                        entity.instance.componentState.set(dragonPhaseState, {
+                            phase: 'hover',
+                            flameCount: 0,
+                            chargeTarget: null
+                        });
                     const start = entity.body.velocity.y;
                     const fallen: number[] = [];
                     const speeds: number[] = [];
