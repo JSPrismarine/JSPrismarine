@@ -212,7 +212,7 @@ const buildNavigationProfile = (entity: NavigationSource): NavigationProfile => 
     );
 };
 
-/** Lets the pinned Java navigator decide which media its path can enter and hold. */
+/** Lets the pinned Java navigator decide which media its path can enter and hold, and whether it passes open doors. */
 const withJavaNavigation = (entity: NavigationSource, profile: NavigationProfile): NavigationProfile => {
     const java = entity.javaNavigation;
     if (java === undefined) return profile;
@@ -230,6 +230,7 @@ const withJavaNavigation = (entity: NavigationSource, profile: NavigationProfile
         canFloat: java.canFloat,
         canSwim: isWaterBound || isAmphibious,
         canWalk: java.canNavigateGround,
+        canPassDoors: java.canPassDoors ?? profile.canPassDoors,
         canFly: isFlying,
         isAmphibious,
         pathfindingMalus: java.pathfindingMalus

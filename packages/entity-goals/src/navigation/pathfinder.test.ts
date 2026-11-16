@@ -82,6 +82,18 @@ describe('findPath', () => {
         expect(findPath(closed, shortWalker, request)).toBeUndefined();
     });
 
+    it("refuses an open door Java's path costs block", () => {
+        const open = voxelGrid([['###'], ['.d.']]);
+        const request = { from: { x: 0, y: 1, z: 0 }, to: { x: 2, y: 1, z: 0 } };
+
+        expect(
+            findPath(open, navigationProfileOf({ height: 1, pathfindingMalus: { door_open: -1 } }), request)
+        ).toBeUndefined();
+        expect(
+            findPath(open, navigationProfileOf({ height: 1, pathfindingMalus: { door_open: 0 } }), request)?.reachedGoal
+        ).toBe(true);
+    });
+
     it('opens a door when the navigation component says it can', () => {
         const view = voxelGrid([['###'], ['.D.']]);
         const opener = navigationProfileOf({ height: 1, canOpenDoors: true });

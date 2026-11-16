@@ -279,7 +279,7 @@ class CellReader {
         const door = view.doorAt?.(feet);
         if (door !== undefined) {
             if (door.open) {
-                if (!profile.canPassDoors) return undefined;
+                if (!profile.canPassDoors || (profile.pathfindingMalus?.door_open ?? 0) < 0) return undefined;
             } else {
                 const opens = door.iron ? profile.canOpenDoors && profile.canOpenIronDoors : profile.canOpenDoors;
                 if (!opens && !profile.canBreakDoors) return undefined;
