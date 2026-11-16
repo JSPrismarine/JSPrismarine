@@ -1,7 +1,7 @@
 import { DEFAULT_UNDERWATER_MOVEMENT } from '@jsprismarine/entities';
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_BOX, boxOf, javaLootIdOf } from './facts';
+import { DEFAULT_BOX, DEFAULT_FOLLOW_RANGE, boxOf, javaLootIdOf } from './facts';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
 
 /**
@@ -137,7 +137,7 @@ describe('the facts of a type that declares them in a component group', () => {
             health: 0,
             attackDamage: 0,
             knockbackResistance: 0,
-            followRange: 0,
+            followRange: DEFAULT_FOLLOW_RANGE,
             movement: 0,
             underwaterMovement: DEFAULT_UNDERWATER_MOVEMENT,
             families: [],
@@ -173,5 +173,27 @@ describe('the facts of a type that declares them in a component group', () => {
         expect(entity.facts.lootTable).toBeUndefined();
         expect(entity.facts.families).toStrictEqual([]);
         expect(entity.facts.movement).toBe(2.5);
+    });
+});
+
+describe('the follow range of a type that declares none', () => {
+    it('is Java’s default of 16 blocks, so the goals that need sight still see a target', () => {
+        // Declares no `minecraft:follow_range`, as the vanilla creeper does not.
+        const watcher = 'jsprismarine:watcher';
+        const fixture = entityFixture(
+            new TestEntityWorld(),
+            {},
+            {
+                [watcher]: { components: { 'minecraft:collision_box': { width: 0.6, height: 1.8 } } }
+            }
+        );
+        const observer = fixture.runtime.spawn(watcher, SPAWN);
+        const cow = fixture.runtime.spawn('minecraft:cow', { x: 10, y: SPAWN.y, z: 0 });
+        if (observer === undefined || cow === undefined) throw new Error('the fixture declares no watcher or cow');
+
+        expect(observer.facts.followRange).toBe(16);
+        const seen = fixture.runtime.mobById(cow.id);
+        if (seen === undefined) throw new Error('the cow is not a goal mob');
+        expect(fixture.runtime.goalWorldFor(observer.instance)?.canSee?.(seen)).toBe(true);
     });
 });

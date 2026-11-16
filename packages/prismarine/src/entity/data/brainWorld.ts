@@ -38,11 +38,8 @@ import { distance } from './DataEntity';
 import { actuatorOf, withinMeleeReach } from './goalWorld';
 import { blockPositionOf, ENTITY_EYE_HEIGHT_FRACTION } from './position';
 import type { EntityScene } from './scene';
-import { DEFAULT_BOX, PLAYER_BOX } from './facts';
+import { DEFAULT_BOX, DEFAULT_FOLLOW_RANGE, PLAYER_BOX } from './facts';
 import { clientOwnsMovement } from '../playerOverlay';
-
-/** How far a sensor may look for a non-combat target when the type declares no follow range. */
-const DEFAULT_FOLLOW_RANGE = 16;
 
 /** Looks up a player through the tick index when the scene supplies one. */
 const playerById = (scene: EntityScene, id: number) => {

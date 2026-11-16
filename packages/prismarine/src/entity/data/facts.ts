@@ -46,6 +46,14 @@ export interface EntityBox {
  */
 export const DEFAULT_BOX: EntityBox = { width: 1, height: 1 };
 
+/**
+ * How far an entity notices things when no component declares a follow range: Java's
+ * `Mob.createMobAttributes` base of 16 blocks, which is also the `minecraft:follow_range`
+ * component's own default. A creeper's file declares none, and a range of nought blinded it to
+ * every target, so its `target_nearby_sensor` never primed the fuse.
+ */
+export const DEFAULT_FOLLOW_RANGE = 16;
+
 /** Java player's collision box, shared by queries that include host-owned players. */
 export const PLAYER_BOX: EntityBox = { width: 0.6, height: 1.8 };
 
@@ -161,7 +169,7 @@ const factsOf = (registry: Registry<EntityType>, identifier: string, type: Entit
         health: attributes.value('health', 0),
         attackDamage: attributes.value('attack_damage', 0),
         knockbackResistance: attributes.value('knockback_resistance', 0),
-        followRange: attributes.value('follow_range', 0),
+        followRange: attributes.value('follow_range', DEFAULT_FOLLOW_RANGE),
         movement,
         underwaterMovement: attributes.value('underwater_movement', DEFAULT_UNDERWATER_MOVEMENT),
         families: type.params(typeFamily)?.family ?? [],
