@@ -9,13 +9,14 @@
  */
 import type { BedrockCollisionBox } from '@jsprismarine/blocks/geometry';
 import { collisionShapeOf } from '@jsprismarine/blocks/geometry';
-import type { NavigationView } from '@jsprismarine/entity-goals';
+import type { DoorState, NavigationView } from '@jsprismarine/entity-goals';
 import type { EntityPosition } from '@jsprismarine/entities';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type { ServerContent } from '../../content/ServerContent';
 import type { ContentBlock, ContentBlockAccess, ContentLevelFacts } from '../../content/world/adapter';
 import { isDay } from '../../world/DayCycle';
+import { IRON_DOOR, isDoor, isSet } from './doors';
 
 /** The two water identifiers, which a path finder treats as passable and a swim profile prefers. */
 const WATER = new Set(['minecraft:water', 'minecraft:flowing_water']);
@@ -371,9 +372,29 @@ export const navigationViewOf = (
         return lastIdentifier;
     };
 
+    /** The state values of the block at a position, from the chunk's runtime id or the block record. */
+    const statesAt = (position: EntityPosition): Readonly<Record<string, unknown>> | undefined => {
+        const block = blockAt(position);
+        if (block === NO_BLOCK) return undefined;
+        return typeof block === 'number' ? (BlockRuntimeIds.getState(block)?.properties ?? undefined) : block.states;
+    };
+
+    /**
+     * The door at a position. Bedrock keeps `open_bit` on a door's lower half, so the upper half
+     * reads the block below it.
+     */
+    const doorAt = (position: EntityPosition): DoorState | undefined => {
+        const identifier = identifierAt(position);
+        if (identifier === undefined || !isDoor(identifier)) return undefined;
+        const upper = isSet(statesAt(position)?.['upper_block_bit']);
+        const lower = upper ? statesAt({ x: position.x, y: position.y - 1, z: position.z }) : statesAt(position);
+        return { open: isSet(lower?.['open_bit']), iron: identifier === IRON_DOOR };
+    };
+
     return {
         view: {
             blockAt: identifierAt,
+            doorAt,
             collisionAt,
             isSolid: (position) => solidAt(position) === true,
             // A liquid is not solid, so this is the same question asked the other way round; an

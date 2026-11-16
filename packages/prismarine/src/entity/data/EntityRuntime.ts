@@ -129,6 +129,7 @@ import { equippableSlotCount, equippableSlotsOf } from './equippable';
 import { canPickUpLootChance, moonBrightnessAt } from '../regionalDifficulty';
 import type { RegionalDifficultyInputs } from '../regionalDifficulty';
 import { VEHICLE_DAMAGE_DECAY_PER_TICK, boatItemOf, isBreakableVehicle, vehicleBlow } from './vehicleDamage';
+import { ITEM_HOPPER, ITEM_HOPPER_QUERY_RADIUS, inHopperReach, insertStack } from './itemHopper';
 import type { EntityFacts } from './facts';
 import {
     bodyCanOccupy,
@@ -1960,6 +1961,7 @@ export class EntityRuntime implements EntityScene {
         }
         this.tickHitGrace(entity.id);
         this.tickVehicleDamage(entity.id);
+        if (entity.instance.hasComponent(ITEM_HOPPER)) this.suckInItems(entity);
         this.updateMedium(entity);
         this.tickTimers(entity.body);
         if (entity.runsGoals) this.resetNoActionTimeNearPlayers(entity);
@@ -3122,6 +3124,33 @@ export class EntityRuntime implements EntityScene {
             if (this.explodeOnDeath(entity)) return;
         }
         this.kill(entity);
+    }
+
+    /**
+     * A hopper minecart's tick of `MinecartHopper.suckInItems`: the first item entity in reach that
+     * fits goes into its container, as much of the stack as the slots take.
+     */
+    private suckInItems(entity: DataEntity): void {
+        const { box } = entity.facts;
+        const cart = { position: entity.position, width: box.width, height: box.height };
+        const lying = this.host.itemsNear?.(entity.position, ITEM_HOPPER_QUERY_RADIUS) ?? this.host.items?.() ?? [];
+        for (const candidate of lying) {
+            if (!inHopperReach(cart, candidate.position)) continue;
+            const maxStack = maxStackSizeOf(candidate.item.identifier, this.content());
+            const room = insertStack(
+                entity.body.containerSlots,
+                entity.body.containerCapacity,
+                candidate.item,
+                maxStack
+            );
+            if (room.inserted <= 0) continue;
+            const taken = this.host.takeItem?.(candidate.id, room.inserted);
+            if (taken === undefined) continue;
+            const { slots } = insertStack(entity.body.containerSlots, entity.body.containerCapacity, taken, maxStack);
+            for (const [index, stack] of slots.entries())
+                if (stack !== entity.body.containerSlots[index]) entity.body.setContainerSlot(index, stack);
+            return;
+        }
     }
 
     /** Takes `AbstractBoat.tick`'s point a tick off a vehicle's damage. */

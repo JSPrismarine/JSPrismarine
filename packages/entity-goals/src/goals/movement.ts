@@ -2104,15 +2104,14 @@ export const openDoor = goal<{ readonly closeDoorAfter: boolean }>({
             },
             canContinue: () => params.closeDoorAfter && remaining > 0,
             start: () => {
-                if (door !== undefined) support.world.setBlock?.(door, 'minecraft:open_door');
+                if (door !== undefined) support.world.setDoorOpen?.(door, true);
                 remaining = forgetTicks;
             },
             tick: () => {
                 remaining -= 1;
             },
             stop: () => {
-                if (params.closeDoorAfter && door !== undefined)
-                    support.world.setBlock?.(door, 'minecraft:closed_door');
+                if (params.closeDoorAfter && door !== undefined) support.world.setDoorOpen?.(door, false);
                 door = undefined;
                 remaining = 0;
             }

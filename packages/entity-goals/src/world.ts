@@ -296,6 +296,8 @@ export interface GoalWorld {
     setBlock?(position: EntityPosition, identifier: string, states?: GoalBlockStates): void;
     /** The block at a position with its states, for the goals that read a crop's growth. */
     blockAt?(position: EntityPosition): { readonly identifier: string; readonly states: GoalBlockStates } | undefined;
+    /** Opens or closes the door at a position, either half; anything else is left alone. */
+    setDoorOpen?(position: EntityPosition, open: boolean): void;
     /** Breaks a block, for the eat, harvest and dig goals. */
     breakBlock?(position: EntityPosition): void;
     /**
