@@ -156,6 +156,24 @@ describe('minecraft:behavior.panic', () => {
         expect(hurt.actuator.count('moveTo')).toBeGreaterThan(0);
     });
 
+    it('does not panic after a fall when the file names no damage sources, as neither edition does', () => {
+        const fallen = (cause: string): GoalHarness =>
+            new GoalHarness({
+                goals: { 'minecraft:behavior.panic': { priority: 1, speed_multiplier: 1.25 } },
+                components: walker,
+                world: { ...flatWorld(), damagers: () => [{ mob: undefined, cause, total: 2 }] },
+                at: { x: 8.5, y: 1, z: 8.5 }
+            });
+
+        const fall = fallen('fall');
+        fall.tick();
+        expect(fall.running()).toEqual([]);
+
+        const burn = fallen('fire_tick');
+        burn.tick();
+        expect(burn.holderOf('move')).toBe('minecraft:behavior.panic');
+    });
+
     it('ignores mob damage when ignore_mob_damage is set', () => {
         const harness = new GoalHarness({
             goals: { 'minecraft:behavior.panic': { priority: 1, ignore_mob_damage: true } },
@@ -200,6 +218,37 @@ describe('minecraft:behavior.avoid_mob_type', () => {
         const walk = harness.actuator.log.find((entry) => entry.startsWith('moveTo'));
         expect(walk).toBeDefined();
         expect(walk).toContain('@1.5');
+    });
+
+    it('walks at the walk speed from a threat 7 or more blocks off, and sprints once it is closer', () => {
+        let at = { x: 0.5, y: 1, z: 8.5 };
+        const wolf = { ...testMob('wolf', at, { families: ['wolf'] }), position: () => at };
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.avoid_mob_type': {
+                    priority: 3,
+                    entity_types: [
+                        {
+                            filters: { test: 'is_family', subject: 'other', value: 'wolf' },
+                            max_dist: 10,
+                            walk_speed_multiplier: 0.8,
+                            sprint_speed_multiplier: 1.5
+                        }
+                    ]
+                }
+            },
+            components: walker,
+            world: { ...flatWorld(), mobs: () => [wolf] },
+            at: { x: 8.5, y: 1, z: 8.5 }
+        });
+        harness.actuator.follow = false;
+
+        harness.tick();
+        expect(harness.actuator.log.find((entry) => entry.startsWith('moveTo'))).toContain('@0.8');
+
+        at = { x: 6.5, y: 1, z: 8.5 };
+        harness.tick();
+        expect(harness.actuator.log.filter((entry) => entry.startsWith('moveTo')).at(-1)).toContain('@1.5');
     });
 
     it('queries only its required families and checks visible threats in nearest-first order', () => {

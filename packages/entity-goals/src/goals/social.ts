@@ -1,5 +1,6 @@
 import type { Goal, ShareableItemParams, ShareablesParams } from '@jsprismarine/entities';
 import { isShareablesParams } from '@jsprismarine/entities';
+import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
 import type { Filter } from '@jsprismarine/packs';
 
 import type { RegisterableGoal } from '../goal';
@@ -258,7 +259,8 @@ export interface TemptParams {
 
 const temptFrom = (body: GoalBody): TemptParams => ({
     speedMultiplier: numberAt(body, 'speed_multiplier', 1),
-    items: stringsAt(body, 'items'),
+    // A vanilla file often writes `wheat` for `minecraft:wheat`, which is what a held item reports.
+    items: stringsAt(body, 'items').map(normalizedItemIdentifier),
     withinRadius: numberAt(body, 'within_radius', 16),
     canGetScared: booleanAt(body, 'can_get_scared', false),
     canTemptVertically: booleanAt(body, 'can_tempt_vertically', false),
@@ -496,7 +498,8 @@ export const petSleepWithOwner = goal<{
  */
 export const stayWhileSitting = goal<Record<string, unknown>>({
     name: 'minecraft:behavior.stay_while_sitting',
-    controlFlags: ['move'],
+    // Java's SitWhenOrderedToGoal holds JUMP as well as MOVE, so a sitting pet neither walks nor jumps.
+    controlFlags: ['move', 'jump'],
     schema: bodySchema((body) => body),
     create: (_params, support) => ({
         canStart: () => support.flag('is_sitting'),

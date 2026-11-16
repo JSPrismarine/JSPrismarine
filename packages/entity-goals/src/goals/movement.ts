@@ -40,8 +40,38 @@ const STROLL_INTERVAL = 120;
 /** How far a flee draws its destination, from Java's `AvoidEntityGoal`. */
 const FLEE_XZ_DISTANCE = 16;
 
+/** Within this many blocks of its threat a fleeing entity sprints, from Java's `AvoidEntityGoal.tick` (49 squared). */
+const AVOID_SPRINT_DISTANCE = 7;
+
 /** How far up and down a flee draws its destination, from Java's `AvoidEntityGoal`. */
 const FLEE_Y_DISTANCE = 7;
+
+/**
+ * The damage that makes an entity panic when its `minecraft:behavior.panic` names no
+ * `damage_sources`: Bedrock's documented default list. Like Java's `panic_causes` damage type tag
+ * it holds fire, freezing, lightning, attacks, explosions and projectiles and leaves out a fall,
+ * drowning and suffocation.
+ */
+const PANIC_DAMAGE_SOURCES: readonly string[] = [
+    'campfire',
+    'fire',
+    'fire_tick',
+    'freezing',
+    'lava',
+    'lightning',
+    'magma',
+    'soul_campfire',
+    'temperature',
+    'entity_attack',
+    'entity_explosion',
+    'fireworks',
+    'magic',
+    'projectile',
+    'ram_attack',
+    'sonic_boom',
+    'wither',
+    'mace_smash'
+];
 
 /** How close counts as arriving when a goal names no radius, in blocks. */
 const DEFAULT_GOAL_RADIUS = 1;
@@ -485,7 +515,7 @@ export const panic = goal<PanicParams>({
     schema: bodySchema((body) => ({
         speedMultiplier: numberAt(body, 'speed_multiplier', 1.25),
         ignoreMobDamage: booleanAt(body, 'ignore_mob_damage', false),
-        damageSources: stringsAt(body, 'damage_sources'),
+        damageSources: body.damage_sources === undefined ? PANIC_DAMAGE_SOURCES : stringsAt(body, 'damage_sources'),
         force: booleanAt(body, 'force', false),
         preferWater: booleanAt(body, 'prefer_water', false),
         panicSound: stringAt(body, 'panic_sound'),
@@ -498,7 +528,7 @@ export const panic = goal<PanicParams>({
             const last = support.world.damagers?.().at(-1);
             if (last === undefined) return false;
             if (params.ignoreMobDamage && last.mob !== undefined) return false;
-            return params.damageSources.length === 0 || params.damageSources.includes(last.cause);
+            return params.damageSources.includes('all') || params.damageSources.includes(last.cause);
         };
 
         const walk = walkTo(support, {
@@ -614,16 +644,22 @@ export const avoidMobType = goal<AvoidMobTypeParams>({
             canContinue: () => walking,
             start: () => {
                 const destination = threat === undefined ? undefined : away(threat.position());
-                // The table's own sprint multiplier is the speed a flee runs
-                // at, because `avoid_mob_type` has no `speed_multiplier`.
+                // The table's walk and sprint multipliers are the speeds a flee runs at, because
+                // `avoid_mob_type` has no `speed_multiplier`; Java sprints from a threat within 7 blocks.
                 const entry = threat === undefined ? undefined : support.entryFor(params.entityTypes, threat);
-                walking =
-                    destination !== undefined &&
-                    support.navigator.moveTo(destination, entry?.sprintSpeedMultiplier ?? 1, 1);
+                const close = threat !== undefined && support.distanceTo(threat.position()) < AVOID_SPRINT_DISTANCE;
+                const speed = close ? entry?.sprintSpeedMultiplier : entry?.walkSpeedMultiplier;
+                walking = destination !== undefined && support.navigator.moveTo(destination, speed ?? 1, 1);
                 if (params.removeTarget) support.setTarget(undefined);
                 support.playSound(params.avoidSound);
             },
             tick: () => {
+                // Java's AvoidEntityGoal sprints while the threat is within 7 blocks and walks beyond.
+                const entry = threat === undefined ? undefined : support.entryFor(params.entityTypes, threat);
+                if (threat !== undefined && entry !== undefined) {
+                    const close = support.distanceTo(threat.position()) < AVOID_SPRINT_DISTANCE;
+                    support.navigator.setSpeed(close ? entry.sprintSpeedMultiplier : entry.walkSpeedMultiplier);
+                }
                 if (support.navigator.tick()) return;
                 walking = false;
                 support.fire(params.onEscapeEvent, threat);

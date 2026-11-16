@@ -459,7 +459,8 @@ describe('the goal world over the entity runtime', () => {
             const fixture = fixtureOf();
             const coward = spawned(fixture, 'jsprismarine:coward', groundAt(0, 0));
 
-            fixture.runtime.hurt(coward, undefined, 'fall', 1);
+            // A fall is not a panic cause in either edition; fire is.
+            fixture.runtime.hurt(coward, undefined, 'fire_tick', 1);
             run(fixture, 10);
 
             expect(coward.instance.goals.runningGoals()).toContain('minecraft:behavior.panic');

@@ -181,6 +181,14 @@ export class Navigator {
         return true;
     }
 
+    /**
+     * Changes the speed of the walk under way, as Java's `PathNavigation.setSpeedModifier` does,
+     * from the next step on.
+     */
+    public setSpeed(speedMultiplier: number): void {
+        this.speed = speedMultiplier;
+    }
+
     /** Whether a route to the position exists, without starting to walk it. */
     public canReach(destination: EntityPosition, goalRadius = 1): boolean {
         const actuator = this.context.actuator;

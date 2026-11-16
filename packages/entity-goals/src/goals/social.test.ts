@@ -104,6 +104,20 @@ describe('minecraft:behavior.tempt', () => {
         expect(harness.actuator.log).toContain('lookAt 14.5,1,8.5');
     });
 
+    it('reads an item the file writes without a namespace, as the vanilla cow writes wheat', () => {
+        const player = testMob('player', { x: 14.5, y: 1, z: 8.5 }, { heldItem: 'minecraft:wheat' });
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.tempt': { ...body, items: ['wheat'] } },
+            components: walker,
+            world: { ...flatWorld(), players: () => [player] },
+            at: { x: 8.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.tempt');
+    });
+
     it('ignores a player holding something else', () => {
         const player = testMob('player', { x: 10.5, y: 1, z: 8.5 }, { heldItem: 'minecraft:stone' });
         const harness = new GoalHarness({
@@ -209,6 +223,8 @@ describe('minecraft:behavior.stay_while_sitting', () => {
         harness.tick();
 
         expect(harness.holderOf('move')).toBe('minecraft:behavior.stay_while_sitting');
+        // Java's SitWhenOrderedToGoal holds JUMP too, so nothing jumps a sitting pet.
+        expect(harness.holderOf('jump')).toBe('minecraft:behavior.stay_while_sitting');
         expect(harness.actuator.log).toContain('stopMoving');
     });
 
