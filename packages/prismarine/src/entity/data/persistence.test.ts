@@ -1,4 +1,5 @@
 import { AIR_STATE } from '@jsprismarine/entities';
+import { DROWNING_INTERVAL_TICKS } from '@jsprismarine/entities/components/hazards';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
@@ -236,7 +237,7 @@ describe('the data entity record', () => {
             const { fish, restored } = savedAfter(30);
 
             expect(dataEntityRecordOf(fish, undefined).componentState).toMatchObject({
-                'minecraft:breathable': { remaining: 30, untilHurt: 10 },
+                'minecraft:breathable': { remaining: 30, untilHurt: DROWNING_INTERVAL_TICKS },
                 'minecraft:timer': { remaining: 10 }
             });
             expect(restored.instance.componentState.snapshot()).toEqual(fish.instance.componentState.snapshot());
@@ -255,19 +256,26 @@ describe('the data entity record', () => {
 
         it('resumes the air supply where the save left it', () => {
             const { restored, runtime } = savedAfter(50);
-            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({ remaining: 10, untilHurt: 10 });
+            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({
+                remaining: 10,
+                untilHurt: DROWNING_INTERVAL_TICKS
+            });
 
-            tickFrom(runtime, 51, 19);
+            // The last 10 ticks of air, then the drowning interval before the first hurt.
+            tickFrom(runtime, 51, 10 + DROWNING_INTERVAL_TICKS - 1);
             expect(restored.instance.attributes.value('health')).toBe(20);
 
-            tickFrom(runtime, 70, 1);
+            tickFrom(runtime, 60 + DROWNING_INTERVAL_TICKS, 1);
             expect(restored.instance.attributes.value('health')).toBeLessThan(20);
         });
 
         it('starts a record written before component state was saved from the initial state', () => {
             const { restored } = savedAfter(30, ({ componentState: _dropped, ...older }) => older);
 
-            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({ remaining: 60, untilHurt: 10 });
+            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({
+                remaining: 60,
+                untilHurt: DROWNING_INTERVAL_TICKS
+            });
             expect(restored.instance.componentState.snapshot()['minecraft:timer']).toEqual({ remaining: 40 });
         });
 
@@ -277,7 +285,10 @@ describe('the data entity record', () => {
                 componentState: { ...record.componentState, 'minecraft:breathable': { remaining: 'lots' } }
             }));
 
-            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({ remaining: 60, untilHurt: 10 });
+            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({
+                remaining: 60,
+                untilHurt: DROWNING_INTERVAL_TICKS
+            });
             expect(reports.some((line) => line.includes('minecraft:breathable'))).toBe(true);
         });
 
@@ -287,7 +298,10 @@ describe('the data entity record', () => {
                 componentState: { ...record.componentState, 'minecraft:breathable': [10, 10] }
             }));
 
-            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({ remaining: 60, untilHurt: 10 });
+            expect(restored.instance.componentState.get(AIR_STATE)).toEqual({
+                remaining: 60,
+                untilHurt: DROWNING_INTERVAL_TICKS
+            });
             expect(reports.some((line) => line.includes('minecraft:breathable'))).toBe(true);
         });
     });
