@@ -898,6 +898,7 @@ const buildOver = (
                 'minecraft:bone',
                 'minecraft:stick',
                 'minecraft:bucket',
+                'minecraft:milk_bucket',
                 'minecraft:emerald',
                 'minecraft:cobblestone',
                 'minecraft:egg',
@@ -1215,8 +1216,8 @@ describe('the data-driven entity runtime over a live world', () => {
         });
 
         expect(result).toBe('handled');
-        expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:bucket');
-        expect(player.getInventory().getItemInHand().getMeta()).toBe(1);
+        // The definition's legacy `bucket:1` is the milk bucket.
+        expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:milk_bucket');
         expect(animal.instance.hasComponent('minecraft:persistent')).toBe(false);
 
         await live.tick(1);
@@ -1327,7 +1328,7 @@ describe('the data-driven entity runtime over a live world', () => {
             player
                 .getInventory()
                 .getItems()
-                .some((entry) => entry.getItem().getName() === 'minecraft:bucket' && entry.getItem().getMeta() === 1)
+                .some((entry) => entry.getItem().getName() === 'minecraft:milk_bucket')
         ).toBe(true);
     });
 

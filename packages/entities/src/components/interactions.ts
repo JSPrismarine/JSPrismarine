@@ -43,14 +43,24 @@ interface TransformedItem {
     readonly data?: number;
 }
 
+/**
+ * Legacy `item:aux` names Bedrock's definitions still write for an item that has its own
+ * identifier now. The cow, goat and mooshroom milk into `bucket:1`, which Bedrock's legacy item
+ * table resolves to the milk bucket; read as a bucket with an auxiliary value of 1, it would hand
+ * the player an empty bucket.
+ */
+const LEGACY_AUX_ITEMS: Readonly<Record<string, string>> = {
+    'minecraft:bucket:1': 'minecraft:milk_bucket'
+};
+
 /** Splits a transformed item into its namespaced identifier and auxiliary value. */
 const transformedItemOf = (value: string): TransformedItem => {
     const match = /^(?<identifier>.+):(?<data>\d+)$/.exec(value);
-    const identifier = match?.groups?.identifier ?? value;
-    return {
-        identifier: normalizedItemIdentifier(identifier),
-        ...(match?.groups?.data === undefined ? {} : { data: Number(match.groups.data) })
-    };
+    const identifier = normalizedItemIdentifier(match?.groups?.identifier ?? value);
+    const data = match?.groups?.data === undefined ? undefined : Number(match.groups.data);
+    const modern = data === undefined ? undefined : LEGACY_AUX_ITEMS[`${identifier}:${data}`];
+    if (modern !== undefined) return { identifier: modern };
+    return { identifier, ...(data === undefined ? {} : { data }) };
 };
 
 /** One `minecraft:interact.interactions[]` entry used by a held-item interaction. */

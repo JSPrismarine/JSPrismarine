@@ -54,6 +54,24 @@ describe('minecraft:interact schema', () => {
     });
 });
 
+describe('minecraft:interact transform_to_item', () => {
+    const transformed = (value: string): unknown => {
+        const result = interact.schema({ interactions: [{ use_item: true, transform_to_item: value }] });
+        if (!result.ok) throw new Error(`transform_to_item ${value} was rejected`);
+        const [entry] = result.value.interactions;
+        return { identifier: entry?.transformedItem?.identifier, data: entry?.transformedItem?.data };
+    };
+
+    it('hands back a milk bucket for the legacy bucket:1 the cow, goat and mooshroom milk into', () => {
+        expect(transformed('bucket:1')).toEqual({ identifier: 'minecraft:milk_bucket', data: undefined });
+    });
+
+    it('keeps the auxiliary value of any other item', () => {
+        expect(transformed('water_bucket:0')).toEqual({ identifier: 'minecraft:water_bucket', data: 0 });
+        expect(transformed('bucket')).toEqual({ identifier: 'minecraft:bucket', data: undefined });
+    });
+});
+
 const cow = {
     format_version: '1.26.50',
     'minecraft:entity': {

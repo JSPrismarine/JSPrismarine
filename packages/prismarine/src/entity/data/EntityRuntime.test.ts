@@ -1123,8 +1123,7 @@ describe('EntityRuntime', () => {
             expect(runtime.interactWithItem(animal.id, 42, 'minecraft:bucket', playerView('minecraft:bucket'))).toEqual(
                 {
                     accepted: true,
-                    resultItem: 'minecraft:bucket',
-                    resultItemData: 1,
+                    resultItem: 'minecraft:milk_bucket',
                     consumeItem: true,
                     swing: true
                 }

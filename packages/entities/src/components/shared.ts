@@ -48,6 +48,23 @@ export const sensorNumber = (record: ComponentRecord, key: string, fallback: num
     return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 };
 
-/** Normalizes an item identifier with Bedrock's default namespace. */
-export const normalizedItemIdentifier = (identifier: string): string =>
-    identifier.includes(':') ? identifier : `minecraft:${identifier}`;
+/**
+ * The seven item names Mojang's behavior pack still writes from before Bedrock flattened them,
+ * with the modern name a Bedrock Dedicated Server resolves each to. A held item always arrives
+ * under its modern name, so a definition's `fish` has to read as `minecraft:cod` to match it.
+ */
+const LEGACY_PACK_ITEMS: Readonly<Record<string, string>> = {
+    'minecraft:appleenchanted': 'minecraft:enchanted_golden_apple',
+    'minecraft:clownfish': 'minecraft:tropical_fish',
+    'minecraft:cooked_fish': 'minecraft:cooked_cod',
+    'minecraft:fish': 'minecraft:cod',
+    'minecraft:melon': 'minecraft:melon_slice',
+    'minecraft:muttoncooked': 'minecraft:cooked_mutton',
+    'minecraft:muttonraw': 'minecraft:mutton'
+};
+
+/** Normalizes an item identifier with Bedrock's default namespace, and a legacy pack name to its modern one. */
+export const normalizedItemIdentifier = (identifier: string): string => {
+    const qualified = identifier.includes(':') ? identifier : `minecraft:${identifier}`;
+    return LEGACY_PACK_ITEMS[qualified.toLowerCase()] ?? qualified;
+};
