@@ -142,6 +142,11 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
             const biome = scene.world.blocks.biome(blockPositionOf(body.position));
             return biome === undefined ? [] : [biome, biome.slice(biome.indexOf(':') + 1)];
         }
+        // `in_block` names the block the entity's feet are in, such as a skeleton's powder snow.
+        if (name === 'in_block') {
+            const block = scene.world.blocks.get(blockPositionOf(body.position));
+            return block === undefined ? [] : [block.identifier];
+        }
         if (name === 'has_mob_effect') {
             const effects = [...body.statusEffects.keys()];
             return [...effects, ...effects.map((identifier) => identifier.slice(identifier.indexOf(':') + 1))];
@@ -182,14 +187,19 @@ const flagOf = (body: MobBody, scene: EntityScene, name: EntityFlag): boolean | 
         case 'is_navigating':
             return body.walking;
         case 'on_ground':
+            return body.conditions.has('on_ground');
+        // The runtime works out these media for every body every tick, so their absence is an
+        // answer: a fish out of water is not in water, and a sensor testing `in_water != true`
+        // fires for it.
         case 'in_water':
         case 'in_lava':
         case 'in_contact_with_water':
         case 'is_underwater':
-            // The runtime sets each of these every tick it moves the body, so an absent one is false.
             return body.conditions.has(name);
         case 'is_visible':
             return !body.statusEffects.has('minecraft:invisibility') && !body.statusEffects.has('invisibility');
+        case 'in_water_or_rain':
+            return body.conditions.has('in_water') || scene.world.level.isRainingAt(blockPositionOf(body.position));
         default:
             // Everything else is either the entity's own (`is_baby`, `is_tamed`) or a fact
             // about the blocks the runtime does not track yet, and an unanswered flag makes
