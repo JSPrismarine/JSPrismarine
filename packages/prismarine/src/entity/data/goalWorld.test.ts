@@ -49,6 +49,20 @@ const GOAL_WORLD_ENTITIES: ExtraEntities = {
             events: { 'minecraft:entity_born': { add: { component_groups: ['baby'] } } }
         }
     ),
+    'jsprismarine:herd': mob({ 'minecraft:breedable': { require_tame: false, breed_items: ['minecraft:wheat'] } }),
+    'jsprismarine:layer': mob(
+        {
+            'minecraft:breedable': {
+                require_tame: false,
+                causes_pregnancy: true,
+                breeds_with: { 'jsprismarine:layer': { event: 'test:become_pregnant', target: 'self' } }
+            }
+        },
+        {
+            component_groups: { pregnant: { 'minecraft:is_pregnant': {} } },
+            events: { 'test:become_pregnant': { add: { component_groups: ['pregnant'] } } }
+        }
+    ),
     'jsprismarine:archer': mob({
         'minecraft:shooter': { def: 'jsprismarine:dart' },
         'minecraft:behavior.ranged_attack': { priority: 1, attack_radius: 16, attack_interval: 0.05 }
@@ -285,6 +299,38 @@ describe('the goal world over the entity runtime', () => {
             run(fixture, 80);
 
             expect(fixture.runtime.entities().toArray()).toHaveLength(2);
+        });
+
+        it("waits Java's 6000 ticks after breeding when the type names no cooldown", () => {
+            // Java's Animal.finalizeSpawnChildFromBreeding sets both parents' age to 6000.
+            const fixture = fixtureOf();
+            const first = spawned(fixture, 'jsprismarine:herd', groundAt(0, 0));
+            const second = spawned(fixture, 'jsprismarine:herd', groundAt(2, 0));
+            fixture.runtime.setInLove(first.id, 600);
+            fixture.runtime.setInLove(second.id, 600);
+            const mate = fixture.runtime.mobById(second.id);
+            if (mate === undefined) throw new Error('the second herd animal has no goal view');
+
+            fixture.runtime.breedWith(first.body, mate);
+
+            expect([first.body.breedCooldown, second.body.breedCooldown]).toEqual([6000, 6000]);
+        });
+
+        it('makes a type that causes pregnancy pregnant instead of spawning a baby', () => {
+            const fixture = fixtureOf();
+            const first = spawned(fixture, 'jsprismarine:layer', groundAt(0, 0));
+            const second = spawned(fixture, 'jsprismarine:layer', groundAt(2, 0));
+            fixture.runtime.setInLove(first.id, 600);
+            fixture.runtime.setInLove(second.id, 600);
+            const mate = fixture.runtime.mobById(second.id);
+            if (mate === undefined) throw new Error('the second layer has no goal view');
+
+            fixture.runtime.breedWith(first.body, mate);
+            first.instance.applyQueuedEvents();
+
+            expect(fixture.runtime.entities().toArray()).toHaveLength(2);
+            expect(first.instance.hasComponent('minecraft:is_pregnant')).toBe(true);
+            expect(first.body.loveTicks).toBe(0);
         });
 
         it('puts the pair on a cooldown, so one feeding makes one baby', () => {

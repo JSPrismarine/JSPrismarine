@@ -103,7 +103,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 import { itemOfDrop } from '../../inventory/persistence';
-import { canBreed, offspringIdentifierOf, offspringOf, spendLove } from './breeding';
+import { breedableOf, canBreed, offspringIdentifierOf, offspringOf, pregnancyOf, spendLove } from './breeding';
 import { DataEntity, MobBody, SHOWN_CONDITIONS, distance } from './DataEntity';
 import { EntityIndex } from './entityIndex';
 import { detonate } from './explosion';
@@ -3703,13 +3703,24 @@ export class EntityRuntime implements EntityScene {
      * Produces the offspring of a successful breeding.
      *
      * The child is born halfway between its parents and runs
-     * `minecraft:entity_born`, which is the event that makes it a baby. Both
-     * parents spend their love and start their cooldown.
+     * `minecraft:entity_born`, which is the event that makes it a baby. A type
+     * whose `minecraft:breedable` causes pregnancy makes no child: the parent runs
+     * its mate's breed event instead. Both parents spend their love and start
+     * their cooldown.
      */
     public breedWith(parent: MobBody, mate: GoalMob): void {
         const self = this.store.get(parent.id);
         const other = typeof mate.id === 'number' ? this.store.get(mate.id) : undefined;
         if (self === undefined || other === undefined || !canBreed(self, other)) return;
+
+        if (breedableOf(self.instance)?.causesPregnancy === true) {
+            // A turtle, frog or sniffer carries the brood and lays it later.
+            const pregnancy = pregnancyOf(self, other);
+            spendLove(self);
+            spendLove(other);
+            if (pregnancy !== undefined) self.instance.fire(pregnancy);
+            return;
+        }
 
         const content = this.content();
         const child = offspringOf(self, other, (identifier) => runtimeEntityIdentifierOf(identifier, content));

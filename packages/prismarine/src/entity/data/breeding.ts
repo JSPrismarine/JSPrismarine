@@ -19,8 +19,12 @@ import { parseFilter } from '@jsprismarine/packs';
 
 import type { DataEntity } from './DataEntity';
 
-/** How long a pair waits before breeding again by default, in seconds. */
-const DEFAULT_BREED_COOLDOWN = 60;
+/**
+ * How long a pair waits before breeding again when the type writes no `breed_cooldown`, in
+ * seconds. Java's `Animal.finalizeSpawnChildFromBreeding` sets both parents' age to 6000 ticks,
+ * and no vanilla Bedrock file writes the field, so this is every vanilla animal's wait.
+ */
+const DEFAULT_BREED_COOLDOWN = 300;
 
 /** Ticks in one second, which is what `breed_cooldown` is measured in. */
 const TICKS_PER_SECOND = 20;
@@ -41,6 +45,8 @@ export interface MateType {
     readonly babyType: string | undefined;
     /** The event to run on the child. */
     readonly breedEvent: string | undefined;
+    /** The event breeding runs on the entity itself, which is how a pregnancy starts. */
+    readonly parentEvent: string | undefined;
 }
 
 /** `minecraft:breedable`, with mate rules from the active offspring component. */
@@ -52,6 +58,11 @@ export interface BreedableRules {
     readonly mates: readonly MateType[];
     /** A filter that decides whether the entity is in love, when the type writes one. */
     readonly loveFilters: Filter | undefined;
+    /**
+     * Whether breeding makes the entity pregnant instead of spawning a baby: the turtle, frog and
+     * sniffer, which lay an egg or spawn afterwards, as Java's `spawnChildFromBreeding` overrides do.
+     */
+    readonly causesPregnancy: boolean;
 }
 
 /**
@@ -82,7 +93,8 @@ export const breedableOf = (instance: EntityInstance): BreedableRules | undefine
         requireFullHealth: params.require_full_health === true,
         breedCooldownTicks: Math.round(cooldown * TICKS_PER_SECOND),
         mates: matesOf(offspringData.breeds_with ?? params.breeds_with),
-        loveFilters: params.love_filters === undefined ? undefined : parseFilter(params.love_filters)
+        loveFilters: params.love_filters === undefined ? undefined : parseFilter(params.love_filters),
+        causesPregnancy: params.causes_pregnancy === true
     };
     rulesByOffspringParams.set(offspringData, rules);
     return rules;
@@ -158,7 +170,7 @@ export const offspringOf = (
     resolveIdentifier: (identifier: string) => string | undefined = (identifier) => identifier
 ): { identifier: string; event?: string } | undefined => {
     const rules = breedableOf(self.instance);
-    if (rules === undefined) return undefined;
+    if (rules === undefined || rules.causesPregnancy) return undefined;
 
     const mate = accepts(rules, self, other);
     if (mate === undefined) return undefined;
@@ -171,6 +183,20 @@ export const offspringOf = (
             (mate.babyType === undefined ? self.identifier : (resolveIdentifier(mate.babyType) ?? mate.babyType)),
         ...(mate.breedEvent === undefined ? {} : { event: mate.breedEvent })
     };
+};
+
+/**
+ * The event a pair's breeding fires on the entity in place of a baby, when its type becomes
+ * pregnant: the `event` its `breeds_with` entry names for the mate, such as the turtle's
+ * `minecraft:become_pregnant`.
+ *
+ * @returns The event, or undefined when the type spawns a baby or the pair is not a pair.
+ */
+export const pregnancyOf = (self: DataEntity, other: DataEntity): string | undefined => {
+    const rules = breedableOf(self.instance);
+    if (rules === undefined || !rules.causesPregnancy) return undefined;
+    const mate = accepts(rules, self, other);
+    return mate === undefined || mate === SAME_TYPE ? undefined : mate.parentEvent;
 };
 
 /**
@@ -228,5 +254,16 @@ const matesOf = (value: unknown): readonly MateType[] => {
 const mateTypeOf = (mateType: string, params: Record<string, unknown>): MateType => ({
     mateType,
     babyType: typeof params.baby_type === 'string' ? params.baby_type : undefined,
-    breedEvent: typeof params.breed_event === 'string' ? params.breed_event : undefined
+    breedEvent: typeof params.breed_event === 'string' ? params.breed_event : undefined,
+    parentEvent: parentEventOf(params)
 });
+
+/**
+ * The event breeding fires on the entity itself: `event` in the keyed form, or the `event` of a
+ * `breed_event` object in the legacy one.
+ */
+const parentEventOf = (params: Record<string, unknown>): string | undefined => {
+    if (typeof params.event === 'string') return params.event;
+    const legacy = params.breed_event;
+    return isRecord(legacy) && typeof legacy.event === 'string' ? legacy.event : undefined;
+};

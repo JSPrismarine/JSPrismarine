@@ -615,7 +615,7 @@ describe('EntityRuntime', () => {
                                 'minecraft:is_baby': {},
                                 'minecraft:ageable': {
                                     duration: 20,
-                                    feed_items: [{ item: 'wheat', growth: 0.5, result_item: 'stick' }],
+                                    feed_items: [{ item: 'wheat', growth: 0.25, result_item: 'stick' }],
                                     grow_up: { event: 'jsprismarine:grow_up', target: 'self' },
                                     interact_filters: {
                                         all_of: [
@@ -656,12 +656,13 @@ describe('EntityRuntime', () => {
                 resultItem: 'minecraft:stick'
             });
 
-            for (let tick = 1; tick <= 99; tick += 1) runtime.tick(tick);
+            // Each wheat takes a quarter of the 400-tick duration off, so 200 ticks are left.
+            for (let tick = 1; tick <= 199; tick += 1) runtime.tick(tick);
             expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(true);
 
-            runtime.tick(100);
+            runtime.tick(200);
             expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(true);
-            runtime.tick(101);
+            runtime.tick(201);
             expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(false);
         });
 

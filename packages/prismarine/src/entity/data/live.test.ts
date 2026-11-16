@@ -4141,7 +4141,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(eggTargets.length).toBeGreaterThan(0);
             });
 
-            it('uses vanilla offspring pairs when two frogs breed', { timeout: 180_000 }, () => {
+            it('makes a vanilla frog pregnant instead of spawning a tadpole', { timeout: 180_000 }, () => {
                 useVanillaContent();
 
                 const first = live.runtime.spawn('minecraft:frog', { x: 0.5, y: GROUND_Y, z: 0.5 });
@@ -4153,17 +4153,17 @@ describe('the data-driven entity runtime over a live world', () => {
                 live.runtime.setInLove(second.id, 600);
 
                 live.runtime.breedWith(first.body, mate);
+                first.instance.applyQueuedEvents();
 
-                const tadpole = live.runtime
+                // Java's Frog.spawnChildFromBreeding makes the frog pregnant; it lays frogspawn later.
+                const born = live.runtime
                     .entities()
                     .toArray()
-                    .find((entity) => entity.identifier === 'minecraft:tadpole');
-                expect(tadpole?.instance.hasComponent('minecraft:is_baby')).toBe(true);
-                expect(
-                    live.actors
-                        .actorOf(tadpole?.id ?? 0)
-                        ?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))
-                ).toBe(true);
+                    .filter((entity) => entity.id !== first.id && entity.id !== second.id);
+                expect(born).toEqual([]);
+                expect(first.instance.activeComponentGroups()).toContain('pregnant');
+                expect(first.body.breedCooldown).toBe(6000);
+                expect(second.body.breedCooldown).toBe(6000);
             });
 
             it(
