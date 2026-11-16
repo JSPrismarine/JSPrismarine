@@ -180,8 +180,9 @@ export const fetchSource = async (descriptor: SourceDescriptor, options: FetchOp
 export const resolveContentRoot = async (contentPath: string): Promise<string> => {
     const entries = await readdir(contentPath, { withFileTypes: true });
     const visible = entries.filter((entry) => entry.name !== MARKER_FILE);
-    if (visible.length === 1 && visible[0].isDirectory()) {
-        return join(contentPath, visible[0].name);
+    const [only] = visible;
+    if (visible.length === 1 && only?.isDirectory()) {
+        return join(contentPath, only.name);
     }
     return contentPath;
 };

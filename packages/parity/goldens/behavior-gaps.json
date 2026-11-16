@@ -1837,5 +1837,12 @@
             "reference": "Java 26.3 minecraft:villager_profession registry; Bedrock trading/*_trades.json"
         }
     },
-    "items.behavior": {}
+    "items.behavior": {},
+    "scripting.lifecycle": {
+        "bds-record:startup-order": {
+            "kind": "deferred",
+            "reason": "JSPrismarine cannot run behavior pack scripts yet. On BDS: A version 2 pack's top level, its top-level promise jobs and startup run in early execution before a version 1 pack starts; system tasks, worldInitialize and worldLoad then follow in a fixed order in tick 0, and a version 1 promise job queued in worldInitialize waits for tick 1.",
+            "reference": "issue #3203"
+        }
+    }
 }

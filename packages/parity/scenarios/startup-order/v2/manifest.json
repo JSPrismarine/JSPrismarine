@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario startup-order v2",
+        "description": "Records the startup order of a @minecraft/server 2.0.0 pack. Written for packages/parity.",
+        "uuid": "682ffdae-5d7b-4673-896c-70199ea3b327",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "0d5ef39f-9f3a-45a0-afd7-d6419a788555",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}
