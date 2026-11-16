@@ -4044,9 +4044,11 @@ export class EntityRuntime implements EntityScene {
                 ...itemEffect
             } = interaction;
             if (spawnOffspring !== undefined) {
-                // Java's SpawnEggItem.spawnOffspringFromSpawnEgg sets the new mob a baby and
-                // refuses the egg when it is not one, which is the frog's case: it hatches from
-                // spawn instead. Bedrock writes a baby as is_baby, or as a growing ageable.
+                // Java's SpawnEggItem.spawnOffspringFromSpawnEgg makes the mob's own breed offspring, sets
+                // it a baby and refuses the egg when it is not one. A frog's offspring is a frog,
+                // which is never a baby, so Java refuses where Bedrock's offspring data would hatch a
+                // tadpole. Bedrock writes a baby as is_baby, or as a growing ageable.
+                if (spawnOffspring !== entity.identifier) return { accepted: false };
                 const offspring = this.spawn(spawnOffspring, entity.position, {
                     cause: 'born',
                     parents: [entity, entity],
