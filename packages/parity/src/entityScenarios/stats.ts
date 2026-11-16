@@ -1,9 +1,20 @@
+import { BehaviorRegistry } from '@jsprismarine/content';
 import type { AttributeName, EntityType, SharedStat } from '@jsprismarine/entities';
+import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
 import { SHARED_STATS, javaMoveControlTurn, noEffects, statRuling } from '@jsprismarine/entities';
 import { findPath } from '@jsprismarine/entity-goals/navigation/pathfinder';
 import { navigationProfile } from '@jsprismarine/entity-goals/navigation/profile';
 import type { NavigationView } from '@jsprismarine/entity-goals/navigation/view';
 import { voxelGrid } from '@jsprismarine/entity-goals/navigation/voxelGrid';
+import {
+    createTestWorld,
+    deferredItemFactory,
+    registerVanillaItemBehaviors,
+    testSource
+} from '@jsprismarine/item-behaviors';
+import type { BlockStateValue } from '@jsprismarine/blocks/hooks';
+import type { ItemHooks, ItemRegistry } from '@jsprismarine/items';
+import { ItemStack, loadItemTypes } from '@jsprismarine/items';
 import type { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
 
 import { LegacyRandomSource } from '@jsprismarine/worldgen/random/LegacyRandomSource';
@@ -11,7 +22,6 @@ import { LegacyRandomSource } from '@jsprismarine/worldgen/random/LegacyRandomSo
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { chiSquaredTest } from '../chiSquared.ts';
 import { loadJavaEntityAttributes } from '../goldens.ts';
-import { loadVanillaEntityTypes } from '../vanillaEntities.ts';
 import { realStack, serverContent } from '../serverStack.ts';
 import type { EntitySubject } from './subjects.ts';
 import { componentValues, entitiesDeclaring, field } from './subjects.ts';
@@ -487,25 +497,42 @@ const COURSES: readonly Course[] = [
     { name: 'an open door', slice: 'd', door: true }
 ];
 
+/**
+ * How many blocks wide Java's node evaluators take a mob to be, `floor(bbWidth + 1)`, for the
+ * hitbox the server gives it. Hitboxes are the client's geometry (exclusion 5 of the parity
+ * claim), so Java's rule is applied to the server's box rather than to Java's.
+ */
+const javaPathWidth = (entity: DataEntity): number => Math.max(1, Math.floor(entity.facts.box.width + 1));
+
 /** The tunnel width and height a mob of this hitbox fits in, with a block to spare. */
 const tunnelFor = (entity: DataEntity): { readonly width: number; readonly height: number } => {
     const box = entity.facts.box;
-    return { width: Math.max(3, Math.ceil(box.width) + 2), height: Math.max(3, Math.ceil(box.height) + 1) };
+    return { width: Math.max(3, javaPathWidth(entity) + 2), height: Math.max(3, Math.ceil(box.height) + 1) };
+};
+
+/** A course's run along x: how long it is and where its slice stands, with room for the mob's width either side. */
+const runFor = (entity: DataEntity): { readonly length: number; readonly slice: number } => {
+    const width = javaPathWidth(entity);
+    return { length: 11 + 2 * width, slice: 5 + width };
 };
 
 /** Builds the voxel layers of one course: a stone floor and shell around a tunnel along x. */
-const courseLayers = (course: Course, width: number, height: number, medium: string): string[][] => {
-    const length = 11;
-    const slice = 5;
+const courseLayers = (
+    course: Course,
+    width: number,
+    height: number,
+    medium: string,
+    run: { readonly length: number; readonly slice: number }
+): string[][] => {
     const layers: string[][] = [];
     for (let y = 0; y <= height + 1; y += 1) {
         const rows: string[] = [];
         for (let z = 0; z <= width + 1; z += 1) {
             let row = '';
-            for (let x = 0; x < length; x += 1) {
+            for (let x = 0; x < run.length; x += 1) {
                 const shell = y === 0 || y === height + 1 || z === 0 || z === width + 1;
                 if (shell) row += '#';
-                else if (x !== slice) row += medium;
+                else if (x !== run.slice) row += medium;
                 else if (!course.door) row += course.slice;
                 else row += z === 1 + Math.floor(width / 2) && y <= 2 ? course.slice : '#';
             }
@@ -517,7 +544,7 @@ const courseLayers = (course: Course, width: number, height: number, medium: str
 };
 
 /** Java's verdict on whether a mob's path may enter one course's slice, from its navigation dump. */
-const javaEnters = (entity: DataEntity, javaId: string, course: Course): boolean | undefined => {
+const javaEnters = (entity: DataEntity, course: Course): boolean | undefined => {
     const java = entity.instance.javaNavigation;
     if (java === undefined) return undefined;
     const malus = java.pathfindingMalus;
@@ -526,9 +553,7 @@ const javaEnters = (entity: DataEntity, javaId: string, course: Course): boolean
     if (course.name === 'lava') return allowed('lava');
     // The node evaluators check a box floor(width + 1) by floor(height + 1) blocks, so a door
     // opening one block wide and two high takes only a mob under a block wide and two tall.
-    const box = loadJavaEntityAttributes()[javaId];
-    if (course.door && box !== undefined && (Math.floor(box.width + 1) > 1 || Math.floor(box.height + 1) > 2))
-        return false;
+    if (course.door && (javaPathWidth(entity) > 1 || Math.floor(entity.facts.box.height + 1) > 2)) return false;
     // WalkNodeEvaluator reads a closed wooden door as walkable only for a navigator that opens doors.
     if (course.name === 'a closed wooden door')
         return java.canOpenDoors === true ? allowed('walkable_door') : allowed('door_wood_closed');
@@ -561,17 +586,20 @@ const navigationScenario: BehaviorScenario<EntitySubject> = {
             activate(entity, subject.tag ?? '');
             const profile = navigationProfile(entity.instance);
             const { width, height } = tunnelFor(entity);
-            const middle = 1 + Math.floor(width / 2);
+            const run = runFor(entity);
+            const mobWidth = javaPathWidth(entity);
+            // The mob's footprint centered on the door's column, as a path node puts it.
+            const across = 1 + Math.floor(width / 2) - Math.floor((mobWidth - 1) / 2) + mobWidth / 2;
             const differences: string[] = [];
             for (const course of COURSES) {
-                const java = javaEnters(entity, subject.javaId, course);
+                const java = javaEnters(entity, course);
                 if (java === undefined) return `the server pins no Java navigation for ${subject.bedrock}`;
                 // A water-bound mob only lives in water, so its tunnel is flooded.
                 const medium = waterBound(entity) ? '~' : '.';
-                const path = findPath(voxelGrid(courseLayers(course, width, height, medium)), profile, {
-                    from: { x: 1.5, y: 1, z: middle + 0.5 },
-                    to: { x: 9.5, y: 1, z: middle + 0.5 },
-                    maxNodes: 4096
+                const path = findPath(voxelGrid(courseLayers(course, width, height, medium, run)), profile, {
+                    from: { x: 1 + mobWidth / 2, y: 1, z: across },
+                    to: { x: run.length - 1 - mobWidth / 2, y: 1, z: across },
+                    maxNodes: 8192
                 });
                 const server = path?.reachedGoal === true;
                 if (server !== java)
@@ -706,63 +734,344 @@ const coastDifference = (subject: EntitySubject, [low, high]: readonly [number, 
 };
 
 /**
- * The movement components whose Java rule the server does not run yet. Each names the Java rule
- * and checks the server for a handler, so the row fails while nothing implements it and turns
- * stale once something does.
+ * The durability one boost costs each steering item in Java, `Items`' `FoodOnAStickItem`
+ * constructor arguments.
  */
+const JAVA_BOOST_DAMAGE: ReadonlyMap<string, number> = new Map([
+    ['minecraft:carrot_on_a_stick', 7],
+    ['minecraft:warped_fungus_on_a_stick', 1]
+]);
+
+/** The server's item types with its vanilla behaviors over a world whose user rides a mount that takes a boost. */
+let steeringItems: ItemRegistry | undefined;
+const steeringItemRegistry = (): ItemRegistry => {
+    if (steeringItems !== undefined) return steeringItems;
+    const behaviors = new BehaviorRegistry<ItemHooks>();
+    const items = deferredItemFactory();
+    registerVanillaItemBehaviors(behaviors, { world: createTestWorld({ boosts: true }), items });
+    steeringItems = loadItemTypes({ behaviors }).registry;
+    items.bind(steeringItems);
+    return steeringItems;
+};
+
+/** The durability the server's item behavior takes from a steering item for one boost that took. */
+const boostCost = (item: string): number | undefined => {
+    const stack = new ItemStack(steeringItemRegistry().holder(item), 1);
+    const used = stack.type.hooks.dispatchFirst('onUse', { itemStack: stack, source: testSource(), useDuration: 0 });
+    const damage = used?.stack?.get('minecraft:damage');
+    return typeof damage === 'number' ? damage : undefined;
+};
+
+/** The item names a component field holds, one or a list, under their current names. */
+const itemNames = (value: unknown): readonly string[] =>
+    (Array.isArray(value) ? value : [value]).flatMap((name) =>
+        typeof name === 'string' ? [normalizedItemIdentifier(name)] : []
+    );
+
+/**
+ * Saddles a spawned pig or strider, puts a player on it holding the item it steers with, and
+ * hands the three to `observe`.
+ */
+const withRiddenMount = (
+    subject: EntitySubject,
+    observe: (mount: DataEntity, player: DataEntity, item: string) => string | undefined
+): string | undefined =>
+    withSpawned(
+        subject.bedrock,
+        (mount) => {
+            activate(mount, 'minecraft:item_controllable');
+            activate(mount, 'minecraft:boostable');
+            const item = itemNames(
+                field(mount.instance.componentParams('minecraft:item_controllable'), 'control_items')
+            )[0];
+            if (item === undefined) return 'the saddled mount names no item it is steered with';
+            return withSpawned(
+                'minecraft:player',
+                (player) => {
+                    const { runtime, world } = realStack();
+                    const seat = runtime.mobById(mount.id);
+                    if (seat === undefined) return 'the runtime exposes no goal view of the mount';
+                    runtime.mount(player.body, seat);
+                    world.held.set(player.id, item);
+                    try {
+                        return observe(mount, player, item);
+                    } finally {
+                        world.held.delete(player.id);
+                        runtime.dismount(player.body);
+                    }
+                },
+                mount.position
+            );
+        },
+        slotAt(7)
+    );
+
+/** How far a boat floating over a bubble column rose and sank, and whether it was taken out of its rider's control. */
+interface BubbleRide {
+    readonly highest: number;
+    readonly lowest: number;
+    readonly outOfControl: boolean;
+}
+
+/** Floats a boat on a pool over a bubble column, rising or dragging down, for 80 ticks. */
+const boatOverBubbles = (bedrock: string, down: boolean): BubbleRide | string => {
+    const { runtime, world } = realStack();
+    const at = slotAt(9);
+    const pool = { ...at, y: at.y - 4 };
+    fill(pool, 2, 4, 'minecraft:water');
+    for (let y = pool.y; y < at.y; y += 1)
+        world.world.blocks.set(
+            { x: Math.floor(at.x), y, z: Math.floor(at.z) },
+            { identifier: 'minecraft:bubble_column', states: { drag_down: down } },
+            false
+        );
+    try {
+        return withSpawned(
+            bedrock,
+            (boat) => {
+                for (let tick = 1; tick <= 10; tick += 1) runtime.tick(tick);
+                const floating = boat.position.y;
+                let highest = 0;
+                let lowest = 0;
+                let outOfControl = false;
+                for (let tick = 11; tick <= 90 && boat.removed === undefined; tick += 1) {
+                    runtime.tick(tick);
+                    highest = Math.max(highest, boat.position.y - floating);
+                    lowest = Math.min(lowest, boat.position.y - floating);
+                    outOfControl ||= boat.instance.hasComponent('minecraft:out_of_control');
+                }
+                return { highest, lowest, outOfControl };
+            },
+            at
+        );
+    } finally {
+        fill(pool, 2, 4, 'minecraft:stone');
+    }
+};
+
+/** What a pushed minecart does on a run of one rail: the share of its speed it keeps over a tick, and how far it strays from the rail. */
+const minecartRun = (bedrock: string, rail: string): { readonly kept: number; readonly drift: number } | string => {
+    const { runtime, world } = realStack();
+    const at = slotAt(10);
+    const run = (block: string, states: Readonly<Record<string, BlockStateValue>>) => {
+        for (let dx = -2; dx <= 40; dx += 1)
+            world.world.blocks.set(
+                { x: Math.floor(at.x) + dx, y: at.y, z: Math.floor(at.z) },
+                { identifier: block, states },
+                false
+            );
+    };
+    // East to west, and for a powered rail, powered.
+    run(rail, rail === 'minecraft:rail' ? { rail_direction: 1 } : { rail_direction: 1, rail_data_bit: true });
+    try {
+        return withSpawned(
+            bedrock,
+            (cart) => {
+                cart.body.push({ x: 0.3, y: 0, z: 0 });
+                const steps: number[] = [];
+                for (let tick = 1; tick <= 6; tick += 1) {
+                    const before = cart.position.x;
+                    runtime.tick(tick);
+                    steps.push(cart.position.x - before);
+                }
+                const [last = 0, previous = 0] = [steps.at(-1), steps.at(-2)];
+                if (previous <= 1e-6) return 'a push does not move it along the rail at all';
+                return { kept: last / previous, drift: cart.position.z - at.z };
+            },
+            at
+        );
+    } finally {
+        run('minecraft:air', {});
+    }
+};
+
+/**
+ * What a minecart does over a powered activator rail, against Java's `activateMinecart`: a
+ * minecart drops its rider, a TNT minecart primes, a hopper minecart locks (the pack's
+ * `minecraft:hopper_deactivate`), and a command block minecart reacts at all.
+ */
+const activatorReaction = (bedrock: string): string | undefined => {
+    const { runtime, world } = realStack();
+    const at = slotAt(11);
+    const rail = { x: Math.floor(at.x), y: at.y, z: Math.floor(at.z) };
+    world.world.blocks.set(
+        rail,
+        { identifier: 'minecraft:activator_rail', states: { rail_direction: 1, rail_data_bit: true } },
+        false
+    );
+    try {
+        return withSpawned(
+            bedrock,
+            (cart) => {
+                const fired: string[] = [];
+                const fire = cart.instance.fire.bind(cart.instance);
+                cart.instance.fire = (event, ...rest) => {
+                    fired.push(event);
+                    return fire(event, ...rest);
+                };
+                const rider = bedrock === 'minecraft:minecart' ? runtime.spawn('minecraft:pig', at) : undefined;
+                const seat = runtime.mobById(cart.id);
+                if (rider !== undefined && seat !== undefined) runtime.mount(rider.body, seat);
+                try {
+                    for (let tick = 1; tick <= 3; tick += 1) runtime.tick(tick);
+                    if (bedrock === 'minecraft:minecart')
+                        return seat !== undefined && runtime.ridersOf(cart.body).length > 0
+                            ? 'it keeps its rider over a powered activator rail, where Java drops it'
+                            : undefined;
+                    if (bedrock === 'minecraft:tnt_minecart')
+                        return cart.removed === undefined && cart.body.fuseTicks === undefined
+                            ? 'it does not prime over a powered activator rail'
+                            : undefined;
+                    if (bedrock === 'minecraft:hopper_minecart')
+                        return fired.includes('minecraft:hopper_deactivate')
+                            ? undefined
+                            : 'it does not lock over a powered activator rail';
+                    return fired.length > 0 ? undefined : 'it does not react to a powered activator rail';
+                } finally {
+                    if (rider !== undefined && rider.removed === undefined)
+                        runtime.remove(rider.id, 'parity stats scenario complete');
+                }
+            },
+            { ...at, x: Math.floor(at.x) + 0.5 }
+        );
+    } finally {
+        world.world.blocks.set(rail, { identifier: 'minecraft:air', states: {} }, false);
+    }
+};
+
+/** The movement components whose Java rule each scenario exercises on the server. */
 const SERVER_RULES: readonly ServerRule[] = [
     {
         component: 'minecraft:boostable',
-        java: "Boosting a ridden pig or strider costs the stick Java's durability: 7 for a carrot on a stick, 1 for a warped fungus on a stick.",
-        reference: 'Java ItemSteerable.boost and FoodOnAStickItem (consumeItemDamage 7 and 1)',
-        check: (subject) => {
-            const java = subject.javaId === 'minecraft:pig' ? 7 : 1;
-            const items = componentValues(subject.bedrock, 'minecraft:boostable').flatMap((value) => {
-                const list = field(value, 'boost_items');
-                return Array.isArray(list) ? list : [];
-            });
-            const damages = items.map((item) => field(item, 'damage'));
-            const differences: string[] = [];
-            if (!damages.every((damage) => damage === java))
-                differences.push(`a boost costs ${damages.join(', ')} durability, where Java's costs ${java}`);
-            if (!runs('minecraft:boostable')) differences.push('the server runs no boost and charges no durability');
-            return differences.length === 0 ? undefined : differences.join('; ');
-        }
+        java: "A player steering a pig or strider with its item boosts it for 140 plus up to 840 ticks, cannot boost again until that runs out, and the item pays Java's durability for the boost: 7 for a carrot on a stick, 1 for a warped fungus on a stick.",
+        reference:
+            'Java FoodOnAStickItem.use (consumeItemDamage 7 and 1 in Items), ItemSteerable.boost and ItemBasedSteering.boost (140 + nextInt(841))',
+        check: (subject) =>
+            withRiddenMount(subject, (mount, player, item) => {
+                const { runtime } = realStack();
+                const differences: string[] = [];
+                if (!runtime.boostMount(player.id, item)) differences.push(`a rider holding ${item} cannot boost it`);
+                else {
+                    const ticks = runtime.steeringOf(mount).boostTicks;
+                    if (ticks < 140 || ticks > 980)
+                        differences.push(`a boost lasts ${ticks} ticks, outside Java's 140 to 980`);
+                    if (runtime.boostMount(player.id, item))
+                        differences.push('it boosts again while a boost runs, which Java refuses');
+                }
+                const java = JAVA_BOOST_DAMAGE.get(item);
+                const cost = boostCost(item);
+                if (cost !== java)
+                    differences.push(`a boost costs ${String(cost)} durability, where Java's costs ${String(java)}`);
+                return differences.length === 0 ? undefined : differences.join('; ');
+            })
     },
     {
         component: 'minecraft:item_controllable',
-        java: 'A ridden pig or strider follows its rider only while the rider holds the stick.',
+        java: 'A ridden pig or strider follows its rider only while the rider holds the item it steers with.',
         reference:
             'Java Pig.getControllingPassenger and Strider.getControllingPassenger (a player holding the steering item)',
-        check: () =>
-            runs('minecraft:item_controllable') ? undefined : 'the server runs nothing for item-controlled riding'
+        check: (subject) =>
+            withRiddenMount(subject, (mount, player, item) => {
+                const { runtime, world } = realStack();
+                const differences: string[] = [];
+                if (runtime.itemControllingRider(mount) !== player.id)
+                    differences.push(`a rider holding ${item} does not steer it`);
+                world.held.set(player.id, 'minecraft:stick');
+                if (runtime.itemControllingRider(mount) !== undefined)
+                    differences.push('a rider holding a stick steers it, where Java leaves it to wander');
+                return differences.length === 0 ? undefined : differences.join('; ');
+            })
     },
     {
         component: 'minecraft:underwater_mount_breathing',
-        java: 'A nautilus gives its player rider Breath of the Nautilus, refreshed for 60 ticks, so the rider does not drown.',
-        reference: 'Java AbstractNautilus.applyEffects (MobEffects.BREATH_OF_THE_NAUTILUS, 60 ticks)',
-        check: () =>
-            runs('minecraft:underwater_mount_breathing') ? undefined : "the server gives a nautilus's rider no air"
+        java: 'A nautilus gives its player rider Breath of the Nautilus in water, refreshed to 60 ticks, so the rider does not drown.',
+        reference: 'Java AbstractNautilus (MobEffects.BREATH_OF_THE_NAUTILUS, 60 ticks, for the controlling player)',
+        check: (subject) => {
+            const at = slotAt(6);
+            fill(at, 3, 4, 'minecraft:water');
+            try {
+                return withSpawned(
+                    subject.bedrock,
+                    (mount) => {
+                        // A nautilus seats a rider once tamed, and breathes for it once saddled in water.
+                        activate(mount, 'minecraft:rideable');
+                        activate(mount, 'minecraft:underwater_mount_breathing');
+                        return withSpawned(
+                            'minecraft:player',
+                            (player) => {
+                                const { runtime } = realStack();
+                                const seat = runtime.mobById(mount.id);
+                                if (seat === undefined) return 'the runtime exposes no goal view of the mount';
+                                runtime.mount(player.body, seat);
+                                try {
+                                    for (let tick = 1; tick <= 3; tick += 1) runtime.tick(tick);
+                                    const breath = player.body.statusEffects.get('minecraft:breath_of_the_nautilus');
+                                    return breath?.durationTicks === 60
+                                        ? undefined
+                                        : `its rider has ${breath === undefined ? 'no Breath of the Nautilus' : `Breath of the Nautilus for ${breath.durationTicks} ticks`} in water, where Java keeps it at 60`;
+                                } finally {
+                                    runtime.dismount(player.body);
+                                }
+                            },
+                            { ...at, y: at.y + 1 }
+                        );
+                    },
+                    { ...at, y: at.y + 1 }
+                );
+            } finally {
+                fill(at, 3, 4, 'minecraft:air');
+            }
+        }
     },
     {
         component: 'minecraft:out_of_control',
-        java: "A boat over a bubble column loses its rider's control and is pushed up or pulled down.",
-        reference: 'Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling',
-        check: () =>
-            runs('minecraft:out_of_control') ? undefined : 'the server runs nothing for a boat over a bubble column'
+        java: 'A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down.',
+        reference:
+            'Java BubbleColumnBlock.entityInside, AbstractBoat.onAboveBubbleColumn and AbstractBoat.tickBubbleColumn (60 ticks, then +0.6 up or -0.7 down)',
+        check: (subject) =>
+            [false, true]
+                .flatMap((down) => {
+                    const moved = boatOverBubbles(subject.bedrock, down);
+                    if (typeof moved === 'string') return [moved];
+                    const differences: string[] = [];
+                    if (!moved.outOfControl)
+                        differences.push(
+                            `over a ${down ? 'downward' : 'rising'} column it stays in its rider's control`
+                        );
+                    if (down ? moved.lowest > -0.3 : moved.highest < 0.3)
+                        differences.push(
+                            `a ${down ? 'downward' : 'rising'} column moves it ${(down ? moved.lowest : moved.highest).toFixed(2)} blocks in 80 ticks, where Java ${down ? 'pulls it under' : 'throws it up'}`
+                        );
+                    return differences;
+                })
+                .join('; ') || undefined
     },
     {
         component: 'minecraft:rail_movement',
-        java: 'A minecart on a rail runs along it, accelerated by powered rails and slowed by friction.',
-        reference: 'Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack',
-        check: () => (runs('minecraft:rail_movement') ? undefined : 'the server moves no minecart along a rail')
+        java: 'A minecart pushed along a rail runs along it, slowed only by its rolling drag, and a powered rail speeds it up.',
+        reference:
+            'Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack (getSlowdownFactor 0.96 empty, a powered rail adds 0.06 a tick), PoweredRailBlock',
+        check: (subject) => {
+            const plain = minecartRun(subject.bedrock, 'minecraft:rail');
+            const powered = minecartRun(subject.bedrock, 'minecraft:golden_rail');
+            if (typeof plain === 'string') return plain;
+            if (typeof powered === 'string') return powered;
+            const differences: string[] = [];
+            if (plain.kept < 0.9)
+                differences.push(
+                    `on a rail it keeps ${(plain.kept * 100).toFixed(0)} percent of its speed over a tick, where Java keeps 96`
+                );
+            if (Math.abs(plain.drift) > 0.01) differences.push('it leaves the rail it runs along');
+            if (powered.kept <= 1) differences.push('a powered rail does not speed it up');
+            return differences.length === 0 ? undefined : differences.join('; ');
+        }
     },
     {
         component: 'minecraft:rail_sensor',
         java: 'A minecart over a powered activator rail reacts: a minecart drops its rider, a TNT minecart primes, a hopper minecart locks and a command block minecart runs.',
         reference:
             'Java AbstractMinecart.activateMinecart and its Minecart, MinecartTNT, MinecartHopper and MinecartCommandBlock overrides',
-        check: () => (runs('minecraft:rail_sensor') ? undefined : 'the server senses no activator rail')
+        check: (subject) => activatorReaction(subject.bedrock)
     },
     {
         component: 'minecraft:water_movement',
@@ -804,7 +1113,10 @@ const SERVER_RULES: readonly ServerRule[] = [
                         const moved = entity.position.x - at.x;
                         if (entity.position.y < 63.5)
                             return 'it sinks into the lava, where Java stands it on the surface';
-                        return moved >= 1
+                        // Java's ground travel moves a strider at its 0.175 speed about 0.037 blocks a
+                        // tick once up to speed (0.175 x 0.175 x 0.546 / 0.454), so it covers well over
+                        // half a block in its first second.
+                        return moved >= 0.5
                             ? undefined
                             : `it covers ${moved.toFixed(2)} blocks of lava in a second, where Java walks it across`;
                     },
@@ -846,7 +1158,8 @@ const strengthScenario: BehaviorScenario<EntitySubject> = {
     idOf: (subject) => subject.javaId,
     aspects: () => ['minecraft:strength'],
     run: (subject) => {
-        const types = loadVanillaEntityTypes();
+        // The server's resolved types, which carry the strength chances it loads the pack with.
+        const { types } = serverContent().entities;
         const random = new LegacyRandomSource(1234n);
         const counts = new Map<number, number>();
         for (let sample = 0; sample < STRENGTH_SAMPLES; sample += 1) {
@@ -926,8 +1239,9 @@ const preferredPathScenario: BehaviorScenario<EntitySubject> = {
         withSpawned(subject.bedrock, (entity) => {
             const profile = navigationProfile(entity.instance);
             const height = tunnelFor(entity).height;
+            const width = javaPathWidth(entity);
             const differences: string[] = [];
-            // A seven-wide room with a dirt path along its far side.
+            // A room seven rows deep and eleven long inside its walls, with a dirt path along its far side.
             const room: string[][] = [];
             for (let y = 0; y <= height + 1; y += 1)
                 room.push(
@@ -937,18 +1251,23 @@ const preferredPathScenario: BehaviorScenario<EntitySubject> = {
                 );
             const view = withPathRow(voxelGrid(room), 7, 'minecraft:grass_path');
             const path = findPath(view, profile, {
-                from: { x: 1.5, y: 1, z: 1.5 },
-                to: { x: 11.5, y: 1, z: 1.5 },
+                from: { x: 1 + width / 2, y: 1, z: 1 + width / 2 },
+                to: { x: 12 - width / 2, y: 1, z: 1 + width / 2 },
                 maxNodes: 4096
             });
             if (path === undefined) differences.push('it finds no route across an open room');
             else if (path.nodes.some((node) => node.z > 2))
                 differences.push('it goes out of its way onto the path blocks, where Java walks straight');
 
-            for (const [drop, java] of [
-                [3, true],
-                [4, false]
-            ] as const) {
+            // A mob wider than a block cannot step off a ledge one block at a time in Java either:
+            // the node evaluator reads its whole footprint while it falls, and the ledge is under
+            // part of it. So the drops are put to the one-block mobs.
+            for (const [drop, java] of width > 1
+                ? []
+                : ([
+                      [3, true],
+                      [4, false]
+                  ] as const)) {
                 // A ledge two blocks wide beside a pit `drop` blocks deep, with head room over both.
                 const cliff: string[][] = [];
                 for (let y = 0; y <= drop + height + 1; y += 1) {
@@ -987,21 +1306,11 @@ const scenarios: readonly BehaviorScenario<EntitySubject>[] = [
 
 /** The issues that track the differences each scenario still finds, which its gap rows cite. */
 const OPEN_GAPS: Readonly<Record<string, string>> = {
-    'spawn-health': 'issue #3146',
-    'melee-blow': 'issue #3139',
     'move-control-turn': 'issue #3140',
-    'path-through': 'issues #3138 and #3140',
-    'rider-controls': 'issue #3143',
-    'spawn-strength': 'issue #3142',
-    'java-rule-boostable': 'issue #3143',
-    'java-rule-item_controllable': 'issue #3143',
-    'java-rule-underwater_mount_breathing': 'issue #3143',
+    'path-through': 'issues #3140 and #3181',
     'java-rule-out_of_control': 'issue #3144',
     'java-rule-rail_movement': 'issue #3145',
-    'java-rule-rail_sensor': 'issue #3145',
-    'java-rule-water_movement': 'issue #3141',
-    'java-rule-underwater_movement': 'issue #3141',
-    'java-rule-lava_movement': 'issue #3141'
+    'java-rule-rail_sensor': 'issue #3145'
 };
 
 /** The scenarios that compare what an entity spawns with, and how it moves, against Java. */
