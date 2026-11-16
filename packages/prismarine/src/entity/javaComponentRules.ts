@@ -74,6 +74,18 @@ const WEAPON_BY_WEAPON_ALONE: JavaComponentRule = {
     rewrite: withoutWaterWeaponSwap
 };
 
+/** Java's `Float.MAX_VALUE`, the blow `Parrot.mobInteract` deals a parrot that eats a cookie. */
+const FLOAT_MAX_VALUE = 3.4028234663852886e38;
+
+/** Ticks of Poison `Parrot.mobInteract` gives a parrot that eats a cookie. */
+const PARROT_POISON_TICKS = 900;
+
+/** Whether a healable item entry poisons the entity fatally, the pack's stand-in for Java's cookie rule. */
+const poisonsFatally = (entry: unknown): boolean =>
+    isRecord(entry) &&
+    Array.isArray(entry.effects) &&
+    entry.effects.some((effect) => isRecord(effect) && effect.name === 'fatal_poison');
+
 /** The rules by Bedrock entity identifier. */
 export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponentRule[]>> = {
     // `Axolotl.handleAirSupply` dries an axolotl out on land by 2 `dryOut` damage each time its
@@ -127,6 +139,30 @@ export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponen
     'minecraft:bogged': [WEAPON_BY_WEAPON_ALONE],
     'minecraft:parched': [WEAPON_BY_WEAPON_ALONE],
     'minecraft:pillager': [WEAPON_BY_WEAPON_ALONE],
+    // `AbstractNautilus.mobInteract` feeds a hurt tamed nautilus its food before `Animal.mobInteract`
+    // breeds it, so the food heals it until it is at full health.
+    'minecraft:nautilus': [
+        { component: 'minecraft:breedable', rewrite: (body) => ({ ...body, require_full_health: true }) }
+    ],
+    // `Parrot.mobInteract` poisons a parrot that eats from `parrot_poisonous_food` for 900 ticks and
+    // hurts it by `Float.MAX_VALUE`, which kills it at once. The pack's fatal poison only wears it down.
+    'minecraft:parrot': [
+        {
+            component: 'minecraft:healable',
+            rewrite: (body) => ({
+                ...body,
+                items: (Array.isArray(body.items) ? body.items : []).map((entry: unknown) =>
+                    isRecord(entry) && poisonsFatally(entry)
+                        ? {
+                              ...entry,
+                              heal_amount: -FLOAT_MAX_VALUE,
+                              effects: [{ name: 'poison', duration: PARROT_POISON_TICKS / 20, amplifier: 0, chance: 1 }]
+                          }
+                        : entry
+                )
+            })
+        }
+    ],
     'minecraft:boat': [BOAT_SINKS_BY_JAVA_COUNT],
     'minecraft:chest_boat': [BOAT_SINKS_BY_JAVA_COUNT]
 };

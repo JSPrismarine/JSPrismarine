@@ -811,7 +811,8 @@ export const healable: ComponentFactory<EntityHooks, HealableParams> = {
             });
 
             return {
-                ...(item.healAmount > 0 ? { healthAmount: item.healAmount } : {}),
+                // A negative amount hurts, which the runtime deals as a blow from whoever fed it.
+                ...(item.healAmount === 0 ? {} : { healthAmount: item.healAmount }),
                 ...(item.resultItem === undefined ? {} : { resultItem: item.resultItem }),
                 ...(statusEffects.length === 0 ? {} : { statusEffects })
             };

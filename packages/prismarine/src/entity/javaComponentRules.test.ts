@@ -189,4 +189,58 @@ describe('withJavaComponentRules', () => {
         const data = entityFile('minecraft:creeper', {}, { 'minecraft:freezing_immune': {} });
         expect(withJavaComponentRules(data)).toBe(data);
     });
+
+    it('makes a nautilus heal from its food before it breeds, as Java feeds a hurt one first', () => {
+        const data = withJavaComponentRules(
+            entityFile('minecraft:nautilus', {
+                'minecraft:nautilus_adult': { 'minecraft:breedable': { breed_items: ['fish'] } }
+            })
+        );
+
+        expect(data).toMatchObject({
+            'minecraft:entity': {
+                component_groups: {
+                    'minecraft:nautilus_adult': {
+                        'minecraft:breedable': { breed_items: ['fish'], require_full_health: true }
+                    }
+                }
+            }
+        });
+    });
+
+    it("kills a parrot fed a cookie and poisons it for Java's 900 ticks", () => {
+        const data = withJavaComponentRules(
+            entityFile(
+                'minecraft:parrot',
+                {},
+                {
+                    'minecraft:healable': {
+                        force_use: true,
+                        items: [
+                            { item: 'cookie', heal_amount: 0, effects: [{ name: 'fatal_poison', duration: 1000 }] },
+                            { item: 'wheat_seeds', heal_amount: 1 }
+                        ]
+                    }
+                }
+            )
+        );
+
+        expect(data).toMatchObject({
+            'minecraft:entity': {
+                components: {
+                    'minecraft:healable': {
+                        force_use: true,
+                        items: [
+                            {
+                                item: 'cookie',
+                                heal_amount: -3.4028234663852886e38,
+                                effects: [{ name: 'poison', duration: 45, amplifier: 0, chance: 1 }]
+                            },
+                            { item: 'wheat_seeds', heal_amount: 1 }
+                        ]
+                    }
+                }
+            }
+        });
+    });
 });

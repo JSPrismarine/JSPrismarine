@@ -1065,6 +1065,29 @@ describe('EntityRuntime', () => {
             expect(entity.instance.attributes.get('health')?.current).toBe(16);
         });
 
+        it('hurts by a negative healable amount, so a fatal food kills', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:poisoned_by_food': {
+                        components: {
+                            'minecraft:health': { value: 6, max: 6 },
+                            'minecraft:healable': {
+                                force_use: true,
+                                items: [{ item: 'cookie', heal_amount: -3.4e38 }]
+                            }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:poisoned_by_food', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no healable entity');
+
+            expect(runtime.interactWithItem(entity.id, 42, 'minecraft:cookie')).toEqual({ accepted: true });
+            expect(runtime.byId(entity.id)).toBeUndefined();
+        });
+
         it('repairs a damaged entity inventory item and preserves its other stack data', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),
