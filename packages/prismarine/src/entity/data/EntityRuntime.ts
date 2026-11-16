@@ -3765,8 +3765,25 @@ export class EntityRuntime implements EntityScene {
         return candidates;
     }
 
-    /** A host player as a filter reads it: the host's own view, or its family, tags and abilities. */
+    /**
+     * A host player as a filter reads it: the host's own view, or its family, tags and abilities,
+     * with what it rides from this runtime's rides when the view does not say, which
+     * `is_riding_self` reads.
+     */
     private playerFilterView(player: ContentEntity): FilterEntityView {
+        const view = this.hostPlayerFilterView(player);
+        if (view.vehicle !== undefined) return view;
+        return {
+            ...view,
+            vehicle: () => {
+                const vehicle = this.rides.vehicleOf(player.id);
+                return vehicle === undefined ? undefined : this.store.get(vehicle)?.instance.filterContext().self;
+            }
+        };
+    }
+
+    /** The host's own view of a player, or its family, tags and abilities. */
+    private hostPlayerFilterView(player: ContentEntity): FilterEntityView {
         return (
             this.host.playerView?.(player.id) ?? {
                 id: () => player.id,
@@ -7530,16 +7547,14 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * Gives the player riders of a mount with `minecraft:underwater_mount_breathing` Breath of the
-     * Nautilus while the mount is in water, refreshed to 60 ticks each tick, as Java's
-     * `AbstractNautilus` does for its rider, so a player riding a nautilus does not drown.
+     * Gives the player riders of a nautilus or a zombie nautilus Breath of the Nautilus for 60
+     * ticks, as Java's `AbstractNautilus.applyEffects` does for its rider wherever the mount is,
+     * in water or out: when the rider has none, and again every 40 game ticks. Bedrock's file
+     * gives it only in water, through `minecraft:underwater_mount_breathing`.
      */
     private giveRidersBreath(vehicle: DataEntity): void {
-        if (
-            !vehicle.instance.hasComponent('minecraft:underwater_mount_breathing') ||
-            !vehicle.body.conditions.has('in_water')
-        )
-            return;
+        if (!ABSTRACT_NAUTILUS.has(vehicle.identifier)) return;
+        const renew = this.world.level.gameTime() % NAUTILUS_BREATH_RENEW_TICKS === 0;
         for (const rider of this.rides.ridersOf(vehicle.id)) {
             const carried = this.store.get(rider);
             const player =
@@ -7547,8 +7562,9 @@ export class EntityRuntime implements EntityScene {
                     ? this.host.players().some((candidate) => candidate.id === rider)
                     : clientOwnsMovement(carried.identifier);
             if (!player) continue;
+            if (!renew && carried?.body.statusEffects.has(NAUTILUS_BREATH) === true) continue;
             this.applyStatusEffectToId(vehicle.instance, rider, {
-                id: 'minecraft:breath_of_the_nautilus',
+                id: NAUTILUS_BREATH,
                 durationTicks: NAUTILUS_BREATH_TICKS,
                 amplifier: 0,
                 ambient: true
@@ -7699,8 +7715,13 @@ const itemsNamed = (value: unknown): readonly string[] =>
         typeof name === 'string' ? [normalizedItemIdentifier(name)] : []
     );
 
-/** How long the Breath of the Nautilus a nautilus gives its rider lasts, refreshed each tick. */
+/** How long the Breath of the Nautilus a nautilus gives its rider lasts. */
 const NAUTILUS_BREATH_TICKS = 60;
+/** `AbstractNautilus.applyEffects` renews its rider's breath every 40 game ticks. */
+const NAUTILUS_BREATH_RENEW_TICKS = 40;
+const NAUTILUS_BREATH = 'minecraft:breath_of_the_nautilus';
+/** The mounts Java's `AbstractNautilus` covers. */
+const ABSTRACT_NAUTILUS: ReadonlySet<string> = new Set(['minecraft:nautilus', 'minecraft:zombie_nautilus']);
 
 /** The mobs whose Java `canStandOnFluid` takes lava: `Strider.canStandOnFluid`. */
 const LAVA_WALKERS: ReadonlySet<string> = new Set(['minecraft:strider']);

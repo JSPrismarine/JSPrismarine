@@ -84,6 +84,13 @@ const spellEffectTicks = (group: string, ticks: number): Tuning => ({
     })
 });
 
+/** A `minecraft:mob_effect` whose effect lasts `ticks` Java ticks. */
+const mobEffectTicks = (group: string | undefined, ticks: number): Tuning => ({
+    component: 'minecraft:mob_effect',
+    group,
+    rewrite: (effect) => ({ ...effect, effect_time: seconds(ticks) })
+});
+
 /**
  * A `minecraft:home` that keeps the home position but holds no movement to it, for a mob whose
  * Java class never calls `Mob.setHomeTo`. Bedrock's default `restriction_type` is `none`.
@@ -150,8 +157,9 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
     // `CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS` only scales the heart's comparator signal.
     'minecraft:creaking': [unrestrictedHome],
     // `AbstractNautilus.checkRestriction` does the same 8 blocks past the radius, for a tamed one.
-    'minecraft:nautilus': [rehomingHome(8, true)],
-    'minecraft:zombie_nautilus': [rehomingHome(8, true)],
+    // `AbstractNautilus.applyEffects` gives the rider 60 ticks of Breath of the Nautilus.
+    'minecraft:nautilus': [rehomingHome(8, true), mobEffectTicks(undefined, 60)],
+    'minecraft:zombie_nautilus': [rehomingHome(8, true), mobEffectTicks(undefined, 60)],
     // `Salmon.getMaxSchoolSize`; a cod's and a tropical fish's school is `AbstractFish`'s 8.
     'minecraft:salmon': [
         {
@@ -187,8 +195,9 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
             rewrite: (lookedAt) => ({ ...lookedAt, field_of_view: (2 * Math.acos(1 - 0.025) * 180) / Math.PI })
         }
     ],
-    // `Pufferfish$PufferfishPuffGoal` puffs up at a threat within its box inflated by 2.
-    'minecraft:pufferfish': [sensorBox(undefined, 2, 2)],
+    // `Pufferfish$PufferfishPuffGoal` puffs up at a threat within its box inflated by 2, and
+    // `Pufferfish.touch` poisons for 60 ticks a puff state, 120 when fully puffed.
+    'minecraft:pufferfish': [sensorBox(undefined, 2, 2), mobEffectTicks('minecraft:full_puff', 60 * 2)],
     // `HappyGhast.scanPlayerAboveGhast` looks for a player in the box one block past each side of
     // the 4 block ghast and from its top to half its height above: 3 across, 4 to 6 blocks up.
     'minecraft:happy_ghast': [

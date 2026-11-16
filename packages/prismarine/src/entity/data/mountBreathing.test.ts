@@ -6,7 +6,7 @@ import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 
 const AT = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 
-/** A mount that seats one player and gives its riders air under water, as the pack's nautilus does. */
+/** A mount that seats one player, as the pack's nautilus does. */
 const NAUTILUS = {
     components: {
         'minecraft:collision_box': { width: 0.875, height: 0.95 },
@@ -33,22 +33,34 @@ const ridden = (inWater: boolean) => {
     const mount = nautilus === undefined ? undefined : runtime.mobById(nautilus.id);
     if (player === undefined || mount === undefined) throw new Error('the fixture declares no nautilus or player');
     runtime.mount(player.body, mount);
-    return { runtime, player };
+    return { runtime, player, world };
 };
 
 describe('a nautilus with a rider', () => {
-    it('keeps its player rider in Breath of the Nautilus for 60 ticks while it is in water', () => {
-        const { runtime, player } = ridden(true);
-        for (let tick = 1; tick <= 3; tick += 1) runtime.tick(tick);
+    it('gives its player rider Breath of the Nautilus for 60 ticks, in water or out of it', () => {
+        for (const inWater of [true, false]) {
+            const { runtime, player } = ridden(inWater);
+            runtime.tick(1);
 
-        const breath = player.body.statusEffects.get('minecraft:breath_of_the_nautilus');
-        expect(breath?.durationTicks).toBe(60);
+            const breath = player.body.statusEffects.get('minecraft:breath_of_the_nautilus');
+            expect(breath?.durationTicks).toBe(60);
+        }
     });
 
-    it('gives nothing out of water', () => {
-        const { runtime, player } = ridden(false);
-        runtime.tick(1);
+    it('renews it only every 40 game ticks while the rider still has it', () => {
+        const { runtime, player, world } = ridden(true);
+        const step = () => {
+            world.advance();
+            runtime.tick(world.world.level.gameTime());
+        };
+        step();
+        const breath = player.body.statusEffects.get('minecraft:breath_of_the_nautilus');
+        if (breath === undefined) throw new Error('the rider got no breath');
+        player.body.statusEffects.set(breath.id, { ...breath, durationTicks: 30 });
+        while (world.world.level.gameTime() % 40 !== 39) step();
+        expect(player.body.statusEffects.get(breath.id)?.durationTicks).toBe(30);
+        step();
 
-        expect(player.body.statusEffects.has('minecraft:breath_of_the_nautilus')).toBe(false);
+        expect(player.body.statusEffects.get(breath.id)?.durationTicks).toBe(60);
     });
 });
