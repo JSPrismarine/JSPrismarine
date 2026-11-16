@@ -62,6 +62,30 @@ describe('GoalScheduler', () => {
         expect(log).toEqual(['start panic', 'tick panic']);
     });
 
+    it("stops and holds back the goals that claim a turned-off flag, as Java's setControlFlag does", () => {
+        const log: string[] = [];
+        const scheduler = new GoalScheduler();
+        const stroll = new RecordingGoal('stroll', log);
+        const target = new RecordingGoal('target', log);
+        scheduler.add(entry('stroll', 6, ['move'], stroll));
+        scheduler.add(entry('target', 1, [], target));
+        stroll.ready = true;
+        target.ready = true;
+        scheduler.tick();
+
+        scheduler.setFlagEnabled('move', false);
+        scheduler.tick();
+        scheduler.tick();
+
+        expect(scheduler.runningGoals()).toEqual(['target']);
+        expect(scheduler.holderOf('move')).toBeUndefined();
+
+        scheduler.setFlagEnabled('move', true);
+        scheduler.tick();
+
+        expect(scheduler.holderOf('move')).toBe('stroll');
+    });
+
     it('lets goals with different control flags run at the same time', () => {
         const log: string[] = [];
         const scheduler = new GoalScheduler();

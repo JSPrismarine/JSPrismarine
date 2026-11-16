@@ -12,7 +12,7 @@ import type { BrainMobDefinition } from '@jsprismarine/entity-brains';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import { isRecord } from '../utils/isRecord';
-import { entityFileIdentifier } from './definitionOverlay';
+import { entityFileIdentifier, withoutComponents } from './definitionOverlay';
 
 /** The prefix every goal component carries. */
 const GOAL_PREFIX = 'minecraft:behavior.';
@@ -31,12 +31,6 @@ export const brainGoalsOf = (brains: Iterable<BrainMobDefinition>): BrainGoals =
     return goals;
 };
 
-/** A component map with every goal component taken out. */
-const withoutGoals = (components: unknown): unknown =>
-    isRecord(components)
-        ? Object.fromEntries(Object.entries(components).filter(([name]) => !name.startsWith(GOAL_PREFIX)))
-        : components;
-
 /**
  * Replaces the goals of one entity file with its brain's Java goals, when its brain declares them.
  *
@@ -48,23 +42,13 @@ const withoutGoals = (components: unknown): unknown =>
 export const withBrainGoals = (data: unknown, goals: BrainGoals): unknown => {
     const identifier = entityFileIdentifier(data);
     const javaGoals = identifier === undefined ? undefined : goals.get(identifier);
-    if (javaGoals === undefined || !isRecord(data)) return data;
-    const entity = data['minecraft:entity'];
-    if (!isRecord(entity)) return data;
-    const groups = entity['component_groups'];
-    const components = withoutGoals(entity['components']);
+    if (javaGoals === undefined) return data;
+    const stripped = withoutComponents(data, (component) => component.startsWith(GOAL_PREFIX));
+    const entity = isRecord(stripped) ? stripped['minecraft:entity'] : undefined;
+    if (!isRecord(stripped) || !isRecord(entity)) return data;
+    const components = entity['components'];
     return {
-        ...data,
-        'minecraft:entity': {
-            ...entity,
-            components: { ...(isRecord(components) ? components : {}), ...javaGoals },
-            ...(isRecord(groups)
-                ? {
-                      component_groups: Object.fromEntries(
-                          Object.entries(groups).map(([name, group]) => [name, withoutGoals(group)])
-                      )
-                  }
-                : {})
-        }
+        ...stripped,
+        'minecraft:entity': { ...entity, components: { ...(isRecord(components) ? components : {}), ...javaGoals } }
     };
 };

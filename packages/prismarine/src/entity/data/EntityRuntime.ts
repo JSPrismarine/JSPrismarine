@@ -111,6 +111,7 @@ import { breedableOf, canBreed, offspringIdentifierOf, offspringOf, pregnancyOf,
 import { DataEntity, MobBody, SHOWN_CONDITIONS, distance } from './DataEntity';
 import { EntityIndex } from './entityIndex';
 import { detonate } from './explosion';
+import { updateControlFlags } from './riderControl';
 import {
     MOB_EQUIPMENT_SLOTS,
     mobEquipmentSlotOf,
@@ -1946,6 +1947,7 @@ export class EntityRuntime implements EntityScene {
         this.tickTimers(entity.body);
         if (entity.runsGoals) this.resetNoActionTimeNearPlayers(entity);
         if (clientOwnsMovement(entity.identifier)) this.playerSystems.beforeComponents(entity);
+        else if (entity.runsGoals) updateControlFlags(entity, this);
         entity.instance.tick(entity.runsGoals);
         this.tickDaylightBurn(entity);
         this.tickVoid(entity);

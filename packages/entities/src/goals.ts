@@ -143,6 +143,8 @@ export class GoalScheduler {
     private readonly entries = new Map<string, GoalSlot>();
     /** The slot holding each control flag, indexed by position in {@link CONTROL_FLAGS}. */
     private readonly holders: Array<GoalSlot | undefined> = CONTROL_FLAGS.map(() => undefined);
+    /** Whether each control flag is turned off, indexed by position in {@link CONTROL_FLAGS}. */
+    private readonly disabled: boolean[] = CONTROL_FLAGS.map(() => false);
 
     /**
      * The slots in priority order, kept until a goal is added or taken off.
@@ -173,6 +175,15 @@ export class GoalScheduler {
         if (slot.running) this.stop(slot);
         this.entries.delete(name);
         this.order = undefined;
+    }
+
+    /**
+     * Turns a control flag on or off, as Java's `GoalSelector.setControlFlag` does. While a flag
+     * is off, no goal that claims it starts, and the next selector pass stops the one running. A
+     * mob ridden by a mob that steers it turns off its own `move`, `look` and `jump` this way.
+     */
+    public setFlagEnabled(flag: ControlFlag, enabled: boolean): void {
+        this.disabled[CONTROL_FLAGS.indexOf(flag)] = !enabled;
     }
 
     /** The names of the goals running now, in priority order. */
@@ -213,13 +224,13 @@ export class GoalScheduler {
         for (const slot of slots) {
             if (!slot.running) continue;
             const { goal } = slot.entry;
-            const keep = goal.canContinue?.() ?? goal.canStart();
+            const keep = !this.usesDisabledFlag(slot) && (goal.canContinue?.() ?? goal.canStart());
             if (!keep) this.stop(slot);
         }
 
         for (const slot of slots) {
             if (slot.running) continue;
-            if (!this.canTakeFlags(slot)) continue;
+            if (this.usesDisabledFlag(slot) || !this.canTakeFlags(slot)) continue;
             if (!slot.entry.goal.canStart()) continue;
             this.preempt(slot);
             this.start(slot);
@@ -236,6 +247,10 @@ export class GoalScheduler {
             (a, b) => a.entry.priority - b.entry.priority || a.entry.name.localeCompare(b.entry.name)
         );
         return this.order;
+    }
+
+    private usesDisabledFlag(slot: GoalSlot): boolean {
+        return slot.flagIndices.some((index) => this.disabled[index] === true);
     }
 
     private canTakeFlags(slot: GoalSlot): boolean {

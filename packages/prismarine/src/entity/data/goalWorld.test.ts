@@ -80,6 +80,13 @@ const GOAL_WORLD_ENTITIES: ExtraEntities = {
     'jsprismarine:rider': mob({
         'minecraft:behavior.find_mount': { priority: 1, within_radius: 16, mount_distance: 4 }
     }),
+    'jsprismarine:steed': mob({
+        'minecraft:rideable': { seat_count: 1, seats: { position: [0, 1, 0] } },
+        'minecraft:behavior.random_stroll': { priority: 1, interval: 1 }
+    }),
+    'jsprismarine:jockey': mob({
+        'minecraft:behavior.melee_box_attack': { priority: 1, speed_multiplier: 1, track_target: true }
+    }),
     'jsprismarine:pet': mob({
         'minecraft:behavior.follow_owner': { priority: 1, start_distance: 2, stop_distance: 1 },
         'minecraft:behavior.hurt_by_target': { priority: 0 }
@@ -401,14 +408,35 @@ describe('the goal world over the entity runtime', () => {
             expect(rider.position).toEqual(mount.position);
         });
 
-        it('starts the ridden mob’s own steering goal once someone is on it', () => {
+        it('hands the mount to a mob that rides it, whose own movement goals stand down', () => {
+            // Java's Mob.updateControlFlags turns the move, look and jump flags off while a mob
+            // passenger steers, so not even the mount's steering goal for players runs.
             const fixture = fixtureOf();
             const mount = spawned(fixture, 'jsprismarine:mount', groundAt(0, 0));
             spawned(fixture, 'jsprismarine:rider', groundAt(3, 0));
 
             run(fixture, 20);
 
-            expect(mount.instance.goals.runningGoals()).toContain('minecraft:behavior.controlled_by_player');
+            expect(mount.instance.goals.runningGoals()).not.toContain('minecraft:behavior.controlled_by_player');
+            expect(mount.instance.goals.holderOf('move')).toBeUndefined();
+        });
+
+        it("walks the mount after whatever its rider chases, as Java's rider steers through its mount's navigation", () => {
+            const fixture = fixtureOf();
+            const steed = spawned(fixture, 'jsprismarine:steed', groundAt(0, 0));
+            const jockey = spawned(fixture, 'jsprismarine:jockey', groundAt(0, 0));
+            const victim = spawned(fixture, 'jsprismarine:herd', groundAt(12, 0));
+            const steedView = fixture.runtime.mobById(steed.id);
+            if (steedView === undefined) throw new Error('the runtime exposes no goal view of the steed');
+            fixture.runtime.mount(jockey.body, steedView);
+            jockey.target = victim.id;
+
+            run(fixture, 40);
+
+            expect(steed.position.x).toBeGreaterThan(4);
+            expect(jockey.position).toEqual(steed.position);
+            expect(jockey.instance.goals.runningGoals()).toContain('minecraft:behavior.melee_box_attack');
+            expect(steed.instance.goals.runningGoals()).not.toContain('minecraft:behavior.random_stroll');
         });
 
         it('takes a rider off again', () => {

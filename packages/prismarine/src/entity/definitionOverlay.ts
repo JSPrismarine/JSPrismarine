@@ -86,38 +86,46 @@ export const withComponentReplaced = (
 };
 
 /**
+ * Takes every body of `components` off an entity file, in its base components and each component
+ * group.
+ *
+ * @param data - The parsed JSON of an entity file.
+ * @param remove - Whether a component is one to take off.
+ * @returns The same object when the file declares none of them; otherwise a copy without them.
+ */
+export const withoutComponents = (data: unknown, remove: (component: string) => boolean): unknown => {
+    if (!isRecord(data)) return data;
+    const entity = data['minecraft:entity'];
+    if (!isRecord(entity)) return data;
+    const components = entity['components'];
+    const groups = entity['component_groups'];
+    const declares = (map: unknown): boolean => isRecord(map) && Object.keys(map).some(remove);
+    if (!declares(components) && !(isRecord(groups) && Object.values(groups).some(declares))) return data;
+
+    const kept = (map: unknown): unknown =>
+        isRecord(map) ? Object.fromEntries(Object.entries(map).filter(([name]) => !remove(name))) : map;
+    return {
+        ...data,
+        'minecraft:entity': {
+            ...entity,
+            ...(components === undefined ? {} : { components: kept(components) }),
+            ...(isRecord(groups)
+                ? {
+                      component_groups: Object.fromEntries(
+                          Object.entries(groups).map(([name, group]) => [name, kept(group)])
+                      )
+                  }
+                : {})
+        }
+    };
+};
+
+/**
  * Removes every body of `component` the file declares.
  *
  * @param data - The parsed JSON of an entity file.
  * @param component - The component to remove, such as `minecraft:spawn_egg_interaction`.
  * @returns The same object when the file declares no such component; otherwise a copy without it.
  */
-export const withoutComponent = (data: unknown, component: string): unknown => {
-    if (!isRecord(data)) return data;
-    const entity = data['minecraft:entity'];
-    if (!isRecord(entity)) return data;
-    const without = (map: unknown): unknown => {
-        if (!isRecord(map) || !(component in map)) return map;
-        const { [component]: _removed, ...rest } = map;
-        return rest;
-    };
-    const components = without(entity['components']);
-    const groups = entity['component_groups'];
-    const regrouped = isRecord(groups)
-        ? Object.fromEntries(Object.entries(groups).map(([name, group]) => [name, without(group)]))
-        : groups;
-    const changed =
-        components !== entity['components'] ||
-        (isRecord(groups) &&
-            isRecord(regrouped) &&
-            Object.keys(groups).some((name) => groups[name] !== regrouped[name]));
-    if (!changed) return data;
-    return {
-        ...data,
-        'minecraft:entity': {
-            ...entity,
-            ...(components === undefined ? {} : { components }),
-            ...(regrouped === undefined ? {} : { component_groups: regrouped })
-        }
-    };
-};
+export const withoutComponent = (data: unknown, component: string): unknown =>
+    withoutComponents(data, (name) => name === component);

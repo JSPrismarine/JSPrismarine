@@ -25,6 +25,7 @@ import type { DataEntity, MobBody } from './DataEntity';
 import { isReadyToBreed } from './breeding';
 import { distance, squaredDistance } from './DataEntity';
 import { blockPositionOf, entityEyePosition } from './position';
+import { controlledVehicleOf } from './riderControl';
 import type { EntityScene } from './scene';
 import { clientOwnsMovement } from '../playerOverlay';
 
@@ -131,8 +132,11 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
  */
 export const actuatorOf = (body: MobBody, scene: EntityScene): EntityActuator => ({
     position: () => body.position,
-    moveTo: (position, speedMultiplier) => body.moveTo(position, speedMultiplier),
-    stopMoving: () => body.stopMoving(),
+    // A rider that steers its mount walks the mount, as Java's `Mob.getNavigation` hands a rider
+    // its controlled vehicle's navigation.
+    moveTo: (position, speedMultiplier) =>
+        (controlledVehicleOf(body, scene)?.body ?? body).moveTo(position, speedMultiplier),
+    stopMoving: () => (controlledVehicleOf(body, scene)?.body ?? body).stopMoving(),
     lookAt: (position) => body.lookAt(position),
     jump: () => body.jump(),
     randomTarget: (xzDistance, yDistance) => randomTarget(body.position, scene, xzDistance, yDistance),
