@@ -67,6 +67,9 @@ const SITTING_GROUP_PHASES: readonly DragonPhaseName[] = [
 /** The phases Java's `isSitting` answers true for, in which damage can make the dragon take off. */
 const SITTING_PHASES: readonly DragonPhaseName[] = ['sitting_scanning', 'sitting_attacking', 'sitting_flaming'];
 
+/** Whether a phase is one of Java's `AbstractDragonSittingPhase`s, in which the dragon perches. */
+export const isSittingPhase = (phase: DragonPhaseName): boolean => SITTING_PHASES.includes(phase);
+
 /** How much of its health a sitting dragon takes before it flies off, Java's `0.25F * getMaxHealth()`. */
 const SITTING_DAMAGE_SHARE = 0.25;
 
@@ -103,6 +106,49 @@ const FLAME_SEARCH_DEPTH = 384;
 const HEAD_REACH = 6.5;
 /** How far below the body a sitting dragon holds its head, Java's `getHeadYOffset` while sitting. */
 const SITTING_HEAD_DROP = 1;
+
+/** How long the dragon's wings and head leave others alone after it is hurt, Java's `hurtDuration`. */
+const HURT_TICKS = 10;
+/** How far out from the body each wing part sits, Java's `tickPart(wing, cos * 4.5F, 2.0, sin * 4.5F)`. */
+const WING_REACH = 4.5;
+/** How far ahead the neck part sits, Java's `tickPart(neck, ... 5.5F ...)`. */
+const NECK_REACH = 5.5;
+/** How far ahead of its feet the body part sits, Java's `tickPart(body, sin * 0.5F, 0.0, -cos * 0.5F)`. */
+const BODY_REACH = 0.5;
+/** A wing shoves what it meets 4 blocks a tick away from the body and 0.2 up, Java's `knockBack`. */
+const WING_SHOVE = { across: 4, up: 0.2, minimumSquared: 0.1 } as const;
+/** What a wing deals a mob while the dragon flies, Java's `knockBack`. */
+const WING_DAMAGE = 5;
+/** What the head and the neck deal, Java's `hurt`. */
+const HEAD_DAMAGE = 10;
+/** The blocks the dragon passes through without breaking, and the ones it never breaks. */
+const DRAGON_TRANSPARENT = 'minecraft:dragon_transparent';
+const DRAGON_IMMUNE = 'minecraft:dragon_immune';
+
+/** An axis-aligned box. */
+interface Box {
+    readonly min: EntityPosition;
+    readonly max: EntityPosition;
+}
+
+/** A part's box: `width` across centered on `at`, `height` up from it, grown by `grow` on each side. */
+const partBox = (
+    at: EntityPosition,
+    width: number,
+    height: number,
+    grow: { readonly across: number; readonly up: number } = { across: 0, up: 0 }
+): Box => ({
+    min: { x: at.x - width / 2 - grow.across, y: at.y - grow.up, z: at.z - width / 2 - grow.across },
+    max: { x: at.x + width / 2 + grow.across, y: at.y + height + grow.up, z: at.z + width / 2 + grow.across }
+});
+
+const inside = (box: Box, at: EntityPosition): boolean =>
+    at.x >= box.min.x &&
+    at.x <= box.max.x &&
+    at.y >= box.min.y &&
+    at.y <= box.max.y &&
+    at.z >= box.min.z &&
+    at.z <= box.max.z;
 
 /** One of Java's dragon path nodes. */
 interface PathNode {
@@ -159,6 +205,7 @@ class DragonPhases {
     private firstTakeoffTick = true;
     private sittingDamage = 0;
     private lastHealth: number | undefined;
+    private hurtTime = 0;
 
     public constructor(private readonly support: GoalSupport) {
         const saved = support.entity.componentState.get(dragonPhaseState);
@@ -196,6 +243,8 @@ class DragonPhases {
         this.serverTick();
         if (this.phaseName !== before) this.serverTick();
         this.fly();
+        this.touch();
+        this.checkWalls();
     }
 
     /**
@@ -207,6 +256,9 @@ class DragonPhases {
         const health = this.support.entity.attributes.get('health');
         const was = this.lastHealth;
         this.lastHealth = health?.current;
+        // Java's `hurtTime`, which a blow sets to 10 and every tick counts down.
+        if (health !== undefined && was !== undefined && health.current < was) this.hurtTime = HURT_TICKS;
+        else if (this.hurtTime > 0) this.hurtTime -= 1;
         if (health === undefined || was === undefined || !SITTING_PHASES.includes(this.phaseName)) return;
         if (health.current < was) this.sittingDamage += was - health.current;
         if (this.sittingDamage > SITTING_DAMAGE_SHARE * health.max) {
@@ -699,6 +751,83 @@ class DragonPhases {
         const drag = 0.8 + (0.15 * (heading.x * facing.x + heading.y * facing.y + heading.z * facing.z + 1)) / 2;
         this.velocity = { x: this.velocity.x * drag, y: this.velocity.y * 0.91, z: this.velocity.z * drag };
         this.place(moved);
+    }
+
+    // The dragon's parts against the world.
+
+    /**
+     * Java's `EnderDragon.aiStep` once the dragon has moved, unless it was hurt in the last 10
+     * ticks: each wing shoves every living thing near it away from the body, and while the
+     * dragon flies hurts it for 5, and the head and the neck hurt every living thing
+     * they touch for 10. A player in creative or spectator is left alone.
+     */
+    private touch(): void {
+        if (this.hurtTime > 0) return;
+        const here = this.support.position();
+        const sin = Math.sin(this.yRot * RADIANS);
+        const cos = Math.cos(this.yRot * RADIANS);
+        const living = this.support
+            .mobs(16)
+            .filter((mob) =>
+                mob.identifier?.() === 'minecraft:player'
+                    ? this.support.isAttackable(mob)
+                    : mob.health?.() !== undefined
+            );
+        const sitting = isSittingPhase(this.phaseName);
+        const body = { x: here.x + sin * BODY_REACH, z: here.z - cos * BODY_REACH };
+        for (const side of [1, -1]) {
+            const wing = { x: here.x + cos * WING_REACH * side, y: here.y + 2, z: here.z + sin * WING_REACH * side };
+            const reach = partBox(wing, 4, 2, { across: 4, up: 2 });
+            const shoved = { min: { ...reach.min, y: reach.min.y - 2 }, max: { ...reach.max, y: reach.max.y - 2 } };
+            for (const mob of living) {
+                const at = mob.position();
+                if (!inside(shoved, at)) continue;
+                const dx = at.x - body.x;
+                const dz = at.z - body.z;
+                const away = Math.max(dx * dx + dz * dz, WING_SHOVE.minimumSquared);
+                this.support.world.pushMob?.(mob, {
+                    x: (dx / away) * WING_SHOVE.across,
+                    y: WING_SHOVE.up,
+                    z: (dz / away) * WING_SHOVE.across
+                });
+                if (!sitting) this.support.world.attack?.(mob, WING_DAMAGE);
+            }
+        }
+        const [forwardX, forwardZ] = this.forward();
+        const head = this.head();
+        const neck = { x: here.x + forwardX * NECK_REACH, y: head.y, z: here.z + forwardZ * NECK_REACH };
+        const bitten = [partBox(head, 1, 1, { across: 1, up: 1 }), partBox(neck, 3, 3, { across: 1, up: 1 })];
+        for (const mob of living)
+            if (bitten.some((box) => inside(box, mob.position()))) this.support.world.attack?.(mob, HEAD_DAMAGE);
+    }
+
+    /**
+     * Java's `EnderDragon.checkWalls` over its head, neck and body: with `mobGriefing` on, every
+     * block in them but air, the `minecraft:dragon_transparent` blocks and the
+     * `minecraft:dragon_immune` ones is removed, dropping nothing.
+     */
+    private checkWalls(): void {
+        if (this.support.world.gameRule?.('mobGriefing') === false) return;
+        const world = this.support.world;
+        if (world.blockAt === undefined || world.setBlock === undefined || world.blockHasTag === undefined) return;
+        const here = this.support.position();
+        const [forwardX, forwardZ] = this.forward();
+        const head = this.head();
+        const parts = [
+            partBox(head, 1, 1),
+            partBox({ x: here.x + forwardX * NECK_REACH, y: head.y, z: here.z + forwardZ * NECK_REACH }, 3, 3),
+            partBox({ x: here.x + forwardX * BODY_REACH, y: here.y, z: here.z + forwardZ * BODY_REACH }, 5, 3)
+        ];
+        for (const { min, max } of parts)
+            for (let x = Math.floor(min.x); x <= Math.floor(max.x); x += 1)
+                for (let y = Math.floor(min.y); y <= Math.floor(max.y); y += 1)
+                    for (let z = Math.floor(min.z); z <= Math.floor(max.z); z += 1) {
+                        const at = { x, y, z };
+                        const block = world.blockAt(at)?.identifier;
+                        if (block === undefined || block === 'minecraft:air') continue;
+                        if (world.blockHasTag(at, DRAGON_TRANSPARENT) || world.blockHasTag(at, DRAGON_IMMUNE)) continue;
+                        world.setBlock(at, 'minecraft:air');
+                    }
     }
 
     /** Puts the dragon where the flight took it, facing the way it flies. */

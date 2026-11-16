@@ -25,6 +25,8 @@ import type { DataEntity, MobBody } from './DataEntity';
 import { isReadyToBreed } from './breeding';
 import { distance, squaredDistance } from './DataEntity';
 import { setDoorOpen } from './doors';
+
+import { javaBlockTagsForBedrock } from '../../content/javaTags';
 import { blockPositionOf, entityEyePosition } from './position';
 import { controlledVehicleOf } from './riderControl';
 import type { EntityScene } from './scene';
@@ -295,6 +297,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         attack: (mob, damage) => scene.attack(entity, mob, damage),
         shoot: (mob, projectile) => scene.shoot(entity, mob, projectile),
         knockback: (mob, horizontal, vertical) => scene.knockback(entity, mob, horizontal, vertical),
+        pushMob: (mob, velocity) => scene.pushMob(entity, mob, velocity),
         push: (velocity) => entity.push(velocity),
         explode: () => scene.explode(entity),
         teleportTo: (position) => entity.teleportTo(position),
@@ -340,6 +343,13 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         blockAt: (position) => scene.world.blocks.get(blockPositionOf(position)),
         setDoorOpen: (position, open) => setDoorOpen(scene.world.blocks, blockPositionOf(position), open),
         breakBlock: (position) => scene.breakBlock(position),
+        blockHasTag: (position, tag) => {
+            const block = scene.world.blocks.get(blockPositionOf(position));
+            return (
+                block !== undefined &&
+                javaBlockTagsForBedrock(scene.content().tags, block.identifier, block.states).includes(tag)
+            );
+        },
         spawn: (identifier, position, event, options) => {
             const spawned = scene.spawn(identifier, position, {
                 ...(event === undefined ? {} : { event }),

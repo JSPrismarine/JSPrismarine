@@ -243,6 +243,8 @@ export interface GoalWorld {
     shoot?(mob: GoalMob, projectile: string | undefined): void;
     /** Knocks the mob away from the entity. */
     knockback?(mob: GoalMob, horizontal: number, vertical: number): void;
+    /** Adds to another mob's velocity, Java's `Entity.push`, for the dragon's wings. */
+    pushMob?(mob: GoalMob, velocity: EntityPosition): void;
     /** Adds to the entity's own velocity, for the leap, charge and ram goals. */
     push?(velocity: EntityPosition): void;
     /** Moves the entity at once, for the teleport goals. */
@@ -300,6 +302,8 @@ export interface GoalWorld {
     setDoorOpen?(position: EntityPosition, open: boolean): void;
     /** Breaks a block, for the eat, harvest and dig goals. */
     breakBlock?(position: EntityPosition): void;
+    /** Whether the block at a position is in a Java block tag, such as `minecraft:dragon_immune`. */
+    blockHasTag?(position: EntityPosition, tag: string): boolean;
     /**
      * Creates another entity, for the summon and lay goals.
      * @returns The new entity, or undefined when the world could not create it.

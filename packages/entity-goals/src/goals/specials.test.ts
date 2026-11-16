@@ -147,6 +147,110 @@ describe('the ender dragon phases', () => {
         expect(phase()).toBe('takeoff');
     });
 
+    /** A dragon in its holding pattern at (0, 80, 0) among some mobs and blocks, logging what it does to them. */
+    const contactWorld = (options: {
+        readonly mobs: readonly GoalMob[];
+        readonly blocks?: Readonly<Record<string, string>>;
+        readonly griefing?: boolean;
+    }) => {
+        let clock = 0;
+        const pushes: { id: string | number; x: number; y: number; z: number }[] = [];
+        const blows: { id: string | number; damage: number | undefined }[] = [];
+        const blocks = new Map(Object.entries(options.blocks ?? {}));
+        const key = (at: { x: number; y: number; z: number }) => `${at.x},${at.y},${at.z}`;
+        let harness: GoalHarness | undefined;
+        const world: GoalWorld = {
+            gameTime: () => clock,
+            players: () => [],
+            mobs: () => options.mobs,
+            fightOrigin: () => ({ x: 0, y: 64, z: 0 }),
+            surfaceY: () => 64,
+            gameRule: (name) => (name === 'mobGriefing' ? (options.griefing ?? true) : undefined),
+            moveSelf: (position) => {
+                if (harness !== undefined) harness.actuator.at = position;
+            },
+            pushMob: (mob, velocity) => pushes.push({ id: mob.id, ...velocity }),
+            attack: (mob, damage) => blows.push({ id: mob.id, damage }),
+            blockAt: (at) => {
+                const identifier = blocks.get(key(at));
+                return identifier === undefined ? undefined : { identifier, states: {} };
+            },
+            setBlock: (at, identifier) => {
+                blocks.set(key(at), identifier);
+            },
+            blockHasTag: (at, tag) =>
+                tag === 'minecraft:dragon_immune' &&
+                ['minecraft:end_stone', 'minecraft:obsidian'].includes(blocks.get(key(at)) ?? '')
+        };
+        harness = new GoalHarness({
+            goals: { 'minecraft:behavior.dragonholdingpattern': { priority: 2 } },
+            components: { 'minecraft:health': { value: 200, max: 200 } },
+            world,
+            at: { x: 0, y: 80, z: 0 }
+        });
+        const dragon = harness;
+        return {
+            dragon,
+            pushes,
+            blows,
+            blocks,
+            run: (ticks: number) => {
+                for (let index = 0; index < ticks; index += 1) {
+                    clock += 1;
+                    dragon.tick();
+                }
+            }
+        };
+    };
+
+    it("shove what their wings meet and bite what their head touches, as Java's aiStep does", () => {
+        // A dragon at yRot 0 reaches east and west with its wings and north with its head.
+        const beside = testMob('beside', { x: 5, y: 80, z: 0 }, { health: 100 });
+        const ahead = testMob('ahead', { x: 0, y: 80, z: -6.5 }, { health: 100 });
+        const far = testMob('far', { x: 0, y: 80, z: 15 }, { health: 100 });
+        const contact = contactWorld({ mobs: [beside, ahead, far] });
+
+        contact.run(1);
+
+        const [shove] = contact.pushes.filter((push) => push.id === 'beside');
+        expect(shove?.x).toBeGreaterThan(0);
+        expect(shove?.y).toBe(0.2);
+        expect(contact.blows).toEqual(
+            expect.arrayContaining([
+                { id: 'beside', damage: 5 },
+                { id: 'ahead', damage: 10 }
+            ])
+        );
+        expect(contact.blows.some((blow) => blow.id === 'far')).toBe(false);
+    });
+
+    it('leave others alone for the 10 ticks after the dragon is hurt', () => {
+        const beside = testMob('beside', { x: 5, y: 80, z: 0 }, { health: 100 });
+        const contact = contactWorld({ mobs: [beside] });
+        contact.run(1);
+        contact.dragon.entity.attributes.set('health', 190);
+        contact.blows.length = 0;
+        contact.pushes.length = 0;
+
+        contact.run(9);
+        expect(contact.blows).toEqual([]);
+        expect(contact.pushes).toEqual([]);
+        contact.run(2);
+        expect(contact.blows.length).toBeGreaterThan(0);
+    });
+
+    it('break the blocks the body flies through, but the dragon-immune ones, only with mobGriefing on', () => {
+        const blocks = { '1,81,0': 'minecraft:stone', '-1,81,0': 'minecraft:end_stone' };
+        const griefing = contactWorld({ mobs: [], blocks });
+        griefing.run(1);
+        expect(griefing.blocks.get('1,81,0')).toBe('minecraft:air');
+        expect(griefing.blocks.get('-1,81,0')).toBe('minecraft:end_stone');
+
+        const tame = contactWorld({ mobs: [], blocks, griefing: false });
+        tame.run(1);
+        expect(tame.blocks.get('1,81,0')).toBe('minecraft:stone');
+    });
+
     it('land on the portal from the approach and start scanning there', () => {
         let harness: GoalHarness | undefined;
         const dragon = dragonWorld(() => {

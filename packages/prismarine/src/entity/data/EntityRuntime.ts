@@ -3483,6 +3483,22 @@ export class EntityRuntime implements EntityScene {
         return candidates;
     }
 
+    /**
+     * Adds to another mob's velocity, Java's `Entity.push`. A player the store does not hold is
+     * the host's, which can only knock it along the push's horizontal heading.
+     */
+    public pushMob(source: MobBody, target: GoalMob, velocity: EntityPosition): void {
+        if (typeof target.id !== 'number') return;
+        const other = this.store.get(target.id);
+        if (other !== undefined) {
+            other.body.push(velocity);
+            other.body.lastPusher = source.id;
+            return;
+        }
+        const across = Math.hypot(velocity.x, velocity.z);
+        if (across > 0) this.host.knockback?.(target.id, velocity.x / across, velocity.z / across, across);
+    }
+
     /** Knocks a mob away from the entity, scaled by what the target resists. */
     public knockback(source: MobBody, target: GoalMob, horizontal: number, vertical: number): void {
         const other = typeof target.id === 'number' ? this.store.get(target.id) : undefined;
