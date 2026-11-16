@@ -58,6 +58,28 @@ const STAND_INS: Readonly<Record<string, readonly string[]>> = {
     'minecraft:behavior.find_mount': ['LandOnOwnersShoulderGoal']
 };
 
+/** Bedrock's goal that collects items, which Java runs without a goal unless the mob walks to them. */
+const PICKUP_ITEMS = 'minecraft:behavior.pickup_items';
+
+/**
+ * The Java goals that walk a mob to an item: a fox's search, a dolphin's play, a sulfur cube's
+ * search and a raider fetching its leader's banner. A mob with none of them picks up only what it
+ * touches, in `Mob.aiStep`.
+ */
+const ITEM_SEEKERS: readonly string[] = [
+    'Fox$FoxSearchForItemsGoal',
+    'Dolphin$PlayWithItemsGoal',
+    'Dolphin$MoveToItemGoal',
+    'SulfurCube$SulfurCubeSearchForItemsGoal',
+    'Raider$ObtainRaidLeaderBannerGoal'
+];
+
+/** How far past its box `Mob.aiStep` reaches for an item: `Mob.ITEM_PICKUP_REACH`, one block across. */
+const ITEM_PICKUP_REACH = 1;
+
+/** Half the width of a dropped item, which `EntityType.ITEM` sizes 0.25 across. */
+const ITEM_HALF_WIDTH = 0.125;
+
 /**
  * Whether a mob's Java class registers nothing that does a Bedrock goal's job: no goal the
  * translation matches and no goal of its own that stands in for it.
@@ -220,12 +242,27 @@ export const javaGoalOverlay = (files: Iterable<unknown>, sources: JavaGoalSourc
                 ])
         };
         // A goal Java's class does not register comes off the file; the rest take Java's arguments.
-        return JAVA_TRANSLATED_GOALS.reduce(
+        const translated = JAVA_TRANSLATED_GOALS.reduce(
             (file, component) =>
                 !keepsGoals && unregistered(component, goals)
                     ? withoutComponent(file, component)
                     : withComponentRewritten(file, component, (body) => javaGoalBody(component, body, goals, context)),
             data
         );
+        const width = sources.attributes[javaId]?.width;
+        if (
+            keepsGoals ||
+            width === undefined ||
+            goals.some((goal) => goal.classes.some((name) => ITEM_SEEKERS.includes(name)))
+        )
+            return translated;
+        // `Mob.aiStep` takes the items its box, grown by the pickup reach, touches, so the goal
+        // searches no further and takes them where they lie.
+        const reach = width / 2 + ITEM_PICKUP_REACH + ITEM_HALF_WIDTH;
+        return withComponentRewritten(translated, PICKUP_ITEMS, (body) => ({
+            ...body,
+            max_dist: reach,
+            goal_radius: reach
+        }));
     };
 };

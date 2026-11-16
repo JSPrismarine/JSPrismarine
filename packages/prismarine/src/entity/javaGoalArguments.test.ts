@@ -90,6 +90,17 @@ describe('javaGoalOverlay', () => {
         expect(JSON.stringify(brainOverlay(ghast))).toContain('minecraft:behavior.float');
     });
 
+    it("has a mob Java never walks to items take only what its box, grown by Java's reach, touches", () => {
+        const pickup = (identifier: string) =>
+            JSON.stringify(
+                overlay(entityFile(identifier, { 'minecraft:behavior.pickup_items': { max_dist: 3, goal_radius: 2 } }))
+            );
+        // A zombie is 0.6 across: 0.3 to its side, 1 of reach and half of the item's 0.25.
+        expect(pickup('minecraft:zombie')).toContain('"max_dist":1.425,"goal_radius":1.425');
+        // A fox searches for items, so it walks to them as far as its file says.
+        expect(pickup('minecraft:fox')).toContain('"max_dist":3,"goal_radius":2');
+    });
+
     it('leaves a file whose entity has no Java goals as it is', () => {
         const file = entityFile('minecraft:armor_stand', { 'minecraft:behavior.look_at_player': { look_distance: 6 } });
         expect(overlay(file)).toBe(file);
