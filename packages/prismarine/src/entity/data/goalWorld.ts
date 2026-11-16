@@ -318,6 +318,8 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             const type = scene.content().items.types.get(identifier);
             return type?.hasTag(name) === true || type?.hasTag(namespaced) === true;
         },
+        itemHasComponent: (identifier, component) =>
+            scene.content().items.types.get(identifier)?.hasComponent(component) === true,
         setCarriedItem: (identifier) => {
             entity.carried = identifier;
         },

@@ -261,36 +261,58 @@ describe('minecraft:behavior.sonic_boom', () => {
 });
 
 describe('minecraft:behavior.use_kinetic_weapon', () => {
-    it('leaves the melee attack its flags while the mob is on foot', () => {
-        // The adult zombie carries both, this one at priority 3 and the melee attack at 4,
-        // and both claim `move` and `look`. Starting on foot took those flags off the attack
-        // and left every zombie that had chosen a player standing still in front of them.
-        const victim = testMob('victim', { x: 6, y: 0, z: 0 });
-        const harness = new GoalHarness({
-            goals: {
-                'minecraft:behavior.use_kinetic_weapon': { priority: 3, approach_distance: 10 },
-                'minecraft:behavior.melee_box_attack': { priority: 4, speed_multiplier: 1.25 }
-            },
-            world: combatWorld(victim)
-        });
-
-        harness.tick();
-
-        expect(harness.running()).not.toContain('minecraft:behavior.use_kinetic_weapon');
-        expect(harness.holderOf('move')).toBe('minecraft:behavior.melee_box_attack');
+    const goals = {
+        'minecraft:behavior.use_kinetic_weapon': { priority: 3, approach_distance: 10 },
+        'minecraft:behavior.melee_box_attack': { priority: 4, speed_multiplier: 1.25 }
+    };
+    /** A world whose mob holds `held`, of which only spears carry `minecraft:kinetic_weapon`. */
+    const holding = (held: string | undefined, extra: GoalWorld = {}): GoalWorld => ({
+        ...combatWorld(testMob('victim', { x: 6, y: 0, z: 0 })),
+        carriedItem: () => held,
+        itemHasComponent: (identifier, component) =>
+            component === 'minecraft:kinetic_weapon' && identifier.endsWith('_spear'),
+        ...extra
     });
 
-    it('rides the target down once the mob is mounted', () => {
-        const victim = testMob('victim', { x: 6, y: 0, z: 0 });
-        const horse = testMob('horse', { x: 0, y: 0, z: 0 });
-        const harness = new GoalHarness({
-            goals: { 'minecraft:behavior.use_kinetic_weapon': { priority: 3, approach_distance: 10 } },
-            world: { ...combatWorld(victim), vehicle: () => horse }
-        });
+    it("charges on foot with a spear, as Java's SpearUseGoal does", () => {
+        const harness = new GoalHarness({ goals, world: holding('minecraft:iron_spear') });
 
         harness.tick();
 
         expect(harness.holderOf('move')).toBe('minecraft:behavior.use_kinetic_weapon');
+    });
+
+    it('charges mounted with a spear', () => {
+        const horse = testMob('horse', { x: 0, y: 0, z: 0 });
+        const harness = new GoalHarness({ goals, world: holding('minecraft:iron_spear', { vehicle: () => horse }) });
+
+        harness.tick();
+
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.use_kinetic_weapon');
+    });
+
+    it('leaves the melee attack its flags without a spear in hand', () => {
+        // The adult zombie carries both, this one at priority 3 and the melee attack at 4, and
+        // both claim `move` and `look`; a zombie with a sword or nothing must still swing.
+        for (const held of ['minecraft:iron_sword', undefined]) {
+            const harness = new GoalHarness({ goals, world: holding(held) });
+
+            harness.tick();
+
+            expect(harness.running()).not.toContain('minecraft:behavior.use_kinetic_weapon');
+            expect(harness.holderOf('move')).toBe('minecraft:behavior.melee_box_attack');
+        }
+    });
+
+    it('stops once the spear leaves its hand', () => {
+        let held: string | undefined = 'minecraft:iron_spear';
+        const harness = new GoalHarness({ goals, world: { ...holding(undefined), carriedItem: () => held } });
+
+        harness.tick();
+        held = undefined;
+        harness.tick();
+
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.melee_box_attack');
     });
 });
 

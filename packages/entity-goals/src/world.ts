@@ -265,6 +265,8 @@ export interface GoalWorld {
     giveItem?(mob: GoalMob, identifier: string, count?: number): void;
     /** Whether an item type carries one of the active Bedrock item tags. */
     itemHasTag?(identifier: string, tag: string): boolean;
+    /** Whether an item type declares an item component, such as `minecraft:kinetic_weapon`. */
+    itemHasComponent?(identifier: string, component: string): boolean;
     /** Finds a loaded crafting recipe that converts one item into another. */
     craftInto?(
         inputIdentifier: string,

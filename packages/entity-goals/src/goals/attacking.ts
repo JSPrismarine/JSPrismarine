@@ -1438,19 +1438,20 @@ export interface UseKineticWeaponParams {
     readonly cooldownSpeedMultiplier: number;
 }
 
+/** The item component that makes a held item a spear, which Java's `SpearUseGoal` asks the main hand for. */
+const KINETIC_WEAPON = 'minecraft:kinetic_weapon';
+
 /**
- * `minecraft:behavior.use_kinetic_weapon`, which the five mounted-lance
+ * `minecraft:behavior.use_kinetic_weapon`, which the five spear-carrying
  * entities carry. The weapon only hurts while its wielder is moving, so the
- * goal rides in, strikes and backs off to build speed again.
+ * goal charges in, strikes and backs off to build speed again.
  *
- * Only while the wielder is riding something, which is what the lance is for
- * and what `hijack_mount_navigation` is about. The zombie, husk, piglin,
- * zombie pigman and zombie villager all carry it on foot as well as mounted,
- * through `minecraft:not_on_zombie_horse`, and it claims the `move` and
- * `look` flags at a priority above `minecraft:behavior.melee_box_attack`'s.
- * A version that started on nothing more than having a target therefore took
- * those flags off the attack and left every zombie that had chosen a player
- * standing still in front of them.
+ * It runs on foot or mounted, as Java's `SpearUseGoal` does, but only while
+ * the main hand holds an item with `minecraft:kinetic_weapon`: Java's
+ * `ableToAttack` asks for a target and a `KINETIC_WEAPON` component. The
+ * zombie, husk, piglin, zombie pigman and zombie villager declare it above
+ * `minecraft:behavior.melee_box_attack`, so one without a spear leaves its
+ * `move` and `look` flags to the melee attack.
  */
 export const useKineticWeapon = goal<UseKineticWeaponParams>({
     name: 'minecraft:behavior.use_kinetic_weapon',
@@ -1470,15 +1471,18 @@ export const useKineticWeapon = goal<UseKineticWeaponParams>({
     create: (params, support) => {
         let target: GoalMob | undefined;
         let backingOff = false;
+        const holdsKineticWeapon = (): boolean => {
+            const held = support.world.carriedItem?.();
+            return held !== undefined && support.world.itemHasComponent?.(held, KINETIC_WEAPON) === true;
+        };
 
         return {
             canStart: () => {
-                if (support.world.vehicle?.() === undefined) return false;
-
+                if (!holdsKineticWeapon()) return false;
                 target = support.target();
                 return target !== undefined;
             },
-            canContinue: () => support.world.vehicle?.() !== undefined && support.target() !== undefined,
+            canContinue: () => holdsKineticWeapon() && support.target() !== undefined,
             start: () => {
                 backingOff = false;
             },
