@@ -46,21 +46,35 @@ const ENTITY_OVERRIDES: Readonly<Record<string, string>> = {
 };
 
 /**
+ * The entity each item base spawns. Bedrock has no raft entity: a bamboo raft is a boat whose
+ * variant is bamboo, and a chest raft a chest boat.
+ */
+const PLACED_BASES: readonly (readonly [base: string, entity: string])[] = [
+    ['chest_boat', 'chest_boat'],
+    ['chest_raft', 'chest_boat'],
+    ['boat', 'boat'],
+    ['raft', 'boat'],
+    ['minecart', 'minecart'],
+    ['cushion', 'cushion']
+];
+
+/**
  * The entity one placement item spawns.
  *
  * A boat, raft or minecart item names a variant and a base: `oak_chest_boat`
- * is a `chest_boat` carrying `oak`. Bedrock models that as one entity with a
- * variant, which is what this returns.
+ * is a `chest_boat` carrying `oak`, and `bamboo_raft` a `boat` carrying
+ * `bamboo`. Bedrock models that as one entity with a variant, which is what
+ * this returns.
  */
 export const placedEntityOf = (identifier: string): { readonly entity: string; readonly variant?: string } => {
     const override = ENTITY_OVERRIDES[identifier];
     if (override !== undefined) return { entity: override };
 
     const bare = identifier.replace(/^minecraft:/, '');
-    for (const base of ['chest_boat', 'chest_raft', 'boat', 'raft', 'minecart', 'cushion']) {
-        if (bare === base) return { entity: `minecraft:${base}` };
+    for (const [base, entity] of PLACED_BASES) {
+        if (bare === base) return { entity: `minecraft:${entity}` };
         if (bare.endsWith(`_${base}`)) {
-            return { entity: `minecraft:${base}`, variant: bare.slice(0, -`_${base}`.length) };
+            return { entity: `minecraft:${entity}`, variant: bare.slice(0, -`_${base}`.length) };
         }
     }
     return { entity: identifier };
