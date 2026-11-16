@@ -79,6 +79,9 @@ Every exception is a case where the Java number is published but not played.
 - Hoglin and zoglin keep Bedrock's damage. Bedrock writes the adult damage as a range whose mean is
   Java's number and the baby's as a separate component group, where Java halves the one attribute
   in code. Overriding the type would give a baby the adult's damage.
+- The phantom keeps Bedrock's damage. Java's `Phantom.updatePhantomSizeInfo` sets it to 6 plus the
+  phantom's size, so the dumped 2 is the monster default; Bedrock writes the 6 of a size-0
+  phantom. The counts under Consequences predate this row.
 - The iron golem keeps Bedrock's damage. Bedrock writes the rolled range 7 to 21; Java rolls the
   same range from a base of 15. The editions agree and only the published number differs.
 - The ender dragon and the armor stand keep Bedrock's knockback resistance. Java makes both immune

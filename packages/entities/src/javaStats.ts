@@ -154,6 +154,11 @@ export const JAVA_STAT_EXCEPTIONS: readonly JavaStatException[] = [
             }) satisfies JavaStatException
     ),
     {
+        identifier: 'minecraft:phantom',
+        stat: 'attack_damage',
+        reason: "Java's Phantom.updatePhantomSizeInfo sets the attack damage to 6 plus the phantom's size, so the dumped 2 is the monster default. Bedrock writes the 6 of a size-0 phantom."
+    },
+    {
         identifier: 'minecraft:iron_golem',
         stat: 'attack_damage',
         reason: 'Bedrock writes the rolled range 7 to 21. Java rolls the same range from a base of 15, so the two editions agree and only the published number differs.'
