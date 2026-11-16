@@ -1,0 +1,23 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "minecraft:evocation_fang",
+            "is_spawnable": false,
+            "is_summonable": true
+        },
+        "components": {
+            "minecraft:collision_box": {
+                "width": 0.5,
+                "height": 0.8
+            },
+            "jsprismarine:evoker_fangs": {
+                "warmup": 0,
+                "bite_delay": 8,
+                "lifetime": 22,
+                "damage": 6,
+                "reach": 0.2
+            }
+        }
+    }
+}

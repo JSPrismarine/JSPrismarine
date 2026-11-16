@@ -39,7 +39,21 @@
                     "minecraft:beetroot",
                     "minecraft:torch",
                     "minecraft:snow_layer"
-                ]
+                ],
+                "hurts_entities": {
+                    "minecraft:anvil": {
+                        "per_block": 2,
+                        "max": 40
+                    },
+                    "minecraft:chipped_anvil": {
+                        "per_block": 2,
+                        "max": 40
+                    },
+                    "minecraft:damaged_anvil": {
+                        "per_block": 2,
+                        "max": 40
+                    }
+                }
             }
         }
     }

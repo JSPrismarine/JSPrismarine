@@ -133,6 +133,8 @@ import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { DroppedItems, isDroppedItem } from './droppedItems';
+import { javaBlockTagsForBedrock } from '../../content/javaTags';
+import { EvokerFangs, isEvokerFangs } from './evokerFangs';
 import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
 import { PlayerSystems } from './playerSystems';
 import { itemDropOf } from '../../inventory/persistence';
@@ -502,6 +504,8 @@ export class EntityRuntime implements EntityScene {
 
     /** The eyes of ender in flight among this runtime's entities, and the system that flies them. */
     public readonly eyesOfEnder: EyeOfEnderSignals;
+    /** Every set of evoker fangs, which bites once and is gone. */
+    public readonly evokerFangs: EvokerFangs;
 
     /** The systems a store player's survival runs on, and its component state. */
     public readonly playerSystems: PlayerSystems;
@@ -750,6 +754,13 @@ export class EntityRuntime implements EntityScene {
             give: (playerId, itemId, stack) =>
                 this.host.givePlayerItem?.(playerId, itemId, itemDropOf(stack)) ?? stack.count,
             stackChanged: (itemId, count) => this.host.itemStackChanged?.(itemId, count)
+        });
+        this.evokerFangs = new EvokerFangs({
+            withinBox: (min, max) => this.index.withinBox(min, max),
+            hurt: (entity, sourceId, cause, amount) =>
+                void this.hurt(entity, sourceId, cause, amount, { route: 'area_attack' }),
+            byId: (id) => this.store.get(id),
+            remove: (id, reason) => this.remove(id, reason)
         });
         this.eyesOfEnder = new EyeOfEnderSignals({
             spawn: (identifier, at, options) => this.spawn(identifier, at, options),
@@ -1730,6 +1741,10 @@ export class EntityRuntime implements EntityScene {
         }
         if (isEyeOfEnderSignal(entity)) {
             this.eyesOfEnder.update(entity);
+            return;
+        }
+        if (isEvokerFangs(entity)) {
+            this.evokerFangs.update(entity);
             return;
         }
         this.tickHitGrace(entity.id);
@@ -5150,7 +5165,17 @@ export class EntityRuntime implements EntityScene {
         return target.identifier === filter || target.identifier === `minecraft:${filter}`;
     }
 
-    /** Applies the block's configured falling motion and turns it back into a block on landing. */
+    /**
+     * Applies the block's configured falling motion and turns it back into a block on landing.
+     *
+     * Java's `FallingBlockEntity.tick`: gravity first, then the move, then the drag, so a block
+     * dropped from rest falls 0.04 in its first tick. On landing the block takes the cell it came
+     * to rest in only when Java's `minecraft:replaceable` tag holds what is there, so sand dropped
+     * onto a torch or a flower breaks into its item and leaves the torch standing. A block the
+     * component names in `hurts_entities`, the anvils, hurts every living thing it lands in by its
+     * damage per block fallen past the first, up to its cap, as `FallingBlockEntity.causeFallDamage`
+     * does.
+     */
     private coastFallingBlock(entity: DataEntity, params: Record<string, unknown>): void {
         const blockName = entity.spawnData?.['block'];
         if (typeof blockName !== 'string') {
@@ -5175,7 +5200,7 @@ export class EntityRuntime implements EntityScene {
         const maxFallDistance = typeof params['max_fall_distance'] === 'number' ? params['max_fall_distance'] : 512;
         const position = entity.position;
         const velocity = entity.body.velocity;
-        const fallingY = (velocity.y - gravity) * (1 - drag);
+        const fallingY = velocity.y - gravity;
         const nextY = position.y + fallingY;
 
         if (position.y - state.startY < -maxFallDistance || nextY < this.world.level.minY) {
@@ -5198,7 +5223,9 @@ export class EntityRuntime implements EntityScene {
             if (resting === undefined) return;
 
             this.remove(entity.id, 'landed');
-            if (passes(resting.identifier)) {
+            this.hurtLandedOn(entity, blockName, params, state.startY - landing.y, landing.y);
+            const tags = javaBlockTagsForBedrock(this.content().tags, resting.identifier, resting.states);
+            if (resting.identifier === AIR || tags.includes(REPLACEABLE_TAG)) {
                 if (resting.identifier !== AIR) this.world.blocks.destroy?.(landing);
                 this.world.blocks.set(landing, { identifier: blockName, states: {} }, true);
             } else {
@@ -5210,8 +5237,40 @@ export class EntityRuntime implements EntityScene {
             return;
         }
 
-        entity.body.velocity = { x: velocity.x * (1 - drag), y: fallingY, z: velocity.z * (1 - drag) };
+        entity.body.velocity = { x: velocity.x * (1 - drag), y: fallingY * (1 - drag), z: velocity.z * (1 - drag) };
         entity.body.position = { ...position, y: nextY };
+    }
+
+    /**
+     * Hurts every living thing a landed block of a kind that `hurts_entities` names came down in:
+     * Java's `causeFallDamage`, `min(floor(ceil(fallen - 1) * per_block), max)`.
+     */
+    private hurtLandedOn(
+        entity: DataEntity,
+        blockName: string,
+        params: Record<string, unknown>,
+        fallen: number,
+        floorY: number
+    ): void {
+        const hurting = isRecord(params['hurts_entities']) ? params['hurts_entities'][blockName] : undefined;
+        if (!isRecord(hurting)) return;
+        const perBlock = typeof hurting['per_block'] === 'number' ? hurting['per_block'] : 0;
+        const max = typeof hurting['max'] === 'number' ? hurting['max'] : 0;
+        const blocks = Math.ceil(fallen - 1);
+        if (blocks < 0) return;
+        const damage = Math.min(Math.floor(blocks * perBlock), max);
+        if (damage <= 0) return;
+
+        const half = entity.facts.box.width / 2;
+        const { x, z } = entity.position;
+        const reached = this.index.withinBox(
+            { x: x - half, y: floorY, z: z - half },
+            { x: x + half, y: floorY + entity.facts.box.height, z: z + half }
+        );
+        for (const target of reached) {
+            if (target.id === entity.id || target.instance.attributes.get('health') === undefined) continue;
+            this.hurt(target, undefined, 'anvil', damage, { route: 'area_attack' });
+        }
     }
 
     /**
@@ -5559,6 +5618,9 @@ const VERTICAL_AIR_DRAG = 0.98;
 
 /** The fire timeout sunlight maintains until an entity reaches shade, in ticks. */
 const DAYLIGHT_BURN_TICKS = 160;
+
+/** The Java block tag of what a landing falling block may take the place of, Java's `canBeReplaced`. */
+const REPLACEABLE_TAG = 'minecraft:replaceable';
 
 /** How often a burning entity takes fire damage, in ticks. */
 const FIRE_DAMAGE_INTERVAL_TICKS = 20;
