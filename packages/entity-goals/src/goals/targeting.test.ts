@@ -187,6 +187,59 @@ describe('minecraft:behavior.hurt_by_target', () => {
 
         expect(world.writes).toEqual([]);
     });
+
+    describe('alert_same_type', () => {
+        /** A hurt entity with neighbors, recording whom the goal alerts. */
+        const alerting = (body: Record<string, unknown>, mobs: readonly GoalMob[], owner?: GoalMob) => {
+            const attacker = testMob('attacker', { x: 3, y: 0, z: 0 });
+            const alerted: [string | number, string | number][] = [];
+            const world = {
+                ...targetingWorld({ mobs, damagers: [{ mob: attacker, cause: 'entity_attack', total: 1 }] }),
+                owner: () => owner,
+                setTargetOf: (mob: GoalMob, target: GoalMob) => {
+                    alerted.push([mob.id, target.id]);
+                }
+            };
+            const harness = new GoalHarness({
+                identifier: 'test:zombie',
+                goals: { 'minecraft:behavior.hurt_by_target': { priority: 1, ...body } },
+                components: { 'minecraft:follow_range': { value: 16 } },
+                world
+            });
+            harness.tick();
+            return alerted;
+        };
+
+        it('calls idle mobs of its own type within its follow range onto the attacker', () => {
+            const near = testMob('near', { x: 10, y: 0, z: -10 }, { identifier: 'test:zombie' });
+            const high = testMob('high', { x: 0, y: 9, z: 0 }, { identifier: 'test:zombie' });
+            const other = testMob('other', { x: 2, y: 0, z: 0 }, { identifier: 'test:skeleton' });
+            const busy = testMob('busy', { x: 2, y: 0, z: 0 }, { identifier: 'test:zombie', target: other });
+            const far = testMob('far', { x: 18, y: 0, z: 0 }, { identifier: 'test:zombie' });
+            const above = testMob('above', { x: 0, y: 12, z: 0 }, { identifier: 'test:zombie' });
+
+            expect(alerting({ alert_same_type: true }, [near, high, other, busy, far, above])).toEqual([
+                ['near', 'attacker'],
+                ['high', 'attacker']
+            ]);
+        });
+
+        it('alerts nobody without alert_same_type', () => {
+            const near = testMob('near', { x: 2, y: 0, z: 0 }, { identifier: 'test:zombie' });
+
+            expect(alerting({}, [near])).toEqual([]);
+        });
+
+        it('alerts only mobs that share its owner', () => {
+            const owner = testMob('owner', { x: 5, y: 0, z: 0 });
+            const stranger = testMob('stranger', { x: 6, y: 0, z: 0 });
+            const pack = testMob('pack', { x: 2, y: 0, z: 0 }, { identifier: 'test:zombie', owner });
+            const stray = testMob('stray', { x: 2, y: 0, z: 1 }, { identifier: 'test:zombie', owner: stranger });
+            const wild = testMob('wild', { x: 2, y: 0, z: 2 }, { identifier: 'test:zombie' });
+
+            expect(alerting({ alert_same_type: true }, [pack, stray, wild], owner)).toEqual([['pack', 'attacker']]);
+        });
+    });
 });
 
 describe('minecraft:behavior.owner_hurt_target', () => {

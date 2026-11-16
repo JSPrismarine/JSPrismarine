@@ -84,6 +84,7 @@ const GOAL_WORLD_ENTITIES: ExtraEntities = {
         'minecraft:behavior.follow_owner': { priority: 1, start_distance: 2, stop_distance: 1 },
         'minecraft:behavior.hurt_by_target': { priority: 0 }
     }),
+    'jsprismarine:packmate': mob({ 'minecraft:behavior.hurt_by_target': { priority: 0, alert_same_type: true } }),
     'jsprismarine:avenger': mob({ 'minecraft:behavior.owner_hurt_target': { priority: 0 } }),
     'jsprismarine:collector': mob({
         'minecraft:inventory': { inventory_size: 5 },
@@ -523,6 +524,21 @@ describe('the goal world over the entity runtime', () => {
             run(fixture, 3);
 
             expect(victim.target).toBe(attacker.id);
+        });
+
+        it("calls the hurt mob's idle packmates onto the attacker, and no other type", () => {
+            const fixture = fixtureOf();
+            const victim = spawned(fixture, 'jsprismarine:packmate', groundAt(0, 0));
+            const packmate = spawned(fixture, 'jsprismarine:packmate', groundAt(-4, 3));
+            const stranger = spawned(fixture, 'jsprismarine:pet', groundAt(-4, -3));
+            const attacker = spawned(fixture, 'jsprismarine:coward', groundAt(2, 0));
+
+            fixture.runtime.hurt(victim, attacker.id, 'entity_attack', 1);
+            run(fixture, 3);
+
+            expect(victim.target).toBe(attacker.id);
+            expect(packmate.target).toBe(attacker.id);
+            expect(stranger.target).toBeUndefined();
         });
 
         it('sends a hurt animal running', () => {

@@ -120,6 +120,7 @@ export interface TestMobOptions {
     readonly flags?: Partial<Record<EntityFlag, boolean>>;
     readonly target?: GoalMob;
     readonly lastDamager?: GoalMob;
+    readonly owner?: GoalMob;
 }
 
 /** Builds one {@link GoalMob} for a test, with only the facts the test needs. */
@@ -135,7 +136,8 @@ export const testMob = (id: string, at: EntityPosition, options: TestMobOptions 
     heldItem: () => options.heldItem,
     health: () => options.health,
     target: () => options.target,
-    lastDamager: () => options.lastDamager
+    lastDamager: () => options.lastDamager,
+    owner: () => options.owner
 });
 
 /** Options for a {@link GoalHarness}. */

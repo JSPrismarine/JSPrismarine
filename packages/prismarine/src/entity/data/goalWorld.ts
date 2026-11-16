@@ -115,6 +115,7 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
             const last = entity.body.damage.last()?.sourceId;
             return last === undefined ? undefined : scene.mobById(last);
         },
+        owner: () => (entity.body.owner === undefined ? undefined : scene.mobById(entity.body.owner)),
         ...(clientOwnsMovement(entity.identifier) ? scene.playerCombat(entity.id) : {})
     };
     sceneViews.set(entity, view);
@@ -278,6 +279,10 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             entity.target = typeof mob?.id === 'number' ? mob.id : undefined;
         },
         school: () => entity.school,
+        setTargetOf: (mob, target) => {
+            const other = typeof mob.id === 'number' ? scene.byId(mob.id) : undefined;
+            if (other !== undefined && typeof target.id === 'number') other.target = target.id;
+        },
         home: () => entity.home,
         setHome: (position) => {
             entity.home = position;

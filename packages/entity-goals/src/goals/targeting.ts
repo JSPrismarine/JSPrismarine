@@ -216,9 +216,43 @@ export interface HurtByTargetParams {
     readonly entityTypes: readonly TargetEntityType[];
     /** Whether the entity turns on its own owner when the owner hurts it. */
     readonly hurtOwner: boolean;
-    /** How far the goal tells nearby friends of the same type, in blocks. */
-    readonly alertSameType: number;
+    /** Whether the goal calls nearby mobs of the entity's type onto the attacker. */
+    readonly alertSameType: boolean;
 }
+
+/**
+ * How far above and below the entity `HurtByTargetGoal.alertOthers` looks, in blocks: it inflates
+ * the entity's block by its follow range across and by 10 up and down.
+ */
+const ALERT_HEIGHT = 10;
+
+/** The follow range a mob without the attribute searches, Java's `Attributes.FOLLOW_RANGE` default. */
+const DEFAULT_FOLLOW_RANGE = 16;
+
+/**
+ * Calls the mobs of the entity's type near it onto its attacker, as Java's
+ * `HurtByTargetGoal.alertOthers` does: every one within the entity's follow range across and
+ * {@link ALERT_HEIGHT} up and down that has no target yet and shares the entity's owner.
+ */
+const alertOthers = (support: GoalSupport, attacker: GoalMob): void => {
+    const across = support.entity.attributes.value('follow_range', DEFAULT_FOLLOW_RANGE);
+    const here = support.position();
+    const type = support.entity.type.identifier;
+    const owner = support.world.owner?.()?.id;
+    // The sphere that holds the search box's corners.
+    const radius = Math.hypot(across + 1, across + 1, ALERT_HEIGHT + 1);
+    for (const mob of support.mobs(radius)) {
+        if (mob.id === attacker.id || mob.identifier?.() !== type) continue;
+        const at = mob.position();
+        // Java's box runs from the block corner, so it reaches one block further on the positive side.
+        const corner = { x: Math.floor(here.x), y: Math.floor(here.y), z: Math.floor(here.z) };
+        if (at.x < corner.x - across || at.x > corner.x + 1 + across) continue;
+        if (at.z < corner.z - across || at.z > corner.z + 1 + across) continue;
+        if (at.y < corner.y - ALERT_HEIGHT || at.y > corner.y + 1 + ALERT_HEIGHT) continue;
+        if (mob.target?.() !== undefined || mob.owner?.()?.id !== owner) continue;
+        support.world.setTargetOf?.(mob, attacker);
+    }
+};
 
 /**
  * `minecraft:behavior.hurt_by_target`, which 42 vanilla entities carry, 31 of
@@ -226,7 +260,8 @@ export interface HurtByTargetParams {
  *
  * It takes the last entity that damaged this one. Java's `HurtByTargetGoal`
  * remembers an unseen revenge target for 300 ticks rather than the 60 every
- * other target goal uses, and alerts friends within 10 blocks vertically.
+ * other target goal uses. With `alert_same_type`, Java's `setAlertOthers`, it
+ * also calls nearby mobs of the entity's type onto the attacker when it starts.
  */
 export const hurtByTarget = goal<HurtByTargetParams>({
     name: 'minecraft:behavior.hurt_by_target',
@@ -234,10 +269,10 @@ export const hurtByTarget = goal<HurtByTargetParams>({
     schema: bodySchema((body) => ({
         entityTypes: entityTypesAt(body),
         hurtOwner: booleanAt(body, 'hurt_owner', false),
-        alertSameType: numberAt(body, 'alert_same_type', 0)
+        alertSameType: booleanAt(body, 'alert_same_type', false)
     })),
-    create: (params, support) =>
-        holdTarget(support, {
+    create: (params, support) => {
+        const hold = holdTarget(support, {
             find: () => {
                 const damager = support.world.damagers?.().at(-1)?.mob;
                 if (damager === undefined) return undefined;
@@ -254,7 +289,17 @@ export const hurtByTarget = goal<HurtByTargetParams>({
             probability: 1,
             reselect: true,
             mustReach: false
-        })
+        });
+        if (!params.alertSameType) return hold;
+        return {
+            ...hold,
+            start: () => {
+                hold.start?.();
+                const attacker = support.target();
+                if (attacker !== undefined) alertOthers(support, attacker);
+            }
+        };
+    }
 });
 
 /**

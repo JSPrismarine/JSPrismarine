@@ -58,6 +58,8 @@ export interface GoalMob {
      * `getLastHurtByMobTimestamp`, forgotten 100 ticks later as Java forgets it.
      */
     lastHurtBy?(): GoalCombatMark | undefined;
+    /** Its owner, when it is tamed, which `hurt_by_target` compares before it alerts it. */
+    owner?(): GoalMob | undefined;
     /** Its place in a fish school, which `minecraft:flocking` reads and changes. */
     school?(): SchoolMembership | undefined;
 }
@@ -209,6 +211,8 @@ export interface GoalWorld {
     target?(): GoalMob | undefined;
     /** Sets or clears the attack target, which is what the targeting goals exist to do. */
     setTarget?(mob: GoalMob | undefined): void;
+    /** Sets another mob's attack target, which is how `hurt_by_target` alerts the mob's allies. */
+    setTargetOf?(mob: GoalMob, target: GoalMob): void;
     /** Who has damaged the entity, oldest first, with the running total each has dealt. */
     damagers?(): readonly GoalDamage[];
     /** Who last pushed the entity, for `minecraft:behavior.target_when_pushed`. */
