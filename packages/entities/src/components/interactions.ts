@@ -17,6 +17,7 @@ import type {
     EntityTameInteractionEffect
 } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
+import { tameChance, trustChance } from '../javaTaming';
 import type { ComponentRecord } from './schemas';
 import { asList, booleanAt, isRecord, numberAt, parseFilterValue, recordSchema, stringAt } from './schemas';
 
@@ -830,7 +831,10 @@ export interface TameableItemParams {
 export interface TameableParams {
     /** Items that can tame the entity. */
     readonly items: readonly TameableItemParams[];
-    /** Probability of taming on each matching item interaction. */
+    /**
+     * Probability of taming on each matching item interaction. A vanilla type rolls Java's
+     * odds instead; see `tameChance`.
+     */
     readonly probability: number;
     /** Event raised after a successful tame. */
     readonly tameEvent?: SensorTrigger;
@@ -886,7 +890,8 @@ export const tameable: ComponentFactory<EntityHooks, TameableParams> = {
             const item = params.items.find((entry) => entry.item === normalizedItem);
             if (item === undefined) return undefined;
 
-            const succeeded = entity.random.next() < Math.min(1, Math.max(0, params.probability));
+            const chance = tameChance(entity.type.identifier, params.probability);
+            const succeeded = entity.random.next() < Math.min(1, Math.max(0, chance));
             const tame: EntityTameInteractionEffect = {
                 succeeded,
                 ...(succeeded && params.tameEvent?.event !== undefined
@@ -897,6 +902,51 @@ export const tameable: ComponentFactory<EntityHooks, TameableParams> = {
                 tame,
                 ...(succeeded && item.resultItem !== undefined ? { resultItem: item.resultItem } : {})
             };
+        }
+    })
+};
+
+/** What `minecraft:trusting` declares. */
+export interface TrustingParams {
+    /** Items that can win the entity's trust. */
+    readonly items: readonly string[];
+    /** Probability each feeding wins it. A vanilla type rolls Java's odds instead; see `trustChance`. */
+    readonly probability: number;
+    /** Event raised once the entity trusts the player. */
+    readonly trustEvent?: SensorTrigger;
+}
+
+/**
+ * `minecraft:trusting`, the ocelot's trust. Java's `Ocelot.mobInteract` eats the offered food
+ * whether or not the roll succeeds, and an ocelot that wins the roll trusts players from then on;
+ * vanilla's trust event removes the group that holds this component.
+ */
+export const trusting: ComponentFactory<EntityHooks, TrustingParams> = {
+    name: 'minecraft:trusting',
+    hooks: ['onInteractWithItem'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        const items = asList(value.trust_items).flatMap((raw) =>
+            typeof raw === 'string'
+                ? [normalizedItemIdentifier(raw)]
+                : isRecord(raw) && typeof raw.item === 'string'
+                  ? [normalizedItemIdentifier(raw.item)]
+                  : []
+        );
+        const trustEvent = parseComponentTrigger(value.trust_event);
+        return accepted({
+            items,
+            probability: numberAt(value, 'probability', 1),
+            ...(trustEvent === undefined ? {} : { trustEvent })
+        });
+    },
+    create: (params) => ({
+        onInteractWithItem: (entity, itemIdentifier) => {
+            if (!params.items.includes(normalizedItemIdentifier(itemIdentifier))) return undefined;
+            const chance = trustChance(entity.type.identifier, params.probability);
+            if (entity.random.next() < Math.min(1, Math.max(0, chance)) && params.trustEvent?.event !== undefined)
+                entity.raise(params.trustEvent.event, params.trustEvent.target, 'minecraft:trusting');
+            return {};
         }
     })
 };

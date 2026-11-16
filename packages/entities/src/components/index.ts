@@ -9,6 +9,7 @@ import { EVENT_TRIGGER_COMPONENTS } from '../triggers';
 import { dyeable } from './dyeable';
 import { genetics } from './genetics';
 import { home } from './home';
+import { trusting } from './interactions';
 import { nameable } from './nameable';
 import { dataComponent } from './schemas';
 import { shareables } from './shareables';
@@ -207,7 +208,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:trade_table',
     'minecraft:trail',
     'minecraft:trust',
-    'minecraft:trusting',
     'minecraft:transient',
     'minecraft:underwater_mount_breathing',
     'minecraft:uses_legacy_friction',
@@ -292,6 +292,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(spawnEggInteraction);
     register(spellEffects);
     register(tameable);
+    register(trusting);
     register(targetNearbySensor);
     register(timer);
     register(transformation);
