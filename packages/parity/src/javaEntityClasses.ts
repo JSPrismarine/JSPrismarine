@@ -276,3 +276,90 @@ export const javaRandomBounds = (className: string, methodName: string): readonl
     }
     return bounds;
 };
+
+/** Whether an instruction stores an int local: `istore` or `istore_0` to `istore_3`. */
+const storesInt = (instruction: JavaInstruction): boolean =>
+    instruction.opcode === OPCODES.ISTORE || (instruction.opcode >= 0x3b && instruction.opcode <= 0x3e);
+
+/** Whether an instruction loads an int local: `iload` or `iload_0` to `iload_3`. */
+const loadsInt = (instruction: JavaInstruction): boolean =>
+    instruction.opcode === OPCODES.ILOAD || (instruction.opcode >= 0x1a && instruction.opcode <= 0x1d);
+
+/**
+ * The int a method's `if (stack.is(Items.X))` chain assigns to the local it finally passes to a
+ * method, item by item, such as the temper `AbstractHorse.handleEating` hands `modifyTemper`.
+ * An item whose branch never assigns it gets 0, the local's starting value.
+ *
+ * @param className - The class that declares the method.
+ * @param methodName - The method, such as `handleEating`.
+ * @param consumer - The member the local is passed to, as `owner/Binary/Name.member`.
+ * @returns Each item's value, by its `Items` field name in lower case, such as `golden_apple`.
+ */
+export const javaItemBranchValues = (
+    className: string,
+    methodName: string,
+    consumer: string
+): ReadonlyMap<string, number> => {
+    const method = pinnedJavaClassFile(className)?.methods.find((candidate) => candidate.name === methodName);
+    const instructions = method?.instructions ?? [];
+    const call = instructions.findIndex((instruction) =>
+        instruction.member?.endsWith(`.${consumer.split('.').at(-1)}`)
+    );
+    const load = instructions
+        .slice(0, Math.max(0, call))
+        .findLast((instruction) => loadsInt(instruction) && instruction.local !== undefined);
+    if (call < 0 || load?.local === undefined)
+        throw new Error(`${className}.${methodName} passes no local to ${consumer}`);
+
+    const values = new Map<string, number>();
+    let pending: string[] = [];
+    for (const [index, instruction] of instructions.entries()) {
+        if (index >= call) break;
+        const field = instruction.member;
+        if (instruction.opcode === 0xb2 && field?.startsWith('net/minecraft/world/item/Items.') === true) {
+            pending.push(field.slice(field.lastIndexOf('.') + 1).toLowerCase());
+            continue;
+        }
+        if (storesInt(instruction) && instruction.local === load.local) {
+            const pushed = instructions[index - 1]?.constant;
+            if (typeof pushed === 'number') for (const item of pending) values.set(item, pushed);
+        } else if (instruction.opcode === OPCODES.GOTO) {
+            for (const item of pending) if (!values.has(item)) values.set(item, 0);
+            pending = [];
+        }
+    }
+    for (const item of pending) if (!values.has(item)) values.set(item, 0);
+    return values;
+};
+
+/**
+ * The int constants a method pushes as the last argument of each call to a member, such as the
+ * 5 `RunAroundLikeCrazyGoal.tick` passes `modifyTemper` or the 3 `Piglin.startRiding` passes
+ * `getTopPassenger`.
+ */
+export const javaConstantsPassedTo = (className: string, methodName: string, member: string): readonly number[] => {
+    const instructions =
+        pinnedJavaClassFile(className)?.methods.find((candidate) => candidate.name === methodName)?.instructions ?? [];
+    return instructions.flatMap((instruction, index) => {
+        const pushed = instructions[index - 1]?.constant;
+        return instruction.member === member && typeof pushed === 'number' ? [pushed] : [];
+    });
+};
+
+/**
+ * The passenger count below which a vehicle's `mobInteract` seats the player, read from its
+ * `getPassengers().size() < n` test before `doPlayerRide`, or undefined when the method seats a
+ * player without counting.
+ */
+export const javaPlayerRideLimit = (className: string): number | undefined => {
+    const resolved = javaResolveMethod(className, 'mobInteract');
+    const instructions = resolved?.method.instructions ?? [];
+    const ride = instructions.findIndex((instruction) => instruction.member?.endsWith('.doPlayerRide') === true);
+    for (let index = ride - 1; index >= 2; index--) {
+        const instruction = instructions[index];
+        if (instruction?.opcode !== OPCODES.IF_ICMPGE) continue;
+        const limit = instructions[index - 1]?.constant;
+        if (instructions[index - 2]?.member === 'java/util/List.size' && typeof limit === 'number') return limit;
+    }
+    return undefined;
+};

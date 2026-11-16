@@ -33,6 +33,8 @@ export interface JavaInstruction {
     readonly target?: number;
     /** For an `invokedynamic`, the method handles its bootstrap arguments name, as `owner/Binary/Name.member`. */
     readonly handles?: readonly string[];
+    /** The local variable a load or store names, such as 3 for `istore_3` or `iload 3`. */
+    readonly local?: number;
 }
 
 /** One method of a class and the methods its code calls. */
@@ -136,6 +138,8 @@ export const OPCODES = {
     LDC_W: 0x13,
     LDC2_W: 0x14,
     ALOAD_0: 0x2a,
+    ILOAD: 0x15,
+    ISTORE: 0x36,
     IFEQ: 0x99,
     IFNE: 0x9a,
     IF_ICMPEQ: 0x9f,
@@ -347,6 +351,14 @@ export const javaClass = (bytes: Uint8Array): JavaClass => {
                 instruction = { ...instruction, type: className(codeView.getUint16(pc + 1)) };
             } else if ((opcode >= OPCODES.IFEQ && opcode <= OPCODES.GOTO) || opcode === 0xc6 || opcode === 0xc7) {
                 instruction = { ...instruction, target: pc + codeView.getInt16(pc + 1) };
+            } else if ((opcode >= 0x15 && opcode <= 0x19) || (opcode >= 0x36 && opcode <= 0x3a)) {
+                instruction = { ...instruction, local: codeView.getUint8(pc + 1) };
+            } else if (opcode >= 0x1a && opcode <= 0x2d) {
+                // iload_0 to aload_3, four of each kind.
+                instruction = { ...instruction, local: (opcode - 0x1a) % 4 };
+            } else if (opcode >= 0x3b && opcode <= 0x4e) {
+                // istore_0 to astore_3.
+                instruction = { ...instruction, local: (opcode - 0x3b) % 4 };
             }
             instructions.push(instruction);
 
