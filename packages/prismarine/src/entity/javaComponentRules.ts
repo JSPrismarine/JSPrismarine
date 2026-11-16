@@ -29,6 +29,38 @@ const withoutFamily = (filter: unknown, family: string): unknown => {
     };
 };
 
+/** Whether a filter tests the water the entity stands or swims in. */
+const isWaterTest = (filter: unknown): boolean =>
+    isRecord(filter) && (filter.test === 'is_underwater' || filter.test === 'in_water');
+
+/**
+ * An environment sensor that picks the weapon goal by the weapon alone. Java's
+ * `AbstractSkeleton.reassessWeaponGoal` chooses `RangedBowAttackGoal` whenever the skeleton holds
+ * a bow, and `Pillager.registerGoals` adds only `RangedCrossbowAttackGoal`, so neither reads the
+ * water. The pack swaps to melee under water and back only out of it.
+ */
+const withoutWaterWeaponSwap = (body: Record<string, unknown>): Record<string, unknown> => {
+    const triggers: readonly unknown[] = Array.isArray(body.triggers) ? body.triggers : [body.triggers];
+    const kept = triggers.flatMap((trigger): unknown[] => {
+        if (!isRecord(trigger)) return [trigger];
+        const { filters, ...rest } = trigger;
+        if (trigger.event === 'minecraft:melee_mode' && isWaterTest(filters)) return [];
+        if (trigger.event !== 'minecraft:ranged_mode') return [trigger];
+        if (isWaterTest(filters)) return [rest];
+        if (isRecord(filters) && Array.isArray(filters.all_of))
+            return [
+                { ...trigger, filters: { ...filters, all_of: filters.all_of.filter((test) => !isWaterTest(test)) } }
+            ];
+        return [trigger];
+    });
+    return { ...body, triggers: kept };
+};
+
+const WEAPON_BY_WEAPON_ALONE: JavaComponentRule = {
+    component: 'minecraft:environment_sensor',
+    rewrite: withoutWaterWeaponSwap
+};
+
 /** The rules by Bedrock entity identifier. */
 export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponentRule[]>> = {
     // `Axolotl.handleAirSupply` dries an axolotl out on land by 2 `dryOut` damage each time its
@@ -79,7 +111,14 @@ export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponen
     ],
     // `Skeleton`'s freezing `ConversionTracker` turns it after 140 ticks in powder snow and 300 more
     // converting, 22 seconds, where the pack's timer turns it after 20.
-    'minecraft:skeleton': [{ component: 'minecraft:timer', rewrite: (body) => ({ ...body, time: 22 }) }]
+    'minecraft:skeleton': [
+        { component: 'minecraft:timer', rewrite: (body) => ({ ...body, time: 22 }) },
+        WEAPON_BY_WEAPON_ALONE
+    ],
+    'minecraft:stray': [WEAPON_BY_WEAPON_ALONE],
+    'minecraft:bogged': [WEAPON_BY_WEAPON_ALONE],
+    'minecraft:parched': [WEAPON_BY_WEAPON_ALONE],
+    'minecraft:pillager': [WEAPON_BY_WEAPON_ALONE]
 };
 
 /**

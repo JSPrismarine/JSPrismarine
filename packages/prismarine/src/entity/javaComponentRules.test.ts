@@ -117,6 +117,61 @@ describe('withJavaComponentRules', () => {
         });
     });
 
+    it('picks a skeleton or pillager weapon goal by the weapon alone, never by the water', () => {
+        const underwater = { event: 'minecraft:melee_mode', filters: { test: 'is_underwater' } };
+        const unarmed = { event: 'minecraft:melee_mode', filters: { test: 'has_ranged_weapon', value: false } };
+        const bogged = withJavaComponentRules(
+            entityFile('minecraft:bogged', {
+                'minecraft:ranged_attack': { 'minecraft:environment_sensor': { triggers: [underwater, unarmed] } },
+                'minecraft:melee_attack': {
+                    'minecraft:environment_sensor': {
+                        triggers: [
+                            {
+                                event: 'minecraft:ranged_mode',
+                                filters: { all_of: [{ test: 'in_water', value: false }, { test: 'has_ranged_weapon' }] }
+                            }
+                        ]
+                    }
+                }
+            })
+        );
+        const pillager = withJavaComponentRules(
+            entityFile('minecraft:pillager', {
+                'minecraft:ranged_attack': { 'minecraft:environment_sensor': { triggers: underwater } },
+                'minecraft:melee_attack': {
+                    'minecraft:environment_sensor': {
+                        triggers: { event: 'minecraft:ranged_mode', filters: { test: 'in_water', value: false } }
+                    }
+                }
+            })
+        );
+
+        expect(bogged).toMatchObject({
+            'minecraft:entity': {
+                component_groups: {
+                    'minecraft:ranged_attack': { 'minecraft:environment_sensor': { triggers: [unarmed] } },
+                    'minecraft:melee_attack': {
+                        'minecraft:environment_sensor': {
+                            triggers: [
+                                { event: 'minecraft:ranged_mode', filters: { all_of: [{ test: 'has_ranged_weapon' }] } }
+                            ]
+                        }
+                    }
+                }
+            }
+        });
+        expect(pillager).toMatchObject({
+            'minecraft:entity': {
+                component_groups: {
+                    'minecraft:ranged_attack': { 'minecraft:environment_sensor': { triggers: [] } },
+                    'minecraft:melee_attack': {
+                        'minecraft:environment_sensor': { triggers: [{ event: 'minecraft:ranged_mode' }] }
+                    }
+                }
+            }
+        });
+    });
+
     it('leaves a file no rule names unchanged', () => {
         const data = entityFile('minecraft:creeper', {}, { 'minecraft:freezing_immune': {} });
         expect(withJavaComponentRules(data)).toBe(data);
