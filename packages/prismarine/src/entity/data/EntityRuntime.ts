@@ -110,6 +110,7 @@ import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 import { itemOfDrop } from '../../inventory/persistence';
 import { breedableOf, canBreed, offspringIdentifierOf, offspringOf, pregnancyOf, spendLove } from './breeding';
+import { assembleChickenJockey, CHICKEN, CHICKEN_JOCKEY_RIDERS, CHICKEN_SEARCH } from './chickenJockey';
 import { DataEntity, MobBody, SHOWN_CONDITIONS, distance } from './DataEntity';
 import { EntityIndex } from './entityIndex';
 import { detonate } from './explosion';
@@ -1243,7 +1244,47 @@ export class EntityRuntime implements EntityScene {
         // event added: a baby is born a baby rather than growing into one on the next tick.
         this.onSpawn(entity);
         this.addRiders(entity);
+        if ((options.cause ?? 'spawned') === 'spawned') this.seatChickenJockey(entity);
         return entity;
+    }
+
+    /**
+     * Java's `Zombie.finalizeSpawn` jockey rolls for a baby zombie that has just spawned: it may
+     * climb onto a free chicken near it or get a chicken spawned under it. See
+     * {@link assembleChickenJockey}.
+     */
+    private seatChickenJockey(rider: DataEntity): void {
+        if (!CHICKEN_JOCKEY_RIDERS.has(rider.identifier) || !rider.instance.hasComponent('minecraft:is_baby')) return;
+        if (this.rides.vehicleOf(rider.id) !== undefined) return;
+        const { position } = rider;
+        const { width, height } = rider.facts.box;
+        const across = width / 2 + CHICKEN_SEARCH.horizontal;
+        assembleChickenJockey<DataEntity>({
+            nextFloat: () => rider.instance.random.next(),
+            // Java's `EntitySelector.ENTITY_NOT_BEING_RIDDEN`: alive, carrying no one and riding nothing.
+            freeChickens: () =>
+                this.inBox(
+                    { x: position.x - across, y: position.y - CHICKEN_SEARCH.vertical, z: position.z - across },
+                    { x: position.x + across, y: position.y + height + CHICKEN_SEARCH.vertical, z: position.z + across }
+                ).filter(
+                    (chicken) =>
+                        chicken.identifier === CHICKEN &&
+                        chicken.id !== rider.id &&
+                        this.rides.ridersOf(chicken.id).length === 0 &&
+                        this.rides.vehicleOf(chicken.id) === undefined
+                ),
+            // `Chicken.finalizeSpawn` with no group data makes the first of a group an adult.
+            spawnChicken: () => {
+                const chicken = this.spawn(CHICKEN, position, { cause: 'spawned', yaw: rider.body.yaw });
+                if (chicken?.instance.hasComponent('minecraft:is_baby') === true)
+                    chicken.instance.fire('minecraft:ageable_grow_up');
+                return chicken;
+            },
+            mount: (chicken) => {
+                if (this.rides.ridersOf(chicken.id).length < seatCountOf(chicken))
+                    this.rides.mount(rider.id, chicken.id);
+            }
+        });
     }
 
     /**
