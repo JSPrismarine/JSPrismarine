@@ -8,7 +8,7 @@ import { collisionBox, statRuling } from '@jsprismarine/entities';
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { loadJavaEntityAttributes } from '../goldens.ts';
 import { isRecord } from '../isRecord.ts';
-import { pinnedJavaMethod } from '../javaClassFile.ts';
+import { numericConstants, pinnedJavaMethod } from '../javaClassFile.ts';
 import { unpackVanillaDatapack } from '../javaDatapack.ts';
 import { realStack, serverContent } from '../serverStack.ts';
 import type { RealStack } from '../serverStack.ts';
@@ -114,14 +114,14 @@ const isJavaLiving = (javaId: string): boolean => javaAttribute(javaId, 'minecra
 
 /** The first number a Java method's code pushes, which for a constant getter is what it returns. */
 const javaReturnedConstant = (className: string, method: string): number | undefined =>
-    pinnedJavaMethod(className, method)?.method.constants[0];
+    numericConstants(pinnedJavaMethod(className, method)?.method)[0];
 
 /**
  * A class's default gravity: the largest number its `getDefaultGravity` returns, which for the
  * minecart is the one it returns out of water.
  */
 const javaDefaultGravity = (className: string): number => {
-    const constants = pinnedJavaMethod(className, 'getDefaultGravity')?.method.constants ?? [];
+    const constants = numericConstants(pinnedJavaMethod(className, 'getDefaultGravity')?.method);
     return constants.length === 0 ? 0 : Math.max(...constants);
 };
 

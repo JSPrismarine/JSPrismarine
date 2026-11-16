@@ -444,10 +444,10 @@ export const pinnedJavaClass = (className: string): JavaMethod[] => {
  * Each number a method's code pushes onto the stack, in the order it appears: the `iconst`
  * shorthands, `bipush` and `sipush`, and the numbers `ldc` loads.
  *
- * @param method - A parsed method.
+ * @param method - A parsed method; none reads as no constants.
  */
-export const numericConstants = (method: JavaMethod): readonly number[] =>
-    method.instructions.flatMap((instruction) =>
+export const numericConstants = (method: JavaMethod | undefined): readonly number[] =>
+    (method?.instructions ?? []).flatMap((instruction) =>
         typeof instruction.constant === 'number' ? [instruction.constant] : []
     );
 
@@ -464,7 +464,7 @@ export const pinnedJavaMethod = (
     className: string,
     name: string
 ): { readonly owner: string; readonly method: JavaMethod } | undefined => {
-    for (let owner: string | undefined = className; owner !== undefined; ) {
+    for (let owner: string | undefined = className; owner !== undefined;) {
         const parsed = pinnedJavaClassFile(owner);
         if (parsed === undefined) return undefined;
         const method = parsed.methods.find(
