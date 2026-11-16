@@ -4404,8 +4404,8 @@ export class EntityRuntime implements EntityScene {
 
     /**
      * Restocks a villager's trades at its job site, by Java's `Villager.shouldRestock` rule: only
-     * when something was used, at most {@link RESTOCKS_PER_DAY} times a day and no sooner than
-     * {@link RESTOCK_GAP_TICKS} after the last one. A villager with a player at its screen waits.
+     * when something was used, at most {@link RESTOCKS_PER_DAY} times a day and only once more than
+     * {@link RESTOCK_GAP_TICKS} have passed since the last one. A villager with a player at its screen waits.
      */
     public villagerRestock(body: MobBody): void {
         const entity = this.store.get(body.id);
@@ -4417,7 +4417,7 @@ export class EntityRuntime implements EntityScene {
         const day = Math.floor(now / TICKS_PER_DAY);
         const last = this.restocks.get(entity.id);
         const today = last?.day === day ? last.count : 0;
-        if (today >= RESTOCKS_PER_DAY || (last !== undefined && now < last.at + RESTOCK_GAP_TICKS)) return;
+        if (today >= RESTOCKS_PER_DAY || (last !== undefined && now <= last.at + RESTOCK_GAP_TICKS)) return;
 
         this.changeMerchant(entity, merchant, () => merchant.resupply());
         this.restocks.set(entity.id, { day, count: today + 1, at: now });

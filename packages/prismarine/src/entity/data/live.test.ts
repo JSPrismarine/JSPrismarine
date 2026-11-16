@@ -2595,7 +2595,12 @@ describe('the data-driven entity runtime over a live world', () => {
                 live.runtime.villagerRestock(villager.body);
                 expect(merchant.offers()[0]?.uses).toBe(1);
 
+                // Java's Villager.allowedToRestock wants more than 2400 ticks since the last restock.
                 time(100 + 2400);
+                live.runtime.villagerRestock(villager.body);
+                expect(merchant.offers()[0]?.uses).toBe(1);
+
+                time(100 + 2401);
                 live.runtime.villagerRestock(villager.body);
                 expect(merchant.offers()[0]?.uses).toBe(0);
 
