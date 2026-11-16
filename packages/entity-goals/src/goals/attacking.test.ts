@@ -50,6 +50,8 @@ describe('minecraft:behavior.melee_box_attack', () => {
         };
         const harness = new GoalHarness({
             goals: { 'minecraft:behavior.melee_box_attack': { priority: 3 } },
+            // Under a block wide, so its path fits the one-block corridor.
+            components: { 'minecraft:collision_box': { width: 0.6, height: 1.8 } },
             world: { ...combatWorld(victim), navigation: () => navigation },
             at: { x: 0.5, y: 1, z: 0.5 }
         });
