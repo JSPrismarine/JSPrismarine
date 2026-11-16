@@ -42,14 +42,14 @@ const requiredFamilies = (filter: Filter | undefined): Set<string> | undefined =
         return families;
     }
 
+    // Each bounded child says the entity has at least one family of its set, so any one of them
+    // bounds the whole; their intersection does not, since `monster` and `blaze` share no name
+    // but one entity carries both. The smallest set is the tightest bound.
     let families: Set<string> | undefined;
     for (const child of filter.filters) {
         const childFamilies = requiredFamilies(child);
-        if (childFamilies === undefined) continue;
-        families =
-            families === undefined
-                ? childFamilies
-                : new Set([...families].filter((family) => childFamilies.has(family)));
+        if (childFamilies !== undefined && (families === undefined || childFamilies.size < families.size))
+            families = childFamilies;
     }
     return families;
 };
