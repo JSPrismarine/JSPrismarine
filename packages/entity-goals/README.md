@@ -58,7 +58,7 @@ The twenty most used goals, with how many entity files declare each: `look_at_pl
 
 Thirty of Java's goal class names match a Bedrock goal name after snake-casing, so for those the
 constants are read out of the unobfuscated 26.3 server jar rather than guessed, and the JSDoc on the
-goal names the class. Examples: the 0.02 chance per tick and the 40 to 80 tick hold in
+goal names the class. Examples: the 0.02 chance per tick and the 40 to 79 tick hold in
 `look_at_player` are `LookAtPlayerGoal.DEFAULT_PROBABILITY` and its `start`; the 20-tick swing
 cadence and 10-tick re-path interval in the melee goals are `MeleeAttackGoal`; the 2-to-4-block
 window and 1-in-5 roll in `leap_at_target` are `LeapAtTargetGoal`; the 8-block partner search,

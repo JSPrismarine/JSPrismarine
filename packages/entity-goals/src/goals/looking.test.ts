@@ -32,6 +32,43 @@ describe('minecraft:behavior.look_at_player', () => {
         expect(harness.running()).toEqual([]);
     });
 
+    it('holds a look for the drawn number of game ticks, as Java halves it for selector ticks', () => {
+        const player = testMob('player', { x: 3, y: 0, z: 0 });
+        // The start chance takes the first draw and the hold the second; 0.5 draws 60 of 40 to 80.
+        const draws = [0, 0.5];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.look_at_player': { priority: 7, probability: 0.02 } },
+            world: { players: () => [player] },
+            random: () => draws.shift() ?? 0.99
+        });
+
+        let gameTicks = 0;
+        do {
+            harness.entity.goals.tick(gameTicks % 2 === 0);
+            gameTicks += 1;
+        } while (harness.isRunning('minecraft:behavior.look_at_player') && gameTicks < 500);
+
+        expect(gameTicks).toBe(61);
+    });
+
+    it('ends the look once the player walks out of the look distance', () => {
+        let at = { x: 3, y: 0, z: 0 };
+        const player = { ...testMob('player', at), position: () => at };
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.look_at_player': { priority: 7, look_distance: 6, probability: 1 } },
+            world: { players: (radius) => (Math.hypot(at.x, at.y, at.z) <= radius ? [player] : []) }
+        });
+
+        harness.tick();
+        expect(harness.isRunning('minecraft:behavior.look_at_player')).toBe(true);
+
+        at = { x: 7, y: 0, z: 0 };
+        harness.tick();
+
+        expect(harness.isRunning('minecraft:behavior.look_at_player')).toBe(false);
+        expect(harness.actuator.log).not.toContain('lookAt 7,0,0');
+    });
+
     it('does not start when no player is in range', () => {
         const harness = new GoalHarness({
             goals: { 'minecraft:behavior.look_at_player': { priority: 7, probability: 1 } },

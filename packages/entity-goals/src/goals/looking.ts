@@ -14,7 +14,7 @@ import type { GoalMob } from '../world';
  * All six hold the `look` flag and nothing else, and they are the most common
  * goals in the pack: `look_at_player` is on 69 of the 129 entities and
  * `random_look_around` on 55. The constants are Java's: `LookAtPlayerGoal`
- * publishes `DEFAULT_PROBABILITY = 0.02F` and looks for 40 to 80 ticks, and
+ * publishes `DEFAULT_PROBABILITY = 0.02F` and looks for 40 to 79 game ticks, and
  * `RandomLookAroundGoal` starts on the same 0.02 chance and looks for 20 to 40.
  */
 
@@ -27,17 +27,28 @@ const LOOK_TICKS: Range = [40, 80];
 /** How long a random look lasts, in ticks, from Java's `RandomLookAroundGoal.start`. */
 const GLANCE_TICKS: Range = [20, 40];
 
-/** The shared loop: pick something to look at, hold the look for a drawn time. */
+/**
+ * The shared loop: pick something to look at, hold the look for a drawn time.
+ *
+ * The loop ticks only on selector runs, every other game tick, so it counts the drawn time down
+ * in Java's `Goal.adjustedTickDelay` form, half the ticks rounded up, and a look lasts the drawn
+ * number of game ticks. Java's `LookAtPlayerGoal.canContinueToUse` also ends a look once the
+ * subject is further away than the look distance.
+ */
 const lookLoop = (
     support: GoalSupport,
     options: {
         find(): GoalMob | undefined;
         readonly probability: number;
         readonly lookTime: Range;
+        /** How far the subject may move before the look ends, in blocks; absent keeps it whatever the distance. */
+        readonly range?: number;
     }
 ): Goal => {
     let subject: GoalMob | undefined;
     let remaining = 0;
+    const inRange = (mob: GoalMob): boolean =>
+        options.range === undefined || support.distanceTo(mob.position()) <= options.range;
 
     return {
         canStart: () => {
@@ -45,9 +56,9 @@ const lookLoop = (
             subject = options.find();
             return subject !== undefined;
         },
-        canContinue: () => remaining > 0 && subject !== undefined,
+        canContinue: () => remaining > 0 && subject !== undefined && inRange(subject),
         start: () => {
-            remaining = support.between(options.lookTime[0], options.lookTime[1]);
+            remaining = Math.ceil(support.between(options.lookTime[0], options.lookTime[1]) / 2);
         },
         tick: () => {
             remaining -= 1;
@@ -97,7 +108,8 @@ export const lookAtPlayer = goal<LookAtParams>({
         lookLoop(support, {
             find: () => support.nearestPlayer(params.lookDistance),
             probability: params.probability,
-            lookTime: params.lookTime
+            lookTime: params.lookTime,
+            range: params.lookDistance
         })
 });
 
@@ -119,7 +131,8 @@ export const lookAtEntity = goal<LookAtEntityParams>({
         lookLoop(support, {
             find: () => support.mobs(params.lookDistance).find((mob) => support.matches(params.filters, mob)),
             probability: params.probability,
-            lookTime: params.lookTime
+            lookTime: params.lookTime,
+            range: params.lookDistance
         })
 });
 
