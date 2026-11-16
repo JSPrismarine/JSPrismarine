@@ -277,11 +277,6 @@
             "reason": "A fully oxidized copper golem that turns to a statue puts an oxidized copper golem statue block where it stood and is gone. Observed: it left minecraft:air where it stood, not a statue.",
             "reference": "Java CopperGolem.turnToStatue (sets the oxidized copper golem statue block, facing its rotation, then discards the golem); issue #3131 if it differs"
         },
-        "creeper-swell-range:minecraft:creeper": {
-            "kind": "defect",
-            "reason": "A creeper whose target stands still 2.75 blocks away swells and explodes; Java starts the swell inside 3 blocks. Observed: it did not swell with its target 2.75 blocks away, which Java does.",
-            "reference": "Java SwellGoal.canUse (distanceToSqr < 9) and Creeper.tick (maxSwell 30); issue #3129 if it differs"
-        },
         "damage-over-time:minecraft:axolotl": {
             "kind": "defect",
             "reason": "A vex past its life, or a dried-out axolotl or dolphin, is hurt on Java's cadence: a vex 1 every 20 ticks, an axolotl 2 every 20, a dolphin 1 every 10. Observed: it is hurt 1 then 1 after 10 ticks, 1 after 10 ticks, where Java hurts it 2 then 2 after 20 ticks, 2 after 20 ticks.",
@@ -370,42 +365,12 @@
         "goal-defend_trusted_target:minecraft:fox": {
             "kind": "defect",
             "reason": "A fox that trusts a player attacks whatever hurts that player. Observed: it did not turn on the attacker of its trusted player.",
-            "reference": "Java Fox.DefendTrustedTargetGoal (targets the last attacker of a trusted player); issue #3125 and #3115 if it differs"
-        },
-        "goal-drink_milk:minecraft:wandering_trader": {
-            "kind": "defect",
-            "reason": "An invisible wandering trader drinks milk in daylight and becomes visible. Observed: it stayed invisible in daylight.",
-            "reference": "Java WanderingTrader.registerGoals (UseItemGoal of milk when isBrightOutside and invisible); issue #3131 if it differs"
-        },
-        "goal-drink_potion:minecraft:wandering_trader": {
-            "kind": "defect",
-            "reason": "A hurt witch drinks a healing potion (a 1 in 20 roll each tick), and a wandering trader drinks invisibility whenever it is dark and it is visible. Observed: it drank no invisibility potion at night.",
-            "reference": "Java Witch.aiStep (nextFloat() < 0.05 with health below max: healing potion, drunk over its use time) and WanderingTrader.registerGoals (UseItemGoal of invisibility when isDarkOutside and not invisible); issue #3131 if it differs"
-        },
-        "goal-drink_potion:minecraft:witch": {
-            "kind": "defect",
-            "reason": "A hurt witch drinks a healing potion (a 1 in 20 roll each tick), and a wandering trader drinks invisibility whenever it is dark and it is visible. Observed: a hurt witch drank no healing potion.",
-            "reference": "Java Witch.aiStep (nextFloat() < 0.05 with health below max: healing potion, drunk over its use time) and WanderingTrader.registerGoals (UseItemGoal of invisibility when isDarkOutside and not invisible); issue #3131 if it differs"
-        },
-        "goal-drop_item_for:minecraft:cat": {
-            "kind": "defect",
-            "reason": "A cat that slept with its owner leaves a gift from the cat's morning gift table by the owner 70% of the time. Observed: it left its owner no gift.",
-            "reference": "Java Cat.CatRelaxOnOwnerGoal.giveMorningGift (random.nextFloat() < 0.7, loot table gameplay/cat_morning_gift); issue #3131 if it differs"
-        },
-        "goal-eat_carried_item:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox carrying food eats it once 600 ticks have passed since it last ate. Observed: it never ate the berries in its mouth.",
-            "reference": "Java Fox.aiStep (ticksSinceEaten > 600 with food in the mouth: eat and heal); issue #3131 if it differs"
+            "reference": "Java Fox.DefendTrustedTargetGoal (targets the last attacker of a trusted player); issue #3115 if it differs"
         },
         "goal-find_cover:minecraft:fox": {
             "kind": "defect",
             "reason": "A fox in daylight looks for shade: it walks under a roof when it stands in the sun. Observed: it stayed in the sun beside a roof.",
             "reference": "Java Fox.SeekShelterGoal (FleeSunGoal subclass: in sunlight, walk to a spot that cannot see the sky); issue #3131 if it differs"
-        },
-        "goal-find_underwater_treasure:minecraft:dolphin": {
-            "kind": "defect",
-            "reason": "A dolphin leads a player to treasure only after the player feeds it fish; an unfed dolphin does not swim to it. Observed: an unfed dolphin swam off toward treasure.",
-            "reference": "Java Dolphin.DolphinSwimToTreasureGoal.canUse (gotFish and air supply at least 100); issue #3129 if it differs"
         },
         "goal-find-mount:minecraft:drowned": {
             "kind": "defect",
@@ -587,16 +552,6 @@
             "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3135.",
             "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
         },
-        "goal-knockback_roar:minecraft:ravager": {
-            "kind": "defect",
-            "reason": "A roaring ravager hurts every non-illager within 4 blocks for 6 and throws them back. Observed: its roar did not hurt a player 2 blocks away.",
-            "reference": "Java Ravager.roar (inflate(4.0) box, hurt 6.0F for non-illagers, strongKnockback) and Ravager.aiStep (roarTick from 20, roar at 10); issue #3131 if it differs"
-        },
-        "goal-lay_egg:minecraft:turtle": {
-            "kind": "defect",
-            "reason": "A turtle that wants to lay finds sand within 8 blocks and lays turtle eggs on it after 200 ticks of digging. Observed: it laid no turtle egg on sand within 400 ticks.",
-            "reference": "Java Turtle.TurtleLayEggGoal (MoveToBlockGoal over sand, layEggCounter past adjustedTickDelay(200), then 1 to 4 turtle eggs); issue #3131 if it differs"
-        },
         "goal-look-at-player:minecraft:camel": {
             "kind": "defect",
             "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: Java's minecraft:camel registers no LookAtPlayerGoal, but the server runs minecraft:behavior.look_at_player. Tracked in #3130.",
@@ -737,30 +692,10 @@
             "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's zombified_piglin has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
             "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
         },
-        "goal-move_through_village:minecraft:iron_golem": {
-            "kind": "defect",
-            "reason": "An iron golem strolls around its village at any time of day. Observed: it did not stroll through the village in the day.",
-            "reference": "Java IronGolem.registerGoals (GolemRandomStrollInVillageGoal(this, 0.6), with no time of day condition); issue #3129 if it differs"
-        },
         "goal-move_to_liquid:minecraft:strider": {
             "kind": "defect",
             "reason": "A strider on land walks back to lava within 16 blocks. Observed: it did not walk to the lava 8 blocks away.",
             "reference": "Java Strider.StriderGoToLavaGoal (MoveToBlockGoal over lava, range 16); issue #3131 if it differs"
-        },
-        "goal-move_to_random_block:minecraft:pillager": {
-            "kind": "defect",
-            "reason": "A patrol leader walks toward a far patrol target. Observed: it moved 0.0 blocks in 300 ticks.",
-            "reference": "Java PatrollingMonster.LongDistancePatrolGoal and findPatrolTarget (a point up to 500 blocks away); issue #3131 if it differs"
-        },
-        "goal-move_to_random_block:minecraft:vindicator": {
-            "kind": "defect",
-            "reason": "A patrol leader walks toward a far patrol target. Observed: it moved 0.0 blocks in 300 ticks.",
-            "reference": "Java PatrollingMonster.LongDistancePatrolGoal and findPatrolTarget (a point up to 500 blocks away); issue #3131 if it differs"
-        },
-        "goal-move_towards_dwelling_restriction:minecraft:cat": {
-            "kind": "defect",
-            "reason": "An iron golem outside a village walks back toward it; a cat has no such goal in Java and stays where it is. Observed: it walked 29.9 blocks toward a village.",
-            "reference": "Java IronGolem.registerGoals (MoveBackToVillageGoal) and Cat.registerGoals (no village goal); issue #3129 if it differs"
         },
         "goal-move-towards-home-restriction:minecraft:bee": {
             "kind": "defect",
@@ -781,21 +716,6 @@
             "kind": "defect",
             "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets wither, which Java's never targets. Tracked in #3166.",
             "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
-        },
-        "goal-offer_flower:minecraft:iron_golem": {
-            "kind": "defect",
-            "reason": "In the day an iron golem offers a flower to a villager within 6 blocks, on a 1 in 8000 roll, and holds it out for 400 ticks. Observed: it held the flower for over 600 ticks, where Java holds it 400.",
-            "reference": "Java OfferFlowerGoal (isDay, random.nextInt(8000) == 0, a villager within 6 blocks, tick = adjustedTickDelay(400)); issue #3129 if it differs"
-        },
-        "goal-owner_hurt_by_target:minecraft:wolf": {
-            "kind": "defect",
-            "reason": "A tame wolf attacks the mob that last hurt its owner. Observed: it did not target the mob that hurt its owner.",
-            "reference": "Java OwnerHurtByTargetGoal (owner.getLastHurtByMob); issue #3125 if it differs"
-        },
-        "goal-owner_hurt_target:minecraft:wolf": {
-            "kind": "defect",
-            "reason": "A tame wolf attacks the mob its owner last hurt. Observed: it did not target the mob its owner hurt.",
-            "reference": "Java OwnerHurtTargetGoal (owner.getLastHurtMob); issue #3125 if it differs"
         },
         "goal-panic:minecraft:bee": {
             "kind": "defect",
@@ -876,36 +796,6 @@
             "kind": "defect",
             "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
             "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
-        },
-        "goal-raid_garden:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox picks ripe sweet berries from a bush, leaving it at age 1; a rabbit eats into a carrot crop. Observed: the berry bush 3 blocks away was left alone.",
-            "reference": "Java Fox.FoxEatBerriesGoal (pickSweetBerries: age set to 1, berries dropped) and Rabbit.RaidGardenGoal (carrots age lowered, or removed at age 0); issue #3131 if it differs"
-        },
-        "goal-random_breach:minecraft:dolphin": {
-            "kind": "defect",
-            "reason": "A dolphin near the surface leaps out of the water now and then. Observed: it never leapt out of the water.",
-            "reference": "Java Dolphin.registerGoals (DolphinJumpGoal(this, 10): a reducedTickDelay(10) roll, then an upward push out of the water); issue #3131 if it differs"
-        },
-        "goal-random_hover:minecraft:bee": {
-            "kind": "defect",
-            "reason": "A flier wanders to random spots within 8 blocks across that hover 1 to 3 blocks above solid ground, so it never climbs far off the ground. Observed: it climbed 7.9 blocks above the ground, where Java's targets stay within 3 of solid ground.",
-            "reference": "Java Bee.BeeWanderGoal (HoverRandomPos.getPos(bee, 8, 7, ..., 3, 1), falling back to AirAndWaterRandomPos.getPos(bee, 8, 4, -2, ...)); issue #3129 if it differs"
-        },
-        "goal-random_look_around_and_sit:minecraft:camel_husk": {
-            "kind": "defect",
-            "reason": "A fox perches and looks around on a 0.02 chance each tick; a camel husk sits down from time to time. Observed: it never sat down on a 0.01 roll each tick.",
-            "reference": "Java Fox.PerchAndSearchGoal (random.nextFloat() < 0.02) and CamelAi.RandomSitting; issue #3129 and #3131 if it differs"
-        },
-        "goal-random_look_around_and_sit:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox perches and looks around on a 0.02 chance each tick; a camel husk sits down from time to time. Observed: it never sat down on a 0.01 roll each tick.",
-            "reference": "Java Fox.PerchAndSearchGoal (random.nextFloat() < 0.02) and CamelAi.RandomSitting; issue #3129 and #3131 if it differs"
-        },
-        "goal-random_sitting:minecraft:panda": {
-            "kind": "defect",
-            "reason": "A panda sits only to eat: with no food in its paw or lying within 6 blocks, it never sits. Observed: it sat down with no food anywhere near.",
-            "reference": "Java Panda.PandaSitGoal.canUse (food items within 6 blocks or a held item); issue #3129 if it differs"
         },
         "goal-random-look-around:minecraft:camel": {
             "kind": "defect",
@@ -1022,25 +912,10 @@
             "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 10 block attack radius; closing in, it never walks, where Java's goal walks at 1 times its speed. Tracked in #3134.",
             "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
         },
-        "goal-rise_to_liquid_level:minecraft:strider": {
-            "kind": "defect",
-            "reason": "A strider in lava floats up to stand on its surface. Observed: it stayed at y 61.00 under the lava surface.",
-            "reference": "Java Strider.floatStrider (in lava, rises 0.05 a tick until it stands on the surface); issue #3131 if it differs"
-        },
-        "goal-roll:minecraft:panda": {
-            "kind": "defect",
-            "reason": "A playful panda rolls over now and then, tumbling forward. Observed: it never rolled.",
-            "reference": "Java Panda.PandaRollGoal (playful or baby, a reducedTickDelay roll, then a forward push); issue #3131 if it differs"
-        },
         "goal-skeleton_horse_trap:minecraft:skeleton_horse": {
             "kind": "deferred",
             "reason": "Java's trap enchants each skeleton's bow and helmet through the mob_spawn_equipment enchantment provider, a registry the server does not load yet (#2912); everything else about the trap matches Java.",
             "reference": "Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (setVisualOnly bolt, createSkeleton with an iron helmet when its head slot is empty and its main hand and head enchanted by VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, riding the trap horse and three more from createHorse, setTrap(false)); issue #2912 if it differs"
-        },
-        "goal-snacking:minecraft:panda": {
-            "kind": "defect",
-            "reason": "A panda picks up bamboo lying within 6 blocks and eats it. Observed: it left the bamboo 2 blocks away on the ground.",
-            "reference": "Java Panda.PandaSitGoal (walks to PANDA_ITEMS within 6 blocks, picks it up, sits and eats); issue #3131 if it differs"
         },
         "goal-sneeze:minecraft:panda": {
             "kind": "defect",
@@ -1056,16 +931,6 @@
             "kind": "defect",
             "reason": "A sitting tamed mob holds both the move and the jump flags, so nothing walks or jumps it. Observed: Java's minecraft:ocelot registers no SitWhenOrderedToGoal, but the server runs minecraft:behavior.stay_while_sitting. Tracked in #3130.",
             "reference": "Java SitWhenOrderedToGoal, whose constructor sets the JUMP and MOVE flags, read from the pinned jar"
-        },
-        "goal-stroll_towards_village:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox at night strolls toward a village it can find. Observed: it stayed 33.8 blocks from the village.",
-            "reference": "Java Fox.FoxStrollThroughVillageGoal (StrollThroughVillageGoal: nightly roll, walks toward a village POI); issue #3131 if it differs"
-        },
-        "goal-swim_up_for_breath:minecraft:dolphin": {
-            "kind": "defect",
-            "reason": "A dolphin swims up for air only once its air supply is below 140 ticks; a dolphin that has just dived, with 4800, keeps swimming below. Observed: it swam up for air with full lungs.",
-            "reference": "Java BreathAirGoal.canUse (getAirSupply() < 140) and Dolphin.getMaxAirSupply (4800); issue #3129 if it differs"
         },
         "goal-swim-idle:minecraft:cod": {
             "kind": "defect",
@@ -1097,11 +962,6 @@
             "reason": "Java runs no timer goal for this mob; its timed states are counters in the mob class Observed: Java runs no timer goal for this mob; its timed states are counters in the mob class, but the server runs minecraft:behavior.timer_flag_1. Tracked in #3130.",
             "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
         },
-        "goal-trade_with_player:minecraft:wandering_trader": {
-            "kind": "defect",
-            "reason": "A trader trading with a player stops walking. Observed: it walked 10.0 blocks while trading.",
-            "reference": "Java TradeWithPlayerGoal (stops navigation while a player trades); issue #3131 if it differs"
-        },
         "goal-use-kinetic-weapon:minecraft:husk": {
             "kind": "defect",
             "reason": "A mob with a target charges it with its spear on foot or mounted, at its SpearUseGoal charging speed. Observed: it only charges while mounted, where Java charges on foot. Tracked in #3133.",
@@ -1121,16 +981,6 @@
             "kind": "defect",
             "reason": "A mob with a target charges it with its spear on foot or mounted, at its SpearUseGoal charging speed. Observed: it only charges while mounted, where Java charges on foot. Tracked in #3133.",
             "reference": "Java SpearUseGoal.canUse and tick, and each mob's speeds read from the pinned jar"
-        },
-        "goal-wither_random_attack_pos_goal:minecraft:wither": {
-            "kind": "defect",
-            "reason": "A wither with a target flies toward it until it is within 3 blocks across, staying above it. Observed: after 200 ticks it is 11.1 blocks across from its target, where Java closes to 3.",
-            "reference": "Java WitherBoss.aiStep (horizontal approach while horizontalDistanceSqr > 9, climb while below target y + 5); issue #3131 if it differs"
-        },
-        "goal-wither_target_highest_damage:minecraft:wither": {
-            "kind": "defect",
-            "reason": "A wither turns on whoever hurt it last. Observed: it targets the attacker that dealt the most damage, where Java targets the last attacker.",
-            "reference": "Java WitherBoss.registerGoals (HurtByTargetGoal at target priority 1), which targets getLastHurtByMob; issue #3129 if it differs"
         },
         "hanging-entity-support:minecraft:leash_knot": {
             "kind": "defect",
@@ -1267,11 +1117,6 @@
             "reason": "An ominous item spawner lets its item go within 120 ticks and leaves. Observed: it holds its arrow for 121 ticks and stays, where Java's lets the item go within 120 and leaves.",
             "reference": "Java OminousItemSpawner.tick (spawnItemAfterTicks drawn from 60 to 120) and OminousItemSpawner.spawnItem; issue #3137"
         },
-        "phantom-swoop:minecraft:phantom": {
-            "kind": "defect",
-            "reason": "A phantom circles above its target and swoops down to bite it for 6 damage. Observed: it never bit its target within 600 ticks.",
-            "reference": "Java Phantom.PhantomCircleAroundAnchorGoal, Phantom.PhantomSweepAttackGoal (doHurtTarget on contact) and Phantom.updatePhantomSizeInfo (ATTACK_DAMAGE 6 + size); issue #3131 if it differs"
-        },
         "projectile-gravity:minecraft:ender_pearl": {
             "kind": "defect",
             "reason": "A projectile falls by Java's gravity for its type each tick: 0.05 for an arrow or a trident, 0.03 for a thrown item, none for a fireball. Observed: it falls 0.0250 in its first tick, where Java's gravity is 0.03.",
@@ -1336,16 +1181,6 @@
             "kind": "defect",
             "reason": "A mob's own spawn egg used on it makes a baby of it, when the mob can be a baby. Observed: the egg makes an adult, where Java makes a baby.",
             "reference": "Java SpawnEggItem.spawnOffspringFromSpawnEgg (setBaby(true), then refuses when isBaby is false); issue #3121"
-        },
-        "squid-swim:minecraft:glow_squid": {
-            "kind": "defect",
-            "reason": "A squid in open water drifts at up to 0.2 blocks a tick along a heading it redraws about once in 50 ticks, flees away from an attacker, and lies still out of water. Observed: it did not flee from its attacker.",
-            "reference": "Java Squid.SquidRandomMovementGoal (nextInt(50), cos and sin times 0.2, y from -0.1 to 0.1), Squid.SquidFleeGoal (away from getLastHurtByMob, 3 times the speed) and Squid.aiStep (no swimming out of water); issue #3131 if it differs"
-        },
-        "squid-swim:minecraft:squid": {
-            "kind": "defect",
-            "reason": "A squid in open water drifts at up to 0.2 blocks a tick along a heading it redraws about once in 50 ticks, flees away from an attacker, and lies still out of water. Observed: it did not flee from its attacker.",
-            "reference": "Java Squid.SquidRandomMovementGoal (nextInt(50), cos and sin times 0.2, y from -0.1 to 0.1), Squid.SquidFleeGoal (away from getLastHurtByMob, 3 times the speed) and Squid.aiStep (no swimming out of water); issue #3131 if it differs"
         },
         "struck-by-lightning:minecraft:axolotl": {
             "kind": "defect",
