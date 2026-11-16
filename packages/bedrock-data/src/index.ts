@@ -167,6 +167,16 @@ export interface JavaEntityNavigationEntry {
     canFloat: boolean;
     /** Whether Java's navigator can follow paths on solid ground. */
     canNavigateGround: boolean;
+    /** Whether Java's node evaluator routes through closed wooden doors, which the mob opens. */
+    canOpenDoors: boolean;
+    /** Whether Java's node evaluator routes through open doors. */
+    canPassDoors: boolean;
+    /** Whether Java's node evaluator treats fences and walls as a step rather than a wall. */
+    canWalkOverFences: boolean;
+    /** The Java move-control class the mob turns and steers with. */
+    moveControlClass: string;
+    /** The degrees a `SmoothSwimmingMoveControl` turns the body each tick, present only for one. */
+    maxTurnY?: number;
     /** Whether Java lets this living entity push and be pushed by other entities. */
     pushable: boolean;
     /** Java's per-`PathType` route cost, with negative values marking blocked terrain. */

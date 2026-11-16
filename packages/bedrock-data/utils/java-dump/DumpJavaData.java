@@ -39,7 +39,10 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.entity.ai.control.MoveControl;
+import net.minecraft.world.entity.ai.control.SmoothSwimmingMoveControl;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.level.pathfinder.NodeEvaluator;
 import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -226,7 +229,11 @@ public final class DumpJavaData {
         List<String> unavailable = new ArrayList<>();
 
         for (EntityType<?> type : BuiltInRegistries.ENTITY_TYPE) {
-            if (type.getCategory() == MobCategory.MISC) continue;
+            // The MISC category holds the golems among projectiles, vehicles and markers, so only
+            // its living types are tried, and only the mobs the probe level can build are kept. The
+            // villager is not one: its constructor reads world state the probe level leaves null.
+            boolean misc = type.getCategory() == MobCategory.MISC;
+            if (misc && !DefaultAttributes.hasSupplier(type)) continue;
             String identifier = BuiltInRegistries.ENTITY_TYPE.getKey(type).toString();
             try {
                 @SuppressWarnings("unchecked")
@@ -234,6 +241,7 @@ public final class DumpJavaData {
                         (EntityType.EntityFactory<Entity>) factoryField.get(type);
                 Entity entity = factory.create((EntityType<Entity>) type, level);
                 if (!(entity instanceof Mob mob)) {
+                    if (misc) continue;
                     throw new IllegalStateException(identifier + " is not a mob");
                 }
 
@@ -242,6 +250,19 @@ public final class DumpJavaData {
                 values.put("navigationClass", Json.string(navigation.getClass().getName()));
                 values.put("canFloat", Boolean.toString(navigation.canFloat()));
                 values.put("canNavigateGround", Boolean.toString(navigation.canNavigateGround()));
+                NodeEvaluator nodes = navigation.getNodeEvaluator();
+                values.put("canOpenDoors", Boolean.toString(nodes.canOpenDoors()));
+                values.put("canPassDoors", Boolean.toString(nodes.canPassDoors()));
+                values.put("canWalkOverFences", Boolean.toString(nodes.canWalkOverFences()));
+                MoveControl moveControl = mob.getMoveControl();
+                values.put("moveControlClass", Json.string(moveControl.getClass().getName()));
+                // SmoothSwimmingMoveControl turns the body by its own maxTurnY a tick, where every
+                // other move control turns it by MoveControl's 90 degrees or sets it outright.
+                if (moveControl instanceof SmoothSwimmingMoveControl<?> swimming) {
+                    Field maxTurnY = SmoothSwimmingMoveControl.class.getDeclaredField("maxTurnY");
+                    maxTurnY.setAccessible(true);
+                    values.put("maxTurnY", Integer.toString(maxTurnY.getInt(swimming)));
+                }
                 values.put("pushable", Boolean.toString(mob.isPushable()));
                 Json pathfindingMalus = new Json();
                 for (PathType pathType : PathType.values()) {
@@ -252,6 +273,7 @@ public final class DumpJavaData {
                 values.put("pathfindingMalus", pathfindingMalus.toString());
                 root.object(identifier, values);
             } catch (Throwable error) {
+                if (misc) continue;
                 unavailable.add(identifier + " (" + error.getClass().getSimpleName() + ")");
             }
         }
