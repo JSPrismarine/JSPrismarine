@@ -22,7 +22,7 @@ const spawn = (environment: EntityEnvironment): EntityInstance => {
 
 describe('minecraft:combat_regeneration', () => {
     it('gives a player who kills its target Regeneration for 100 ticks, and nothing to another mob', () => {
-        const applied: { target: number | undefined; effect: EntityStatusEffect }[] = [];
+        const applied: { target: string | number | undefined; effect: EntityStatusEffect }[] = [];
         const entity = spawn({
             effects: {
                 applyStatusEffect: (_entity, target, effect) => applied.push({ target: target.id?.(), effect }) > 0,
