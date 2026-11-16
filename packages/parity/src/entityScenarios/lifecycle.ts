@@ -616,10 +616,16 @@ const breed = (mother: string, father: string, food: string | undefined): Breedi
     const parents = [spawnLive(mother, at), spawnLive(father, { ...at, x: at.x + 1 })];
     try {
         // A horse breeds once tamed and an ocelot once it trusts: the group that carries the
-        // component is what Java's tame or trust check stands for.
-        for (const parent of parents)
-            if (!parent.instance.hasComponent('minecraft:breedable'))
-                activate(parent.instance, groupDeclaring(parent.identifier, 'minecraft:breedable'));
+        // component is what Java's tame or trust check stands for. A mob that comes to trust runs
+        // its own trust event, which also takes off the wild group that would eat the food for trust.
+        for (const parent of parents) {
+            if (parent.instance.hasComponent('minecraft:breedable')) continue;
+            const trust = field(field(parent.instance.componentParams('minecraft:trusting'), 'trustEvent'), 'event');
+            if (typeof trust === 'string') {
+                parent.instance.fire(trust);
+                parent.instance.applyQueuedEvents();
+            } else activate(parent.instance, groupDeclaring(parent.identifier, 'minecraft:breedable'));
+        }
         const params = parents[0]?.instance.componentParams('minecraft:breedable');
         if (params === undefined) return 'an adult has no minecraft:breedable to activate';
         for (const parent of parents) {
@@ -1889,6 +1895,10 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             const at = freshSpot();
             const villager = spawnLive(subject.bedrock, at);
             try {
+                // A villager trades once it has a job; one that spawned jobless takes the first job
+                // its definition gives, as a Java villager takes one at a job site.
+                if (!villager.instance.hasComponent('minecraft:economy_trade_table'))
+                    activate(villager.instance, groupDeclaring(subject.bedrock, 'minecraft:economy_trade_table'));
                 const merchant = runtime.merchant(villager);
                 if (merchant === undefined) return 'the villager has no trades to restock';
                 const restocked = (): boolean => {
