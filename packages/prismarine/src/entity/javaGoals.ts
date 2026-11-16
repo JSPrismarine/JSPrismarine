@@ -10,6 +10,7 @@
  * declares one gets the Bedrock behavior its file asks for. A ruling may also reach a component
  * that only exists to drive a goal, such as the sensor that lights a creeper's fuse.
  */
+import { TICKS_PER_SECOND } from '@jsprismarine/entities/hooks';
 import { LAND_ON_OWNERS_SHOULDER } from '@jsprismarine/entity-goals/goals/shoulder';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
@@ -19,6 +20,12 @@ import { entityFileIdentifier, withComponentReplaced } from './definitionOverlay
 /** The Bedrock potion ids of Java's `Potions.SWIFTNESS` and `Potions.INVISIBILITY`. */
 const SWIFTNESS_POTION = 14;
 const INVISIBILITY_POTION = 7;
+
+/**
+ * The ticks of each effect a fed bee takes, from the `MobEffectInstance` each flower's
+ * `getBeeInteractionEffect` builds: `EyeblossomBlock`'s poison and `WitherRoseBlock`'s wither.
+ */
+const BEE_FEEDING_EFFECT_TICKS: Readonly<Record<string, number>> = { poison: 25, wither: 40 };
 
 /** One Java ruling over a vanilla goal: the components that take the declared goal's place. */
 interface JavaGoalRuling {
@@ -122,6 +129,23 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
         entity: 'minecraft:bee',
         component: 'minecraft:behavior.random_hover',
         java: tuned('minecraft:behavior.random_hover', { hover_height: [1, 3], y_offset: 0 })
+    },
+    {
+        // Java `Bee.mobInteract` gives a bee fed a flower the flower's `getBeeInteractionEffect`, whose
+        // durations are ticks: `EyeblossomBlock` poisons for 25 and `WitherRoseBlock` withers for 40.
+        // Bedrock's feeding groups write the same numbers in seconds, twenty times as long.
+        entity: 'minecraft:bee',
+        component: 'minecraft:spell_effects',
+        java: (body) => ({
+            'minecraft:spell_effects': {
+                ...body,
+                add_effects: (Array.isArray(body['add_effects']) ? body['add_effects'] : []).map((effect: unknown) => {
+                    if (!isRecord(effect)) return effect;
+                    const ticks = BEE_FEEDING_EFFECT_TICKS[String(effect['effect'])];
+                    return ticks === undefined ? effect : { ...effect, duration: ticks / TICKS_PER_SECOND };
+                })
+            }
+        })
     },
     {
         // Java `Panda.PandaSitGoal` sits only to eat, which `minecraft:behavior.snacking` runs.

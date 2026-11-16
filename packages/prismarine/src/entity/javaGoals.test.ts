@@ -108,4 +108,31 @@ describe('withJavaGoals', () => {
         const data = entityFile('test:creeper', { 'minecraft:behavior.swell': { start_distance: 2.5 } });
         expect(withJavaGoals(data, javaGoalRulings())).toBe(data);
     });
+
+    it("gives a fed bee its flower's effect for Java's ticks, where Bedrock's file writes them as seconds", () => {
+        const bee = withJavaGoals(
+            entityFile(
+                'minecraft:bee',
+                {},
+                {
+                    add_poison_effect: {
+                        'minecraft:spell_effects': { add_effects: [{ effect: 'poison', duration: 25 }] }
+                    },
+                    add_wither_effect: {
+                        'minecraft:spell_effects': { add_effects: [{ effect: 'wither', duration: 40 }] }
+                    }
+                }
+            ),
+            javaGoalRulings()
+        );
+
+        expect(bee).toMatchObject({
+            'minecraft:entity': {
+                component_groups: {
+                    add_poison_effect: { 'minecraft:spell_effects': { add_effects: [{ duration: 1.25 }] } },
+                    add_wither_effect: { 'minecraft:spell_effects': { add_effects: [{ duration: 2 }] } }
+                }
+            }
+        });
+    });
 });
