@@ -285,6 +285,10 @@
             "jsprismarine:dist": "./dist/content/world/adapter.js",
             "default": "./src/content/world/adapter.ts"
         },
+        "./entity/Experience": {
+            "jsprismarine:dist": "./dist/entity/Experience.js",
+            "default": "./src/entity/Experience.ts"
+        },
         "./entity/contentAdapter": {
             "jsprismarine:dist": "./dist/entity/contentAdapter.js",
             "default": "./src/entity/contentAdapter.ts"
