@@ -60,7 +60,11 @@ const numbersAfterField = (javaId: string, method: string, fieldName: string): r
 };
 
 /** Adds every component group of the sandboxed entity whose name passes `pick`, and drops those `drop` names. */
-const switchGroups = (sandbox: SandboxRun, pick: (group: string) => boolean, drop: (group: string) => boolean) => {
+export const switchGroups = (
+    sandbox: SandboxRun,
+    pick: (group: string) => boolean,
+    drop: (group: string) => boolean
+) => {
     const { instance } = sandbox.entity;
     const wanted = [...instance.type.groups.keys()].filter(pick);
     instance.restoreComponentGroups([

@@ -103,7 +103,7 @@ const lavaSubjects = (): readonly EntitySubject[] => {
         ...[...javaEntityTypeBuilders().keys()].filter(javaFireImmune).flatMap((javaId) => mappedEntity(javaId) ?? [])
     ])
         if (javaLiving(subject.javaId)) subjects.set(subject.javaId, subject);
-    return [...subjects.values()].filter((subject) => subject.javaId !== 'minecraft:player');
+    return [...subjects.values()];
 };
 
 /** The aspects a lava row compares: the hurt condition that deals it and the immunity that stops it. */

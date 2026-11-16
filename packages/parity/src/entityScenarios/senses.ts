@@ -17,6 +17,7 @@ import type { SandboxMedium, SandboxRun } from './sandbox.ts';
 import { SANDBOX_ORIGIN, inSandbox } from './sandbox.ts';
 import type { EntitySubject } from './subjects.ts';
 import { entitiesDeclaring, mappedEntity } from './subjects.ts';
+import { effectsAroundScenarios } from './effectsAround.ts';
 import { moodScenarios } from './moods.ts';
 import { reactionScenarios } from './reactions.ts';
 
@@ -1077,5 +1078,6 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         }
     },
     ...reactionScenarios,
-    ...moodScenarios
+    ...moodScenarios,
+    ...effectsAroundScenarios
 ];
