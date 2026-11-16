@@ -39,7 +39,8 @@ import {
     addJumpExhaustion,
     addMovementExhaustion,
     applyHungerEffect,
-    hungerOutcome
+    hungerOutcome,
+    spendExhaustion
 } from '../playerHunger';
 import { cushions, land, trackFall } from '../playerFall';
 import { beginMeal, cancelMeal, dueMeal } from '../playerMeal';
@@ -428,6 +429,7 @@ export class PlayerSystems {
     }
 
     private tickHunger(entity: DataEntity, survival: SurvivalPlayer, tick: number): void {
+        spendExhaustion(survival.components);
         const outcome = hungerOutcome(survival, tick, ruleIsOn(this.ports.level, NATURAL_REGENERATION));
         if (outcome?.kind === 'starve') this.hurt(entity, DamageCause.Starvation, outcome.amount);
         else if (outcome?.kind === 'regenerate' && this.ports.heal(entity.id, outcome.amount))

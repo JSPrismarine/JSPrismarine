@@ -84,11 +84,16 @@ describe('a store player', () => {
             const healed = logged(fixture.runtime, () => fixture.runtime.tick(80));
 
             expect(healthOf(player)).toBe(16);
-            // Six points of exhaustion are one point of saturation and two left over.
-            expect(components.get('vitals.saturation')).toBe(19);
-            expect(components.get('vitals.exhaustion')).toBe(2);
-            expect(fieldsOf(healed, 'vitals.saturation')).toHaveLength(1);
+            expect(components.get('vitals.exhaustion')).toBe(6);
             expect(fieldsOf(healed, 'vitals.exhaustion')).toHaveLength(1);
+
+            // The next tick spends it, as Java's FoodData.tick does: one point of saturation and
+            // two left over.
+            const spent = logged(fixture.runtime, () => fixture.runtime.tick(81));
+            expect(components.get('vitals.saturation')).toBe(4);
+            expect(components.get('vitals.exhaustion')).toBe(2);
+            expect(fieldsOf(spent, 'vitals.saturation')).toHaveLength(1);
+            expect(fieldsOf(spent, 'vitals.exhaustion')).toHaveLength(1);
         });
 
         it('does not heal with natural regeneration turned off', () => {

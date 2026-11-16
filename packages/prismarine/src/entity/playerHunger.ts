@@ -5,8 +5,14 @@
 import type { PlayerComponents } from './playerComponents';
 import type { SurvivalPlayer } from './survivalPlayer';
 
-/** How much exhaustion buys one point of saturation, and then of food. */
+/**
+ * How much exhaustion buys one point of saturation, and then of food: Java's `FoodData.tick` spends
+ * this much once the counter is above it.
+ */
 const EXHAUSTION_PER_FOOD_POINT = 4;
+
+/** The most exhaustion the counter holds, Java's `FoodData.addExhaustion` cap. */
+export const EXHAUSTION_CAP = 40;
 
 /**
  * What the things a player does cost in exhaustion, from the vanilla hunger table.
@@ -78,10 +84,10 @@ export const addFood = (components: PlayerComponents, food: number, saturation =
 /**
  * Makes the player hungrier.
  *
- * Exhaustion is a counter, not something the player has: every four points spend one point of
- * saturation, or - once saturation is gone - one point of food. Everything that costs hunger in
- * vanilla (moving, jumping, attacking, healing) does it through here. A player hunger does not
- * reach, in creative or spectator, or a dead one, is charged nothing.
+ * Exhaustion is a counter, not something the player has. Java's `FoodData.addExhaustion` adds to
+ * it up to {@link EXHAUSTION_CAP}, and {@link spendExhaustion} spends it one step a tick.
+ * Everything that costs hunger in vanilla (moving, jumping, attacking, healing) does it through
+ * here. A player hunger does not reach, in creative or spectator, or a dead one, is charged nothing.
  * @param {SurvivalPlayer} player - The player.
  * @param {number} amount - Exhaustion to add.
  */
@@ -89,17 +95,22 @@ export const addExhaustion = (player: SurvivalPlayer, amount: number): void => {
     if (!player.vulnerable() || !player.alive() || amount <= 0) return;
 
     const { components } = player;
-    let exhaustion = components.get('vitals.exhaustion') + amount;
+    components.set('vitals.exhaustion', Math.min(components.get('vitals.exhaustion') + amount, EXHAUSTION_CAP));
+};
 
-    while (exhaustion >= EXHAUSTION_PER_FOOD_POINT) {
-        exhaustion -= EXHAUSTION_PER_FOOD_POINT;
+/**
+ * One tick's spending of exhaustion, Java's `FoodData.tick`: once the counter is above four it
+ * loses four, and that buys one point of saturation or, once saturation is gone, one point of food.
+ * @param {PlayerComponents} components - The player's components.
+ */
+export const spendExhaustion = (components: PlayerComponents): void => {
+    const exhaustion = components.get('vitals.exhaustion');
+    if (exhaustion <= EXHAUSTION_PER_FOOD_POINT) return;
 
-        const saturation = components.get('vitals.saturation');
-        if (saturation > 0) setSaturation(components, saturation - 1);
-        else components.set('vitals.food', components.get('vitals.food') - 1);
-    }
-
-    components.set('vitals.exhaustion', exhaustion);
+    components.set('vitals.exhaustion', exhaustion - EXHAUSTION_PER_FOOD_POINT);
+    const saturation = components.get('vitals.saturation');
+    if (saturation > 0) setSaturation(components, Math.max(saturation - 1, 0));
+    else components.set('vitals.food', Math.max(components.get('vitals.food') - 1, 0));
 };
 
 /**

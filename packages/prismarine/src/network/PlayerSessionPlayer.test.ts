@@ -179,7 +179,7 @@ describe("PlayerSession's player", () => {
             const { player } = fakePlayer();
 
             expect(player.getFood()).toBe(20);
-            expect(player.getSaturation()).toBe(20);
+            expect(player.getSaturation()).toBe(5);
             expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(0);
         });
 
@@ -192,42 +192,59 @@ describe("PlayerSession's player", () => {
     });
 
     describe('hunger', () => {
-        it('spends four exhaustion per point of saturation', () => {
+        it('spends nothing while the counter is at four, as Java waits until it is above', async () => {
             const { session, player } = fakePlayer();
 
             session.inputs().exhaustPlayer(player, 4);
-            expect(player.getSaturation()).toBe(19);
-            expect(player.getFood()).toBe(20);
+            await tick(session, 1);
+            expect(player.getSaturation()).toBe(5);
+            expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(4);
         });
 
-        it('eats into food once saturation is gone', () => {
-            const { session, player } = fakePlayer();
-            player.setSaturation(0);
-
-            session.inputs().exhaustPlayer(player, 4);
-            expect(player.getFood()).toBe(19);
-        });
-
-        it('keeps the remainder rather than rounding it away', () => {
+        it('spends four exhaustion per point of saturation and keeps the remainder', async () => {
             const { session, player } = fakePlayer();
 
             session.inputs().exhaustPlayer(player, 4.5);
-            expect(player.getSaturation()).toBe(19);
+            await tick(session, 1);
+            expect(player.getSaturation()).toBe(4);
+            expect(player.getFood()).toBe(20);
             expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBeCloseTo(0.5);
         });
 
-        it('spends several points at once for a large amount', () => {
-            const { session, player } = fakePlayer();
-
-            session.inputs().exhaustPlayer(player, 12);
-            expect(player.getSaturation()).toBe(17);
-        });
-
-        it('never drops below an empty bar', () => {
+        it('eats into food once saturation is gone', async () => {
             const { session, player } = fakePlayer();
             player.setSaturation(0);
 
+            session.inputs().exhaustPlayer(player, 4.5);
+            await tick(session, 1);
+            expect(player.getFood()).toBe(19);
+        });
+
+        it('spends one step a tick for a large amount', async () => {
+            const { session, player } = fakePlayer();
+
+            session.inputs().exhaustPlayer(player, 12.5);
+            await tick(session, 1);
+            expect(player.getSaturation()).toBe(4);
+            await tick(session, 2, 2);
+            expect(player.getSaturation()).toBe(2);
+            expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBeCloseTo(0.5);
+        });
+
+        it('caps the counter at 40', () => {
+            const { session, player } = fakePlayer();
+
             session.inputs().exhaustPlayer(player, 4 * 100);
+            expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(40);
+        });
+
+        it('never drops below an empty bar', async () => {
+            const { session, player } = fakePlayer();
+            player.setFood(1);
+            player.setSaturation(0);
+
+            session.inputs().exhaustPlayer(player, 40);
+            await tick(session, 20);
             expect(player.getFood()).toBe(0);
             expect(player.getSaturation()).toBe(0);
         });
@@ -248,8 +265,7 @@ describe("PlayerSession's player", () => {
 
             await move(session, 40);
 
-            // 40 m * 0.1 = 4.0, exactly one point of saturation.
-            expect(player.getSaturation()).toBe(19);
+            expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBeCloseTo(4);
         });
 
         it('costs a tenth of that at a walk', async () => {
@@ -257,16 +273,19 @@ describe("PlayerSession's player", () => {
 
             await move(session, 40);
 
-            expect(player.getSaturation()).toBe(20);
             expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBeCloseTo(0.4);
         });
 
         it('empties the bar over a long enough sprint', async () => {
             const { session, player } = fakePlayer();
+            player.setFood(5);
             player.setSaturation(0);
             await session.setSprinting(true);
 
-            await move(session, 40 * 20);
+            for (let meters = 0; meters < 40 * 5; meters += 40) {
+                await move(session, 41);
+                await tick(session, 1, 1 + meters);
+            }
 
             expect(player.getFood()).toBe(0);
         });
@@ -320,7 +339,7 @@ describe("PlayerSession's player", () => {
                 await move(session, 100);
 
                 expect(player.getFood()).toBe(20);
-                expect(player.getSaturation()).toBe(20);
+                expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(0);
             }
         });
     });
@@ -430,11 +449,12 @@ describe("PlayerSession's player", () => {
             const { session, player } = fakePlayer();
             await session.getActor()?.setHealth(10);
 
-            await tick(session, 80, 1);
+            await tick(session, 81, 1);
 
             expect(player.getHealth()).toBe(11);
-            // The heal costs 6 exhaustion: one point of saturation, with 2 left over.
-            expect(player.getSaturation()).toBe(19);
+            // The heal costs 6 exhaustion, which the next tick spends: one point of saturation,
+            // with 2 left over.
+            expect(player.getSaturation()).toBe(4);
             expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBeCloseTo(2);
         });
 
@@ -444,7 +464,7 @@ describe("PlayerSession's player", () => {
             await tick(session, 200);
 
             expect(player.getFood()).toBe(20);
-            expect(player.getSaturation()).toBe(20);
+            expect(player.getSaturation()).toBe(5);
         });
 
         it('does not heal a hungry player', async () => {
@@ -1039,9 +1059,10 @@ describe("PlayerSession's player", () => {
 
             const packets = sent.filter((packet) => packet instanceof UpdateAttributesPacket);
             expect(packets).toHaveLength(1);
-            expect(packets[0]?.attributes.map((attribute) => attribute.getName()).sort()).toEqual(
-                [AttributeIds.PlayerExhaustion, AttributeIds.PlayerSaturation].sort()
-            );
+            // The exhaustion is spent by the store's next tick, so only the counter changed.
+            expect(packets[0]?.attributes.map((attribute) => attribute.getName())).toEqual([
+                AttributeIds.PlayerExhaustion
+            ]);
         });
 
         it('sends a change again when the send of it failed', async () => {

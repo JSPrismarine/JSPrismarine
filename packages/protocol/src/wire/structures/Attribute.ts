@@ -334,14 +334,15 @@ export class Attributes {
                 name: AttributeIds.PlayerSaturation,
                 min: 0,
                 max: 20,
-                def: 20
+                // Java's `FoodData` starts a player on 5 saturation.
+                def: 5
             }),
-            // Vanilla bounds the exhaustion counter at 5 and spends it 4 at a time; see
-            // `Player.addExhaustion`.
+            // Java's `FoodData.addExhaustion` caps the exhaustion counter at 40, and its `tick`
+            // spends it 4 at a time.
             new Attribute({
                 name: AttributeIds.PlayerExhaustion,
                 min: 0,
-                max: 5,
+                max: 40,
                 def: 0
             }),
             new Attribute({

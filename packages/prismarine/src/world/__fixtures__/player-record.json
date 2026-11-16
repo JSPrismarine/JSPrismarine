@@ -183,12 +183,12 @@
         "minecraft:player.saturation": {
             "min": 0,
             "max": 20,
-            "base": 20,
+            "base": 5,
             "current": 4
         },
         "minecraft:player.exhaustion": {
             "min": 0,
-            "max": 5,
+            "max": 40,
             "base": 0,
             "current": 0
         },

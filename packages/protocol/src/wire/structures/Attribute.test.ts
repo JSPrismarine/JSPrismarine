@@ -154,7 +154,8 @@ describe('entity', () => {
             const attributes = player();
 
             expect(attributes.getValue(AttributeIds.PlayerHunger)).toBe(20);
-            expect(attributes.getValue(AttributeIds.PlayerSaturation)).toBe(20);
+            // Java's FoodData starts a player on 5 saturation.
+            expect(attributes.getValue(AttributeIds.PlayerSaturation)).toBe(5);
             expect(attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(0);
             expect(attributes.getValue(AttributeIds.Health)).toBe(20);
         });
