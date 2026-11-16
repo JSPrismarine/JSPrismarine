@@ -706,8 +706,8 @@ export class MobBody {
      * Writes a saved value back into one field without running the setter's side effects: no
      * {@link MobBody.onWrite} report, no equipment hook, and no change to the inventory slots
      * that a new equipment set would clear. A position still refiles the body in its index,
-     * because the index is derived from the position. This is how the entity store undoes a
-     * change.
+     * because the index is derived from the position, and a home still reaches the instance that
+     * keeps it. This is how the entity store undoes a change.
      */
     public restore<K extends keyof LoggedBodyState>(field: K, value: LoggedBodyState[K]): void {
         this.restoring = true;
@@ -715,6 +715,8 @@ export class MobBody {
             this.logged[field] = value;
             if (field === 'equipment') this.equipmentRevision += 1;
             if (field === 'position') this.onMove?.();
+            // The instance holds the home the goals and filters read, so it goes back with the body.
+            if (field === 'home') this.instance?.setHomePosition(this.logged.home);
         } finally {
             this.restoring = false;
         }
