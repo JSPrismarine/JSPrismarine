@@ -32,6 +32,7 @@ const LOADED: Readonly<Record<string, { readonly table: string; readonly key: (e
     predicate: { table: 'predicates', key: (entry) => `minecraft:${entry.path}` },
     block_transformer: { table: 'blockTransformers', key: (entry) => `minecraft:${entry.path}` },
     dimension_type: { table: 'dimensionTypes', key: (entry) => `minecraft:${entry.path}` },
+    enchantment_provider: { table: 'enchantmentProviders', key: (entry) => `minecraft:${entry.path}` },
     tags: {
         table: 'tags',
         key: (entry) => {

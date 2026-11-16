@@ -51,7 +51,6 @@ const OPEN_ISSUES: Readonly<Record<string, string>> = {
     'goal-owner_hurt_target': '#3125',
     'goal-owner_hurt_by_target': '#3125',
     'goal-defend_trusted_target': '#3115',
-    'goal-skeleton_horse_trap': '#2912',
     'goal-summon_entity': '#3127',
     'goal-send_event': '#3127',
     'creeper-swell-range': '#3129',
@@ -65,9 +64,6 @@ const OPEN_ISSUES: Readonly<Record<string, string>> = {
     'goal-swim_up_for_breath': '#3129',
     'goal-find_underwater_treasure': '#3129'
 };
-
-/** How the skeleton trap row names its one known gap, the enchanting of the skeletons' gear. */
-const TRAP_GEAR_GAP = 'where Java enchants both from the mob_spawn_equipment provider';
 
 /** The issue for every other scenario that still differs: the mob-specific goals with no Java outcome. */
 const OUTCOME_ISSUE = '#3131';
@@ -810,13 +806,6 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }),
     goalScenario({
         goals: ['skeleton_horse_trap'],
-        classify: (_subject, difference) =>
-            difference.split('; ').every((part) => part.endsWith(TRAP_GEAR_GAP))
-                ? {
-                      kind: 'deferred',
-                      reason: "Java's trap enchants each skeleton's bow and helmet through the mob_spawn_equipment enchantment provider, a registry the server does not load yet (#2912); everything else about the trap matches Java."
-                  }
-                : undefined,
         java: 'A trap skeleton horse that a player comes within 10 blocks of is struck by a visual-only bolt, carries a skeleton, and calls three more skeleton horses with skeleton riders; every skeleton spawned bareheaded gets an iron helmet, the bow and helmet of each skeleton are enchanted, and the trap springs once.',
         reference:
             'Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (setVisualOnly bolt, createSkeleton with an iron helmet when its head slot is empty and its main hand and head enchanted by VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, riding the trap horse and three more from createHorse, setTrap(false))',
@@ -859,7 +848,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                     unridden > 0 && `${unridden} of the horses do not carry exactly one skeleton`,
                     bare > 0 && `${bare} of the skeletons wear no helmet`,
                     unenchanted > 0 &&
-                        `${unenchanted} of the skeletons carry an unenchanted bow or helmet, ${TRAP_GEAR_GAP}`,
+                        `${unenchanted} of the skeletons carry an unenchanted bow or helmet, where Java enchants both from the mob_spawn_equipment provider`,
                     bolts.size !== 1 && `${bolts.size} lightning bolts struck, where Java's trap calls one`,
                     hurt > 0 && `the bolt hurt ${hurt} of the skeletons, where Java's trap bolt is visual only`,
                     again !== skeletons.length && 'the trap sprang a second time'

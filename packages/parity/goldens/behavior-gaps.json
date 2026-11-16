@@ -547,11 +547,6 @@
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
             "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
         },
-        "goal-skeleton_horse_trap:minecraft:skeleton_horse": {
-            "kind": "deferred",
-            "reason": "Java's trap enchants each skeleton's bow and helmet through the mob_spawn_equipment enchantment provider, a registry the server does not load yet (#2912); everything else about the trap matches Java.",
-            "reference": "Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (setVisualOnly bolt, createSkeleton with an iron helmet when its head slot is empty and its main hand and head enchanted by VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, riding the trap horse and three more from createHorse, setTrap(false)); issue #2912 if it differs"
-        },
         "java-rule-out_of_control:minecraft:acacia_boat": {
             "kind": "defect",
             "reason": "A boat floating over a bubble column is taken from its rider for 60 ticks, then thrown up by one rising under it or pulled under by one dragging down. Observed: a rising column moves it 0.00 blocks in 80 ticks, where Java throws it up; a downward column moves it -0.01 blocks in 80 ticks, where Java pulls it under.",
@@ -2252,41 +2247,6 @@
         "registry-entry-loaded:dialog/server_links": {
             "kind": "intentional",
             "reason": "Java dialogs are a Java client screen with no Bedrock packet.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/enderman_loot_drop": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/mob_spawn_equipment": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/pillager_spawn_crossbow": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/raid/pillager_post_wave_3": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/raid/pillager_post_wave_5": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/raid/vindicator": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/raid/vindicator_post_wave_5": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
             "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
         },
         "registry-entry-loaded:frog_variant/cold": {
