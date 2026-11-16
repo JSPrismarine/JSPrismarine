@@ -30,6 +30,7 @@ import type { LootDialect, LootDifficultyView, LootTiers } from './dialect';
 import {
     DEFAULT_DIFFICULTY,
     bedrockRange,
+    entityComponentInteger,
     gateAt,
     reportBedrockFunctions,
     reportEntryKeys,
@@ -187,13 +188,23 @@ const bedrockFunctionsAt = (value: unknown, context: ParseContext, grammar: Loot
                 const next = Math.max(0, Math.trunc(count(evaluation)));
                 return next === 0 ? undefined : evaluation.items.withCount(stack, next);
             });
+        } else if (name === 'set_data') {
+            // Bedrock writes a fixed value or a `{ min, max }` range, as the pillager outpost's goat horns do.
+            const data = rangeAt(raw['data'], at.at('data'), grammar);
+            const path = at.path;
+            functions.push((stack, evaluation) => {
+                const withMeta = evaluation.items.withMeta;
+                if (withMeta === undefined) {
+                    evaluation.diagnostics.warn(path, 'the item stack adapter cannot carry Bedrock auxiliary data');
+                    return stack;
+                }
+                return withMeta(stack, Math.trunc(data(evaluation)));
+            });
         } else if (name === 'set_data_from_color_index') {
             const path = at.path;
             functions.push((stack, evaluation) => {
                 const entity = evaluation.parameter('this_entity', path);
-                const color = entity?.components?.get('minecraft:color');
-                const index =
-                    typeof color === 'number' ? color : isJsonObject(color) ? asNumber(color['value']) : undefined;
+                const index = entityComponentInteger(entity?.components?.get('minecraft:color'));
                 if (index === undefined) {
                     evaluation.diagnostics.warn(path, 'set_data_from_color_index has no entity color to copy');
                     return stack;

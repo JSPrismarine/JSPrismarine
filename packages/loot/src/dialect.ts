@@ -148,11 +148,11 @@ export const reportEntryKeys = (value: JsonObject, context: ParseContext, dialec
  * The Bedrock loot functions this package reads and does not apply, each
  * naming what a result comes out as without it.
  *
- * Nineteen of them, and only three reach anything the server rolls today:
- * `enchant_random_gear` and `looting_enchant` on the equipment tables, and
- * `set_banner_details` on the raid captains. So a skeleton's bow arrives
- * unenchanted and a pillager captain's banner is a plain white one. The other
- * sixteen are on chest, fishing and death-drop tables, which the server draws
+ * Only three reach anything the server rolls today: `enchant_random_gear` and
+ * `looting_enchant` on the equipment tables, and `set_banner_details` on the
+ * raid captains. So a skeleton's bow arrives unenchanted and a pillager
+ * captain's banner is a plain white one. The rest are on chest, fishing and
+ * death-drop tables, which the server draws
  * from the Java registry, where the same work is already done by
  * `@jsprismarine/predicates`.
  *
@@ -163,7 +163,6 @@ export const reportEntryKeys = (value: JsonObject, context: ParseContext, dialec
  */
 export const BEDROCK_REVIEWED_FUNCTIONS = {
     looting_enchant: "a killer's looting level adds nothing",
-    set_data: 'a variant such as a dye color comes out as the default',
     enchant_randomly: 'the result arrives unenchanted',
     enchant_with_levels: 'the result arrives unenchanted',
     enchant_random_gear: "a mob's gear arrives unenchanted",
@@ -184,6 +183,7 @@ export const BEDROCK_REVIEWED_FUNCTIONS = {
 /** Bedrock loot functions this package applies while compiling an entry. */
 export const BEDROCK_IMPLEMENTED_FUNCTIONS = {
     set_count: "sets the entry's stack count using Bedrock's range",
+    set_data: 'sets the Bedrock auxiliary item data, such as the effect a suspicious stew carries',
     set_data_from_color_index: 'copies the entity color into Bedrock auxiliary item data'
 } as const satisfies Readonly<Record<string, string>>;
 
@@ -308,6 +308,29 @@ const erroredSince = (diagnostics: DiagnosticCollector, from: number): boolean =
 type BedrockConditionParser = (value: JsonObject, context: ParseContext, difficulty: LootDifficultyView) => Predicate;
 
 /**
+ * The integer an entity's integer-state component holds, such as `minecraft:variant`, whether the
+ * roll's entity view carries it as a number or as the definition's `{ "value": n }`.
+ */
+export const entityComponentInteger = (component: unknown): number | undefined =>
+    typeof component === 'number' ? component : isJsonObject(component) ? asNumber(component['value']) : undefined;
+
+/**
+ * `has_variant` and `has_mark_variant`: whether the entity the table is rolled for holds the
+ * value in one integer-state component. An entity without the component does not match, the way
+ * Bedrock's definitions give every mob that reads one a default value of its own.
+ */
+const componentValueIs = (component: string, value: JsonObject, context: ParseContext): Predicate => {
+    const wanted = asNumber(value['value']);
+    if (wanted === undefined) {
+        context.at('value').error(`a ${component.slice('minecraft:'.length)} condition needs a value`);
+        return CLOSED;
+    }
+    const path = context.path;
+    return (evaluation) =>
+        entityComponentInteger(evaluation.parameter('this_entity', path)?.components?.get(component)) === wanted;
+};
+
+/**
  * The three chance conditions Bedrock's equipment tables gate on. Every other
  * Bedrock condition type is reported by `bedrockConditionAt` and closes its
  * gate, because this package has nothing to evaluate it against.
@@ -349,17 +372,21 @@ const BEDROCK_CONDITIONS: Readonly<Record<string, BedrockConditionParser>> = {
             return CLOSED;
         }
         return (evaluation) => evaluation.random.nextFloat() < max * difficulty.scale();
-    }
+    },
+
+    has_variant: (value, context) => componentValueIs('minecraft:variant', value, context),
+    has_mark_variant: (value, context) => componentValueIs('minecraft:mark_variant', value, context)
 };
 
 /**
  * The Bedrock loot conditions this package does not evaluate, each naming what
  * it reads.
  *
- * All twelve want the same two things and this package has neither for a
- * Bedrock roll: the entity the table is being rolled for, and the world around
- * it. A roll here carries a random source and a parameter set, so there is no
- * killer to ask about, no variant to read off a mob and no biome under it.
+ * Each wants something a Bedrock roll does not carry: the damage that killed
+ * the entity, its rider or vehicle, its age or properties, or the world around
+ * it. A roll carries a random source and its parameters, which name the entity
+ * the table is rolled for but no killer and no biome. The two variant
+ * conditions read that entity, so they are evaluated instead.
  *
  * Being on this list changes the report, not the roll: the gate still closes,
  * because a condition nothing evaluates must not pass. It drops from an error
@@ -368,9 +395,9 @@ const BEDROCK_CONDITIONS: Readonly<Record<string, BedrockConditionParser>> = {
  * between a reviewed gap and an unreviewed one. An unlisted condition stays an
  * error.
  *
- * None of the twelve appear in the 18 equipment tables, which are the only
- * Bedrock tables this server rolls. All 79 uses are on entity death drops and
- * chest tables, and the server draws both from the Java registry.
+ * None of them appear in the equipment and interaction tables, which are the
+ * only Bedrock tables this server rolls. Their uses are on entity death drops
+ * and chest tables, and the server draws both from the Java registry.
  */
 export const BEDROCK_REVIEWED_CONDITIONS = {
     killed_by_player: 'whether a player landed the killing blow',
@@ -379,8 +406,6 @@ export const BEDROCK_REVIEWED_CONDITIONS = {
     damaged_by_entity: 'which entity type dealt the last damage',
     entity_killed: 'a predicate over the entity that was killed',
     random_chance_with_looting: "a chance scaled by the killer's looting level",
-    has_variant: "the entity's minecraft:variant",
-    has_mark_variant: "the entity's minecraft:mark_variant",
     is_baby: "the entity's age",
     passenger_of_entity: 'what the entity is riding',
     bool_property: 'an entity property a behavior pack declared',
@@ -394,7 +419,9 @@ const REVIEWED_CONDITIONS: ReadonlyMap<string, string> = new Map(Object.entries(
 const BEDROCK_CONDITION_KEYS: Readonly<Record<string, readonly string[]>> = {
     random_chance: ['condition', 'chance'],
     random_difficulty_chance: ['condition', 'default_chance', ...BEDROCK_DIFFICULTIES],
-    random_regional_difficulty_chance: ['condition', 'max_chance']
+    random_regional_difficulty_chance: ['condition', 'max_chance'],
+    has_variant: ['condition', 'value'],
+    has_mark_variant: ['condition', 'value']
 };
 
 /**

@@ -78,20 +78,117 @@ describe('the plural conditions array', () => {
     });
 
     it('closes the gate on a reviewed condition, and says what it would have read', () => {
-        const table = gated([{ condition: 'has_mark_variant', value: 1 }]);
+        const table = gated([{ condition: 'killed_by_player' }]);
         const { value, diagnostics } = parseLootTable(table, { dialect: 'bedrock' });
 
         // A warning rather than an error because the gap is written down: the
-        // condition reads a mob this roll has no handle on, so the gate shuts.
+        // condition reads a killer this roll has no handle on, so the gate shuts.
         expect(diagnostics).toEqual([
             {
                 severity: 'warning',
                 path: 'pools[0].conditions[0]',
                 message:
-                    "this package does not evaluate the bedrock loot condition has_mark_variant, which reads the entity's minecraft:mark_variant, so its gate never opens"
+                    'this package does not evaluate the bedrock loot condition killed_by_player, which reads whether a player landed the killing blow, so its gate never opens'
             }
         ]);
         expect(rollLootTable(value, contextFor())).toEqual([]);
+    });
+
+    it("draws a set_data range, as the pillager outpost's goat horns do", () => {
+        const { value, diagnostics } = parseLootTable(
+            {
+                pools: [
+                    {
+                        rolls: 1,
+                        entries: [
+                            {
+                                type: 'item',
+                                name: 'minecraft:goat_horn',
+                                functions: [{ function: 'set_data', data: { min: 0, max: 3 } }]
+                            }
+                        ]
+                    }
+                ]
+            },
+            { dialect: 'bedrock' }
+        );
+        expect(diagnostics).toEqual([]);
+
+        const metaAt = (draw: number) =>
+            rollLootTable(
+                value,
+                new PredicateContext({
+                    parameterSet: 'chest',
+                    parameters: { origin: { x: 0, y: 64, z: 0 } },
+                    random: constantRandom(draw)
+                })
+            ).map((stack: ItemStack) => stack.meta);
+        expect(metaAt(0)).toEqual([0]);
+        expect(metaAt(0.99)).toEqual([3]);
+    });
+
+    it("opens a variant gate only for an entity holding that variant, as a mooshroom's bowl does", () => {
+        // Bedrock's mooshroom_milking table: a mooshroom that ate nothing holds mark variant -1
+        // and fills a bowl with mushroom stew; one fed a flower holds 0 to 12 and gives suspicious stew.
+        const { value, diagnostics } = parseLootTable(
+            {
+                pools: [
+                    {
+                        rolls: 1,
+                        conditions: [{ condition: 'has_mark_variant', value: -1 }],
+                        entries: [{ type: 'item', name: 'minecraft:mushroom_stew' }]
+                    },
+                    {
+                        rolls: 1,
+                        conditions: [{ condition: 'has_mark_variant', value: 3 }],
+                        entries: [
+                            {
+                                type: 'item',
+                                name: 'minecraft:suspicious_stew',
+                                functions: [{ function: 'set_data', data: 3 }]
+                            }
+                        ]
+                    },
+                    {
+                        rolls: 1,
+                        conditions: [{ condition: 'has_variant', value: 1 }],
+                        entries: [{ type: 'item', name: 'minecraft:brown_mushroom' }]
+                    }
+                ]
+            },
+            { dialect: 'bedrock' }
+        );
+        expect(diagnostics).toEqual([]);
+
+        const rollFor = (components: ReadonlyMap<string, unknown> | undefined) =>
+            rollLootTable(
+                value,
+                new PredicateContext({
+                    parameterSet: 'shearing',
+                    parameters: {
+                        origin: { x: 0, y: 64, z: 0 },
+                        tool: { id: 'minecraft:bowl', count: 1, components: new Map() },
+                        ...(components === undefined
+                            ? {}
+                            : { this_entity: { type: 'minecraft:mooshroom', components } })
+                    },
+                    random: constantRandom(0.5)
+                })
+            ).map((stack: ItemStack) => (stack.meta === undefined ? stack.id : `${stack.id}:${stack.meta}`));
+
+        expect(rollFor(new Map([['minecraft:mark_variant', -1]]))).toEqual(['minecraft:mushroom_stew']);
+        expect(rollFor(new Map<string, unknown>([['minecraft:mark_variant', { value: 3 }]]))).toEqual([
+            'minecraft:suspicious_stew:3'
+        ]);
+        expect(
+            rollFor(
+                new Map([
+                    ['minecraft:mark_variant', -1],
+                    ['minecraft:variant', 1]
+                ])
+            )
+        ).toEqual(['minecraft:mushroom_stew', 'minecraft:brown_mushroom']);
+        expect(rollFor(undefined)).toEqual([]);
     });
 
     it('errors on a condition nobody has reviewed, because its effect is unknown', () => {
