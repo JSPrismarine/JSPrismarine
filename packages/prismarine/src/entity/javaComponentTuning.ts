@@ -94,6 +94,16 @@ const unrestrictedHome: Tuning = {
     rewrite: ({ restriction_radius: _radius, restriction_type: _type, ...home }) => home
 };
 
+/**
+ * A `minecraft:home` whose mob settles a new home where it is once it strays past its radius plus
+ * `beyond` blocks, the server keys that carry Java's `checkRestriction`.
+ */
+const rehomingHome = (beyond: number, tamedOnly = false): Tuning => ({
+    component: 'minecraft:home',
+    group: undefined,
+    rewrite: (home) => ({ ...home, rehome_beyond: beyond, ...(tamedOnly ? { rehome_tamed_only: true } : {}) })
+});
+
 /** Java's numbers for each vanilla mob whose pack numbers differ, by Java entity type. */
 const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
     'minecraft:skeleton': [
@@ -139,6 +149,9 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
     // `Creaking.setTransient` records its heart but sets no home radius;
     // `CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS` only scales the heart's comparator signal.
     'minecraft:creaking': [unrestrictedHome],
+    // `AbstractNautilus.checkRestriction` does the same 8 blocks past the radius, for a tamed one.
+    'minecraft:nautilus': [rehomingHome(8, true)],
+    'minecraft:zombie_nautilus': [rehomingHome(8, true)],
     // `Salmon.getMaxSchoolSize`; a cod's and a tropical fish's school is `AbstractFish`'s 8.
     'minecraft:salmon': [
         {
@@ -168,7 +181,12 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
     'minecraft:pufferfish': [sensorBox(undefined, 2, 2)],
     // `HappyGhast.scanPlayerAboveGhast` looks for a player in the box one block past each side of
     // the 4 block ghast and from its top to half its height above: 3 across, 4 to 6 blocks up.
-    'minecraft:happy_ghast': [sensorBox('minecraft:adult', 3, 1, 5)]
+    'minecraft:happy_ghast': [
+        sensorBox('minecraft:adult', 3, 1, 5),
+        // `HappyGhast.checkRestriction` moves the home to the ghast once it is 16 blocks past its
+        // radius, unless it is leashed or ridden.
+        rehomingHome(16)
+    ]
 };
 
 /**
