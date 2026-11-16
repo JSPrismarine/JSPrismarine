@@ -71,6 +71,7 @@ import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingF
 import { javaGoalOverlay } from '../entity/javaGoalArguments';
 import { withJavaComponentTuning } from '../entity/javaComponentTuning';
 import { withJavaLlamaStrength } from '../entity/javaLlamaStrength';
+import { withJavaSkeletonHorseSaddle } from '../entity/javaSkeletonHorseSaddle';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
 
 /** The resolved block domain. */
@@ -396,6 +397,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     // overlay sees the file the ones before it wrote, so a later, more specific ruling wins.
     const overlays: readonly ((data: unknown) => unknown)[] = [
         withPlayerOverlay,
+        withJavaSkeletonHorseSaddle,
         withJavaLlamaStrength,
         (data) => withJavaBreedingFood(data, breedingFoods),
         (data) => withJavaBabyFood(data, babyFoods),
