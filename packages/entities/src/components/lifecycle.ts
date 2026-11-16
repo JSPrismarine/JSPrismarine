@@ -353,6 +353,20 @@ const ageableResultItem = (item: unknown): string | undefined => {
 };
 
 /**
+ * The seconds one feed item takes off a baby's growth.
+ *
+ * An item with an explicit `growth` advances that fraction of the whole duration, which is
+ * how the vanilla horse files write Java's fixed per-item seconds from
+ * `AbstractHorse.handleEating` (wheat 20, sugar 30, hay 180 of 1200). A plain item advances a
+ * tenth of the seconds left, truncated, which is Java's `AgeableMob.getSpeedUpSecondsWhenFeeding`.
+ */
+const feedGrowthSeconds = (feedItem: unknown, remainingTicks: number, params: AgeableParams): number => {
+    if (isRecord(feedItem) && typeof feedItem.growth === 'number')
+        return Math.max(0, Math.round(params.duration * feedItem.growth));
+    return Math.trunc(Math.trunc(remainingTicks / TICKS_PER_SECOND) * Math.fround(0.1));
+};
+
+/**
  * Ticks until a baby grows up, -1 for one that never does, and whether a pause item stopped the
  * count. Absent once the entity has grown up.
  */
@@ -438,10 +452,10 @@ export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
                         entity.raise(params.pauseGrowth.event, params.pauseGrowth.target, 'minecraft:ageable');
                 }
                 if (feedItem !== undefined && remaining >= 0) {
-                    const growth = isRecord(feedItem) && typeof feedItem.growth === 'number' ? feedItem.growth : 0.1;
-                    const secondsUntilAdult = Math.trunc(remaining / TICKS_PER_SECOND);
-                    const secondsToAdvance = Math.trunc(secondsUntilAdult * Math.fround(growth));
-                    remaining = Math.max(0, remaining - secondsToAdvance * TICKS_PER_SECOND);
+                    remaining = Math.max(
+                        0,
+                        remaining - feedGrowthSeconds(feedItem, remaining, params) * TICKS_PER_SECOND
+                    );
                 }
                 entity.componentState.set(AGEABLE_STATE, { remaining, paused });
                 const resultItem = ageableResultItem(feedItem);
@@ -558,8 +572,10 @@ export const ambientSoundInterval: ComponentFactory<EntityHooks, AmbientSoundInt
 export interface TransformationParams {
     /** The entity to become, in the `identifier<event>` form when it names an event. */
     readonly into: string;
-    /** How long the change takes, in seconds. */
+    /** How long the change takes at the least, in seconds. */
     readonly delay: number;
+    /** How many more seconds a random draw may add to {@link TransformationParams.delay}. */
+    readonly delayRange: number;
     readonly addGroups: readonly string[];
     readonly keepLevel: boolean;
     readonly keepOwner: boolean;
@@ -582,14 +598,19 @@ export const transformation: ComponentFactory<EntityHooks, TransformationParams>
         if (!isRecord(value)) return rejected('expected an object');
         const into = stringAt(value, 'into');
         if (into === undefined) return rejected('minecraft:transformation needs an into');
-        const delay =
-            typeof value.delay === 'number'
-                ? value.delay
-                : numberAt(isRecord(value.delay) ? value.delay : {}, 'value', 0);
+        // `range_min` and `range_max` are seconds added to `value` to bound a random delay, which is
+        // how the zombie villager writes Java's cure time of 3600 to 6000 ticks.
+        const delayBody = isRecord(value.delay) ? value.delay : {};
+        const base = typeof value.delay === 'number' ? value.delay : numberAt(delayBody, 'value', 0);
+        const rangeMin = numberAt(delayBody, 'range_min', 0);
+        const rangeMax = numberAt(delayBody, 'range_max', rangeMin);
+        const delay = base + Math.min(rangeMin, rangeMax);
+        const delayRange = Math.abs(rangeMax - rangeMin);
         const add = isRecord(value.add) ? value.add : {};
         return accepted({
             into,
             delay,
+            delayRange,
             addGroups: Array.isArray(add.component_groups)
                 ? add.component_groups.filter((name): name is string => typeof name === 'string')
                 : [],
@@ -604,7 +625,8 @@ export const transformation: ComponentFactory<EntityHooks, TransformationParams>
         const target = splitSpawnReference(params.into);
         return {
             onInitialize: (entity) => {
-                entity.componentState.set(TRANSFORM_STATE, { remaining: Math.round(params.delay * TICKS_PER_SECOND) });
+                const seconds = params.delay + (params.delayRange > 0 ? entity.random.next() * params.delayRange : 0);
+                entity.componentState.set(TRANSFORM_STATE, { remaining: Math.round(seconds * TICKS_PER_SECOND) });
             },
             onTick: (entity) => {
                 const state = entity.componentState.get(TRANSFORM_STATE);
@@ -615,7 +637,7 @@ export const transformation: ComponentFactory<EntityHooks, TransformationParams>
                 }
                 entity.componentState.clear(TRANSFORM_STATE);
                 entity.transform({
-                    identifier: target.identifier,
+                    identifier: qualifiedSpawnIdentifier(target.identifier),
                     event: target.event,
                     addGroups: params.addGroups,
                     keepLevel: params.keepLevel,

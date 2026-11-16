@@ -21,9 +21,17 @@ export const parseTimeRange = (value: unknown): readonly [number, number] => {
     return [0, 0];
 };
 
-/** Adds the default vanilla namespace to a component identifier that omits it. */
-export const qualifiedSpawnIdentifier = (identifier: string): string =>
-    identifier.includes(':') ? identifier : `minecraft:${identifier}`;
+/**
+ * The entity identifiers Mojang's entity files still write from before the type was renamed. The
+ * pig's lightning conversion names `pig_zombie`, which no definition declares any more.
+ */
+const LEGACY_ENTITY_NAMES: ReadonlyMap<string, string> = new Map([['minecraft:pig_zombie', 'minecraft:zombie_pigman']]);
+
+/** Adds the default vanilla namespace to a component identifier that omits it, and renames a legacy entity identifier. */
+export const qualifiedSpawnIdentifier = (identifier: string): string => {
+    const qualified = identifier.includes(':') ? identifier : `minecraft:${identifier}`;
+    return LEGACY_ENTITY_NAMES.get(qualified) ?? qualified;
+};
 
 /** One `{filters, event, target}` trigger, which five component bodies share. */
 export interface SensorTrigger {
@@ -49,22 +57,32 @@ export const sensorNumber = (record: ComponentRecord, key: string, fallback: num
 };
 
 /**
- * The seven item names Mojang's behavior pack still writes from before Bedrock flattened them,
- * with the modern name a Bedrock Dedicated Server resolves each to. A held item always arrives
- * under its modern name, so a definition's `fish` has to read as `minecraft:cod` to match it.
+ * The item names Mojang's entity files still write from before Bedrock renamed the item, by the
+ * lowercased old name. A player holds the item under its current name, so a component that
+ * compared the old one would never match it.
  */
-const LEGACY_PACK_ITEMS: Readonly<Record<string, string>> = {
-    'minecraft:appleenchanted': 'minecraft:enchanted_golden_apple',
-    'minecraft:clownfish': 'minecraft:tropical_fish',
-    'minecraft:cooked_fish': 'minecraft:cooked_cod',
-    'minecraft:fish': 'minecraft:cod',
-    'minecraft:melon': 'minecraft:melon_slice',
-    'minecraft:muttoncooked': 'minecraft:cooked_mutton',
-    'minecraft:muttonraw': 'minecraft:mutton'
-};
+const LEGACY_ITEM_NAMES: ReadonlyMap<string, string> = new Map([
+    ['minecraft:appleenchanted', 'minecraft:enchanted_golden_apple'],
+    ['minecraft:carrotonastick', 'minecraft:carrot_on_a_stick'],
+    ['minecraft:clownfish', 'minecraft:tropical_fish'],
+    ['minecraft:cooked_fish', 'minecraft:cooked_cod'],
+    ['minecraft:fish', 'minecraft:cod'],
+    ['minecraft:horsearmordiamond', 'minecraft:diamond_horse_armor'],
+    ['minecraft:horsearmorgold', 'minecraft:golden_horse_armor'],
+    ['minecraft:horsearmoriron', 'minecraft:iron_horse_armor'],
+    ['minecraft:horsearmorleather', 'minecraft:leather_horse_armor'],
+    ['minecraft:melon', 'minecraft:melon_slice'],
+    ['minecraft:muttoncooked', 'minecraft:cooked_mutton'],
+    ['minecraft:muttonraw', 'minecraft:mutton'],
+    ['minecraft:speckled_melon', 'minecraft:glistering_melon_slice'],
+    ['minecraft:turtle_shell_piece', 'minecraft:turtle_scute']
+]);
 
-/** Normalizes an item identifier with Bedrock's default namespace, and a legacy pack name to its modern one. */
+/**
+ * Normalizes an item identifier with Bedrock's default namespace, and replaces a legacy name a
+ * vanilla entity file writes, such as `fish` or `appleEnchanted`, with the item's current name.
+ */
 export const normalizedItemIdentifier = (identifier: string): string => {
     const qualified = identifier.includes(':') ? identifier : `minecraft:${identifier}`;
-    return LEGACY_PACK_ITEMS[qualified.toLowerCase()] ?? qualified;
+    return LEGACY_ITEM_NAMES.get(qualified.toLowerCase()) ?? qualified;
 };
