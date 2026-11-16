@@ -9,8 +9,8 @@
  *
  * Where it flies, how long it has flown, whether it survives and the stack it drops are component
  * state, and its speed is the body's logged velocity, so every write is logged and an update that
- * throws is undone. The definition is transient, so the eye is never saved: a restored one would
- * have no thrower and four seconds of flight are not worth a record.
+ * throws is undone. A world save writes the eye with that state, as Java's `EntityTypes` registers
+ * `EYE_OF_ENDER` without `noSave`, so an eye in flight across a save carries on from where it was.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';

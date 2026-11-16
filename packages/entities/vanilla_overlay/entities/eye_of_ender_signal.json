@@ -11,7 +11,6 @@
                 "width": 0.25,
                 "height": 0.25
             },
-            "minecraft:transient": {},
             "minecraft:type_family": {
                 "family": ["eye_of_ender_signal"]
             },

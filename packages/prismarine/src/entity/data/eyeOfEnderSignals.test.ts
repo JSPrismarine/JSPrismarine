@@ -1,10 +1,13 @@
 import { LevelEvent } from '@jsprismarine/minecraft';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { DataEntity } from './DataEntity';
 import { itemViewOf } from './droppedItems';
 import { EYE_OF_ENDER_SIGNAL, eyeViewOf } from './eyeOfEnderSignals';
+import { dataEntityRecordIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
+import { savedWithChunk } from './storeActors';
 import type { EntityFixture } from './testing';
 import { entityFixture, TestEntityWorld } from './testing';
 
@@ -39,13 +42,24 @@ const droppedStacks = (fixture: EntityFixture) =>
         .filter((stack) => stack !== undefined);
 
 describe('an eye of ender in the store', () => {
-    it('is a store entity of the built-in type that a save leaves out', () => {
+    it('is a store entity of the built-in type that a save keeps mid-flight', () => {
+        // Java's EntityTypes registers EYE_OF_ENDER without noSave, so a save writes it.
         const fixture = fixtureOf();
         const eye = thrown(fixture, { x: 100, y: 0, z: 0 });
+        step(fixture, 5);
 
         expect(eye.identifier).toBe(EYE_OF_ENDER_SIGNAL);
         expect(fixture.runtime.byId(eye.id)).toBe(eye);
-        expect(eye.instance.hasComponent('minecraft:transient')).toBe(true);
+        expect(savedWithChunk(eye)).toBe(true);
+
+        const nbt = new NBTTagCompound('');
+        nbt.addValue('UniqueID', new Types.LongVal(7n));
+        writeDataEntityRecord(nbt, dataEntityRecordOf(eye, undefined));
+        const record = dataEntityRecordIn(nbt);
+        if (record === undefined) throw new Error('the eye of ender record could not be read');
+        const restored = fixture.runtime.restore(record, eye.position);
+
+        expect(restored === undefined ? undefined : eyeViewOf(restored)).toEqual(eyeViewOf(eye));
     });
 
     it('flies toward a far stronghold, rising eight blocks and stopping twelve blocks out', () => {
