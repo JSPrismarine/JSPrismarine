@@ -126,6 +126,8 @@ import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf, PLAYER_BOX } from './facts';
 import { fallsUnderGravity } from './gravity';
 import { equippableSlotCount, equippableSlotsOf } from './equippable';
+import { canPickUpLootChance, moonBrightnessAt } from '../regionalDifficulty';
+import type { RegionalDifficultyInputs } from '../regionalDifficulty';
 import { VEHICLE_DAMAGE_DECAY_PER_TICK, boatItemOf, isBreakableVehicle, vehicleBlow } from './vehicleDamage';
 import type { EntityFacts } from './facts';
 import {
@@ -3656,6 +3658,34 @@ export class EntityRuntime implements EntityScene {
         entity.instance.raise(value.event, target, 'minecraft:leashable');
     }
 
+    /**
+     * What Java's `DifficultyInstance` reads where a mob stands: the world's difficulty, its time
+     * and moon. The server keeps no chunk inhabited time yet, so every chunk reads as new
+     * (issue #3168).
+     */
+    private regionalDifficultyInputs(): RegionalDifficultyInputs {
+        const { level } = this.world;
+        return {
+            difficulty: level.difficulty(),
+            worldTime: level.gameTime(),
+            inhabitedTime: 0,
+            moonBrightness: moonBrightnessAt(level.gameTime())
+        };
+    }
+
+    /**
+     * Whether a mob whose pickup goal declares `pickup_based_on_chance` may pick up at all. The
+     * first ask rolls Java's `canPickUpLoot` chance for the region and the body keeps the answer,
+     * so a zombie that spawned unable to pick up stays so, as in Java.
+     */
+    public canPickUpLoot(taker: MobBody): boolean {
+        if (taker.canPickUpLoot !== undefined) return taker.canPickUpLoot;
+        const random = this.store.get(taker.id)?.instance.random;
+        const rolled = random !== undefined && random.next() < canPickUpLootChance(this.regionalDifficultyInputs());
+        taker.canPickUpLoot = rolled;
+        return rolled;
+    }
+
     /** Takes up to `count` items from a stack lying in the world into an entity's inventory. */
     public pickUp(taker: MobBody, item: GoalItem, count = item.count(), options?: GoalPickupOptions): void {
         if (typeof item.id !== 'number') return;
@@ -3685,11 +3715,17 @@ export class EntityRuntime implements EntityScene {
         taker.setInventory(carried);
     }
 
-    /** Equips one picked-up item in its declared slot when that slot is empty. */
+    /**
+     * Equips one picked-up item in its declared slot when that slot is empty. A mob whose
+     * `minecraft:equip_item` sets `can_wear_armor` to false holds armor in its main hand, as a
+     * fox holds anything in its mouth (Java `Fox.pickUpItem`).
+     */
     private equipPickedUpItem(taker: MobBody, item: ContentItemDrop): number {
         if (item.count <= 0) return 0;
         const stack = itemOfDrop(item, this.content());
-        const slot = stack === null ? 'mainhand' : slotForItem(stack);
+        const equipItem = this.store.get(taker.id)?.instance.componentParams('minecraft:equip_item');
+        const wearsArmor = !isRecord(equipItem) || equipItem['can_wear_armor'] !== false;
+        const slot = stack === null || !wearsArmor ? 'mainhand' : slotForItem(stack);
         if (taker.equipment[slot] !== undefined) return 0;
 
         const equipment = { ...taker.equipment };
@@ -4704,6 +4740,10 @@ export class EntityRuntime implements EntityScene {
      * reason it does not re-run the spawn event either: the save already holds what the first
      * roll produced, and rolling again would re-arm a mob a player had disarmed.
      *
+     * The roll reads the regional difficulty where the mob stands, as Java's
+     * `Mob.populateDefaultEquipmentSlots` reads its `DifficultyInstance`, so a fresh world's
+     * mobs spawn without armor.
+     *
      * A component with no `table` is not a mistake - the villager carries one purely to declare
      * that its main hand never drops - so a missing table equips nothing and reports nothing.
      */
@@ -4713,12 +4753,14 @@ export class EntityRuntime implements EntityScene {
 
         const content = this.content();
         entity.body.setEquipment(
-            rollMobEquipment({
-                content,
-                table,
-                itemOf: (drop) => itemOfDrop(drop, content),
-                report: (message) => this.report(`${entity.identifier}: ${message}`)
-            })
+            content.equipmentDifficulty.during(this.regionalDifficultyInputs(), () =>
+                rollMobEquipment({
+                    content,
+                    table,
+                    itemOf: (drop) => itemOfDrop(drop, content),
+                    report: (message) => this.report(`${entity.identifier}: ${message}`)
+                })
+            )
         );
     }
 

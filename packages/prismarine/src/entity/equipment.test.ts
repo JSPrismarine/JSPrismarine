@@ -231,6 +231,29 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             expect(wearing / rolls).toBeLessThan(0.2);
         }, 180_000);
 
+        it("puts a drowned's nautilus shell in the off hand, as Java's Drowned.finalizeSpawn does", () => {
+            const counts = over('loot_tables/entities/drowned_equipment.json', 400);
+            expect(counts.get('offhand:minecraft:nautilus_shell') ?? 0).toBeGreaterThan(0);
+            expect(counts.get('mainhand:minecraft:nautilus_shell')).toBeUndefined();
+        }, 180_000);
+
+        it('gives no armor in a fresh region on normal difficulty', () => {
+            // A fresh chunk's regional difficulty is 1.5, below the 2 Java's special multiplier
+            // needs, so `random_regional_difficulty_chance` never opens.
+            const content = vanilla();
+            const fresh = { difficulty: 'normal', worldTime: 0, inhabitedTime: 0, moonBrightness: 1 } as const;
+            for (let roll = 0; roll < 400; roll++) {
+                const equipment = content.equipmentDifficulty.during(fresh, () =>
+                    rollMobEquipment({
+                        content,
+                        table: 'loot_tables/entities/zombie_equipment.json',
+                        itemOf: (drop) => itemOfDrop(drop, content)
+                    })
+                );
+                expect(Object.keys(equipment).filter((slot) => slot !== 'mainhand')).toEqual([]);
+            }
+        }, 180_000);
+
         it('dresses a mob in the tiered armor sets, which the pruning dropped whole', () => {
             // The `tiers` ladder over six sets, reached through nested entry `pools`, which is the
             // part of the grammar nothing here could read before.

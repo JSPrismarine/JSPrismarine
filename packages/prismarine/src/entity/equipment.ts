@@ -115,6 +115,15 @@ for (const slot of MOB_EQUIPMENT_SLOTS) {
 export const mobEquipmentSlotOf = (name: string): MobEquipmentSlot | undefined => SLOTS.get(name);
 
 /**
+ * The items a mob's spawn roll puts in its off hand rather than its main hand.
+ *
+ * Java's `Drowned.finalizeSpawn` sets `EquipmentSlot.OFFHAND` to `Items.NAUTILUS_SHELL`, and
+ * Bedrock's drowned holds the shell there too, beside the trident or fishing rod its main hand
+ * holds. Neither edition's item data names a slot for the shell, so it is listed here.
+ */
+const OFF_HAND_SPAWN_ITEMS: ReadonlySet<string> = new Set(['minecraft:nautilus_shell']);
+
+/**
  * Where one rolled item goes.
  *
  * `minecraft:equippable` is the game's own answer and the only one that stays right as the item
@@ -151,6 +160,7 @@ export interface MobEquipmentRollOptions {
  * Rolls one equipment table and sorts what it produced into slots.
  *
  * A later entry wins a slot an earlier one filled, which is the order the pools are written in.
+ * A rolled item goes where {@link slotForItem} puts it, and a nautilus shell to the off hand.
  *
  * @returns What the mob holds and wears. Empty when the registry has no such table, and empty
  *   for a roll whose every pool failed its chance gate, which is what a zombie spawning bare
@@ -170,7 +180,7 @@ export const rollMobEquipment = (options: MobEquipmentRollOptions): MobEquipment
             continue;
         }
 
-        equipment[slotForItem(item)] = drop;
+        equipment[OFF_HAND_SPAWN_ITEMS.has(stack.id) ? 'offhand' : slotForItem(item)] = drop;
     }
 
     return equipment;

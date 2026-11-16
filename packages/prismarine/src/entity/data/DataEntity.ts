@@ -134,6 +134,7 @@ export interface LoggedBodyState {
     breedCooldown: number;
     beamTarget: EntityPosition | undefined;
     showBottom: boolean | undefined;
+    canPickUpLoot: boolean | undefined;
     invulnerable: boolean;
     fuseTicks: number | undefined;
     fireTicks: number;
@@ -344,6 +345,19 @@ export class MobBody {
      * Undefined keeps the client's default, which is to draw it; the end crystal item
      * spawns with false, as Java's `EndCrystalItem.useOn` does.
      */
+    /**
+     * Whether a mob whose pickup goal declares `pickup_based_on_chance` picks up items: Java's
+     * `Mob.canPickUpLoot`, which `Zombie.finalizeSpawn` and `AbstractSkeleton.finalizeSpawn` roll
+     * once. Undefined until the first pickup asks, which rolls it.
+     */
+    public get canPickUpLoot(): boolean | undefined {
+        return this.logged.canPickUpLoot;
+    }
+
+    public set canPickUpLoot(canPickUpLoot: boolean | undefined) {
+        this.write('canPickUpLoot', canPickUpLoot);
+    }
+
     public get showBottom(): boolean | undefined {
         return this.logged.showBottom;
     }
@@ -673,6 +687,7 @@ export class MobBody {
             breedCooldown: 0,
             beamTarget: undefined,
             showBottom: undefined,
+            canPickUpLoot: undefined,
             invulnerable: false,
             fuseTicks: undefined,
             fireTicks: 0,

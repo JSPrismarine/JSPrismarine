@@ -97,6 +97,8 @@ export interface DataEntityRecord {
     readonly beamTarget?: EntityPosition;
     /** Whether an end crystal draws its base plate; absent keeps the default, true. */
     readonly showBottom?: boolean;
+    /** Whether a mob that picks up by chance rolled that it may, Java's `CanPickUpLoot`. */
+    readonly canPickUpLoot?: boolean;
     /** Whether the entity refuses all damage, as the respawn sequence's crystals do. */
     readonly invulnerable?: boolean;
     /** Remaining ticks on an active component-defined explosion fuse. */
@@ -173,6 +175,7 @@ export const dataEntityRecordOf = (
         breedCooldown: body.breedCooldown,
         ...(body.beamTarget === undefined ? {} : { beamTarget: { ...body.beamTarget } }),
         ...(body.showBottom === undefined ? {} : { showBottom: body.showBottom }),
+        ...(body.canPickUpLoot === undefined ? {} : { canPickUpLoot: body.canPickUpLoot }),
         ...(body.invulnerable ? { invulnerable: true } : {}),
         ...(body.fuseTicks === undefined ? {} : { fuseTicks: body.fuseTicks }),
         ...(body.fireTicks <= 0 ? {} : { fireTicks: body.fireTicks }),
@@ -406,6 +409,7 @@ export const dataEntityRecordFrom = (parsed: unknown): DataEntityRecord | undefi
         breedCooldown: numberOf(parsed['breedCooldown'], 0),
         ...(beamTarget === undefined ? {} : { beamTarget }),
         ...(typeof parsed['showBottom'] === 'boolean' ? { showBottom: parsed['showBottom'] } : {}),
+        ...(typeof parsed['canPickUpLoot'] === 'boolean' ? { canPickUpLoot: parsed['canPickUpLoot'] } : {}),
         ...(parsed['invulnerable'] === true ? { invulnerable: true } : {}),
         ...(typeof parsed['fuseTicks'] === 'number' && Number.isFinite(parsed['fuseTicks'])
             ? { fuseTicks: Math.max(0, Math.trunc(parsed['fuseTicks'])) }
@@ -472,6 +476,7 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.breedCooldown = record.breedCooldown;
     body.beamTarget = record.beamTarget;
     body.showBottom = record.showBottom;
+    body.canPickUpLoot = record.canPickUpLoot;
     body.invulnerable = record.invulnerable === true;
     body.fuseTicks = record.fuseTicks;
     body.fireTicks = record.fireTicks ?? 0;

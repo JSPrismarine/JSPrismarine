@@ -303,6 +303,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         ejectRiders: () => scene.ejectRiders(entity),
         tameBy: (player) => scene.tameMount(entity, player),
         pickUp: (item, count, options) => scene.pickUp(entity, item, count, options),
+        canPickUpLoot: () => scene.canPickUpLoot(entity),
         craftInto: (inputIdentifier, outputIdentifier, availableInput, wantedOutput) =>
             scene.craftInto(inputIdentifier, outputIdentifier, availableInput, wantedOutput),
         carriedItem: () => entity.carried,

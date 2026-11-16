@@ -75,6 +75,7 @@ const BODY_FIELDS: { readonly [K in keyof LoggedBodyState]: (value: PlainData) =
     breedCooldown: numberField('breedCooldown'),
     beamTarget: optionalPosition('beamTarget'),
     showBottom: optionalBoolean('showBottom'),
+    canPickUpLoot: optionalBoolean('canPickUpLoot'),
     invulnerable: booleanField('invulnerable'),
     fuseTicks: optionalNumberField('fuseTicks'),
     fireTicks: numberField('fireTicks'),

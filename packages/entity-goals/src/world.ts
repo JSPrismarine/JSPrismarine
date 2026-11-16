@@ -257,6 +257,12 @@ export interface GoalWorld {
     ejectRiders?(): void;
     /** Tames the entity for a player, as a mount whose temper roll won. */
     tameBy?(player: GoalMob): void;
+    /**
+     * Whether the entity may pick up items at all, for a pickup goal that declares
+     * `pickup_based_on_chance`: Java's `Mob.canPickUpLoot`, rolled once per mob. A host that
+     * leaves it out has the goal roll a chance on each attempt instead.
+     */
+    canPickUpLoot?(): boolean;
     /** Takes up to `count` items from the stack into the entity's inventory or hand. */
     pickUp?(item: GoalItem, count?: number, options?: GoalPickupOptions): void;
     /** Drops an item at a position, or at the entity when none is given. */

@@ -55,6 +55,7 @@ import type { ContentTags } from './tags';
 import { bedrockEntityTypeTagsFor } from './entityTypeTags';
 import { javaBlockTagsForBedrock, javaItemTagsForBedrock } from './javaTags';
 import { checkIdentifiers } from './unmappedIdentifiers';
+import { RegionalDifficultyView } from '../entity/regionalDifficulty';
 import { advancementRewards } from '../advancement/rewards';
 import { unwiredWorldSource } from './world/unwired';
 import { contentWorldViews } from './world/views';
@@ -148,6 +149,13 @@ export interface ServerContent {
      * datapack's.
      */
     readonly equipmentLoot: LootRegistry;
+    /**
+     * The difficulty {@link ServerContent.equipmentLoot}'s `random_regional_difficulty_chance`
+     * and `random_difficulty_chance` read. A spawn roll sets the place it rolls for through
+     * {@link RegionalDifficultyView.during}; any other roll sees normal difficulty in a fully
+     * ramped region.
+     */
+    readonly equipmentDifficulty: RegionalDifficultyView;
     /** Java's advancements, with their trigger graph built. */
     readonly advancements: AdvancementEngine;
     /** Java's enchantments and their effect components. */
@@ -465,9 +473,10 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     // reads one dialect, and which dialect is a member of the source rather
     // than a word sitting beside it: `javaLootTables` over this map is the
     // mistake that armed 2000 zombies of 2000, and it no longer compiles.
+    const equipmentDifficulty = new RegionalDifficultyView();
     const equipmentLoot = new LootRegistry(
         { ...definitions, lootTables: bedrockLootDefinitions },
-        { worldSeed: options.seed ?? 0n, items: itemStackOpsFor(items.types), strict }
+        { worldSeed: options.seed ?? 0n, items: itemStackOpsFor(items.types), difficulty: equipmentDifficulty, strict }
     );
 
     // Both registries compile every table here rather than at the first chest,
@@ -551,6 +560,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         recipes: recipes.book,
         loot,
         equipmentLoot,
+        equipmentDifficulty,
         advancements,
         enchantments,
         spawnRules: parseSpawnRules(definitions.spawnRules, diagnostics),
@@ -590,7 +600,12 @@ export const rebindServerContentSeed = (snapshot: ServerContent, seed: bigint): 
     );
     const equipmentLoot = new LootRegistry(
         { ...snapshot.definitions, lootTables: bedrockLootTables(snapshot.definitions.lootTables) },
-        { worldSeed: seed, items: itemStackOpsFor(snapshot.items.types), strict: snapshot.strict }
+        {
+            worldSeed: seed,
+            items: itemStackOpsFor(snapshot.items.types),
+            difficulty: snapshot.equipmentDifficulty,
+            strict: snapshot.strict
+        }
     );
     javaLoot.validate();
     equipmentLoot.validate();

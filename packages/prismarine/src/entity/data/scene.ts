@@ -127,6 +127,8 @@ export interface EntityScene {
     ridersOf(vehicle: MobBody): readonly GoalMob[];
     /** Takes an item stack lying in the world into an entity's inventory. */
     pickUp(taker: MobBody, item: GoalItem, count?: number, options?: GoalPickupOptions): void;
+    /** Whether a mob that picks up by chance may pick up at all, rolled once per mob. */
+    canPickUpLoot(taker: MobBody): boolean;
     /** Moves one item from an entity's inventory to another entity. */
     giveItem(giver: MobBody, taker: GoalMob, identifier: string, count?: number): void;
     /** Finds a loaded crafting recipe that converts one item into another. */

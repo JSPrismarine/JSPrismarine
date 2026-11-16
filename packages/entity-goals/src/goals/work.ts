@@ -105,6 +105,9 @@ const shareableRuleFor = (
 /** How long a villager works at its site before the goal lets go, from the vanilla `active_time`. */
 const DEFAULT_ACTIVE_TIME = 200;
 
+/** The chance a host with no per-mob pickup roll gives each attempt of a chance-based pickup. */
+const PICKUP_CHANCE_PER_ATTEMPT = 0.1;
+
 /** What `minecraft:behavior.pickup_items` declares. */
 export interface PickupItemsParams {
     readonly speedMultiplier: number;
@@ -186,7 +189,11 @@ export const pickupItems = goal<PickupItemsParams>({
         return {
             canStart: () => {
                 if (params.stopIfHoldingItem && support.world.carriedItem?.() !== undefined) return false;
-                if (params.pickupBasedOnChance && !support.chance(0.1)) return false;
+                if (
+                    params.pickupBasedOnChance &&
+                    !(support.world.canPickUpLoot?.() ?? support.chance(PICKUP_CHANCE_PER_ATTEMPT))
+                )
+                    return false;
                 const rules = rulesOf();
                 const candidates = (support.world.items?.(params.maxDistance) ?? [])
                     .filter((candidate) => !params.excludedItems.includes(candidate.identifier()))
