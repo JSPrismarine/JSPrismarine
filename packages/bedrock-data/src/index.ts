@@ -221,6 +221,12 @@ export interface JavaEntityGoal {
     readonly params: Readonly<Record<string, JavaGoalArgument | undefined>>;
     /** The instance methods called on the goal after construction, such as `setAlertOthers`. */
     readonly calls: readonly { readonly name: string; readonly args: readonly JavaGoalArgument[] }[];
+    /**
+     * On a goal that calls `setAlertOthers`, the entity types whose class is, or extends, the class
+     * of the mob that registers it: what `HurtByTargetGoal.alertOthers` searches with
+     * `getEntitiesOfClass(mob.getClass(), ...)`.
+     */
+    readonly selfEntities?: readonly string[];
 }
 
 /**

@@ -334,6 +334,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:bee"
             ]
         },
         {
@@ -574,6 +577,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:blaze"
             ]
         },
         {
@@ -3400,6 +3406,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:dolphin"
             ]
         }
     ],
@@ -3910,6 +3919,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:drowned"
             ]
         },
         {
@@ -5122,6 +5134,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:endermite"
             ]
         },
         {
@@ -5569,6 +5584,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:evoker"
             ]
         },
         {
@@ -7890,6 +7908,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:husk"
             ]
         },
         {
@@ -8454,6 +8475,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:illusioner"
             ]
         },
         {
@@ -11199,6 +11223,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:panda"
             ]
         }
     ],
@@ -12523,6 +12550,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:pillager"
             ]
         },
         {
@@ -13721,6 +13751,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:rabbit"
             ]
         },
         {
@@ -14099,6 +14132,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:ravager"
             ]
         },
         {
@@ -14872,6 +14908,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:shulker"
             ]
         },
         {
@@ -15228,6 +15267,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:silverfish"
             ]
         },
         {
@@ -18871,6 +18913,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:vex"
             ]
         },
         {
@@ -19150,6 +19195,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:vindicator"
             ]
         },
         {
@@ -22063,6 +22111,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:wolf"
             ]
         },
         {
@@ -22556,6 +22607,13 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:drowned",
+                "minecraft:husk",
+                "minecraft:zombie",
+                "minecraft:zombie_villager",
+                "minecraft:zombified_piglin"
             ]
         },
         {
@@ -23260,6 +23318,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:zombie_villager"
             ]
         },
         {
@@ -23573,6 +23634,9 @@
                         }
                     ]
                 }
+            ],
+            "selfEntities": [
+                "minecraft:zombified_piglin"
             ]
         },
         {

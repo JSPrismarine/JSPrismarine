@@ -94,7 +94,9 @@ export const captureJavaGoals = (reader: JavaGoalReader): Record<string, readonl
                 .filter(([, value]) => value.kind !== 'self')
                 .map(([name, value]) => [name, argument(value, mobClass)])
         ),
-        calls: goal.calls.map((call) => ({ name: call.name, args: call.args.map((arg) => argument(arg, mobClass)) }))
+        calls: goal.calls.map((call) => ({ name: call.name, args: call.args.map((arg) => argument(arg, mobClass)) })),
+        // `alertOthers` searches the mob's own class, which a runtime cannot widen to its subclasses.
+        ...(goal.calls.some((call) => call.name === 'setAlertOthers') ? { selfEntities: entitiesOf(mobClass) } : {})
     });
 
     const capture: Record<string, readonly JavaEntityGoal[]> = {};
