@@ -7,6 +7,7 @@
  * ([ADR 0001](../../../../docs/adr/0001-entity-stat-authority.md)). The parity suite reads the
  * same numbers out of the pinned Java jar and fails when one drifts.
  */
+import { isRecord } from '../utils/isRecord';
 import { entityFileIdentifier, withComponentRewritten } from './definitionOverlay';
 
 /** One component of one entity file that Java's class decides. */
@@ -16,21 +17,69 @@ interface JavaComponentRule {
     readonly rewrite: (body: Record<string, unknown>) => Record<string, unknown> | undefined;
 }
 
+/** The range `TimeUtil.rangeOfSeconds(20, 39)` draws a Java neutral mob's anger from, in seconds. */
+const JAVA_ANGER_SECONDS = { min: 20, max: 39 } as const;
+
+/** A filter with every `is_family` test of one family taken out of its `any_of`. */
+const withoutFamily = (filter: unknown, family: string): unknown => {
+    if (!isRecord(filter) || !Array.isArray(filter.any_of)) return filter;
+    return {
+        ...filter,
+        any_of: filter.any_of.filter((test) => !(isRecord(test) && test.test === 'is_family' && test.value === family))
+    };
+};
+
 /** The rules by Bedrock entity identifier. */
 export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponentRule[]>> = {
     // `Axolotl.handleAirSupply` dries an axolotl out on land by 2 `dryOut` damage each time its
     // air reaches -20, a second apart. Bedrock's dried-out group hurts it 1 every half second.
+    // It starts with `Axolotl.getMaxAirSupply`'s 6000 ticks, so the first blow lands 6020 ticks
+    // out of water: 301 seconds.
     'minecraft:axolotl': [
         {
             component: 'minecraft:damage_over_time',
             rewrite: (body) => ({ ...body, damage_per_hurt: 2, time_between_hurt: 1 })
-        }
+        },
+        { component: 'minecraft:drying_out_timer', rewrite: (body) => ({ ...body, total_time: 301 }) }
     ],
     // `MinecartTNT.<init>` sets `explosionPowerBase` to 4, which a minecart at rest explodes with.
     'minecraft:tnt_minecart': [{ component: 'minecraft:explode', rewrite: (body) => ({ ...body, power: 4 }) }],
     // Java's creaking is not in `freeze_immune_entity_types` and `Creaking` keeps `Entity.canFreeze`,
     // so powder snow freezes it.
-    'minecraft:creaking': [{ component: 'minecraft:freezing_immune', rewrite: () => undefined }]
+    'minecraft:creaking': [{ component: 'minecraft:freezing_immune', rewrite: () => undefined }],
+    // `Ghast.hurtServer` lets every blow land, so a mob may hurt a ghast as a player may.
+    'minecraft:ghast': [{ component: 'minecraft:cannot_be_attacked', rewrite: () => undefined }],
+    // `PolarBear.PERSISTENT_ANGER_TIME` is `TimeUtil.rangeOfSeconds(20, 39)`, where the pack keeps
+    // an adult angry for 500 seconds. A baby's one-second anger only spreads it, and stays.
+    'minecraft:polar_bear': [
+        {
+            component: 'minecraft:angry',
+            rewrite: (body) =>
+                typeof body.duration === 'number' && body.duration > JAVA_ANGER_SECONDS.max
+                    ? {
+                          ...body,
+                          duration: (JAVA_ANGER_SECONDS.min + JAVA_ANGER_SECONDS.max) / 2,
+                          duration_delta: (JAVA_ANGER_SECONDS.max - JAVA_ANGER_SECONDS.min) / 2
+                      }
+                    : body
+        }
+    ],
+    // `Slime.push` hurts an iron golem it touches and no other mob, where the pack's big slimes
+    // hurt snow golems too.
+    'minecraft:slime': [
+        {
+            component: 'minecraft:area_attack',
+            rewrite: (body) => ({ ...body, entity_filter: withoutFamily(body.entity_filter, 'snowgolem') })
+        }
+    ],
+    // `Pufferfish.touch` deals a mob 1 plus its puff state, 3 when fully puffed, where the pack's
+    // full puff deals 2.
+    'minecraft:pufferfish': [
+        { component: 'minecraft:area_attack', rewrite: (body) => ({ ...body, damage_per_tick: 3 }) }
+    ],
+    // `Skeleton`'s freezing `ConversionTracker` turns it after 140 ticks in powder snow and 300 more
+    // converting, 22 seconds, where the pack's timer turns it after 20.
+    'minecraft:skeleton': [{ component: 'minecraft:timer', rewrite: (body) => ({ ...body, time: 22 }) }]
 };
 
 /**
