@@ -41,6 +41,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.ai.control.SmoothSwimmingMoveControl;
+import net.minecraft.world.attribute.EnvironmentAttributeSystem;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.level.pathfinder.NodeEvaluator;
 import net.minecraft.world.level.pathfinder.PathType;
@@ -229,9 +230,9 @@ public final class DumpJavaData {
         List<String> unavailable = new ArrayList<>();
 
         for (EntityType<?> type : BuiltInRegistries.ENTITY_TYPE) {
-            // The MISC category holds the golems among projectiles, vehicles and markers, so only
-            // its living types are tried, and only the mobs the probe level can build are kept. The
-            // villager is not one: its constructor reads world state the probe level leaves null.
+            // The MISC category holds the golems and the villager among projectiles, vehicles and
+            // markers, so only its living types are tried, and only the mobs the probe level can
+            // build are kept.
             boolean misc = type.getCategory() == MobCategory.MISC;
             if (misc && !DefaultAttributes.hasSupplier(type)) continue;
             String identifier = BuiltInRegistries.ENTITY_TYPE.getKey(type).toString();
@@ -420,9 +421,20 @@ public final class DumpJavaData {
                     java.util.List.of(), false);
         }
 
+        /**
+         * An empty attribute system, which answers every attribute with its default. The
+         * villager's constructor reads it to pick the activity its schedule starts in.
+         */
+        private static final EnvironmentAttributeSystem ENVIRONMENT = EnvironmentAttributeSystem.builder().build();
+
         @Override
         public int getNextEntityId() {
             return 1;
+        }
+
+        @Override
+        public EnvironmentAttributeSystem environmentAttributes() {
+            return ENVIRONMENT;
         }
 
         @Override

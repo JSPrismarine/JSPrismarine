@@ -4,6 +4,7 @@ import { reportProgress } from '../../../.test/reportProgress';
 
 import blockPropertiesJson from './jsp/java/block_properties.json';
 import entityAttributesJson from './jsp/java/entity_attributes.json';
+import entityNavigationJson from './jsp/java/entity_navigation.json';
 
 /**
  * Validates the Java Edition goldens that `utils/java-dump/run.mjs` captures from the pinned
@@ -169,5 +170,16 @@ describe('entity_attributes.json', () => {
         expect(cow?.attributes['minecraft:max_health']).toBe(10);
         expect(cow?.width).toBe(0.9);
         expect(cow?.height).toBe(1.4);
+    });
+});
+
+describe('entity_navigation.json', () => {
+    it("holds the villager, whose constructor reads the level's environment attributes", () => {
+        // `Villager.registerBrainGoals` asks the level which activity its schedule starts in.
+        expect(entityNavigationJson['minecraft:villager']).toMatchObject({
+            navigationClass: 'net.minecraft.world.entity.ai.navigation.GroundPathNavigation',
+            canOpenDoors: true,
+            moveControlClass: 'net.minecraft.world.entity.ai.control.MoveControl'
+        });
     });
 });
