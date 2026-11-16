@@ -80,7 +80,7 @@ import {
 } from '@jsprismarine/entity-brains';
 import { blockPosTracker } from '@jsprismarine/entity-brains';
 import type { VillagerRaidEffect, VillagerRaidState, VillagerTask } from '@jsprismarine/entity-brains';
-import { entityData } from '@jsprismarine/items';
+import { entityData, potionDurationScale } from '@jsprismarine/items';
 import type { RecipeBook } from '@jsprismarine/recipes';
 import { EXPLOSION_ENTITY_REACH } from '@jsprismarine/engine-systems';
 import type {
@@ -193,11 +193,27 @@ import { entityFilterContextOf } from './filterView';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { DroppedItems, isDroppedItem } from './droppedItems';
 import { javaBlockTagsForBedrock } from '../../content/javaTags';
-import { AREA_EFFECT_CLOUD, AreaEffectClouds, isAreaEffectCloud } from './areaEffectCloud';
+import { AREA_EFFECT_CLOUD, AreaEffectClouds, instantEffect, isAreaEffectCloud } from './areaEffectCloud';
 import { EvokerFangs, isEvokerFangs } from './evokerFangs';
 import { OminousItemSpawners, isOminousItemSpawner } from './ominousItemSpawner';
 import { DEFLECTED_ARROW_FIRE_TICKS, DEFLECTED_ARROW_SPEED, deflectsArrow } from './dragonArrows';
 import { DRAGON_FIREBALL, breathSearchBox, dragonBreathOf } from './dragonFireball';
+import {
+    EXTINGUISHES_TAG,
+    HURTS_WATER_SENSITIVE_TAG,
+    LINGERING_POTION,
+    REACH_SQUARED,
+    WATER_DAMAGE,
+    WATER_REACH,
+    WATER_SENSITIVE,
+    boxAt,
+    closestPointOf,
+    isThrownPotion,
+    lingeringCloudData,
+    splashDuration,
+    splashStrength,
+    thrownPotionContentsOf
+} from './thrownPotion';
 import { HangingEntities, isHangingEntity } from './hangingEntities';
 import { placeablePaintingVariants } from './paintings';
 import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
@@ -288,6 +304,7 @@ import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
 import { playerAbilityNames } from '../playerAbilities';
+import { javaPotionEffects } from '../../item/potions';
 import { EYE_HEIGHT } from '../playerEyes';
 import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
 import { Gametype } from '@jsprismarine/minecraft';
@@ -6512,6 +6529,7 @@ export class EntityRuntime implements EntityScene {
                 this.applyProjectileHitEffects(onHit, at, false);
                 this.landProjectile(entity, onHit, lastSafe, from, undefined);
                 if (entity.identifier === DRAGON_FIREBALL) this.breathe(entity, at);
+                if (isThrownPotion(entity.identifier)) this.breakPotion(entity, at);
                 const sound = typeof params.hit_ground_sound === 'string' ? params.hit_ground_sound : undefined;
                 if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
 
@@ -6626,6 +6644,16 @@ export class EntityRuntime implements EntityScene {
         // Java's `DragonFireball.onHit` leaves no cloud on the dragon that breathed it.
         if (projectile.identifier === DRAGON_FIREBALL && target.id !== projectile.body.owner)
             this.breathe(projectile, at);
+        if (isThrownPotion(projectile.identifier))
+            this.breakPotion(
+                projectile,
+                closestPointOf(
+                    target instanceof DataEntity
+                        ? boxAt(target.position, target.facts.box.width, target.facts.box.height)
+                        : boxAt(target.position, PLAYER_BOX.width, PLAYER_BOX.height),
+                    at
+                )
+            );
         const sound = typeof params.hit_sound === 'string' ? params.hit_sound : undefined;
         if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
 
@@ -6697,6 +6725,95 @@ export class EntityRuntime implements EntityScene {
             data: breath.data,
             ...(owner === undefined ? {} : { ownerId: owner })
         });
+    }
+
+    /**
+     * Java's `AbstractThrownPotion.onHit` where a thrown potion breaks (`thrownPotion.ts`): a water
+     * bottle hurts the water-sensitive mobs and puts out the burning ones within 4 blocks, a splash
+     * potion gives the living things around it its effects scaled by their distance, and a
+     * lingering one leaves its cloud.
+     */
+    private breakPotion(potion: DataEntity, at: EntityPosition): void {
+        const contents = thrownPotionContentsOf(potion.spawnData);
+        const named = contents.potion;
+        const owner = potion.body.owner;
+        const { tags, items } = this.content();
+        const tagged = (tag: string): boolean => named !== undefined && tags.members('potion', tag).includes(named);
+        const hurts = tagged(HURTS_WATER_SENSITIVE_TAG);
+        const extinguishes = tagged(EXTINGUISHES_TAG);
+        const { width, height } = potion.facts.box;
+        if (hurts || extinguishes) {
+            const across = width / 2 + WATER_REACH.across;
+            for (const target of this.index.withinBox(
+                { x: at.x - across, y: at.y - WATER_REACH.up, z: at.z - across },
+                { x: at.x + across, y: at.y + height + WATER_REACH.up, z: at.z + across }
+            )) {
+                if (target.id === potion.id || target.instance.attributes.get('health') === undefined) continue;
+                const { x, y, z } = target.position;
+                if ((x - at.x) ** 2 + (y - at.y) ** 2 + (z - at.z) ** 2 >= REACH_SQUARED) continue;
+                if (hurts && WATER_SENSITIVE.has(target.identifier))
+                    this.hurt(target, owner, 'magic', WATER_DAMAGE, { route: 'projectile' });
+                if (extinguishes && target.removed === undefined) target.body.fireTicks = 0;
+            }
+        }
+
+        const effects = [...(named === undefined ? [] : javaPotionEffects(named)), ...contents.customEffects].map(
+            ({ id, durationTicks, amplifier }) => ({ id, durationTicks, amplifier })
+        );
+        if (effects.length === 0) return;
+        const patched = potion.spawnData?.['minecraft:potion_duration_scale'];
+        const scale =
+            typeof patched === 'number'
+                ? patched
+                : (items.types.get(potion.identifier)?.params(potionDurationScale) ?? 1);
+        if (potion.identifier === LINGERING_POTION) {
+            this.spawn(AREA_EFFECT_CLOUD, potion.position, {
+                data: lingeringCloudData(effects, scale),
+                ...(owner === undefined ? {} : { ownerId: owner })
+            });
+            return;
+        }
+
+        // `ThrownSplashPotion.onHitAsPotion` searches the potion's box inflated by 4, 2 and 4.
+        const splash = boxAt(at, width, height);
+        const across = width / 2 + WATER_REACH.across;
+        for (const target of this.index.withinBox(
+            { x: at.x - across, y: at.y - WATER_REACH.up, z: at.z - across },
+            { x: at.x + across, y: at.y + height + WATER_REACH.up, z: at.z + across }
+        )) {
+            if (target.id === potion.id || target.instance.attributes.get('health') === undefined) continue;
+            const strength = splashStrength(
+                splash,
+                boxAt(target.position, target.facts.box.width, target.facts.box.height)
+            );
+            if (strength === undefined) continue;
+            for (const effect of effects) {
+                const instant = instantEffect(
+                    effect.id,
+                    effect.amplifier,
+                    strength,
+                    target.instance.families().includes('undead')
+                );
+                if (instant?.kind === 'heal') this.heal(target.id, instant.amount);
+                else if (instant?.kind === 'hurt')
+                    this.hurt(target, owner, 'magic', instant.amount, { route: 'projectile' });
+                else {
+                    const durationTicks = splashDuration(effect.durationTicks, strength, scale);
+                    if (durationTicks !== undefined)
+                        this.applyStatusEffectToId(potion.instance, target.id, { ...effect, durationTicks });
+                }
+            }
+        }
+        for (const player of this.host.players()) {
+            const strength = splashStrength(splash, boxAt(player.position, PLAYER_BOX.width, PLAYER_BOX.height));
+            if (strength === undefined) continue;
+            for (const effect of effects) {
+                if (instantEffect(effect.id, effect.amplifier, strength, false) !== undefined) continue;
+                const durationTicks = splashDuration(effect.durationTicks, strength, scale);
+                if (durationTicks !== undefined)
+                    this.applyStatusEffectToId(potion.instance, player.id, { ...effect, durationTicks });
+            }
+        }
     }
 
     /** The damage an `impact_damage` deals: a fixed range, or an arrow's speed times its power with a critical bonus. */

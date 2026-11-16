@@ -66,4 +66,33 @@ describe('an area effect cloud', () => {
     it('is gone once its wait and its duration have run out', () => {
         expect(breathe().gone).toBe(220);
     });
+
+    it('shrinks by its radius_on_use for each entity it reaches and is gone under half a block', () => {
+        const world = new TestEntityWorld();
+        const fixture = entityFixture(
+            world,
+            {},
+            {
+                'minecraft:area_effect_cloud': { components: { 'minecraft:physics': { has_collision: false } } },
+                'test:plain': { components: { 'minecraft:health': { value: 20, max: 20 } } }
+            }
+        );
+        for (let count = 0; count < 3; count += 1) fixture.runtime.spawn('test:plain', ground(0.5));
+        const cloud = fixture.runtime.spawn(AREA_EFFECT_CLOUD, ground(0.5), {
+            data: {
+                radius: 1.5,
+                radius_on_use: -0.5,
+                duration: 600,
+                wait_time: 0,
+                effects: [{ id: 'minecraft:slowness', amplifier: 0, duration: 100 }]
+            }
+        });
+        if (cloud === undefined) throw new Error('the fixture declared the cloud');
+        for (let tick = 1; tick <= 5; tick += 1) {
+            world.advance();
+            fixture.runtime.tick(tick);
+        }
+        // Three entities take it from 1.5 to 0, under half a block.
+        expect(fixture.runtime.byId(cloud.id)).toBeUndefined();
+    });
 });

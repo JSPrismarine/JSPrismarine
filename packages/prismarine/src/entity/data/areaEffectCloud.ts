@@ -3,7 +3,7 @@
  *
  * Bedrock's `minecraft:area_effect_cloud` file declares no behavior, so a cloud that the dragon
  * breathed or a lingering potion left did nothing. A cloud's numbers come with its spawn data,
- * the way Java's constructor callers set them: `radius`, `duration`, `wait_time`,
+ * the way Java's constructor callers set them: `radius`, `radius_on_use`, `duration`, `wait_time`,
  * `reapplication_delay`, `radius_per_tick`, `potion_duration_scale` and its `effects`.
  *
  * A cloud waits out its `wait_time`, then every fifth tick reaches each living thing whose box
@@ -67,6 +67,8 @@ interface CloudTuning {
     readonly waitTime: number;
     readonly reapplicationDelay: number;
     readonly radiusPerTick: number;
+    /** What each entity it reaches adds to its radius, Java's `radiusOnUse`. */
+    readonly radiusOnUse: number;
     readonly durationScale: number;
     readonly effects: readonly CloudEffect[];
 }
@@ -86,6 +88,7 @@ const tuningOf = (entity: DataEntity): CloudTuning => {
         waitTime: numberOr(data, 'wait_time', DEFAULT_WAIT_TIME),
         reapplicationDelay: numberOr(data, 'reapplication_delay', DEFAULT_REAPPLICATION_DELAY),
         radiusPerTick: numberOr(data, 'radius_per_tick', 0),
+        radiusOnUse: numberOr(data, 'radius_on_use', 0),
         durationScale: numberOr(data, 'potion_duration_scale', 1),
         effects: effects.flatMap((effect): CloudEffect[] => {
             if (!isRecord(effect) || typeof effect['id'] !== 'string') return [];
@@ -98,6 +101,23 @@ const tuningOf = (entity: DataEntity): CloudTuning => {
             ];
         })
     };
+};
+
+/**
+ * Java's `HealOrHarmMobEffect.applyInstantenousEffect` at a strength: instant health heals
+ * `4 << amplifier` and instant damage hurts `6 << amplifier`, each times the strength and rounded,
+ * and an undead target takes the one for the other. Undefined for any other effect.
+ */
+export const instantEffect = (
+    effect: string,
+    amplifier: number,
+    strength: number,
+    undead: boolean
+): { readonly kind: 'heal' | 'hurt'; readonly amount: number } | undefined => {
+    if (effect !== INSTANT_DAMAGE && effect !== INSTANT_HEALTH) return undefined;
+    return (effect === INSTANT_DAMAGE) === undead
+        ? { kind: 'heal', amount: Math.floor(strength * (4 << amplifier) + 0.5) }
+        : { kind: 'hurt', amount: Math.floor(strength * (6 << amplifier) + 0.5) };
 };
 
 /** Whether a data entity is an area effect cloud this system runs. */
@@ -139,21 +159,30 @@ export class AreaEffectClouds {
                 this.host.remove(cloud.id, 'discarded');
                 return;
             }
-            if (age % REACH_INTERVAL === 0) victims = this.reach(cloud, tuning, radius, age, victims);
+            if (age % REACH_INTERVAL === 0) {
+                const reached = this.reach(cloud, tuning, radius, age, victims);
+                if (reached === undefined) return;
+                ({ victims, radius } = reached);
+            }
         }
         cloud.instance.componentState.set(cloudState, { age, radius, victims });
     }
 
-    /** Applies the cloud's effects to whoever stands in it and was not reached too recently. */
+    /**
+     * Applies the cloud's effects to whoever stands in it and was not reached too recently, each
+     * of whom adds `radius_on_use` to its radius. Undefined once the radius falls under half a
+     * block, which removes the cloud.
+     */
     private reach(
         cloud: DataEntity,
         tuning: CloudTuning,
-        radius: number,
+        startRadius: number,
         age: number,
         victims: readonly (readonly number[])[]
-    ): readonly (readonly number[])[] {
+    ): { readonly victims: readonly (readonly number[])[]; readonly radius: number } | undefined {
+        let radius = startRadius;
         const kept = victims.filter(([, until]) => until !== undefined && age < until);
-        if (tuning.effects.length === 0) return [];
+        if (tuning.effects.length === 0) return { victims: [], radius };
         const at = cloud.position;
         const reached = this.host.withinBox(
             { x: at.x - radius, y: at.y, z: at.z - radius },
@@ -167,17 +196,29 @@ export class AreaEffectClouds {
             if ((target.position.x - at.x) ** 2 + (target.position.z - at.z) ** 2 > radius * radius) continue;
             next.push([target.id, age + tuning.reapplicationDelay]);
             for (const effect of tuning.effects) this.apply(cloud, target, effect, tuning.durationScale);
+            if (tuning.radiusOnUse !== 0) {
+                radius += tuning.radiusOnUse;
+                if (radius < MIN_RADIUS) {
+                    this.host.remove(cloud.id, 'discarded');
+                    return undefined;
+                }
+            }
         }
-        return next;
+        return { victims: next, radius };
     }
 
     /**
-     * One effect on one entity: Java's `HealOrHarmMobEffect.applyInstantenousEffect` for the
-     * instant two, which swaps for the undead, and the scaled duration for the rest.
+     * One effect on one entity: {@link instantEffect} for the instant two, at half strength, and
+     * the scaled duration for the rest.
      */
     private apply(cloud: DataEntity, target: DataEntity, effect: CloudEffect, scale: number): void {
-        const instant = effect.id === INSTANT_DAMAGE || effect.id === INSTANT_HEALTH;
-        if (!instant) {
+        const instant = instantEffect(
+            effect.id,
+            effect.amplifier,
+            INSTANT_STRENGTH,
+            target.instance.families().includes(UNDEAD_FAMILY)
+        );
+        if (instant === undefined) {
             this.host.applyStatusEffect(cloud, target.id, {
                 id: effect.id,
                 durationTicks: Math.floor(effect.duration * scale),
@@ -185,16 +226,7 @@ export class AreaEffectClouds {
             });
             return;
         }
-        const undead = target.instance.families().includes(UNDEAD_FAMILY);
-        if ((effect.id === INSTANT_DAMAGE) === undead) {
-            this.host.heal(target.id, Math.floor(INSTANT_STRENGTH * (4 << effect.amplifier) + 0.5));
-        } else {
-            this.host.hurt(
-                target,
-                cloud.body.owner ?? cloud.id,
-                'magic',
-                Math.floor(INSTANT_STRENGTH * (6 << effect.amplifier) + 0.5)
-            );
-        }
+        if (instant.kind === 'heal') this.host.heal(target.id, instant.amount);
+        else this.host.hurt(target, cloud.body.owner ?? cloud.id, 'magic', instant.amount);
     }
 }

@@ -20,6 +20,7 @@ import { isStatefulRandomSource, seededRandom } from '@jsprismarine/predicates';
 import { createContentBlockGroup } from '../../block/contentAdapter';
 import { resolveTransform } from '../../item/blockTransformers';
 import { createContentItemGroup } from '../../item/contentAdapter';
+import { javaPotionEffects } from '../../item/potions';
 import { createItemActorPort } from '../../item/actorPort';
 import { entityContentGroups } from '../../entity/contentAdapter';
 import type { EntityRuntimes, LiveEntityRuntime } from '../../entity/data/live';
@@ -208,6 +209,7 @@ const adapterFor = (
             level,
             actors,
             content,
+            potions: javaPotionEffects,
             transformers: (transformer, block, face) =>
                 resolveTransform(
                     content().blockTransformers,
