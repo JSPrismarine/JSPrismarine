@@ -375,6 +375,14 @@ class PlayerChunkRefCounts {
         return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.[2] ?? 0) > 0;
     }
 
+    /** How many chunks lie between a chunk and the nearest player, counting the longer axis. */
+    public distanceToPlayer(chunkX: number, chunkZ: number): number {
+        let nearest = Number.POSITIVE_INFINITY;
+        for (const { x, z } of this.players.values())
+            nearest = Math.min(nearest, Math.max(Math.abs(chunkX - x), Math.abs(chunkZ - z)));
+        return nearest;
+    }
+
     private changeCoverage(previous: PlayerChunkCoverage | undefined, next: PlayerChunkCoverage | undefined): void {
         this.changeCoverageArea(previous, next, SIMULATION_DISTANCE, 'simulation');
         this.changeCoverageArea(previous, next, SIMULATION_DISTANCE + LIGHT_GUARD_CHUNKS, 'light');
@@ -1184,12 +1192,6 @@ export class World implements Service {
         // before the sand under it fell away.
         const endBlockUpdatesProfile = startProfile?.(`World.blockUpdates:${this.name}`);
         try {
-            // Light outside the simulation ring is initialized on demand when something reads it,
-            // and the ring's own flood finishes over the ticks that follow. Simulation does not
-            // wait for it: a join queues tens of millions of light nodes at 4096 a tick, so waiting
-            // froze every entity, spawner and furnace for minutes (the client e2e scenarios caught
-            // players that never landed, furnaces that never lit and cows that never spawned).
-            this.systems.prepareLighting?.();
             this.runBlockUpdates();
         } finally {
             endBlockUpdatesProfile?.();
@@ -1199,6 +1201,15 @@ export class World implements Service {
         // positions, then the light the writes above queued. Budgeted, so one tick cannot stall
         // on a light flood or a backlog of fluid ticks. The weather cycle ran before this, on
         // the level, as `ServerLevel.tick` runs `advanceWeatherCycle` before its tick lists.
+        //
+        // The light ring's chunks enter the light model a few a tick and their flood finishes
+        // over the ticks that follow. The world does not wait for all of it: a join queues over
+        // a million light nodes, and waiting for the last of them froze every entity, spawner
+        // and furnace (the client e2e scenarios caught players that never landed, furnaces that
+        // never lit and cows that never spawned). Each chunk waits for its own light and its
+        // neighbors' instead, the chunks nearest a player first: its entities, random ticks and
+        // natural spawns start once that is done, and any other read finishes the light around
+        // itself.
         const endSystemsProfile = startProfile?.(`World.systems:${this.name}`);
         try {
             this.systems.tick(this.getTicks());
@@ -1213,8 +1224,18 @@ export class World implements Service {
         this.tickCookingStations(playerChunkRefCounts);
         this.tickSpawners(playerChunkRefCounts);
         tickInhabitedTime(this.simulationChunks(playerChunkRefCounts), this.inhabitingPlayers());
-        const isPositionTicking = (x: number, z: number): boolean =>
-            playerChunkRefCounts.simulates(CoordinateUtils.fromBlockToChunk(x), CoordinateUtils.fromBlockToChunk(z));
+        // Java ticks an entity only in a chunk whose light is done. A mob that burns in daylight
+        // reads the sky light where it stands on every tick, and that read in a chunk still
+        // waiting for its light would finish the light around it inside this tick, once for
+        // every such mob a joining player's ring holds. A test's stand-in for the systems has no
+        // answer to give, and every entity ticks.
+        const isPositionTicking = (x: number, z: number): boolean => {
+            const chunkX = CoordinateUtils.fromBlockToChunk(x);
+            const chunkZ = CoordinateUtils.fromBlockToChunk(z);
+            return (
+                playerChunkRefCounts.simulates(chunkX, chunkZ) && (this.systems.isLightReady?.(chunkX, chunkZ) ?? true)
+            );
+        };
 
         // Claimed per tick, so an entity that arrived from a world the level ticked earlier
         // this pass is not updated twice: see {@link StoreActor.claimUpdate}. Taken from the map
@@ -3170,9 +3191,9 @@ export class World implements Service {
         for (const chunk of this.simulationChunks(playerChunkRefCounts)) {
             const x = chunk.getX();
             const z = chunk.getZ();
-            // Java ticks a chunk only once its light is done; a random tick on a chunk still
-            // flooding would also make its light reads run the flood inside the tick.
-            if (this.systems.isLightFlooding(x, z)) continue;
+            // Java ticks a chunk only once its light is done; a random tick on a chunk whose
+            // light is not would also make its light reads finish that light inside the tick.
+            if (!this.systems.isLightReady(x, z)) continue;
             const sections = chunk.getRandomTickSections();
             if (sections.length > 0) visited.push({ x, z, sections });
         }
@@ -3215,7 +3236,8 @@ export class World implements Service {
     }
 
     /**
-     * Loaded chunks in the simulation area and its one-chunk light guard ring.
+     * Loaded chunks in the simulation area and its one-chunk light guard ring, nearest to a
+     * player first, which is the order their light is computed in.
      *
      * The same array comes back until a chunk loads, unloads or a player's coverage changes, so a
      * caller can tell that nothing moved by comparing identity.
@@ -3230,11 +3252,16 @@ export class World implements Service {
         if (cached?.coverageRevision === coverageRevision && cached.loadedRevision === loadedRevision)
             return cached.chunks;
 
-        const chunks: { readonly x: number; readonly z: number }[] = [];
+        const listed: { readonly x: number; readonly z: number; readonly distance: number }[] = [];
         for (const chunk of this.chunks.values()) {
-            if (playerChunkRefCounts.lights(chunk.getX(), chunk.getZ()))
-                chunks.push({ x: chunk.getX(), z: chunk.getZ() });
+            const x = chunk.getX();
+            const z = chunk.getZ();
+            if (playerChunkRefCounts.lights(x, z))
+                listed.push({ x, z, distance: playerChunkRefCounts.distanceToPlayer(x, z) });
         }
+        // A stable sort, so chunks the same distance away keep the order they loaded in.
+        listed.sort((a, b) => a.distance - b.distance);
+        const chunks = listed.map(({ x, z }) => ({ x, z }));
         this.lightChunksCache = { coverageRevision, loadedRevision, chunks };
         return chunks;
     }

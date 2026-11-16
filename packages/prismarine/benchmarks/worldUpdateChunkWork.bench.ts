@@ -68,8 +68,7 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
     let world: World;
     const { runtime } = entityFixture();
     const systems = {
-        isLightingSettled: true,
-        prepareLighting: () => {},
+        isLightReady: () => true,
         tick: () => {
             for (const chunk of world.randomTickChunks()) {
                 addToDigest(output, chunk.x);

@@ -10,7 +10,12 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
 import { maxY } from './Dimension';
 import type { SystemBlock, WorldSystemsAccess, WorldSystemsOptions, WorldSystemsView } from './WorldSystems';
-import { LIGHT_BUDGET_PER_TICK, SCHEDULED_TICK_BUDGET_PER_TICK, WorldSystems } from './WorldSystems';
+import {
+    LIGHT_BUDGET_PER_TICK,
+    LIGHT_CHUNKS_PER_TICK,
+    SCHEDULED_TICK_BUDGET_PER_TICK,
+    WorldSystems
+} from './WorldSystems';
 
 const AIR: SystemBlock = { name: 'minecraft:air', states: {}, runtimeId: BlockRuntimeIds.getByName('minecraft:air') };
 const STONE: SystemBlock = {
@@ -57,6 +62,40 @@ const lightDigest = (systems: WorldSystems, chunkX: number, chunkZ: number): str
         }
     }
     return digest.update(values).digest('hex');
+};
+
+/** Runs the lighting pass for as many ticks as it needs to take `chunkCount` chunks in. */
+const takeIn = (systems: WorldSystems, chunkCount: number): void => {
+    for (let tick = 0; tick < Math.ceil(chunkCount / LIGHT_CHUNKS_PER_TICK); tick++) systems.prepareLighting();
+};
+
+/**
+ * A square of loaded chunks around the origin that a light ring requires all of, listed nearest
+ * first. Empty air under an open sky until a test places blocks.
+ */
+const ringOf = (radius: number) => {
+    const chunks: { readonly x: number; readonly z: number }[] = [];
+    for (let ring = 0; ring <= radius; ring++) {
+        for (let x = -ring; x <= ring; x++) {
+            for (let z = -ring; z <= ring; z++) {
+                if (Math.max(Math.abs(x), Math.abs(z)) === ring) chunks.push({ x, z });
+            }
+        }
+    }
+    const loaded = new Set(chunks.map(({ x, z }) => `${x},${z}`));
+    const blocks = new Map<string, SystemBlock>();
+    const view: WorldSystemsView = {
+        dimension: Dimensions.Overworld,
+        blockAt: (x, y, z) => (loaded.has(`${x >> 4},${z >> 4}`) ? (blocks.get(key(x, y, z)) ?? AIR) : undefined),
+        topOfColumn: () => 48,
+        loadedChunks: () => chunks,
+        lightChunks: () => chunks,
+        shouldInitializeLight: (x, z) => loaded.has(`${x},${z}`)
+    };
+    const systems = new WorldSystems({ view, world: createTestWorld() });
+    const lit = () => chunks.filter(({ x, z }) => systems.lighting.hasChunk(x, z));
+
+    return { chunks, blocks, systems, lit };
 };
 
 /**
@@ -172,11 +211,14 @@ describe('world', () => {
                 const systems = systemsOf();
                 systems.onChunkLoaded(0, 0);
 
-                blocks.set(key(8, 40, 8), GLOWSTONE);
-                systems.onBlockChanged({ x: 8, y: 40, z: 8 }, AIR, GLOWSTONE);
+                // Far enough apart that no two floods meet, so together they outlast one budget.
+                for (let y = -40; y <= 240; y += 40) {
+                    blocks.set(key(8, y, 8), GLOWSTONE);
+                    systems.onBlockChanged({ x: 8, y, z: 8 }, AIR, GLOWSTONE);
+                }
 
-                // One tick's budget does not finish a glowstone's flood; the rest lands on the
-                // ticks after it, which is the whole point of a budget.
+                // One tick's budget does not finish the flood of that many glowstones; the rest
+                // lands on the ticks after it, which is the whole point of a budget.
                 expect(systems.tick(1).light.processed).toBe(LIGHT_BUDGET_PER_TICK);
                 for (let tick = 2; tick < 100 && systems.lighting.pending.queued > 0; tick++) systems.tick(tick);
 
@@ -305,7 +347,7 @@ describe('world', () => {
                     };
                     const systems = new WorldSystems({ view, world: createTestWorld() });
                     for (const { x, z } of coordinates) systems.onChunkLoaded(x, z);
-                    if (deferred) systems.prepareLighting();
+                    if (deferred) takeIn(systems, coordinates.length);
                     systems.lighting.flush();
                     return { systems, moveCenter: (x: number) => (centerX = x) };
                 };
@@ -316,7 +358,7 @@ describe('world', () => {
                 expect(lightDigest(deferred.systems, 0, 0)).toBe(lightDigest(eager, 0, 0));
 
                 deferred.moveCenter(1);
-                deferred.systems.prepareLighting();
+                takeIn(deferred.systems, coordinates.length);
                 deferred.systems.lighting.flush();
                 expect(deferred.systems.lighting.hasChunk(-1, 0)).toBe(false);
                 expect(deferred.systems.lighting.hasChunk(2, 0)).toBe(true);
@@ -475,6 +517,119 @@ describe('world', () => {
                 // Chunk 4 is far beyond the reach of chunk 0's light, so the read waits on none of it.
                 systems.getSkyLight(8, 40, 8);
                 expect(systems.lighting.pending.queued).toBe(queued);
+            });
+
+            it('takes the same few chunks into the light model each tick, whatever the size of the ring', () => {
+                const small = ringOf(2);
+                const large = ringOf(5);
+
+                small.systems.tick(1);
+                large.systems.tick(1);
+                expect(small.lit()).toEqual(small.chunks.slice(0, LIGHT_CHUNKS_PER_TICK));
+                expect(large.lit()).toEqual(large.chunks.slice(0, LIGHT_CHUNKS_PER_TICK));
+
+                small.systems.tick(2);
+                expect(small.lit()).toEqual(small.chunks.slice(0, 2 * LIGHT_CHUNKS_PER_TICK));
+            });
+
+            it('lights every chunk of the ring once enough ticks have passed', () => {
+                const { chunks, systems, lit } = ringOf(2);
+
+                for (let tick = 1; tick <= Math.ceil(chunks.length / LIGHT_CHUNKS_PER_TICK); tick++) systems.tick(tick);
+
+                expect(lit()).toEqual(chunks);
+            });
+
+            it('answers a read with settled light before the ring has been taken in', () => {
+                const { blocks, systems, lit } = ringOf(3);
+                // A source just across the border of the chunk the read lands in.
+                blocks.set(key(16, 41, 8), GLOWSTONE);
+                const flush = vi.spyOn(systems.lighting, 'flush');
+
+                expect(systems.getBlockLight(15, 41, 8)).toBe(14);
+
+                // The read took in the nine chunks that can reach it, and ran no other chunk's light.
+                expect(lit()).toHaveLength(9);
+                expect(lit().every(({ x, z }) => Math.abs(x) <= 1 && Math.abs(z) <= 1)).toBe(true);
+                expect(flush).not.toHaveBeenCalled();
+            });
+
+            it('leaves light queued beyond the reach of a read for the tick budget', () => {
+                const { chunks, blocks, systems } = ringOf(3);
+                blocks.set(key(8, 41, 8), GLOWSTONE);
+                blocks.set(key(8 + 16 * 3, 41, 8), GLOWSTONE);
+                takeIn(systems, chunks.length);
+
+                expect(systems.getBlockLight(9, 41, 8)).toBe(14);
+
+                expect(systems.lighting.isSettledAround(0, 0)).toBe(true);
+                expect(systems.lighting.isSettledAround(3, 0)).toBe(false);
+                expect(systems.lighting.pending.queued).toBeGreaterThan(0);
+            });
+
+            it('finishes the first light of the ring nearest first, on one budget a tick', () => {
+                const { chunks, blocks, systems } = ringOf(3);
+                // Ground of uneven height under a roof, so every chunk has a flood to run.
+                for (let x = -48; x < 64; x++) {
+                    for (let z = -48; z < 64; z++) {
+                        blocks.set(key(x, 40 + ((x * 7 + z * 13) & 3), z), STONE);
+                        if ((x & 7) < 4) blocks.set(key(x, 46, z), STONE);
+                    }
+                }
+                const far = chunks[chunks.length - 1]!;
+                const readyAt = new Map<string, number>();
+
+                for (let tick = 1; tick <= 400 && !systems.isLightReady(far.x, far.z); tick++) {
+                    expect(systems.tick(tick).light.processed).toBeLessThanOrEqual(LIGHT_BUDGET_PER_TICK);
+                    for (const { x, z } of chunks) {
+                        if (!readyAt.has(`${x},${z}`) && systems.isLightReady(x, z)) readyAt.set(`${x},${z}`, tick);
+                    }
+                }
+
+                expect(readyAt.size).toBe(chunks.length);
+                // The flood outlasts one budget, and the chunk a player stands in does not wait for
+                // the far side of the ring.
+                expect(readyAt.get('0,0')).toBeLessThan(readyAt.get(`${far.x},${far.z}`)!);
+                expect(systems.lighting.pending.queued).toBe(0);
+            });
+
+            it('keeps a chunk ready while light a later block change queued floods', () => {
+                const { chunks, blocks, systems } = ringOf(1);
+                for (let tick = 1; tick <= Math.ceil(chunks.length / LIGHT_CHUNKS_PER_TICK); tick++) systems.tick(tick);
+                expect(systems.isLightReady(0, 0)).toBe(true);
+
+                blocks.set(key(8, 41, 8), GLOWSTONE);
+                systems.onBlockChanged({ x: 8, y: 41, z: 8 }, AIR, GLOWSTONE);
+
+                expect(systems.lighting.isFloodingAround(0, 0)).toBe(true);
+                expect(systems.isLightReady(0, 0)).toBe(true);
+            });
+
+            it('holds a ready chunk back while a neighbor that just loaded has its first light to run', () => {
+                const { chunks, systems } = ringOf(1);
+                for (let tick = 1; tick <= Math.ceil(chunks.length / LIGHT_CHUNKS_PER_TICK); tick++) systems.tick(tick);
+                expect(systems.isLightReady(1, 0)).toBe(true);
+
+                // The chunk came back from disk: the world dropped its light and announces it again.
+                systems.onChunkUnloaded(1, 1);
+                systems.onChunkLoaded(1, 1);
+                expect(systems.isLightReady(1, 0)).toBe(false);
+
+                systems.tick(10);
+                expect(systems.isLightReady(1, 0)).toBe(true);
+            });
+
+            it('is not ready in a chunk while a neighbor the ring requires waits to be taken in', () => {
+                const { chunks, systems } = ringOf(1);
+                expect(chunks.length).toBeGreaterThan(LIGHT_CHUNKS_PER_TICK);
+
+                systems.tick(1);
+                expect(systems.lighting.hasChunk(0, 0)).toBe(true);
+                expect(systems.lighting.isSettledAround(0, 0)).toBe(true);
+                expect(systems.isLightReady(0, 0)).toBe(false);
+
+                systems.tick(2);
+                expect(systems.isLightReady(0, 0)).toBe(true);
             });
 
             it('stops the flood at an opaque block', () => {

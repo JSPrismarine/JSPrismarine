@@ -114,10 +114,10 @@ that tick in the replay's outbound digest, whenever the transport frames it.
 `World.update` runs each system in Java's order, and `WorldSystems.tick` is the part that owns
 them. Scheduled block ticks run first, then scheduled fluid ticks, then the chunk tick that draws
 random positions, then the light the writes above queued. Light goes last because every block
-change made earlier in the tick has already added work to its queue. The world initializes light
-for the simulation area and one guard chunk around it. While that queue is unsettled, `World.update`
-pauses chunk simulation. A light read in another loaded chunk initializes and settles that chunk
-on demand.
+change made earlier in the tick has already added work to its queue. The world keeps light for the
+simulation area and one guard chunk around it, and brings a newly needed chunk in over several
+ticks. A chunk is simulated once its first light and its neighbors' is done, as [Light](#light)
+describes.
 
 Two kinds of update look similar and behave differently. A **scheduled tick** runs on a future game
 tick. It carries a position, a block type, a trigger tick and one of Java's seven `TickPriority`
@@ -129,8 +129,9 @@ transcription of `CollectingNeighborUpdater`, and the chain it can set off is ca
 updates.
 
 Each list gets <!-- fact:tick.scheduledTickBudget -->65536<!-- /fact --> ticks per game tick,
-Java's number, and the light engine gets <!-- fact:tick.lightBudget -->4096<!-- /fact --> queue
-nodes. Before either runs, block physics gets <!-- fact:tick.blockUpdateBudget -->4096<!-- /fact -->
+Java's number. The light engine gets <!-- fact:tick.lightBudget -->16384<!-- /fact --> queue
+nodes and takes <!-- fact:tick.lightChunkBudget -->8<!-- /fact --> newly needed chunks into its
+model. Before any of them runs, block physics gets <!-- fact:tick.blockUpdateBudget -->4096<!-- /fact -->
 due block updates. These limits exist so a single tick cannot stall on a backlog or a light flood;
 whatever is left over keeps its place and runs first next tick. When a tick is due, the world
 dispatches it to the active block family's `onTick` hook.
@@ -388,8 +389,27 @@ chunk. A block change is patched rather than rebuilt. The daylight cycle is not 
 themselves.
 
 The world keeps light for the player simulation area and one chunk around it. As players move, it
-drops columns outside that ring and rebuilds them if they return. A rule that reads light in another
-loaded chunk initializes and settles that column on demand.
+drops columns outside that ring and rebuilds them if they return.
+
+A player who joins, teleports or changes dimension needs that whole ring at once, and in broken
+terrain its light is more than a million queue nodes. That is far more than one tick can run
+without everything else in the tick waiting for it, so the world spreads it over the ticks that
+follow. Each tick takes up to
+<!-- fact:tick.lightChunkBudget -->8<!-- /fact --> chunks into the light model and floods up to
+<!-- fact:tick.lightBudget -->16384<!-- /fact --> queue nodes, working outward from the nearest
+player, so the chunks next to a player are ready within a few ticks and the far edge of the ring
+last.
+
+A chunk is simulated once its own first light and that of its neighbors is done. This is Java's
+rule that a chunk ticks only when it and its neighbors are loaded and lit. Until then the chunk's
+mobs and dropped items stand still, and it takes no random ticks and no natural spawns. Players
+always tick. Once a chunk's first light is done it stays simulated: the light a torch or an
+explosion queues later floods under the same budget and holds nothing up.
+
+Anything else that reads light gets a settled answer, whether it is a command, a player's own
+rule or a mob looking across a chunk border. The read first finishes the light of the nine chunks
+around the position. Light reaches fifteen blocks, so nothing further away can change the answer,
+and the rest of the queue stays where it is.
 
 The `blocks.light` value those rules read is Java's gameplay brightness, the brighter of block light
 and sky light. The End has sky light, so its open ground reads 15; the Nether has none. The
@@ -410,7 +430,8 @@ A tick is 50 ms. Here is what the engine systems take out of it, with the budget
 | Work                                             | Cost or budget            |
 | ------------------------------------------------ | ------------------------- |
 | Scheduled block ticks, and fluid ticks, per tick | 65536 each, Java's number |
-| Light queue nodes per tick                       | 4096                      |
+| Light queue nodes per tick                       | <!-- fact:tick.lightBudget -->16384<!-- /fact --> |
+| Chunks taken into the light model per tick       | <!-- fact:tick.lightChunkBudget -->8<!-- /fact --> |
 | Random ticks, 441 chunks, nobody online          | nothing                   |
 | Random ticks, 441 chunks, one player, flat world | 3.5 ms, down from 29.5    |
 | Radius-4 blast                                   | about 0.5 ms              |

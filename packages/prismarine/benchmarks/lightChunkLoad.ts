@@ -4,7 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { createTestWorld } from '@jsprismarine/engine-systems';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import type { SystemBlock, WorldSystemsView } from '../src/world/WorldSystems';
-import { WorldSystems } from '../src/world/WorldSystems';
+import { LIGHT_CHUNKS_PER_TICK, WorldSystems } from '../src/world/WorldSystems';
 import { Dimensions } from '../src/world/DimensionType';
 
 const VIEW_DISTANCE = 32;
@@ -54,7 +54,11 @@ const measure = (deferred: boolean, paletteHints: boolean) => {
     const systems = new WorldSystems({ view, world: createTestWorld() });
     const started = performance.now();
     for (const { x, z } of coordinates) systems.onChunkLoaded(x, z);
-    if (deferred) systems.prepareLighting();
+    // The pass takes in a few chunks a tick, so this is the ring's worth of ticks.
+    if (deferred) {
+        for (let tick = 0; tick < Math.ceil(LIGHT_CHUNK_COUNT / LIGHT_CHUNKS_PER_TICK); tick++)
+            systems.prepareLighting();
+    }
     const elapsedMs = performance.now() - started;
 
     return {

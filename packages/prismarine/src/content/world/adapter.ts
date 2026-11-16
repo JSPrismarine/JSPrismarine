@@ -151,6 +151,11 @@ export interface ContentBlockAccess {
     light(at: ContentPosition): number;
     /** Sky light at a position, 0 to 15; absent when the host cannot separate it from block light. */
     skyLight?(at: ContentPosition): number;
+    /**
+     * Whether a chunk's light is final, which is what a natural spawn waits for. Absent on a host
+     * whose light is never still arriving.
+     */
+    lightReady?(chunkX: number, chunkZ: number): boolean;
     /** The redstone power reaching a position, 0 to 15. */
     power(at: ContentPosition): number;
     /** The signal from a block, where direction points from the receiver to this source. */

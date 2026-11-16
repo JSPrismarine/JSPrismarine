@@ -42,7 +42,7 @@ const worldWith = (
             unload: () => false,
             runtime: { index: new EntityIndex(), store: new EntityStore(), remove: () => {} }
         }),
-        systems: { onChunkUnloaded: () => {}, isLightFlooding: () => false, ticks: new TickScheduler() },
+        systems: { onChunkUnloaded: () => {}, isLightReady: () => true, ticks: new TickScheduler() },
         dimension: Dimensions.Overworld,
         server: { invalidateEntityBlockCaches: () => {}, getLogger: () => ({ error: vi.fn() }) }
     });
@@ -100,6 +100,36 @@ describe('world player chunk counts', () => {
         absoluteValue.mockRestore();
 
         expect(comparisons).toBeLessThan(PLAYER_COUNT * CHUNK_COUNT);
+    });
+
+    it('lists the chunks whose light is due nearest a player first', () => {
+        // Loaded far side first, so the order they loaded in and their distance disagree.
+        const world = worldWith([
+            [5, 0],
+            [3, 0],
+            [0, 0],
+            [1, 0],
+            [-2, 0]
+        ]);
+        world['players'].set(1, playerAt(world, 0, 0));
+
+        expect(world['lightChunks']()).toEqual([
+            { x: 0, z: 0 },
+            { x: 1, z: 0 },
+            { x: -2, z: 0 },
+            { x: 3, z: 0 },
+            { x: 5, z: 0 }
+        ]);
+
+        // A second player: each chunk counts from whichever player is nearer.
+        world['players'].set(2, playerAt(world, 5, 0));
+        expect(world['lightChunks']()).toEqual([
+            { x: 5, z: 0 },
+            { x: 0, z: 0 },
+            { x: 1, z: 0 },
+            { x: 3, z: 0 },
+            { x: -2, z: 0 }
+        ]);
     });
 
     it('keeps overlapping simulation coverage correct as players move and leave', () => {

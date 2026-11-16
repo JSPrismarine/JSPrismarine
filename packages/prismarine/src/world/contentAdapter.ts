@@ -55,6 +55,7 @@ export type WorldBlockGroup = Pick<
     | 'runtimeIdAt'
     | 'light'
     | 'skyLight'
+    | 'lightReady'
     | 'isLoaded'
     | 'surfaceY'
     | 'biome'
@@ -269,6 +270,12 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         skyLight: (at) => {
             const systems = live().getSystems();
             return systems.getSkyLight?.(at.x, at.y, at.z) ?? systems.lighting.getSkyLight(at.x, at.y, at.z);
+        },
+        // A chunk that is not in memory has no light to wait for and takes no spawn either.
+        lightReady: (chunkX, chunkZ) => {
+            const world = live();
+            if (world.getLoadedChunk(chunkX, chunkZ) === null) return false;
+            return world.getSystems().isLightReady?.(chunkX, chunkZ) ?? true;
         },
         isLoaded: (at) => live().getLoadedChunk(at.x >> 4, at.z >> 4) !== null,
         surfaceY: (x, z) => {
