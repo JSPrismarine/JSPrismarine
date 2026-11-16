@@ -181,3 +181,27 @@ describe('BrainWorld cached views', () => {
         expect(mob.typeTags.has('after')).toBe(true);
     });
 });
+
+describe('BrainMob ranged attacks', () => {
+    it('fires the projectile a behavior names at a player target, owned by the shooter', () => {
+        const player = { id: 99, identifier: 'minecraft:player', position: { x: 6.5, y: FLOOR_Y + 1, z: 0.5 } };
+        const fixture = entityFixture(
+            new TestEntityWorld({ players: [player] }),
+            {},
+            { 'jsprismarine:bolt': { components: { 'minecraft:projectile': { power: 1.6, gravity: 0.05 } } } }
+        );
+        const goat = fixture.runtime.spawn('minecraft:goat', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+        if (goat === undefined || goat.brain === undefined) throw new Error('the fixture must provide a goat brain');
+        const target = fixture.runtime.brainWorld().players()[0];
+        if (target === undefined) throw new Error('the fixture must provide a player');
+
+        brainMobOf(goat, goat.brain, fixture.runtime).performRangedAttack?.(target, 'jsprismarine:bolt');
+
+        const bolts = fixture.runtime
+            .near(goat.position, 4)
+            .filter((entity) => entity.identifier === 'jsprismarine:bolt');
+        expect(bolts).toHaveLength(1);
+        expect(bolts[0]?.body.owner).toBe(goat.id);
+        expect(bolts[0]?.body.velocity.x).toBeGreaterThan(0);
+    });
+});

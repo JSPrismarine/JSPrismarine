@@ -249,6 +249,12 @@ export interface BrainMob extends BrainEntity {
     jump(): void;
     /** Java's `Mob::doHurtTarget`, with the swing. */
     attack(target: BrainEntity): void;
+    /**
+     * Java's `RangedAttackMob::performRangedAttack`: fires a projectile at the target, as a piglin
+     * fires the arrow its crossbow loaded. A host that cannot shoot leaves it out.
+     * @param projectile - The projectile entity type, such as `minecraft:arrow`.
+     */
+    performRangedAttack?(target: BrainEntity, projectile: string): void;
     /** Java's `Entity::playSound`, by sound event id. */
     playSound(sound: string): void;
     /** An attribute value, such as `minecraft:follow_range` or `minecraft:tempt_range`. */

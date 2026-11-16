@@ -584,9 +584,32 @@ export function stopAttackingIfTargetInvalid(options: StopAttackingOptions = {})
 /** Java's `SetWalkTargetFromAttackTargetIfTargetOutOfReach.PROJECTILE_ATTACK_RANGE_BUFFER`. */
 export const PROJECTILE_ATTACK_RANGE_BUFFER = 1;
 
-/** Java's `SetWalkTargetFromAttackTargetIfTargetOutOfReach`: closes on the attack target. */
+/**
+ * Java's `BehaviorUtils.isWithinAttackRange`: a mob holding a projectile weapon it can fire is in
+ * range closer than the weapon's range less `cooldown`, and any other mob within melee reach.
+ * @param projectileRange - Java's `ProjectileWeaponItem.getDefaultProjectileRange` for the weapon
+ *   the mob holds and can fire, or undefined when it holds none it can fire.
+ */
+export function isWithinAttackRange(
+    context: BrainContext,
+    target: BrainEntity,
+    cooldown: number,
+    projectileRange: number | undefined
+): boolean {
+    if (projectileRange === undefined) return context.world.isWithinMeleeRange(context.body, target);
+    const range = projectileRange - cooldown;
+    return distanceSquared(target.position, context.body.position) < range * range;
+}
+
+/**
+ * Java's `SetWalkTargetFromAttackTargetIfTargetOutOfReach`: closes on the attack target until it
+ * is in attack range, which for a mob with a projectile weapon is the weapon's range less
+ * {@link PROJECTILE_ATTACK_RANGE_BUFFER}.
+ * @param projectileRange - The range of the projectile weapon the mob holds and can fire, if any.
+ */
 export function setWalkTargetFromAttackTargetIfTargetOutOfReach(
-    speedModifier: number | ((body: BrainMob) => number)
+    speedModifier: number | ((body: BrainMob) => number),
+    projectileRange: (body: BrainMob) => number | undefined = () => undefined
 ): OneShot {
     return behavior('SetWalkTargetFromAttackTargetIfTargetOutOfReach')
         .registered(MemoryModuleTypes.WALK_TARGET)
@@ -596,7 +619,10 @@ export function setWalkTargetFromAttackTargetIfTargetOutOfReach(
         .build((context, walkTarget, lookTarget, attackTarget, nearest) => {
             const target = attackTarget.get();
             const visible = nearest.tryGet();
-            if (visible?.contains(target) === true && context.world.isWithinMeleeRange(context.body, target)) {
+            if (
+                visible?.contains(target) === true &&
+                isWithinAttackRange(context, target, PROJECTILE_ATTACK_RANGE_BUFFER, projectileRange(context.body))
+            ) {
                 walkTarget.erase();
             } else {
                 lookTarget.set(entityTracker(target));

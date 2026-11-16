@@ -21,6 +21,7 @@ import {
     has,
     interactWith,
     interactWithDoor,
+    isWithinAttackRange,
     lookAtTargetSink,
     meleeAttack,
     moveToTargetSink,
@@ -36,7 +37,7 @@ import {
     stopAttackingIfTargetInvalid
 } from '../behavior/common.js';
 import type { BehaviorControl } from '../behavior/control.js';
-import { DoNothing } from '../behavior/control.js';
+import { Behavior, conditions, DoNothing } from '../behavior/control.js';
 import { RunOne, triggerOneShuffled } from '../behavior/gate.js';
 import { MemoryModuleTypes } from '../memory.js';
 import type { BrainMobDefinition } from '../registry.js';
@@ -48,7 +49,7 @@ import {
     PlayerSensor
 } from '../sensing/sensors.js';
 import type { BrainContext, BrainEntity, BrainItem, BrainMob } from '../world.js';
-import { bottomCenterOf, distanceSquared, EntityCondition } from '../world.js';
+import { bottomCenterOf, distanceSquared, entityTracker, EntityCondition } from '../world.js';
 
 /** The named constants of `PiglinAi`. */
 export const PIGLIN = {
@@ -572,8 +573,9 @@ function fightActivity(): ActivityData {
                 stopAttackingWhen: (context, target) => findPiglinAttackTarget(context) !== target
             }),
             gatedBy(hasCrossbow, backUpIfTooClose()),
-            setWalkTargetFromAttackTargetIfTargetOutOfReach(1),
-            meleeAttack(PIGLIN.meleeAttackCooldown),
+            setWalkTargetFromAttackTargetIfTargetOutOfReach(1, crossbowRange),
+            meleeAttack(PIGLIN.meleeAttackCooldown, (body) => !hasCrossbow(body)),
+            crossbowAttack(),
             rememberIfHoglinWasKilled(),
             eraseMemoryIf(isNearZombified, MemoryModuleTypes.ATTACK_TARGET)
         ]),
@@ -584,6 +586,99 @@ function fightActivity(): ActivityData {
 /** Java's `PiglinAi.hasCrossbow`. */
 function hasCrossbow(body: BrainMob): boolean {
     return body.mainHandItem?.id === 'minecraft:crossbow';
+}
+
+/**
+ * The range of the one projectile weapon a piglin fires, Java's `CrossbowItem.getDefaultProjectileRange`,
+ * or undefined when it holds none: `Piglin.canFireProjectileWeapon` accepts only the crossbow.
+ */
+function crossbowRange(body: BrainMob): number | undefined {
+    return hasCrossbow(body) ? CROSSBOW.range : undefined;
+}
+
+/** Java's crossbow numbers, from `CrossbowItem` and `CrossbowAttack`. */
+const CROSSBOW = {
+    /** `CrossbowItem.getDefaultProjectileRange`. */
+    range: 8,
+    /** `CrossbowItem.getChargeDuration` with no Quick Charge: 1.25 seconds. */
+    chargeTicks: 25,
+    /** `CrossbowAttack.attackDelay`, drawn as `20 + nextInt(20)` once the crossbow is charged. */
+    attackDelayBase: 20,
+    attackDelaySpread: 20,
+    /** `CrossbowAttack.TIMEOUT`. */
+    timeout: 1200,
+    /** What the crossbow loads: `Mob.getProjectile` hands a mob with no ammunition of its own an arrow. */
+    projectile: 'minecraft:arrow'
+} as const;
+
+/**
+ * Java's `CrossbowAttack`: a piglin holding a crossbow, with its target in sight and in range,
+ * charges the crossbow for its charge time, holds it charged for 20 to 39 ticks, and fires,
+ * looking at the target throughout, then starts over.
+ *
+ * The behavior's state outlives a run, as Java's fields do, but a stop lets go of the crossbow
+ * and empties it: a charge that was interrupted is charged again, and one that was ready when the
+ * run stopped fires nothing.
+ */
+function crossbowAttack(): BehaviorControl {
+    let state: 'uncharged' | 'charging' | 'charged' | 'ready' = 'uncharged';
+    let using = false;
+    let usedTicks = 0;
+    let loaded = false;
+    let attackDelay = 0;
+    const target = (context: BrainContext): BrainEntity | undefined =>
+        context.body.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET);
+    const usable = (context: BrainContext): boolean => {
+        const attacked = target(context);
+        return (
+            attacked !== undefined &&
+            hasCrossbow(context.body) &&
+            context.world.canSee(context.body, attacked) &&
+            isWithinAttackRange(context, attacked, 0, crossbowRange(context.body))
+        );
+    };
+    return new Behavior(
+        'CrossbowAttack',
+        conditions([MemoryModuleTypes.WALK_TARGET, 'value_absent'], [MemoryModuleTypes.ATTACK_TARGET, 'value_present']),
+        {
+            checkExtraStartConditions: usable,
+            canStillUse: usable,
+            tick: (context) => {
+                const attacked = target(context);
+                if (attacked === undefined) return;
+                context.body.brain.setMemory(MemoryModuleTypes.LOOK_TARGET, entityTracker(attacked));
+                if (state === 'uncharged') {
+                    using = true;
+                    usedTicks = 0;
+                    state = 'charging';
+                } else if (state === 'charging') {
+                    if (!using) {
+                        state = 'uncharged';
+                        return;
+                    }
+                    usedTicks += 1;
+                    if (usedTicks >= CROSSBOW.chargeTicks) {
+                        using = false;
+                        loaded = true;
+                        state = 'charged';
+                        attackDelay = CROSSBOW.attackDelayBase + context.world.randomInt(CROSSBOW.attackDelaySpread);
+                    }
+                } else if (state === 'charged') {
+                    attackDelay -= 1;
+                    if (attackDelay === 0) state = 'ready';
+                } else {
+                    if (loaded) context.body.performRangedAttack?.(attacked, CROSSBOW.projectile);
+                    loaded = false;
+                    state = 'uncharged';
+                }
+            },
+            stop: () => {
+                using = false;
+                loaded = false;
+            }
+        },
+        { minDuration: CROSSBOW.timeout }
+    );
 }
 
 /** Java's `BackUpIfTooClose.create(5, 0.75F)`. */

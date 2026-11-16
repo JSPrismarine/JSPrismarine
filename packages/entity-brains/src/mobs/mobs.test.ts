@@ -811,6 +811,34 @@ describe('the piglin', () => {
         expect(brain.getActiveNonCoreActivity()).toBe(Activities.FIGHT);
     });
 
+    it('charges its crossbow for 25 ticks, holds it 20 to 39 more, and fires instead of swinging', () => {
+        const world = new TestWorld();
+        const crossbow = { id: 'minecraft:crossbow', tags: new Set<string>() };
+        const { body } = spawn(PIGLIN_BRAIN, { world, entity: { mainHandItem: crossbow } });
+        const player = world.place('minecraft:player', { x: 6, y: 64, z: 0 });
+        const start = world.gameTime();
+        run(body, PIGLIN_BRAIN, 200);
+
+        expect(body.attacks).toEqual([]);
+        expect(body.rangedAttacks.length).toBeGreaterThanOrEqual(2);
+        expect(
+            body.rangedAttacks.every((shot) => shot.target === player && shot.projectile === 'minecraft:arrow')
+        ).toBe(true);
+        const first = (body.rangedAttacks[0]?.at ?? 0) - start;
+        expect(first).toBeGreaterThanOrEqual(25 + 20);
+        expect(first).toBeLessThanOrEqual(25 + 39 + 25);
+    });
+
+    it('keeps its crossbow quiet while its target is out of the crossbow range of 8', () => {
+        const world = new TestWorld();
+        const crossbow = { id: 'minecraft:crossbow', tags: new Set<string>() };
+        const { body } = spawn(PIGLIN_BRAIN, { world, entity: { mainHandItem: crossbow } });
+        world.place('minecraft:player', { x: 12, y: 64, z: 0 });
+        run(body, PIGLIN_BRAIN, 150);
+
+        expect(body.rangedAttacks).toEqual([]);
+    });
+
     it('starts with a hunt cooldown drawn from TIME_BETWEEN_HUNTS, which is 30 to 120 seconds', () => {
         const { brain } = spawn(PIGLIN_BRAIN);
         expect(brain.getMemory(MemoryModuleTypes.HUNTED_RECENTLY)).toBe(true);

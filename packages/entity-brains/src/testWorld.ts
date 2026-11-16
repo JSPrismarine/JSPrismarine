@@ -165,6 +165,12 @@ export class TestMob extends TestEntity implements BrainMob {
     public readonly looks: Vec3[] = [];
     /** Every `attack` call, in order. */
     public readonly attacks: BrainEntity[] = [];
+    /** Every `performRangedAttack` call, in order, with the brain tick it came on. */
+    public readonly rangedAttacks: {
+        readonly target: BrainEntity;
+        readonly projectile: string;
+        readonly at: number;
+    }[] = [];
     /** Every `playSound` call, in order. */
     public readonly sounds: string[] = [];
     public jumps = 0;
@@ -221,6 +227,11 @@ export class TestMob extends TestEntity implements BrainMob {
     /** Records the target in `attacks`. No damage is dealt; the double has no combat. */
     public attack(target: BrainEntity): void {
         this.attacks.push(target);
+    }
+
+    /** Records the target in `rangedAttacks`. No projectile is fired; the double has no combat. */
+    public performRangedAttack(target: BrainEntity, projectile: string): void {
+        this.rangedAttacks.push({ target, projectile, at: this.world.gameTime() });
     }
 
     /** Records the sound name in `sounds`. */

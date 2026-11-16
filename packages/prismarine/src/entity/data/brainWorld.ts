@@ -365,6 +365,11 @@ export const brainMobOf = (entity: DataEntity, brain: Brain, scene: EntityScene)
                 view: () => other.instance.filterContext().self
             });
         },
+        // Through `mobById`, because a piglin's crossbow target is as often a player as a mob.
+        performRangedAttack: (target, projectile) => {
+            const other = scene.mobById(Number(target.id));
+            if (other !== undefined) scene.shoot(entity.body, other, projectile);
+        },
         playSound: (sound) => scene.world.effects.playSound(blockPositionOf(entity.position), sound),
         attribute: (attribute) => attributeOf(entity, attribute)
     };
