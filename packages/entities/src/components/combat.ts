@@ -14,14 +14,18 @@ import { booleanAt, isRecord, numberAt, parseFilterValue, stringAt } from './sch
 import type { SensorTrigger } from './shared';
 import { parseComponentTrigger, parseTimeRange } from './shared';
 
-/** A damage amount, which vanilla writes as a number or a `{range_min, range_max}` object. */
+/** A damage amount, which vanilla writes as a number, a `[min, max]` list or a `{range_min, range_max}` object. */
 export interface DamageRange {
     readonly min: number;
     readonly max: number;
 }
 
 const parseDamageRange = (value: unknown): DamageRange => {
-    if (typeof value === 'number') return { min: value, max: value };
+    if (typeof value === 'number' || Array.isArray(value)) {
+        // The hoglin and zoglin adults write their damage as a list.
+        const [min, max] = parseTimeRange(value);
+        return { min, max };
+    }
     if (isRecord(value)) {
         const min = numberAt(value, 'range_min', 0);
         return { min, max: numberAt(value, 'range_max', min) };
