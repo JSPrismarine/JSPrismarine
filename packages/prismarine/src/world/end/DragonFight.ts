@@ -9,6 +9,7 @@
  * summons the dragon again.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
+import { dragonPhaseState } from '@jsprismarine/entity-goals/goals/dragonPhases';
 import { blockState, endGateway, endPodium, endSpike, endSpikesForSeed, shuffledCopy } from '@jsprismarine/features';
 import type { EndSpike } from '@jsprismarine/features';
 import { Vector3 } from '@jsprismarine/math';
@@ -61,6 +62,9 @@ const CRYSTAL_HEAL_INTERVAL = 10;
 
 /** How close a crystal must be to heal the dragon, Java's `nearestCrystal` search radius. */
 const CRYSTAL_HEAL_RADIUS = 32;
+
+/** How far a crystal's breaker may stand from it, Java's `CRYSTAL_DESTROY_TARGETING` range. */
+const CRYSTAL_BREAKER_REACH = 64;
 
 /** The four crystals sit three blocks from the podium center, Java's respawn portal shape. */
 const RESPAWN_CRYSTAL_OFFSETS = [
@@ -339,10 +343,57 @@ export class DragonFight {
         return true;
     }
 
-    /** Aborts when a driving crystal is destroyed; chunk unloads remain resumable. */
+    /**
+     * Aborts when a driving crystal is destroyed; chunk unloads remain resumable. Any other
+     * crystal destroyed while the dragon lives turns a circling dragon on a player, Java's
+     * `EnderDragon.onCrystalDestroyed`.
+     */
     public onCrystalDestroyed(crystal: DataEntity, reason: string): void {
-        if (!this.fight.respawnCrystalIds.includes(crystal.persistentIdentity)) return;
-        if (reason === 'death' || reason === 'death_behavior' || reason === 'explosion') this.abortRespawn();
+        const destroyed = reason === 'death' || reason === 'death_behavior' || reason === 'explosion';
+        if (this.fight.respawnCrystalIds.includes(crystal.persistentIdentity)) {
+            if (destroyed) this.abortRespawn();
+            return;
+        }
+        if (destroyed) this.turnDragonOnCrystalBreaker(crystal);
+    }
+
+    /**
+     * Java's `EnderDragon.onCrystalDestroyed` and `DragonHoldingPatternPhase.onCrystalDestroyed`:
+     * the player who broke the crystal, or the player nearest it within 64 blocks, becomes the
+     * target of a strafe, if the dragon is circling. The dragon's phase is its saved component
+     * state, which its phase goals read.
+     */
+    private turnDragonOnCrystalBreaker(crystal: DataEntity): void {
+        const dragon = this.dragon;
+        if (dragon === undefined || dragon.removed !== undefined) return;
+        const phase = dragon.instance.componentState.get(dragonPhaseState);
+        if ((phase?.phase ?? 'holding_pattern') !== 'holding_pattern') return;
+
+        const { runtime } = this.world.dataEntities();
+        const players = runtime.host.players();
+        const breaker = crystal.body.damage.last()?.sourceId;
+        let player = players.find((candidate) => candidate.id === breaker);
+        if (player === undefined) {
+            let nearest = CRYSTAL_BREAKER_REACH * CRYSTAL_BREAKER_REACH;
+            for (const candidate of players) {
+                const dx = candidate.position.x - crystal.position.x;
+                const dy = candidate.position.y - crystal.position.y;
+                const dz = candidate.position.z - crystal.position.z;
+                const away = dx * dx + dy * dy + dz * dz;
+                if (away <= nearest) {
+                    nearest = away;
+                    player = candidate;
+                }
+            }
+        }
+        if (player === undefined) return;
+
+        dragon.body.target = player.id;
+        dragon.instance.componentState.set(dragonPhaseState, {
+            phase: 'strafe_player',
+            flameCount: phase?.flameCount ?? 0,
+            chargeTarget: phase?.chargeTarget ?? null
+        });
     }
 
     /** Reacts to the runtime letting go of the tracked dragon, however that happened. */

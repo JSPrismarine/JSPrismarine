@@ -4,6 +4,7 @@ import os from 'node:os';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
+import { dragonPhaseState } from '@jsprismarine/entity-goals/goals/dragonPhases';
 import { endSpikesForSeed } from '@jsprismarine/features';
 import { Vector3 } from '@jsprismarine/math';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
@@ -560,6 +561,20 @@ describe('the dragon fight over a live End world', () => {
             await run(fight, 20);
 
             expect(dragon.instance.attributes.get('health')?.current).toBe(102);
+        });
+
+        it('turns a circling dragon on the player nearest a crystal that was destroyed', async () => {
+            const breaker = enterArena(players, 10, 70, 0);
+            const fight = freshFight();
+            await run(fight, 1);
+            const dragon = dragons()[0]!;
+            const crystal = live.runtime.spawn('minecraft:ender_crystal', { x: 12.5, y: 70, z: 0.5 });
+            if (crystal === undefined) throw new Error('the fixture must declare the end crystal');
+
+            live.runtime.remove(crystal.id, 'death');
+
+            expect(dragon.instance.componentState.get(dragonPhaseState)?.phase).toBe('strafe_player');
+            expect(dragon.body.target).toBe(Number(breaker.player.getRuntimeId()));
         });
 
         it('does not heal from a crystal further than 32 blocks away', async () => {
