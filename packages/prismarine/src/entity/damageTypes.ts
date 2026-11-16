@@ -59,6 +59,21 @@ export const damageCauseOfType = (type: string, tags: ReadonlySet<string>): Dama
     return DamageCause.Generic;
 };
 
+/**
+ * The causes the types of one `damage_type` tag stand for, such as the magic, sonic boom and
+ * thorns of Java's `witch_resistant_to`.
+ * @param content - The content build, for its `damage_type` tags.
+ * @param tag - The tag, such as `minecraft:witch_resistant_to`.
+ */
+export const damageCausesInTag = (content: ServerContent, tag: string): ReadonlySet<DamageCause> =>
+    new Set(
+        content.tags.has('damage_type', tag)
+            ? content.tags
+                  .members('damage_type', tag)
+                  .map((type) => damageCauseOfType(type, new Set(damageTagsOf(content, type))))
+            : []
+    );
+
 /** Where `/damage` says a blow came from. */
 export interface DamageOrigins {
     /** `by`: what made contact. */

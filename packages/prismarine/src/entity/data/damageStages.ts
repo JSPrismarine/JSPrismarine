@@ -70,7 +70,15 @@ export interface DamageStageReads {
     canAttack(attacker: DataEntity, target: DataEntity): boolean;
     /** Whether the target turns a cause aside whole, as a dropped nether star does a blast. */
     resists?(target: DataEntity, cause: string): boolean;
+    /** Whether a cause is one Java's `witch_resistant_to` damage type tag names. */
+    witchResists?(cause: string): boolean;
 }
+
+/** The entity type Java's `Witch.getDamageAfterMagicAbsorb` shields. */
+const WITCH = 'minecraft:witch';
+
+/** The share of a `witch_resistant_to` blow `Witch.getDamageAfterMagicAbsorb` lets through. */
+const WITCH_RESISTED_SHARE = 0.15;
 
 /** Causes whose `cannot_be_attacked` and type rules are asked, which is every blow an entity deals. */
 const ATTACK_CAUSES: ReadonlySet<string> = new Set(['entity_attack', 'entity_explosion', 'projectile']);
@@ -261,6 +269,17 @@ export const damageModifiers = (reads: DamageStageReads, sensing: DamageSensingS
                 if (intent.source.mitigated !== true || target === undefined || amount <= 0) return undefined;
                 const level = resistanceOf(target);
                 return level <= 0 ? undefined : { operation: 'multiply', value: resistanceFactor(level) };
+            }
+        },
+        {
+            // Java's witch takes 15 percent of a magic blow, after armor and resistance.
+            name: 'witch_resistance',
+            priority: 420,
+            modifier: (intent, amount) => {
+                const target = reads.target(intent.target);
+                if (target?.identifier !== WITCH || amount <= 0 || reads.witchResists?.(intent.cause) !== true)
+                    return undefined;
+                return { operation: 'multiply', value: WITCH_RESISTED_SHARE };
             }
         },
         {

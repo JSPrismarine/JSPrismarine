@@ -6,7 +6,7 @@ import type { ServerContent } from '../content/ServerContent';
 import { buildContentTags } from '../content/tags';
 import { stub } from '../testing/stub.test.helper';
 import { DamageCause } from './DamageCause';
-import { damageCauseOfType, damageSourceOfType, hasDamageType } from './damageTypes';
+import { damageCauseOfType, damageCausesInTag, damageSourceOfType, hasDamageType } from './damageTypes';
 import type { StoreActor } from './data/storeActors';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
@@ -50,7 +50,14 @@ const content = stub<ServerContent>({
             tagFile('is_drowning', 'minecraft:drown'),
             tagFile('is_projectile', 'minecraft:arrow'),
             tagFile('is_explosion', 'minecraft:explosion'),
-            tagFile('no_knockback', 'minecraft:drown', 'minecraft:fall')
+            tagFile('no_knockback', 'minecraft:drown', 'minecraft:fall'),
+            tagFile(
+                'witch_resistant_to',
+                'minecraft:magic',
+                'minecraft:indirect_magic',
+                'minecraft:sonic_boom',
+                'minecraft:thorns'
+            )
         ])
     )
 });
@@ -59,6 +66,13 @@ const entityAt = (x: number, z: number): StoreActor =>
     stub<StoreActor>({ getPosition: () => new Position(x, 64, z, stub<World>({})) });
 
 describe('damage types', () => {
+    it("reads the causes a damage_type tag names, as Java's witch_resistant_to does magic", () => {
+        expect([...damageCausesInTag(content, 'minecraft:witch_resistant_to')].sort()).toEqual(
+            [DamageCause.Magic, DamageCause.SonicBoom, DamageCause.Thorns].sort()
+        );
+        expect(damageCausesInTag(content, 'minecraft:no_such_tag').size).toBe(0);
+    });
+
     it('knows the types the loaded packs declare', () => {
         expect(hasDamageType(content, 'minecraft:in_fire')).toBe(true);
         expect(hasDamageType(content, 'minecraft:made_up')).toBe(false);

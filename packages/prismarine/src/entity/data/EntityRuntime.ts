@@ -158,6 +158,9 @@ import type {
 } from './damagePipeline';
 import { DamageSensingSlot, damageGuards, damageModifiers } from './damageStages';
 import { INVULNERABILITY_TICKS } from '../Damage';
+import type { DamageCause } from '../DamageCause';
+import { damageCauseOf } from '../DamageCause';
+import { damageCausesInTag } from '../damageTypes';
 import type { HitGrace } from './damageStages';
 import { KNOCKBACK_LIFT, knockbackOf } from '../knockback';
 import {
@@ -622,6 +625,8 @@ export class EntityRuntime implements EntityScene {
     >();
     /** Flight age and impacts already passed through for each active projectile. */
     private readonly projectiles = new Map<number, ProjectileState>();
+    /** The causes Java's `witch_resistant_to` damage type tag names, read from the content once. */
+    private witchResistedCauses: ReadonlySet<DamageCause> | undefined;
     /** Ticks each live lightning bolt has existed, which decides when it strikes and when it goes. */
     private readonly lightningAges = new Map<number, number>();
     /**
@@ -773,7 +778,11 @@ export class EntityRuntime implements EntityScene {
             canAttack: (attacker: DataEntity, target: DataEntity) =>
                 canEntityAttack(attacker.instance, target.instance),
             resists: (target: DataEntity, cause: string) =>
-                isDroppedItem(target) && this.droppedItems.resistsDamage(target, cause)
+                isDroppedItem(target) && this.droppedItems.resistsDamage(target, cause),
+            witchResists: (cause: string) => {
+                this.witchResistedCauses ??= damageCausesInTag(this.content(), 'minecraft:witch_resistant_to');
+                return this.witchResistedCauses.has(damageCauseOf(cause));
+            }
         };
         this.damageSensing = new DamageSensingSlot(damageReads);
         this.damagePipeline = new DamagePipeline({
