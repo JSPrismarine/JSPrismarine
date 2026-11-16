@@ -61,6 +61,7 @@ import {
 import { feedMount, mountTameEvent } from '@jsprismarine/entities/components/tamemount';
 import { addTrusted } from '@jsprismarine/entities/components/trust';
 import { javaItemTagsForBedrock } from '../../content/javaTags';
+import { itemMatchesName } from '@jsprismarine/entities/itemNames';
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
 import {
     admireGoldItem,
@@ -124,6 +125,8 @@ import {
 import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf, PLAYER_BOX } from './facts';
 import { fallsUnderGravity } from './gravity';
+import { equippableSlotCount, equippableSlotsOf } from './equippable';
+import { VEHICLE_DAMAGE_DECAY_PER_TICK, boatItemOf, isBreakableVehicle, vehicleBlow } from './vehicleDamage';
 import type { EntityFacts } from './facts';
 import {
     bodyCanOccupy,
@@ -584,6 +587,9 @@ export class EntityRuntime implements EntityScene {
      * unit puts it back.
      */
     private readonly playerBlows = new Map<number, PlayerBlows>();
+
+    /** Each boat's `VehicleEntity` damage, which blows add to and every tick takes from. */
+    private readonly vehicleDamage = new Map<number, number>();
     /** The sensing of the damage run in progress, which the sensor guard and modifier share. */
     private readonly damageSensing: DamageSensingSlot;
     /**
@@ -1951,6 +1957,7 @@ export class EntityRuntime implements EntityScene {
             return;
         }
         this.tickHitGrace(entity.id);
+        this.tickVehicleDamage(entity.id);
         this.updateMedium(entity);
         this.tickTimers(entity.body);
         if (entity.runsGoals) this.resetNoActionTimeNearPlayers(entity);
@@ -2757,7 +2764,55 @@ export class EntityRuntime implements EntityScene {
      */
     public damage(intent: DamageIntent): DamageOutcome {
         this.damageSensing.clear();
+        const target = this.store.get(intent.target);
+        if (target !== undefined && isBreakableVehicle(target.identifier)) return this.hurtVehicle(target, intent);
         return this.damagePipeline.run(intent);
+    }
+
+    /**
+     * One blow to a boat or raft, which has no health: Java's `VehicleEntity.hurtServer` adds it
+     * to the vehicle's damage and destroys the vehicle past 40, and a creative player's blow
+     * removes it at once without its item.
+     */
+    private hurtVehicle(entity: DataEntity, intent: DamageIntent): DamageOutcome {
+        const computation: DamageComputation = { guarded: intent.amount, modifiers: [], amount: intent.amount };
+        if (entity.removed !== undefined || intent.amount <= 0)
+            return { committed: true, intent, computation, taken: 0, died: false };
+        const creative = intent.attacker !== undefined && this.host.playerById(intent.attacker)?.creative === true;
+        const blow = vehicleBlow(this.vehicleDamage.get(entity.id) ?? 0, intent.amount);
+        if (!creative && !blow.destroyed) {
+            this.setVehicleDamage(entity.id, blow.damage);
+            return { committed: true, intent, computation, taken: intent.amount, died: false };
+        }
+        this.destroyVehicle(entity, !creative);
+        return { committed: true, intent, computation, taken: intent.amount, died: true };
+    }
+
+    /**
+     * Removes a broken boat or raft. With entity drops on it drops what it holds, as
+     * `AbstractChestBoat.chestVehicleDestroyed` does, and unless a creative player broke it, the
+     * boat item `AbstractBoat.getDropItem` names.
+     */
+    private destroyVehicle(entity: DataEntity, dropsItself: boolean): void {
+        const at = blockPositionOf(entity.position);
+        const item = dropsItself ? boatItemOf(entity.identifier, entity.spawnData?.['variant']) : undefined;
+        const contents = entity.body.containerSlots.filter((stack) => stack !== undefined);
+        this.setVehicleDamage(entity.id, 0);
+        this.remove(entity.id, 'destroyed');
+        if (!ruleIsOn(this.world.level, ENTITY_DROPS)) return;
+        if (item !== undefined) this.host.drop(at, { identifier: item, count: 1 });
+        for (const stack of contents) this.host.drop(at, stack);
+    }
+
+    /** Writes a vehicle's damage, with an undo as {@link EntityRuntime.setHitGrace} has. */
+    private setVehicleDamage(id: number, damage: number): void {
+        const before = this.vehicleDamage.get(id);
+        if (damage <= 0) this.vehicleDamage.delete(id);
+        else this.vehicleDamage.set(id, damage);
+        this.store.undoWith(() => {
+            if (before === undefined) this.vehicleDamage.delete(id);
+            else this.vehicleDamage.set(id, before);
+        });
     }
 
     /**
@@ -3065,6 +3120,12 @@ export class EntityRuntime implements EntityScene {
             if (this.explodeOnDeath(entity)) return;
         }
         this.kill(entity);
+    }
+
+    /** Takes `AbstractBoat.tick`'s point a tick off a vehicle's damage. */
+    private tickVehicleDamage(id: number): void {
+        const damage = this.vehicleDamage.get(id);
+        if (damage !== undefined) this.setVehicleDamage(id, damage - VEHICLE_DAMAGE_DECAY_PER_TICK);
     }
 
     /** Counts one entity's grace period down, forgetting the last blow when it runs out. */
@@ -4054,9 +4115,8 @@ export class EntityRuntime implements EntityScene {
         );
         if (interaction === false) {
             if (temperRose) return { accepted: true };
-            return this.toggleOrderedToSit(entity, owner)
-                ? { accepted: true, consumeItem: false }
-                : { accepted: false };
+            if (this.toggleOrderedToSit(entity, owner)) return { accepted: true, consumeItem: false };
+            return { accepted: this.equipDeclaredSlot(entity, heldItem, other ?? this.mobById(owner)?.view()) };
         }
         if (typeof interaction === 'object') {
             const {
@@ -4164,20 +4224,38 @@ export class EntityRuntime implements EntityScene {
         return true;
     }
 
-    /** The active inventory size, including slots contributed by entity strength. */
+    /**
+     * The active container's slot count.
+     *
+     * A container that states no `inventory_size` holds only the equipment its
+     * `minecraft:equippable` lists: the camel's saddle, the nautilus's saddle and armor, and
+     * nothing for a command block minecart. Java gives none of them storage
+     * (`AbstractHorse.getInventoryColumns` and `AbstractNautilus.getInventoryColumns` return 0,
+     * and `MinecartCommandBlock` is no container), and Bedrock shows none.
+     *
+     * With `additional_slots_per_strength`, `inventory_size` is the container at the most strength
+     * the mob can have, and each point below that takes those slots away. Bedrock's llama states
+     * 16, its carpet and fifteen chest slots at strength 5, and Java's `Llama.getInventoryColumns`
+     * gives three slots per point of strength.
+     */
     private containerCapacityOf(instance: EntityInstance): number {
         const inventory = instance.componentParams('minecraft:inventory');
         if (!isRecord(inventory) || typeof inventory.inventorySize !== 'number') return 0;
         if (!Number.isSafeInteger(inventory.inventorySize) || inventory.inventorySize < 0) return 0;
+        if (inventory.declaresSize === false) return equippableSlotCount(instance);
 
         const slotsPerStrength = inventory.additionalSlotsPerStrength;
-        const strengthValue = instance.componentParams('minecraft:strength');
-        const extraSlots =
-            Number.isSafeInteger(slotsPerStrength) && typeof slotsPerStrength === 'number' && slotsPerStrength > 0
-                ? (isStrengthParams(strengthValue) ? strengthValue.value : 0) * slotsPerStrength
-                : 0;
-        const capacity = inventory.inventorySize + extraSlots;
-        return Number.isSafeInteger(capacity) ? capacity : 0;
+        const strength = instance.componentParams('minecraft:strength');
+        if (
+            typeof slotsPerStrength !== 'number' ||
+            !Number.isSafeInteger(slotsPerStrength) ||
+            slotsPerStrength <= 0 ||
+            !isStrengthParams(strength)
+        )
+            return inventory.inventorySize;
+        const missing = Math.max(0, strength.max - strength.value) * slotsPerStrength;
+        const capacity = inventory.inventorySize - missing;
+        return Number.isSafeInteger(capacity) ? Math.max(0, capacity) : 0;
     }
 
     /** Whether a slot name is a canonical numeric index into this entity's declared container. */
@@ -4285,6 +4363,30 @@ export class EntityRuntime implements EntityScene {
             entity.body.equipmentInventorySlots.set(projectedSlot, index);
         }
         return true;
+    }
+
+    /**
+     * Puts a held item into the empty `minecraft:equippable` slot that takes it, on a tamed adult
+     * whose own interactions did not claim the item.
+     *
+     * Java hands any held item to `Equippable.equipOnInteract` from `Mob.mobInteract`, which puts
+     * it on when the item names the mob among its allowed entities and the slot is empty, and
+     * `AbstractHorse.canUseSlot` opens a mount's slots only once it is a tamed adult. Bedrock's
+     * trader llama declares the llama's carpet slot but, unlike the llama, no interaction that
+     * fills it. A sneaking player opens the mount's screen instead.
+     *
+     * The slot's container index is its place in the component's list, where the llama's own
+     * `equip_item_slot` puts its carpet.
+     */
+    private equipDeclaredSlot(entity: DataEntity, heldItem: ContentItemDrop, holder?: FilterEntityView): boolean {
+        if (heldItem.count <= 0 || heldItem.identifier === 'minecraft:air') return false;
+        if (!entity.body.conditions.has('is_tamed') || entity.instance.hasComponent('minecraft:is_baby')) return false;
+        if (holder?.flag?.('is_sneaking') === true) return false;
+        const index = equippableSlotsOf(entity.instance).findIndex((slot) =>
+            slot.acceptedItems.some((name) => itemMatchesName(heldItem.identifier, heldItem.meta, name))
+        );
+        if (index < 0 || entity.body.containerSlots[index] !== undefined) return false;
+        return this.equipInteractionSlot(entity, String(index), heldItem);
     }
 
     /** Replaces one equipment slot, dropping its previous stack if it held one. */
