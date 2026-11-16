@@ -56,6 +56,29 @@ describe('minecraft:behavior.pickup_items', () => {
         expect(taken).toEqual(['wheat']);
     });
 
+    it('takes an item within its goal radius where it lies, without walking', () => {
+        const wheat = testItem('wheat', { x: 9.5, y: 1, z: 8.5 }, 'minecraft:wheat');
+        const taken: (string | number)[] = [];
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.pickup_items': {
+                    priority: 6,
+                    max_dist: 1.5,
+                    goal_radius: 1.5,
+                    can_pickup_any_item: true
+                }
+            },
+            components: walker,
+            world: { ...flatWorld(), items: () => [wheat], pickUp: (item) => taken.push(item.id) },
+            at: { x: 8.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(taken).toEqual(['wheat']);
+        expect(harness.actuator.log.filter((line) => line.startsWith('moveTo'))).toEqual([]);
+    });
+
     it('leaves an excluded item alone', () => {
         const stone = testItem('stone', { x: 9.5, y: 1, z: 8.5 }, 'minecraft:stone');
         const harness = new GoalHarness({

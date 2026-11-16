@@ -230,7 +230,8 @@ export const pickupItems = goal<PickupItemsParams>({
             canContinue: () => item !== undefined && support.navigator.walking,
             start: () => {
                 support.fire(params.onPickupItemStart);
-                if (item !== undefined)
+                // An item already within the goal radius is taken where it lies, without a walk.
+                if (item !== undefined && support.distanceTo(item.position()) > params.goalRadius)
                     support.navigator.moveTo(item.position(), params.speedMultiplier, params.goalRadius);
             },
             tick: () => {
