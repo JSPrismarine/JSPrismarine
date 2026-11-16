@@ -597,6 +597,17 @@ definitions, because Mojang ships no entity file for `minecraft:item` or
 and a pack later in the stack that ships its own replaces them. Each carries a host component,
 `jsprismarine:item` or `jsprismarine:eye_of_ender_signal`, with the numbers the server runs it by.
 
+The painting, the leash knot and the ominous item spawner work the same way. Mojang ships no file
+for the first two and an empty one for the third, so the overlay's
+[`painting.json`](../../packages/entities/vanilla_overlay/entities/painting.json),
+[`leash_knot.json`](../../packages/entities/vanilla_overlay/entities/leash_knot.json) and
+[`ominous_item_spawner.json`](../../packages/entities/vanilla_overlay/entities/ominous_item_spawner.json)
+define them. A painting or a knot carries `jsprismarine:hanging`: it holds still and checks on Java's
+`HangingEntity` interval whether what holds it is still there, a solid wall behind every cell of a
+painting or a fence under a knot, and breaks when it is not, a painting dropping its item. A spawner
+carries `jsprismarine:ominous_item_spawner`: it lets its item go between 60 and 120 ticks after it
+appears, firing a projectile item straight down and dropping anything else, and is gone.
+
 A dropped stack's stack, age and pickup delay are the component state of `jsprismarine:item`, and
 its position and speed are the body's, so every change is logged. `DroppedItems` runs it in the
 entity pass as Bedrock Dedicated Server moves one: gravity, the move, then drag, coming to rest on

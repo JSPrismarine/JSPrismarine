@@ -284,6 +284,8 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(dataComponent('jsprismarine:item'));
     register(dataComponent('jsprismarine:eye_of_ender_signal'));
     register(dataComponent('jsprismarine:evoker_fangs'));
+    register(dataComponent('jsprismarine:ominous_item_spawner'));
+    register(dataComponent('jsprismarine:hanging'));
     register(pushable);
     register(rideable);
     register(spawnEntity);

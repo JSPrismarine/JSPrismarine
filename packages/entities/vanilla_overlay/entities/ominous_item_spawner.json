@@ -1,0 +1,21 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "minecraft:ominous_item_spawner",
+            "is_spawnable": false,
+            "is_summonable": false
+        },
+        "components": {
+            "minecraft:collision_box": {
+                "width": 0.25,
+                "height": 0.25
+            },
+            "jsprismarine:ominous_item_spawner": {
+                "min_delay": 60,
+                "max_delay": 120,
+                "sound_lead": 36
+            }
+        }
+    }
+}

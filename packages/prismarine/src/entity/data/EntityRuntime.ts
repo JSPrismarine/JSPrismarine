@@ -143,6 +143,8 @@ import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './hos
 import { DroppedItems, isDroppedItem } from './droppedItems';
 import { javaBlockTagsForBedrock } from '../../content/javaTags';
 import { EvokerFangs, isEvokerFangs } from './evokerFangs';
+import { OminousItemSpawners, isOminousItemSpawner } from './ominousItemSpawner';
+import { HangingEntities, isHangingEntity } from './hangingEntities';
 import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
 import { PlayerSystems } from './playerSystems';
 import { itemDropOf } from '../../inventory/persistence';
@@ -596,6 +598,10 @@ export class EntityRuntime implements EntityScene {
     public readonly eyesOfEnder: EyeOfEnderSignals;
     /** Every set of evoker fangs, which bites once and is gone. */
     public readonly evokerFangs: EvokerFangs;
+    /** Every ominous item spawner, which lets its item go and is gone. */
+    public readonly ominousItemSpawners: OminousItemSpawners;
+    /** Every painting and leash knot, which hangs until what holds it goes. */
+    public readonly hangingEntities: HangingEntities;
 
     /** The systems a store player's survival runs on, and its component state. */
     public readonly playerSystems: PlayerSystems;
@@ -860,6 +866,27 @@ export class EntityRuntime implements EntityScene {
             hurt: (entity, sourceId, cause, amount) =>
                 void this.hurt(entity, sourceId, cause, amount, { route: 'area_attack' }),
             byId: (id) => this.store.get(id),
+            remove: (id, reason) => this.remove(id, reason)
+        });
+        this.ominousItemSpawners = new OminousItemSpawners({
+            randomInt: (bound) => this.world.random.nextInt(bound),
+            fire: (identifier, at, speed, spread, owner) =>
+                void this.launchProjectile(identifier, at, { x: 0, y: -1, z: 0 }, speed, spread, owner),
+            drop: (at, item) => this.host.drop(blockPositionOf(at), item),
+            playSound: (at, sound) => this.world.effects.playSound(blockPositionOf(at), sound),
+            remove: (id, reason) => this.remove(id, reason)
+        });
+        this.hangingEntities = new HangingEntities({
+            isSolid: (at) => this.navigation().isSolid(at),
+            isFence: (at) => {
+                const block = this.world.blocks.get(at);
+                return (
+                    block !== undefined &&
+                    javaBlockTagsForBedrock(this.content().tags, block.identifier, block.states).includes(FENCES_TAG)
+                );
+            },
+            drop: (at, identifier) => this.host.drop(blockPositionOf(at), { identifier, count: 1 }),
+            playSound: (at, sound) => this.world.effects.playSound(blockPositionOf(at), sound),
             remove: (id, reason) => this.remove(id, reason)
         });
         this.eyesOfEnder = new EyeOfEnderSignals({
@@ -1850,6 +1877,14 @@ export class EntityRuntime implements EntityScene {
         }
         if (isEvokerFangs(entity)) {
             this.evokerFangs.update(entity);
+            return;
+        }
+        if (isOminousItemSpawner(entity)) {
+            this.ominousItemSpawners.update(entity);
+            return;
+        }
+        if (isHangingEntity(entity)) {
+            this.hangingEntities.update(entity);
             return;
         }
         this.tickHitGrace(entity.id);
@@ -6114,6 +6149,9 @@ const LIGHTNING_REACH = 3;
 
 /** Java's `LightningBolt.life` of 2, run down to below zero, so a bolt with no extra flashes lasts three ticks. */
 const LIGHTNING_LIFE_TICKS = 3;
+
+/** Java's tag of the blocks a leash knot ties to, which `LeashFenceKnotEntity.survives` reads. */
+const FENCES_TAG = 'minecraft:fences';
 
 /** How often a burning entity takes fire damage, in ticks. */
 const FIRE_DAMAGE_INTERVAL_TICKS = 20;

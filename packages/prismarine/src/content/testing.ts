@@ -67,13 +67,17 @@ const BUILT_IN_ENTITY_FILES = {
     'minecraft:eye_of_ender_signal': 'eye_of_ender_signal.json',
     'minecraft:evocation_fang': 'evocation_fang.json',
     'minecraft:falling_block': 'falling_block.json',
+    'minecraft:ominous_item_spawner': 'ominous_item_spawner.json',
+    'minecraft:painting': 'painting.json',
+    'minecraft:leash_knot': 'leash_knot.json',
     'jsprismarine:inert_actor': 'inert_actor.json'
 } as const;
 
 /**
  * The built-in definitions of a dropped item, the eye of ender, the evoker's fangs, the falling
- * block and the inert actor, read from the entity overlay the server ships, so a fixture runs the
- * definition the server does rather than a copy of it.
+ * block, the ominous item spawner, the painting, the leash knot and the inert actor, read from the
+ * entity overlay the server ships, so a fixture runs the definition the server does rather than a
+ * copy of it.
  */
 export const builtInEntityDefinitions = (): [string, ReturnType<typeof definitionOf>][] =>
     Object.entries(BUILT_IN_ENTITY_FILES).map(([identifier, file]) => [
