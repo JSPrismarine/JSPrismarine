@@ -289,6 +289,30 @@ describe('properties', () => {
         expect(self.flag?.('is_baby')).toBe(true);
         expect(self.measure?.('actor_health')).toBe(20);
     });
+
+    it('answers is_color with the Bedrock name of its minecraft:color value', () => {
+        const { types } = load({
+            format_version: '1.26.50',
+            'minecraft:entity': {
+                description: { identifier: 'test:wool' },
+                components: {},
+                component_groups: {
+                    blue: { 'minecraft:color': { value: 11 } },
+                    lime: { 'minecraft:color': { value: 5 } }
+                },
+                events: {
+                    'minecraft:entity_spawned': { add: { component_groups: ['blue'] } },
+                    'test:lime': { add: { component_groups: ['lime'] }, remove: { component_groups: ['blue'] } }
+                }
+            }
+        });
+        const entity = types.spawn('test:wool', {});
+
+        expect(entity.filterContext().self.names?.('is_color')).toEqual(['blue']);
+        entity.fire('test:lime');
+        entity.tick();
+        expect(entity.filterContext().self.names?.('is_color')).toEqual(['light_green']);
+    });
 });
 
 describe('goals', () => {

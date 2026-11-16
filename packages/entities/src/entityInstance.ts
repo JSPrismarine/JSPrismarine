@@ -260,6 +260,30 @@ export interface EntityInstanceOptions {
 }
 
 /**
+ * The color names an `is_color` filter test compares, by `minecraft:color` value. The value is
+ * the wool palette index, which is Java's `DyeColor` order, and the names are the ones the Bedrock
+ * filter documentation lists, so lime is `light_green` and light gray is `silver`.
+ */
+const FILTER_COLOR_NAMES: readonly string[] = [
+    'white',
+    'orange',
+    'magenta',
+    'light_blue',
+    'yellow',
+    'light_green',
+    'pink',
+    'gray',
+    'silver',
+    'cyan',
+    'purple',
+    'blue',
+    'brown',
+    'green',
+    'red',
+    'black'
+];
+
+/**
  * One live entity.
  *
  * The active component set is the base `components` plus every active
@@ -1230,6 +1254,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /** The name sets the entity answers from its own components and its seats. */
     private ownNames(name: EntityNameSet): readonly string[] | undefined {
         if (name === 'is_family') return this.families();
+        if (name === 'is_color') {
+            const color = this.integerValue('minecraft:color');
+            const named = color === undefined ? undefined : FILTER_COLOR_NAMES[color];
+            return named === undefined ? [] : [named];
+        }
         // The controlling passenger is whoever took the first seat.
         if (name === 'is_controlling_passenger_family') return this.seated[0]?.families();
         return undefined;
