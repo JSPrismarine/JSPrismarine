@@ -12,7 +12,7 @@ import { ALLAY_BRAIN } from './allay.js';
 import { ARMADILLO_BRAIN } from './armadillo.js';
 import { AXOLOTL_BRAIN } from './axolotl.js';
 import { BREEZE_BRAIN } from './breeze.js';
-import { CAMEL_BRAIN } from './camel.js';
+import { CAMEL_BRAIN, CAMEL_HUSK_BRAIN } from './camel.js';
 import { COPPER_GOLEM_BRAIN } from './copperGolem.js';
 import { CREAKING_BRAIN } from './creaking.js';
 import { FROG_BRAIN } from './frog.js';
@@ -35,6 +35,7 @@ export const BRAIN_MOBS: readonly BrainMobDefinition[] = [
     AXOLOTL_BRAIN,
     BREEZE_BRAIN,
     CAMEL_BRAIN,
+    CAMEL_HUSK_BRAIN,
     COPPER_GOLEM_BRAIN,
     CREAKING_BRAIN,
     FROG_BRAIN,
@@ -53,10 +54,11 @@ export const BRAIN_MOBS: readonly BrainMobDefinition[] = [
 ];
 
 /**
- * The two mobs that carry both AI systems, `registerGoals` and `brainProvider`.
+ * The mobs that carry both AI systems, `registerGoals` and `brainProvider`: the camel, the camel
+ * husk that inherits the camel's, and the happy ghast.
  *
  * A server running `@jsprismarine/entity-goals` beside this package must run both schedulers for
- * these two and neither system's alone.
+ * these and neither system's alone.
  */
 export const DUAL_SYSTEM_MOBS: readonly string[] = BRAIN_MOBS.filter((mob) => mob.alsoRunsGoals).map((mob) => mob.id);
 

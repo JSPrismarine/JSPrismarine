@@ -7,7 +7,8 @@ import { BRAIN_MOBS, DUAL_SYSTEM_MOBS, registerBrainMobs } from './index.js';
 /**
  * The mob classes in 26.3 that reference `brainProvider` or `makeBrain`, from scanning the
  * constant pool of every top-level class under `net/minecraft/world/entity/`. The scan finds 21,
- * and the twenty-first is `LivingEntity`, which holds the base.
+ * and the twenty-first is `LivingEntity`, which holds the base. The camel husk is the one subclass
+ * on the list: `CamelHusk` extends `Camel` and inherits its brain.
  */
 const EXPECTED_BRAIN_MOBS = [
     'minecraft:allay',
@@ -15,6 +16,7 @@ const EXPECTED_BRAIN_MOBS = [
     'minecraft:axolotl',
     'minecraft:breeze',
     'minecraft:camel',
+    'minecraft:camel_husk',
     'minecraft:copper_golem',
     'minecraft:creaking',
     'minecraft:frog',
@@ -69,9 +71,13 @@ describe('registerBrainMobs', () => {
     });
 });
 
-describe('the two mobs that carry both AI systems', () => {
-    it('is exactly the camel and the happy ghast', () => {
-        expect([...DUAL_SYSTEM_MOBS].sort()).toEqual(['minecraft:camel', 'minecraft:happy_ghast']);
+describe('the mobs that carry both AI systems', () => {
+    it('is exactly the camel, the camel husk and the happy ghast', () => {
+        expect([...DUAL_SYSTEM_MOBS].sort()).toEqual([
+            'minecraft:camel',
+            'minecraft:camel_husk',
+            'minecraft:happy_ghast'
+        ]);
     });
 
     it('marks only dual-system brain mobs for goals', () => {

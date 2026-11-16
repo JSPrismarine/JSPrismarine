@@ -50,6 +50,7 @@ import {
     AXOLOTL_BRAIN,
     BREEZE_BRAIN,
     CAMEL_BRAIN,
+    CAMEL_HUSK_BRAIN,
     COPPER_GOLEM_BRAIN,
     CREAKING_BRAIN,
     FROG_BRAIN,
@@ -323,6 +324,17 @@ describe('the camel', () => {
         expect(brain.hasMemoryValue(MemoryModuleTypes.WALK_TARGET)).toBe(false);
         expect(body.navigation.moves).toHaveLength(0);
         expect(CAMEL.speedWhenIdling).toBe(2);
+    });
+});
+
+describe('the camel husk', () => {
+    it("runs the camel's brain, since Java's CamelHusk extends Camel", () => {
+        const camel = CAMEL_BRAIN.makeBrain();
+        const husk = CAMEL_HUSK_BRAIN.makeBrain();
+        expect(husk.activities).toEqual(camel.activities);
+        for (const activity of camel.activities)
+            expect(husk.behaviorNames(activity)).toEqual(camel.behaviorNames(activity));
+        expect(CAMEL_HUSK_BRAIN.alsoRunsGoals).toBe(true);
     });
 });
 

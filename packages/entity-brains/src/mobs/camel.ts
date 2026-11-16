@@ -153,3 +153,22 @@ export const CAMEL_BRAIN: BrainMobDefinition = {
         }),
     updateActivity: (context) => context.body.brain.setActiveActivityToFirstValid([Activities.IDLE])
 };
+
+/**
+ * The camel husk's registry entry. Java's `CamelHusk` extends `Camel` and keeps its brain, with
+ * `isFood` reading the `camel_husk_food` tag, which is what its temptation sensor follows.
+ */
+export const CAMEL_HUSK_BRAIN: BrainMobDefinition = {
+    ...CAMEL_BRAIN,
+    id: 'minecraft:camel_husk',
+    makeBrain: () =>
+        new Brain({
+            sensors: [
+                new NearestLivingEntitySensor(),
+                new HurtBySensor(),
+                TemptingSensor.forTag('minecraft:camel_husk_food'),
+                new AdultSensor()
+            ],
+            activities: camelActivities()
+        })
+};

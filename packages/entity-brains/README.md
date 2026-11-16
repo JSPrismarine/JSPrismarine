@@ -37,7 +37,8 @@ the game, including every zombie, skeleton, farm animal, slime, guardian and the
 goals only.
 
 Two of the twenty carry both systems. `Camel` and `HappyGhast` have a `registerGoals` and a
-`brainProvider`, so a server must run both schedulers for them. `DUAL_SYSTEM_MOBS` reports that
+`brainProvider`, so a server must run both schedulers for them. `CamelHusk` extends `Camel` and
+inherits both, so it is registered too, with its own food tag. `DUAL_SYSTEM_MOBS` reports that
 list, and `BrainMobDefinition.alsoRunsGoals` reports it per mob.
 
 [docs/research/java-code-only-behavior.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/java-code-only-behavior.md) section 4
