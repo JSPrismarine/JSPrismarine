@@ -61,6 +61,7 @@ import { contentWorldViews } from './world/views';
 import type { ContentWorldViews } from './world/views';
 import { javaAirSupplies, withJavaAirSupply } from '../entity/javaAirSupply';
 import { javaGoalRulings, withJavaGoals } from '../entity/javaGoals';
+import { javaBabyFoods, withJavaBabyFood } from '../entity/javaBabyFood';
 import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
 import { javaGoalOverlay } from '../entity/javaGoalArguments';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
@@ -364,6 +365,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         ? []
         : [{ pack: 'jsprismarine:player', path: 'entities/player.json', data: FALLBACK_PLAYER_FILE }];
     const breedingFoods = javaBreedingFoods(tags);
+    const babyFoods = javaBabyFoods(tags);
     const airSupplies = javaAirSupplies();
     const goalRulings = javaGoalRulings();
     const entityFiles = [...definitions.entities.values(), ...playerFallback];
@@ -379,7 +381,10 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
                 data: withJavaGoals(
                     withJavaGoalArguments(
                         withJavaAirSupply(
-                            withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
+                            withJavaBabyFood(
+                                withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
+                                babyFoods
+                            ),
                             airSupplies
                         )
                     ),

@@ -69,10 +69,14 @@ export const javaBreedingFoods = (tags: ContentTags): BreedingFoods => {
     for (const [javaEntity, tag] of Object.entries(JAVA_BREEDING_FOOD_TAGS)) {
         const entity = javaEntityTypeToBedrock(javaEntity);
         if (entity.kind !== 'mapped' || !tags.has('item', tag)) continue;
-        foods.set(entity.bedrock, bedrockItemsOf(tags.members('item', tag)));
+        foods.set(entity.bedrock, bedrockTagItems(tags, tag));
     }
     return foods;
 };
+
+/** The Bedrock items of a Java item tag, each once, in the tag's order. */
+export const bedrockTagItems = (tags: ContentTags, tag: string): readonly string[] =>
+    bedrockItemsOf(tags.members('item', tag));
 
 /** An item name from a pack, namespaced and with a pre-flattening name replaced by the modern one. */
 const modernItemName = (identifier: string): string => {
@@ -80,12 +84,12 @@ const modernItemName = (identifier: string): string => {
     return legacy_item_aliases[qualified.toLowerCase()] ?? qualified;
 };
 
-/** The item a `breed_items` entry names, whether it is written as a string or as `{item}`. */
-const entryItem = (entry: unknown): string | undefined =>
+/** The item a `breed_items` or `feed_items` entry names, whether it is written as a string or as `{item}`. */
+export const entryItem = (entry: unknown): string | undefined =>
     typeof entry === 'string' ? entry : isRecord(entry) && typeof entry.item === 'string' ? entry.item : undefined;
 
-/** One entry with the item it names in its modern form. */
-const modernEntry = (entry: unknown): unknown => {
+/** One item list entry with the item it names in its modern form. */
+export const modernEntry = (entry: unknown): unknown => {
     if (typeof entry === 'string') return modernItemName(entry);
     if (!isRecord(entry)) return entry;
     return {
