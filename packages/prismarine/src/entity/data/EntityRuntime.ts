@@ -66,6 +66,8 @@ import { javaItemTagsForBedrock } from '../../content/javaTags';
 import { itemMatchesName } from '@jsprismarine/entities/itemNames';
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
 import { isLovedItem, PIGLIN, wantsToPickUp as wantsToPickUpAsPiglin } from '@jsprismarine/entity-brains/mobs/piglin';
+
+import { containerSignal } from '@jsprismarine/block-behaviors/rules/container';
 import {
     admireGoldItem,
     canAdmire,
@@ -142,6 +144,17 @@ import { ITEM_HOPPER, ITEM_HOPPER_QUERY_RADIUS, inHopperReach, insertStack } fro
 import type { CushionHost } from './cushionFire';
 import type { BoatBubbleHost } from './boatBubbleColumn';
 import { tickBoatBubbles } from './boatBubbleColumn';
+import type { TrackHost } from './minecartTrack';
+import {
+    ACTIVATOR_RAIL,
+    cartSlowdown,
+    isPoweredRail,
+    moveAlongTrack,
+    railPositionOf,
+    railShapeOf
+} from './minecartTrack';
+import type { RailSensorHost } from './railSensor';
+import { activateMinecart } from './railSensor';
 import type { FlappingHost } from './flapping';
 import type { MobBlockHost } from './mobBlockRules';
 import { BREAK_BLOCKS_COMPONENT, breakLeaves, leaveTrail } from './mobBlockRules';
@@ -697,6 +710,8 @@ export class EntityRuntime implements EntityScene {
             if (ruleIsOn(this.world.level, ENTITY_DROPS)) this.host.drop(at, { identifier: item, count: 1 });
         }
     };
+    /** What a minecart's reaction to an activator rail does. */
+    private readonly railSensorHost: RailSensorHost = { ejectRiders: (entity) => this.ejectRiders(entity.body) };
     /** What a boat's bubble column step reads and does. */
     private readonly boatBubbleHost: BoatBubbleHost = {
         bubbleColumnAt: (at) => {
@@ -6054,6 +6069,8 @@ export class EntityRuntime implements EntityScene {
             return;
         }
 
+        if (instance.hasComponent(RAIL_MOVEMENT) && this.coastOnRails(entity)) return;
+
         const buoyant = instance.componentParams('minecraft:buoyant');
         if (isRecord(buoyant) && this.coastBuoyant(entity, buoyant)) return;
         if (this.floatOnLava(entity)) return;
@@ -6702,6 +6719,51 @@ export class EntityRuntime implements EntityScene {
             if (target.id === entity.id || target.instance.attributes.get('health') === undefined) continue;
             this.hurt(target, undefined, 'anvil', damage, { route: 'area_attack' });
         }
+    }
+
+    /**
+     * Runs a minecart's tick on a rail: Java's `OldMinecartBehavior.tick` moves it along the rail
+     * with `moveAlongTrack` (`minecartTrack.ts`), and an activator rail then calls its
+     * `activateMinecart` (`railSensor.ts`). The gravity Java applies first changes nothing on a
+     * rail, since `applyNaturalSlowdown` drops the vertical speed.
+     * @returns Whether the cart was on a rail. Off one, {@link coast} moves it as a plain body,
+     *   which is what `AbstractMinecart.comeOffTrack` does.
+     */
+    private coastOnRails(entity: DataEntity): boolean {
+        const { body } = entity;
+        const blocks = { block: (at: EntityPosition) => this.world.blocks.get(at) };
+        const rail = railPositionOf(body.position, blocks);
+        const block = blocks.block(rail);
+        if (block === undefined || railShapeOf(block) === undefined) return false;
+
+        const facts = this.componentFactsOf(entity);
+        const navigation = this.navigation();
+        const canOccupy = (at: EntityPosition) =>
+            !facts.hasCollision || bodyCanOccupy(at, entity.facts.box, navigation, facts.canStandOnPowderSnow);
+        const host: TrackHost = {
+            ...blocks,
+            isRedstoneConductor: (at) => this.world.blocks.isRedstoneConductor?.(at) ?? navigation.isSolid(at),
+            move: (from, by) =>
+                moveOnAxis(moveOnAxis(from, from.x + by.x, 'x', canOccupy), from.z + by.z, 'z', canOccupy)
+        };
+        const ridden = this.rides.ridersOf(entity.id).length > 0;
+        const capacity = body.containerCapacity;
+        const cart = {
+            position: body.position,
+            velocity: body.velocity,
+            ridden,
+            inWater: body.conditions.has('in_water'),
+            slowdown: cartSlowdown(
+                ridden,
+                capacity > 0 ? containerSignal({ capacity, items: body.containerSlots }) : undefined
+            )
+        };
+        moveAlongTrack(cart, rail, block, host);
+        body.position = cart.position;
+        body.velocity = cart.velocity;
+        body.conditions.add('on_ground');
+        if (block.identifier === ACTIVATOR_RAIL) activateMinecart(entity, isPoweredRail(block), this.railSensorHost);
+        return true;
     }
 
     /**
@@ -7407,6 +7469,9 @@ const VANILLA_NAMESPACE = 'minecraft:';
 
 /** Bedrock's name for the cobweb. */
 const COBWEB = 'minecraft:web';
+
+/** The component a minecart runs along rails with. */
+const RAIL_MOVEMENT = 'minecraft:rail_movement';
 
 /** The bubble column block, which pushes and drags what floats in and over it. */
 const BUBBLE_COLUMN = 'minecraft:bubble_column';
