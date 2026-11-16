@@ -136,13 +136,17 @@ const heightOf = (entity: NavigationSource): number => {
 };
 
 /**
- * How many blocks wide the entity's path cells are, from `minecraft:collision_box`: Java's
+ * How many blocks wide the entity's path cells are, from `minecraft:collision_box` times
+ * `minecraft:scale`: Java's
  * `WalkNodeEvaluator` and `FlyNodeEvaluator` take `floor(bbWidth + 1)`.
  */
 const widthOf = (entity: NavigationSource): number => {
     const box = entity.componentParams('minecraft:collision_box');
-    const width = isRecord(box) && typeof box.width === 'number' ? box.width : 0.6;
-    return Math.max(1, Math.floor(width + 1));
+    // Without a collision box, the component's documented default of one block, as the server's hitbox takes.
+    const width = isRecord(box) && typeof box.width === 'number' ? box.width : 1;
+    // A baby's hitbox shrinks with its scale, as Java's `getBbWidth` does.
+    const scale = entity.componentParams('minecraft:scale');
+    return Math.max(1, Math.floor(width * (typeof scale === 'number' ? scale : 1) + 1));
 };
 
 /** How high the entity steps, from `minecraft:variable_max_auto_step`. */

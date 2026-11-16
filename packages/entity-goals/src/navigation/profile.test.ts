@@ -88,5 +88,11 @@ describe('navigationProfile', () => {
         expect([0.6, 0.99, 1, 1.4, 1.95].map((width) => navigationProfile(sized(width)).width)).toEqual([
             1, 1, 2, 2, 2
         ]);
+        // A foal's hitbox is half its parent's, as Java scales getBbWidth.
+        const foal: NavigationSource = {
+            ...sized(1.4),
+            componentParams: (name) => (name === 'minecraft:scale' ? 0.5 : sized(1.4).componentParams(name))
+        };
+        expect(navigationProfile(foal).width).toBe(1);
     });
 });
