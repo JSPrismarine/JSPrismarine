@@ -163,6 +163,22 @@ describe('minecraft:behavior.ranged_attack', () => {
 
         expect(world.shots).toEqual([]);
     });
+
+    it('walks toward a target beyond its attack radius and stops once inside it', () => {
+        // Java's ranged goals start with any target and moveTo it until it is within attackRadius.
+        const walks = (distance: number): number => {
+            const harness = new GoalHarness({
+                goals: { 'minecraft:behavior.ranged_attack': { priority: 2, attack_radius: 15 } },
+                world: combatWorld(testMob('victim', { x: distance, y: 0, z: 0 }))
+            });
+            harness.tick(3);
+            expect(harness.isRunning('minecraft:behavior.ranged_attack')).toBe(true);
+            return harness.actuator.count('moveTo');
+        };
+
+        expect(walks(17)).toBeGreaterThan(0);
+        expect(walks(10)).toBe(0);
+    });
 });
 
 describe('minecraft:behavior.leap_at_target', () => {

@@ -248,7 +248,10 @@ export interface RangedAttackParams {
     readonly attackRadiusMin: number;
     /** How long between shots, in ticks, as a `[min, max]` pair. */
     readonly attackInterval: Range;
-    /** How far the target may be for the goal to run at all, in blocks. */
+    /**
+     * Bedrock's range the target may be in for the goal to run, in blocks. The goal reads it but
+     * does not gate on it: Java's ranged goals start with any target and walk in.
+     */
     readonly attackRange: Range;
     /** How long the target has to stay in sight before the first shot, in ticks. */
     readonly targetInSightTime: number;
@@ -271,6 +274,10 @@ export interface RangedAttackParams {
  * as `attack_interval_min` and `attack_interval_max`, so both are read.
  * Java's `RangedAttackGoal` keeps a sight timer before the first shot, which
  * `target_in_sight_time` is the Bedrock spelling of.
+ *
+ * It starts with any target, however far, as Java's `RangedAttackGoal`,
+ * `RangedBowAttackGoal` and `RangedCrossbowAttackGoal` do, and walks toward
+ * it until it is within `attack_radius`, where it holds its ground and shoots.
  */
 export const rangedAttack = goal<RangedAttackParams>({
     name: 'minecraft:behavior.ranged_attack',
@@ -302,7 +309,7 @@ export const rangedAttack = goal<RangedAttackParams>({
         return {
             canStart: () => {
                 target = support.target();
-                return target !== undefined && support.distanceTo(target.position()) <= params.attackRange[1];
+                return target !== undefined;
             },
             canContinue: () => {
                 const current = support.target();
