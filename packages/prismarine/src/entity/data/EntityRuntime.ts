@@ -1098,6 +1098,10 @@ export class EntityRuntime implements EntityScene {
         }
 
         entity.instance.spawn(options.cause ?? 'spawned', options.event);
+        if (options.admit !== undefined && !options.admit(entity)) {
+            this.remove(entity.id, 'refused_spawn');
+            return undefined;
+        }
         this.syncGameEventListener(entity);
         this.startFuse(entity);
         // Between the spawn event and the body, for the same reason the body comes last. The
@@ -3972,7 +3976,15 @@ export class EntityRuntime implements EntityScene {
                 ...itemEffect
             } = interaction;
             if (spawnOffspring !== undefined) {
-                const offspring = this.spawn(spawnOffspring, entity.position, { cause: 'born' });
+                // Java's SpawnEggItem.spawnOffspringFromSpawnEgg sets the new mob a baby and
+                // refuses the egg when it is not one, which is the frog's case: it hatches from
+                // spawn instead. Bedrock writes a baby as is_baby, or as a growing ageable.
+                const offspring = this.spawn(spawnOffspring, entity.position, {
+                    cause: 'born',
+                    admit: (child) =>
+                        child.instance.hasComponent('minecraft:is_baby') ||
+                        child.instance.hasComponent('minecraft:ageable')
+                });
                 return offspring === undefined ? { accepted: false } : { accepted: true };
             }
             const hasHeldItem = heldItem.count > 0 && heldItem.identifier !== 'minecraft:air';

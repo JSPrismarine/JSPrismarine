@@ -54,6 +54,11 @@ export interface SpawnOptions {
      * the form it enters with. A dropped stack's contents are written this way.
      */
     readonly prepare?: (entity: DataEntity) => void;
+    /**
+     * Whether the entity, once its spawn event has run, may enter the world. A refused entity is
+     * removed before any client hears of it and the spawn returns nothing.
+     */
+    readonly admit?: (entity: DataEntity) => boolean;
 }
 
 /** The runtime as the AI projections read it. */

@@ -804,6 +804,23 @@ describe('EntityRuntime', () => {
             expect(wolf.instance.hasComponent('minecraft:is_tamed')).toBe(true);
         });
 
+        it('refuses a spawn its admission check rejects after the spawn event ran', () => {
+            const { runtime } = entityFixture(new TestEntityWorld());
+            const seen: boolean[] = [];
+
+            const refused = runtime.spawn('jsprismarine:hatchling', GROUND, {
+                admit: (entity) => {
+                    seen.push(entity.instance.activeComponentGroups().length > 0);
+                    return false;
+                }
+            });
+
+            expect(refused).toBeUndefined();
+            expect(seen).toEqual([true]);
+            expect([...runtime.entities()]).toEqual([]);
+            expect(runtime.spawn('jsprismarine:hatchling', GROUND, { admit: () => true })).toBeDefined();
+        });
+
         it("toggles a tamed pet's sitting when its owner uses an item nothing else takes", () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),
