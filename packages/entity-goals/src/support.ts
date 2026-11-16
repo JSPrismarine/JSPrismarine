@@ -116,6 +116,14 @@ export class GoalSupport {
         return { center, radius };
     }
 
+    /**
+     * Whether the entity may wander at random: not while it follows a school's leader, which is
+     * Java's `AbstractSchoolingFish.canRandomSwim`.
+     */
+    public canRandomSwim(): boolean {
+        return this.world.school?.()?.leader === undefined;
+    }
+
     /** Moves, looks and jumps; undefined when the caller supplied no actuator. */
     public get actuator(): EntityActuator | undefined {
         return this.entity.actuator;

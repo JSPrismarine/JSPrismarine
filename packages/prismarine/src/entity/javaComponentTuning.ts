@@ -120,6 +120,14 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
     // `Creaking.setTransient` records its heart but sets no home radius;
     // `CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS` only scales the heart's comparator signal.
     'minecraft:creaking': [unrestrictedHome],
+    // `Salmon.getMaxSchoolSize`; a cod's and a tropical fish's school is `AbstractFish`'s 8.
+    'minecraft:salmon': [
+        {
+            component: 'minecraft:flocking',
+            group: undefined,
+            rewrite: (flocking) => ({ ...flocking, high_flock_limit: 5 })
+        }
+    ],
     // `Blaze$BlazeAttackGoal.tick` bites below `distanceToSqr` 4 and throws fireballs from there on.
     'minecraft:blaze': [
         {
@@ -150,7 +158,10 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
  * makes nothing when a frog egg is used on a frog, where Bedrock's frog hatches a tadpole.
  */
 const JAVA_ABSENT: Readonly<Record<string, readonly string[]>> = {
-    'minecraft:frog': ['minecraft:spawn_egg_interaction']
+    'minecraft:frog': ['minecraft:spawn_egg_interaction'],
+    // Only `AbstractSchoolingFish` schools, which neither `Pufferfish` nor `Dolphin` extends.
+    'minecraft:pufferfish': ['minecraft:flocking'],
+    'minecraft:dolphin': ['minecraft:flocking']
 };
 
 /** A table keyed by Java entity type, keyed by Bedrock identifier instead. */

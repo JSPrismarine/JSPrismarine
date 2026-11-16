@@ -58,12 +58,26 @@ export interface GoalMob {
      * `getLastHurtByMobTimestamp`, forgotten 100 ticks later as Java forgets it.
      */
     lastHurtBy?(): GoalCombatMark | undefined;
+    /** Its place in a fish school, which `minecraft:flocking` reads and changes. */
+    school?(): SchoolMembership | undefined;
 }
 
 /** One blow a mob remembers: the other side of it, and the game tick it landed. */
 export interface GoalCombatMark {
     readonly mob: GoalMob;
     readonly tick: number;
+}
+
+/**
+ * One mob's place in a fish school: Java's `AbstractSchoolingFish.leader` and `schoolSize`. The
+ * world keeps one per mob and hands out the same object every time, since a school is the leader's
+ * object that its followers point at. Java saves neither, so a server need not either.
+ */
+export interface SchoolMembership {
+    /** The membership of the leader this mob follows, or undefined when it follows none. */
+    leader: SchoolMembership | undefined;
+    /** How many mobs the school this mob leads holds, itself included; 1 for a mob that leads none. */
+    size: number;
 }
 
 /** One item stack lying in the world, as the pickup goals read it. */
@@ -205,6 +219,8 @@ export interface GoalWorld {
     vehicle?(): GoalMob | undefined;
     /** Who rides the entity. */
     riders?(): readonly GoalMob[];
+    /** The entity's place in a fish school, which `minecraft:flocking` reads and changes. */
+    school?(): SchoolMembership | undefined;
     /** The entity's home position, from `minecraft:home` or a `set_home_position` event. */
     home?(): EntityPosition | undefined;
     /** Records a home position. */

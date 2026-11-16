@@ -17,6 +17,7 @@ import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';
 import { hypot3 } from '@jsprismarine/math';
 import type { Brain, BrainMobDefinition } from '@jsprismarine/entity-brains';
+import type { SchoolMembership } from '@jsprismarine/entity-goals/world';
 import { randomUUID } from 'node:crypto';
 
 import type { ContentItemDrop } from '../../content/world/adapter';
@@ -505,6 +506,9 @@ export class MobBody {
 
     /** Who has hurt the entity, with the running total each has dealt. */
     public readonly damage = new DamageLog();
+
+    /** The entity's place in a fish school, which `minecraft:flocking` keeps. Not saved, as Java saves none. */
+    public readonly school: SchoolMembership = { leader: undefined, size: 1 };
 
     /** Who last knocked the entity about, which `target_when_pushed` reads. */
     public lastPusher: number | undefined;

@@ -198,7 +198,7 @@ export const randomSwim = goal<WanderParams & { readonly avoidSurface: boolean }
                 if (view === undefined) return candidate;
                 return view.isWater(candidate) ? candidate : undefined;
             },
-            canStart: () => support.noActionTime() < RANDOM_STROLL_NO_ACTION_TIME,
+            canStart: () => support.noActionTime() < RANDOM_STROLL_NO_ACTION_TIME && support.canRandomSwim(),
             speedMultiplier: params.speedMultiplier,
             interval: params.interval,
             goalRadius: DEFAULT_GOAL_RADIUS
@@ -377,7 +377,7 @@ export const swimWander = goal<SwimWanderParams>({
     create: (params, support) => {
         let remaining = 0;
         return {
-            canStart: () => support.flag('in_water') && support.chance(1 / params.interval),
+            canStart: () => support.flag('in_water') && support.canRandomSwim() && support.chance(1 / params.interval),
             canContinue: () => remaining > 0 && support.flag('in_water'),
             start: () => {
                 remaining = params.wanderTime;

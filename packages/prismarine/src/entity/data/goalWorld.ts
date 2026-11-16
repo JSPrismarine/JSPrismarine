@@ -110,6 +110,7 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
         // Through `mobById` rather than `byId`, because a target is as often a player as a mob
         // and the two live in different indexes.
         target: () => (entity.target === undefined ? undefined : scene.mobById(entity.target)),
+        school: () => entity.body.school,
         lastDamager: () => {
             const last = entity.body.damage.last()?.sourceId;
             return last === undefined ? undefined : scene.mobById(last);
@@ -276,6 +277,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         setTarget: (mob) => {
             entity.target = typeof mob?.id === 'number' ? mob.id : undefined;
         },
+        school: () => entity.school,
         home: () => entity.home,
         setHome: (position) => {
             entity.home = position;

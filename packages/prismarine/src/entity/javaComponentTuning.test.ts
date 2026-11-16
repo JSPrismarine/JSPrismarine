@@ -148,3 +148,17 @@ describe('withJavaComponentTuning on homes', () => {
         expect(elder.componentParams('minecraft:home')).toEqual(home);
     });
 });
+
+describe('withJavaComponentTuning on schools', () => {
+    it("caps a salmon school at Java's 5 and lets no pufferfish school", () => {
+        const flocking = { high_flock_limit: 8, low_flock_limit: 4 };
+        const salmon = spawn(entityFile('minecraft:salmon', { 'minecraft:flocking': flocking }), 'minecraft:salmon');
+        const pufferfish = spawn(
+            entityFile('minecraft:pufferfish', { 'minecraft:flocking': flocking }),
+            'minecraft:pufferfish'
+        );
+
+        expect(salmon.componentParams('minecraft:flocking')).toMatchObject({ high_flock_limit: 5 });
+        expect(pufferfish.hasComponent('minecraft:flocking')).toBe(false);
+    });
+});
