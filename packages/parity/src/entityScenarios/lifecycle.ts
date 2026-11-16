@@ -27,9 +27,11 @@ import type { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityR
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { pinnedJavaConstants } from '../javaClassFile.ts';
 import { unpackVanillaDatapack } from '../javaDatapack.ts';
+import { gameTicks, probeGoal, walkSpeeds } from './goalHarness.ts';
+import { javaClassChain, javaEntityClassName, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import { realStack, serverContent } from '../serverStack.ts';
 import type { EntitySubject } from './subjects.ts';
-import { componentValues, entitiesDeclaring, field, mappedEntity, stringList, withNamespace } from './subjects.ts';
+import { entitiesDeclaring, field, mappedEntity, stringList, withNamespace } from './subjects.ts';
 
 /**
  * Growth, breeding and lifecycle scenarios: babies growing up, feeding, breeding, the timed
@@ -539,7 +541,7 @@ const javaLoveFood = (javaId: string): readonly string[] => {
 
 /** The items a server type's `minecraft:breedable` accepts, as the server compares them. */
 const serverLoveFood = (bedrock: string): readonly string[] =>
-    componentValues(bedrock, 'minecraft:breedable').flatMap((value) => {
+    loadedComponentValues(bedrock, 'minecraft:breedable').flatMap((value) => {
         const items = field(value, 'breed_items');
         const list = Array.isArray(items) ? items : items === undefined ? [] : [items];
         return list.flatMap((item: unknown) => {
@@ -560,6 +562,31 @@ const groupDeclaring = (bedrock: string, component: string): string | undefined 
     if (type === undefined || type.entity.components.has(component)) return undefined;
     for (const [group, components] of type.entity.componentGroups) if (components.has(component)) return group;
     return undefined;
+};
+
+/** The component groups of a server type that declare a component, with undefined first when its base components do. */
+const groupsDeclaring = (bedrock: string, component: string): readonly (string | undefined)[] => {
+    const type = serverContent().entities.registry.get(bedrock);
+    if (type === undefined) return [];
+    const groups = [...type.entity.componentGroups].flatMap(([group, components]) =>
+        components.has(component) ? [group] : []
+    );
+    return type.entity.components.has(component) ? [undefined, ...groups] : groups;
+};
+
+/**
+ * Every body of one component a server type runs, in its base components and each group, as the
+ * server loaded them: after the Java overlays the content build writes over the pack's files.
+ */
+const loadedComponentValues = (bedrock: string, component: string): readonly unknown[] => {
+    const type = serverContent().entities.registry.get(bedrock);
+    if (type === undefined) return [];
+    const base = type.entity.components.get(component);
+    const grouped = [...type.entity.componentGroups.values()].flatMap((components) => {
+        const body = components.get(component);
+        return body === undefined ? [] : [body];
+    });
+    return base === undefined ? grouped : [base, ...grouped];
 };
 
 /** Java mobs whose own spawn egg makes nothing when used on them: `Frog.canBeABaby` is false, so the egg's baby is refused. */
@@ -774,6 +801,8 @@ const firstRaised = (
 ): number | undefined => {
     let distance = distances[0] ?? 0;
     const probed = probe(bedrock, { target: () => ({ id: 1, distance, visible: true }) });
+    // A drowned senses its target only while it holds a trident, in the group that carries the sensor.
+    activate(probed.entity, groupDeclaring(bedrock, 'minecraft:target_nearby_sensor'));
     for (let tick = 0; tick < settle; tick += 1) probed.entity.tick(false);
     for (const next of distances) {
         distance = next;
@@ -785,7 +814,16 @@ const firstRaised = (
 
 /** Java's search box for each mob whose server definition runs a `minecraft:entity_sensor`. */
 const SENSOR_REACH: Readonly<
-    Record<string, { readonly horizontal?: number; readonly vertical: number; readonly java: string }>
+    Record<
+        string,
+        {
+            readonly horizontal?: number;
+            readonly vertical: number;
+            /** How far above its feet the search is centered, where Java's box is not centered on the mob. */
+            readonly yOffset?: number;
+            readonly java: string;
+        }
+    >
 > = {
     'minecraft:armadillo': {
         horizontal: 7,
@@ -797,7 +835,12 @@ const SENSOR_REACH: Readonly<
         vertical: 2,
         java: 'Pufferfish$PufferfishPuffGoal, its box inflated by 2'
     },
-    'minecraft:happy_ghast': { vertical: 2, java: 'HappyGhast.scanPlayerAboveGhast, a 2 block tall box over the ghast' }
+    'minecraft:happy_ghast': {
+        horizontal: 3,
+        vertical: 1,
+        yOffset: 5,
+        java: 'HappyGhast.scanPlayerAboveGhast, its 4 block box inflated by 1 sideways and spanning its top to half its height above, 4 to 6 blocks up'
+    }
 };
 
 /** The Java blocks a block-break sensor guards, and how far from the break Java reaches. */
@@ -859,26 +902,53 @@ const javaLootItems = (table: string): ReadonlySet<string> => {
     return new Set(names);
 };
 
-/** The restriction radius around its home Java keeps each mob within, where Java keeps one. */
+/**
+ * The home radius Java holds each mob's random movement to, from every `Mob.setHomeTo` call in
+ * the pinned jar. A mob not listed has no home radius in Java: a guardian, a creaking, a turtle or
+ * a piglin brute never calls it, and a bee steers its wander back toward its hive past 24 or 32
+ * blocks (`Bee$BeeWanderGoal.getWanderThreshold`) rather than being held to a radius.
+ */
 const HOME_RADII: Readonly<Record<string, { readonly radii: readonly number[]; readonly java: string }>> = {
     'minecraft:happy_ghast': {
         radii: [32, 64],
-        java: 'HappyGhast.SMALL_RESTRICTION_RADIUS and LARGE_RESTRICTION_RADIUS'
+        java: 'HappyGhast.checkRestriction, SMALL_RESTRICTION_RADIUS and LARGE_RESTRICTION_RADIUS'
     },
     'minecraft:nautilus': {
         radii: [16, 32],
-        java: 'AbstractNautilus.SMALL_RESTRICTION_RADIUS and LARGE_RESTRICTION_RADIUS'
+        java: 'AbstractNautilus.checkRestriction, SMALL_RESTRICTION_RADIUS and LARGE_RESTRICTION_RADIUS'
     },
     'minecraft:zombie_nautilus': {
         radii: [16, 32],
-        java: 'AbstractNautilus.SMALL_RESTRICTION_RADIUS and LARGE_RESTRICTION_RADIUS'
+        java: 'AbstractNautilus.checkRestriction, SMALL_RESTRICTION_RADIUS and LARGE_RESTRICTION_RADIUS'
     },
-    'minecraft:creaking': { radii: [32], java: 'CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS' },
-    'minecraft:bee': { radii: [24, 32], java: 'Bee.getWanderThreshold, TOO_FAR_DISTANCE less its wander reduction' },
-    'minecraft:wandering_trader': {
-        radii: [10],
-        java: 'WanderingTrader$WanderToPositionGoal, which walks back past 10 blocks'
-    }
+    'minecraft:elder_guardian': {
+        radii: [16],
+        java: 'ElderGuardian.customServerAiStep, setHomeTo(blockPosition(), 16)'
+    },
+    'minecraft:wandering_trader': { radii: [16], java: 'WanderingTraderSpawner.spawn, setHomeTo(target, 16)' }
+};
+
+/** The range a probed wander draws its destination in, Java's `RandomStrollGoal` default of 10 blocks. */
+const WANDER_RANGE = 10;
+
+/**
+ * Whether the server's random stroll, on an entity whose only other component is one of the
+ * mob's `minecraft:home` bodies, walks to a destination `away` blocks from home while the entity
+ * stands `standing` blocks from it.
+ */
+const wandersTo = (home: unknown, standing: number, away: number): boolean => {
+    const probed = probeGoal(
+        'minecraft:behavior.random_stroll',
+        { priority: 1, interval: 1, xz_dist: WANDER_RANGE, y_dist: 7 },
+        {
+            at: { x: 0.5, y: 64, z: 0.5 },
+            wander: { x: away + 0.5, y: 64, z: 0.5 },
+            components: { 'minecraft:home': home }
+        }
+    );
+    probed.actuator.at = { x: standing + 0.5, y: 64, z: 0.5 };
+    gameTicks(probed, 1);
+    return walkSpeeds(probed).length > 0;
 };
 
 /** The mobs Java gives a home position when they spawn: `Turtle.finalizeSpawn`, `PiglinBruteAi.initMemories`, `WanderingTraderSpawner`. */
@@ -890,6 +960,22 @@ const HOME_AT_SPAWN: ReadonlySet<string> = new Set([
 
 /** The Java mobs that school: every subclass of `AbstractSchoolingFish`. */
 const JAVA_SCHOOLING: ReadonlySet<string> = new Set(['minecraft:cod', 'minecraft:salmon', 'minecraft:tropical_fish']);
+
+/**
+ * Java's largest school for a fish type: its class's own `getMaxSchoolSize`, or else what
+ * `AbstractSchoolingFish.getMaxSchoolSize` returns, the `getMaxSpawnClusterSize` of the class
+ * above it.
+ */
+const javaMaxSchoolSize = (javaId: string): number | undefined => {
+    const className = javaEntityClassName(javaId);
+    const own = javaMethodOf(className, 'getMaxSchoolSize');
+    const pushed = own === undefined ? [] : pushedNumbers(own.method);
+    if (pushed.length > 0) return pushed[0];
+    const chain = javaClassChain(className);
+    const schooling = chain.findIndex((entry) => entry.name.endsWith('/AbstractSchoolingFish'));
+    const above = chain[schooling + 1]?.methods.find((method) => method.name === 'getMaxSpawnClusterSize');
+    return above === undefined ? undefined : pushedNumbers(above)[0];
+};
 
 /** Whether the server runs a component at all: a factory with a hook, rather than data kept for others to read. */
 const runs = (component: string): boolean => serverContent().entities.components.hooksOf(component).size > 0;
@@ -1386,7 +1472,7 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'sensor-reach',
         java: 'A mob that senses the entities around it searches as far as Java looks.',
         reference:
-            'Java Armadillo (inflate 7, 2, 7), Pufferfish$PufferfishPuffGoal (inflate 2) and HappyGhast.scanPlayerAboveGhast; issue #3158',
+            'Java Armadillo (inflate 7, 2, 7), Pufferfish$PufferfishPuffGoal (inflate 2) and HappyGhast.scanPlayerAboveGhast (getBoundingBox, 1 past each side, maxY to maxY + getYsize() / 2); issue #3158',
         subjects: () => entitiesDeclaring('minecraft:entity_sensor'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:entity_sensor'],
@@ -1398,9 +1484,14 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                   }
                 : undefined,
         run: (subject) => {
+            // Each group that carries a sensor is a state of the mob, such as a puffed-up pufferfish,
+            // and each one's search has to match Java's.
             const queries: EntitySensorQuery[] = [];
-            const probed = probe(subject.bedrock, { sensorQueries: queries });
-            for (let tick = 0; tick < 20; tick += 1) probed.entity.tick(false);
+            for (const group of groupsDeclaring(subject.bedrock, 'minecraft:entity_sensor')) {
+                const probed = probe(subject.bedrock, { sensorQueries: queries });
+                activate(probed.entity, group);
+                for (let tick = 0; tick < 20; tick += 1) probed.entity.tick(false);
+            }
             if (queries.length === 0) return 'the server never searches for entities around it';
             const java = SENSOR_REACH[subject.javaId];
             if (java === undefined)
@@ -1408,11 +1499,14 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             const wrong = queries.filter(
                 (query) =>
                     query.verticalRange !== java.vertical ||
-                    (java.horizontal !== undefined && query.horizontalRange !== java.horizontal)
+                    (java.horizontal !== undefined && query.horizontalRange !== java.horizontal) ||
+                    (java.yOffset !== undefined && query.yOffset !== java.yOffset)
             );
+            const described = (horizontal: number | string, vertical: number, yOffset: number | undefined): string =>
+                `${horizontal} by ${vertical}${yOffset === undefined ? '' : ` ${yOffset} blocks up`}`;
             return wrong.length === 0
                 ? undefined
-                : `it searches ${[...new Set(wrong.map((query) => `${query.horizontalRange} by ${query.verticalRange}`))].join(', ')} blocks, where ${java.java} searches ${java.horizontal ?? 'its own width'} by ${java.vertical}`;
+                : `it searches ${[...new Set(wrong.map((query) => described(query.horizontalRange, query.verticalRange, java.yOffset === undefined ? undefined : query.yOffset)))].join(', ')} blocks, where ${java.java} searches ${described(java.horizontal ?? 'its own width', java.vertical, java.yOffset)}`;
         }
     },
     {
@@ -1427,7 +1521,7 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             const java = BLOCK_GUARDS[subject.javaId];
             if (java === undefined) return 'no Java block guard is known for this sensor';
             const differences: string[] = [];
-            const bodies = componentValues(subject.bedrock, 'minecraft:block_sensor');
+            const bodies = loadedComponentValues(subject.bedrock, 'minecraft:block_sensor');
             const server = new Set(
                 bodies.flatMap((body) => {
                     const breaks = field(body, 'on_break');
@@ -1594,9 +1688,9 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'home-range',
-        java: 'A mob Java gives a home keeps it from where Java takes it and stays within the radius Java restricts it to.',
+        java: "A mob Java gives a home keeps it from where Java takes it, and its random wandering stays within the radius Java's setHomeTo gives it, or within none.",
         reference:
-            'Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, WanderingTraderSpawner, HappyGhast and AbstractNautilus restriction radii, CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS and Bee.getWanderThreshold; issue #3159',
+            'Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, every Mob.setHomeTo call (HappyGhast and AbstractNautilus checkRestriction, ElderGuardian.customServerAiStep, WanderingTraderSpawner.spawn), GoalUtils.mobRestricted and isRestricted, and Bee$BeeWanderGoal.getWanderThreshold; issues #3159 and #3170 (the bee)',
         subjects: () => entitiesDeclaring('minecraft:home'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:home'],
@@ -1610,23 +1704,28 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             } finally {
                 cleanUp([mob]);
             }
+            // Each home body the server runs, with the radius its stroll is held to, if any.
             const java = HOME_RADII[subject.javaId];
-            if (java !== undefined) {
-                const server = componentValues(subject.bedrock, 'minecraft:home').flatMap((body) => {
-                    const radius = field(body, 'restriction_radius');
-                    return typeof radius === 'number' ? [radius] : [];
-                });
-                // The component only records a home; no tick and no goal holds the mob to a radius.
-                const restricts = serverContent().entities.components.hooksOf('minecraft:home').has('onTick');
-                if (!restricts)
-                    differences.push(
-                        `the server never holds it within ${[...new Set(server)].join(' or ') || 'any'} blocks of home, where ${java.java} keeps it within ${java.radii.join(' or ')}`
-                    );
-                else if ([...new Set(server)].sort().join() !== [...java.radii].sort().join())
-                    differences.push(
-                        `it stays within ${server.join(' or ')} blocks, where ${java.java} gives ${java.radii.join(' or ')}`
-                    );
-            }
+            const bodies = loadedComponentValues(subject.bedrock, 'minecraft:home');
+            const held = bodies.flatMap((body) => {
+                const radius = field(body, 'restriction_radius');
+                if (typeof radius !== 'number' || radius <= 0) return [];
+                // Inside the radius it strolls; past it, while still near home, it may not.
+                const inside = wandersTo(body, 0, radius - 2);
+                const outside = wandersTo(body, 0, radius + 2);
+                // Java frees a mob that strayed past the radius plus its range plus one.
+                const strayed = wandersTo(body, radius + WANDER_RANGE + 2, radius + WANDER_RANGE + 4);
+                if (!inside || !strayed) differences.push(`a stroll ${radius} blocks from home never starts at all`);
+                return outside ? [] : [radius];
+            });
+            const server = [...new Set(held)].sort((left, right) => left - right).join(' or ');
+            const expected = [...(java?.radii ?? [])].sort((left, right) => left - right).join(' or ');
+            if (server !== expected)
+                differences.push(
+                    java === undefined
+                        ? `the server holds its wandering within ${server} blocks of home, where Java holds it to no radius`
+                        : `the server holds its wandering within ${server || 'no'} blocks of home, where ${java.java} holds it within ${expected}`
+                );
             return differences.length === 0 ? undefined : differences.join('; ');
         }
     },
@@ -1823,19 +1922,44 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'schooling',
-        java: 'A cod, salmon or tropical fish follows a school leader, and no other fish or dolphin schools.',
+        java: "Three cod, salmon or tropical fish side by side gather under one leader, as Java's FollowFlockLeaderGoal gathers them, in schools no larger than Java's; a pufferfish or a dolphin never schools.",
         reference:
-            'Java AbstractSchoolingFish and FollowFlockLeaderGoal; Pufferfish and Dolphin do not extend it; issue #3161',
+            'Java AbstractSchoolingFish (getMaxSchoolSize, addFollowers, inRangeOfLeader), Salmon.getMaxSchoolSize, AbstractFish.getMaxSpawnClusterSize and FollowFlockLeaderGoal; Pufferfish and Dolphin do not extend AbstractSchoolingFish; issue #3161',
         subjects: () => entitiesDeclaring('minecraft:flocking'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:flocking'],
         run: (subject) => {
-            const schools = runs('minecraft:flocking');
-            if (JAVA_SCHOOLING.has(subject.javaId))
-                return schools
-                    ? undefined
-                    : "the server never runs minecraft:flocking, so it swims alone where Java's follows a school";
-            return schools ? 'the server schools it, where Java never does' : undefined;
+            const differences: string[] = [];
+            const schools = JAVA_SCHOOLING.has(subject.javaId);
+            if (schools) {
+                const java = javaMaxSchoolSize(subject.javaId);
+                const server = loadedComponentValues(subject.bedrock, 'minecraft:flocking').map((body) =>
+                    field(body, 'high_flock_limit')
+                );
+                if (server.some((limit) => limit !== java))
+                    differences.push(
+                        `its schools hold up to ${server.join(' or ')} fish, where Java's hold ${String(java)}`
+                    );
+            }
+
+            // Three fish a block apart, ticked by the server's own runtime until Java's first
+            // school would have formed (FollowFlockLeaderGoal waits 200 to 219 ticks).
+            const { runtime } = realStack();
+            const at = freshSpot();
+            const fish = [0, 1, 2].map((offset) => spawnLive(subject.bedrock, { ...at, x: at.x + offset }));
+            try {
+                for (let tick = 1; tick <= 240; tick += 1) runtime.tick(tick);
+                const followers = fish.filter((one) => one.body.school.leader !== undefined).length;
+                if (schools && followers !== 2)
+                    differences.push(
+                        `${followers} of three fish side by side follow a leader, where Java gathers all three into one school`
+                    );
+                if (!schools && followers > 0)
+                    differences.push(`${followers} of three side by side follow a leader, where Java's never schools`);
+            } finally {
+                cleanUp(fish);
+            }
+            return differences.length === 0 ? undefined : differences.join('; ');
         }
     }
 ];
