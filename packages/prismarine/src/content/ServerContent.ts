@@ -64,6 +64,7 @@ import { javaGoalRulings, withJavaGoals } from '../entity/javaGoals';
 import { javaBabyFoods, withJavaBabyFood } from '../entity/javaBabyFood';
 import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
 import { javaGoalOverlay } from '../entity/javaGoalArguments';
+import { withJavaComponentTuning } from '../entity/javaComponentTuning';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
 
 /** The resolved block domain. */
@@ -380,12 +381,14 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
                 path: definition.path,
                 data: withJavaGoals(
                     withJavaGoalArguments(
-                        withJavaAirSupply(
-                            withJavaBabyFood(
-                                withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
-                                babyFoods
-                            ),
-                            airSupplies
+                        withJavaComponentTuning(
+                            withJavaAirSupply(
+                                withJavaBabyFood(
+                                    withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
+                                    babyFoods
+                                ),
+                                airSupplies
+                            )
                         )
                     ),
                     goalRulings

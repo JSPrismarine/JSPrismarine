@@ -17,15 +17,16 @@ export const entityFileIdentifier = (data: unknown): string | undefined => {
  *
  * @param data - The parsed JSON of an entity file.
  * @param component - The component to rewrite, such as `minecraft:breedable`.
- * @param rewrite - Builds the replacement body from the declared one.
+ * @param rewrite - Builds the replacement body from the declared one and the component group
+ *   that declares it, undefined for the base components.
  * @returns The same object when the file declares no such component; otherwise a copy with
  *   each body replaced.
  */
 export const withComponentRewritten = (
     data: unknown,
     component: string,
-    rewrite: (body: Record<string, unknown>) => Record<string, unknown>
-): unknown => withComponentReplaced(data, component, (body) => ({ [component]: rewrite(body) }));
+    rewrite: (body: Record<string, unknown>, group: string | undefined) => Record<string, unknown>
+): unknown => withComponentReplaced(data, component, (body, group) => ({ [component]: rewrite(body, group) }));
 
 /**
  * Replaces every body of `component` the file declares with the components `replace` builds
@@ -34,14 +35,18 @@ export const withComponentRewritten = (
  *
  * @param data - The parsed JSON of an entity file.
  * @param component - The component to replace, such as `minecraft:behavior.swell`.
- * @param replace - Builds the components that take the declared body's place.
+ * @param replace - Builds the components that take the declared body's place, from the body and
+ *   the component group that declares it, undefined for the base components.
  * @returns The same object when the file declares no such component; otherwise a copy with
  *   each body replaced.
  */
 export const withComponentReplaced = (
     data: unknown,
     component: string,
-    replace: (body: Record<string, unknown>) => Readonly<Record<string, Record<string, unknown>>>
+    replace: (
+        body: Record<string, unknown>,
+        group: string | undefined
+    ) => Readonly<Record<string, Record<string, unknown>>>
 ): unknown => {
     if (!isRecord(data)) return data;
     const entity = data['minecraft:entity'];
@@ -53,14 +58,14 @@ export const withComponentReplaced = (
         (isRecord(groups) && Object.values(groups).some((group) => isRecord(group) && isRecord(group[component])));
     if (!declares) return data;
 
-    const replaced = (map: unknown): unknown => {
+    const replaced = (map: unknown, group: string | undefined): unknown => {
         if (!isRecord(map)) return map;
         const body = map[component];
         if (!isRecord(body)) return map;
         // In place, so the components keep the order the file wrote them in.
         return Object.fromEntries(
             Object.entries(map).flatMap(([name, value]) =>
-                name === component ? Object.entries(replace(body)) : [[name, value] as const]
+                name === component ? Object.entries(replace(body, group)) : [[name, value] as const]
             )
         );
     };
@@ -68,14 +73,51 @@ export const withComponentReplaced = (
         ...data,
         'minecraft:entity': {
             ...entity,
-            ...(components === undefined ? {} : { components: replaced(components) }),
+            ...(components === undefined ? {} : { components: replaced(components, undefined) }),
             ...(isRecord(groups)
                 ? {
                       component_groups: Object.fromEntries(
-                          Object.entries(groups).map(([name, group]) => [name, replaced(group)])
+                          Object.entries(groups).map(([name, group]) => [name, replaced(group, name)])
                       )
                   }
                 : {})
+        }
+    };
+};
+
+/**
+ * Removes every body of `component` the file declares.
+ *
+ * @param data - The parsed JSON of an entity file.
+ * @param component - The component to remove, such as `minecraft:spawn_egg_interaction`.
+ * @returns The same object when the file declares no such component; otherwise a copy without it.
+ */
+export const withoutComponent = (data: unknown, component: string): unknown => {
+    if (!isRecord(data)) return data;
+    const entity = data['minecraft:entity'];
+    if (!isRecord(entity)) return data;
+    const without = (map: unknown): unknown => {
+        if (!isRecord(map) || !(component in map)) return map;
+        const { [component]: _removed, ...rest } = map;
+        return rest;
+    };
+    const components = without(entity['components']);
+    const groups = entity['component_groups'];
+    const regrouped = isRecord(groups)
+        ? Object.fromEntries(Object.entries(groups).map(([name, group]) => [name, without(group)]))
+        : groups;
+    const changed =
+        components !== entity['components'] ||
+        (isRecord(groups) &&
+            isRecord(regrouped) &&
+            Object.keys(groups).some((name) => groups[name] !== regrouped[name]));
+    if (!changed) return data;
+    return {
+        ...data,
+        'minecraft:entity': {
+            ...entity,
+            ...(components === undefined ? {} : { components }),
+            ...(regrouped === undefined ? {} : { component_groups: regrouped })
         }
     };
 };
