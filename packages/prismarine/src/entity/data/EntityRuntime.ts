@@ -294,11 +294,44 @@ interface CraftIntoCandidate {
 const runtimeEntityIdentifierOf = (identifier: string, content: ServerContent): string | undefined =>
     bedrockEntityIdentifierOf(identifier, (candidate) => content.entities.registry.has(candidate));
 
-/** Whether an active data-driven entity accepts the named status effect. */
+/**
+ * The effects Java's `LivingEntity.canBeAffected` refuses a type in each entity type tag: the
+ * silverfish infestation, the slime oozing, and an undead mob's poison and regeneration.
+ */
+const JAVA_TAG_EFFECT_IMMUNITIES: readonly (readonly [string, readonly string[]])[] = [
+    ['minecraft:immune_to_infested', ['minecraft:infested']],
+    ['minecraft:immune_to_oozing', ['minecraft:oozing']],
+    ['minecraft:ignores_poison_and_regen', ['minecraft:poison', 'minecraft:regeneration']]
+];
+
+/**
+ * The effects a Java class's own `canBeAffected` override refuses, by the entity type that runs
+ * it: `Spider` (and the cave spider it is the parent of) poison, `WitherBoss` and
+ * `WitherSkeleton` wither, `Parched` weakness, and `AbstractNautilus` poison. Java keeps these in
+ * code, so the table is the only copy the server can read.
+ */
+const JAVA_TYPE_EFFECT_IMMUNITIES: ReadonlyMap<string, readonly string[]> = new Map([
+    ['minecraft:spider', ['minecraft:poison']],
+    ['minecraft:cave_spider', ['minecraft:poison']],
+    ['minecraft:wither', ['minecraft:wither']],
+    ['minecraft:wither_skeleton', ['minecraft:wither']],
+    ['minecraft:parched', ['minecraft:weakness']],
+    ['minecraft:nautilus', ['minecraft:poison']],
+    ['minecraft:zombie_nautilus', ['minecraft:poison']]
+]);
+
+/**
+ * Whether an active data-driven entity accepts the named status effect: not when its
+ * `minecraft:mob_effect_immunity` names it, nor when Java's `canBeAffected` refuses it the
+ * effect by its entity type tags or its class.
+ */
 export const acceptsStatusEffect = (entity: EntityInstance, identifier: string): boolean => {
+    const normalized = normalizeStatusEffectId(identifier);
+    if (JAVA_TYPE_EFFECT_IMMUNITIES.get(entity.type.identifier)?.includes(normalized) === true) return false;
+    for (const [tag, effects] of JAVA_TAG_EFFECT_IMMUNITIES)
+        if (effects.includes(normalized) && entity.hasTag(tag)) return false;
     const immunity = entity.componentParams('minecraft:mob_effect_immunity');
     if (!isRecord(immunity) || !Array.isArray(immunity.mob_effects)) return true;
-    const normalized = normalizeStatusEffectId(identifier);
     return !immunity.mob_effects.some(
         (effect) => typeof effect === 'string' && normalizeStatusEffectId(effect) === normalized
     );
