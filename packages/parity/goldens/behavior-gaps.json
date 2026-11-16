@@ -1927,6 +1927,16 @@
             "reason": "Each Bedrock timer stands in for a Java countdown and runs as long as Java's, from its shortest draw to its longest. Observed: the become_stray_event timer runs 440 to 440 ticks, where Skeleton's freezing ConversionTracker (FreezingTime 140) gives 140 to 140.",
             "reference": "Java AbstractBoat.BUBBLE_TIME, AllayAi.ITEM_PICKUP_COOLDOWN_DURATION, Armadillo.SCARE_CHECK_INTERVAL, the Bee and BeehiveBlockEntity constants, CopperGolem.WEATHERING_TICK_FROM and _TO, Guardian$GuardianAttackGoal, AbstractPiglin and Hoglin CONVERSION_TIME, the Zombie and Skeleton ConversionTrackers, Pufferfish.tick, Ravager.STUN_DURATION, SulfurCube.PICKUP_TIMER_DURATION, Evoker$EvokerSummonSpellGoal and WanderingTraderSpawner.spawn; issue #3157"
         },
+        "unrun-components:minecraft:bee": {
+            "kind": "defect",
+            "reason": "A bee carrying nectar grows the crops it passes over, Java's Bee$BeeGrowCropGoal, and a ravager a shield blocks is stunned or throws the defender back, Java's Ravager.blockedByItem. Observed: the server runs nothing for minecraft:grows_crop, so a bee grows no crop, where Java's does.",
+            "reference": "Java Bee$BeeGrowCropGoal (nextInt(adjustedTickDelay(30)), bee_growables, 10 crops a pollination) and Ravager.blockedByItem (stunnedTick 40 half the time, strongKnockback otherwise), read from the pinned jar; issue #3194"
+        },
+        "unrun-components:minecraft:ravager": {
+            "kind": "defect",
+            "reason": "A bee carrying nectar grows the crops it passes over, Java's Bee$BeeGrowCropGoal, and a ravager a shield blocks is stunned or throws the defender back, Java's Ravager.blockedByItem. Observed: the server runs nothing for minecraft:ravager_blocked, so a blocked ravager is never stunned or pushed back, where Java's does.",
+            "reference": "Java Bee$BeeGrowCropGoal (nextInt(adjustedTickDelay(30)), bee_growables, 10 crops a pollination) and Ravager.blockedByItem (stunnedTick 40 half the time, strongKnockback otherwise), read from the pinned jar; issue #3194"
+        },
         "variant-at-spawn:minecraft:fox": {
             "kind": "defect",
             "reason": "A spawned mob's variant, markings and colors follow Java's spawn rule for its type: a datapack variant registry's biome conditions, a uniform pick, a biome table, or a fixed starting value. Observed: minecraft:variant in minecraft:snowy_taiga: 0: 100.0%, Java 0.0%, 1: 0.0%, Java 100.0%.",
