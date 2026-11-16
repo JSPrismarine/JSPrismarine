@@ -21,14 +21,16 @@ describe('doors', () => {
         expect(isDoor('minecraft:spruce_trapdoor')).toBe(false);
     });
 
-    it('opens and closes a door from either half by writing its lower half', () => {
+    it('opens and closes a door from either half by writing both halves', () => {
         const world = withDoor();
         setDoorOpen(world.world.blocks, UPPER, true);
         expect(world.world.blocks.get(LOWER)?.states['open_bit']).toBe(true);
-        expect(world.world.blocks.get(UPPER)?.states['open_bit']).toBe(false);
+        // The upper half's collision box reads its own state, so it swings with the door.
+        expect(world.world.blocks.get(UPPER)?.states['open_bit']).toBe(true);
 
         setDoorOpen(world.world.blocks, LOWER, false);
         expect(world.world.blocks.get(LOWER)?.states['open_bit']).toBe(false);
+        expect(world.world.blocks.get(UPPER)?.states['open_bit']).toBe(false);
     });
 
     it('leaves a block that is no door alone', () => {

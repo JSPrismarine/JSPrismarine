@@ -16,19 +16,26 @@ export const isDoor = (identifier: string): boolean => identifier.endsWith('_doo
 export const isSet = (value: unknown): boolean => value === true || value === 1;
 
 /**
- * Opens or closes the door at a position, either half, by writing `open_bit` on its lower half.
- * Anything that is not a door is left alone.
+ * Opens or closes the door at a position, either half. Bedrock reads a door's `open_bit` from its
+ * lower half, and this writes it on both, so the upper half's collision box swings with the door,
+ * as Java's `DoorBlock.setOpen` sets `OPEN` on both halves. Anything that is not a door is left
+ * alone.
  */
 export const setDoorOpen = (blocks: ContentBlockAccess, at: ContentPosition, open: boolean): void => {
     const block = blocks.get(at);
     if (block === undefined || !isDoor(block.identifier)) return;
-    const lowerAt = isSet(block.states['upper_block_bit']) ? { x: at.x, y: at.y - 1, z: at.z } : at;
+    const upper = isSet(block.states['upper_block_bit']);
+    const lowerAt = upper ? { x: at.x, y: at.y - 1, z: at.z } : at;
+    const upperAt = upper ? at : { x: at.x, y: at.y + 1, z: at.z };
     const lower = lowerAt === at ? block : blocks.get(lowerAt);
     if (lower?.identifier !== block.identifier) return;
     const previous = lower.states['open_bit'];
     if (isSet(previous) === open) return;
     const value = typeof previous === 'number' ? (open ? 1 : 0) : open;
     blocks.set(lowerAt, { identifier: lower.identifier, states: { ...lower.states, open_bit: value } }, true);
+    const top = upperAt === at ? block : blocks.get(upperAt);
+    if (top?.identifier === block.identifier && isSet(top.states['upper_block_bit']))
+        blocks.set(upperAt, { identifier: top.identifier, states: { ...top.states, open_bit: value } }, true);
 };
 
 /** Plays one level event at a point, as `EntityHostFacts.levelEvent` does. */

@@ -31,10 +31,12 @@ import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import { EYE_HEIGHT } from '../playerEyes';
+import { javaBlockTagsForBedrock } from '../../content/javaTags';
 import type { ContentTags } from '../../content/tags';
 import type { ContentEntity } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import { distance } from './DataEntity';
+import { setDoorOpen } from './doors';
 import { actuatorOf, withinMeleeReach } from './goalWorld';
 import { blockPositionOf, ENTITY_EYE_HEIGHT_FRACTION } from './position';
 import type { EntityScene } from './scene';
@@ -219,6 +221,9 @@ const contentTagsFor = (registry: string, identifier: string, tags: ContentTags)
     for (const tag of tags.tags(registry)) {
         if (tags.includes(registry, tag, identifier)) found.add(tag);
     }
+    // Java's block tags name Java blocks, so a Bedrock block whose name differs, such as
+    // `minecraft:wooden_door` for Java's `oak_door`, finds its tags through the block mapping.
+    if (registry === 'block') for (const tag of javaBlockTagsForBedrock(tags, identifier)) found.add(tag);
     if (byRegistry === undefined) {
         byRegistry = new Map();
         tagsByContent.set(tags, byRegistry);
@@ -286,6 +291,7 @@ const brainNavigationOf = (entity: DataEntity, scene: EntityScene): BrainNavigat
         isDone: () => !state.navigator.walking || state.navigator.arrived(),
         isStuck: () => state.stuck,
         canReach: (target) => state.navigator.canReach(target, 0.5),
+        pathStep: () => state.navigator.pathStep(),
         stop: () => {
             state.navigator.stop();
             state.destination = undefined;
@@ -473,6 +479,8 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
             if (navigation.isWater(position) || navigation.isLava(position)) return false;
             return navigation.isPassable(position) && navigation.isSolid({ ...position, y: position.y - 1 });
         },
+        isDoorOpen: (pos) => scene.navigation().doorAt?.(pos)?.open,
+        setDoorOpen: (pos, open) => setDoorOpen(scene.world.blocks, pos, open),
         blockTagsAt: (pos) => {
             const identifier = scene.world.blocks.get(pos)?.identifier;
             if (identifier === undefined) return NO_TAGS;
