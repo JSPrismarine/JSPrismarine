@@ -54,6 +54,8 @@ import { advancementRewards } from '../advancement/rewards';
 import { unwiredWorldSource } from './world/unwired';
 import { contentWorldViews } from './world/views';
 import type { ContentWorldViews } from './world/views';
+import { javaAirSupplies, withJavaAirSupply } from '../entity/javaAirSupply';
+import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
 
 /** The resolved block domain. */
@@ -354,12 +356,17 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const playerFallback = definitions.entities.has(PLAYER_IDENTIFIER)
         ? []
         : [{ pack: 'jsprismarine:player', path: 'entities/player.json', data: FALLBACK_PLAYER_FILE }];
+    const breedingFoods = javaBreedingFoods(tags);
+    const airSupplies = javaAirSupplies();
     diagnostics.push(
         ...entityTypes.load(
             [...definitions.entities.values(), ...playerFallback].map((definition) => ({
                 pack: definition.pack,
                 path: definition.path,
-                data: withPlayerOverlay(definition.data)
+                data: withJavaAirSupply(
+                    withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
+                    airSupplies
+                )
             }))
         )
     );
