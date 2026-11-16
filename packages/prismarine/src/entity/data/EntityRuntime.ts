@@ -53,6 +53,7 @@ import {
     isStrengthParams,
     javaEntityNavigation,
     javaEntityStats,
+    javaMoveControlTurn,
     MAX_BLOCK_SENSOR_RADIUS,
     noEffects,
     parseEventTarget
@@ -5656,7 +5657,10 @@ export class EntityRuntime implements EntityScene {
         // `minecraft:movement.jump`, the slime's, waits a draw from `jump_delay` seconds between hops.
         const hop = entity.instance.componentParams('minecraft:movement.jump');
         const [shortest, longest]: unknown[] = isRecord(hop) && Array.isArray(hop.jumpDelay) ? hop.jumpDelay : [];
+        const java = entity.instance.javaNavigation;
+        const maxTurn = java === undefined ? undefined : javaMoveControlTurn(java);
         entity.step({
+            ...(maxTurn === undefined ? {} : { maxTurn }),
             allowVertical: profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || swims || climbs,
             canJump: profile.canJump,
             stepHeight: profile.stepHeight,

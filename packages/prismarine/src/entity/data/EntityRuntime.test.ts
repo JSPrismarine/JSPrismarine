@@ -1741,6 +1741,40 @@ describe('EntityRuntime', () => {
             expect(mover.body.pitch).toBe(0);
         });
 
+        it("turns a walker by Java's 90 degrees a tick and walks along the heading it reached", () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'minecraft:zombie': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:movement': { value: 0.25 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': {},
+                            'minecraft:navigation.walk': { can_walk: true }
+                        }
+                    }
+                }
+            );
+            const zombie = runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND.y, z: 0.5 });
+            if (zombie === undefined) throw new Error('the fixture declares no zombie');
+            zombie.body.yaw = 0;
+            // The waypoint is straight behind it, a half turn away.
+            zombie.body.moveTo({ x: 0.5, y: GROUND.y, z: -9.5 }, 1);
+
+            runtime.tick(1);
+
+            expect(Math.abs(zombie.body.yaw)).toBeCloseTo(90, 6);
+            expect(zombie.position.z).toBeCloseTo(0.5, 6);
+            expect(zombie.position.x).not.toBeCloseTo(0.5, 3);
+
+            runtime.tick(2);
+
+            expect(Math.abs(zombie.body.yaw)).toBeCloseTo(180, 6);
+            expect(zombie.position.z).toBeLessThan(0.5);
+        });
+
         it('keeps a walk’s momentum when its goal stops and starts it again within the tick', () => {
             const { runtime } = moverRuntime();
             const mover = runtime.spawn('jsprismarine:mover', GROUND);

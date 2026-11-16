@@ -80,7 +80,32 @@ interface MobBodyStepOptions {
      * moves by hopping, as `minecraft:movement.jump` does. Absent for a mob that walks.
      */
     readonly nextHopDelay?: () => number;
+    /**
+     * The most degrees the entity's move control turns its body toward the waypoint in one
+     * tick, 90 for Java's `MoveControl`. A walker that has to turn further walks along the
+     * heading it reached, as Java's travel moves a mob along its body's facing. Absent turns the
+     * entity at once.
+     */
+    readonly maxTurn?: number;
 }
+
+/** An angle in degrees, wrapped into the half-open range -180 to 180. */
+const wrapDegrees = (degrees: number): number => {
+    const wrapped = degrees % 360;
+    if (wrapped >= 180) return wrapped - 360;
+    if (wrapped < -180) return wrapped + 360;
+    return wrapped;
+};
+
+/**
+ * Turns from one heading toward another by at most `maxTurn` degrees, as Java's
+ * `MoveControl.rotlerp` does. A turn that fits lands on the target exactly.
+ */
+const turnToward = (from: number, to: number, maxTurn: number): number => {
+    const change = wrapDegrees(to - from);
+    if (Math.abs(change) <= maxTurn) return to;
+    return wrapDegrees(from + Math.sign(change) * maxTurn);
+};
 
 /** Java's default jump power for an entity without a jump component or attribute. */
 const DEFAULT_JUMP_POWER = 0.42;
@@ -868,11 +893,12 @@ export class MobBody {
      * Turns the body toward a position on the horizontal plane and leaves the pitch alone, as
      * Java's `MoveControl` turns a walker: where the head points is the look control's business.
      */
-    private faceToward(position: EntityPosition): void {
+    private faceToward(position: EntityPosition, maxTurn?: number): void {
         const dx = position.x - this.position.x;
         const dz = position.z - this.position.z;
         if (dx === 0 && dz === 0) return;
-        this.yaw = (Math.atan2(dz, dx) * 180) / Math.PI - 90;
+        const target = (Math.atan2(dz, dx) * 180) / Math.PI - 90;
+        this.yaw = maxTurn === undefined ? target : turnToward(this.yaw, target, maxTurn);
     }
 
     /**
@@ -947,7 +973,7 @@ export class MobBody {
                 if (this.hopWait > 0) {
                     this.hopWait -= 1;
                     this.rest();
-                    this.faceToward(destination);
+                    this.faceToward(destination, options.maxTurn);
                     return;
                 }
                 // This tick is the take-off, and it already travels as a tick on the ground.
@@ -964,15 +990,26 @@ export class MobBody {
             }
         }
 
+        // A walker whose move control turns by a limited step faces the waypoint first and walks
+        // along the heading it reached, which is the waypoint itself unless the turn was too wide.
+        const steered = options?.maxTurn !== undefined && !options.allowVertical;
+        if (steered) this.faceToward(destination, options.maxTurn);
+        const yaw = (this.yaw * Math.PI) / 180;
         const scale = Math.min(stride, remaining) / remaining;
-        const proposed = {
-            x: this.position.x + (destination.x - this.position.x) * scale,
-            y: Math.max(
-                this.position.y + (target.y - this.position.y) * scale,
-                this.position.y - (options?.maxDescent ?? Number.POSITIVE_INFINITY)
-            ),
-            z: this.position.z + (destination.z - this.position.z) * scale
-        };
+        const proposed = steered
+            ? {
+                  x: this.position.x - Math.sin(yaw) * Math.min(stride, remaining),
+                  y: this.position.y,
+                  z: this.position.z + Math.cos(yaw) * Math.min(stride, remaining)
+              }
+            : {
+                  x: this.position.x + (destination.x - this.position.x) * scale,
+                  y: Math.max(
+                      this.position.y + (target.y - this.position.y) * scale,
+                      this.position.y - (options?.maxDescent ?? Number.POSITIVE_INFINITY)
+                  ),
+                  z: this.position.z + (destination.z - this.position.z) * scale
+              };
 
         if (options === undefined) {
             this.position = proposed;
@@ -992,8 +1029,11 @@ export class MobBody {
         }
         // A walker on land turns toward its waypoint, which lies at its feet, and keeps the pitch
         // its goal's look gave it: looking at the waypoint aimed it at the ground beside it.
-        if (options === undefined || options.allowVertical) this.lookAt(destination);
-        else this.faceToward(destination);
+        if (options === undefined || options.allowVertical) {
+            const before = this.yaw;
+            this.lookAt(destination);
+            if (options?.maxTurn !== undefined) this.yaw = turnToward(before, this.yaw, options.maxTurn);
+        } else if (!steered) this.faceToward(destination);
     }
 }
 
