@@ -252,6 +252,16 @@
         }
     },
     "entities.behavior": {
+        "brain-runs-instead:minecraft:tadpole/minecraft:behavior.panic": {
+            "kind": "defect",
+            "reason": "A mob whose Java class builds a Brain runs its brain's behaviors, and only the goals its class registers beside it. Observed: Java's minecraft:tadpole runs PanicGoal beside its brain, which the server leaves out. Tracked in #3132.",
+            "reference": "Java LivingEntity.brainProvider overrides, read from the pinned jar, and each brain mob's empty goal selector"
+        },
+        "brain-runs-instead:minecraft:tadpole/minecraft:behavior.random_swim": {
+            "kind": "defect",
+            "reason": "A mob whose Java class builds a Brain runs its brain's behaviors, and only the goals its class registers beside it. Observed: Java's minecraft:tadpole runs AbstractFish$FishSwimGoal beside its brain, which the server leaves out. Tracked in #3132.",
+            "reference": "Java LivingEntity.brainProvider overrides, read from the pinned jar, and each brain mob's empty goal selector"
+        },
         "breathes-underwater:minecraft:armor_stand": {
             "kind": "defect",
             "reason": "A mob in Java's can_breathe_under_water tag does not drown, and every other mob that breathes air does. Observed: the server drowns it, though Java lets it breathe underwater.",
@@ -287,80 +297,1365 @@
             "reason": "A mob in Java's burn_in_daylight tag catches fire in sunlight, and no other mob does. Observed: Java burns it in daylight; the server does not.",
             "reference": "Java entity type tag burn_in_daylight and Mob.isSunBurnTick"
         },
-        "damage-over-time:minecraft:axolotl": {
+        "goal-avoid-mob-type:minecraft:cat": {
             "kind": "defect",
-            "reason": "A vex past its life, or a dried-out axolotl or dolphin, is hurt on Java's cadence: a vex 1 every 20 ticks, an axolotl 2 every 20, a dolphin 1 every 10. Observed: it is hurt 1 then 1 after 10 ticks, 1 after 10 ticks, where Java hurts it 2 then 2 after 20 ticks, 2 after 20 ticks.",
-            "reference": "Java Vex.tick (starve 1, limitedLifeTicks back to 20), Axolotl.handleAirSupply (dryOut 2 at -20 air) and Dolphin.tick (dryOut 1 a tick, under the 10-tick hurt cooldown), read from the pinned jar; issue #3149"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees a player from a different distance than Java's 16 blocks. Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "explosion-power-and-fuse:minecraft:tnt_minecart": {
+        "goal-avoid-mob-type:minecraft:cod": {
             "kind": "defect",
-            "reason": "An entity that explodes does so with Java's power after Java's fuse: a creeper 3 after 30 ticks, primed TNT 4 after 80, an end crystal 6 at once. Observed: it explodes with power 3, where Java's is 4.",
-            "reference": "Java Creeper.<init> (explosionRadius, maxSwell), PrimedTnt.<init> (explosionPower, setFuse), EndCrystal.hurtServer, LargeFireball.<init>, MinecartTNT.<init> and primeFuse, WitherSkull.onHit, and SulfurCube.primeTime with the datapack explosive sulfur_cube_archetype, read from the pinned jar; issue #3150"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees from axolotl, which Java's does not; it flees a player from a different distance than Java's 8 blocks; fleeing a close player walks at 2 times its speed (0.2 blocks a tick), where Java's goal uses 1.4 (0.98). Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "fall-damage-sensor:minecraft:camel": {
+        "goal-avoid-mob-type:minecraft:evoker": {
             "kind": "defect",
-            "reason": "A fall blow lands on an entity as Java's calculateFallDamage would for the same fall: nothing for a type in fall_damage_immune, its safe fall distance and multiplier, and what a goat or a frog takes off. Observed: a 20-block fall's blow takes 13 health off it, where Java's fall takes 7.",
-            "reference": "Java LivingEntity.calculateFallDamage (entity type tag fall_damage_immune, safe_fall_distance and fall_damage_multiplier attributes) and its overrides in Goat and Frog, read from the pinned jar; the blow is Java's default damage for a 20-block fall, since the server deals mobs no fall damage of its own; issue #3147"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: fleeing a close creaking walks at 1.2 times its speed (0.6 blocks a tick), where Java's goal uses 1 (0.5). Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "fall-damage-sensor:minecraft:camel_husk": {
+        "goal-avoid-mob-type:minecraft:fox": {
             "kind": "defect",
-            "reason": "A fall blow lands on an entity as Java's calculateFallDamage would for the same fall: nothing for a type in fall_damage_immune, its safe fall distance and multiplier, and what a goat or a frog takes off. Observed: a 20-block fall's blow takes 13 health off it, where Java's fall takes 7.",
-            "reference": "Java LivingEntity.calculateFallDamage (entity type tag fall_damage_immune, safe_fall_distance and fall_damage_multiplier attributes) and its overrides in Goat and Frog, read from the pinned jar; the blow is Java's default damage for a 20-block fall, since the server deals mobs no fall damage of its own; issue #3147"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees a wolf from a different distance than Java's 8 blocks; fleeing a close wolf walks at 1.5 times its speed (0.45 blocks a tick), where Java's goal uses 1.4 (0.42); it flees a polar_bear from a different distance than Java's 8 blocks; fleeing a close polar_bear walks at 1.5 times its speed (0.45 blocks a tick), where Java's goal uses 1.4 (0.42). Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "fall-damage-sensor:minecraft:fox": {
+        "goal-avoid-mob-type:minecraft:guardian": {
             "kind": "defect",
-            "reason": "A fall blow lands on an entity as Java's calculateFallDamage would for the same fall: nothing for a type in fall_damage_immune, its safe fall distance and multiplier, and what a goat or a frog takes off. Observed: a 20-block fall's blow takes 17 health off it, where Java's fall takes 15.",
-            "reference": "Java LivingEntity.calculateFallDamage (entity type tag fall_damage_immune, safe_fall_distance and fall_damage_multiplier attributes) and its overrides in Goat and Frog, read from the pinned jar; the blow is Java's default damage for a 20-block fall, since the server deals mobs no fall damage of its own; issue #3147"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: Java's minecraft:guardian registers no AvoidEntityGoal, but the server runs minecraft:behavior.avoid_mob_type. Tracked in #3130.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "fall-damage-sensor:minecraft:llama": {
+        "goal-avoid-mob-type:minecraft:ocelot": {
             "kind": "defect",
-            "reason": "A fall blow lands on an entity as Java's calculateFallDamage would for the same fall: nothing for a type in fall_damage_immune, its safe fall distance and multiplier, and what a goat or a frog takes off. Observed: a 20-block fall's blow takes 17 health off it, where Java's fall takes 7.",
-            "reference": "Java LivingEntity.calculateFallDamage (entity type tag fall_damage_immune, safe_fall_distance and fall_damage_multiplier attributes) and its overrides in Goat and Frog, read from the pinned jar; the blow is Java's default damage for a 20-block fall, since the server deals mobs no fall damage of its own; issue #3147"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees a player from a different distance than Java's 16 blocks. Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "fall-damage-sensor:minecraft:skeleton_horse": {
+        "goal-avoid-mob-type:minecraft:panda": {
             "kind": "defect",
-            "reason": "A fall blow lands on an entity as Java's calculateFallDamage would for the same fall: nothing for a type in fall_damage_immune, its safe fall distance and multiplier, and what a goat or a frog takes off. Observed: a 20-block fall's blow takes 17 health off it, where Java's fall takes 7.",
-            "reference": "Java LivingEntity.calculateFallDamage (entity type tag fall_damage_immune, safe_fall_distance and fall_damage_multiplier attributes) and its overrides in Goat and Frog, read from the pinned jar; the blow is Java's default damage for a 20-block fall, since the server deals mobs no fall damage of its own; issue #3147"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees from allay, armadillo, armor_stand, axolotl, bat, bee, camel, camel_husk, cat, chicken, cod, copper_golem, cow, dolphin, donkey, ender_dragon, fox, frog, ghast, glow_squid, goat, happy_ghast, hoglin, horse, iron_golem, llama, magma_cube, mooshroom, mule, nautilus, ocelot, parrot, phantom, pig, polar_bear, pufferfish, rabbit, salmon, sheep, shulker, skeleton_horse, slime, sniffer, snow_golem, squid, strider, sulfur_cube, tadpole, trader_llama, tropical_fish, turtle, villager, wandering_trader, wolf, zombie_horse, zombie_nautilus, which Java's does not; it flees a player from a different distance than Java's 8 blocks; fleeing a close player walks at 1.5 times its speed (0.225 blocks a tick), where Java's goal uses 2 (0.3); it flees a blaze from a different distance than Java's 4 blocks; fleeing a close blaze walks at 1.5 times its speed (0.225 blocks a tick), where Java's goal uses 2 (0.3). Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "fall-damage-sensor:minecraft:trader_llama": {
+        "goal-avoid-mob-type:minecraft:phantom": {
             "kind": "defect",
-            "reason": "A fall blow lands on an entity as Java's calculateFallDamage would for the same fall: nothing for a type in fall_damage_immune, its safe fall distance and multiplier, and what a goat or a frog takes off. Observed: a 20-block fall's blow takes 17 health off it, where Java's fall takes 7.",
-            "reference": "Java LivingEntity.calculateFallDamage (entity type tag fall_damage_immune, safe_fall_distance and fall_damage_multiplier attributes) and its overrides in Goat and Frog, read from the pinned jar; the blow is Java's default damage for a 20-block fall, since the server deals mobs no fall damage of its own; issue #3147"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: Java's minecraft:phantom registers no AvoidEntityGoal, but the server runs minecraft:behavior.avoid_mob_type. Tracked in #3130.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "freeze-immunity:minecraft:creaking": {
+        "goal-avoid-mob-type:minecraft:pufferfish": {
             "kind": "defect",
-            "reason": "A freezing blow does nothing to a type in Java's freeze_immune_entity_types tag, or to a skeleton, which Skeleton.canFreeze refuses, and hurts every other living type. Observed: a freezing blow does nothing to it, where Java freezes it.",
-            "reference": "Java Entity.canFreeze (entity type tag freeze_immune_entity_types), Skeleton.canFreeze and LivingEntity.isInvulnerableTo, read from the pinned jar; issue #3150"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees from axolotl, which Java's does not; it flees a player from a different distance than Java's 8 blocks; fleeing a close player walks at 2 times its speed (0.26 blocks a tick), where Java's goal uses 1.4 (0.98). Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "projectile-gravity:minecraft:ender_pearl": {
+        "goal-avoid-mob-type:minecraft:rabbit": {
             "kind": "defect",
-            "reason": "A projectile falls by Java's gravity for its type each tick: 0.05 for an arrow or a trident, 0.03 for a thrown item, none for a fireball. Observed: it falls 0.0250 in its first tick, where Java's gravity is 0.03.",
-            "reference": "Java getDefaultGravity in Entity (0), ThrowableProjectile (0.03), AbstractArrow (0.05), AbstractThrownPotion (0.05), ThrownExperienceBottle (0.07), LlamaSpit (0.06), FishingHook (0.03) and ShulkerBullet (0.04, off through setNoGravity), read from the pinned jar; issue #3122"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees from ghast, magma_cube, phantom, shulker, slime, zombie_nautilus, which Java's does not; fleeing a close player walks at 1.8 times its speed (0.54 blocks a tick), where Java's goal uses 2.2 (0.66); it flees a wolf from a different distance than Java's 10 blocks; fleeing a close wolf walks at 1.8 times its speed (0.54 blocks a tick), where Java's goal uses 2.2 (0.66); fleeing a wolf 7.5 blocks off never walks, where Java's goal walks at 2.2 times its speed; fleeing a close blaze walks at 1.5 times its speed (0.45 blocks a tick), where Java's goal uses 2.2 (0.66). Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "projectile-gravity:minecraft:experience_bottle": {
+        "goal-avoid-mob-type:minecraft:salmon": {
             "kind": "defect",
-            "reason": "A projectile falls by Java's gravity for its type each tick: 0.05 for an arrow or a trident, 0.03 for a thrown item, none for a fireball. Observed: it falls 0.0495 in its first tick, where Java's gravity is 0.07.",
-            "reference": "Java getDefaultGravity in Entity (0), ThrowableProjectile (0.03), AbstractArrow (0.05), AbstractThrownPotion (0.05), ThrownExperienceBottle (0.07), LlamaSpit (0.06), FishingHook (0.03) and ShulkerBullet (0.04, off through setNoGravity), read from the pinned jar; issue #3122"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees from axolotl, which Java's does not; it flees a player from a different distance than Java's 8 blocks; fleeing a close player walks at 2 times its speed (0.24 blocks a tick), where Java's goal uses 1.4 (0.98). Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "projectile-gravity:minecraft:shulker_bullet": {
+        "goal-avoid-mob-type:minecraft:tropical_fish": {
             "kind": "defect",
-            "reason": "A projectile falls by Java's gravity for its type each tick: 0.05 for an arrow or a trident, 0.03 for a thrown item, none for a fireball. Observed: it falls 0.0495 in its first tick, where Java's gravity is 0.04.",
-            "reference": "Java getDefaultGravity in Entity (0), ThrowableProjectile (0.03), AbstractArrow (0.05), AbstractThrownPotion (0.05), ThrownExperienceBottle (0.07), LlamaSpit (0.06), FishingHook (0.03) and ShulkerBullet (0.04, off through setNoGravity), read from the pinned jar; issue #3122"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees from axolotl, which Java's does not; it flees a player from a different distance than Java's 8 blocks; fleeing a close player walks at 2 times its speed (0.24 blocks a tick), where Java's goal uses 1.4 (0.98). Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "projectile-gravity:minecraft:trident": {
+        "goal-avoid-mob-type:minecraft:wandering_trader": {
             "kind": "defect",
-            "reason": "A projectile falls by Java's gravity for its type each tick: 0.05 for an arrow or a trident, 0.03 for a thrown item, none for a fireball. Observed: it falls 0.0990 in its first tick, where Java's gravity is 0.05.",
-            "reference": "Java getDefaultGravity in Entity (0), ThrowableProjectile (0.03), AbstractArrow (0.05), AbstractThrownPotion (0.05), ThrownExperienceBottle (0.07), LlamaSpit (0.06), FishingHook (0.03) and ShulkerBullet (0.04, off through setNoGravity), read from the pinned jar; issue #3122"
+            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: it flees a drowned from a different distance than Java's 8 blocks; fleeing a close drowned walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35); it flees a evoker from a different distance than Java's 12 blocks; fleeing a close evoker walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35); fleeing a evoker 7.5 blocks off walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35); it flees a vindicator from a different distance than Java's 8 blocks; fleeing a close vindicator walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35); it flees a vex from a different distance than Java's 8 blocks; fleeing a close vex walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35); it flees a pillager from a different distance than Java's 15 blocks; fleeing a close pillager walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35); fleeing a pillager 7.5 blocks off walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35); it flees a zoglin from a different distance than Java's 10 blocks; fleeing a close zoglin walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35); fleeing a zoglin 7.5 blocks off walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35). Tracked in #3128.",
+            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
         },
-        "runs-out-of-air:minecraft:bee": {
+        "goal-breed:minecraft:camel": {
             "kind": "defect",
-            "reason": "An entity out of air in a medium it cannot breathe takes Java's drowning blow once its air reaches -20 and every 20 ticks after, and regains air at Java's rate in a medium it breathes; its lungs hold Java's air supply. Observed: its air lasts 0 ticks under water, where Java's lasts 300.",
-            "reference": "Java LivingEntity.baseTick (decreaseAirSupply, shouldTakeDrowningDamage at -20, hurtServer drown 2), Entity.getMaxAirSupply and its overrides, and handleAirSupply in WaterAnimal, AgeableWaterCreature, Axolotl and Nautilus, read from the pinned jar; issue #3149"
+            "reason": "An animal in love walks to a partner within 8 blocks at its BreedGoal speed. Observed: Java's minecraft:camel registers no BreedGoal, but the server runs minecraft:behavior.breed. Tracked in #3130.",
+            "reference": "Java BreedGoal.canUse and tick, and each mob's speed read from the pinned jar"
         },
-        "runs-out-of-air:minecraft:tadpole": {
+        "goal-breed:minecraft:cat": {
             "kind": "defect",
-            "reason": "An entity out of air in a medium it cannot breathe takes Java's drowning blow once its air reaches -20 and every 20 ticks after, and regains air at Java's rate in a medium it breathes; its lungs hold Java's air supply. Observed: its air lasts 160 ticks out of water, where Java's lasts 300.",
-            "reference": "Java LivingEntity.baseTick (decreaseAirSupply, shouldTakeDrowningDamage at -20, hurtServer drown 2), Entity.getMaxAirSupply and its overrides, and handleAirSupply in WaterAnimal, AgeableWaterCreature, Axolotl and Nautilus, read from the pinned jar; issue #3149"
+            "reason": "An animal in love walks to a partner within 8 blocks at its BreedGoal speed. Observed: courting, it walks at 1 times its speed (0.3 blocks a tick), where Java's goal uses 0.8 (0.24). Tracked in #3128.",
+            "reference": "Java BreedGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-breed:minecraft:ocelot": {
+            "kind": "defect",
+            "reason": "An animal in love walks to a partner within 8 blocks at its BreedGoal speed. Observed: courting, it walks at 1 times its speed (0.3 blocks a tick), where Java's goal uses 0.8 (0.24). Tracked in #3128.",
+            "reference": "Java BreedGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-find-mount:minecraft:drowned": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn Observed: Java's drowned has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn, but the server runs minecraft:behavior.find_mount. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-find-mount:minecraft:husk": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn Observed: Java's husk has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn, but the server runs minecraft:behavior.find_mount. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-find-mount:minecraft:parrot": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn Observed: Java's parrot has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn, but the server runs minecraft:behavior.find_mount. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-find-mount:minecraft:zombie": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn Observed: Java's zombie has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn, but the server runs minecraft:behavior.find_mount. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-find-mount:minecraft:zombie_villager": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn Observed: Java's zombie_villager has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn, but the server runs minecraft:behavior.find_mount. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-find-mount:minecraft:zombified_piglin": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn Observed: Java's zombified_piglin has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn, but the server runs minecraft:behavior.find_mount. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-flee-sun:minecraft:drowned": {
+            "kind": "defect",
+            "reason": "A burning mob under open sky with no target and nothing on its head walks to shade at its FleeSunGoal speed. Observed: Java's minecraft:drowned registers no FleeSunGoal, but the server runs minecraft:behavior.flee_sun. Tracked in #3130.",
+            "reference": "Java FleeSunGoal.canUse, and each mob's speed read from the pinned jar"
+        },
+        "goal-flee-sun:minecraft:zombie_villager": {
+            "kind": "defect",
+            "reason": "A burning mob under open sky with no target and nothing on its head walks to shade at its FleeSunGoal speed. Observed: Java's minecraft:zombie_villager registers no FleeSunGoal, but the server runs minecraft:behavior.flee_sun. Tracked in #3130.",
+            "reference": "Java FleeSunGoal.canUse, and each mob's speed read from the pinned jar"
+        },
+        "goal-float:minecraft:bat": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: Java's minecraft:bat registers no FloatGoal, but the server runs minecraft:behavior.float. Tracked in #3130.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-float:minecraft:blaze": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: Java's minecraft:blaze registers no FloatGoal, but the server runs minecraft:behavior.float. Tracked in #3130.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-float:minecraft:camel": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: in water it jumps on draws below 0.8 and above it too, where Java jumps on a 0.8 chance. Tracked in #3128.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-float:minecraft:camel_husk": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: in water it jumps on draws below 0.8 and above it too, where Java jumps on a 0.8 chance. Tracked in #3128.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-float:minecraft:donkey": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: in water it jumps on draws not even below 0.8 and not above it, where Java jumps on a 0.8 chance. Tracked in #3130.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-float:minecraft:ghast": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: Java's minecraft:ghast registers no FloatGoal, but the server runs minecraft:behavior.float. Tracked in #3130.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-float:minecraft:horse": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: in water it jumps on draws not even below 0.8 and not above it, where Java jumps on a 0.8 chance. Tracked in #3130.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-float:minecraft:mule": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: in water it jumps on draws not even below 0.8 and not above it, where Java jumps on a 0.8 chance. Tracked in #3130.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-float:minecraft:wither": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: Java's minecraft:wither registers no FloatGoal, but the server runs minecraft:behavior.float. Tracked in #3130.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-float:minecraft:zombie_horse": {
+            "kind": "defect",
+            "reason": "A mob in deep water jumps on a 0.8 chance every tick. Observed: in water it jumps on draws not even below 0.8 and not above it, where Java jumps on a 0.8 chance. Tracked in #3130.",
+            "reference": "Java FloatGoal.canUse and tick, read from the pinned jar"
+        },
+        "goal-follow-owner:minecraft:cat": {
+            "kind": "defect",
+            "reason": "A tamed mob starts following its owner once the owner is startDistance blocks away and stops within stopDistance, at its FollowOwnerGoal speed. Observed: it stops following at a different distance than Java's 5 blocks. Tracked in #3128.",
+            "reference": "Java FollowOwnerGoal.canUse and canContinueToUse, and each mob's distances and speed read from the pinned jar"
+        },
+        "goal-follow-owner:minecraft:ocelot": {
+            "kind": "defect",
+            "reason": "A tamed mob starts following its owner once the owner is startDistance blocks away and stops within stopDistance, at its FollowOwnerGoal speed. Observed: Java's minecraft:ocelot registers no FollowOwnerGoal, but the server runs minecraft:behavior.follow_owner. Tracked in #3130.",
+            "reference": "Java FollowOwnerGoal.canUse and canContinueToUse, and each mob's distances and speed read from the pinned jar"
+        },
+        "goal-follow-parent:minecraft:bee": {
+            "kind": "defect",
+            "reason": "A baby walks to an adult of its type that is 3 or more blocks away, at its FollowParentGoal speed. Observed: following its parent, it walks at 1.1 times its speed (0.33 blocks a tick), where Java's goal uses 1.25 (0.375). Tracked in #3128.",
+            "reference": "Java FollowParentGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-follow-parent:minecraft:camel": {
+            "kind": "defect",
+            "reason": "A baby walks to an adult of its type that is 3 or more blocks away, at its FollowParentGoal speed. Observed: Java's minecraft:camel registers no FollowParentGoal, but the server runs minecraft:behavior.follow_parent. Tracked in #3130.",
+            "reference": "Java FollowParentGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-follow-parent:minecraft:cow": {
+            "kind": "defect",
+            "reason": "A baby walks to an adult of its type that is 3 or more blocks away, at its FollowParentGoal speed. Observed: following its parent, it walks at 1.1 times its speed (0.275 blocks a tick), where Java's goal uses 1.25 (0.25). Tracked in #3128.",
+            "reference": "Java FollowParentGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-follow-parent:minecraft:dolphin": {
+            "kind": "defect",
+            "reason": "A baby walks to an adult of its type that is 3 or more blocks away, at its FollowParentGoal speed. Observed: Java's minecraft:dolphin registers no FollowParentGoal, but the server runs minecraft:behavior.follow_parent. Tracked in #3130.",
+            "reference": "Java FollowParentGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-follow-parent:minecraft:fox": {
+            "kind": "defect",
+            "reason": "A baby walks to an adult of its type that is 3 or more blocks away, at its FollowParentGoal speed. Observed: following its parent, it walks at 1.1 times its speed (0.33 blocks a tick), where Java's goal uses 1.25 (0.375). Tracked in #3128.",
+            "reference": "Java FollowParentGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-follow-parent:minecraft:mooshroom": {
+            "kind": "defect",
+            "reason": "A baby walks to an adult of its type that is 3 or more blocks away, at its FollowParentGoal speed. Observed: following its parent, it walks at 1.1 times its speed (0.275 blocks a tick), where Java's goal uses 1.25 (0.25). Tracked in #3128.",
+            "reference": "Java FollowParentGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-follow-parent:minecraft:panda": {
+            "kind": "defect",
+            "reason": "A baby walks to an adult of its type that is 3 or more blocks away, at its FollowParentGoal speed. Observed: following its parent, it walks at 1.1 times its speed (0.165 blocks a tick), where Java's goal uses 1.25 (0.1875). Tracked in #3128.",
+            "reference": "Java FollowParentGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-follow-parent:minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A baby walks to an adult of its type that is 3 or more blocks away, at its FollowParentGoal speed. Observed: Java's minecraft:rabbit registers no FollowParentGoal, but the server runs minecraft:behavior.follow_parent. Tracked in #3130.",
+            "reference": "Java FollowParentGoal.canUse and tick, and each mob's speed read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:bee": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:blaze": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:bogged": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at breeze, which Java's does. Tracked in #3128.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:cave_spider": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at breeze, which Java's does. Tracked in #3128.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:dolphin": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it strikes back at elder_guardian, guardian, which Java's ignores; it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3128, #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:drowned": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it strikes back at drowned, which Java's ignores; it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3128, #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:evoker": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it strikes back at ravager, witch, which Java's ignores; it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3128, #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:ghast": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: Java's minecraft:ghast registers no HurtByTargetGoal, but the server runs minecraft:behavior.hurt_by_target. Tracked in #3130.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:husk": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at breeze, which Java's does; it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3128, #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:iron_golem": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at creeper, which Java's does; it does not strike back at creeper, player, which Java's does. Tracked in #3128.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:panda": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:parched": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at breeze, which Java's does. Tracked in #3128.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:pillager": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it strikes back at ravager, witch, which Java's ignores; it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3128, #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:ravager": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it strikes back at ravager, witch, which Java's ignores; it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3128, #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:shulker": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:silverfish": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at breeze, which Java's does. Tracked in #3128.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:spider": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at breeze, which Java's does. Tracked in #3128.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:stray": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at breeze, which Java's does. Tracked in #3128.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:trader_llama": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at trader_llama, which Java's does. Tracked in #3128.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:turtle": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: Java's minecraft:turtle registers no HurtByTargetGoal, but the server runs minecraft:behavior.hurt_by_target. Tracked in #3130.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:vex": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it strikes back at evoker, pillager, ravager, vindicator, witch, which Java's ignores; it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3128, #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:vindicator": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it strikes back at ravager, witch, which Java's ignores; it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3128, #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:witch": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it strikes back at evoker, pillager, ravager, vindicator, witch, which Java's ignores. Tracked in #3128.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it does not strike back at breeze, which Java's does; it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3128, #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:zombie_villager": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-hurt-by-target:minecraft:zombified_piglin": {
+            "kind": "defect",
+            "reason": "A mob that is hurt targets its attacker unless the attacker is one of the classes it ignores, and with setAlertOthers it calls nearby mobs of its type onto the attacker. Observed: it never calls nearby mobs of its type onto the attacker, which Java does. Tracked in #3135.",
+            "reference": "Java HurtByTargetGoal.canUse and alertOthers, and each mob's ignore and alert classes read from the pinned jar"
+        },
+        "goal-leap-at-target:minecraft:cat": {
+            "kind": "defect",
+            "reason": "A mob 2 to 4 blocks from its target leaps on one selector tick in reducedTickDelay(5), with its LeapAtTargetGoal yd as the upward push. Observed: it leaps 0.4 up, where Java's leaps 0.3. Tracked in #3128.",
+            "reference": "Java LeapAtTargetGoal.canUse and start, and each mob's yd read from the pinned jar"
+        },
+        "goal-leap-at-target:minecraft:ocelot": {
+            "kind": "defect",
+            "reason": "A mob 2 to 4 blocks from its target leaps on one selector tick in reducedTickDelay(5), with its LeapAtTargetGoal yd as the upward push. Observed: it leaps 0.4 up, where Java's leaps 0.3. Tracked in #3128.",
+            "reference": "Java LeapAtTargetGoal.canUse and start, and each mob's yd read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:camel": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: Java's minecraft:camel registers no LookAtPlayerGoal, but the server runs minecraft:behavior.look_at_player. Tracked in #3130.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:camel_husk": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: Java's minecraft:camel_husk registers no LookAtPlayerGoal, but the server runs minecraft:behavior.look_at_player. Tracked in #3130.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:cat": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 8 blocks, where Java's within 10. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:cave_spider": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:creeper": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:drowned": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:elder_guardian": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 12 blocks, where Java's within 8; a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:enderman": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: a look starts on a 1 chance, where Java's starts on 0.02; a look lasts 2000 to 2000 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:evoker": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: a look lasts 2000 to 2000 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:fox": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 24. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:guardian": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 12 blocks, where Java's within 8; a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:husk": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:iron_golem": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:ocelot": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 8 blocks, where Java's within 10. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:parrot": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:pillager": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 8 blocks, where Java's within 15; a look starts on a 0.02 chance, where Java's starts on 1; a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 8 blocks, where Java's within 10. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:ravager": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: a look starts on a 1 chance, where Java's starts on 0.02; a look lasts 2000 to 2000 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:shulker": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8; a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:spider": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:strider": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:turtle": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:vex": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 3; a look starts on a 0.02 chance, where Java's starts on 1; a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:vindicator": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 8 blocks, where Java's within 3; a look starts on a 0.02 chance, where Java's starts on 1; a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:wandering_trader": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 8 blocks, where Java's within 3; a look starts on a 0.02 chance, where Java's starts on 1; a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:witch": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 16 blocks, where Java's within 8; a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:wither": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:wither_skeleton": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: a look lasts 20 to 40 game ticks, where Java's lasts 40 to 79. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:zombie_villager": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-look-at-player:minecraft:zombified_piglin": {
+            "kind": "defect",
+            "reason": "A mob looks at a player within its LookAtPlayerGoal distance, starting on its probability per selector tick and holding the look for 40 + nextInt(40) ticks. Observed: it looks at players within 6 blocks, where Java's within 8. Tracked in #3128.",
+            "reference": "Java LookAtPlayerGoal (canUse, start's adjustedTickDelay(40 + nextInt(40))) and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-melee-box-attack:minecraft:blaze": {
+            "kind": "defect",
+            "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: Java's minecraft:blaze registers no MeleeAttackGoal, but the server runs minecraft:behavior.melee_box_attack. Tracked in #3130.",
+            "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
+        },
+        "goal-melee-box-attack:minecraft:dolphin": {
+            "kind": "defect",
+            "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: its chase walks at 1 times its speed (0.1 blocks a tick), where Java's goal uses 1.2 (1.44). Tracked in #3128.",
+            "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
+        },
+        "goal-melee-box-attack:minecraft:fox": {
+            "kind": "defect",
+            "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: its chase walks at 1 times its speed (0.3 blocks a tick), where Java's goal uses 1.2 (0.36). Tracked in #3128.",
+            "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
+        },
+        "goal-melee-box-attack:minecraft:panda": {
+            "kind": "defect",
+            "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: its chase walks at 1 times its speed (0.15 blocks a tick), where Java's goal uses 1.2 (0.18). Tracked in #3128.",
+            "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
+        },
+        "goal-melee-box-attack:minecraft:pillager": {
+            "kind": "defect",
+            "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: Java's minecraft:pillager registers no MeleeAttackGoal, but the server runs minecraft:behavior.melee_box_attack. Tracked in #3130.",
+            "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
+        },
+        "goal-melee-box-attack:minecraft:zombified_piglin": {
+            "kind": "defect",
+            "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: its chase walks at 1.5 times its speed (0.345 blocks a tick), where Java's goal uses 1 (0.23). Tracked in #3128.",
+            "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
+        },
+        "goal-mount-pathing:minecraft:camel_husk": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's camel_husk has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:cat": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's cat has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:cave_spider": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's cave_spider has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:chicken": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's chicken has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:cow": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's cow has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:donkey": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's donkey has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:horse": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's horse has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:husk": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's husk has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:llama": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's llama has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:mooshroom": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's mooshroom has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:mule": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's mule has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:ocelot": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's ocelot has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:panda": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's panda has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:pig": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's pig has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:ravager": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's ravager has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:sheep": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's sheep has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:skeleton_horse": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's skeleton_horse has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:spider": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's spider has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:trader_llama": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's trader_llama has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's wolf has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:zombie": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's zombie has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:zombie_horse": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's zombie_horse has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:zombie_villager": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's zombie_villager has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-mount-pathing:minecraft:zombified_piglin": {
+            "kind": "defect",
+            "reason": "Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger Observed: Java's zombified_piglin has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger, but the server runs minecraft:behavior.mount_pathing. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-move-to-village:minecraft:evoker": {
+            "kind": "defect",
+            "reason": "A raider walks toward its raid's center at speed 1.0. Observed: heading for the village, it walks at 0.7 times its speed (0.35 blocks a tick), where Java's goal uses 1 (0.5). Tracked in #3128.",
+            "reference": "Java PathfindToRaidGoal.tick, which calls PathNavigation.moveTo with a speed of 1.0, read from the pinned jar"
+        },
+        "goal-move-to-village:minecraft:witch": {
+            "kind": "defect",
+            "reason": "A raider walks toward its raid's center at speed 1.0. Observed: heading for the village, it walks at 1.2 times its speed (0.3 blocks a tick), where Java's goal uses 1 (0.25). Tracked in #3128.",
+            "reference": "Java PathfindToRaidGoal.tick, which calls PathNavigation.moveTo with a speed of 1.0, read from the pinned jar"
+        },
+        "goal-move-to-water:minecraft:dolphin": {
+            "kind": "defect",
+            "reason": "A mob on land looks for water within its goal's search range and walks there. Observed: it looks for water 15 blocks out, where Java's looks 1. Tracked in #3128.",
+            "reference": "Java TryFindWaterGoal, TryFindLiquidGoal and Turtle.TurtleGoToWaterGoal, read from the pinned jar"
+        },
+        "goal-move-to-water:minecraft:turtle": {
+            "kind": "defect",
+            "reason": "A mob on land looks for water within its goal's search range and walks there. Observed: it looks for water 16 blocks out, where Java's looks 24; heading for water, it walks at 1 times its speed (0.1 blocks a tick), where Java's goal uses 2 (0.5); it looks for water 15 blocks out, where Java's looks 24. Tracked in #3128.",
+            "reference": "Java TryFindWaterGoal, TryFindLiquidGoal and Turtle.TurtleGoToWaterGoal, read from the pinned jar"
+        },
+        "goal-move-towards-home-restriction:minecraft:bee": {
+            "kind": "defect",
+            "reason": "A mob outside its home restriction walks back toward it at its MoveTowardsRestrictionGoal speed. Observed: Java's minecraft:bee registers no MoveTowardsRestrictionGoal, but the server runs minecraft:behavior.move_towards_home_restriction. Tracked in #3130.",
+            "reference": "Java MoveTowardsRestrictionGoal.canUse, and each mob's speed read from the pinned jar"
+        },
+        "goal-move-towards-home-restriction:minecraft:wandering_trader": {
+            "kind": "defect",
+            "reason": "A mob outside its home restriction walks back toward it at its MoveTowardsRestrictionGoal speed. Observed: heading home, it walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.35 (0.245). Tracked in #3128.",
+            "reference": "Java MoveTowardsRestrictionGoal.canUse, and each mob's speed read from the pinned jar"
+        },
+        "goal-nearest-attackable-target:minecraft:cave_spider": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets snow_golem, which Java's never targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:drowned": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it never targets axolotl, iron_golem, villager, wandering_trader, which Java's targets; it searches 20 blocks out, where Java's follow range is 35. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:endermite": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets enderman, which Java's never targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:evoker": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it never targets villager, which Java's targets; it targets snow_golem, which Java's never targets; it searches 20 blocks out, where Java's follow range is 12. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:ghast": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it searches 28 blocks out, where Java's follow range is 100. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:husk": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets snow_golem, which Java's never targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:llama": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it scans for a target on one selector tick in 5, where Java's scans on one in 8. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:phantom": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: Java's minecraft:phantom registers no NearestAttackableTargetGoal, but the server runs minecraft:behavior.nearest_attackable_target. Tracked in #3130.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:pillager": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it never targets villager, which Java's targets; it searches 16 blocks out, where Java's follow range is 32. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:polar_bear": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it searches 16 blocks out, where Java's follow range is 20; it scans for a target on one selector tick in 5 or on one selector tick in 5, where Java's scans on one in 10. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:ravager": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it searches 16 blocks out, where Java's follow range is 32. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:silverfish": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets iron_golem, snow_golem, which Java's never targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:slime": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets snow_golem, which Java's never targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:spider": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets snow_golem, which Java's never targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:trader_llama": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it never targets evoker, pillager, vindicator, which Java's targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:vex": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets iron_golem, wandering_trader, which Java's never targets; it searches 70 blocks out, where Java's follow range is 16. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:wither": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it searches 70 blocks out, where Java's follow range is 40; it scans for a target on one selector tick in 5, where Java's scans on one in 0. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:wither_skeleton": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it never targets piglin, piglin_brute, which Java's targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets wither, which Java's never targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets snow_golem, which Java's never targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-nearest-attackable-target:minecraft:zombie_villager": {
+            "kind": "defect",
+            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: it targets snow_golem, which Java's never targets. Tracked in #3128.",
+            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
+        },
+        "goal-panic:minecraft:bee": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: Java's minecraft:bee registers no PanicGoal, but the server runs minecraft:behavior.panic. Tracked in #3130.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:camel": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic walks at 4 times its speed (0.36 blocks a tick), where Java's goal uses 1.2 (0.108). Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:cat": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic walks at 1.25 times its speed (0.375 blocks a tick), where Java's goal uses 1.5 (0.45). Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:chicken": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic walks at 1.5 times its speed (0.375 blocks a tick), where Java's goal uses 1.4 (0.35). Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:cow": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic walks at 1.25 times its speed (0.3125 blocks a tick), where Java's goal uses 2 (0.4). Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:dolphin": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: Java's minecraft:dolphin registers no PanicGoal, but the server runs minecraft:behavior.panic. Tracked in #3130.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:fox": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic walks at 1.25 times its speed (0.375 blocks a tick), where Java's goal uses 2.2 (0.66). Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:happy_ghast": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: Java's minecraft:happy_ghast registers no PanicGoal, but the server runs minecraft:behavior.panic. Tracked in #3130.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:mooshroom": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic walks at 1.25 times its speed (0.3125 blocks a tick), where Java's goal uses 2 (0.4). Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:ocelot": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: Java's minecraft:ocelot registers no PanicGoal, but the server runs minecraft:behavior.panic. Tracked in #3130.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:panda": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic walks at 1.25 times its speed (0.1875 blocks a tick), where Java's goal uses 2 (0.3); its panic walks at 2.5 times its speed (0.175 blocks a tick), where Java's goal uses 2 (0.3); its panic never panics when a mob hits it, where Java's goal walks at 2 times its speed. Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:polar_bear": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic never panics when a mob hits it, where Java's goal walks at 2 times its speed. Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:strider": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic walks at 1.1 times its speed (0.176 blocks a tick), where Java's goal uses 1.65 (0.2887). Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:wandering_trader": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.5 (0.35). Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-panic:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "A mob panics at its PanicGoal speed when a damage type in its panic tag hurts it, the default being Java's panic_causes tag, which a mob's hit is in and a fall is not. Observed: its panic never panics when a mob hits it, where Java's goal walks at 1.5 times its speed; its panic walks at 1.25 times its speed (0.375 blocks a tick), where Java's goal uses 1.5 (0.45). Tracked in #3128.",
+            "reference": "Java PanicGoal.shouldPanic and canUse, the damage_type tag panic_causes, and each mob's speed read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:bogged": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:drowned": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:husk": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:parched": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:pillager": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it does not pick up an item it stands on, which Java's does. Tracked in #3128.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:stray": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:sulfur_cube": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it does not pick up an item it stands on, which Java's does. Tracked in #3128.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:wither_skeleton": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:zombie_villager": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-pickup-items:minecraft:zombified_piglin": {
+            "kind": "defect",
+            "reason": "A Java mob picks up loot only when it can pick up loot, and then only what it touches, unless a goal of its own, such as the fox searching for items, walks it to an item. Observed: it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies. Tracked in #3130.",
+            "reference": "Java Mob.aiStep and pickUpItem, the setCanPickUpLoot calls in each mob class, and Fox.FoxSearchForItemsGoal and Dolphin.PlayWithItemsGoal, read from the pinned jar"
+        },
+        "goal-random-look-around:minecraft:camel": {
+            "kind": "defect",
+            "reason": "A mob glances in a random direction on a 0.02 chance per tick and holds it for 20 + nextInt(20) ticks. Observed: Java's minecraft:camel registers no RandomLookAroundGoal, but the server runs minecraft:behavior.random_look_around. Tracked in #3130.",
+            "reference": "Java RandomLookAroundGoal.canUse and start, read from the pinned jar"
+        },
+        "goal-random-look-around:minecraft:camel_husk": {
+            "kind": "defect",
+            "reason": "A mob glances in a random direction on a 0.02 chance per tick and holds it for 20 + nextInt(20) ticks. Observed: Java's minecraft:camel_husk registers no RandomLookAroundGoal, but the server runs minecraft:behavior.random_look_around. Tracked in #3130.",
+            "reference": "Java RandomLookAroundGoal.canUse and start, read from the pinned jar"
+        },
+        "goal-random-look-around:minecraft:fox": {
+            "kind": "defect",
+            "reason": "A mob glances in a random direction on a 0.02 chance per tick and holds it for 20 + nextInt(20) ticks. Observed: Java's minecraft:fox registers no RandomLookAroundGoal, but the server runs minecraft:behavior.random_look_around. Tracked in #3130.",
+            "reference": "Java RandomLookAroundGoal.canUse and start, read from the pinned jar"
+        },
+        "goal-random-look-around:minecraft:pillager": {
+            "kind": "defect",
+            "reason": "A mob glances in a random direction on a 0.02 chance per tick and holds it for 20 + nextInt(20) ticks. Observed: Java's minecraft:pillager registers no RandomLookAroundGoal, but the server runs minecraft:behavior.random_look_around. Tracked in #3130.",
+            "reference": "Java RandomLookAroundGoal.canUse and start, read from the pinned jar"
+        },
+        "goal-random-look-around:minecraft:wandering_trader": {
+            "kind": "defect",
+            "reason": "A mob glances in a random direction on a 0.02 chance per tick and holds it for 20 + nextInt(20) ticks. Observed: Java's minecraft:wandering_trader registers no RandomLookAroundGoal, but the server runs minecraft:behavior.random_look_around. Tracked in #3130.",
+            "reference": "Java RandomLookAroundGoal.canUse and start, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:camel": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: Java's minecraft:camel registers no RandomStrollGoal, but the server runs minecraft:behavior.random_stroll. Tracked in #3130.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:camel_husk": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: Java's minecraft:camel_husk registers no RandomStrollGoal, but the server runs minecraft:behavior.random_stroll. Tracked in #3130.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:fox": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: a stroll walks at 0.8 times its speed (0.24 blocks a tick), where Java's goal uses 1 (0.3). Tracked in #3128.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:iron_golem": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: a stroll starts on one selector tick in 60, where Java's starts on one in 5. Tracked in #3128.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:panda": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: a stroll walks at 0.8 times its speed (0.12 blocks a tick), where Java's goal uses 1 (0.15). Tracked in #3128.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:pillager": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: a stroll walks at 1 times its speed (0.35 blocks a tick), where Java's goal uses 0.6 (0.21). Tracked in #3128.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:ravager": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: a stroll walks at 1 times its speed (0.4 blocks a tick), where Java's goal uses 0.4 (0.12). Tracked in #3128.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:sheep": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: a stroll walks at 0.8 times its speed (0.2 blocks a tick), where Java's goal uses 1 (0.23). Tracked in #3128.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:strider": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: a stroll starts on one selector tick in 60, where Java's starts on one in 30; a stroll walks at 0.8 times its speed (0.128 blocks a tick), where Java's goal uses 1 (0.175). Tracked in #3128.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:vindicator": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: a stroll walks at 1 times its speed (0.35 blocks a tick), where Java's goal uses 0.6 (0.21). Tracked in #3128.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-stroll:minecraft:wandering_trader": {
+            "kind": "defect",
+            "reason": "A mob starts a random stroll on one selector tick in reducedTickDelay(interval), interval 120 unless the mob sets one, and walks at its goal speed modifier. Observed: a stroll walks at 0.6 times its speed (0.3 blocks a tick), where Java's goal uses 0.35 (0.245). Tracked in #3128.",
+            "reference": "Java RandomStrollGoal.canUse and each mob's registerGoals arguments, read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:cod": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: a swim starts on one selector tick in nothing, where Java's starts on one in 20. Tracked in #3128.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:dolphin": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: a swim starts on one selector tick in nothing, where Java's starts on one in 5. Tracked in #3128.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:elder_guardian": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:elder_guardian registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:guardian": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:guardian registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:pufferfish": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: a swim starts on one selector tick in nothing, where Java's starts on one in 20. Tracked in #3128.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:salmon": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: a swim starts on one selector tick in nothing, where Java's starts on one in 20. Tracked in #3128.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:tropical_fish": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: a swim starts on one selector tick in nothing, where Java's starts on one in 20. Tracked in #3128.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-random-swim:minecraft:turtle": {
+            "kind": "defect",
+            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:turtle registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
+            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:blaze": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:blaze registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:bogged": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 15 block attack radius; closing in, it never walks, where Java's goal walks at 1 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:drowned": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 10 block attack radius; closing in, it never walks, where Java's goal walks at 1 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:ghast": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:ghast registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:llama": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 20 block attack radius; closing in, it never walks, where Java's goal walks at 1.25 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:parched": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 15 block attack radius; closing in, it never walks, where Java's goal walks at 1 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:pillager": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 8 block attack radius; closing in, it never walks, where Java's goal walks at 1 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:shulker": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:shulker registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 15 block attack radius; closing in, it never walks, where Java's goal walks at 1 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:snow_golem": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 10 block attack radius; closing in, it never walks, where Java's goal walks at 1.25 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:stray": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 15 block attack radius; closing in, it never walks, where Java's goal walks at 1 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:trader_llama": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 20 block attack radius; closing in, it never walks, where Java's goal walks at 1.25 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-ranged-attack:minecraft:witch": {
+            "kind": "defect",
+            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: it closes in to a different range than Java's 10 block attack radius; closing in, it never walks, where Java's goal walks at 1 times its speed. Tracked in #3134, #3128.",
+            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
+        },
+        "goal-stay-while-sitting:minecraft:ocelot": {
+            "kind": "defect",
+            "reason": "A sitting tamed mob holds both the move and the jump flags, so nothing walks or jumps it. Observed: Java's minecraft:ocelot registers no SitWhenOrderedToGoal, but the server runs minecraft:behavior.stay_while_sitting. Tracked in #3130.",
+            "reference": "Java SitWhenOrderedToGoal, whose constructor sets the JUMP and MOVE flags, read from the pinned jar"
+        },
+        "goal-stomp-turtle-egg:minecraft:drowned": {
+            "kind": "defect",
+            "reason": "A zombie looks for turtle eggs within its RemoveBlockGoal search range (24 across, 3 up and down) and walks to them at the goal speed. Observed: it searches 10 across and 2 up for eggs, where Java's searches 24 and 3. Tracked in #3128.",
+            "reference": "Java Zombie.ZombieAttackTurtleEggGoal, a RemoveBlockGoal over MoveToBlockGoal, read from the pinned jar"
+        },
+        "goal-stomp-turtle-egg:minecraft:husk": {
+            "kind": "defect",
+            "reason": "A zombie looks for turtle eggs within its RemoveBlockGoal search range (24 across, 3 up and down) and walks to them at the goal speed. Observed: it searches 10 across and 2 up for eggs, where Java's searches 24 and 3. Tracked in #3128.",
+            "reference": "Java Zombie.ZombieAttackTurtleEggGoal, a RemoveBlockGoal over MoveToBlockGoal, read from the pinned jar"
+        },
+        "goal-stomp-turtle-egg:minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A zombie looks for turtle eggs within its RemoveBlockGoal search range (24 across, 3 up and down) and walks to them at the goal speed. Observed: it searches 10 across and 2 up for eggs, where Java's searches 24 and 3. Tracked in #3128.",
+            "reference": "Java Zombie.ZombieAttackTurtleEggGoal, a RemoveBlockGoal over MoveToBlockGoal, read from the pinned jar"
+        },
+        "goal-stomp-turtle-egg:minecraft:zombie_villager": {
+            "kind": "defect",
+            "reason": "A zombie looks for turtle eggs within its RemoveBlockGoal search range (24 across, 3 up and down) and walks to them at the goal speed. Observed: it searches 10 across and 2 up for eggs, where Java's searches 24 and 3. Tracked in #3128.",
+            "reference": "Java Zombie.ZombieAttackTurtleEggGoal, a RemoveBlockGoal over MoveToBlockGoal, read from the pinned jar"
+        },
+        "goal-stomp-turtle-egg:minecraft:zombified_piglin": {
+            "kind": "defect",
+            "reason": "A zombie looks for turtle eggs within its RemoveBlockGoal search range (24 across, 3 up and down) and walks to them at the goal speed. Observed: it searches 10 across and 2 up for eggs, where Java's searches 24 and 3. Tracked in #3128.",
+            "reference": "Java Zombie.ZombieAttackTurtleEggGoal, a RemoveBlockGoal over MoveToBlockGoal, read from the pinned jar"
+        },
+        "goal-swim-idle:minecraft:cod": {
+            "kind": "defect",
+            "reason": "Java has no idle goal for a fish: it idles between the swims its RandomSwimmingGoal starts Observed: Java's cod has no idle goal for a fish: it idles between the swims its RandomSwimmingGoal starts, but the server runs minecraft:behavior.swim_idle. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-swim-idle:minecraft:salmon": {
+            "kind": "defect",
+            "reason": "Java has no idle goal for a fish: it idles between the swims its RandomSwimmingGoal starts Observed: Java's salmon has no idle goal for a fish: it idles between the swims its RandomSwimmingGoal starts, but the server runs minecraft:behavior.swim_idle. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-swim-idle:minecraft:tropical_fish": {
+            "kind": "defect",
+            "reason": "Java has no idle goal for a fish: it idles between the swims its RandomSwimmingGoal starts Observed: Java's tropical_fish has no idle goal for a fish: it idles between the swims its RandomSwimmingGoal starts, but the server runs minecraft:behavior.swim_idle. Tracked in #3130.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-swim-wander:minecraft:cod": {
+            "kind": "defect",
+            "reason": "A fish starts a swim on one selector tick in reducedTickDelay(interval) of its swim goal and swims at its goal speed. Observed: a swim starts on a 1 chance per selector tick, where Java's starts on 0.05. Tracked in #3128.",
+            "reference": "Java AbstractFish.FishSwimGoal, a RandomSwimmingGoal with interval 40, read from the pinned jar"
+        },
+        "goal-swim-wander:minecraft:pufferfish": {
+            "kind": "defect",
+            "reason": "A fish starts a swim on one selector tick in reducedTickDelay(interval) of its swim goal and swims at its goal speed. Observed: a swim starts on a 0.1 chance per selector tick, where Java's starts on 0.05. Tracked in #3128.",
+            "reference": "Java AbstractFish.FishSwimGoal, a RandomSwimmingGoal with interval 40, read from the pinned jar"
+        },
+        "goal-swim-wander:minecraft:salmon": {
+            "kind": "defect",
+            "reason": "A fish starts a swim on one selector tick in reducedTickDelay(interval) of its swim goal and swims at its goal speed. Observed: a swim starts on a 1 chance per selector tick, where Java's starts on 0.05; a swim walks at 0.014 times its speed (0.0017 blocks a tick), where Java's goal uses 1 (0.7). Tracked in #3128.",
+            "reference": "Java AbstractFish.FishSwimGoal, a RandomSwimmingGoal with interval 40, read from the pinned jar"
+        },
+        "goal-swim-wander:minecraft:tropical_fish": {
+            "kind": "defect",
+            "reason": "A fish starts a swim on one selector tick in reducedTickDelay(interval) of its swim goal and swims at its goal speed. Observed: a swim starts on a 1 chance per selector tick, where Java's starts on 0.05. Tracked in #3128.",
+            "reference": "Java AbstractFish.FishSwimGoal, a RandomSwimmingGoal with interval 40, read from the pinned jar"
+        },
+        "goal-teleport-to-owner:minecraft:cat": {
+            "kind": "defect",
+            "reason": "A tamed mob that is following its owner teleports to the owner once it is 12 or more blocks away. Observed: it teleports not even at 13 blocks, where Java's teleports from 12. Tracked in #3128.",
+            "reference": "Java FollowOwnerGoal.tick and TamableAnimal.shouldTryTeleportToOwner (distanceToSqr >= 144), read from the pinned jar"
+        },
+        "goal-teleport-to-owner:minecraft:ocelot": {
+            "kind": "defect",
+            "reason": "A tamed mob that is following its owner teleports to the owner once it is 12 or more blocks away. Observed: Java's minecraft:ocelot registers no FollowOwnerGoal, but the server runs minecraft:behavior.teleport_to_owner. Tracked in #3130.",
+            "reference": "Java FollowOwnerGoal.tick and TamableAnimal.shouldTryTeleportToOwner (distanceToSqr >= 144), read from the pinned jar"
+        },
+        "goal-teleport-to-owner:minecraft:parrot": {
+            "kind": "defect",
+            "reason": "A tamed mob that is following its owner teleports to the owner once it is 12 or more blocks away. Observed: it teleports not even at 13 blocks, where Java's teleports from 12. Tracked in #3128.",
+            "reference": "Java FollowOwnerGoal.tick and TamableAnimal.shouldTryTeleportToOwner (distanceToSqr >= 144), read from the pinned jar"
+        },
+        "goal-teleport-to-owner:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "A tamed mob that is following its owner teleports to the owner once it is 12 or more blocks away. Observed: it teleports not even at 13 blocks, where Java's teleports from 12. Tracked in #3128.",
+            "reference": "Java FollowOwnerGoal.tick and TamableAnimal.shouldTryTeleportToOwner (distanceToSqr >= 144), read from the pinned jar"
+        },
+        "goal-tempt:minecraft:bee": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 8 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:camel": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: enchanted_golden_apple, golden_apple, golden_carrot do not tempt it, which tempt Java's; cactus tempt it, which do not tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it never walks, where Java's goal walks at 1.25 times its speed. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:camel_husk": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: enchanted_golden_apple, golden_apple, golden_carrot do not tempt it, which tempt Java's; rabbit_foot tempt it, which do not tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it never walks, where Java's goal walks at 1.25 times its speed. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:cat": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: cod do not tempt it, which tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it never walks, where Java's goal walks at 0.6 times its speed. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:chicken": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 16 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:cow": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 16 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:donkey": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: enchanted_golden_apple do not tempt it, which tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:fox": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: Java's minecraft:fox registers no TemptGoal, but the server runs minecraft:behavior.tempt. Tracked in #3130.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:happy_ghast": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: black_harness, blue_harness, brown_harness, cyan_harness, gray_harness, green_harness, light_blue_harness, light_gray_harness, lime_harness, magenta_harness, orange_harness, pink_harness, purple_harness, red_harness, white_harness, yellow_harness do not tempt it, which tempt Java's; tempted, it walks at 1.25 times its speed (0.375 blocks a tick), where Java's goal uses 1 (0.05). Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:horse": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: enchanted_golden_apple do not tempt it, which tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:llama": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: enchanted_golden_apple, golden_apple, golden_carrot do not tempt it, which tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it walks at 1.2 times its speed (0.3 blocks a tick), where Java's goal uses 1.25 (0.2187). Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:mooshroom": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 16 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:mule": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: enchanted_golden_apple do not tempt it, which tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:ocelot": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: cod do not tempt it, which tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it never walks, where Java's goal walks at 0.6 times its speed. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:panda": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it walks at 1.25 times its speed (0.1875 blocks a tick), where Java's goal uses 1 (0.15). Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:pig": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: carrot_on_a_stick do not tempt it, which tempt Java's; carrotOnAStick tempt it, which do not tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it never walks, where Java's goal walks at 1.2 times its speed. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:rabbit": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 16 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:sheep": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it walks at 1.25 times its speed (0.3125 blocks a tick), where Java's goal uses 1.1 (0.253). Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:strider": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it walks at 1.2 times its speed (0.192 blocks a tick), where Java's goal uses 1.4 (0.245). Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:sulfur_cube": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: acacia_log, acacia_planks, acacia_wood, amethyst_block, ancient_debris, andesite, bamboo_block, bamboo_mosaic, bamboo_planks, basalt, birch_log, birch_planks, birch_wood, black_concrete, black_concrete_powder, black_glazed_terracotta, black_terracotta, black_wool, blackstone, blue_concrete, blue_concrete_powder, blue_glazed_terracotta, blue_ice, blue_terracotta, blue_wool, bone_block, brain_coral_block, brick_block, brown_concrete, brown_concrete_powder, brown_glazed_terracotta, brown_mushroom_block, brown_terracotta, brown_wool, bubble_coral_block, calcite, carved_pumpkin, cherry_log, cherry_planks, cherry_wood, chiseled_cinnabar, chiseled_copper, chiseled_deepslate, chiseled_nether_bricks, chiseled_polished_blackstone, chiseled_quartz_block, chiseled_red_sandstone, chiseled_resin_bricks, chiseled_sandstone, chiseled_stone_bricks, chiseled_sulfur, chiseled_tuff, chiseled_tuff_bricks, cinnabar, cinnabar_bricks, clay, coal_block, coal_ore, coarse_dirt, cobbled_deepslate, cobblestone, copper_block, copper_bulb, copper_ore, cracked_deepslate_bricks, cracked_deepslate_tiles, cracked_nether_bricks, cracked_polished_blackstone_bricks, cracked_stone_bricks, crimson_hyphae, crimson_nylium, crimson_planks, crimson_stem, crying_obsidian, cut_copper, cut_red_sandstone, cut_sandstone, cyan_concrete, cyan_concrete_powder, cyan_glazed_terracotta, cyan_terracotta, cyan_wool, dark_oak_log, dark_oak_planks, dark_oak_wood, dark_prismarine, dead_brain_coral_block, dead_bubble_coral_block, dead_fire_coral_block, dead_horn_coral_block, dead_tube_coral_block, deepslate, deepslate_bricks, deepslate_coal_ore, deepslate_copper_ore, deepslate_diamond_ore, deepslate_emerald_ore, deepslate_gold_ore, deepslate_iron_ore, deepslate_lapis_ore, deepslate_redstone_ore, deepslate_tiles, diamond_block, diamond_ore, diorite, dirt, dirt_with_roots, dried_kelp_block, dripstone_block, emerald_block, emerald_ore, end_bricks, end_stone, exposed_chiseled_copper, exposed_copper, exposed_copper_bulb, exposed_cut_copper, fire_coral_block, gilded_blackstone, glowstone, gold_block, gold_ore, granite, grass_block, gray_concrete, gray_concrete_powder, gray_glazed_terracotta, gray_terracotta, gray_wool, green_concrete, green_concrete_powder, green_glazed_terracotta, green_terracotta, green_wool, hardened_clay, hay_block, honeycomb_block, horn_coral_block, iron_block, iron_ore, jungle_log, jungle_planks, jungle_wood, lapis_block, lapis_ore, light_blue_concrete, light_blue_concrete_powder, light_blue_glazed_terracotta, light_blue_terracotta, light_blue_wool, light_gray_concrete, light_gray_concrete_powder, light_gray_terracotta, light_gray_wool, lime_concrete, lime_concrete_powder, lime_glazed_terracotta, lime_terracotta, lime_wool, lit_pumpkin, magenta_concrete, magenta_concrete_powder, magenta_glazed_terracotta, magenta_terracotta, magenta_wool, magma, mangrove_log, mangrove_planks, mangrove_wood, melon_block, moss_block, mossy_cobblestone, mossy_stone_bricks, mud, mud_bricks, muddy_mangrove_roots, mushroom_stem, mycelium, nether_brick, nether_gold_ore, nether_wart_block, netherite_block, netherrack, oak_log, oak_planks, oak_wood, observer, obsidian, ochre_froglight, orange_concrete, orange_concrete_powder, orange_glazed_terracotta, orange_terracotta, orange_wool, oxidized_chiseled_copper, oxidized_copper, oxidized_copper_bulb, oxidized_cut_copper, packed_ice, packed_mud, pale_moss_block, pale_oak_log, pale_oak_planks, pale_oak_wood, pearlescent_froglight, pink_concrete, pink_concrete_powder, pink_glazed_terracotta, pink_terracotta, pink_wool, podzol, polished_andesite, polished_basalt, polished_blackstone, polished_blackstone_bricks, polished_cinnabar, polished_deepslate, polished_diorite, polished_granite, polished_sulfur, polished_tuff, poplar_log, poplar_planks, poplar_wood, prismarine, prismarine_bricks, pumpkin, purple_concrete, purple_concrete_powder, purple_glazed_terracotta, purple_terracotta, purple_wool, purpur_block, purpur_pillar, quartz_block, quartz_bricks, quartz_ore, quartz_pillar, raw_copper_block, raw_gold_block, raw_iron_block, red_concrete, red_concrete_powder, red_glazed_terracotta, red_mushroom_block, red_nether_brick, red_sandstone, red_terracotta, red_wool, redstone_lamp, redstone_ore, resin_block, resin_bricks, sandstone, sea_lantern, shroomlight, silver_glazed_terracotta, smooth_basalt, smooth_quartz, smooth_red_sandstone, smooth_sandstone, smooth_stone, snow, soul_sand, soul_soil, sponge, spruce_log, spruce_planks, spruce_wood, stone, stone_bricks, stripped_acacia_log, stripped_acacia_wood, stripped_bamboo_block, stripped_birch_log, stripped_birch_wood, stripped_cherry_log, stripped_cherry_wood, stripped_crimson_hyphae, stripped_crimson_stem, stripped_dark_oak_log, stripped_dark_oak_wood, stripped_jungle_log, stripped_jungle_wood, stripped_mangrove_log, stripped_mangrove_wood, stripped_oak_log, stripped_oak_wood, stripped_pale_oak_log, stripped_pale_oak_wood, stripped_poplar_log, stripped_poplar_wood, stripped_spruce_log, stripped_spruce_wood, stripped_warped_hyphae, stripped_warped_stem, sulfur, sulfur_bricks, tnt, tube_coral_block, tuff, tuff_bricks, verdant_froglight, warped_hyphae, warped_nylium, warped_planks, warped_stem, warped_wart_block, waxed_chiseled_copper, waxed_copper, waxed_copper_bulb, waxed_cut_copper, waxed_exposed_chiseled_copper, waxed_exposed_copper, waxed_exposed_copper_bulb, waxed_exposed_cut_copper, waxed_oxidized_chiseled_copper, waxed_oxidized_copper, waxed_oxidized_copper_bulb, waxed_oxidized_cut_copper, waxed_weathered_chiseled_copper, waxed_weathered_copper, waxed_weathered_copper_bulb, waxed_weathered_cut_copper, weathered_chiseled_copper, weathered_copper, weathered_copper_bulb, weathered_cut_copper, wet_sponge, white_concrete, white_concrete_powder, white_glazed_terracotta, white_terracotta, white_wool, yellow_concrete, yellow_concrete_powder, yellow_glazed_terracotta, yellow_terracotta, yellow_wool do not tempt it, which tempt Java's; tempted, it never walks, where Java's goal walks at 1 times its speed. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:trader_llama": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: enchanted_golden_apple, golden_apple, golden_carrot do not tempt it, which tempt Java's; it notices a tempting player within 16 blocks, where Java's tempt range is 10; tempted, it never walks, where Java's goal walks at 1.25 times its speed. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:turtle": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 16 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-tempt:minecraft:zombie_horse": {
+            "kind": "defect",
+            "reason": "A mob follows a player within its tempt_range attribute who holds an item its TemptGoal accepts, at the goal's speed. Observed: it notices a tempting player within 16 blocks, where Java's tempt range is 10. Tracked in #3128.",
+            "reference": "Java TemptGoal.canUse and each mob's tempt item predicate, read from the pinned jar, with the tempt_range attribute from the Java attribute dump"
+        },
+        "goal-timer-flag-1:minecraft:bee": {
+            "kind": "defect",
+            "reason": "Java runs no timer goal for this mob; its timed states are counters in the mob class Observed: Java runs no timer goal for this mob; its timed states are counters in the mob class, but the server runs minecraft:behavior.timer_flag_1. Tracked in #3128.",
+            "reference": "The mob's registerGoals in the pinned jar, which registers no goal of this kind"
+        },
+        "goal-use-kinetic-weapon:minecraft:husk": {
+            "kind": "defect",
+            "reason": "A mob with a target charges it with its spear on foot or mounted, at its SpearUseGoal charging speed. Observed: it only charges while mounted, where Java charges on foot; charging, it walks at 4 times its speed (0.92 blocks a tick), where Java's goal uses 1 (0.23). Tracked in #3133, #3128.",
+            "reference": "Java SpearUseGoal.canUse and tick, and each mob's speeds read from the pinned jar"
+        },
+        "goal-use-kinetic-weapon:minecraft:zombie": {
+            "kind": "defect",
+            "reason": "A mob with a target charges it with its spear on foot or mounted, at its SpearUseGoal charging speed. Observed: it only charges while mounted, where Java charges on foot; charging, it walks at 1.4 times its speed (0.322 blocks a tick), where Java's goal uses 1 (0.23). Tracked in #3133, #3128.",
+            "reference": "Java SpearUseGoal.canUse and tick, and each mob's speeds read from the pinned jar"
+        },
+        "goal-use-kinetic-weapon:minecraft:zombie_villager": {
+            "kind": "defect",
+            "reason": "A mob with a target charges it with its spear on foot or mounted, at its SpearUseGoal charging speed. Observed: it only charges while mounted, where Java charges on foot. Tracked in #3133.",
+            "reference": "Java SpearUseGoal.canUse and tick, and each mob's speeds read from the pinned jar"
+        },
+        "goal-use-kinetic-weapon:minecraft:zombified_piglin": {
+            "kind": "defect",
+            "reason": "A mob with a target charges it with its spear on foot or mounted, at its SpearUseGoal charging speed. Observed: it only charges while mounted, where Java charges on foot; charging, it walks at 1.5 times its speed (0.345 blocks a tick), where Java's goal uses 1 (0.23). Tracked in #3133, #3128.",
+            "reference": "Java SpearUseGoal.canUse and tick, and each mob's speeds read from the pinned jar"
         },
         "spawns-in-biome:minecraft:badlands/minecraft:zombie_villager": {
             "kind": "intentional",
@@ -786,16 +2081,6 @@
             "kind": "intentional",
             "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
             "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
-        },
-        "struck-by-lightning:minecraft:axolotl": {
-            "kind": "defect",
-            "reason": "A lightning bolt beside a living entity runs Java's thunderHit: 5 lightning damage, or the conversion, variant change or death the type's override makes of it. Observed: when lightning strikes beside it, it dies, where in Java it takes 5.",
-            "reference": "Java LightningBolt.tick (hits entities within 3 blocks), Entity.thunderHit (lightningBolt 5) and its overrides in Pig, Villager, Creeper, MushroomCow, Turtle and CopperGolem, read from the pinned jar; issue #3148"
-        },
-        "struck-by-lightning:minecraft:creeper": {
-            "kind": "defect",
-            "reason": "A lightning bolt beside a living entity runs Java's thunderHit: 5 lightning damage, or the conversion, variant change or death the type's override makes of it. Observed: when lightning strikes beside it, it becomes powered, where in Java it takes 5 and becomes powered.",
-            "reference": "Java LightningBolt.tick (hits entities within 3 blocks), Entity.thunderHit (lightningBolt 5) and its overrides in Pig, Villager, Creeper, MushroomCow, Turtle and CopperGolem, read from the pinned jar; issue #3148"
         }
     },
     "gameplay.datapack": {

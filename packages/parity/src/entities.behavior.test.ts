@@ -9,6 +9,7 @@ import { mobGoalScenarios } from './entityScenarios/mobGoals.ts';
 import { engineScenarios } from './entityScenarios/engine.ts';
 import { physicsScenarios } from './entityScenarios/physics.ts';
 import { damageScenarios } from './entityScenarios/damage.ts';
+import { goalScenarios } from './entityScenarios/goals.ts';
 import { spawnScenarios } from './entityScenarios/spawning.ts';
 import { javaEntityIds } from './entityScenarios/subjects.ts';
 import { FAMILIES } from './families.ts';
@@ -26,7 +27,8 @@ const ENTITY_SCENARIO_GROUPS: readonly ScenarioGroup[] = [
     scenarioGroup(mobGoalScenarios),
     scenarioGroup(engineScenarios),
     scenarioGroup(physicsScenarios),
-    scenarioGroup(damageScenarios)
+    scenarioGroup(damageScenarios),
+    scenarioGroup(goalScenarios)
 ];
 
 describeFamily(
