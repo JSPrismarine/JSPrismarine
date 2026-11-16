@@ -149,6 +149,8 @@ import type { DeathKiller } from './deathLoot';
 import { JAVA_EXPERIENCE, deathExperience, experienceOrbs } from './deathExperience';
 import { brainMobFor } from './brainIdentifiers';
 import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
+import type { CopperGolemStatueHost } from './copperGolemStatue';
+import { isCopperGolem, tickCopperGolemStatue } from './copperGolemStatue';
 import { entityFilterContextOf } from './filterView';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { DroppedItems, isDroppedItem } from './droppedItems';
@@ -623,6 +625,7 @@ export class EntityRuntime implements EntityScene {
     public readonly hangingEntities: HangingEntities;
     /** Every area effect cloud, such as the dragon's breath. */
     public readonly areaEffectClouds: AreaEffectClouds;
+    private readonly statueHost: CopperGolemStatueHost;
 
     /** The systems a store player's survival runs on, and its component state. */
     public readonly playerSystems: PlayerSystems;
@@ -918,6 +921,12 @@ export class EntityRuntime implements EntityScene {
             playSound: (at, sound) => this.world.effects.playSound(blockPositionOf(at), sound),
             remove: (id, reason) => this.remove(id, reason)
         });
+        this.statueHost = {
+            random: () => this.world.random.nextFloat(),
+            isAir: (at) => (this.world.blocks.get(at)?.identifier ?? 'minecraft:air') === 'minecraft:air',
+            setBlock: (at, identifier, states) => this.world.blocks.set(at, { identifier, states }, true),
+            remove: (id, reason) => this.remove(id, reason)
+        };
         this.areaEffectClouds = new AreaEffectClouds({
             withinBox: (min, max) => this.index.withinBox(min, max),
             hurt: (entity, sourceId, cause, amount) =>
@@ -2015,6 +2024,7 @@ export class EntityRuntime implements EntityScene {
         this.index.refreshFamilies(entity);
         this.tickBrain(entity);
         tickBrainNavigation(entity);
+        if (isCopperGolem(entity) && tickCopperGolemStatue(entity, this.statueHost)) return;
         const fromY = entity.position.y;
         // Java's ender dragon is `noPhysics`: its phases fly it, and nothing pulls it down.
         if (!JAVA_NO_PHYSICS.has(entity.identifier)) this.coast(entity);
