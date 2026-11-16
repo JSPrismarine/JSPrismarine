@@ -369,13 +369,18 @@ export class MobBody {
         this.write('fireTicks', fireTicks);
     }
 
-    /** The entity's home position, from `minecraft:home` or a `set_home_position` event. */
+    /**
+     * The entity's home position, from `minecraft:home` or a `set_home_position` event. The
+     * instance keeps it, since its components set it while it is built; the body reads it from
+     * there so the goals, the filters and the save all see the same home.
+     */
     public get home(): EntityPosition | undefined {
-        return this.logged.home;
+        return this.instance?.homePosition ?? this.logged.home;
     }
 
     public set home(home: EntityPosition | undefined) {
         this.write('home', home);
+        this.instance?.setHomePosition(home);
     }
 
     /**

@@ -85,7 +85,35 @@ export interface NavigatorContext {
     navigation(): NavigationView | undefined;
     /** The rules the path finder follows for this entity. */
     profile(): NavigationProfile;
+    /** The home the entity's random movement is held to, or undefined when it has none. */
+    homeRestriction?(): HomeRestriction | undefined;
 }
+
+/** A home position and the radius around it, Java's `Mob.getHomePosition` and `getHomeRadius`. */
+export interface HomeRestriction {
+    readonly center: EntityPosition;
+    readonly radius: number;
+}
+
+/**
+ * Whether a random destination drawn `range` blocks around the entity breaks its home restriction,
+ * by Java's `GoalUtils`: the restriction holds only while the entity is within the radius plus the
+ * range plus one of its home (`mobRestricted`), and then a destination must lie inside the radius
+ * (`Mob.isWithinHome`, block distance squared under the radius squared). An entity further out
+ * draws freely, which is how Java lets one that strayed find its way back.
+ */
+export const breaksHomeRestriction = (
+    home: HomeRestriction,
+    here: EntityPosition,
+    range: number,
+    destination: EntityPosition
+): boolean => {
+    const center = blockOf(home.center);
+    if (distanceBetween(centerOf(center), here) >= home.radius + range + 1) return false;
+    const block = blockOf(destination);
+    const squared = (block.x - center.x) ** 2 + (block.y - center.y) ** 2 + (block.z - center.z) ** 2;
+    return squared >= home.radius * home.radius;
+};
 
 /** Moves one entity along a path. */
 export class Navigator {
@@ -276,7 +304,9 @@ export class Navigator {
      * With a view it draws candidates and keeps the first the path finder
      * reaches, skipping water destinations when the active navigation says to
      * avoid water; without one it asks the actuator, which is what the
-     * reference goals in `@jsprismarine/entities` do.
+     * reference goals in `@jsprismarine/entities` do. Either way a destination
+     * outside the entity's home restriction is refused
+     * ({@link breaksHomeRestriction}), as Java's `RandomPos` refuses it.
      *
      * @param random - Draws the candidate offsets, in [0, 1).
      */
@@ -289,10 +319,18 @@ export class Navigator {
         const actuator = this.context.actuator;
         if (actuator === undefined) return undefined;
 
-        const view = this.context.navigation();
-        if (view === undefined) return actuator.randomTarget(xzDistance, yDistance);
+        const home = this.context.homeRestriction?.();
+        const position = actuator.position();
+        const restricted = (candidate: EntityPosition): boolean =>
+            home !== undefined && breaksHomeRestriction(home, position, xzDistance, candidate);
 
-        const here = blockOf(actuator.position());
+        const view = this.context.navigation();
+        if (view === undefined) {
+            const candidate = actuator.randomTarget(xzDistance, yDistance);
+            return candidate === undefined || restricted(candidate) ? undefined : candidate;
+        }
+
+        const here = blockOf(position);
         const profile = this.context.profile();
         for (let attempt = 0; attempt < attempts; attempt += 1) {
             const candidate = {
@@ -300,6 +338,7 @@ export class Navigator {
                 y: here.y + Math.round((random() * 2 - 1) * yDistance),
                 z: here.z + Math.round((random() * 2 - 1) * xzDistance)
             };
+            if (restricted(candidate)) continue;
             if (profile.avoidWater && view.isWater(candidate)) continue;
 
             const path = findPath(view, profile, { from: here, to: candidate });

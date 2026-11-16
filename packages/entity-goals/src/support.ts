@@ -10,12 +10,14 @@ import type {
 import { evaluateFilter } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 
+import type { HomeRestriction } from './navigator';
 import { Navigator } from './navigator';
 import type { NavigationProfile } from './navigation/profile';
 import { navigationProfile } from './navigation/profile';
 import type { NavigationView } from './navigation/view';
 import { distanceBetween, horizontalDistance } from './navigation/view';
 import type { GoalEvent, TargetEntityType } from './params';
+import { isRecord } from './params';
 import type { GoalMob, GoalWorld } from './world';
 import { emptyGoalWorld } from './world';
 
@@ -92,8 +94,26 @@ export class GoalSupport {
         this.navigator = new Navigator({
             actuator: entity.actuator,
             navigation: () => this.navigation(),
-            profile: () => this.profile()
+            profile: () => this.profile(),
+            homeRestriction: () => this.homeRestriction()
         });
+    }
+
+    /**
+     * The home the entity's random movement is held to: its home position and the
+     * `restriction_radius` of its active `minecraft:home`, when the `restriction_type` restricts
+     * movement at all. Bedrock's default type is `none`.
+     */
+    public homeRestriction(): HomeRestriction | undefined {
+        const center = this.entity.homePosition;
+        if (center === undefined) return undefined;
+        const params = this.entity.componentParams('minecraft:home');
+        if (!isRecord(params)) return undefined;
+        const radius = params.restriction_radius;
+        const type = params.restriction_type;
+        if (typeof radius !== 'number' || radius <= 0) return undefined;
+        if (type !== 'random_movement' && type !== 'all_movement') return undefined;
+        return { center, radius };
     }
 
     /** Moves, looks and jumps; undefined when the caller supplied no actuator. */

@@ -72,6 +72,16 @@ const sensorBox = (group: string | undefined, horizontal: number, vertical: numb
     })
 });
 
+/**
+ * A `minecraft:home` that keeps the home position but holds no movement to it, for a mob whose
+ * Java class never calls `Mob.setHomeTo`. Bedrock's default `restriction_type` is `none`.
+ */
+const unrestrictedHome: Tuning = {
+    component: 'minecraft:home',
+    group: undefined,
+    rewrite: ({ restriction_radius: _radius, restriction_type: _type, ...home }) => home
+};
+
 /** Java's numbers for each vanilla mob whose pack numbers differ, by Java entity type. */
 const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
     'minecraft:skeleton': [
@@ -104,7 +114,12 @@ const JAVA_TUNINGS: Readonly<Record<string, readonly Tuning[]>> = {
     ],
     // `Guardian$GuardianAttackGoal` stops within 3 blocks and the goal selector starts it again on
     // its next update, at most two ticks later.
-    'minecraft:guardian': [timerTicks('minecraft:guardian_passive', 0, 2)],
+    // Only the elder guardian sets a home (`ElderGuardian.customServerAiStep`, 16 blocks); a
+    // guardian's `MoveTowardsRestrictionGoal` has none to move toward.
+    'minecraft:guardian': [timerTicks('minecraft:guardian_passive', 0, 2), unrestrictedHome],
+    // `Creaking.setTransient` records its heart but sets no home radius;
+    // `CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS` only scales the heart's comparator signal.
+    'minecraft:creaking': [unrestrictedHome],
     // `Blaze$BlazeAttackGoal.tick` bites below `distanceToSqr` 4 and throws fireballs from there on.
     'minecraft:blaze': [
         {

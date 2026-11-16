@@ -134,3 +134,17 @@ describe('withJavaComponentTuning on the frog', () => {
         ).toBe(false);
     });
 });
+
+describe('withJavaComponentTuning on homes', () => {
+    it("lifts a guardian's home radius, which Java gives only the elder guardian", () => {
+        const home = { restriction_radius: 16, restriction_type: 'random_movement' };
+        const guardian = spawn(entityFile('minecraft:guardian', { 'minecraft:home': home }), 'minecraft:guardian');
+        const elder = spawn(
+            entityFile('minecraft:elder_guardian', { 'minecraft:home': home }),
+            'minecraft:elder_guardian'
+        );
+
+        expect(guardian.componentParams('minecraft:home')).toEqual({});
+        expect(elder.componentParams('minecraft:home')).toEqual(home);
+    });
+});
