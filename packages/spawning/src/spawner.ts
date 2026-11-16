@@ -26,7 +26,8 @@ import type { SpawnPass, SpawnPlayer, SpawnPosition, SpawnWorld } from './world'
  * One cycle of one pool samples `chunksPerCycle` chunks around each player,
  * tries `positionsPerChunk` positions in each chunk for the surface pass and
  * the same number for the underground pass, and at each position draws one of
- * the conditions that passed, weighted by `minecraft:weight`.
+ * the conditions that passed, weighted by `minecraft:weight`. A sampled chunk
+ * the world says is not ready, {@link SpawnWorld.chunkReady}, is skipped.
  */
 
 /** One entity the spawner asks the server to create. */
@@ -215,6 +216,7 @@ export class Spawner {
             for (let sample = 0; sample < chunksPerCycle && remaining > 0; sample += 1) {
                 const chunkX = playerChunkX + between(this.random, -spawnRadiusChunks, spawnRadiusChunks);
                 const chunkZ = playerChunkZ + between(this.random, -spawnRadiusChunks, spawnRadiusChunks);
+                if (this.world.chunkReady?.(chunkX, chunkZ) === false) continue;
 
                 for (let attempt = 0; attempt < positionsPerChunk && remaining > 0; attempt += 1) {
                     for (const pass of ['surface', 'underground'] as const) {

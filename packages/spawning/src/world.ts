@@ -84,6 +84,13 @@ export interface SpawnWorld {
      * skips the attempt.
      */
     surfaceY(x: number, z: number): number | undefined;
+    /**
+     * Whether a chunk takes spawn attempts yet. Java spawns in the chunks it ticks and ticks a
+     * chunk once its light is done, so a server that computes light over several ticks answers
+     * false until a chunk's light is final. An attempt there would read light that is still
+     * arriving. Left out, every loaded chunk takes attempts.
+     */
+    chunkReady?(chunkX: number, chunkZ: number): boolean;
     /** The lowest y the world generates, which bounds the underground pass. */
     minY(): number;
     /** The players the spawner spawns around, which is every player in the spawn region. */
