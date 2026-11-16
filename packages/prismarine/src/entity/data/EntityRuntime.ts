@@ -4690,10 +4690,17 @@ export class EntityRuntime implements EntityScene {
         return true;
     }
 
-    /** Keeps sunlight fires alive, extinguishes wet entities, and applies their fire ticks. */
+    /**
+     * Keeps sunlight fires alive, extinguishes wet entities, and applies their fire ticks.
+     *
+     * A fire-immune entity never catches fire in the sun, whatever its definition says: Java's
+     * `Entity.isOnFire` is false for a fire-immune type, so a magma cube that Bedrock's pack
+     * gives `minecraft:burns_in_daylight` stays unlit.
+     */
     private tickDaylightBurn(entity: DataEntity): void {
         const { body, instance } = entity;
-        const burnsInDaylight = instance.hasComponent('minecraft:burns_in_daylight');
+        const burnsInDaylight =
+            instance.hasComponent('minecraft:burns_in_daylight') && !instance.hasComponent('minecraft:fire_immune');
         if (!burnsInDaylight && body.fireTicks <= 0) return;
 
         const position = blockPositionOf(entity.position);

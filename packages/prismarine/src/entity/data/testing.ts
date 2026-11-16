@@ -349,6 +349,11 @@ export interface TestWorldOptions {
      * runtime's block caches.
      */
     readonly runtimeIds?: boolean;
+    /**
+     * Whether the world answers `skyLight`, with the open sky's 15 above the floor and 0 at and
+     * below it. Off by default, because a sky makes daylight burn the mobs that burn in it.
+     */
+    readonly skyLight?: boolean;
 }
 
 /** A flat stone world with air above it, and a recording host. */
@@ -494,6 +499,9 @@ export class TestEntityWorld {
                 setData: () => undefined,
                 executeEntityEvent: (at, source, name) => this.entityEvents.push({ at, source, name }),
                 light: (at) => this.options.lightLevel ?? (at.y > FLOOR_Y ? 15 : 0),
+                ...(this.options.skyLight === true
+                    ? { skyLight: (at: ContentPosition) => (at.y > FLOOR_Y ? 15 : 0) }
+                    : {}),
                 power: () => 0,
                 isLoaded: () => true,
                 surfaceY: () => FLOOR_Y + 1,
