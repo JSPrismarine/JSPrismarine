@@ -537,11 +537,6 @@
             "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
             "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "goal-avoid-mob-type:minecraft:phantom": {
-            "kind": "defect",
-            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: Java's minecraft:phantom registers no AvoidEntityGoal, but the server runs minecraft:behavior.avoid_mob_type. Tracked in #3130.",
-            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
-        },
         "goal-controlled_by_player:minecraft:pig": {
             "kind": "intentional",
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
@@ -551,31 +546,6 @@
             "kind": "intentional",
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
             "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
-        },
-        "goal-melee-box-attack:minecraft:blaze": {
-            "kind": "defect",
-            "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: Java's minecraft:blaze registers no MeleeAttackGoal, but the server runs minecraft:behavior.melee_box_attack. Tracked in #3130.",
-            "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
-        },
-        "goal-nearest-attackable-target:minecraft:phantom": {
-            "kind": "defect",
-            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: Java's minecraft:phantom registers no NearestAttackableTargetGoal, but the server runs minecraft:behavior.nearest_attackable_target. Tracked in #3130.",
-            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
-        },
-        "goal-ranged-attack:minecraft:blaze": {
-            "kind": "defect",
-            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:blaze registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
-            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
-        },
-        "goal-ranged-attack:minecraft:ghast": {
-            "kind": "defect",
-            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:ghast registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
-            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
-        },
-        "goal-ranged-attack:minecraft:shulker": {
-            "kind": "defect",
-            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:shulker registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
-            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
         },
         "goal-skeleton_horse_trap:minecraft:skeleton_horse": {
             "kind": "deferred",

@@ -1938,6 +1938,333 @@ const shoulderScenario: BehaviorScenario<EntitySubject> = {
     }
 };
 
+/** One of the attack goals a mob's own Java class writes, which the server runs as a goal of its own. */
+interface MobAttack {
+    /** The server's goal. */
+    readonly component: string;
+    /** The Java goal class, by simple name. */
+    readonly javaGoal: string;
+    readonly java: string;
+    readonly reference: string;
+    /**
+     * The ticks Java's goal fires on over `ticks` game ticks, at a target in sight `distance`
+     * blocks off, from the constants its methods hold, or a sentence saying they could not be read.
+     */
+    readonly javaShots: (distance: number, ticks: number) => readonly number[] | string;
+    /** The distances to compare at: one in each of Java's ranges, and one past the farthest. */
+    readonly distances: readonly number[];
+    /** Whether Java's goal holds the move flag, so it keeps the mob from wandering while it fights. */
+    readonly holdsMove: boolean;
+}
+
+const MONSTER_PACKAGE = 'net/minecraft/world/entity/monster/';
+
+/** The numbers one method of a mob's own goal class holds, in the order the method reads them. */
+const goalNumbers = (simple: string, method: string): readonly number[] =>
+    javaMethodNumbers(`${MONSTER_PACKAGE}${simple}`, method);
+
+/** The first number of a list that a test picks, or undefined. */
+const pick = (numbers: readonly number[], index: number): number | undefined => numbers[index];
+
+/** How long each scenario runs a goal, long enough for two of the blaze's cycles. */
+const ATTACK_TICKS = 400;
+
+const MOB_ATTACKS: readonly MobAttack[] = [
+    {
+        component: 'jsprismarine:behavior.blaze_attack',
+        javaGoal: 'Blaze$BlazeAttackGoal',
+        java: 'A blaze bites a target in sight inside 2 blocks once every 20 ticks, and fires at one in sight within its follow range in cycles: 60 ticks of charging, three fireballs 6 ticks apart, then 100 ticks of rest.',
+        reference:
+            'Java Blaze$BlazeAttackGoal.tick (distanceToSqr < 4.0, attackTime 20, 60, 6 and 100, attackStep up to 4), read from the pinned jar',
+        holdsMove: true,
+        distances: [1.5, 10],
+        javaShots: (distance, ticks) => {
+            const numbers = goalNumbers('Blaze$BlazeAttackGoal', 'tick');
+            const [meleeSqr, bite, charge, lastStep, burst, rest] = [3, 4, 10, 12, 13, 14].map((index) =>
+                pick(numbers, index)
+            );
+            if ([meleeSqr, bite, charge, lastStep, burst, rest].some((value) => value === undefined))
+                return "Java's BlazeAttackGoal constants could not be read";
+            const shots: number[] = [];
+            let attackTime = 0;
+            let attackStep = 0;
+            for (let tick = 1; tick <= ticks; tick += 1) {
+                attackTime -= 1;
+                if (distance * distance < (meleeSqr ?? 0)) {
+                    if (attackTime <= 0) {
+                        attackTime = bite ?? 0;
+                        shots.push(tick);
+                    }
+                } else if (attackTime <= 0) {
+                    attackStep += 1;
+                    if (attackStep === 1) attackTime = charge ?? 0;
+                    else if (attackStep <= (lastStep ?? 0)) attackTime = burst ?? 0;
+                    else {
+                        attackTime = rest ?? 0;
+                        attackStep = 0;
+                    }
+                    if (attackStep > 1) shots.push(tick);
+                }
+            }
+            return shots;
+        }
+    },
+    {
+        component: 'jsprismarine:behavior.ghast_shoot_fireball',
+        javaGoal: 'Ghast$GhastShootFireballGoal',
+        java: 'A ghast fires at a target in sight within 64 blocks at the 20th tick of its charge and every 60 ticks after, and drifts on while it does.',
+        reference:
+            'Java Ghast$GhastShootFireballGoal.tick (distanceToSqr < 4096.0, chargeTime 20, then -40), read from the pinned jar',
+        holdsMove: false,
+        distances: [30, 70],
+        javaShots: (distance, ticks) => {
+            const numbers = goalNumbers('Ghast$GhastShootFireballGoal', 'tick');
+            const rangeSqr = pick(numbers, 1);
+            const fireAt = pick(numbers, 6);
+            const reset = numbers.find((value) => value < 0);
+            if (rangeSqr === undefined || fireAt === undefined || reset === undefined)
+                return "Java's GhastShootFireballGoal constants could not be read";
+            const shots: number[] = [];
+            let chargeTime = 0;
+            for (let tick = 1; tick <= ticks; tick += 1) {
+                if (distance * distance < rangeSqr) {
+                    chargeTime += 1;
+                    if (chargeTime === fireAt) {
+                        shots.push(tick);
+                        chargeTime = reset;
+                    }
+                } else if (chargeTime > 0) chargeTime -= 1;
+            }
+            return shots;
+        }
+    },
+    {
+        component: 'jsprismarine:behavior.shulker_attack',
+        javaGoal: 'Shulker$ShulkerAttackGoal',
+        java: 'A shulker fires its first bullet 20 ticks after it takes a target within 20 blocks and then one every 20 plus nextInt(10) * 10 ticks, and drops a target any farther.',
+        reference:
+            'Java Shulker$ShulkerAttackGoal.start (attackTime 20) and tick (distanceToSqr < 400.0, attackTime = 20 + nextInt(10) * 20 / 2), read from the pinned jar',
+        holdsMove: true,
+        distances: [10, 25],
+        javaShots: (distance, ticks) => {
+            const [first] = goalNumbers('Shulker$ShulkerAttackGoal', 'start');
+            const numbers = goalNumbers('Shulker$ShulkerAttackGoal', 'tick');
+            const [rangeSqr, base, spread, scale, halve] = [3, 4, 5, 6, 7].map((index) => pick(numbers, index));
+            if ([first, rangeSqr, base, spread, scale, halve].some((value) => value === undefined))
+                return "Java's ShulkerAttackGoal constants could not be read";
+            // The probe draws nextInt(10) as 3, so each wait is 20 + 3 * 20 / 2.
+            const wait = (base ?? 0) + Math.trunc((3 * (scale ?? 0)) / (halve ?? 1));
+            const shots: number[] = [];
+            let attackTime = first ?? 0;
+            for (let tick = 1; tick <= ticks; tick += 1) {
+                attackTime -= 1;
+                if (distance * distance >= (rangeSqr ?? 0)) break;
+                if (attackTime <= 0) {
+                    attackTime = wait;
+                    shots.push(tick);
+                }
+            }
+            return shots;
+        }
+    }
+];
+
+/** The scenario for one of the attack goals a mob's own Java class writes. */
+const mobAttackScenario = (attack: MobAttack): BehaviorScenario<EntitySubject> => ({
+    name: `goal-${attack.component.replace('jsprismarine:behavior.', '').replaceAll('_', '-')}`,
+    java: attack.java,
+    reference: attack.reference,
+    subjects: () => entitiesDeclaring(attack.component).filter((subject) => !brainOnly(subject)),
+    idOf: (subject) => subject.javaId,
+    aspects: () => [attack.component],
+    classify: goalGap(attack.java),
+    run: (subject) => {
+        if (!javaGoals(subject.javaId).some((goal) => isGoal(goal, [attack.javaGoal])))
+            return `Java's ${subject.javaId} registers no ${attack.javaGoal}, but the server runs ${attack.component}`;
+        const differences: string[] = [];
+        for (const { body } of declaredGoals(subject.bedrock, attack.component)) {
+            for (const distance of attack.distances) {
+                const java = attack.javaShots(distance, ATTACK_TICKS);
+                if (typeof java === 'string') return java;
+                let clock = 0;
+                const fired: number[] = [];
+                const target = playerAt({ x: distance, y: 0, z: 0 });
+                let current: GoalMob | undefined = target;
+                const probe = probeGoal(attack.component, body, {
+                    randomInt: (bound) => (bound === 10 ? 3 : 0),
+                    worldFacts: { difficulty: () => 'normal' },
+                    components: { 'minecraft:follow_range': { value: 48 } },
+                    world: {
+                        target: () => current,
+                        setTarget: (mob) => {
+                            current = mob;
+                        },
+                        canSee: () => true,
+                        attack: () => fired.push(clock),
+                        shoot: () => fired.push(clock)
+                    }
+                });
+                for (clock = 1; clock <= ATTACK_TICKS; clock += 1) probe.entity.goals.tick(clock % 2 === 1);
+                const server = fired.join(', ') || 'never';
+                const expected = java.join(', ') || 'never';
+                if (server !== expected)
+                    differences.push(
+                        `at ${distance} blocks it strikes on ticks ${server.slice(0, 80)}, where Java's ${attack.javaGoal} strikes on ${expected.slice(0, 80)}`
+                    );
+                if (java.length > 0 && (probe.entity.goals.holderOf('move') !== undefined) !== attack.holdsMove)
+                    differences.push(
+                        attack.holdsMove
+                            ? `it leaves its move flag free while it fights, which Java's ${attack.javaGoal} holds`
+                            : `it holds its move flag while it fights, which Java's ${attack.javaGoal} leaves free`
+                    );
+            }
+        }
+        return differences.length === 0 ? undefined : [...new Set(differences)].join('; ');
+    }
+});
+
+const PHANTOM_TARGET = 'jsprismarine:behavior.phantom_attack_player_target';
+
+/**
+ * Java's `Phantom$PhantomAttackPlayerTargetGoal` against the server's goal for it: the selector
+ * updates before its first scan and between scans, its search box, and the highest player first.
+ */
+const phantomTargetScenario: BehaviorScenario<EntitySubject> = {
+    name: 'goal-phantom-attack-player-target',
+    java: 'A phantom scans for a player reducedTickDelay(20) updates after it appears and every reducedTickDelay(60) after a scan, and takes the highest player it may attack in its box inflated by 16 across and 64 up and down, within 64 blocks.',
+    reference:
+        'Java Phantom$PhantomAttackPlayerTargetGoal.<init> (range 64, reducedTickDelay(20)) and canUse (reducedTickDelay(60), inflate(16, 64, 16), players sorted by Y, highest first), read from the pinned jar',
+    subjects: () => entitiesDeclaring(PHANTOM_TARGET).filter((subject) => !brainOnly(subject)),
+    idOf: (subject) => subject.javaId,
+    aspects: () => [PHANTOM_TARGET],
+    classify: goalGap("A phantom targets players as Java's PhantomAttackPlayerTargetGoal does."),
+    run: (subject) => {
+        if (!javaGoals(subject.javaId).some((goal) => isGoal(goal, ['Phantom$PhantomAttackPlayerTargetGoal'])))
+            return `Java's ${subject.javaId} registers no PhantomAttackPlayerTargetGoal, but the server runs ${PHANTOM_TARGET}`;
+        const owner = `${MONSTER_PACKAGE}Phantom$PhantomAttackPlayerTargetGoal`;
+        const [range, first] = javaMethodNumbers(owner, '<init>');
+        const [, , interval, across, upDown] = javaMethodNumbers(owner, 'canUse');
+        if ([range, first, interval, across, upDown].some((value) => value === undefined))
+            return "Java's PhantomAttackPlayerTargetGoal constants could not be read";
+        const differences: string[] = [];
+        for (const { body } of declaredGoals(subject.bedrock, PHANTOM_TARGET)) {
+            /** The selector update the phantom first targets on, and whom, with these players around it. */
+            const firstTarget = (players: readonly GoalMob[]): { tick?: number; id?: string } => {
+                let target: GoalMob | undefined;
+                const probe = probeGoal(PHANTOM_TARGET, body, {
+                    at: { x: 0, y: 20, z: 0 },
+                    world: {
+                        players: () => players,
+                        target: () => target,
+                        setTarget: (mob) => {
+                            target = mob;
+                        },
+                        isAttackable: () => true
+                    }
+                });
+                for (let update = 1; update <= 200; update += 1) {
+                    probe.entity.goals.tick(true);
+                    if (target !== undefined) return { tick: update, id: String(target.id) };
+                }
+                return {};
+            };
+            const expected = reducedTickDelay(first ?? 0) + 1;
+            const high = { ...playerAt({ x: -10, y: 10, z: 5 }), id: 'high' };
+            const low = { ...playerAt({ x: 3, y: 0, z: 0 }), id: 'low' };
+            const wide = { ...playerAt({ x: (across ?? 0) + 2, y: 15, z: 0 }), id: 'wide' };
+            const picked = firstTarget([low, wide, high]);
+            if (picked.tick !== expected)
+                differences.push(
+                    `it first targets on selector update ${String(picked.tick)}, where Java's scans on ${expected}`
+                );
+            if (picked.id !== 'high')
+                differences.push(`it targets ${picked.id ?? 'nobody'}, where Java takes the highest player in its box`);
+            // A scan that finds nobody waits reducedTickDelay(60) updates for the next.
+            let late: GoalMob[] = [];
+            let target: GoalMob | undefined;
+            const probe = probeGoal(PHANTOM_TARGET, body, {
+                at: { x: 0, y: 20, z: 0 },
+                world: {
+                    players: () => late,
+                    target: () => target,
+                    setTarget: (mob) => {
+                        target = mob;
+                    },
+                    isAttackable: () => true
+                }
+            });
+            for (let update = 0; update < expected; update += 1) probe.entity.goals.tick(true);
+            late = [playerAt({ x: 0, y: 0, z: 0 })];
+            let rescan: number | undefined;
+            for (let update = 1; update <= 200 && rescan === undefined; update += 1) {
+                probe.entity.goals.tick(true);
+                if (target !== undefined) rescan = update;
+            }
+            if (rescan !== reducedTickDelay(interval ?? 0) + 1)
+                differences.push(
+                    `after a scan that finds nobody it scans again ${String(rescan)} updates later, where Java waits ${reducedTickDelay(interval ?? 0) + 1}`
+                );
+        }
+        return differences.length === 0 ? undefined : [...new Set(differences)].join('; ');
+    }
+};
+
+/**
+ * Java's `PhantomSweepAttackGoal.canContinueToUse`: a swoop breaks off while a cat is in the
+ * phantom's box inflated by 16, searched at most once every 20 ticks, and `stop` drops the
+ * target. Ocelots, which Bedrock's phantom also avoided, do not count.
+ */
+const swoopCatScenario: BehaviorScenario<EntitySubject> = {
+    name: 'goal-swoop-attack-cat',
+    java: 'A swooping phantom breaks its swoop off and drops its target while a cat is within 16 blocks of its box, which it looks for once every 20 ticks; an ocelot does not scare it.',
+    reference:
+        'Java Phantom$PhantomSweepAttackGoal.canContinueToUse (catSearchTick + 20, getEntitiesOfClass(Cat.class, inflate(16.0))) and stop (setTarget(null)), read from the pinned jar',
+    subjects: () =>
+        entitiesDeclaring(`${PREFIX}swoop_attack`).filter((subject) =>
+            javaGoals(subject.javaId).some((goal) => isGoal(goal, ['Phantom$PhantomSweepAttackGoal']))
+        ),
+    idOf: (subject) => subject.javaId,
+    aspects: () => [`${PREFIX}swoop_attack`],
+    classify: goalGap("A phantom's swoop breaks off near a cat as Java's PhantomSweepAttackGoal does."),
+    run: (subject) => {
+        const numbers = javaMethodNumbers(`${MONSTER_PACKAGE}Phantom$PhantomSweepAttackGoal`, 'canContinueToUse');
+        const search = numbers.find((value) => value > 1);
+        const reach = numbers.find((value) => search !== undefined && value > 1 && value !== search);
+        if (search === undefined || reach === undefined)
+            return "Java's PhantomSweepAttackGoal constants could not be read";
+        const differences: string[] = [];
+        for (const { body } of declaredGoals(subject.bedrock, `${PREFIX}swoop_attack`)) {
+            /** Whether the swoop is still on, and the phantom still has its target, with a mob near it. */
+            const swoopsBeside = (javaId: string, distance: number): boolean => {
+                let target: GoalMob | undefined = playerAt({ x: 8, y: 0, z: 0 });
+                const candidate = candidates().find((entry) => entry.javaId === javaId);
+                if (candidate === undefined) throw new Error(`the server runs no ${javaId}`);
+                const near = candidateMob(candidate, { x: -distance, y: 10, z: 0 });
+                const probe = probeGoal(`${PREFIX}swoop_attack`, body, {
+                    at: { x: 0, y: 10, z: 0 },
+                    follow: false,
+                    world: {
+                        target: () => target,
+                        setTarget: (mob) => {
+                            target = mob;
+                        },
+                        mobs: () => [near],
+                        canSee: () => true
+                    }
+                });
+                gameTicks(probe, (search ?? 0) * 3);
+                return probe.isRunning(`${PREFIX}swoop_attack`) && target !== undefined;
+            };
+            if (swoopsBeside('minecraft:cat', reach - 1))
+                differences.push(`it keeps swooping with a cat ${reach - 1} blocks off`);
+            if (!swoopsBeside('minecraft:ocelot', reach - 1)) differences.push('an ocelot breaks its swoop off');
+            if (!swoopsBeside('minecraft:cat', reach + 4))
+                differences.push(`a cat ${reach + 4} blocks off breaks its swoop off`);
+        }
+        return differences.length === 0 ? undefined : [...new Set(differences)].join('; ');
+    }
+};
+
 /** The brain mobs whose Bedrock goals in this theme the server must leave idle, with what each spawned as. */
 const brainProbe = new Map<string, string | undefined>();
 
@@ -2014,5 +2341,8 @@ export const goalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     ...comparisons.map(goalScenario),
     riderSteeringScenario,
-    shoulderScenario
+    shoulderScenario,
+    ...MOB_ATTACKS.map(mobAttackScenario),
+    phantomTargetScenario,
+    swoopCatScenario
 ];
