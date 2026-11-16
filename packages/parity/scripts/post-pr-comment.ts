@@ -6,13 +6,12 @@ import { findParityComment, parityTrackerUrl, renderParityComment } from '../src
 import type { IssueComment } from '../src/dashboard/comments.ts';
 import type { TrackerData } from '../src/dashboard/tracker.ts';
 import { parseDashboardTotals } from '../src/dashboard/trend.ts';
+import { isRecord } from '../src/isRecord.ts';
 
 const COMMENT_MARKER = '<!-- jsprismarine-parity-trend -->';
 const GITHUB_API_VERSION = '2026-03-10';
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const trackerPath = join(packageRoot, 'dist', 'tracker.json');
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
 const isIssueComment = (value: unknown): value is IssueComment => {
     if (!isRecord(value) || typeof value.id !== 'number' || typeof value.body !== 'string' || !isRecord(value.user)) {

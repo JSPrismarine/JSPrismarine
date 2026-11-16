@@ -22,7 +22,6 @@
  * JSP_BEDROCK_SERVER_TESTS=1 pnpm exec vitest run packages/bedrock-data/utils/bedrock-dump/leveldbCompat.test.ts
  * ```
  */
-import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
@@ -35,8 +34,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { bedrockServerPath } from '../fetch/bds.ts';
 import { cacheRoot } from '../fetch/paths.ts';
+import { spawnProbe } from './probe.ts';
 import { launcherForHost } from './runner.ts';
-import type { ProbeCommand, ServerLauncher } from './runner.ts';
+import type { ServerLauncher } from './runner.ts';
 import { READY_LINE, stageServer, startServer } from './server.ts';
 import type { RunningServer } from './server.ts';
 
@@ -58,15 +58,6 @@ const MARKERS = [
     { x: 40, y: 70, z: 40, block: 'emerald_block' },
     { x: 62, y: 200, z: 5, block: 'lapis_block' }
 ] as const;
-
-const runProbe: ProbeCommand = (command, args) => {
-    const result = spawnSync(command, [...args], { encoding: 'utf8' });
-    return {
-        status: result.error !== undefined ? null : result.status,
-        stdout: result.stdout ?? '',
-        stderr: result.error !== undefined ? result.error.message : (result.stderr ?? '')
-    };
-};
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -218,7 +209,7 @@ describe.skipIf(!enabled)('LevelDB against the pinned Bedrock Dedicated Server',
                     'fetch:sources`, or set JSP_BDS_PATH to an unpacked server of the pinned version.'
             );
         }
-        launcher = launcherForHost(runProbe);
+        launcher = launcherForHost(spawnProbe);
         launcher.ensureImage();
         scale = launcher.timeoutScale;
         scratch = mkdtempSync(join(tmpdir(), 'jsp-leveldb-bds-'));

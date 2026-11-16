@@ -1,10 +1,17 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { PACK_DIRECTORY, PACK_UUID, passScriptSource, renderManifest, writeDumpPack } from './pack.ts';
+import {
+    PACK_DIRECTORY,
+    PACK_UUID,
+    passScriptSource,
+    renderManifest,
+    stageBehaviorPacks,
+    writeDumpPack
+} from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
 import { READY_LINE, startServer } from './server.ts';
 
@@ -65,6 +72,50 @@ describe('writeDumpPack', () => {
             pack_id: string;
         }[];
         expect(enabled).toEqual([{ pack_id: PACK_UUID, version: [1, 0, 0] }]);
+    });
+});
+
+describe('stageBehaviorPacks', () => {
+    it('copies each pack and enables all of them, in order, for the world', async () => {
+        const sources = join(workspace, 'sources');
+        for (const name of ['first', 'second']) {
+            await mkdir(join(sources, name, 'scripts'), { recursive: true });
+            await writeFile(join(sources, name, 'manifest.json'), '{}');
+            await writeFile(join(sources, name, 'scripts', 'main.js'), `// ${name}`);
+        }
+        const world = join(workspace, 'worlds', 'w');
+
+        const directories = await stageBehaviorPacks(workspace, world, [
+            { source: join(sources, 'first'), directory: 'jsp-first', uuid: 'a', version: [1, 0, 0] },
+            { source: join(sources, 'second'), directory: 'jsp-second', uuid: 'b', version: [2, 0, 0] }
+        ]);
+
+        expect(directories).toEqual([
+            join(workspace, 'development_behavior_packs', 'jsp-first'),
+            join(workspace, 'development_behavior_packs', 'jsp-second')
+        ]);
+        expect(
+            await readFile(join(workspace, 'development_behavior_packs', 'jsp-second', 'scripts', 'main.js'), 'utf8')
+        ).toBe('// second');
+        expect(JSON.parse(await readFile(join(world, 'world_behavior_packs.json'), 'utf8'))).toEqual([
+            { pack_id: 'a', version: [1, 0, 0] },
+            { pack_id: 'b', version: [2, 0, 0] }
+        ]);
+    });
+
+    it('drops a file an earlier copy left behind', async () => {
+        const source = join(workspace, 'source');
+        await mkdir(source, { recursive: true });
+        await writeFile(join(source, 'manifest.json'), '{}');
+        const stale = join(workspace, 'development_behavior_packs', 'jsp-pack', 'old.js');
+        await mkdir(join(stale, '..'), { recursive: true });
+        await writeFile(stale, '');
+
+        await stageBehaviorPacks(workspace, join(workspace, 'worlds', 'w'), [
+            { source, directory: 'jsp-pack', uuid: 'a', version: [1, 0, 0] }
+        ]);
+
+        await expect(stat(stale)).rejects.toThrow();
     });
 });
 

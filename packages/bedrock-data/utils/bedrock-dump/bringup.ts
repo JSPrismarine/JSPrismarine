@@ -34,8 +34,8 @@ import { loadBdsData, selectBdsVersion } from '../fetch/manifest.ts';
 import type { BdsVersion } from '../fetch/manifest.ts';
 import { dumpArgs } from './cli.ts';
 import { hostNodeArgs } from './host.ts';
+import { spawnProbe } from './probe.ts';
 import { launcherForHost } from './runner.ts';
-import type { ProbeCommand } from './runner.ts';
 import { READY_LINE, SERVER_BINARY, stageServer, startServer } from './server.ts';
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -120,16 +120,7 @@ if (!existsSync(join(repositoryRoot, 'packages/client/dist/index.js'))) {
 // Check 2: the server
 // ---------------------------------------------------------------------------
 
-const runCommand: ProbeCommand = (command, args) => {
-    const result = spawnSync(command, [...args], { encoding: 'utf8' });
-    return {
-        status: result.error !== undefined ? null : result.status,
-        stdout: result.stdout ?? '',
-        stderr: result.error !== undefined ? result.error.message : (result.stderr ?? '')
-    };
-};
-
-const launcher = launcherForHost(runCommand);
+const launcher = launcherForHost(spawnProbe);
 
 // `--rm` covers an ordinary exit; a Ctrl+C kills the CLI and leaves the container behind.
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {

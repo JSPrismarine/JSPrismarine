@@ -30,6 +30,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `commands.*`    | <!-- fact:parity.families.commands -->tree, answers<!-- /fact --> | The published command tree against Mojang's Bedrock command metadata                                                  |
 | `gameplay.*`    | <!-- fact:parity.families.gameplay -->end-fight, brain-effects, combat-advancements, raids, datapack, mechanics, block-targets<!-- /fact --> | Sniffer digging loot, warden sonic-boom damage, and villager raid host effects against Java <!-- fact:java.version -->26.3<!-- /fact -->; the End crystal and dragon data used by the respawn fight; every entry of Java's vanilla datapack registries, by whether the server loads it; Java's game rules and villager professions, by whether the server runs them; a block position a packet names, refused out of reach or in an unloaded chunk in the order Java <!-- fact:java.version -->26.3<!-- /fact -->'s packet listener checks, without loading the chunk |
 | `protocol.*`    | <!-- fact:parity.families.protocol -->negotiation, wire-roundtrip, dimension-change<!-- /fact --> | Each registered protocol version negotiates its own codec from a real first packet; an unsupported version gets the right `PlayStatus` sidedness; declarative layouts re-encode a real server's bytes; the packet sequence a world change sends round-trips through every codec |
+| `scripting.*`   | <!-- fact:parity.families.scripting -->lifecycle, events, engine<!-- /fact --> | What behavior pack scripts record on the pinned Bedrock Dedicated Server against what the same packs record on JSPrismarine |
 | `conformance.*` | <!-- fact:parity.families.conformance -->claim, classification, exclusions<!-- /fact --> | The claim, the table it counts, and the <!-- fact:parity.conformanceExclusions -->8<!-- /fact --> exclusions                                                              |
 
 ## Behavior scenarios
@@ -70,6 +71,74 @@ PARITY_UPDATE_BEHAVIOR_GAPS=1 pnpm --filter @jsprismarine/parity exec vitest run
 
 Fix the difference when it is a defect. Record it only when the server cannot match Java yet, and
 say why in the row.
+
+## Scripting scenarios
+
+The `scripting.*` families compare behavior pack scripts with the pinned Bedrock Dedicated Server
+(BDS), as [the script host plan](../../docs/plans/script-api-host.md#the-parity-family) describes.
+A scenario is one or more behavior packs whose scripts log what they observe. BDS runs them and
+the log becomes a golden. The family's test runs the same packs on JSPrismarine and compares the
+two records.
+
+- [`src/scripting/scenarios.ts`](src/scripting/scenarios.ts) declares each scenario: its id, its
+  family and its packs in world order.
+- `scenarios/<scenario>/<pack>/` holds each pack, with its own `manifest.json`, so the directory
+  loads on BDS as it is.
+- `goldens/scripting/<scenario>.json` is the BDS record.
+- `runScenarioOnJsp` in [`src/scripting/jspHost.ts`](src/scripting/jspHost.ts) returns
+  JSPrismarine's record. It returns nothing until the script host lands
+  ([#3203](https://github.com/JSPrismarine/JSPrismarine/issues/3203)), so every scenario row is a
+  `deferred` gap in `goldens/behavior-gaps.json` until then.
+
+A family with no captured scenario reports "not measured". A declared scenario with no golden
+fails its row.
+
+### The record format
+
+A scenario script writes one line per observation to the content log with `console.warn`:
+
+```text
+DUMP record {"pack":"v2","seq":2,"tick":0,"event":"top-level world.getDimension","error":"ReferenceError: ..."}
+DUMP end {"pack":"v2","records":15}
+```
+
+| Field   | Meaning                                                                      |
+| ------- | ---------------------------------------------------------------------------- |
+| `pack`  | The pack's directory name under `scenarios/<scenario>/`                      |
+| `seq`   | The pack's own count of its observations, from 1                             |
+| `tick`  | `system.currentTick` at the observation                                      |
+| `event` | What happened, such as `system.beforeEvents.startup` or `top-level system.run` |
+| `value` | What an observed call returned, when it returned                             |
+| `error` | `String(error)` of what an observed call threw, when it threw                |
+
+A record line may carry no other field, and it never carries a wall-clock time. Each pack writes
+one `end` line with its observation count. The capture fails if a pack never ends or its `seq`
+values skip, so a lost line cannot shorten a golden.
+
+The golden holds the observations in log order across every pack of the scenario, under
+`observations`, beside `format` (1), `family`, `scenario` and the `server` that produced it
+(`protocolVersion` and `serverVersion`). Two records match when they hold the same observations
+in the same order. [`src/scripting/record.ts`](src/scripting/record.ts) reads both sides.
+
+### Capturing a golden
+
+Capturing runs BDS, so only a person runs it, never CI. It needs the pinned server in the fetch
+cache and uses the `dump:bedrock` staging and launcher, natively on Linux x86-64 and in a
+container elsewhere.
+
+```sh
+pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+pnpm --filter @jsprismarine/parity run capture:scripting
+pnpm --filter @jsprismarine/parity run capture:scripting -- --scenario startup-order
+```
+
+Each scenario gets a fresh flat world. The capture waits for every pack's end line, stops the
+server and writes `goldens/scripting/<scenario>.json`. Run it after adding or changing a
+scenario, or after the BDS pin moves, and commit the golden. Then record the new JSPrismarine row:
+
+```sh
+PARITY_UPDATE_BEHAVIOR_GAPS=1 pnpm --filter @jsprismarine/parity exec vitest run src/scripting.lifecycle.test.ts
+```
 
 ## The generation corpus
 

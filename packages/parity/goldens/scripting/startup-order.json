@@ -1,0 +1,195 @@
+{
+    "$comment": [
+        "What the scripts of scenario `startup-order` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.lifecycle",
+    "scenario": "startup-order",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "v2",
+            "seq": 1,
+            "tick": 0,
+            "event": "top-level"
+        },
+        {
+            "pack": "v2",
+            "seq": 2,
+            "tick": 0,
+            "event": "top-level world.getDimension",
+            "error": "ReferenceError: Native function [World::getDimension] cannot be used in early execution."
+        },
+        {
+            "pack": "v2",
+            "seq": 3,
+            "tick": 0,
+            "event": "top-level promise job"
+        },
+        {
+            "pack": "v2",
+            "seq": 4,
+            "tick": 0,
+            "event": "top-level dynamic import settled"
+        },
+        {
+            "pack": "v2",
+            "seq": 5,
+            "tick": 0,
+            "event": "system.beforeEvents.startup"
+        },
+        {
+            "pack": "v2",
+            "seq": 6,
+            "tick": 0,
+            "event": "startup world.getDimension",
+            "error": "ReferenceError: Native function [World::getDimension] cannot be used in early execution."
+        },
+        {
+            "pack": "v1",
+            "seq": 1,
+            "tick": 0,
+            "event": "top-level"
+        },
+        {
+            "pack": "v1",
+            "seq": 2,
+            "tick": 0,
+            "event": "top-level world.getDimension",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "v1",
+            "seq": 3,
+            "tick": 0,
+            "event": "world.beforeEvents.worldInitialize"
+        },
+        {
+            "pack": "v1",
+            "seq": 4,
+            "tick": 0,
+            "event": "beforeEvents.worldInitialize queue system.run"
+        },
+        {
+            "pack": "v1",
+            "seq": 5,
+            "tick": 0,
+            "event": "top-level promise job"
+        },
+        {
+            "pack": "v1",
+            "seq": 6,
+            "tick": 0,
+            "event": "beforeEvents.worldInitialize promise job"
+        },
+        {
+            "pack": "v2",
+            "seq": 7,
+            "tick": 0,
+            "event": "startup promise job"
+        },
+        {
+            "pack": "v2",
+            "seq": 8,
+            "tick": 0,
+            "event": "top-level system.run"
+        },
+        {
+            "pack": "v2",
+            "seq": 9,
+            "tick": 0,
+            "event": "top-level system.runTimeout 0"
+        },
+        {
+            "pack": "v2",
+            "seq": 10,
+            "tick": 0,
+            "event": "startup system.run"
+        },
+        {
+            "pack": "v1",
+            "seq": 7,
+            "tick": 0,
+            "event": "top-level system.run"
+        },
+        {
+            "pack": "v1",
+            "seq": 8,
+            "tick": 0,
+            "event": "top-level system.runTimeout 0"
+        },
+        {
+            "pack": "v1",
+            "seq": 9,
+            "tick": 0,
+            "event": "beforeEvents.worldInitialize system.run"
+        },
+        {
+            "pack": "v2",
+            "seq": 11,
+            "tick": 0,
+            "event": "world.afterEvents.worldLoad"
+        },
+        {
+            "pack": "v2",
+            "seq": 12,
+            "tick": 0,
+            "event": "worldLoad world.getDimension",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "v2",
+            "seq": 13,
+            "tick": 0,
+            "event": "worldLoad promise job"
+        },
+        {
+            "pack": "v1",
+            "seq": 10,
+            "tick": 0,
+            "event": "world.afterEvents.worldInitialize"
+        },
+        {
+            "pack": "v1",
+            "seq": 11,
+            "tick": 0,
+            "event": "afterEvents.worldInitialize world.getDimension",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "v2",
+            "seq": 14,
+            "tick": 0,
+            "event": "worldLoad system.run"
+        },
+        {
+            "pack": "v1",
+            "seq": 12,
+            "tick": 0,
+            "event": "afterEvents.worldInitialize system.run"
+        },
+        {
+            "pack": "v1",
+            "seq": 13,
+            "tick": 1,
+            "event": "afterEvents.worldInitialize promise job"
+        },
+        {
+            "pack": "v2",
+            "seq": 15,
+            "tick": 1,
+            "event": "top-level system.runTimeout 1"
+        },
+        {
+            "pack": "v1",
+            "seq": 14,
+            "tick": 1,
+            "event": "top-level system.runTimeout 1"
+        }
+    ]
+}
