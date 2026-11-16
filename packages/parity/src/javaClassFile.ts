@@ -475,3 +475,73 @@ export const pinnedJavaMethod = (
     }
     return undefined;
 };
+
+/**
+ * One instruction of a method's code that names something a row can compare: a method it calls,
+ * a field it reads or writes, or a constant it pushes. Targets are `Owner.member` with the owner's
+ * simple name, as {@link JavaMethod.calls} lists them.
+ */
+export type JavaOperation =
+    | { readonly kind: 'call'; readonly target: string }
+    | { readonly kind: 'field'; readonly target: string; readonly write: boolean }
+    | { readonly kind: 'string'; readonly value: string }
+    | { readonly kind: 'number'; readonly value: number };
+
+const GETSTATIC = 0xb2;
+const PUTSTATIC = 0xb3;
+const PUTFIELD = 0xb5;
+
+/**
+ * A method's calls, field accesses and pushed constants, in the order its code has them; every
+ * other instruction is left out.
+ *
+ * @param method - A parsed method.
+ */
+export const javaOperations = (method: Pick<JavaMethod, 'instructions'>): readonly JavaOperation[] =>
+    method.instructions.flatMap((instruction): JavaOperation[] => {
+        if (typeof instruction.constant === 'number') return [{ kind: 'number', value: instruction.constant }];
+        if (typeof instruction.constant === 'string') return [{ kind: 'string', value: instruction.constant }];
+        if (instruction.member === undefined) return [];
+        const target = instruction.member.slice(instruction.member.lastIndexOf('/') + 1);
+        if (instruction.opcode >= GETSTATIC && instruction.opcode <= PUTFIELD)
+            return [
+                {
+                    kind: 'field',
+                    target,
+                    write: instruction.opcode === PUTSTATIC || instruction.opcode === PUTFIELD
+                }
+            ];
+        if (instruction.opcode >= OPCODES.INVOKEVIRTUAL && instruction.opcode <= OPCODES.INVOKEINTERFACE)
+            return [{ kind: 'call', target }];
+        return [];
+    });
+
+/**
+ * The binary name of every class in the pinned jar under a package prefix, such as
+ * `net/minecraft/world/entity/`.
+ *
+ * The first listing inflates the jar and keeps the names in the fetch cache beside the class
+ * files, so later runs read that list.
+ *
+ * @throws {Error} When the jar is not in the fetch cache.
+ */
+export const pinnedJavaClassNames = (prefix: string): readonly string[] => {
+    const jarPath = REFERENCES.javaServerJar.locate();
+    if (jarPath === undefined) throw new Error('the pinned Java server jar is not in the fetch cache');
+    const index = join(FETCH_CACHE, 'java-classes', basename(dirname(jarPath)) || 'unknown', 'classes.json');
+    let names: readonly string[] | undefined;
+    if (existsSync(index)) {
+        // Parsed JSON boundary; the file is only written below, as a list of class names.
+        const parsed: unknown = JSON.parse(readFileSync(index, 'utf-8'));
+        if (Array.isArray(parsed)) names = parsed.filter((name): name is string => typeof name === 'string');
+    }
+    if (names === undefined) {
+        inflatedJar ??= readServerJar(jarPath);
+        names = [...inflatedJar.keys()]
+            .filter((entry) => entry.endsWith('.class'))
+            .map((entry) => entry.slice(0, -'.class'.length));
+        mkdirSync(dirname(index), { recursive: true });
+        writeFileSync(index, JSON.stringify(names));
+    }
+    return names.filter((name) => name.startsWith(prefix));
+};

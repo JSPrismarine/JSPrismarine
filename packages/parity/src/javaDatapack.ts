@@ -17,7 +17,7 @@ import { FETCH_CACHE, REFERENCES } from './references.ts';
  */
 
 /** The directories of `data/minecraft/` the parity rows read. */
-const WANTED = ['loot_table/', 'recipe/', 'tags/', 'predicate/', 'item_modifier/'];
+const WANTED = ['loot_table/', 'recipe/', 'tags/', 'predicate/', 'item_modifier/', 'sulfur_cube_archetype/'];
 
 /** Rejects an archive entry name that would escape the directory it unpacks into. */
 const isSafePath = (path: string): boolean =>
