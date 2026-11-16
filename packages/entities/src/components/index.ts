@@ -36,6 +36,7 @@ import {
     combatRegeneration,
     damageOverTime,
     damageSensor,
+    dryingOutTimer,
     despawn,
     entitySensor,
     environmentSensor,
@@ -136,7 +137,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:custom_hit_test',
     'minecraft:dash_action',
     'minecraft:dimension_bound',
-    'minecraft:drying_out_timer',
     'minecraft:dweller',
     'minecraft:economy_trade_table',
     'minecraft:equip_item',
@@ -259,6 +259,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(collisionBox);
     register(combatRegeneration);
     register(damageOverTime);
+    register(dryingOutTimer);
     register(damageSensor);
     register(dyeable);
     register(despawn);

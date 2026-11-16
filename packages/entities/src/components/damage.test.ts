@@ -129,19 +129,83 @@ describe('minecraft:hurt_on_condition', () => {
 });
 
 describe('minecraft:damage_over_time', () => {
-    it('hurts every time_between_hurt seconds while it is active', () => {
+    it('hurts on its first tick and then every time_between_hurt seconds while it is active', () => {
         const entity = spawn(vex, 'test:vex');
-        tick(entity, 19);
-
-        expect(entity.attributes.value('health')).toBe(40);
-
         tick(entity, 1);
 
         expect(entity.attributes.value('health')).toBe(39);
 
-        tick(entity, 20);
+        tick(entity, 19);
+
+        expect(entity.attributes.value('health')).toBe(39);
+
+        tick(entity, 1);
 
         expect(entity.attributes.value('health')).toBe(38);
+    });
+});
+
+/** An axolotl's drying out, shortened to two seconds, with the dried-out group that hurts it. */
+const axolotl = {
+    format_version: '1.26.50',
+    'minecraft:entity': {
+        description: { identifier: 'test:axolotl' },
+        components: {
+            'minecraft:health': { value: 14, max: 14 },
+            'minecraft:drying_out_timer': {
+                total_time: 2,
+                dried_out_event: { event: 'test:dried_out' },
+                stopped_drying_out_event: { event: 'test:stopped' },
+                recover_after_dried_out_event: { event: 'test:recovered' }
+            }
+        },
+        component_groups: {
+            'test:dried': { 'minecraft:is_shaking': {} },
+            'test:stopped': { 'minecraft:is_sheared': {} }
+        },
+        events: {
+            'test:dried_out': { add: { component_groups: ['test:dried'] } },
+            'test:stopped': { add: { component_groups: ['test:stopped'] } },
+            'test:recovered': { remove: { component_groups: ['test:dried'] } }
+        }
+    }
+};
+
+describe('minecraft:drying_out_timer', () => {
+    it('fires dried_out_event once total_time has passed out of water', () => {
+        const entity = spawn(axolotl, 'test:axolotl');
+        tick(entity, 40);
+
+        expect(entity.hasComponent('minecraft:is_shaking')).toBe(false);
+
+        tick(entity, 1);
+
+        expect(entity.hasComponent('minecraft:is_shaking')).toBe(true);
+    });
+
+    it('stops in water or rain and fires the stopped event for an entity still wet enough', () => {
+        let wet = false;
+        const entity = spawn(axolotl, 'test:axolotl', {
+            filterContext: () => ({ self: { flag: (name) => wet && name === 'in_water_or_rain' } })
+        });
+        tick(entity, 20);
+        wet = true;
+        tick(entity, 2);
+
+        expect(entity.hasComponent('minecraft:is_sheared')).toBe(true);
+        expect(entity.hasComponent('minecraft:is_shaking')).toBe(false);
+    });
+
+    it('fires the recover event for an entity that had dried out', () => {
+        let wet = false;
+        const entity = spawn(axolotl, 'test:axolotl', {
+            filterContext: () => ({ self: { flag: (name) => wet && name === 'in_water_or_rain' } })
+        });
+        tick(entity, 42);
+        wet = true;
+        tick(entity, 2);
+
+        expect(entity.hasComponent('minecraft:is_shaking')).toBe(false);
     });
 });
 
@@ -245,10 +309,10 @@ describe('hazard component state', () => {
 
         expect(run.writes[0]).toEqual({
             component: 'minecraft:damage_over_time',
-            before: { remaining: 20 },
-            after: { remaining: 19 }
+            before: { remaining: 1 },
+            after: { remaining: 20 }
         });
-        expect(run.ticked['minecraft:damage_over_time']).toEqual({ remaining: 15 });
+        expect(run.ticked['minecraft:damage_over_time']).toEqual({ remaining: 16 });
         expect(run.undone).toEqual(run.before);
     });
 

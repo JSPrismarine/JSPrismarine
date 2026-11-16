@@ -9,6 +9,8 @@ import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
 import { asList, booleanAt, isRecord, numberAt, parseFilterValue, stringAt } from './schemas';
+import type { SensorTrigger } from './shared';
+import { parseComponentTrigger } from './shared';
 
 /**
  * How many ticks apart an environmental hurt lands.
@@ -154,7 +156,9 @@ const DAMAGE_OVER_TIME_STATE = defineComponentState('minecraft:damage_over_time'
  *
  * The axolotl, the dolphin and the vex are the three vanilla users, and two of
  * them write `time_between_hurt: 0`, which the engine floors at
- * {@link HURT_INTERVAL_TICKS} rather than hurting every tick.
+ * {@link HURT_INTERVAL_TICKS} rather than hurting every tick. The first blow lands on the
+ * component's first tick, as Java's `Vex.tick` hurts a vex the tick its life runs out and
+ * `Dolphin.tick` a dolphin the tick it dries.
  */
 export const damageOverTime: ComponentFactory<EntityHooks, DamageOverTimeParams> = {
     name: 'minecraft:damage_over_time',
@@ -170,7 +174,7 @@ export const damageOverTime: ComponentFactory<EntityHooks, DamageOverTimeParams>
         const interval = Math.max(HURT_INTERVAL_TICKS, Math.round(params.timeBetweenHurt * TICKS_PER_SECOND));
         return {
             onInitialize: (entity) => {
-                entity.componentState.set(DAMAGE_OVER_TIME_STATE, { remaining: interval });
+                entity.componentState.set(DAMAGE_OVER_TIME_STATE, { remaining: 1 });
             },
             onTick: (entity) => {
                 const state = entity.componentState.get(DAMAGE_OVER_TIME_STATE);
@@ -179,6 +183,69 @@ export const damageOverTime: ComponentFactory<EntityHooks, DamageOverTimeParams>
                 entity.componentState.set(DAMAGE_OVER_TIME_STATE, { remaining: remaining > 0 ? remaining : interval });
                 if (remaining > 0) return;
                 entity.damage({ cause: 'none', amount: params.damagePerHurt });
+            }
+        };
+    }
+};
+
+/** What `minecraft:drying_out_timer` declares. */
+export interface DryingOutTimerParams {
+    /** Seconds out of water and rain before the entity has dried out. */
+    readonly totalTime: number;
+    readonly driedOut?: SensorTrigger;
+    readonly stoppedDryingOut?: SensorTrigger;
+    readonly recoverAfterDriedOut?: SensorTrigger;
+}
+
+/** Ticks an entity has spent drying out, and whether it has dried out. */
+const DRYING_OUT_STATE = defineComponentState('minecraft:drying_out_timer', {
+    elapsed: stateField.number,
+    dried: stateField.boolean
+});
+
+/**
+ * `minecraft:drying_out_timer`, the axolotl's and the dolphin's time out of water.
+ *
+ * Out of water and rain the timer counts up, and once it reaches `total_time` it fires
+ * `dried_out_event`, which is where the vanilla files hurt the entity. Water or rain stops it and
+ * fires `stopped_drying_out_event`, or `recover_after_dried_out_event` for an entity that had
+ * dried out. The vanilla numbers are Java's: an axolotl's 300 seconds are `Axolotl`'s 6000 ticks
+ * of air, and a dolphin's 120 seconds are `Dolphin.TOTAL_MOISTNESS_LEVEL`.
+ */
+export const dryingOutTimer: ComponentFactory<EntityHooks, DryingOutTimerParams> = {
+    name: 'minecraft:drying_out_timer',
+    hooks: ['onInitialize', 'onTick'],
+    schema: (value) =>
+        isRecord(value)
+            ? accepted({
+                  totalTime: numberAt(value, 'total_time', 0),
+                  driedOut: parseComponentTrigger(value.dried_out_event),
+                  stoppedDryingOut: parseComponentTrigger(value.stopped_drying_out_event),
+                  recoverAfterDriedOut: parseComponentTrigger(value.recover_after_dried_out_event)
+              })
+            : rejected('expected an object'),
+    create: (params) => {
+        const total = Math.round(params.totalTime * TICKS_PER_SECOND);
+        const raise = (entity: EntityInstance, trigger: SensorTrigger | undefined): void => {
+            if (trigger?.event !== undefined) entity.raise(trigger.event, trigger.target, 'minecraft:drying_out_timer');
+        };
+        return {
+            onInitialize: (entity) => {
+                entity.componentState.set(DRYING_OUT_STATE, { elapsed: 0, dried: false });
+            },
+            onTick: (entity) => {
+                const state = entity.componentState.get(DRYING_OUT_STATE);
+                if (state === undefined) return;
+                if (entity.filterContext().self.flag?.('in_water_or_rain') === true) {
+                    if (state.elapsed === 0 && !state.dried) return;
+                    entity.componentState.set(DRYING_OUT_STATE, { elapsed: 0, dried: false });
+                    raise(entity, state.dried ? params.recoverAfterDriedOut : params.stoppedDryingOut);
+                    return;
+                }
+                if (state.dried) return;
+                const elapsed = state.elapsed + 1;
+                entity.componentState.set(DRYING_OUT_STATE, { elapsed, dried: elapsed >= total });
+                if (elapsed >= total) raise(entity, params.driedOut);
             }
         };
     }
