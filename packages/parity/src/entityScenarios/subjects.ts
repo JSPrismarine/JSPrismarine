@@ -1,3 +1,4 @@
+import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { entitiesTable } from '@jsprismarine/mapping/tables';
 
@@ -28,20 +29,8 @@ export const stringList = (value: unknown): readonly string[] =>
           ? value.filter((entry): entry is string => typeof entry === 'string')
           : [];
 
-/** Bedrock's legacy item names, which the modern names Java's data maps to replaced. */
-const LEGACY_ITEM_NAMES: Readonly<Record<string, string>> = {
-    'minecraft:fish': 'minecraft:cod',
-    'minecraft:cooked_fish': 'minecraft:cooked_cod',
-    'minecraft:muttonraw': 'minecraft:mutton',
-    'minecraft:muttoncooked': 'minecraft:cooked_mutton',
-    'minecraft:appleenchanted': 'minecraft:enchanted_golden_apple'
-};
-
-/** An item name from a Bedrock definition, namespaced and with a legacy name replaced by the modern one. */
-export const withNamespace = (identifier: string): string => {
-    const qualified = identifier.includes(':') ? identifier : `minecraft:${identifier}`;
-    return LEGACY_ITEM_NAMES[qualified.toLowerCase()] ?? qualified;
-};
+/** An item name from a Bedrock definition as the server compares it: namespaced, with a legacy name replaced by the current one. */
+export const withNamespace = (identifier: string): string => normalizedItemIdentifier(identifier);
 
 /** The body of a Bedrock entity definition: its `components` and `component_groups`. */
 const definitionBody = (bedrock: string): unknown => {

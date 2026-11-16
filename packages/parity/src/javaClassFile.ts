@@ -53,6 +53,11 @@ export interface JavaClass {
     readonly superName?: string;
     readonly interfaces: readonly string[];
     readonly methods: readonly JavaMethod[];
+    /**
+     * The numeric `static final` constants, by field name: the values `javac` writes as a field's
+     * `ConstantValue` attribute, such as `Sniffer.SNIFFER_BABY_START_AGE`.
+     */
+    readonly constants: ReadonlyMap<string, number>;
 }
 
 /** The constant pool entries this reader resolves; every other kind is skipped by its size. */
@@ -252,16 +257,21 @@ export const javaClass = (bytes: Uint8Array): JavaClass => {
         interfaces.push(className(view.getUint16(access + 8 + 2 * index)));
     cursor = access + 8 + 2 * interfaceCount;
 
-    const skipMembers = (): void => {
-        const count = view.getUint16(cursor);
-        cursor += 2;
-        for (let member = 0; member < count; member++) {
-            const attributes = view.getUint16(cursor + 6);
-            cursor += 8;
-            for (let attribute = 0; attribute < attributes; attribute++) cursor += 6 + view.getUint32(cursor + 2);
+    const constants = new Map<string, number>();
+    const fieldCount = view.getUint16(cursor);
+    cursor += 2;
+    for (let field = 0; field < fieldCount; field++) {
+        const fieldName = utf8(view.getUint16(cursor + 2));
+        const attributes = view.getUint16(cursor + 6);
+        cursor += 8;
+        for (let attribute = 0; attribute < attributes; attribute++) {
+            if (utf8(view.getUint16(cursor)) === 'ConstantValue') {
+                const value = constantAt(view.getUint16(cursor + 6));
+                if (typeof value === 'number') constants.set(fieldName, value);
+            }
+            cursor += 6 + view.getUint32(cursor + 2);
         }
-    };
-    skipMembers();
+    }
 
     const rawMethods: { name: string; descriptor: string; code: Uint8Array | undefined }[] = [];
     const methodCount = view.getUint16(cursor);
@@ -374,7 +384,8 @@ export const javaClass = (bytes: Uint8Array): JavaClass => {
         name,
         ...(superIndex === 0 ? {} : { superName: className(superIndex) }),
         interfaces,
-        methods
+        methods,
+        constants
     };
 };
 
@@ -544,4 +555,16 @@ export const pinnedJavaClassNames = (prefix: string): readonly string[] => {
         writeFileSync(index, JSON.stringify(names));
     }
     return names.filter((name) => name.startsWith(prefix));
+};
+
+/**
+ * The numeric `static final` constants of one class in the pinned Java server jar, by field name.
+ *
+ * @param className - The class's binary name, such as `net/minecraft/world/entity/AgeableMob`.
+ * @throws {Error} When the jar is not in the fetch cache, or does not hold the class.
+ */
+export const pinnedJavaConstants = (className: string): ReadonlyMap<string, number> => {
+    const parsed = pinnedJavaClassFile(className);
+    if (parsed === undefined) throw new Error(`the server jar holds no ${className}.class`);
+    return parsed.constants;
 };
