@@ -64,6 +64,7 @@ import { javaGoalRulings, withJavaGoals } from '../entity/javaGoals';
 import { javaBabyFoods, withJavaBabyFood } from '../entity/javaBabyFood';
 import { brainGoalsOf, withBrainGoals } from '../entity/brainGoals';
 import { withoutMountPathing } from '../entity/data/riderControl';
+import { withJavaComponentRules } from '../entity/javaComponentRules';
 import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
 import { javaGoalOverlay } from '../entity/javaGoalArguments';
 import { withJavaComponentTuning } from '../entity/javaComponentTuning';
@@ -388,13 +389,15 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
                     withJavaGoalArguments(
                         withoutMountPathing(
                             withBrainGoals(
-                                withJavaComponentTuning(
-                                    withJavaAirSupply(
-                                        withJavaBabyFood(
-                                            withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
-                                            babyFoods
-                                        ),
-                                        airSupplies
+                                withJavaComponentRules(
+                                    withJavaComponentTuning(
+                                        withJavaAirSupply(
+                                            withJavaBabyFood(
+                                                withJavaBreedingFood(withPlayerOverlay(definition.data), breedingFoods),
+                                                babyFoods
+                                            ),
+                                            airSupplies
+                                        )
                                     )
                                 ),
                                 brainGoals

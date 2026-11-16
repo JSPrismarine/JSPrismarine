@@ -18,15 +18,20 @@ export const entityFileIdentifier = (data: unknown): string | undefined => {
  * @param data - The parsed JSON of an entity file.
  * @param component - The component to rewrite, such as `minecraft:breedable`.
  * @param rewrite - Builds the replacement body from the declared one and the component group
- *   that declares it, undefined for the base components.
+ *   that declares it, undefined for the base components, or answers undefined to take the
+ *   component out.
  * @returns The same object when the file declares no such component; otherwise a copy with
- *   each body replaced.
+ *   each body replaced or removed.
  */
 export const withComponentRewritten = (
     data: unknown,
     component: string,
-    rewrite: (body: Record<string, unknown>, group: string | undefined) => Record<string, unknown>
-): unknown => withComponentReplaced(data, component, (body, group) => ({ [component]: rewrite(body, group) }));
+    rewrite: (body: Record<string, unknown>, group: string | undefined) => Record<string, unknown> | undefined
+): unknown =>
+    withComponentReplaced(data, component, (body, group) => {
+        const replacement = rewrite(body, group);
+        return replacement === undefined ? {} : { [component]: replacement };
+    });
 
 /**
  * Replaces every body of `component` the file declares with the components `replace` builds
