@@ -1,6 +1,7 @@
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { NavigationView } from '@jsprismarine/entity-goals/navigation/view';
 import type { BlockQuery, GoalMob, GoalWorld } from '@jsprismarine/entity-goals/world';
+import { item_tags } from '@jsprismarine/bedrock-data';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
@@ -171,7 +172,7 @@ const GOAL_ISSUES: readonly (readonly [issue: number, matches: RegExp])[] = [
     [3166, /targets wither, which/],
     [
         3130,
-        /registers no |has no |runs no |but the server runs |a goal no Java class registers|cannot ride a chicken|does not move the chicken|keeps running its own movement|never jumps|not even below|iron sword 2\.5 blocks|takes no |holds the fish still|walks the fish/
+        /registers no |has no |runs no |but the server runs |a goal no Java class registers|cannot ride a chicken|does not move the chicken|keeps running its own movement|never jumps|not even below|2\.5 blocks away, which Java's leaves|takes no |holds the fish still|walks the fish/
     ],
     // Anything else is a goal parameter, which Java's registerGoals arguments decide (ADR 0019).
     [3128, /./]
@@ -370,8 +371,49 @@ const javaLoot = (javaId: string): 'any' | 'banners' | 'none' => {
             )
         )
         .flatMap((name) => pinnedJavaClass(name));
-    if (methods.some((method) => method.calls.some((call) => call.endsWith('.setCanPickUpLoot')))) return 'any';
+    // `readAdditionalSaveData` only restores the flag a save holds, as `Pillager`'s does.
+    if (
+        methods.some(
+            (method) =>
+                method.name !== 'readAdditionalSaveData' &&
+                method.calls.some((call) => call.endsWith('.setCanPickUpLoot'))
+        )
+    )
+        return 'any';
     return methods.some((method) => method.name === 'pickUpItem') ? 'banners' : 'none';
+};
+
+/** An item a probe offers a mob, with the Bedrock item tags the server's shareables match against. */
+interface OfferedItem {
+    readonly identifier: string;
+    readonly tags: readonly string[];
+}
+
+/** The Bedrock item tags each Bedrock item carries. */
+const bedrockTagsOf = (identifier: string): readonly string[] =>
+    Object.entries(item_tags).flatMap(([tag, members]) => (members.includes(identifier) ? [tag] : []));
+
+/**
+ * The item a probe offers a mob to pick up: an iron sword, unless the mob walks to items and its
+ * Java `canHoldItem` only takes items of a tag, as the sulfur cube's takes only
+ * `sulfur_cube_swallowable`; then the first Bedrock item of that tag.
+ */
+const offeredItem = (javaId: string, walksToItems: boolean): OfferedItem => {
+    const sword = { identifier: SWORD, tags: bedrockTagsOf(SWORD) };
+    const entityClass = javaEntityClass(javaId);
+    if (entityClass === undefined || !walksToItems) return sword;
+    const reads = javaStaticsRead(
+        { owner: entityClass, name: 'canHoldItem', descriptor: '(Lnet/minecraft/world/item/ItemStack;)Z' },
+        entityClass
+    );
+    const tag = reads.find((read) => read.owner.endsWith('/ItemTags'));
+    if (tag === undefined) return sword;
+    for (const member of serverContent().tags.members('item', `minecraft:${tag.name.toLowerCase()}`)) {
+        const mapped = javaItemToBedrock(member);
+        if (mapped.kind !== 'unknown')
+            return { identifier: mapped.bedrock.identifier, tags: bedrockTagsOf(mapped.bedrock.identifier) };
+    }
+    return sword;
 };
 
 /** A Java living entity type as a probe offers it to a goal: its Bedrock identity and families. */
@@ -405,7 +447,9 @@ const candidateMob = (candidate: Candidate, at: EntityPosition, baby = false, he
     view: () => ({
         id: () => candidate.javaId,
         flag: (name) => (name === 'is_baby' ? baby : undefined),
-        names: (name) => (name === 'is_family' ? candidate.families : undefined)
+        names: (name) => (name === 'is_family' ? candidate.families : undefined),
+        hasComponent: (name) =>
+            serverContent().entities.registry.get(candidate.bedrock)?.declaredComponents.includes(name) ?? false
     }),
     identifier: () => candidate.bedrock,
     ...(held === undefined ? {} : { heldItem: () => held })
@@ -1528,12 +1572,15 @@ const comparisons: readonly GoalComparison[] = [
             );
             const [shareables] = componentValues(subject.bedrock, 'minecraft:shareables');
             const loot = javaLoot(subject.javaId);
+            const offered = offeredItem(subject.javaId, walksToItems);
+            const name = offered.identifier.replace('minecraft:', '').replaceAll('_', ' ');
             const acts = (distance: number): { readonly walks: boolean; readonly takes: boolean } => {
                 const item = {
                     id: 'item',
                     position: () => ({ x: distance, y: 0, z: 0 }),
-                    identifier: () => 'minecraft:iron_sword',
-                    count: () => 1
+                    identifier: () => offered.identifier,
+                    count: () => 1,
+                    filterView: { identifier: () => offered.identifier, tags: () => offered.tags }
                 };
                 let takes = false;
                 let walks = false;
@@ -1542,7 +1589,11 @@ const comparisons: readonly GoalComparison[] = [
                         random: () => 0,
                         follow: false,
                         ...(shareables === undefined ? {} : { components: { 'minecraft:shareables': shareables } }),
-                        world: { items: () => [item], pickUp: () => (takes = true) }
+                        // The server's world answers only the items within the radius a goal asks for.
+                        world: {
+                            items: (radius) => (distance <= radius ? [item] : []),
+                            pickUp: () => (takes = true)
+                        }
                     });
                     gameTicks(probe, 2);
                     walks ||= walkSpeeds(probe).length > 0;
@@ -1552,15 +1603,15 @@ const comparisons: readonly GoalComparison[] = [
             const near = acts(0.5);
             const far = acts(2.5);
             const differences: string[] = [];
-            // The probe offers an iron sword, which a mob that only takes banners never wants.
+            // The probe offers an item that is no banner, which a mob that only takes banners never wants.
             if (loot !== 'any' && !walksToItems && near.takes)
                 differences.push(
-                    `it picks up an iron sword, which Java's ${loot === 'banners' ? 'leaves for banners' : 'never picks up'}`
+                    `it picks up an ${name}, which Java's ${loot === 'banners' ? 'leaves for banners' : 'never picks up'}`
                 );
             if ((loot === 'any' || walksToItems) && !near.takes)
                 differences.push("it does not pick up an item it stands on, which Java's does");
             if (far.walks && !walksToItems)
-                differences.push("it walks to an iron sword 2.5 blocks away, which Java's leaves where it lies");
+                differences.push(`it walks to an ${name} 2.5 blocks away, which Java's leaves where it lies`);
             return differences;
         }
     },
@@ -1759,6 +1810,82 @@ const riderSteeringScenario: BehaviorScenario<EntitySubject> = {
     }
 };
 
+/** The server's goal that runs Java's `LandOnOwnersShoulderGoal`, which Bedrock has no goal for. */
+const SHOULDER = 'jsprismarine:behavior.land_on_owners_shoulder';
+
+/**
+ * Java's `LandOnOwnersShoulderGoal` against the server's goal for it. Java's goal walks nowhere:
+ * the parrot's `FollowOwnerGoal` brings it near, and the goal seats it once its box touches its
+ * owner's, after `ShoulderRidingEntity.canSitOnShoulder`'s cooldown, never while it sits and never
+ * on an owner in water. The probe stands a player owner beside the mob and counts the game ticks
+ * until it lands.
+ */
+const shoulderScenario: BehaviorScenario<EntitySubject> = {
+    name: 'goal-land-on-owners-shoulder',
+    java: "A tamed parrot lands on its owner's shoulder once its box touches the owner's and it has been off a shoulder for more than ShoulderRidingEntity's cooldown, never while it sits and never on an owner in water, and no goal walks it to its owner.",
+    reference:
+        'Java LandOnOwnersShoulderGoal.canUse and tick, and ShoulderRidingEntity.canSitOnShoulder (rideCooldownCounter > 100), read from the pinned jar',
+    subjects: () => entitiesDeclaring(SHOULDER).filter((subject) => !brainOnly(subject)),
+    idOf: (subject) => subject.javaId,
+    aspects: () => [SHOULDER],
+    classify: goalGap("A tamed parrot lands on its owner's shoulder as Java's LandOnOwnersShoulderGoal has it."),
+    run: (subject) => {
+        if (!javaGoals(subject.javaId).some((goal) => isGoal(goal, ['LandOnOwnersShoulderGoal'])))
+            return `Java's ${subject.javaId} registers no LandOnOwnersShoulderGoal, but the server runs ${SHOULDER}`;
+        const [cooldown] = javaMethodNumbers(
+            'net/minecraft/world/entity/animal/parrot/ShoulderRidingEntity',
+            'canSitOnShoulder'
+        );
+        if (cooldown === undefined) return "Java's shoulder cooldown could not be read";
+        const owner = (at: EntityPosition, inWater = false): GoalMob => ({
+            ...playerAt(at),
+            view: () => ({
+                ...playerAt(at).view(),
+                flag: (name) => (name === 'in_water' ? inWater : undefined)
+            })
+        });
+        /** The game tick the mob lands on its owner, or undefined when it never does in `limit`. */
+        const landing = (
+            body: unknown,
+            ownerMob: GoalMob,
+            flags: ProbeSetup['flags'] = {}
+        ): { readonly tick: number | undefined; readonly walked: boolean } => {
+            let clock = 0;
+            let landed: number | undefined;
+            const probe = probeGoal(SHOULDER, body, {
+                flags,
+                at: { x: 0, y: 0, z: 0 },
+                world: {
+                    owner: () => ownerMob,
+                    gameTime: () => clock,
+                    vehicle: () => undefined,
+                    mount: () => {
+                        landed ??= clock;
+                    }
+                }
+            });
+            for (clock = 1; clock <= cooldown * 2 && landed === undefined; clock += 1)
+                probe.entity.goals.tick(clock % 2 === 0);
+            return { tick: landed, walked: walkSpeeds(probe).length > 0 };
+        };
+        const differences: string[] = [];
+        for (const { body } of declaredGoals(subject.bedrock, SHOULDER)) {
+            const touching = landing(body, owner({ x: 0.3, y: 0, z: 0 }));
+            if (touching.tick === undefined) differences.push('it never lands on an owner it touches');
+            else if (Math.abs(touching.tick - (cooldown + 1)) > 2)
+                differences.push(`it lands after ${touching.tick} ticks, where Java waits until ${cooldown + 1}`);
+            const apart = landing(body, owner({ x: 3, y: 0, z: 0 }));
+            if (apart.tick !== undefined) differences.push('it lands on an owner 3 blocks away');
+            if (apart.walked) differences.push("it walks to its owner, which Java's goal never does");
+            if (landing(body, owner({ x: 0.3, y: 0, z: 0 }, true)).tick !== undefined)
+                differences.push('it lands on an owner in water');
+            if (landing(body, owner({ x: 0.3, y: 0, z: 0 }), { is_sitting: true }).tick !== undefined)
+                differences.push('it lands while it sits');
+        }
+        return differences.length === 0 ? undefined : [...new Set(differences)].join('; ');
+    }
+};
+
 /** The brain mobs whose Bedrock goals in this theme the server must leave idle, with what each spawned as. */
 const brainProbe = new Map<string, string | undefined>();
 
@@ -1834,5 +1961,6 @@ export const goalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         }
     },
     ...comparisons.map(goalScenario),
-    riderSteeringScenario
+    riderSteeringScenario,
+    shoulderScenario
 ];

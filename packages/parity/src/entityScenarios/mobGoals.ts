@@ -1,5 +1,6 @@
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 
+import { addTrusted } from '@jsprismarine/entities/components/trust';
 import { dragonPhaseState } from '@jsprismarine/entity-goals/goals/dragonPhases';
 import type { DragonPhaseName } from '@jsprismarine/entity-goals/goals/dragonPhases';
 
@@ -2013,17 +2014,26 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         java: 'A fox that trusts a player attacks whatever hurts that player.',
         reference: 'Java Fox.DefendTrustedTargetGoal (targets the last attacker of a trusted player)',
         run: (subject) =>
-            probeGoals(subject, ['defend_trusted_target'], { groups: ['minecraft:trusting_fox'] }, (probe) => {
-                const friend = probe.player(2, 0, 0);
-                probe.runtime.setOwner(probe.entity.id, friend);
-                const zombie = still(probe.spawn('minecraft:zombie', 4, 0, 0));
-                const friendMob = probe.runtime.mobById(friend);
-                if (friendMob !== undefined) probe.runtime.attack(zombie.body, friendMob);
-                probe.tick(10);
-                return probe.entity.target === zombie.id
-                    ? undefined
-                    : 'it did not turn on the attacker of its trusted player';
-            })
+            // A first draw of 0 passes the scan Java's goal runs on one selector tick in five.
+            probeGoals(
+                subject,
+                ['defend_trusted_target'],
+                { groups: ['minecraft:trusting_fox'], random: [0] },
+                (probe) => {
+                    const friend = probe.player(2, 0, 0);
+                    // A Java fox has no owner: `Fox.trusts` reads the players it was bred for.
+                    const identity = probe.world.host.playerIdentityOf?.(friend);
+                    if (identity === undefined || !addTrusted(probe.entity.instance, [identity]))
+                        return 'it cannot be made to trust a player';
+                    const zombie = still(probe.spawn('minecraft:zombie', 4, 0, 0));
+                    const friendMob = probe.runtime.mobById(friend);
+                    if (friendMob !== undefined) probe.runtime.attack(zombie.body, friendMob);
+                    probe.tick(10);
+                    return probe.entity.target === zombie.id
+                        ? undefined
+                        : 'it did not turn on the attacker of its trusted player';
+                }
+            )
     }),
     goalScenario({
         goals: ['eat_carried_item'],
