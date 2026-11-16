@@ -132,6 +132,8 @@ import { VEHICLE_DAMAGE_DECAY_PER_TICK, boatItemOf, isBreakableVehicle, vehicleB
 import { ITEM_HOPPER, ITEM_HOPPER_QUERY_RADIUS, inHopperReach, insertStack } from './itemHopper';
 import type { CushionHost } from './cushionFire';
 import type { FlappingHost } from './flapping';
+import type { MobBlockHost } from './mobBlockRules';
+import { BREAK_BLOCKS_COMPONENT, breakLeaves, leaveTrail } from './mobBlockRules';
 import { FLAP_EVENT, updateFlapping } from './flapping';
 import { isCushion, updateCushion } from './cushionFire';
 import type { EntityFacts } from './facts';
@@ -613,6 +615,42 @@ export class EntityRuntime implements EntityScene {
         },
         isPassenger: (entity) => this.rides.vehicleOf(entity.id) !== undefined,
         emit: (entity) => this.world.effects.emitGameEvent(FLAP_EVENT, blockPositionOf(entity.position), entity.id)
+    };
+    /** The entities whose coast this tick ran into a wall, as Java's `horizontalCollision` records. */
+    private readonly horizontalCollisions = new Set<number>();
+    /** What a snow golem's trail and a ravager's leaf breaking read and do. */
+    private readonly mobBlockHost: MobBlockHost = {
+        mobGriefing: () => ruleIsOn(this.world.level, MOB_GRIEFING),
+        isAir: (at) => {
+            const block = this.world.blocks.get(at);
+            return block === undefined || block.identifier === AIR;
+        },
+        canSurvive: (identifier, at) => {
+            const below = { x: at.x, y: at.y - 1, z: at.z };
+            const block = this.world.blocks.get(below);
+            if (block === undefined) return false;
+            if (identifier === SNOW_LAYER) {
+                // `SnowLayerBlock.canSurvive`: never on ice or a barrier, always on honey, soul
+                // sand or mud, and otherwise on a full top face.
+                const tags = javaBlockTagsForBedrock(this.content().tags, block.identifier, block.states);
+                if (tags.includes(SNOW_CANNOT_SURVIVE_ON_TAG)) return false;
+                if (tags.includes(SNOW_CAN_SURVIVE_ON_TAG)) return true;
+            }
+            return this.navigation().isSolid(below);
+        },
+        place: (entity, identifier, at) => {
+            this.world.blocks.set(at, { identifier, states: {} }, true);
+            this.world.effects.emitGameEvent(BLOCK_PLACE_EVENT, at, entity.id);
+        },
+        isLeaves: (at) => {
+            const block = this.world.blocks.get(at);
+            return (
+                block !== undefined &&
+                javaBlockTagsForBedrock(this.content().tags, block.identifier, block.states).includes(LEAVES_TAG)
+            );
+        },
+        destroy: (at) => this.breakBlock(at),
+        jump: (entity) => entity.body.jump()
     };
     /** What a cushion's fire and lava check reads and does. */
     private readonly cushionHost: CushionHost = {
@@ -2068,6 +2106,7 @@ export class EntityRuntime implements EntityScene {
         if (isCopperGolem(entity) && tickCopperGolemStatue(entity, this.statueHost)) return;
         const from = { ...entity.position };
         const fromY = from.y;
+        this.horizontalCollisions.delete(entity.id);
         // Java's ender dragon is `noPhysics`: its phases fly it, and nothing pulls it down.
         if (!JAVA_NO_PHYSICS.has(entity.identifier)) this.coast(entity);
         if (entity.removed !== undefined) return;
@@ -2075,6 +2114,9 @@ export class EntityRuntime implements EntityScene {
         this.updateMedium(entity);
         this.updateGrounded(entity);
         updateFlapping(entity, from, this.flappingHost);
+        if (entity.instance.hasComponent(BREAK_BLOCKS_COMPONENT) && this.collidedHorizontally(entity))
+            breakLeaves(entity, this.mobBlockHost);
+        leaveTrail(entity, this.mobBlockHost);
         this.checkFallDamage(entity, fromY);
         if (entity.removed !== undefined) return;
         this.tickAreaAttack(entity, tick);
@@ -5840,6 +5882,7 @@ export class EntityRuntime implements EntityScene {
         const hitHorizontalX = Math.abs(next.x - (position.x + travelX)) > MOVEMENT_EPSILON;
         next = moveOnAxis(next, position.z + travelZ, 'z', canOccupy);
         const hitHorizontalZ = Math.abs(next.z - (position.z + travelZ)) > MOVEMENT_EPSILON;
+        if (hitHorizontalX || hitHorizontalZ) this.horizontalCollisions.add(entity.id);
         const nextVertical = moveOnAxis(next, nextY, 'y', canOccupy);
         const hitVerticalCollision = Math.abs(nextVertical.y - nextY) > MOVEMENT_EPSILON;
         const horizontalVelocity = {
@@ -5952,6 +5995,20 @@ export class EntityRuntime implements EntityScene {
                 z: from.z + (to.z - from.z) * fraction
             };
             const target = this.projectileTargetAt(entity, at, state);
+            if (target instanceof DataEntity && target.instance.type.hasTag(DEFLECTS_PROJECTILES_TAG)) {
+                // `Projectile.hitTargetOrDeflectSelf`: a type in Java's `deflects_projectiles`
+                // turns the projectile back with `ProjectileDeflection.REVERSE` and takes no hit,
+                // and `lastDeflectedBy` keeps the same entity from touching it again.
+                state.hitEntities.add(target.id);
+                body.position = lastSafe;
+                body.velocity = {
+                    x: -velocity.x * REVERSE_SPEED,
+                    y: -velocity.y * REVERSE_SPEED,
+                    z: -velocity.z * REVERSE_SPEED
+                };
+                body.yaw += REVERSE_TURN + this.world.random.nextFloat() * REVERSE_TURN_SPREAD;
+                return;
+            }
             if (target !== undefined) {
                 const evaded =
                     target instanceof DataEntity &&
@@ -6550,6 +6607,22 @@ export class EntityRuntime implements EntityScene {
         });
     }
 
+    /**
+     * Whether the entity ran into a wall this tick, Java's `horizontalCollision`: its coast was
+     * stopped on a horizontal axis, or it walks with a block pressed against its side.
+     */
+    private collidedHorizontally(entity: DataEntity): boolean {
+        if (this.horizontalCollisions.has(entity.id)) return true;
+        if (!entity.body.walking) return false;
+        const box = entity.facts.box;
+        return !bodyCanOccupy(
+            entity.position,
+            { ...box, width: box.width + 2 * WALL_CONTACT },
+            this.navigation(),
+            this.componentFactsOf(entity).canStandOnPowderSnow
+        );
+    }
+
     /** Applies Java's horizontal push impulse after this entity has moved for the tick. */
     private pushIntersectingEntity(first: DataEntity): void {
         if (!this.hasEntityCollision(first)) return;
@@ -6992,6 +7065,32 @@ const SERIALIZE_INTO_BLOCK = 'minecraft:serialize_entity';
 
 /** Java's tag of the blocks a leash knot ties to, which `LeashFenceKnotEntity.survives` reads. */
 const FENCES_TAG = 'minecraft:fences';
+
+/** Java's entity type tag of the mobs that turn projectiles back, the breeze's. */
+const DEFLECTS_PROJECTILES_TAG = 'minecraft:deflects_projectiles';
+
+/** `ProjectileDeflection.REVERSE` scales the projectile's speed by -0.5. */
+const REVERSE_SPEED = 0.5;
+
+/** `ProjectileDeflection.REVERSE` turns the projectile 170 degrees plus a draw of up to 20 more. */
+const REVERSE_TURN = 170;
+const REVERSE_TURN_SPREAD = 20;
+
+/** How far past its box a walking body looks for a wall it is pressed against. */
+const WALL_CONTACT = 0.01;
+
+/** Java's tag of the `LeavesBlock`s, which `Ravager.aiStep` breaks. */
+const LEAVES_TAG = 'minecraft:leaves';
+
+/** Bedrock's snow layer, Java's `Blocks.SNOW`. */
+const SNOW_LAYER = 'minecraft:snow_layer';
+
+/** The blocks `SnowLayerBlock.canSurvive` refuses and accepts whatever their top face. */
+const SNOW_CANNOT_SURVIVE_ON_TAG = 'minecraft:snow_layer_cannot_survive_on';
+const SNOW_CAN_SURVIVE_ON_TAG = 'minecraft:snow_layer_can_survive_on';
+
+/** The game event a placed block sends. */
+const BLOCK_PLACE_EVENT = 'minecraft:block_place';
 
 /** Java's block tag of the fire blocks, which `Cushion.destroyIfInFire` looks for. */
 const FIRE_TAG = 'minecraft:fire';
