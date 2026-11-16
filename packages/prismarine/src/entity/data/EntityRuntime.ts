@@ -96,6 +96,7 @@ import { leashSnapDistance } from './leash';
 import {
     BLOCK_DROPS,
     ENTITY_DROPS,
+    FALL_DAMAGE,
     FIRE_DAMAGE,
     MOB_DROPS,
     MOB_GRIEFING,
@@ -224,6 +225,7 @@ import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 import { isDay } from '../../world/DayCycle';
 import type { GameEventListener } from '../../world/GameEventListenerRegistry';
 import { VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from '../Environment';
+import { cushions } from '../playerFall';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
@@ -670,6 +672,8 @@ export class EntityRuntime implements EntityScene {
     >();
     /** Flight age and impacts already passed through for each active projectile. */
     private readonly projectiles = new Map<number, ProjectileState>();
+    /** How far each falling living body has dropped since it last stood on something, Java's `fallDistance`. */
+    private readonly fallDistances = new Map<number, number>();
     /** The causes Java's `witch_resistant_to` damage type tag names, read from the content once. */
     private witchResistedCauses: ReadonlySet<DamageCause> | undefined;
     /** Ticks each live lightning bolt has existed, which decides when it strikes and when it goes. */
@@ -1715,6 +1719,7 @@ export class EntityRuntime implements EntityScene {
         this.merchantSnapshots.delete(id);
         this.fallingBlocks.delete(id);
         this.projectiles.delete(id);
+        this.fallDistances.delete(id);
         this.lightningAges.delete(id);
         // Not through `setFuse`: an undo adds the entity back through `restore`, which starts its fuse again.
         this.fuses.delete(id);
@@ -1963,12 +1968,15 @@ export class EntityRuntime implements EntityScene {
         this.index.refreshFamilies(entity);
         this.tickBrain(entity);
         tickBrainNavigation(entity);
+        const fromY = entity.position.y;
         // Java's ender dragon is `noPhysics`: its phases fly it, and nothing pulls it down.
         if (!JAVA_NO_PHYSICS.has(entity.identifier)) this.coast(entity);
         if (entity.removed !== undefined) return;
         this.step(entity);
         this.updateMedium(entity);
         this.updateGrounded(entity);
+        this.checkFallDamage(entity, fromY);
+        if (entity.removed !== undefined) return;
         this.tickAreaAttack(entity, tick);
         if (entity.removed !== undefined) return;
         if (this.tickFuse(entity)) return;
@@ -2705,6 +2713,8 @@ export class EntityRuntime implements EntityScene {
             readonly mitigated?: boolean;
             /** Whether the target's grace period after a blow turns this one aside. */
             readonly graced?: boolean;
+            /** Whether the amount is already the rule's result, which a damage sensor leaves alone. */
+            readonly measured?: boolean;
         } = {}
     ): boolean {
         const outcome = this.blow(entity, sourceId, cause, amount, options);
@@ -2717,9 +2727,9 @@ export class EntityRuntime implements EntityScene {
         sourceId: number | undefined,
         cause: string,
         amount: number,
-        options: Pick<Partial<DamageSourceFacts>, 'feedback' | 'route' | 'mitigated' | 'graced'>
+        options: Pick<Partial<DamageSourceFacts>, 'feedback' | 'route' | 'mitigated' | 'graced' | 'measured'>
     ): DamageOutcome {
-        const { feedback, mitigated, graced } = options;
+        const { feedback, mitigated, graced, measured } = options;
         return this.damage({
             target: entity.id,
             ...(sourceId === undefined ? {} : { attacker: sourceId }),
@@ -2729,7 +2739,8 @@ export class EntityRuntime implements EntityScene {
                 route: options.route ?? 'mob_attack',
                 ...(feedback === undefined ? {} : { feedback }),
                 ...(mitigated === undefined ? {} : { mitigated }),
-                ...(graced === undefined ? {} : { graced })
+                ...(graced === undefined ? {} : { graced }),
+                ...(measured === undefined ? {} : { measured })
             }
         });
     }
@@ -5274,6 +5285,60 @@ export class EntityRuntime implements EntityScene {
         return content.blocks.table.friction[runtimeId] ?? DEFAULT_BLOCK_FRICTION;
     }
 
+    /**
+     * Adds the tick's drop to a living body's fall and pays for the fall when the body lands,
+     * as Java's `Entity.checkFallDamage` does after every move.
+     *
+     * Water, a climbable block, levitation and slow falling end the fall, as
+     * `Entity.updateInWaterStateAndDoFluidPushing`, `LivingEntity.handleOnClimbable` and
+     * `LivingEntity.travel` reset `fallDistance`. A landing costs Java's
+     * `LivingEntity.calculateFallDamage`: the fall past the type's `safe_fall_distance` attribute
+     * times its `fall_damage_multiplier`, floored. Only a type Java's attribute dump lists falls
+     * this way, which is exactly the living ones. A landing on what breaks a player's fall is free,
+     * as {@link cushions} decides for a player.
+     */
+    private checkFallDamage(entity: DataEntity, fromY: number): void {
+        const stats = javaEntityStats(entity.identifier, this.content().entities.javaStats);
+        if (stats === undefined) return;
+        const { body } = entity;
+        const effects = body.statusEffects;
+        if (
+            body.conditions.has('in_water') ||
+            effects.has('minecraft:levitation') ||
+            effects.has('minecraft:slow_falling') ||
+            this.onClimbable(entity.position)
+        ) {
+            this.fallDistances.delete(entity.id);
+            return;
+        }
+        // The tick's drop counts before the landing it ends in, as `checkFallDamage` adds it first.
+        const drop = fromY - entity.position.y;
+        const fallen = (this.fallDistances.get(entity.id) ?? 0) + Math.max(0, drop);
+        if (!body.conditions.has('on_ground')) {
+            if (fallen > 0) this.fallDistances.set(entity.id, fallen);
+            return;
+        }
+        this.fallDistances.delete(entity.id);
+        if (fallen <= 0 || !ruleIsOn(this.world.level, FALL_DAMAGE)) return;
+
+        const safe = stats.attributes[SAFE_FALL_DISTANCE] ?? DEFAULT_SAFE_FALL_DISTANCE;
+        const multiplier = stats.attributes[FALL_DAMAGE_MULTIPLIER] ?? 1;
+        const damage = Math.floor((fallen + FALL_EPSILON - safe) * multiplier);
+        if (damage <= 0) return;
+        const { x, y, z } = blockPositionOf(entity.position);
+        const feet = this.world.blocks.get({ x, y, z })?.identifier;
+        const below = this.world.blocks.get({ x, y: y - 1, z })?.identifier;
+        if (cushions(feet, below)) return;
+        this.blow(entity, undefined, 'fall', damage, {
+            route: 'component',
+            graced: true,
+            mitigated: true,
+            // A type whose Java class sets its own safe fall has had its fall measured by it,
+            // which the pack's own fall modifier, such as the camel's -4, stands in for.
+            measured: safe !== DEFAULT_SAFE_FALL_DISTANCE || multiplier !== 1
+        });
+    }
+
     /** Stops an entity's fall and raises its landing trigger on an airborne-to-ground transition. */
     private land(entity: DataEntity): void {
         const { body, instance } = entity;
@@ -6253,6 +6318,16 @@ const JAVA_DEFAULT_GRAVITY: ReadonlyMap<string, number> = new Map([
     ['minecraft:area_effect_cloud', 0],
     ['minecraft:fireworks_rocket', 0]
 ]);
+
+/** Java's attribute of how far a living body falls before the landing hurts, and its registry default. */
+const SAFE_FALL_DISTANCE = 'minecraft:safe_fall_distance';
+const DEFAULT_SAFE_FALL_DISTANCE = 3;
+
+/** Java's attribute that scales fall damage. */
+const FALL_DAMAGE_MULTIPLIER = 'minecraft:fall_damage_multiplier';
+
+/** What `LivingEntity.calculateFallPower` adds to a fall, so a fall of exactly a whole block counts it. */
+const FALL_EPSILON = 1e-6;
 
 /** The mobs whose Java code slows a fall, and the share of the falling speed they keep each tick. */
 const SLOW_FALLERS: ReadonlySet<string> = new Set(['minecraft:chicken', 'minecraft:blaze', 'minecraft:parrot']);

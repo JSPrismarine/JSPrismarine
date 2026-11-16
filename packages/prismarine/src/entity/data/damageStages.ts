@@ -118,7 +118,12 @@ export class DamageSensingSlot {
         if (target === undefined) return undefined;
 
         const damager = intent.attacker === undefined ? undefined : this.reads.damagerView(intent.attacker);
-        const sensing = target.instance.senseDamage({ cause: intent.cause, amount: intent.amount, damager });
+        const sensing = target.instance.senseDamage({
+            cause: intent.cause,
+            amount: intent.amount,
+            damager,
+            ...(intent.source.measured === true ? { measured: true } : {})
+        });
         this.sensed = { intent, sensing };
         return sensing;
     }

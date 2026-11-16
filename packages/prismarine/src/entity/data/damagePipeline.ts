@@ -64,6 +64,12 @@ export interface DamageSourceFacts {
     readonly bypassesEnchantments?: boolean;
     /** Whether the blow ignores the grace period, as `/kill` and the void do. */
     readonly bypassesGrace?: boolean;
+    /**
+     * Whether the amount is already what the target's own rules make of the cause, as a fall
+     * measured against the type's Java safe fall distance is, so a damage sensor leaves the amount
+     * alone and only fires its event. See `DamageEvent.measured`.
+     */
+    readonly measured?: boolean;
     /** Where the blow shoves the target away from, and with how many Knockback levels. */
     readonly knockback?: { readonly origin: ContentPosition; readonly levels: number };
     /** Whether a blow that lands shows the hurt animation and sound; true when left out. */
