@@ -22,6 +22,37 @@ const flatWorld = (size = 32): GoalWorld => {
 
 const walker = { 'minecraft:collision_box': { width: 0.6, height: 1.8 }, 'minecraft:navigation.walk': {} };
 
+describe('minecraft:behavior.rise_to_liquid_level', () => {
+    it('floats the entity while its stroll walks it, as Java floats a strider from Strider.tick', () => {
+        const size = 16;
+        const floor = Array.from({ length: size }, () => '#'.repeat(size));
+        const lava = Array.from({ length: size }, () => '!'.repeat(size));
+        const air = Array.from({ length: size }, () => '.'.repeat(size));
+        const view = voxelGrid([floor, lava, air, air, air]);
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.rise_to_liquid_level': { priority: 0, liquid_y_offset: 0.25 },
+                'minecraft:behavior.random_stroll': { priority: 8, interval: 0, xz_dist: 4, y_dist: 0 }
+            },
+            components: {
+                ...walker,
+                'minecraft:navigation.walk': { can_path_over_lava: true, can_walk_in_lava: true }
+            },
+            world: { navigation: () => view },
+            at: { x: 8.5, y: 1.5, z: 8.5 },
+            flags: { in_lava: true }
+        });
+
+        harness.tick();
+
+        expect(harness.running()).toEqual([
+            'minecraft:behavior.rise_to_liquid_level',
+            'minecraft:behavior.random_stroll'
+        ]);
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.random_stroll');
+    });
+});
+
 describe('minecraft:behavior.random_stroll', () => {
     it('claims the move flag and walks to a position the path finder reached', () => {
         const harness = new GoalHarness({

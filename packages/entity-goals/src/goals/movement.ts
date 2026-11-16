@@ -491,7 +491,8 @@ export const slimeFloat = goal<{ readonly jumpChance: number; readonly speedMult
  * `minecraft:behavior.rise_to_liquid_level`, which the strider carries. In a liquid the entity
  * floats up until it stands `liquid_y_offset` into the top liquid block, and sinks back when it
  * is above that, as Java's `Strider.floatStrider` lifts a strider 0.05 a tick until it stands on
- * the lava's surface.
+ * the lava's surface. Java floats it from `Strider.tick`, not from a goal, so the goal holds no
+ * control flag: a strider walks across the lava while it floats.
  */
 export const riseToLiquidLevel = goal<{
     readonly liquidYOffset: number;
@@ -499,7 +500,7 @@ export const riseToLiquidLevel = goal<{
     readonly sinkDelta: number;
 }>({
     name: 'minecraft:behavior.rise_to_liquid_level',
-    controlFlags: ['move'],
+    controlFlags: [],
     schema: bodySchema((body) => ({
         liquidYOffset: numberAt(body, 'liquid_y_offset', 0),
         riseDelta: numberAt(body, 'rise_delta', 0.01),
