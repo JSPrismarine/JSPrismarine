@@ -11,6 +11,7 @@ import { physicsScenarios } from './entityScenarios/physics.ts';
 import { damageScenarios } from './entityScenarios/damage.ts';
 import { goalScenarios } from './entityScenarios/goals.ts';
 import { spawnScenarios } from './entityScenarios/spawning.ts';
+import { statsScenarios } from './entityScenarios/stats.ts';
 import { javaEntityIds } from './entityScenarios/subjects.ts';
 import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
@@ -28,7 +29,8 @@ const ENTITY_SCENARIO_GROUPS: readonly ScenarioGroup[] = [
     scenarioGroup(engineScenarios),
     scenarioGroup(physicsScenarios),
     scenarioGroup(damageScenarios),
-    scenarioGroup(goalScenarios)
+    scenarioGroup(goalScenarios),
+    scenarioGroup(statsScenarios)
 ];
 
 describeFamily(
