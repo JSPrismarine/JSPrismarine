@@ -70,6 +70,7 @@ import { javaSpawnRulings, withJavaSpawnEvents } from '../entity/javaSpawnEvents
 import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
 import { javaGoalOverlay } from '../entity/javaGoalArguments';
 import { withJavaComponentTuning } from '../entity/javaComponentTuning';
+import { withJavaLlamaStrength } from '../entity/javaLlamaStrength';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
 
 /** The resolved block domain. */
@@ -395,6 +396,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     // overlay sees the file the ones before it wrote, so a later, more specific ruling wins.
     const overlays: readonly ((data: unknown) => unknown)[] = [
         withPlayerOverlay,
+        withJavaLlamaStrength,
         (data) => withJavaBreedingFood(data, breedingFoods),
         (data) => withJavaBabyFood(data, babyFoods),
         (data) => withJavaAirSupply(data, airSupplies),
