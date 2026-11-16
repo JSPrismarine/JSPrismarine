@@ -38,6 +38,12 @@ const SADDLE_SLOT = {
     ]
 };
 
+/**
+ * The container the saddle slot lives in, one slot: Java's skeleton horse carries a saddle and
+ * nothing else, as `AbstractHorse.getInventoryColumns` gives it no storage.
+ */
+const SADDLE_CONTAINER = { inventory_size: 1, container_type: 'horse' };
+
 /** Putting a saddle on from the hand, as the pack's zombie horse writes it. */
 const SADDLE_INTERACTION = {
     interactions: [
@@ -87,6 +93,7 @@ export const withJavaSkeletonHorseSaddle = (data: unknown): unknown => {
                 [ADULT_GROUP]: {
                     ...adult,
                     'minecraft:equippable': SADDLE_SLOT,
+                    'minecraft:inventory': SADDLE_CONTAINER,
                     'minecraft:interact': SADDLE_INTERACTION
                 },
                 [SADDLED_GROUP]: {

@@ -471,7 +471,14 @@ const runTicks = (ticks: number, done: () => boolean = () => false): void => {
 /** Makes the groups that declare `component` active, as the event that adds them would. */
 const activateGroupsDeclaring = (entity: DataEntity, bedrock: string, component: string): void => {
     if (entity.instance.hasComponent(component)) return;
-    const groups = groupsDeclaring(bedrock, component);
+    // The loaded type's groups, which carry what the server's overlays add to the pack's file.
+    const loaded = serverContent().entities.registry.get(bedrock)?.groups;
+    const groups =
+        loaded === undefined
+            ? groupsDeclaring(bedrock, component)
+            : [...loaded.values()]
+                  .filter((group) => group.components.some((bound) => bound.name === component))
+                  .map((group) => group.name);
     entity.instance.restoreComponentGroups([...entity.instance.activeComponentGroups(), ...groups]);
 };
 
@@ -822,6 +829,7 @@ const JAVA_STORAGE: ReadonlyMap<string, (strength: number) => number> = new Map<
     // a chest and Llama its strength; AbstractMountInventoryMenu.getInventorySize is three a column.
     ['minecraft:horse', () => 0],
     ['minecraft:zombie_horse', () => 0],
+    ['minecraft:skeleton_horse', () => 0],
     ['minecraft:camel', () => 0],
     ['minecraft:camel_husk', () => 0],
     ['minecraft:nautilus', () => 0],
@@ -842,8 +850,12 @@ const JAVA_STORAGE: ReadonlyMap<string, (strength: number) => number> = new Map<
  * one per slot it lists, as the llama's carpet sits in container slot 0 though its screen calls it
  * slot 1.
  */
-const equippableSlots = (bedrock: string): number =>
-    componentValues(bedrock, 'minecraft:equippable').reduce<number>((most, declared) => {
+const equippableSlots = (bedrock: string, live?: DataEntity): number =>
+    [
+        ...componentValues(bedrock, 'minecraft:equippable'),
+        // The live entity's copy covers slots a server overlay adds, which the pack's file lacks.
+        live?.instance.componentParams('minecraft:equippable')
+    ].reduce<number>((most, declared) => {
         const slots = field(declared, 'slots');
         return Array.isArray(slots) ? Math.max(most, slots.length) : most;
     }, 0);
@@ -1734,7 +1746,7 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 runTicks(1);
                 const strength = field(entity.instance.componentParams('minecraft:strength'), 'value');
                 const expected = java(typeof strength === 'number' ? strength : 0);
-                const storage = entity.body.containerCapacity - equippableSlots(subject.bedrock);
+                const storage = entity.body.containerCapacity - equippableSlots(subject.bedrock, entity);
                 return storage === expected
                     ? undefined
                     : `it has ${storage} storage slots${typeof strength === 'number' ? ` at strength ${strength}` : ''}, where Java gives it ${expected}`;

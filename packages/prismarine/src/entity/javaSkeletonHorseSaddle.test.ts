@@ -33,6 +33,8 @@ describe('withJavaSkeletonHorseSaddle', () => {
         expect(horse.hasComponent('minecraft:input_ground_controlled')).toBe(false);
         expect(horse.hasComponent('minecraft:can_power_jump')).toBe(false);
         expect(horse.hasComponent('minecraft:equippable')).toBe(true);
+        // The saddle goes into slot 0 of a container, which the pack's skeleton horse has none of.
+        expect(horse.componentParams('minecraft:inventory')).toMatchObject({ inventorySize: 1 });
 
         horse.fire('minecraft:horse_saddled');
         horse.applyQueuedEvents();
