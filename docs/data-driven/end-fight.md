@@ -17,6 +17,16 @@ Entering the exit portal starts credits on a player's first exit from that save.
 the player's respawn point waits for the client to finish or skip the credits. Later exits skip the
 credits screen.
 
+## How the dragon flies
+
+The dragon follows Java's phase rules. It circles the fountain along rings of path nodes, and
+between laps it may turn to strafe a nearby player with a dragon fireball or come in to land on
+the exit portal. Breaking an end crystal while it circles sends it after the player who broke the
+crystal. On the portal it turns toward a nearby player, roars, and breathes a cloud of dragon
+breath that hurts anyone standing in it. It takes off again after several breaths, after enough
+damage while perched, or when no player comes near the portal. In that last case it dives at the
+nearest player in the arena, if there is one. The dragon saves its current phase, so a reload resumes the same part of the fight.
+
 ## Respawning the dragon
 
 Place four end crystals on obsidian or bedrock at the four cardinal positions, three blocks from
