@@ -300,6 +300,9 @@ const PROJECTILE_KNOCKBACK = 0.4;
 /** What an ender pearl's landing hurts the player who threw it, Java's `ThrownEnderpearl.onHit` `enderPearl` 5. */
 const ENDER_PEARL_DAMAGE = 5;
 
+/** The types whose vibrations no listener hears, Java's `Entity.dampensVibrations` overrides. */
+const DAMPENS_VIBRATIONS: ReadonlySet<string> = new Set(['minecraft:warden']);
+
 /** The component spellings for the equipment slots the runtime stores. */
 const COMPONENT_EQUIPMENT_SLOTS = {
     mainhand: 'slot.weapon.mainhand',
@@ -2607,6 +2610,10 @@ export class EntityRuntime implements EntityScene {
             getDeliveryMode: () => 'by_distance',
             handleGameEvent: (event) => {
                 if (event.sourceId === entity.id) return;
+                // Java's `VibrationSystem.User.isValidVibration` passes over what a warden does, whose
+                // `dampensVibrations` is true.
+                const source = event.sourceId === undefined ? undefined : this.store.get(event.sourceId);
+                if (source !== undefined && DAMPENS_VIBRATIONS.has(source.identifier)) return;
                 if (entity.identifier === 'minecraft:warden')
                     this.recordPointOfInterest('suspicious_location', event.at);
                 if (entity.identifier === 'minecraft:allay' && event.event === 'minecraft:note_block_play')

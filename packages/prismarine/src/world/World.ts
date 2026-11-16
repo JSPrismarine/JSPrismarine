@@ -107,6 +107,7 @@ import type { SealedTick } from './changelog/ChangeLog';
 import type { TickHeader } from './changelog/TickHeader';
 import type { ChangeLogCost } from './changelog/changeLogCost';
 import { changeLogCost } from './changelog/changeLogCost';
+import { canUsePortal } from '../entity/portalUse';
 
 export type { LevelData, StoredPlayerAttribute, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 
@@ -3972,6 +3973,8 @@ export class World implements Service {
         const travel = this.server.getDimensionTravel();
         for (const entity of entities) {
             if (isMidDimensionChange(entity)) continue;
+            if (!canUsePortal(entity.getType(), (component) => entity.entity.instance.hasComponent(component)))
+                continue;
             const portal = this.portalOverlapping(entity);
             if (portal !== undefined) travel.touch(entity, portal);
         }
