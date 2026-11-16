@@ -674,6 +674,8 @@ export class EntityRuntime implements EntityScene {
     private readonly projectiles = new Map<number, ProjectileState>();
     /** How far each falling living body has dropped since it last stood on something, Java's `fallDistance`. */
     private readonly fallDistances = new Map<number, number>();
+    /** How many ticks of cold each living body has taken in powder snow, Java's `ticksFrozen`. */
+    private readonly frozenTicks = new Map<number, number>();
     /** The causes Java's `witch_resistant_to` damage type tag names, read from the content once. */
     private witchResistedCauses: ReadonlySet<DamageCause> | undefined;
     /** Ticks each live lightning bolt has existed, which decides when it strikes and when it goes. */
@@ -1720,6 +1722,7 @@ export class EntityRuntime implements EntityScene {
         this.fallingBlocks.delete(id);
         this.projectiles.delete(id);
         this.fallDistances.delete(id);
+        this.frozenTicks.delete(id);
         this.lightningAges.delete(id);
         // Not through `setFuse`: an undo adds the entity back through `restore`, which starts its fuse again.
         this.fuses.delete(id);
@@ -1956,6 +1959,8 @@ export class EntityRuntime implements EntityScene {
         entity.instance.tick(entity.runsGoals);
         this.tickDaylightBurn(entity);
         this.tickVoid(entity);
+        if (entity.removed !== undefined) return;
+        this.tickFreezing(entity, tick);
         if (entity.removed !== undefined) return;
         // The client moves this body and reports where it went as an input (ADR 0008), and its
         // survival is the player systems'.
@@ -5288,6 +5293,50 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
+     * How many ticks of cold a living body has taken in powder snow, up to
+     * {@link TICKS_REQUIRED_TO_FREEZE}; 0 for one that is warm.
+     */
+    public frozenTicksOf(id: number): number {
+        return this.frozenTicks.get(id) ?? 0;
+    }
+
+    /** Sets a living body's cold, for a host or a test that puts it in or out of the freeze at once. */
+    public setFrozenTicks(id: number, ticks: number): void {
+        if (ticks <= 0) this.frozenTicks.delete(id);
+        else this.frozenTicks.set(id, Math.min(TICKS_REQUIRED_TO_FREEZE, ticks));
+    }
+
+    /**
+     * Runs one tick of powder snow's cold on a living body, as Java's `LivingEntity.aiStep` does.
+     *
+     * A body whose box is in powder snow and that can freeze takes a tick of cold, up to
+     * {@link TICKS_REQUIRED_TO_FREEZE}; out of the snow it warms by two a tick. A fully frozen
+     * body takes a `freezing` blow every {@link FREEZE_HURT_INTERVAL} ticks: 1, or 5 for a type in
+     * Java's `freeze_hurts_extra_types` tag or one that declares `minecraft:freezing_vulnerable`.
+     * Whether it can freeze is what its damage sensing makes of a freezing blow, which is where
+     * `minecraft:freezing_immune` and Java's `freeze_immune_entity_types` tag turn the cold aside.
+     */
+    private tickFreezing(entity: DataEntity, tick: number): void {
+        if (javaEntityStats(entity.identifier, this.content().entities.javaStats) === undefined) return;
+        const frozen = this.frozenTicks.get(entity.id) ?? 0;
+        const isPowderSnow = (at: EntityPosition) => this.world.blocks.get(at)?.identifier === POWDER_SNOW;
+        const [inSnow] = bodyIntersectsMedia(entity.position, entity.facts.box, isPowderSnow, () => false);
+        if (!inSnow && frozen === 0) return;
+        const canFreeze = !entity.instance.senseDamage({ cause: 'freezing', amount: 1 }).blocked;
+        this.setFrozenTicks(entity.id, inSnow && canFreeze ? frozen + 1 : frozen - 2);
+        if (!canFreeze || this.frozenTicksOf(entity.id) < TICKS_REQUIRED_TO_FREEZE) return;
+        if (tick % FREEZE_HURT_INTERVAL !== 0) return;
+        const extra =
+            entity.instance.hasTag(FREEZE_HURTS_EXTRA_TAG) ||
+            entity.instance.hasComponent('minecraft:freezing_vulnerable');
+        this.hurt(entity, undefined, 'freezing', extra ? FREEZE_EXTRA_DAMAGE : FREEZE_DAMAGE, {
+            route: 'component',
+            graced: true,
+            mitigated: true
+        });
+    }
+
+    /**
      * Adds the tick's drop to a living body's fall and pays for the fall when the body lands,
      * as Java's `Entity.checkFallDamage` does after every move.
      *
@@ -6320,6 +6369,22 @@ const JAVA_DEFAULT_GRAVITY: ReadonlyMap<string, number> = new Map([
     ['minecraft:area_effect_cloud', 0],
     ['minecraft:fireworks_rocket', 0]
 ]);
+
+/** The block whose cold freezes a living body inside it. */
+const POWDER_SNOW = 'minecraft:powder_snow';
+
+/** Java's `Entity.getTicksRequiredToFreeze`: how many ticks of cold freeze a body through. */
+const TICKS_REQUIRED_TO_FREEZE = 140;
+
+/** How often `LivingEntity.aiStep` hurts a fully frozen body: when `tickCount % 40` is 0. */
+const FREEZE_HURT_INTERVAL = 40;
+
+/** The freezing blow, and the blow on a type in {@link FREEZE_HURTS_EXTRA_TAG}. */
+const FREEZE_DAMAGE = 1;
+const FREEZE_EXTRA_DAMAGE = 5;
+
+/** Java's entity type tag of the types the cold hurts five times over. */
+const FREEZE_HURTS_EXTRA_TAG = 'minecraft:freeze_hurts_extra_types';
 
 /** Java's attribute of how far a living body falls before the landing hurts, and its registry default. */
 const SAFE_FALL_DISTANCE = 'minecraft:safe_fall_distance';
