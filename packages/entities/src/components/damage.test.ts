@@ -5,6 +5,7 @@ import { observing, tickThenUndo } from '../componentState.test.helper';
 import type { EntityEnvironment, EntityInstance } from '../entityInstance';
 import { EntityTypes } from '../entityTypes';
 import type { EntityFlag } from '../filterContext';
+import { DROWNING_INTERVAL_TICKS } from './hazards';
 import { HURT_INTERVAL_TICKS, SUFFOCATION_DAMAGE } from './vanilla';
 
 /**
@@ -146,9 +147,22 @@ describe('minecraft:breathable', () => {
 
         expect(entity.attributes.value('health')).toBe(40);
 
-        tick(entity, HURT_INTERVAL_TICKS);
+        tick(entity, DROWNING_INTERVAL_TICKS);
 
         expect(entity.attributes.value('health')).toBe(40 - SUFFOCATION_DAMAGE);
+    });
+
+    it("lands Java's drowning blow a second after the air runs out, and every second after", () => {
+        const entity = spawn(diver, 'test:diver', standingIn('in_water'));
+        tick(entity, 40 + DROWNING_INTERVAL_TICKS - 1);
+
+        expect(entity.attributes.value('health')).toBe(40);
+
+        tick(entity, 1);
+        expect(entity.attributes.value('health')).toBe(40 - SUFFOCATION_DAMAGE);
+
+        tick(entity, DROWNING_INTERVAL_TICKS);
+        expect(entity.attributes.value('health')).toBe(40 - 2 * SUFFOCATION_DAMAGE);
     });
 
     it('refills the supply once the entity is back in a medium it breathes', () => {
@@ -168,7 +182,7 @@ describe('minecraft:breathable', () => {
         expect(entity.attributes.value('health')).toBe(40);
 
         const beached = spawn(fish, 'test:fish');
-        tick(beached, 40 + HURT_INTERVAL_TICKS);
+        tick(beached, 40 + DROWNING_INTERVAL_TICKS);
 
         expect(beached.attributes.value('health')).toBe(40 - SUFFOCATION_DAMAGE);
     });
@@ -217,10 +231,10 @@ describe('hazard component state', () => {
 
         expect(run.writes[0]).toEqual({
             component: 'minecraft:breathable',
-            before: { remaining: 40, untilHurt: HURT_INTERVAL_TICKS },
-            after: { remaining: 39, untilHurt: HURT_INTERVAL_TICKS }
+            before: { remaining: 40, untilHurt: DROWNING_INTERVAL_TICKS },
+            after: { remaining: 39, untilHurt: DROWNING_INTERVAL_TICKS }
         });
-        expect(run.ticked['minecraft:breathable']).toEqual({ remaining: 0, untilHurt: HURT_INTERVAL_TICKS - 5 });
+        expect(run.ticked['minecraft:breathable']).toEqual({ remaining: 0, untilHurt: DROWNING_INTERVAL_TICKS - 5 });
         expect(run.undone).toEqual(run.before);
     });
 
@@ -229,11 +243,11 @@ describe('hazard component state', () => {
         tick(entity, 39);
         const saved = entity.componentState.snapshot();
 
-        tick(entity, 1 + HURT_INTERVAL_TICKS);
+        tick(entity, 1 + DROWNING_INTERVAL_TICKS);
         expect(entity.attributes.value('health')).toBe(40 - SUFFOCATION_DAMAGE);
 
         entity.componentState.restore(saved);
-        tick(entity, 1 + HURT_INTERVAL_TICKS);
+        tick(entity, 1 + DROWNING_INTERVAL_TICKS);
 
         expect(entity.attributes.value('health')).toBe(40 - 2 * SUFFOCATION_DAMAGE);
     });

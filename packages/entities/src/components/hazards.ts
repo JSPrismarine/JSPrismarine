@@ -20,6 +20,15 @@ import { asList, booleanAt, isRecord, numberAt, parseFilterValue, stringAt } fro
  */
 export const HURT_INTERVAL_TICKS = 10;
 
+/**
+ * How many ticks apart drowning blows land once the air is gone, which is also how long the
+ * first one waits.
+ *
+ * Java's `LivingEntity.baseTick` keeps spending air past zero and hurts at -20, then starts again
+ * from zero, so a drowning mob takes a blow every second rather than every half second.
+ */
+export const DROWNING_INTERVAL_TICKS = 20;
+
 /** One entry of `minecraft:hurt_on_condition.damage_conditions`. */
 export interface DamageCondition {
     /** Gates the condition; absent means it always hurts. */
@@ -216,7 +225,7 @@ export const AIR_STATE = defineComponentState('minecraft:breathable', {
  * cannot breathe loses a tick of supply per tick; one back in a medium it can
  * breathe refills to full, over `inhale_time` when the body names one. An
  * entity out of supply suffocates every `suffocate_time` seconds, or every
- * half second when the body writes the vanilla `0`.
+ * second ({@link DROWNING_INTERVAL_TICKS}) when the body writes the vanilla `0`.
  *
  * Which medium the entity is in comes from the `in_water` and `in_lava` filter
  * facts, so an environment that answers neither leaves the entity breathing.
@@ -244,7 +253,7 @@ export const breathable: ComponentFactory<EntityHooks, BreathableParams> = {
     create: (params) => {
         const supply = Math.max(0, Math.round(params.totalSupply * TICKS_PER_SECOND));
         const hurtInterval =
-            params.suffocateTime > 0 ? Math.round(params.suffocateTime * TICKS_PER_SECOND) : HURT_INTERVAL_TICKS;
+            params.suffocateTime > 0 ? Math.round(params.suffocateTime * TICKS_PER_SECOND) : DROWNING_INTERVAL_TICKS;
         const inhale = Math.max(1, Math.round(params.inhaleTime * TICKS_PER_SECOND));
 
         /** Whether the medium the entity is in is one the component says it breathes. */
