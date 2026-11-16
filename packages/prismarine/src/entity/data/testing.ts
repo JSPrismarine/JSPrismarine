@@ -550,7 +550,9 @@ export class TestEntityWorld {
                 data: () => undefined,
                 setData: () => undefined,
                 executeEntityEvent: (at, source, name) => this.entityEvents.push({ at, source, name }),
-                light: (at) => this.options.lightLevel ?? (at.y > FLOOR_Y ? 15 : 0),
+                light: (at) =>
+                    this.options.lightLevel ??
+                    (at.y <= FLOOR_Y ? 0 : this.options.skyLight === true ? this.shadedSkyLight(at) : 15),
                 ...(this.options.skyLight === true
                     ? { skyLight: (at: ContentPosition) => (at.y > FLOOR_Y && !this.roofed(at) ? 15 : 0) }
                     : {}),
@@ -684,6 +686,22 @@ export class TestEntityWorld {
     }
 
     /** Whether a block a test placed stands anywhere above a position, which shades it from the sky. */
+    /**
+     * The sky light under a roof, which spreads in from the nearest column open to the sky and
+     * loses a level a block, as Java's sky light does along a free path. Walls are not counted, so
+     * a roofed spot is as bright as its horizontal distance to open sky allows.
+     */
+    private shadedSkyLight(at: ContentPosition): number {
+        if (!this.roofed(at)) return 15;
+        for (let distance = 1; distance < 15; distance += 1)
+            for (let dx = -distance; dx <= distance; dx += 1) {
+                const dz = distance - Math.abs(dx);
+                if (!this.roofed({ ...at, x: at.x + dx, z: at.z + dz })) return 15 - distance;
+                if (dz !== 0 && !this.roofed({ ...at, x: at.x + dx, z: at.z - dz })) return 15 - distance;
+            }
+        return 0;
+    }
+
     private roofed(at: ContentPosition): boolean {
         const heights = this.roofs.get(`${at.x},${at.z}`);
         return heights !== undefined && [...heights].some((y) => y > at.y);

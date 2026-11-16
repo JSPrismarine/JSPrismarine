@@ -391,6 +391,14 @@ export const navigationViewOf = (
         return { open: isSet(lower?.['open_bit']), iron: identifier === IRON_DOOR };
     };
 
+    /** Java's `LevelReader.getPathfindingCostFromLightLevels`: the light-dependent brightness less 0.5. */
+    const lightCost = (position: EntityPosition): number => {
+        const rawBrightness = blocks.light(position) / SUNLIT_LIGHT_LEVEL;
+        const brightness = rawBrightness / (4 - 3 * rawBrightness);
+        const ambientLight = level?.ambientLight ?? 0;
+        return ambientLight + brightness * (1 - ambientLight) - 0.5;
+    };
+
     return {
         view: {
             blockAt: identifierAt,
@@ -429,14 +437,9 @@ export const navigationViewOf = (
             // The engine's open-sky value is 15; keeping this separate from `isSunlit` matters
             // because Java asks sky visibility independently of daytime.
             canSeeSky: (position) => level?.hasSkyLight === true && blocks.skyLight?.(position) === SUNLIT_LIGHT_LEVEL,
-            walkTargetValue: (position) => {
-                // Match LevelReader's light-dependent value curve, then Monster's negation.
-                const rawBrightness = blocks.light(position) / SUNLIT_LIGHT_LEVEL;
-                const brightness = rawBrightness / (4 - 3 * rawBrightness);
-                const ambientLight = level?.ambientLight ?? 0;
-                const lightCost = ambientLight + brightness * (1 - ambientLight) - 0.5;
-                return -lightCost;
-            }
+            // Monster's walk-target value is the negated light cost.
+            walkTargetValue: (position) => -lightCost(position),
+            lightPathfindingCost: lightCost
         },
         persistsAcrossTicks,
         invalidateBlockCache

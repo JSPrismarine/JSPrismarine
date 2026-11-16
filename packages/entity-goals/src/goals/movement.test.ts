@@ -5,6 +5,7 @@ import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
 
 import { GoalHarness, testMob } from '../harness';
 import { voxelGrid } from '../navigation/voxelGrid';
+import type { NavigationView } from '../navigation/view';
 import type { GoalWorld } from '../world';
 
 /**
@@ -50,6 +51,70 @@ describe('minecraft:behavior.rise_to_liquid_level', () => {
             'minecraft:behavior.random_stroll'
         ]);
         expect(harness.holderOf('move')).toBe('minecraft:behavior.random_stroll');
+    });
+});
+
+describe('minecraft:behavior.find_cover', () => {
+    /**
+     * Stone floor, open sky for x below 4 and a roof from x 4 on, dark from x 6 on, with grass
+     * under the roof at x 9, which an animal rates 10 however dark it is.
+     */
+    const shelterView: NavigationView = {
+        ...voxelGrid([
+            Array.from({ length: 24 }, () => '#'.repeat(24)),
+            ...Array.from({ length: 3 }, () => Array.from({ length: 24 }, () => '.'.repeat(24)))
+        ]),
+        blockAt: (position) =>
+            position.y < 1 ? (position.x === 9 ? 'minecraft:grass_block' : 'minecraft:stone') : 'minecraft:air',
+        canSeeSky: (position) => position.x < 4,
+        lightPathfindingCost: (position) => (position.x >= 6 ? -0.1 : 0.3)
+    };
+
+    /** A fox at x 2 that draws `xs` for the x offset of each hide spot, and 0 for y and z. */
+    const fox = (xs: readonly number[], world: Partial<GoalWorld> = {}, flags = {}): GoalHarness => {
+        let draw = 0;
+        return new GoalHarness({
+            goals: { 'minecraft:behavior.find_cover': { priority: 6, speed_multiplier: 1.25 } },
+            components: walker,
+            world: { navigation: () => shelterView, isBrightOutside: () => true, ...world },
+            at: { x: 2.5, y: 1, z: 12.5 },
+            flags,
+            // getHidePos draws x, y and z in turn: 20 for x and z, 6 for y.
+            randomInt: (bound) => {
+                const index = draw;
+                draw += 1;
+                if (bound === 6) return 3;
+                if (index % 3 === 0) return (xs[Math.floor(index / 3)] ?? 0) + 10 - 2;
+                return 10;
+            }
+        });
+    };
+
+    it('walks a fox under open sky in daylight to the first dark spot that cannot see the sky', () => {
+        // A spot still under the sky, a roofed one too bright, one over grass, then a dark one.
+        const harness = fox([2, 5, 9, 7]);
+
+        harness.tick();
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.find_cover');
+        harness.tick(40);
+
+        // The path ends within its one-block goal radius of the dark spot at x 7.5.
+        const walks = harness.actuator.log.filter((entry) => entry.startsWith('moveTo'));
+        expect(walks.at(-1)).toMatch(/^moveTo (6|7)\.5,1,12\.5 @1\.25/);
+    });
+
+    it('looks again only after 100 selector updates, and not at night, asleep or in the shade', () => {
+        const harness = fox([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7]);
+        // The first search fails at once; the next waits out the interval of 100.
+        harness.tick(101);
+        expect(harness.isRunning('minecraft:behavior.find_cover')).toBe(false);
+        harness.tick();
+        expect(harness.isRunning('minecraft:behavior.find_cover')).toBe(true);
+
+        for (const quiet of [fox([7], { isBrightOutside: () => false }), fox([7], {}, { is_sleeping: true })]) {
+            quiet.tick();
+            expect(quiet.running()).toEqual([]);
+        }
     });
 });
 

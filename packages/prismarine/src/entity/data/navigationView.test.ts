@@ -239,4 +239,19 @@ describe('navigationViewOf', () => {
         expect(cached.view.isSolid({ x: 0, y: 1, z: 0 })).toBe(false);
         expect(cached.view.isPassable({ x: 0, y: 1, z: 0 })).toBe(true);
     });
+
+    it("prices light as Java's getPathfindingCostFromLightLevels, and a monster's walk value as its negation", () => {
+        const { content } = entityFixture();
+        const lit = (level: number) =>
+            navigationViewOf(
+                { ...contentBlocks(() => ({ identifier: 'minecraft:air', states: {} })), light: () => level },
+                () => content
+            ).view;
+
+        // Light 12 is brightness 0.5, the turning point; light 11 is darker than it.
+        expect(lit(12).lightPathfindingCost?.({ x: 0, y: 1, z: 0 })).toBeCloseTo(0, 9);
+        expect(lit(11).lightPathfindingCost?.({ x: 0, y: 1, z: 0 })).toBeLessThan(0);
+        expect(lit(15).lightPathfindingCost?.({ x: 0, y: 1, z: 0 })).toBeCloseTo(0.5, 9);
+        expect(lit(15).walkTargetValue?.({ x: 0, y: 1, z: 0 })).toBeCloseTo(-0.5, 9);
+    });
 });

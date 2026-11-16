@@ -44,8 +44,13 @@ export interface NavigationView {
     isSunlit?(position: EntityPosition): boolean;
     /** Whether Java's level says the block column can see the sky. */
     canSeeSky?(position: EntityPosition): boolean;
-    /** The entity's Java walk-target value at the block, for hide-position searches. */
+    /** A monster's Java walk-target value at the block, for hide-position searches. */
     walkTargetValue?(position: EntityPosition): number;
+    /**
+     * Java's `LevelReader.getPathfindingCostFromLightLevels` at the block: its light-dependent
+     * brightness less 0.5, which an animal's walk-target value is off grass.
+     */
+    lightPathfindingCost?(position: EntityPosition): number;
     /** Whether the block is a portal, for `avoid_portals`. */
     isPortal?(position: EntityPosition): boolean;
     /** Whether an entity climbs the block, such as a ladder or a vine. */

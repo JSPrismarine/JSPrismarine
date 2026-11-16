@@ -8,6 +8,7 @@ import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
 import type { RegisterableGoal } from '../goal';
 import { goal } from '../goal';
 import { blockOf, centerOf } from '../navigation/view';
+import type { NavigationView } from '../navigation/view';
 import type { GoalBody, GoalEvent, Range, TargetEntityType } from '../params';
 import {
     bodySchema,
@@ -846,52 +847,80 @@ export const fleeSun = goal<{ readonly speedMultiplier: number }>({
         })
 });
 
+/** How many selector updates `Fox$SeekShelterGoal` waits between its searches in daylight. */
+const SEEK_SHELTER_INTERVAL = 100;
+
+/** The block an animal's walk-target value rates highest, as Java's `Animal.getWalkTargetValue` does. */
+const ANIMAL_FAVORITE_FLOOR = 'minecraft:grass_block';
+
 /**
- * `minecraft:behavior.find_cover`, which the fox carries. It is `flee_sun`
- * with a cooldown, and it runs in daylight and in rain.
+ * `minecraft:behavior.find_cover`, which the fox carries: Java's `Fox$SeekShelterGoal`, a
+ * `FleeSunGoal`.
+ *
+ * A fox that is not asleep and has no target looks for shelter at once in a thunderstorm under
+ * open sky, and otherwise once every 100 selector updates when it stands under open sky in
+ * daylight outside a village. `FleeSunGoal.getHidePos` tries ten spots in a 20 by 6 by 20 box and
+ * takes the first that cannot see the sky and that an animal rates below zero: not over grass,
+ * and dark enough that `getPathfindingCostFromLightLevels` is negative. The goal runs until the
+ * fox's path there is done.
  */
-export const findCover = goal<{ readonly speedMultiplier: number; readonly cooldown: number }>({
+export const findCover = goal<{ readonly speedMultiplier: number }>({
     name: 'minecraft:behavior.find_cover',
     controlFlags: ['move'],
-    schema: bodySchema((body) => ({
-        speedMultiplier: numberAt(body, 'speed_multiplier', 1),
-        cooldown: ticksAt(body, 'cooldown_time', 2)
-    })),
+    schema: bodySchema((body) => ({ speedMultiplier: numberAt(body, 'speed_multiplier', 1) })),
     create: (params, support) => {
-        let cooldown = 0;
-        const walk = walkTo(support, {
-            find: () => {
-                const view = support.navigation();
-                if (view === undefined) return undefined;
-                const here = support.position();
-                for (let attempt = 0; attempt < 10; attempt += 1) {
-                    const candidate = {
-                        x: Math.floor(here.x) + Math.floor(support.random() * 16) - 8,
-                        y: Math.floor(here.y),
-                        z: Math.floor(here.z) + Math.floor(support.random() * 16) - 8
-                    };
-                    if (view.isSunlit?.(candidate) !== false) continue;
-                    if (support.navigator.canReach(candidate, 1)) return centerOf(candidate);
-                }
-                return undefined;
-            },
-            speedMultiplier: params.speedMultiplier,
-            interval: 0,
-            goalRadius: DEFAULT_GOAL_RADIUS
-        });
+        let interval = 0;
+        let hidden: EntityPosition | undefined;
+        let walking = false;
+
+        /** `FleeSunGoal.getHidePos` with the animal's walk-target value. */
+        const hidePos = (view: NavigationView, here: EntityPosition): EntityPosition | undefined => {
+            for (let attempt = 0; attempt < 10; attempt += 1) {
+                const candidate = {
+                    x: here.x + support.randomInt(20) - 10,
+                    y: here.y + support.randomInt(6) - 3,
+                    z: here.z + support.randomInt(20) - 10
+                };
+                if (view.canSeeSky?.(candidate) !== false) continue;
+                const floor = view.blockAt({ ...candidate, y: candidate.y - 1 });
+                const value = floor === ANIMAL_FAVORITE_FLOOR ? 10 : (view.lightPathfindingCost?.(candidate) ?? 0);
+                if (value < 0) return { x: candidate.x + 0.5, y: candidate.y, z: candidate.z + 0.5 };
+            }
+            return undefined;
+        };
 
         return {
-            ...walk,
             canStart: () => {
-                if (cooldown > 0) {
-                    cooldown -= 1;
+                if (support.flag('is_sleeping') === true || support.target() !== undefined) return false;
+                const view = support.navigation();
+                if (view === undefined) return false;
+                const here = blockOf(support.position());
+                if (support.worldView()?.weather?.() === 'thunder' && view.canSeeSky?.(here) === true) {
+                    hidden = hidePos(view, here);
+                    return hidden !== undefined;
+                }
+                if (interval > 0) {
+                    interval -= 1;
                     return false;
                 }
-                return walk.canStart?.() ?? false;
+                interval = SEEK_SHELTER_INTERVAL;
+                if (!support.isBrightOutside() || view.canSeeSky?.(here) !== true) return false;
+                hidden = hidePos(view, here);
+                return hidden !== undefined;
+            },
+            canContinue: () => walking,
+            start: () => {
+                walking =
+                    hidden !== undefined &&
+                    support.navigator.moveTo(hidden, params.speedMultiplier, DEFAULT_GOAL_RADIUS);
+            },
+            tick: () => {
+                if (!support.navigator.tick()) walking = false;
             },
             stop: () => {
-                cooldown = params.cooldown;
-                walk.stop?.();
+                walking = false;
+                hidden = undefined;
+                support.navigator.stop();
             }
         };
     }

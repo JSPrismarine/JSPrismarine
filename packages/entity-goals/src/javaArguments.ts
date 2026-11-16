@@ -372,7 +372,13 @@ const TRANSLATIONS: Readonly<Record<string, Translation>> = {
     'minecraft:behavior.melee_box_attack': { javaClasses: ['MeleeAttackGoal'], translate: speedOf() },
     'minecraft:behavior.breed': { javaClasses: ['BreedGoal'], translate: speedOf() },
     'minecraft:behavior.follow_parent': { javaClasses: ['FollowParentGoal'], translate: speedOf() },
-    'minecraft:behavior.flee_sun': { javaClasses: ['FleeSunGoal'], translate: speedOf() },
+    'minecraft:behavior.flee_sun': {
+        javaClasses: ['FleeSunGoal'],
+        select: (goal) => goal.classes[0] === 'FleeSunGoal',
+        translate: speedOf()
+    },
+    // The fox's `SeekShelterGoal` is a `FleeSunGoal` with its own conditions.
+    'minecraft:behavior.find_cover': { javaClasses: ['Fox$SeekShelterGoal'], translate: speedOf() },
     'minecraft:behavior.run_around_like_crazy': { javaClasses: ['RunAroundLikeCrazyGoal'], translate: speedOf() },
     'minecraft:behavior.move_towards_home_restriction': {
         javaClasses: ['MoveTowardsRestrictionGoal'],

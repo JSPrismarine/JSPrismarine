@@ -1,7 +1,7 @@
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { NavigationView } from '@jsprismarine/entity-goals/navigation/view';
 import type { BlockQuery, GoalMob, GoalWorld } from '@jsprismarine/entity-goals/world';
-import { item_tags } from '@jsprismarine/bedrock-data';
+import { item_tags, java_entity_navigation } from '@jsprismarine/bedrock-data';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
@@ -121,6 +121,10 @@ const javaGoals = (javaId: string): readonly JavaGoal[] => {
 /** Whether a Java goal is, or extends, one of the vanilla goal classes named by simple name. */
 const isGoal = (goal: JavaGoal, names: readonly string[]): boolean => goal.classes.some((name) => names.includes(name));
 
+/** Whether a Java mob's navigation is bound to water, so its strolls swim. */
+const waterBound = (javaId: string): boolean =>
+    java_entity_navigation[javaId]?.navigationClass.endsWith('.WaterBoundPathNavigation') === true;
+
 /** Whether a class literal a Java goal holds names `ancestor` or a subclass of it. */
 const classExtends = (value: JavaValue | undefined, ancestor: string): boolean =>
     value?.kind === 'class' && javaSuperChain(value.name).some((name) => name.endsWith(`/${ancestor}`));
@@ -196,7 +200,7 @@ interface GoalComparison {
     /** The Java goal classes, by simple name, that do what the Bedrock goal does. */
     readonly javaClasses: readonly string[];
     /** Narrows the matching Java goals, such as to a look goal that looks at players. */
-    readonly select?: (goal: JavaGoal) => boolean;
+    readonly select?: (goal: JavaGoal, subject: EntitySubject) => boolean;
     readonly java: string;
     readonly reference: string;
     /** What the server's goal, declared with `body`, does differently from one Java goal. */
@@ -231,7 +235,7 @@ const goalScenario = (comparison: GoalComparison): BehaviorScenario<EntitySubjec
         classify: comparison.classify ?? goalGap(comparison.java),
         run: (subject) => {
             const java = javaGoals(subject.javaId).filter(
-                (goal) => isGoal(goal, comparison.javaClasses) && (comparison.select?.(goal) ?? true)
+                (goal) => isGoal(goal, comparison.javaClasses) && (comparison.select?.(goal, subject) ?? true)
             );
             if (java.length === 0 && comparison.javaClasses.length > 0) {
                 return `Java's ${subject.javaId} registers no ${comparison.javaClasses.join(' or ')}, but the server runs ${component}`;
@@ -1162,12 +1166,46 @@ const comparisons: readonly GoalComparison[] = [
     },
     {
         aspect: 'random_swim',
-        javaClasses: ['RandomSwimmingGoal'],
-        java: 'A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed.',
+        javaClasses: ['RandomSwimmingGoal', 'Turtle$TurtleTravelGoal', 'RandomStrollGoal'],
+        // A guardian's plain RandomStrollGoal swims, since Guardian.createNavigation binds its
+        // navigation to water; a turtle's RandomStrollGoal subclass only walks it on land.
+        select: (goal, subject) =>
+            isGoal(goal, ['RandomSwimmingGoal', 'Turtle$TurtleTravelGoal']) ||
+            (goal.classes[0] === 'RandomStrollGoal' && waterBound(subject.javaId)),
+        java: "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed: a fish's or a dolphin's RandomSwimmingGoal, a guardian's RandomStrollGoal on its water-bound navigation, or a turtle's TurtleTravelGoal, which starts whenever the turtle is in water.",
         reference:
-            "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar",
-        compare: (subject, declared, java) =>
-            strollDifferences(subject, declared, java, `${PREFIX}random_swim`, 'a swim', { in_water: true })
+            "Java RandomSwimmingGoal and RandomStrollGoal, Guardian.createNavigation (WaterBoundPathNavigation), Turtle$TurtleTravelGoal.canUse, and each mob's interval and speed read from the pinned jar",
+        compare: (subject, declared, java) => {
+            if (!isGoal(java, ['Turtle$TurtleTravelGoal']))
+                return strollDifferences(subject, declared, java, `${PREFIX}random_swim`, 'a swim', {
+                    in_water: true
+                });
+            // TurtleTravelGoal draws nothing to start: in water it travels on every selector tick.
+            const differences: string[] = [];
+            const bounds: number[] = [];
+            const probe = probeGoal(`${PREFIX}random_swim`, declared.body, {
+                flags: { in_water: true },
+                random: () => 0.5,
+                randomInt: (bound) => {
+                    bounds.push(bound);
+                    return 0;
+                }
+            });
+            gameTicks(probe, 2);
+            if (bounds.some((bound) => bound > 1))
+                differences.push(
+                    `a swim starts on one selector tick in ${show(bounds[0])}, where Java's TurtleTravelGoal starts whenever the turtle is in water`
+                );
+            const speed = speedDifference(
+                subject,
+                declared,
+                'a swim',
+                walkSpeeds(probe)[0],
+                param(java, 'speedModifier')
+            );
+            if (speed !== undefined) differences.push(speed);
+            return differences;
+        }
     },
     {
         aspect: 'swim_wander',
