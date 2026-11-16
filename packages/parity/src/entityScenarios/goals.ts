@@ -16,6 +16,7 @@ import {
     javaSuperChain
 } from '../javaGoals.ts';
 import { realStack, serverContent } from '../serverStack.ts';
+import { withProbe } from './goalProbe.ts';
 import {
     declaredGoals,
     gameTicks,
@@ -161,12 +162,17 @@ const brainOnly = (subject: EntitySubject): boolean => {
 /** The issues that track this theme's differences from Java, each with the sentences that belong to it. */
 const GOAL_ISSUES: readonly (readonly [issue: number, matches: RegExp])[] = [
     [3132, /beside its brain/],
-    [3133, /only charges while mounted/],
-    [3134, /closes in to a different range|closing in, it never walks/],
+    [3133, /only charges while mounted|charges holding a sword/],
+    [3134, /closes in to a different range|closing in, it never walks|does not walk in from/],
     [3135, /never calls nearby mobs/],
-    [3130, /registers no |has no |runs no |but the server runs |never jumps|not even below|iron sword 2\.5 blocks/],
+    [3167, /alerts as mobs of its class/],
+    [3169, /ticks of it two ticks later/],
     [3165, /does not pick up an item it stands on/],
     [3166, /targets wither, which/],
+    [
+        3130,
+        /registers no |has no |runs no |but the server runs |a goal no Java class registers|cannot ride a chicken|does not move the chicken|keeps running its own movement|never jumps|not even below|iron sword 2\.5 blocks|takes no |holds the fish still|walks the fish/
+    ],
     // Anything else is a goal parameter, which Java's registerGoals arguments decide (ADR 0019).
     [3128, /./]
 ];
@@ -491,6 +497,92 @@ const firstWalk = (probe: ReturnType<typeof probeGoal>, ticks = 2): number | und
     return walkSpeeds(probe)[0];
 };
 
+/**
+ * Compares whom a hurt mob calls onto its attacker with Java's `HurtByTargetGoal.alertOthers`:
+ * with `setAlertOthers`, every idle mob that is an instance of the hurt mob's class within its
+ * follow range, but for the exact classes `setAlertOthers` names; without it, none. The probe
+ * offers an idle mob of its own type, which stands for the subject's own type, and one of every
+ * other type.
+ */
+const alertDifferences = (subject: EntitySubject, body: unknown, java: JavaGoal): readonly string[] => {
+    const component = `${PREFIX}hurt_by_target`;
+    const call = java.calls.find((entry) => entry.name === 'setAlertOthers');
+    const [ignoredArgument] = call?.args ?? [];
+    const ignored = ignoredArgument?.kind === 'array' ? ignoredArgument.items : [];
+    const entityClass = javaEntityClass(subject.javaId);
+    const ofClass = (javaId: string): boolean =>
+        entityClass !== undefined && javaIsA(javaId, { kind: 'class', name: entityClass });
+    const javaAlerts = new Set(
+        call === undefined
+            ? []
+            : candidates()
+                  .filter(
+                      (candidate) =>
+                          ofClass(candidate.javaId) &&
+                          !ignored.some(
+                              (value) => value.kind === 'class' && javaEntityClass(candidate.javaId) === value.name
+                          )
+                  )
+                  .map((candidate) => candidate.javaId)
+    );
+    const attacker = candidateMob(PLAYER, { x: 2, y: 0, z: 0 });
+    const own = candidateMob(
+        { javaId: subject.javaId, bedrock: PROBE_IDENTIFIER, families: [] },
+        { x: -3, y: 0, z: 0 }
+    );
+    const others = candidates()
+        .filter((candidate) => candidate.javaId !== subject.javaId)
+        .map((candidate) => candidateMob(candidate, { x: -3, y: 0, z: 1 }));
+    const alerted = new Set<string>();
+    let chosen: GoalMob | undefined;
+    const probe = probeGoal(component, body, {
+        components: { 'minecraft:follow_range': { value: 16 } },
+        world: {
+            damagers: () => [{ mob: attacker, cause: 'entity_attack', total: 1 }],
+            target: () => chosen,
+            setTarget: (next) => {
+                chosen = next;
+            },
+            mobs: () => [own, ...others],
+            setTargetOf: (mob) => {
+                alerted.add(String(mob.id));
+            }
+        }
+    });
+    gameTicks(probe, 1);
+    const differences: string[] = [];
+    const missing = [...javaAlerts].filter((javaId) => !alerted.has(javaId));
+    const extra = [...alerted].filter((javaId) => !javaAlerts.has(javaId));
+    if (missing.includes(subject.javaId))
+        differences.push('it never calls nearby mobs of its type onto the attacker, which Java does');
+    const missingOthers = missing.filter((javaId) => javaId !== subject.javaId);
+    if (missingOthers.length > 0)
+        differences.push(
+            `it never calls ${names(missingOthers)} onto the attacker, which Java's alerts as mobs of its class`
+        );
+    if (extra.length > 0) differences.push(`it calls ${names(extra)} onto the attacker, which Java's never alerts`);
+    return differences;
+};
+
+/** A target distance beyond every vanilla `attack_radius`, the largest of which is the llama's 64. */
+const FAR_BEYOND_ANY_RADIUS = 70;
+
+/**
+ * The bee's feeding events, the effect each gives, and the Java flower block whose
+ * `getBeeInteractionEffect` gives it. The events are the ones the bee's `minecraft:interact` fires
+ * for an open eyeblossom and a wither rose.
+ */
+const BEE_FEEDING = [
+    ['fed_open_eyeblossom', 'minecraft:poison', 'EyeblossomBlock'],
+    ['fed_wither_rose', 'minecraft:wither', 'WitherRoseBlock']
+] as const;
+
+/** A spear, the item Java's SpearUseGoal looks for in the main hand. */
+const SPEAR = 'minecraft:iron_spear';
+
+/** A sword, which carries no kinetic weapon. */
+const SWORD = 'minecraft:iron_sword';
+
 const comparisons: readonly GoalComparison[] = [
     {
         aspect: 'look_at_player',
@@ -690,7 +782,6 @@ const comparisons: readonly GoalComparison[] = [
                 );
             const missing: string[] = [];
             const extra: string[] = [];
-            let lookedForAllies = false;
             for (const candidate of [PLAYER, ...candidates().filter((entry) => entry.javaId !== PLAYER.javaId)]) {
                 const mob = candidateMob(candidate, { x: 2, y: 0, z: 0 });
                 let chosen: GoalMob | undefined;
@@ -702,10 +793,6 @@ const comparisons: readonly GoalComparison[] = [
                         target: () => chosen,
                         setTarget: (next) => {
                             chosen = next;
-                        },
-                        mobs: () => {
-                            lookedForAllies = true;
-                            return [];
                         }
                     }
                 });
@@ -718,10 +805,8 @@ const comparisons: readonly GoalComparison[] = [
             const differences: string[] = [];
             if (missing.length > 0) differences.push(`it does not strike back at ${names(missing)}, which Java's does`);
             if (extra.length > 0) differences.push(`it strikes back at ${names(extra)}, which Java's ignores`);
-            const alerts = java.calls.some((call) => call.name === 'setAlertOthers');
-            if (alerts && !lookedForAllies)
-                differences.push('it never calls nearby mobs of its type onto the attacker, which Java does');
-            return differences;
+            const alert = alertDifferences(subject, body, java);
+            return [...differences, ...alert];
         }
     },
     {
@@ -1015,9 +1100,17 @@ const comparisons: readonly GoalComparison[] = [
                 return firstWalk(probeGoal(component, declared.body, { world: { target: () => target } }), 3);
             };
             const differences: string[] = [];
-            const outside = approaches(radius + 2);
-            if (outside === undefined || approaches(radius - 2) !== undefined)
-                differences.push(`it closes in to a different range than Java's ${show(radius)} block attack radius`);
+            // Whether it walks in at all from beyond its radius, and how far that radius is, are
+            // separate decisions: 70 blocks is beyond every vanilla attack radius.
+            const outside = approaches(FAR_BEYOND_ANY_RADIUS);
+            if (outside === undefined)
+                differences.push(
+                    `it does not walk in from ${FAR_BEYOND_ANY_RADIUS} blocks, beyond its attack radius, where Java's walks toward the target`
+                );
+            if (approaches(radius + 2) === undefined || approaches(radius - 2) !== undefined)
+                differences.push(
+                    `it holds its ground at a different range than Java's ${show(radius)} block attack radius`
+                );
             const speed = speedDifference(subject, declared, 'closing in, it', outside, param(java, 'speedModifier'));
             if (speed !== undefined) differences.push(speed);
             return differences;
@@ -1256,25 +1349,37 @@ const comparisons: readonly GoalComparison[] = [
     {
         aspect: 'use_kinetic_weapon',
         javaClasses: ['SpearUseGoal'],
-        java: 'A mob with a target charges it with its spear on foot or mounted, at its SpearUseGoal charging speed.',
-        reference: "Java SpearUseGoal.canUse and tick, and each mob's speeds read from the pinned jar",
+        java: 'A mob with a target and a spear in its main hand charges the target on foot or mounted, at its SpearUseGoal charging speed; without a spear it does not use the goal.',
+        reference:
+            "Java SpearUseGoal.canUse and ableToAttack (a target and a main hand with KINETIC_WEAPON) and tick, and each mob's speeds read from the pinned jar",
         compare: (subject, declared, java) => {
             const component = `${PREFIX}use_kinetic_weapon`;
             const target = candidateMob(PLAYER, { x: 6, y: 0, z: 0 });
-            const differences: string[] = [];
-            const onFoot = probeGoal(component, declared.body, { world: { target: () => target } });
-            gameTicks(onFoot, 2);
-            if (!onFoot.isRunning(component))
-                differences.push('it only charges while mounted, where Java charges on foot');
-            const mount = candidateMob(PLAYER, { x: 0, y: -1, z: 0 });
-            const mounted = probeGoal(component, declared.body, {
-                world: { target: () => target, vehicle: () => mount }
+            const content = serverContent();
+            // The server's own items decide which carry the component Java's goal asks the hand for.
+            const holding = (held: string): GoalWorld => ({
+                target: () => target,
+                carriedItem: () => held,
+                itemHasComponent: (identifier, name) => content.items.types.get(identifier)?.hasComponent(name) === true
             });
+            const charges = (held: string, vehicle?: GoalMob): ReturnType<typeof probeGoal> => {
+                const probe = probeGoal(component, declared.body, {
+                    world: { ...holding(held), ...(vehicle === undefined ? {} : { vehicle: () => vehicle }) }
+                });
+                gameTicks(probe, 2);
+                return probe;
+            };
+            const differences: string[] = [];
+            if (!charges(SPEAR).isRunning(component))
+                differences.push('with a spear it only charges while mounted, where Java charges on foot');
+            if (charges(SWORD).isRunning(component))
+                differences.push('it charges holding a sword, which has no kinetic weapon for Java to use');
+            const mount = candidateMob(PLAYER, { x: 0, y: -1, z: 0 });
             const speed = speedDifference(
                 subject,
                 declared,
                 'charging, it',
-                firstWalk(mounted, 2),
+                walkSpeeds(charges(SPEAR, mount))[0],
                 param(java, 'speedModifierWhenCharging')
             );
             if (speed !== undefined) differences.push(speed);
@@ -1516,18 +1621,78 @@ const comparisons: readonly GoalComparison[] = [
             ];
         }
     },
+    {
+        aspect: 'swim_idle',
+        javaClasses: [],
+        java: 'A Java fish has no idle goal: in water nothing holds it still between the swims its FishSwimGoal starts, and out of water no goal walks it.',
+        reference:
+            "AbstractFish.registerGoals in the pinned jar, which registers only PanicGoal, AvoidEntityGoal and FishSwimGoal, and AbstractFish.aiStep's flop on land",
+        compareAll: (_subject, declared) => {
+            const component = `${PREFIX}swim_idle`;
+            const differences: string[] = [];
+            for (const { body } of declared) {
+                const swimming = probeGoal(component, body, { flags: { in_water: true }, random: () => 0 });
+                let held = false;
+                for (let tick = 0; tick < 200 && !held; tick++) {
+                    swimming.entity.goals.tick(tick % 2 === 0);
+                    held = swimming.isRunning(component);
+                }
+                if (held) differences.push('in water it holds the fish still, which no Java fish goal does');
+                const beached = probeGoal(component, body, { flags: { in_water: false }, random: () => 0 });
+                gameTicks(beached, 20);
+                if (walkSpeeds(beached).length > 0)
+                    differences.push('out of water it walks the fish, which no Java goal does');
+            }
+            return differences;
+        }
+    },
+    {
+        aspect: 'timer_flag_1',
+        javaClasses: [],
+        java: "A bee fed a flower with a bee effect takes that flower's effect once: poison for 25 ticks from an open eyeblossom and wither for 40 from a wither rose. Java's Bee.mobInteract calls addEffect once, with no goal; a Bedrock bee holds the effect's component group for one timer tick.",
+        reference:
+            'Java Bee.mobInteract and FlowerBlock.getBeeInteractionEffect, with the durations EyeblossomBlock and WitherRoseBlock construct, read from the pinned jar',
+        compareAll: (subject) => {
+            const differences: string[] = [];
+            for (const [event, effect, flower] of BEE_FEEDING) {
+                const [javaTicks] = javaMethodNumbers(
+                    `net/minecraft/world/level/block/${flower}`,
+                    'getBeeInteractionEffect'
+                );
+                if (javaTicks === undefined) {
+                    differences.push(`Java's ${flower} bee effect could not be read`);
+                    continue;
+                }
+                withProbe(subject.bedrock, {}, (probe) => {
+                    const name = effect.replace('minecraft:', '');
+                    probe.entity.instance.fire(event);
+                    probe.tick(2);
+                    const held = probe.entity.body.statusEffects.get(effect)?.durationTicks;
+                    if (held === undefined) differences.push(`fed for ${name}, it takes no ${name}`);
+                    else if (held > javaTicks || held < javaTicks - 4)
+                        differences.push(
+                            `fed for ${name}, it holds ${held} ticks of it two ticks later, where Java gives ${javaTicks}`
+                        );
+                    // Once the effect has worn off, Java's next feeding gives it again.
+                    probe.tick(10);
+                    probe.entity.body.statusEffects.delete(effect);
+                    probe.entity.instance.fire(event);
+                    probe.tick(2);
+                    if (!probe.entity.body.statusEffects.has(effect))
+                        differences.push(
+                            `fed for ${name} a second time, it takes no ${name}, where Java's takes it at every feeding`
+                        );
+                });
+            }
+            return differences;
+        }
+    },
     ...(
         [
             [
-                'mount_pathing',
-                'Java has no goal that walks a mount to its target: a mob that rides another steers it through Mob.getControllingPassenger'
-            ],
-            [
                 'find_mount',
                 'Java has no goal that walks a mob to a mount: a chicken jockey or spider jockey is assembled when it spawns, in Zombie.finalizeSpawn and Spider.finalizeSpawn'
-            ],
-            ['swim_idle', 'Java has no idle goal for a fish: it idles between the swims its RandomSwimmingGoal starts'],
-            ['timer_flag_1', 'Java runs no timer goal for this mob; its timed states are counters in the mob class']
+            ]
         ] as const
     ).map(([aspect, java]): GoalComparison => ({
         aspect,
@@ -1539,6 +1704,60 @@ const comparisons: readonly GoalComparison[] = [
         ]
     }))
 ];
+
+/** The entities whose Bedrock pack file declares a component, whether or not the server loads it. */
+const packDeclaring = (component: string): readonly EntitySubject[] =>
+    javaEntityIds().flatMap((javaId) => {
+        const subject = mappedEntity(javaId);
+        return subject !== undefined && componentValues(subject.bedrock, component).length > 0 ? [subject] : [];
+    });
+
+/**
+ * Bedrock's `mount_pathing`, a goal that walks a rider's mount to the rider's target, against
+ * Java's rider steering, which has no goal: `Mob.getControllingPassenger` hands a mob's movement
+ * to the mob riding it, `Mob.getNavigation` gives the rider its mount's navigation, and
+ * `Mob.updateControlFlags` turns the mount's own move, look and jump goals off. Each mob the pack
+ * gives the goal rides a chicken in the live runtime and walks: the chicken carries it there and
+ * runs no movement goal of its own, and the server runs no `mount_pathing`, whose move flag would
+ * keep the rider from attacking while it rides.
+ */
+const riderSteeringScenario: BehaviorScenario<EntitySubject> = {
+    name: 'goal-mount-pathing',
+    java: "A mob riding another mob steers it: the rider's walk moves its mount, the mount's own movement goals stand down, and no goal of the rider's holds its move flag just for riding.",
+    reference:
+        'Java Mob.getControllingPassenger, Mob.getNavigation and Mob.updateControlFlags, read from the pinned jar, which registers no mount_pathing goal in any class',
+    subjects: () => packDeclaring(`${PREFIX}mount_pathing`),
+    idOf: (subject) => subject.javaId,
+    aspects: () => [`${PREFIX}mount_pathing`],
+    classify: goalGap("A mob riding another mob steers it, as Java's Mob.getControllingPassenger has it."),
+    run: (subject) => {
+        const differences: string[] = [];
+        if (
+            serverContent()
+                .entities.registry.get(subject.bedrock)
+                ?.declaredComponents.includes(`${PREFIX}mount_pathing`)
+        )
+            differences.push(`the server runs ${PREFIX}mount_pathing, a goal no Java class registers`);
+        // The rider's own goals are taken off, so the only walk it asks for is the probe's.
+        withProbe(subject.bedrock, { keep: [] }, (probe) => {
+            const chicken = probe.spawn('minecraft:chicken', 0, 0, 0);
+            const seat = probe.runtime.mobById(chicken.id);
+            if (seat !== undefined) probe.runtime.mount(probe.entity.body, seat);
+            if (probe.runtime.vehicleOf(probe.entity.body)?.id !== chicken.id) {
+                differences.push('it cannot ride a chicken to be tested');
+                return;
+            }
+            const start = chicken.position.x;
+            probe.entity.instance.actuator?.moveTo(probe.at(12, 0, 0), 1);
+            probe.tick(40);
+            if (chicken.position.x - start < 3)
+                differences.push("its walk does not move the chicken it rides, which Java's rider steers");
+            if (chicken.instance.goals.holderOf('move') !== undefined)
+                differences.push("the chicken it rides keeps running its own movement goals, which Java's turns off");
+        });
+        return differences.length === 0 ? undefined : differences.join('; ');
+    }
+};
 
 /** The brain mobs whose Bedrock goals in this theme the server must leave idle, with what each spawned as. */
 const brainProbe = new Map<string, string | undefined>();
@@ -1614,5 +1833,6 @@ export const goalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             return brainDifference(subject);
         }
     },
-    ...comparisons.map(goalScenario)
+    ...comparisons.map(goalScenario),
+    riderSteeringScenario
 ];
