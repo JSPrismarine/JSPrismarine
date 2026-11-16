@@ -404,6 +404,19 @@ describe('a mob in water', () => {
         return (mob.position.x - before) / last;
     };
 
+    it('swims toward its waypoint while it sinks, as travelInFluid applies the input every tick', () => {
+        const sinker = { components: { ...SWIMMER.components, 'minecraft:physics': {} } };
+        const { runtime } = fluidWorld({ 'jsprismarine:sinker': sinker });
+        const mob = runtime.spawn('jsprismarine:sinker', { x: 0.5, y: GROUND + 2, z: 0.5 });
+        if (mob === undefined) throw new Error('the fixture declares no sinker');
+        mob.body.yaw = -90;
+        mob.body.moveTo({ x: 10.5, y: GROUND + 2, z: 0.5 }, 1);
+        for (let tick = 1; tick <= 6; tick += 1) runtime.tick(tick);
+
+        expect(mob.position.y).toBeLessThan(GROUND + 2);
+        expect(mob.position.x).toBeGreaterThan(1);
+    });
+
     it("drifts on once its swim stops, keeping the share of its speed Java's water drag keeps", () => {
         // LivingEntity.getWaterSlowDown, a swimmer's own travel, and PolarBear.getWaterSlowDown.
         expect(kept('jsprismarine:wader')).toBeCloseTo(0.8, 6);

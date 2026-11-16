@@ -990,10 +990,14 @@ export class MobBody {
             this.jump();
 
         // Vertical knockback carries a grounded walker until it lands. Horizontal entity
-        // pushes and knockback still combine with the navigation input, as they do in Java.
+        // pushes and knockback still combine with the navigation input, as they do in Java. A body
+        // in a fluid swims on while it sinks or rises, as `LivingEntity.travelInFluid` applies the
+        // input every tick.
         if (
             Math.abs(this.velocity.y) > IMPULSE_FLOOR &&
             !this.conditions.has('jumping') &&
+            !this.conditions.has('in_water') &&
+            !this.conditions.has('in_lava') &&
             options?.allowVertical !== true
         )
             return;
