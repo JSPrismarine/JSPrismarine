@@ -540,6 +540,15 @@ table.
 | `cat` | 5 | Per region | Every 1200 ticks |
 | `pillager` | None | Per region | Every 20 ticks |
 
+Which mobs a biome spawns follows Java's biome spawn lists, though, since that is a gameplay rule
+rather than a cap or a rate. Where Bedrock's files leave a Java mob out of a biome, the entity overlay
+in `packages/entities/vanilla_overlay/` corrects them: its `biomes/` files add the `monster` tag to
+the river, frozen river and snowy plains, so their zombies, skeletons, creepers, spiders, witches,
+endermen and slimes spawn, and the `overworld` tag to the old growth birch forest, so its bats do.
+Its `spawn_rules/` files let skeletons into mangrove swamps and rabbits into the old growth taigas.
+Each is Mojang's file with that one change. The `spawns-in-biome` rows of the `entities.behavior`
+parity family check every Java biome's list against the rules.
+
 One cycle reads the pool's cap, samples 8 chunks within 4 chunks of each player, tries 3 positions
 per chunk for the surface pass and 3 for the underground pass, collects every rule condition that
 passes at a position, draws one by weight, applies its `rarity` roll, places a herd, and gives each
