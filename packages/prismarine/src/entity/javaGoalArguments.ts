@@ -5,7 +5,7 @@
  * player, what tempts a cow and how fast it follows, which classes a spider targets. Bedrock's pack
  * writes the same decisions as goal bodies, and many have drifted. The Bedrock client runs no mob
  * AI, so these numbers are the server's alone, and
- * [ADR 0019](../../../../docs/adr/0019-java-decides-server-decided-goal-parameters.md) gives them
+ * [ADR 0024](../../../../docs/adr/0024-java-decides-server-decided-goal-parameters.md) gives them
  * to Java. `@jsprismarine/entity-goals` owns what each argument means for a body; this overlay finds
  * each file's Java mob and answers what the translation cannot: the mob's Java attributes, a filter
  * for a set of Java entity types, and the Bedrock items of a Java item predicate.

@@ -180,7 +180,7 @@ const GOAL_ISSUES: readonly (readonly [issue: number, matches: RegExp])[] = [
         3130,
         /registers no |has no |runs no |but the server runs |a goal no Java class registers|cannot ride a chicken|does not move the chicken|keeps running its own movement|never jumps|not even below|2\.5 blocks away, which Java's leaves|takes no |holds the fish still|walks the fish/
     ],
-    // Anything else is a goal parameter, which Java's registerGoals arguments decide (ADR 0019).
+    // Anything else is a goal parameter, which Java's registerGoals arguments decide (ADR 0024).
     [3128, /./]
 ];
 

@@ -2180,7 +2180,7 @@ describe('EntityRuntime', () => {
                 new TestEntityWorld({ dayTime: 2000, random: [0.61, 0.5, 0.5] }),
                 {},
                 {
-                    // A vanilla identifier would run Java's stroll interval (ADR 0019), which this
+                    // A vanilla identifier would run Java's stroll interval (ADR 0024), which this
                     // test's one-tick interval stands in for.
                     'jsprismarine:walker': {
                         components: {
@@ -2632,7 +2632,7 @@ describe('EntityRuntime', () => {
                 world,
                 {},
                 {
-                    // A vanilla identifier would scan on Java's one-in-five draw (ADR 0019).
+                    // A vanilla identifier would scan on Java's one-in-five draw (ADR 0024).
                     'jsprismarine:hunter': {
                         components: {
                             'minecraft:health': { value: 20, max: 20 },

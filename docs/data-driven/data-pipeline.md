@@ -121,7 +121,7 @@ of the <!-- fact:java.entityGoals -->70<!-- /fact --> Java entity types that reg
 arguments each goal ends up holding. A class literal is written with every entity type it covers,
 and an item predicate with the item tags and items its code reads. The server writes those
 arguments into the vanilla goal bodies
-([ADR 0019](../adr/0019-java-decides-server-decided-goal-parameters.md)). The parity suite reads the
+([ADR 0024](../adr/0024-java-decides-server-decided-goal-parameters.md)). The parity suite reads the
 jar with the same code, and `utils/java-goals/capture.test.ts` fails when the committed file no
 longer matches the jar.
 

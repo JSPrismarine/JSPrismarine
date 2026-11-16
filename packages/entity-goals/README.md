@@ -84,7 +84,7 @@ The goals arrive as data, `@jsprismarine/bedrock-data`'s `java_entity_goals`, wh
 does not depend on. The caller's `JavaGoalContext` answers what the capture leaves to the server:
 the mob's Java attributes, a filter for a set of Java entity types, and the Bedrock items of a Java
 item tag. JSPrismarine's server applies it to every entity file it loads, because the Bedrock
-client runs no mob AI and [ADR 0019](../../docs/adr/0019-java-decides-server-decided-goal-parameters.md)
+client runs no mob AI and [ADR 0024](../../docs/adr/0024-java-decides-server-decided-goal-parameters.md)
 gives those numbers to Java. A server that leaves it out runs the pack's numbers.
 
 Two cases are worth naming. Java's `TemptGoal` scares the entity off when the player moves more than

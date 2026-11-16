@@ -7,7 +7,7 @@ import { isRecord } from './params';
  * A Java mob passes its goals their numbers in `registerGoals`, such as
  * `new LookAtPlayerGoal(this, Player.class, 8.0F)`, and a Bedrock definition writes the same
  * decision as a goal body, such as `"look_distance": 6`. The Bedrock client runs no mob AI, so
- * these are server decisions, and ADR 0019 gives them to Java the way ADR 0001 gives Java the
+ * these are server decisions, and ADR 0024 gives them to Java the way ADR 0001 gives Java the
  * server-decided stats. {@link javaGoalBody} rewrites one body with the arguments of the Java goal
  * it stands for and leaves every key Java has no counterpart for as the pack wrote it.
  *
