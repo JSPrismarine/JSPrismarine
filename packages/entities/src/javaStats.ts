@@ -179,6 +179,35 @@ const exceptionKeys = new Set(JAVA_STAT_EXCEPTIONS.map((row) => `${row.identifie
 export const isJavaStatException = (identifier: string, stat: SharedStat): boolean =>
     exceptionKeys.has(`${identifier}\u0000${stat}`);
 
+/**
+ * One component group whose stat Java's class sets in code when the entity enters the state the
+ * group stands for. Java's attribute supplier publishes the stat the type spawns with, so taking
+ * it for every declaration would undo the state change: a tamed wolf would keep a wild wolf's
+ * health.
+ */
+export interface JavaStateStat {
+    /** The entity identifier, such as `minecraft:wolf`. */
+    readonly identifier: string;
+    /** The component group the pack adds for the state. */
+    readonly group: string;
+    readonly stat: SharedStat;
+    /** The value Java's class sets for the state. */
+    readonly value: number;
+    /** The Java code that sets it. */
+    readonly reason: string;
+}
+
+/** The component groups whose stat Java's class sets for the state they stand for. */
+export const JAVA_STATE_STATS: readonly JavaStateStat[] = [
+    {
+        identifier: 'minecraft:wolf',
+        group: 'minecraft:wolf_increased_max_health',
+        stat: 'max_health',
+        value: 40,
+        reason: "Java's Wolf.applyTamingSideEffects sets a tame wolf's max health to 40 and a wild one's to 8. The pack adds this group once the wolf is tamed."
+    }
+];
+
 /** What the decision says about one entity's value for one shared stat. */
 export interface StatRuling {
     /**
@@ -320,4 +349,23 @@ export const javaAttributeBases = (
     }
 
     return bases;
+};
+
+/**
+ * The attribute values Java's class sets for the state one component group stands for, from
+ * {@link JAVA_STATE_STATS}. They replace {@link javaAttributeBases} for the attributes that group
+ * declares.
+ *
+ * @param identifier - The Bedrock entity identifier, such as `minecraft:wolf`.
+ * @param group - The component group declaring the attributes.
+ * @returns Attribute name to Java's value for the state, empty for a group no row names.
+ */
+export const javaStateAttributes = (identifier: string, group: string): ReadonlyMap<AttributeName, number> => {
+    const values = new Map<AttributeName, number>();
+    for (const row of JAVA_STATE_STATS) {
+        const attribute = SHARED_STATS[row.stat].attribute;
+        if (row.identifier === identifier && row.group === group && attribute !== undefined)
+            values.set(attribute, row.value);
+    }
+    return values;
 };

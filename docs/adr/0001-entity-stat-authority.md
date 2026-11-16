@@ -88,6 +88,18 @@ Every exception is a case where the Java number is published but not played.
   in code and leaves the attribute at 0, so taking that 0 would make them knockbackable, which is
   neither edition's behavior.
 
+## Stats a state sets
+
+Java's attribute supplier publishes the stat a type spawns with. Some classes set a stat again in
+code when the entity changes state, and the pack writes the same change as a component group the
+state's event adds. Java's number for the type would overwrite that group too, so a tamed wolf would
+keep a wild wolf's 8 health where `Wolf.applyTamingSideEffects` sets 40.
+
+`JAVA_STATE_STATS` in the same module lists each such group with the value Java's code sets for the
+state. A component that a listed group adds declares that value, and every other declaration takes
+the type's number as before. This is still Java deciding the stat: the row records Java's
+state-dependent value, not an exception that keeps Bedrock's.
+
 ## Consequences
 
 33 of the 151 disagreements now resolve to Java's value: 21 follow ranges, 10 attack damages and 2

@@ -83,7 +83,7 @@ export class Attributes {
      *   write that leaves all four numbers as they were is not reported.
      */
     public constructor(
-        private readonly overrides: ReadonlyMap<AttributeName, number> = new Map(),
+        private readonly overrides: Pick<ReadonlyMap<AttributeName, number>, 'get'> = new Map(),
         private readonly written?: (write: AttributeWrite) => void
     ) {}
 

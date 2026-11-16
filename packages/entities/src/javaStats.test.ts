@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest';
 import type { AttributeName } from './attributes';
 import { Attributes } from './attributes';
 import type { JavaStatSource } from './javaStats';
-import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, javaAttributeBases, javaEntityStats, statRuling } from './javaStats';
+import {
+    JAVA_STAT_EXCEPTIONS,
+    SHARED_STATS,
+    javaAttributeBases,
+    javaEntityStats,
+    javaStateAttributes,
+    statRuling
+} from './javaStats';
 
 /** Two entities out of the real table, with only the attributes these tests read. */
 const source: JavaStatSource = {
@@ -126,6 +133,17 @@ describe('Attributes with Java bases', () => {
         attributes.set('health', 10);
 
         expect(attributes.define('health', { base: 450, max: 450 }).current).toBe(300);
+    });
+});
+
+describe('javaStateAttributes', () => {
+    it("answers Java's tamed wolf health for the group the pack adds once it is tamed", () => {
+        expect(javaStateAttributes('minecraft:wolf', 'minecraft:wolf_increased_max_health').get('health')).toBe(40);
+    });
+
+    it('answers nothing for a group no row names', () => {
+        expect(javaStateAttributes('minecraft:wolf', 'minecraft:wolf_tame').size).toBe(0);
+        expect(javaStateAttributes('minecraft:cat', 'minecraft:wolf_increased_max_health').size).toBe(0);
     });
 });
 

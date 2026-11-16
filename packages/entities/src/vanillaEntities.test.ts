@@ -11,7 +11,7 @@ import type { EntityFile } from './entityTypes';
 import { EntityTypes } from './entityTypes';
 import { eventActions } from './events';
 import type { SharedStat } from './javaStats';
-import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, javaEntityStats, statRuling } from './javaStats';
+import { JAVA_STATE_STATS, JAVA_STAT_EXCEPTIONS, SHARED_STATS, javaEntityStats, statRuling } from './javaStats';
 import { TRIGGER_COMPONENTS } from './triggers';
 import { hasFilterTest } from './filters';
 
@@ -577,6 +577,25 @@ describe.runIf(enabled)('the vanilla entity pack', { tags: ['real-data'] }, () =
 
             expect(resolved, `${row.identifier} declares no ${row.stat}`).toBeDefined();
             expect(resolved).not.toBe(value);
+        }
+    });
+
+    it("gives a component group Java's value for the state it stands for", () => {
+        // Java's wolf supplier publishes the wild 8, and `Wolf.applyTamingSideEffects` sets 40
+        // once the wolf is tamed, which is the group the pack adds then.
+        for (const row of JAVA_STATE_STATS) {
+            const entity = types.spawn(row.identifier, {
+                environment: { random: { next: () => 0 }, javaStats: java_entity_attributes }
+            });
+            const attribute = SHARED_STATS[row.stat].attribute;
+            expect(attribute, `${row.stat} names no attribute`).toBeDefined();
+            if (attribute === undefined) continue;
+            const before = entity.attributes.get(attribute)?.max;
+
+            entity.restoreComponentGroups([...entity.activeComponentGroups(), row.group]);
+
+            expect(before).not.toBe(row.value);
+            expect(entity.attributes.get(attribute)?.max).toBe(row.value);
         }
     });
 

@@ -26,7 +26,7 @@ import { damagerSubjects, defaultRandom, isPlayerView } from './filterContext';
 import { evaluateFilter } from './filters';
 import { GoalScheduler } from './goals';
 import type { JavaStatSource } from './javaStats';
-import { javaAttributeBases } from './javaStats';
+import { javaAttributeBases, javaStateAttributes } from './javaStats';
 import type { JavaEntityNavigation } from './javaNavigation';
 import type { EntityAction, EventTarget } from './events';
 import type {
@@ -328,6 +328,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     private readonly seated: EntityInstance[] = [];
     private filterContextCache: FilterContext | undefined;
     private filterContextSelf: FilterEntityView | undefined;
+    /** The component group whose component is initializing, undefined for a base component. */
+    private initializingGroup: string | undefined;
 
     /**
      * @param holder - A holder from the registry of resolved entity types.
@@ -338,10 +340,25 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         // The two stores are built before `this` exists, so their observers reach the entity
         // through this binding, which is set before the first component initializes.
         let self: EntityInstance | undefined;
+        const bases = javaAttributeBases(type.identifier, environment.javaStats);
         super(holder, {
-            attributes: new Attributes(javaAttributeBases(type.identifier, environment.javaStats), (write) => {
-                if (self !== undefined) environment.attributeWritten?.(self, write);
-            }),
+            attributes: new Attributes(
+                {
+                    // A group whose stat Java's class sets for its state declares Java's value
+                    // for that state rather than the type's base.
+                    get: (name) => {
+                        const group = self?.initializingGroup;
+                        const state =
+                            group === undefined || environment.javaStats === undefined
+                                ? undefined
+                                : javaStateAttributes(type.identifier, group).get(name);
+                        return state ?? bases.get(name);
+                    }
+                },
+                (write) => {
+                    if (self !== undefined) environment.attributeWritten?.(self, write);
+                }
+            ),
             properties: new PropertyValues(
                 type.entity.description.properties,
                 (definition, source) => environment.propertyDefault?.(source, definition),
@@ -1169,7 +1186,12 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
             const previous = before.get(name);
             const reinitialized = entry.group !== undefined && added.includes(entry.group);
             if (previous !== undefined && previous.component === entry.component && !reinitialized) continue;
-            entry.component.handlers.onInitialize?.(this);
+            this.initializingGroup = entry.group;
+            try {
+                entry.component.handlers.onInitialize?.(this);
+            } finally {
+                this.initializingGroup = undefined;
+            }
         }
 
         this.environment.componentSetChanged?.(this);

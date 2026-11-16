@@ -380,6 +380,10 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 `statRuling(identifier, stat)` answers why one entity's stat resolved the way it did, so a parity
 row quotes the decision instead of keeping a second copy of it.
 
+A few component groups stand for a state whose stat Java's class sets in code, such as the tamed
+wolf's health. `JAVA_STATE_STATS` lists them, and a component such a group adds declares Java's value
+for the state rather than the type's.
+
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
 measures name coverage rather than complete simulation: 85 component factories have hooks, and 96
 components have a runtime effect across the server when host reads and protocol projections are
