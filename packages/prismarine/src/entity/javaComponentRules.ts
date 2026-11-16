@@ -122,12 +122,7 @@ export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponen
     'minecraft:pufferfish': [
         { component: 'minecraft:area_attack', rewrite: (body) => ({ ...body, damage_per_tick: 3 }) }
     ],
-    // `Skeleton`'s freezing `ConversionTracker` turns it after 140 ticks in powder snow and 300 more
-    // converting, 22 seconds, where the pack's timer turns it after 20.
-    'minecraft:skeleton': [
-        { component: 'minecraft:timer', rewrite: (body) => ({ ...body, time: 22 }) },
-        WEAPON_BY_WEAPON_ALONE
-    ],
+    'minecraft:skeleton': [WEAPON_BY_WEAPON_ALONE],
     'minecraft:stray': [WEAPON_BY_WEAPON_ALONE],
     'minecraft:bogged': [WEAPON_BY_WEAPON_ALONE],
     'minecraft:parched': [WEAPON_BY_WEAPON_ALONE],

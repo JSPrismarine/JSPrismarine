@@ -70,16 +70,10 @@ describe('withJavaComponentRules', () => {
         });
     });
 
-    it("lets a mob hurt a ghast and turns a skeleton in powder snow after Java's 22 seconds", () => {
+    it('lets a mob hurt a ghast', () => {
         const ghast = withJavaComponentRules(entityFile('minecraft:ghast', {}, { 'minecraft:cannot_be_attacked': {} }));
-        const skeleton = withJavaComponentRules(
-            entityFile('minecraft:skeleton', { in_powder_snow: { 'minecraft:timer': { time: 20 } } })
-        );
 
         expect(ghast).toEqual(entityFile('minecraft:ghast', {}, {}));
-        expect(skeleton).toMatchObject({
-            'minecraft:entity': { component_groups: { in_powder_snow: { 'minecraft:timer': { time: 22 } } } }
-        });
     });
 
     it("lets a big slime hurt only the iron golem it touches, and a full pufferfish deal Java's 3", () => {
