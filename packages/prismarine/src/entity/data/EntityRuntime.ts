@@ -205,6 +205,7 @@ import { isPlainRecord, plainOf } from '../../world/changelog/PlainData';
 import { fallsThrough } from '../../world/physics/BlockRules';
 import type { EntityItemInteraction } from './itemInteraction';
 import { JAVA_POI_TYPES, PointsOfInterest } from './poi';
+import { ItemSteering } from './itemSteering';
 import { RideIndex } from './riding';
 import type { EntityScene, SpawnOptions } from './scene';
 import {
@@ -235,6 +236,7 @@ import { cushions } from '../playerFall';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 import { clientOwnsMovement, PLAYER_IDENTIFIER } from '../playerOverlay';
+import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
 import { effectiveDifficulty, specialMultiplier } from '../localDifficulty';
 import type { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerMining } from '../playerComponents';
@@ -708,6 +710,8 @@ export class EntityRuntime implements EntityScene {
     private readonly merchantSnapshots = new Map<number, MerchantSnapshot>();
     /** Who rides whom, which both the rider's and the vehicle's goals read. */
     private readonly rides = new RideIndex();
+    /** The boost of each mount steered with an item that has taken one. */
+    private readonly steerings = new WeakMap<DataEntity, ItemSteering>();
     /** Stable identities of the entities or players holding data-driven entity leashes. */
     private readonly leashHolders = new Map<number, string>();
     /** Resolves persistent identities back to the currently loaded entity. */
@@ -2025,6 +2029,7 @@ export class EntityRuntime implements EntityScene {
         if (this.tickFuse(entity)) return;
         this.carryRiders(entity);
         this.giveRidersBreath(entity);
+        this.steerings.get(entity)?.tick();
         if (entity.removed !== undefined) return;
         this.pushIntersectingEntity(entity);
     }
@@ -3697,6 +3702,54 @@ export class EntityRuntime implements EntityScene {
     /** Stable identity of a leash holder, ready to save with the entity's record. */
     public leashHolderIdentityOf(id: number): string | undefined {
         return this.leashHolders.get(id);
+    }
+
+    /**
+     * The rider that steers a mount steered with an item, Java's `getControllingPassenger` for the
+     * pig and the strider: the first rider, when it is a player holding an item the mount's
+     * `minecraft:item_controllable` names. A rider holding none rides along while the mount goes
+     * its own way.
+     *
+     * @returns The rider's runtime id, or undefined when nobody steers it.
+     */
+    public itemControllingRider(vehicle: DataEntity): number | undefined {
+        const control = vehicle.instance.componentParams('minecraft:item_controllable');
+        const controlItems = itemsNamed(isRecord(control) ? control.control_items : undefined);
+        const rider = this.rides.ridersOf(vehicle.id)[0];
+        if (rider === undefined || controlItems.length === 0) return undefined;
+        const held = this.host.heldItemOf?.(rider);
+        return held !== undefined && controlItems.includes(normalizedItemIdentifier(held)) ? rider : undefined;
+    }
+
+    /** The boost of a mount steered with an item, made the first time anything asks. */
+    public steeringOf(vehicle: DataEntity): ItemSteering {
+        let steering = this.steerings.get(vehicle);
+        if (steering === undefined) {
+            steering = new ItemSteering();
+            this.steerings.set(vehicle, steering);
+        }
+        return steering;
+    }
+
+    /**
+     * Boosts the mount a rider steers with an item, as Java's `FoodOnAStickItem.use` asks
+     * `ItemSteerable.boost` to: only a mount whose `minecraft:boostable` takes the item, steered by
+     * this rider, and not boosting already.
+     *
+     * @param riderId - The rider using the item.
+     * @param item - The item, such as `minecraft:carrot_on_a_stick`.
+     * @returns Whether a boost started, which is when the item pays its durability.
+     */
+    public boostMount(riderId: number, item: string): boolean {
+        const vehicleId = this.rides.vehicleOf(riderId);
+        const mount = vehicleId === undefined ? undefined : this.store.get(vehicleId);
+        if (mount === undefined || this.itemControllingRider(mount) !== riderId) return false;
+        const boostable = mount.instance.componentParams('minecraft:boostable');
+        const boostItems = isRecord(boostable) && Array.isArray(boostable.boost_items) ? boostable.boost_items : [];
+        const takes = boostItems.some(
+            (entry: unknown) => isRecord(entry) && itemsNamed(entry.item).includes(normalizedItemIdentifier(item))
+        );
+        return takes && this.steeringOf(mount).boost((bound) => this.world.random.nextInt(bound));
     }
 
     /** Who rides an entity, in the order they got on. */
@@ -6679,6 +6732,12 @@ const FALL_DAMAGE_MULTIPLIER = 'minecraft:fall_damage_multiplier';
 
 /** What `LivingEntity.calculateFallPower` adds to a fall, so a fall of exactly a whole block counts it. */
 const FALL_EPSILON = 1e-6;
+
+/** The item names a component field holds, one or a list, with the names the files write from before a rename replaced. */
+const itemsNamed = (value: unknown): readonly string[] =>
+    (Array.isArray(value) ? value : [value]).flatMap((name) =>
+        typeof name === 'string' ? [normalizedItemIdentifier(name)] : []
+    );
 
 /** How long the Breath of the Nautilus a nautilus gives its rider lasts, refreshed each tick. */
 const NAUTILUS_BREATH_TICKS = 60;

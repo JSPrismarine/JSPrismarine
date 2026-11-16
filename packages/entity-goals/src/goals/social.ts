@@ -13,6 +13,7 @@ import {
     eventAt,
     eventsAt,
     filterAt,
+    isRecord,
     numberAt,
     stringAt,
     stringsAt,
@@ -609,22 +610,41 @@ export const playerRideTamed = goal<Record<string, unknown>>({
     })
 });
 
+/** The items a mob's `minecraft:item_controllable` steers it with, one name or a list. */
+const controlItemsOf = (support: GoalSupport): readonly string[] => {
+    const params = support.entity.componentParams('minecraft:item_controllable');
+    const named = isRecord(params) ? params.control_items : undefined;
+    return (Array.isArray(named) ? named : [named]).flatMap((name) =>
+        typeof name === 'string' ? [normalizedItemIdentifier(name)] : []
+    );
+};
+
 /**
  * `minecraft:behavior.controlled_by_player`, which the pig and the strider
  * carry. It is `player_ride_tamed` for an entity steered with an item rather
- * than taming.
+ * than taming: Java's `Pig.getControllingPassenger` and
+ * `Strider.getControllingPassenger` hand the mob to its first rider only while
+ * that rider holds the item, and a mob carrying a rider without it goes its
+ * own way.
  */
 export const controlledByPlayer = goal<{ readonly mountSpeedMultiplier: number }>({
     name: 'minecraft:behavior.controlled_by_player',
     controlFlags: ['move'],
     schema: bodySchema((body) => ({ mountSpeedMultiplier: numberAt(body, 'mount_speed_multiplier', 1) })),
-    create: (_params, support) => ({
-        canStart: () => (support.world.riders?.() ?? []).length > 0,
-        canContinue: () => (support.world.riders?.() ?? []).length > 0,
-        start: () => {
-            support.navigator.stop();
-        }
-    })
+    create: (_params, support) => {
+        const steered = (): boolean => {
+            const rider = support.world.riders?.()[0];
+            const held = rider?.heldItem?.();
+            return held !== undefined && controlItemsOf(support).includes(normalizedItemIdentifier(held));
+        };
+        return {
+            canStart: steered,
+            canContinue: steered,
+            start: () => {
+                support.navigator.stop();
+            }
+        };
+    }
 });
 
 /** What `minecraft:behavior.play` declares. */

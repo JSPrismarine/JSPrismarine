@@ -396,6 +396,14 @@ export interface WorldActions {
      */
     targetOf(source: ItemSource): ItemSource | undefined;
     /**
+     * Boosts the mount the user steers with the item, as Java's `ItemSteerable.boost` does, and
+     * says whether it did: only a mount of the kind the item steers, ridden and steered by the
+     * user, and not boosting already. Absent where nothing rides.
+     *
+     * @param item - The steering item, such as `minecraft:carrot_on_a_stick`.
+     */
+    boostMount?(source: ItemSource, item: string): boolean;
+    /**
      * Whether an identifier is in a holder set, which resolves the `#tag`,
      * single and list forms the same way for blocks, items and entities.
      */

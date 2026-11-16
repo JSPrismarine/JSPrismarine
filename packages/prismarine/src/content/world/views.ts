@@ -306,6 +306,7 @@ const itemActionsOf = (adapter: () => ServerWorldAdapter, content: ContentLookup
         stateOf: (source) => items().stateOf(source),
         environment: () => items().environment(),
         targetOf: (source) => items().targetOf(source),
+        boostMount: (source, item) => items().boostMount?.(source, item) ?? false,
         canNameEntity: (target) => items().canNameEntity?.(target) ?? true,
         canDyeEntity: (target, color) => items().canDyeEntity?.(target, color) ?? true,
         placeEndCrystal: (base) => items().placeEndCrystal?.(base) ?? false,

@@ -746,6 +746,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             };
         },
         targetOf: (source) => targets.get(source.runtimeId),
+        boostMount: (source, item) => world()?.dataEntities().runtime.boostMount(source.runtimeId, item) ?? false,
         canNameEntity: (source) => {
             const target = entityOf(source);
             return target !== null && (canNameEntity?.(target) ?? false);

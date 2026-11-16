@@ -39,6 +39,8 @@ export interface TestWorldOptions {
     readonly environment?: Partial<EnvironmentState>;
     /** The entity a use lands on, which makes `targetOf` answer. */
     readonly target?: ItemSource;
+    /** Whether the user's mount takes a boost, which makes `boostMount` answer; absent leaves it out. */
+    readonly boosts?: boolean;
     /** Tag membership, keyed by tag name without the leading `#`. */
     readonly tags?: Readonly<Record<string, readonly string[]>>;
     /** What `transform` answers, keyed by `<transformer>|<block identifier>`. */
@@ -121,6 +123,7 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
         stateOf: () => state,
         environment: () => environment,
         targetOf: () => target,
+        ...(options.boosts === undefined ? {} : { boostMount: () => options.boosts === true }),
         includes: (set: HolderSet, member: string) =>
             set.kind === 'tag' ? (tags.get(set.tag)?.has(member) ?? false) : set.entries.includes(member),
         transform: (transformer, block, _face) => transforms.get(`${transformer}|${block.identifier}`),

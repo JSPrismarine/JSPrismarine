@@ -33,6 +33,7 @@ const world: WorldActions = {
     stateOf: (source) => current.stateOf(source),
     environment: () => current.environment(),
     targetOf: (source) => current.targetOf(source),
+    boostMount: (source, item) => current.boostMount?.(source, item) ?? false,
     includes: (set, member) => current.includes(set, member),
     transform: (transformer, block, face) => current.transform(transformer, block, face),
     effectsOf: (potion) => current.effectsOf(potion),
@@ -453,6 +454,24 @@ describe('launchers and throwables', () => {
         const result = use(stackOf('minecraft:firework_rocket', 2));
         expect(gliding.performed('spawn-entity')[0]?.attachedTo).toEqual(source);
         expect(result?.stack?.count).toBe(1);
+    });
+
+    it("boosts a steered mount for Java's durability, and does nothing without one", () => {
+        const riding = withWorld({ boosts: true });
+        const carrot = use(stackOf('minecraft:carrot_on_a_stick'));
+        expect(carrot?.stack?.get('minecraft:damage')).toBe(7);
+        expect(riding.performed('consume-durability')[0]?.amount).toBe(7);
+        expect(use(stackOf('minecraft:warped_fungus_on_a_stick'))?.stack?.get('minecraft:damage')).toBe(1);
+
+        const walking = withWorld({ boosts: false });
+        expect(use(stackOf('minecraft:carrot_on_a_stick'))).toBeUndefined();
+        expect(walking.performed('consume-durability')).toEqual([]);
+    });
+
+    it('turns a steering item a boost wears out into a fishing rod', () => {
+        withWorld({ boosts: true });
+        const worn = stackOf('minecraft:carrot_on_a_stick').set('minecraft:damage', 24);
+        expect(use(worn)?.stack?.identifier).toBe('minecraft:fishing_rod');
     });
 
     it('casts and then reels in a fishing rod', () => {

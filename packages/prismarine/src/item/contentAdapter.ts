@@ -90,6 +90,8 @@ export interface ItemActorPort {
     stateOf(source: ItemSource): SourceState;
     /** The entity an interaction landed on, or undefined when it landed on a block or nothing. */
     targetOf(source: ItemSource): ItemSource | undefined;
+    /** Boosts the mount the user steers with the item, and says whether it did, when the host has mounts. */
+    boostMount?(source: ItemSource, item: string): boolean;
     /** Whether a target entity accepts a name tag, when the host can answer. */
     canNameEntity?(target: ItemSource): boolean;
     /** Whether a target entity accepts this dye, when the host can answer. */
@@ -231,6 +233,7 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
     return {
         stateOf: (source) => actors.stateOf(source),
         targetOf: (source) => actors.targetOf(source),
+        boostMount: (source, item) => actors.boostMount?.(source, item) ?? false,
         canDyeEntity: (target, color) => actors.canDyeEntity?.(target, color) ?? true,
         canNameEntity: (target) => actors.canNameEntity?.(target) ?? true,
         locate: (destination, origin) => actors.locate?.(destination, origin),

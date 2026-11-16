@@ -287,20 +287,34 @@ export const fishingRodBehavior: ItemBehaviorSpec = {
     }
 };
 
-/** The carrot on a stick and the warped fungus on a stick, which steer a mount. */
+/**
+ * The durability one boost costs each steering item, Java's `FoodOnAStickItem` constructor
+ * argument: 7 for the carrot on a stick, 1 for the warped fungus on a stick.
+ */
+const BOOST_DAMAGE: ReadonlyMap<string, number> = new Map([
+    ['minecraft:carrot_on_a_stick', 7],
+    ['minecraft:warped_fungus_on_a_stick', 1]
+]);
+
+/** What a steering item turns into once a boost wears it out, `FoodOnAStickItem.use`'s `hurtAndConvertOnBreak`. */
+const WORN_OUT_STEERING_ITEM = 'minecraft:fishing_rod';
+
+/**
+ * The carrot on a stick and the warped fungus on a stick, which steer a mount. A use boosts the
+ * mount the user rides and steers, as Java's `FoodOnAStickItem.use` does, and costs the item its
+ * durability only when the boost took; a worn-out item becomes a fishing rod.
+ */
 export const steeringRodBehavior: ItemBehaviorSpec = {
     name: 'vanilla:steering_rod',
     hooks: ['onUse'],
     create: (context) => {
         const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
-            const target = context.world.targetOf(source);
-            if (target === undefined) return undefined;
-            context.world.perform({
-                kind: 'play-sound',
-                sound: 'minecraft:entity.pig.step',
-                position: context.world.stateOf(target).position
-            });
-            return { stack: spendItemDurability(context.world, itemStack, source, 7) };
+            const identifier = itemStack.identifier;
+            const damage = BOOST_DAMAGE.get(identifier);
+            if (damage === undefined || context.world.boostMount?.(source, identifier) !== true) return undefined;
+            const spent = spendItemDurability(context.world, itemStack, source, damage);
+            if (!spent.empty) return { stack: spent };
+            return { stack: context.items.create(WORN_OUT_STEERING_ITEM, 1) ?? spent };
         };
 
         return { onUse };

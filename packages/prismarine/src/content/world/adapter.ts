@@ -307,6 +307,8 @@ export interface ContentItemAccess {
      * so the server answers rather than the item package.
      */
     effectsOf(potion: string): readonly EffectApplication[];
+    /** Boosts the mount the user steers with the item and says whether it did, when the world has mounts. */
+    boostMount?(source: ItemSource, item: string): boolean;
     /** Whether a target entity accepts a name tag, when the actor port can answer. */
     canNameEntity?(target: ItemSource): boolean;
     /** Whether a target entity accepts this dye, when the actor port can answer. */

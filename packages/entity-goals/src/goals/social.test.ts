@@ -311,3 +311,29 @@ describe('minecraft:behavior.offer_flower', () => {
         expect(held).toBe(200);
     });
 });
+
+describe('minecraft:behavior.controlled_by_player', () => {
+    /** A saddled pig with one rider holding `held`. */
+    const ridden = (held: string | undefined) => {
+        const rider = testMob('player', { x: 0, y: 64, z: 0 }, held === undefined ? {} : { heldItem: held });
+        return new GoalHarness({
+            goals: { 'minecraft:behavior.controlled_by_player': { priority: 0 } },
+            components: { 'minecraft:item_controllable': { control_items: 'carrotOnAStick' } },
+            world: { riders: () => [rider] }
+        });
+    };
+
+    it('takes the walk only while its rider holds the item it steers with, as Java hands the pig over', () => {
+        const steered = ridden('minecraft:carrot_on_a_stick');
+        steered.tick();
+        expect(steered.holderOf('move')).toBe('minecraft:behavior.controlled_by_player');
+
+        const carried = ridden('minecraft:stick');
+        carried.tick();
+        expect(carried.isRunning('minecraft:behavior.controlled_by_player')).toBe(false);
+
+        const emptyHanded = ridden(undefined);
+        emptyHanded.tick();
+        expect(emptyHanded.isRunning('minecraft:behavior.controlled_by_player')).toBe(false);
+    });
+});
