@@ -145,6 +145,7 @@ import { entityFilterContextOf } from './filterView';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { DroppedItems, isDroppedItem } from './droppedItems';
 import { javaBlockTagsForBedrock } from '../../content/javaTags';
+import { AreaEffectClouds, isAreaEffectCloud } from './areaEffectCloud';
 import { EvokerFangs, isEvokerFangs } from './evokerFangs';
 import { OminousItemSpawners, isOminousItemSpawner } from './ominousItemSpawner';
 import { HangingEntities, isHangingEntity } from './hangingEntities';
@@ -605,6 +606,8 @@ export class EntityRuntime implements EntityScene {
     public readonly ominousItemSpawners: OminousItemSpawners;
     /** Every painting and leash knot, which hangs until what holds it goes. */
     public readonly hangingEntities: HangingEntities;
+    /** Every area effect cloud, such as the dragon's breath. */
+    public readonly areaEffectClouds: AreaEffectClouds;
 
     /** The systems a store player's survival runs on, and its component state. */
     public readonly playerSystems: PlayerSystems;
@@ -892,6 +895,15 @@ export class EntityRuntime implements EntityScene {
             },
             drop: (at, identifier) => this.host.drop(blockPositionOf(at), { identifier, count: 1 }),
             playSound: (at, sound) => this.world.effects.playSound(blockPositionOf(at), sound),
+            remove: (id, reason) => this.remove(id, reason)
+        });
+        this.areaEffectClouds = new AreaEffectClouds({
+            withinBox: (min, max) => this.index.withinBox(min, max),
+            hurt: (entity, sourceId, cause, amount) =>
+                void this.hurt(entity, sourceId, cause, amount, { route: 'area_attack' }),
+            heal: (id, amount) => void this.heal(id, amount),
+            applyStatusEffect: (source, targetId, effect) =>
+                void this.applyStatusEffectToId(source.instance, targetId, effect),
             remove: (id, reason) => this.remove(id, reason)
         });
         this.eyesOfEnder = new EyeOfEnderSignals({
@@ -1923,6 +1935,10 @@ export class EntityRuntime implements EntityScene {
         }
         if (isHangingEntity(entity)) {
             this.hangingEntities.update(entity);
+            return;
+        }
+        if (isAreaEffectCloud(entity)) {
+            this.areaEffectClouds.update(entity);
             return;
         }
         this.tickHitGrace(entity.id);
