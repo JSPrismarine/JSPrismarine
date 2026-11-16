@@ -278,4 +278,20 @@ describe('minecraft:persistent', () => {
 
         expect(removed).toEqual([]);
     });
+
+    it('keeps a named mob whatever the distance, as a name tag makes it persistent', () => {
+        const removed: string[] = [];
+        const entity = spawn(wanderer(false), 'test:wanderer', {
+            filterContext: () => ({
+                self: {
+                    flag: (name) => (name === 'has_nametag' ? true : undefined),
+                    measure: (name) => (name === 'distance_to_nearest_player' ? 200 : undefined)
+                }
+            }),
+            remove: (_entity, reason) => removed.push(reason)
+        });
+        tick(entity, 40);
+
+        expect(removed).toEqual([]);
+    });
 });

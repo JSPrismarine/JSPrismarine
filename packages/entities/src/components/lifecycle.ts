@@ -58,9 +58,12 @@ export const despawn: ComponentFactory<EntityHooks, DespawnParams> = {
     },
     create: (params) => ({
         onTick: (entity) => {
-            // A named or tamed mob carries `minecraft:persistent`, and the
-            // documented rule is that it never despawns, filters or not.
+            // A tamed mob carries `minecraft:persistent`, and the documented rule is that it
+            // never despawns, filters or not. A name tag makes a mob persistent in the same way
+            // (Java's NameTagItem calls Mob.setPersistenceRequired), and the host reports a
+            // name through the `has_nametag` flag.
             if (entity.hasComponent('minecraft:persistent')) return;
+            if (entity.filterContext().self.flag?.('has_nametag') === true) return;
             if (params.filters !== undefined) {
                 if (evaluateFilter(params.filters, entity.filterContext())) entity.remove('despawn filters passed');
                 return;

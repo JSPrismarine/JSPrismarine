@@ -1842,7 +1842,10 @@ export class EntityRuntime implements EntityScene {
         for (const entity of this.entities()) {
             if (shouldTick !== undefined && !shouldTick(entity.position)) continue;
             if (!this.pools.has(entity.id)) continue;
-            const reason = despawnReason({ position: blockPositionOf(entity.position) }, world);
+            // A named mob is persistent, which Java's Mob.checkDespawn honors before any distance rule.
+            const persistent =
+                entity.body.nameTag !== undefined || entity.instance.hasComponent('minecraft:persistent');
+            const reason = despawnReason({ position: blockPositionOf(entity.position), persistent }, world);
             if (reason !== undefined) this.remove(entity.id, reason);
         }
     }

@@ -160,6 +160,8 @@ const flagOf = (body: MobBody, scene: EntityScene, name: EntityFlag): boolean | 
             return scene.vehicleOf(body) !== undefined;
         case 'is_leashed':
             return scene.leashHolderOf(body) !== undefined;
+        case 'has_nametag':
+            return body.nameTag !== undefined;
         case 'has_target':
             return body.target !== undefined;
         case 'is_moving':

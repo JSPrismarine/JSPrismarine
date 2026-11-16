@@ -79,6 +79,19 @@ describe('the despawn pass', () => {
         expect(fixture.removed.at(-1)).toEqual({ entity: cow, reason: 'simulation_edge' });
     });
 
+    it('keeps a named mob a spawn rule produced, however far away it is', () => {
+        const fixture = populated();
+        const spawnWorld = contentWorldViews(singleDimension(fixture.adapter), () => fixture.content).spawnWorld;
+        fixture.runtime.startSpawning(spawnWorld);
+
+        const cow = fixture.runtime.spawn('minecraft:cow', { x: 4000, y: FLOOR_Y + 1, z: 0 }, { pool: 'animal' });
+        // The fixture cow declares no minecraft:nameable, so the name goes on as a name tag leaves it.
+        cow!.body.nameTag = 'Daisy';
+        fixture.runtime.tick(1);
+
+        expect(fixture.runtime.byId(cow!.id)).toBe(cow);
+    });
+
     it('keeps a mob no spawn rule produced, however far away it is', () => {
         const fixture = populated();
         const spawnWorld = contentWorldViews(singleDimension(fixture.adapter), () => fixture.content).spawnWorld;
