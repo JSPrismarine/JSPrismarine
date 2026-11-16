@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
+
 import { GoalHarness, testMob } from '../harness';
 import { voxelGrid } from '../navigation/voxelGrid';
 import type { GoalWorld } from '../world';
@@ -322,6 +324,101 @@ describe('minecraft:behavior.avoid_mob_type', () => {
             components: walker,
             world: { ...flatWorld(), mobs: () => [cow] },
             at: { x: 8.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(harness.running()).toEqual([]);
+    });
+});
+
+describe('minecraft:behavior.random_hover', () => {
+    it("draws spots hover_height above the ground under them, as Java's HoverRandomPos does", () => {
+        const size = 24;
+        const floor = Array.from({ length: size }, () => '#'.repeat(size));
+        const air = Array.from({ length: size }, () => '.'.repeat(size));
+        const view = voxelGrid([floor, ...Array.from({ length: 14 }, () => air)]);
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.random_hover': {
+                    priority: 1,
+                    interval: 1,
+                    xz_dist: 8,
+                    y_dist: 8,
+                    hover_height: [1, 3]
+                }
+            },
+            components: { 'minecraft:navigation.fly': { can_path_over_water: true }, 'minecraft:can_fly': {} },
+            world: { navigation: () => view },
+            at: { x: 12.5, y: 2, z: 12.5 }
+        });
+
+        const heights: number[] = [];
+        for (let tick = 0; tick < 300; tick += 1) {
+            harness.tick();
+            heights.push(harness.actuator.at.y);
+        }
+
+        expect(harness.actuator.count('moveTo')).toBeGreaterThan(0);
+        // The floor's top is y 1, so 1 to 3 above it is y 2 to 4.
+        expect(Math.max(...heights)).toBeLessThanOrEqual(4);
+        expect(Math.min(...heights)).toBeGreaterThanOrEqual(2);
+    });
+});
+
+describe('minecraft:behavior.swim_up_for_breath', () => {
+    it("surfaces only once the air supply is below Java's BreathAirGoal 140", () => {
+        const water = Array.from({ length: 8 }, () => '~'.repeat(8));
+        const air = Array.from({ length: 8 }, () => '.'.repeat(8));
+        const view = voxelGrid([Array.from({ length: 8 }, () => '#'.repeat(8)), water, water, water, air]);
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.swim_up_for_breath': { priority: 1 } },
+            components: {
+                'minecraft:navigation.generic': { can_swim: true, can_breach: true },
+                'minecraft:breathable': { total_supply: 240, breathes_air: true, breathes_water: false }
+            },
+            world: { navigation: () => view },
+            at: { x: 4.5, y: 1, z: 4.5 },
+            flags: { is_underwater: true, in_water: true }
+        });
+
+        harness.tick();
+        expect(harness.running()).toEqual([]);
+
+        harness.entity.componentState.set(AIR_STATE, { remaining: 139, untilHurt: 20 });
+        harness.tick();
+        expect(harness.running()).toEqual(['minecraft:behavior.swim_up_for_breath']);
+    });
+});
+
+describe('minecraft:behavior.move_through_village', () => {
+    it("strolls toward a village point by day when it is not held to the night, as Java's golem does", () => {
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.move_through_village': { priority: 1, only_at_night: false } },
+            components: walker,
+            world: {
+                ...flatWorld(),
+                poi: (kind) => (kind === 'bed' ? { x: 20.5, y: 1, z: 8.5 } : undefined)
+            },
+            at: { x: 8.5, y: 1, z: 8.5 },
+            randomInt: () => 0,
+            random: () => 0.9,
+            worldFacts: { timeOfDay: () => 1000 }
+        });
+
+        harness.tick();
+
+        expect(harness.running()).toEqual(['minecraft:behavior.move_through_village']);
+        expect(harness.actuator.count('moveTo')).toBeGreaterThan(0);
+    });
+
+    it('waits for the night when only_at_night is set', () => {
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.move_through_village': { priority: 1, only_at_night: true } },
+            components: walker,
+            world: { ...flatWorld(), poi: () => ({ x: 20.5, y: 1, z: 8.5 }) },
+            at: { x: 8.5, y: 1, z: 8.5 },
+            worldFacts: { timeOfDay: () => 1000 }
         });
 
         harness.tick();

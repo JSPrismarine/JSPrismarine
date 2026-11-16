@@ -3,7 +3,7 @@ import type { Goal } from '@jsprismarine/entities';
 import { goal } from '../goal';
 import type { RegisterableGoal } from '../goal';
 import type { GoalSupport } from '../support';
-import type { GoalMob } from '../world';
+import type { GoalCombatMark, GoalMob } from '../world';
 import type { GoalEvent, TargetEntityType } from '../params';
 import { bodySchema, booleanAt, entityTypesAt, eventAt, numberAt, stringAt, ticksAt, tickRangeAt } from '../params';
 
@@ -258,24 +258,52 @@ export const hurtByTarget = goal<HurtByTargetParams>({
 });
 
 /**
+ * Takes the mob on the other side of a remembered blow, once per blow.
+ *
+ * Java's owner and trust goals remember the timestamp of the blow they last acted on and start
+ * again only when a newer one lands, so a wolf that gave up on a mob does not turn back to it
+ * for the same fight. A mob that remembers no blows, such as an owner the world answers only
+ * `target` or `lastDamager` for, is read through `fallback` instead.
+ */
+const blowMemory = (
+    support: GoalSupport,
+    entries: readonly TargetEntityType[],
+    mark: (other: GoalMob) => GoalCombatMark | undefined,
+    fallback: (other: GoalMob) => GoalMob | undefined
+): ((other: GoalMob | undefined) => GoalMob | undefined) => {
+    let acted: number | undefined;
+    return (other) => {
+        if (other === undefined) return undefined;
+        const remembered = mark(other);
+        const candidate = remembered === undefined ? fallback(other) : remembered.mob;
+        if (remembered !== undefined && remembered.tick === acted) return undefined;
+        if (candidate === undefined || candidate.id === other.id) return undefined;
+        if (!support.isAttackable(candidate)) return undefined;
+        if (entries.length > 0 && !support.accepts(entries, candidate)) return undefined;
+        if (remembered !== undefined) acted = remembered.tick;
+        return candidate;
+    };
+};
+
+/**
  * `minecraft:behavior.owner_hurt_by_target`, which the wolf carries.
  *
- * It takes whatever hurt the entity's owner. Java's `OwnerHurtByTargetGoal` is
- * the same goal.
+ * It takes whatever last hurt the entity's owner. Java's `OwnerHurtByTargetGoal` reads the
+ * owner's `getLastHurtByMob` and starts once per blow its timestamp names.
  */
 export const ownerHurtByTarget = goal<readonly TargetEntityType[]>({
     name: 'minecraft:behavior.owner_hurt_by_target',
     controlFlags: [],
     schema: bodySchema((body) => entityTypesAt(body)),
-    create: (entries, support) =>
-        holdTarget(support, {
-            find: () => {
-                const candidate = support.world.owner?.()?.lastDamager?.();
-                if (candidate === undefined) return undefined;
-                if (!support.isAttackable(candidate)) return undefined;
-                if (entries.length > 0 && !support.accepts(entries, candidate)) return undefined;
-                return candidate;
-            },
+    create: (entries, support) => {
+        const attacker = blowMemory(
+            support,
+            entries,
+            (owner) => owner.lastHurtBy?.(),
+            (owner) => owner.lastDamager?.()
+        );
+        return holdTarget(support, {
+            find: () => attacker(support.world.owner?.()),
             radius: Number.POSITIVE_INFINITY,
             mustSee: false,
             forgetTicks: REVENGE_FORGET_TICKS,
@@ -284,29 +312,30 @@ export const ownerHurtByTarget = goal<readonly TargetEntityType[]>({
             probability: 1,
             reselect: true,
             mustReach: false
-        })
+        });
+    }
 });
 
 /**
  * `minecraft:behavior.owner_hurt_target`, which the wolf carries.
  *
- * It takes whatever the entity's owner is attacking, which is what makes a
- * tamed wolf join its owner's fight. Java's `OwnerHurtTargetGoal` is the same
- * goal.
+ * It takes whatever the entity's owner last hurt, which is what makes a tamed wolf join its
+ * owner's fight. Java's `OwnerHurtTargetGoal` reads the owner's `getLastHurtMob` and starts
+ * once per blow its timestamp names.
  */
 export const ownerHurtTarget = goal<readonly TargetEntityType[]>({
     name: 'minecraft:behavior.owner_hurt_target',
     controlFlags: [],
     schema: bodySchema((body) => entityTypesAt(body)),
-    create: (entries, support) =>
-        holdTarget(support, {
-            find: () => {
-                const candidate = support.world.owner?.()?.target?.();
-                if (candidate === undefined) return undefined;
-                if (!support.isAttackable(candidate)) return undefined;
-                if (entries.length > 0 && !support.accepts(entries, candidate)) return undefined;
-                return candidate;
-            },
+    create: (entries, support) => {
+        const victim = blowMemory(
+            support,
+            entries,
+            (owner) => owner.lastHurt?.(),
+            (owner) => owner.target?.()
+        );
+        return holdTarget(support, {
+            find: () => victim(support.world.owner?.()),
             radius: Number.POSITIVE_INFINITY,
             mustSee: false,
             forgetTicks: FORGET_TICKS,
@@ -315,7 +344,8 @@ export const ownerHurtTarget = goal<readonly TargetEntityType[]>({
             probability: 1,
             reselect: true,
             mustReach: false
-        })
+        });
+    }
 });
 
 /** What `minecraft:behavior.defend_trusted_target` declares. */
@@ -332,8 +362,9 @@ export interface DefendTrustedTargetParams {
 /**
  * `minecraft:behavior.defend_trusted_target`, which the fox carries.
  *
- * It attacks whatever hurt an entity this one trusts, which is the `trusts`
- * fact on the filter view.
+ * It attacks whatever last hurt an entity this one trusts, which is the `trusts` fact on the
+ * filter view. Java's `Fox.DefendTrustedTargetGoal` reads each trusted player's
+ * `getLastHurtByMob` and starts once per blow its timestamp names.
  */
 export const defendTrustedTarget = goal<DefendTrustedTargetParams>({
     name: 'minecraft:behavior.defend_trusted_target',
@@ -346,16 +377,21 @@ export const defendTrustedTarget = goal<DefendTrustedTargetParams>({
         onDefendStart: eventAt(body, 'on_defend_start')
     })),
     create: (params, support) => {
+        const attacker = blowMemory(
+            support,
+            params.entityTypes,
+            (trusted) => trusted.lastHurtBy?.(),
+            (trusted) => trusted.lastDamager?.()
+        );
         const hold = holdTarget(support, {
             find: () => {
-                const candidates = support.mobs(params.withinRadius);
-                return candidates.find((mob) => {
-                    if (!support.isAttackable(mob)) return false;
-                    const trusted = mob.view().attackTarget?.();
-                    if (trusted === undefined) return false;
-                    if (support.entity.filterContext().self.trusts?.(trusted) !== true) return false;
-                    return params.entityTypes.length === 0 || support.accepts(params.entityTypes, mob);
-                });
+                const self = support.entity.filterContext().self;
+                for (const mob of support.mobs(params.withinRadius)) {
+                    if (self.trusts?.(mob.view()) !== true) continue;
+                    const found = attacker(mob);
+                    if (found !== undefined) return found;
+                }
+                return undefined;
             },
             radius: params.withinRadius,
             mustSee: params.mustSee,

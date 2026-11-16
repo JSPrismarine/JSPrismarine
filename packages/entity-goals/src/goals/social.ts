@@ -58,8 +58,12 @@ const PARENT_GIVE_UP_DISTANCE = 16;
 /** Where a tempted entity stops, from Java's `TemptGoal.DEFAULT_STOP_DISTANCE`. */
 const TEMPT_STOP_DISTANCE = 2.5;
 
-/** How long the iron golem holds a flower out, from Java's `OfferFlowerGoal.OFFER_TICKS`. */
-const OFFER_TICKS = 400;
+/**
+ * How long the iron golem holds a flower out, in goal ticks: Java's `OfferFlowerGoal.start` sets
+ * `adjustedTickDelay(400)`, which halves the 400 game ticks for a goal that only ticks on the
+ * selector's every-other-tick pass.
+ */
+const OFFER_TICKS = 200;
 
 /** What `minecraft:behavior.breed` declares. */
 export interface BreedParams {

@@ -330,3 +330,63 @@ describe('minecraft:behavior.guardian_attack', () => {
         expect(beam(['guardian_elder'], 2).hits).toEqual([70]);
     });
 });
+
+describe('minecraft:behavior.knockback_roar', () => {
+    it("hurts what the damage filters accept and throws back what the knockback filters accept, as Java's Ravager.roar", () => {
+        const player = testMob('player', { x: 2, y: 0, z: 0 }, { families: ['player'] });
+        const pillager = testMob('pillager', { x: -2, y: 0, z: 0 }, { families: ['illager'] });
+        const blows: (readonly [string | number, number | undefined])[] = [];
+        const thrown: (string | number)[] = [];
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.knockback_roar': {
+                    priority: 1,
+                    duration: 1,
+                    attack_time: 0.5,
+                    knockback_damage: 6,
+                    knockback_range: 4,
+                    damage_filters: { test: 'is_family', subject: 'other', operator: '!=', value: 'illager' }
+                }
+            },
+            world: {
+                ...combatWorld(player),
+                mobs: () => [player, pillager],
+                attack: (mob, damage) => blows.push([mob.id, damage]),
+                knockback: (mob) => thrown.push(mob.id)
+            }
+        });
+
+        harness.tick(20);
+
+        expect(blows).toEqual([['player', 6]]);
+        expect(thrown).toEqual(['player', 'pillager']);
+    });
+});
+
+describe('minecraft:behavior.wither_random_attack_pos_goal', () => {
+    it("flies across to within 3 blocks of its target and 5 above it, as Java's WitherBoss.aiStep", () => {
+        const size = 32;
+        const air = Array.from({ length: size }, () => '.'.repeat(size));
+        const view = voxelGrid([
+            Array.from({ length: size }, () => '#'.repeat(size)),
+            ...Array.from({ length: 10 }, () => air)
+        ]);
+        const target = testMob('target', { x: 24.5, y: 1, z: 4.5 });
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.wither_random_attack_pos_goal': { priority: 1 } },
+            components: {
+                'minecraft:health': { value: 300, max: 300 },
+                'minecraft:navigation.hover': { can_path_over_water: true },
+                'minecraft:can_fly': {}
+            },
+            world: { ...combatWorld(target), navigation: () => view },
+            at: { x: 4.5, y: 1, z: 4.5 }
+        });
+
+        harness.tick(40);
+
+        const here = harness.actuator.at;
+        expect(Math.hypot(here.x - 24.5, here.z - 4.5)).toBeLessThanOrEqual(3);
+        expect(here.y).toBeGreaterThanOrEqual(5);
+    });
+});

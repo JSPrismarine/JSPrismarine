@@ -6,6 +6,7 @@ import { centerOf } from '../navigation/view';
 import type { GoalBody, GoalEvent, Range } from '../params';
 import { bodySchema, eventAt, numberAt, stringAt, tickRangeAt, ticksAt } from '../params';
 import type { GoalSupport } from '../support';
+import type { GoalMob } from '../world';
 import { SLIME_HOP_REACH, slimeHeadingOf } from './slimeHeading';
 
 /**
@@ -160,8 +161,84 @@ export const squidIdle = squidState('squid_idle', [20, 60], 0.5);
 /** `minecraft:behavior.squid_dive`, the squid's push toward deeper water. */
 export const squidDive = squidState('squid_dive', [20, 40], 1);
 
-/** `minecraft:behavior.squid_flee`, the squid's burst away from a threat. */
-export const squidFlee = squidState('squid_flee', [20, 40], 2);
+/** How close the squid's attacker has to be for it to flee, Java's `distanceToSqr < 100`, in blocks. */
+const SQUID_FLEE_RANGE = 10;
+
+/** How long one flight lasts at most, from Java's `SquidFleeGoal.fleeTicks`, in ticks. */
+const SQUID_FLEE_TICKS = 100;
+
+/** How much faster than its drift a fleeing squid swims, Java's `SquidFleeGoal` scale of 3. */
+const SQUID_FLEE_SPEED = 3;
+
+/**
+ * `minecraft:behavior.squid_flee`, the squid's burst away from a threat. Java's `SquidFleeGoal`:
+ * while in water with the mob that last hurt it within 10 blocks, the squid swims straight away
+ * from it at three times its drift, for up to 100 ticks per blow.
+ */
+export const squidFlee = goal<GoalBody>({
+    name: 'minecraft:behavior.squid_flee',
+    controlFlags: ['move'],
+    schema: bodySchema((body) => body),
+    create: (_params, support) => {
+        let remaining = 0;
+        let attacker: GoalMob | undefined;
+        /** The running damage total of the blow fled from, so the same blow does not start a second flight. */
+        let fledFrom: number | undefined;
+        const lastBlow = (): { readonly mob: GoalMob; readonly total: number } | undefined => {
+            const last = support.world.damagers?.().at(-1);
+            return last?.mob === undefined ? undefined : { mob: last.mob, total: last.total };
+        };
+        const away = (): void => {
+            if (attacker === undefined) return;
+            const here = support.position();
+            const from = attacker.position();
+            const dx = here.x - from.x;
+            const dy = here.y - from.y;
+            const dz = here.z - from.z;
+            const length = Math.hypot(dx, dy, dz) || 1;
+            const reach = SQUID_FLEE_SPEED * 2;
+            const destination = {
+                x: here.x + (dx / length) * reach,
+                y: here.y + (dy / length) * reach,
+                z: here.z + (dz / length) * reach
+            };
+            // Java's squid has no path finder and swims along its movement vector, so where no path
+            // reaches the spot it is steered there directly.
+            if (!support.navigator.moveTo(destination, SQUID_FLEE_SPEED, 1))
+                support.actuator?.moveTo(destination, SQUID_FLEE_SPEED);
+        };
+        return {
+            canStart: () => {
+                const blow = lastBlow();
+                if (!support.flag('in_water') || blow === undefined || blow.total === fledFrom) return false;
+                if (support.distanceTo(blow.mob.position()) >= SQUID_FLEE_RANGE) return false;
+                attacker = blow.mob;
+                fledFrom = blow.total;
+                return true;
+            },
+            canContinue: () =>
+                remaining > 0 &&
+                support.flag('in_water') &&
+                attacker !== undefined &&
+                support.distanceTo(attacker.position()) < SQUID_FLEE_RANGE,
+            start: () => {
+                remaining = SQUID_FLEE_TICKS;
+                away();
+            },
+            tick: () => {
+                remaining -= 1;
+                if (remaining % 10 === 0) away();
+                else support.navigator.tick();
+            },
+            stop: () => {
+                remaining = 0;
+                attacker = undefined;
+                support.navigator.stop();
+            },
+            requiresUpdateEveryTick: () => true
+        };
+    }
+});
 
 /**
  * `minecraft:behavior.squid_move_away_from_ground`, which pushes a squid off

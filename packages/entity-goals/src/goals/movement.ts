@@ -1,5 +1,6 @@
 import type { EntityPosition, Goal } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
+import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
 
 import type { RegisterableGoal } from '../goal';
 import { goal } from '../goal';
@@ -230,9 +231,29 @@ export const randomFly = goal<WanderParams & { readonly canLandOnTrees: boolean;
 });
 
 /**
+ * The y of the first open block above the ground under a position: the solid block the
+ * position is inside, or the first one below it within `reach`. Undefined over a drop deeper
+ * than that.
+ */
+const surfaceUnder = (support: GoalSupport, position: EntityPosition, reach: number): number | undefined => {
+    const view = support.navigation();
+    if (view === undefined) return undefined;
+    const cell = blockOf(position);
+    if (view.isSolid(cell)) {
+        let y = cell.y + 1;
+        while (y - cell.y <= reach && view.isSolid({ ...cell, y })) y += 1;
+        return y - cell.y <= reach ? y : undefined;
+    }
+    for (let y = cell.y - 1; cell.y - y <= reach; y -= 1) if (view.isSolid({ ...cell, y })) return y + 1;
+    return undefined;
+};
+
+/**
  * `minecraft:behavior.random_hover`, which the bee and the allay carry. It is
  * the flying wander with the destination's height pinned to a band above the
- * ground.
+ * ground: `hover_height` blocks above the surface under the drawn spot, as
+ * Java's `HoverRandomPos` moves a drawn solid block up to 1 to 3 blocks over
+ * it. A spot over a drop deeper than the vertical range is no destination.
  */
 export const randomHover = goal<WanderParams & { readonly hoverHeight: Range; readonly yOffset: number }>({
     name: 'minecraft:behavior.random_hover',
@@ -250,7 +271,9 @@ export const randomHover = goal<WanderParams & { readonly hoverHeight: Range; re
                 );
                 if (candidate === undefined) return undefined;
                 const hover = support.between(params.hoverHeight[0], params.hoverHeight[1]);
-                return { ...candidate, y: candidate.y + hover + params.yOffset };
+                const surface = surfaceUnder(support, candidate, params.yDistance + hover);
+                if (surface === undefined && support.navigation() !== undefined) return undefined;
+                return { ...candidate, y: (surface ?? candidate.y) + hover + params.yOffset };
             },
             speedMultiplier: params.speedMultiplier,
             interval: params.interval,
@@ -1210,12 +1233,20 @@ export const strollTowardsVillage = goal<VillageMoveParams>({
     }
 });
 
+/** The village points of interest an iron golem strolls toward, in the order it looks for them. */
+const VILLAGE_STROLL_POIS = ['bed', 'door', 'village'] as const;
+
+/** How far an iron golem looks for a village point of interest, from Java's 32-block village search. */
+const VILLAGE_STROLL_RANGE = 32;
+
 /**
- * `minecraft:behavior.move_through_village`, which the villager carries.
+ * `minecraft:behavior.move_through_village`, which the villager and the iron golem carry.
  *
- * The docs state the restriction outright: "Can only be used by Villagers."
- * Java's `MoveThroughVillageGoal` walks the village's door positions at night,
- * which `only_at_night` selects here.
+ * With `only_at_night` it walks the village's door positions at night, as Java's
+ * `MoveThroughVillageGoal` does. Without it the entity strolls about its village at any time of
+ * day, as Java's `GolemRandomStrollInVillageGoal` does for the iron golem: a `RandomStrollGoal`
+ * with an interval of 240 whose destination is, three times in ten, a random spot within 10
+ * blocks, and otherwise a point of interest of the village, falling back to the random spot.
  */
 export const moveThroughVillage = goal<{ readonly speedMultiplier: number; readonly onlyAtNight: boolean }>({
     name: 'minecraft:behavior.move_through_village',
@@ -1225,12 +1256,29 @@ export const moveThroughVillage = goal<{ readonly speedMultiplier: number; reado
         onlyAtNight: booleanAt(body, 'only_at_night', false)
     })),
     create: (params, support) => {
-        const walk = walkTo(support, {
-            find: () => support.world.poi?.('door', 32),
-            speedMultiplier: params.speedMultiplier,
-            interval: 0,
-            goalRadius: 1
-        });
+        const anywhere = (): EntityPosition | undefined =>
+            support.navigator.randomTarget(10, 7, () => support.random());
+        const villagePoint = (): EntityPosition | undefined => {
+            const here = support.position();
+            for (const kind of VILLAGE_STROLL_POIS) {
+                const point = support.world.poi?.(kind, VILLAGE_STROLL_RANGE);
+                if (point !== undefined && Math.hypot(point.x - here.x, point.z - here.z) > 2) return point;
+            }
+            return undefined;
+        };
+        const walk = params.onlyAtNight
+            ? walkTo(support, {
+                  find: () => support.world.poi?.('door', VILLAGE_STROLL_RANGE),
+                  speedMultiplier: params.speedMultiplier,
+                  interval: 0,
+                  goalRadius: 1
+              })
+            : walkTo(support, {
+                  find: () => (support.chance(0.3) ? anywhere() : (villagePoint() ?? anywhere())),
+                  speedMultiplier: params.speedMultiplier,
+                  interval: 240,
+                  goalRadius: DEFAULT_GOAL_RADIUS
+              });
         return {
             ...walk,
             canStart: () => {
@@ -1567,17 +1615,25 @@ export const jumpToBlock = goal<JumpToBlockParams>({
     }
 });
 
+/** The air supply below which Java's `BreathAirGoal.canUse` sends the entity up, in ticks. */
+const BREATH_AIR_TICKS = 140;
+
+/** Whether the entity's air has run below {@link BREATH_AIR_TICKS}; an entity with no air state never does. */
+const outOfBreath = (support: GoalSupport): boolean =>
+    (support.entity.componentState.get(AIR_STATE)?.remaining ?? Number.POSITIVE_INFINITY) < BREATH_AIR_TICKS;
+
 /**
  * `minecraft:behavior.swim_up_for_breath`, which the dolphin carries. It
- * drives the entity to the surface when its air runs low.
+ * drives the entity to the surface when its air runs low: Java's
+ * `BreathAirGoal`, which starts once the air supply is below 140 ticks.
  */
 export const swimUpForBreath = goal<Record<string, unknown>>({
     name: 'minecraft:behavior.swim_up_for_breath',
     controlFlags: ['move'],
     schema: bodySchema((body) => body),
     create: (_params, support) => ({
-        canStart: () => support.flag('is_underwater'),
-        canContinue: () => support.flag('is_underwater') && support.navigator.walking,
+        canStart: () => support.flag('is_underwater') && outOfBreath(support),
+        canContinue: () => support.flag('is_underwater') && outOfBreath(support) && support.navigator.walking,
         start: () => {
             const view = support.navigation();
             const here = support.position();

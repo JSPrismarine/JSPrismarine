@@ -221,6 +221,35 @@ describe('minecraft:behavior.owner_hurt_by_target', () => {
     });
 });
 
+describe("the owner goals read the owner's remembered blows, once per blow", () => {
+    /** An owner that remembers one blow on each side, which a test moves on. */
+    const rememberingOwner = (blow: { mob: GoalMob; tick: number }): GoalMob => ({
+        ...testMob('owner', { x: 1, y: 0, z: 0 }),
+        lastHurt: () => blow,
+        lastHurtBy: () => blow
+    });
+
+    for (const name of ['minecraft:behavior.owner_hurt_target', 'minecraft:behavior.owner_hurt_by_target']) {
+        it(`${name} takes the blow's mob, gives it up, and takes it again only for a newer blow`, () => {
+            const cow = testMob('cow', { x: 3, y: 0, z: 0 });
+            const blow = { mob: cow, tick: 100 };
+            const world = targetingWorld({ owner: rememberingOwner(blow) });
+            const harness = new GoalHarness({ goals: { [name]: { priority: 1 } }, world });
+
+            harness.tick();
+            expect(world.writes).toEqual(['cow']);
+
+            world.setTarget?.(undefined);
+            harness.tick(4);
+            expect(world.writes).toEqual(['cow', undefined]);
+
+            blow.tick = 140;
+            harness.tick(2);
+            expect(world.writes).toEqual(['cow', undefined, 'cow']);
+        });
+    }
+});
+
 describe('minecraft:behavior.target_when_pushed', () => {
     it('retaliates against the pusher when the chance comes up', () => {
         const pusher = testMob('pusher', { x: 1, y: 0, z: 0 });

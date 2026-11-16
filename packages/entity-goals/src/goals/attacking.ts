@@ -1,4 +1,5 @@
 import type { Goal } from '@jsprismarine/entities';
+import type { Filter } from '@jsprismarine/packs';
 
 import type { RegisterableGoal } from '../goal';
 import { goal } from '../goal';
@@ -8,6 +9,7 @@ import {
     booleanAt,
     eventAt,
     eventsAt,
+    filterAt,
     numberAt,
     rangeAt,
     recordsAt,
@@ -436,6 +438,9 @@ const chargeLoop = (support: GoalSupport, params: ChargeAttackParams): Goal => {
     let target: GoalMob | undefined;
     let cooldown = 0;
     let hit = false;
+    // A flier with no path finder, such as the phantom, steers straight at its target the way
+    // Java's move controls do, rather than waiting on a path that never comes.
+    let direct = false;
 
     return {
         canStart: () => {
@@ -449,13 +454,14 @@ const chargeLoop = (support: GoalSupport, params: ChargeAttackParams): Goal => {
         canContinue: () => !hit && support.target() !== undefined,
         start: () => {
             hit = false;
-            if (target !== undefined) support.navigator.moveTo(target.position(), params.chargeSpeed, 1);
+            direct = target !== undefined && !support.navigator.moveTo(target.position(), params.chargeSpeed, 1);
         },
         tick: () => {
             const current = target;
             if (current === undefined) return;
             support.lookAtMob(current);
-            support.navigator.tick();
+            if (direct) support.actuator?.moveTo(current.position(), params.chargeSpeed);
+            else support.navigator.tick();
             if (support.distanceTo(current.position()) > params.attackReach) return;
             support.world.attack?.(current);
             if (params.knockbackForce > 0) support.world.knockback?.(current, params.knockbackForce, 0);
@@ -912,12 +918,18 @@ export interface KnockbackRoarParams {
     readonly damage: number;
     readonly horizontalStrength: number;
     readonly verticalStrength: number;
+    /** Which mobs in range the roar throws back. */
+    readonly knockbackFilters: Filter | undefined;
+    /** Which mobs in range the roar hurts. */
+    readonly damageFilters: Filter | undefined;
     readonly onRoarEnd: GoalEvent | undefined;
 }
 
 /**
- * `minecraft:behavior.knockback_roar`, which the ravager carries. It throws
- * everything in range away part way into the roar.
+ * `minecraft:behavior.knockback_roar`, which the ravager carries. Part way into the roar it hurts
+ * every mob in range the damage filters accept and throws back every one the knockback filters
+ * accept, which is Java's `Ravager.roar`: 6 damage to every living thing but an illager within 4
+ * blocks, then a strong knockback to all of them.
  */
 export const knockbackRoar = goal<KnockbackRoarParams>({
     name: 'minecraft:behavior.knockback_roar',
@@ -930,6 +942,8 @@ export const knockbackRoar = goal<KnockbackRoarParams>({
         damage: numberAt(body, 'knockback_damage', 6),
         horizontalStrength: numberAt(body, 'knockback_horizontal_strength', 4),
         verticalStrength: numberAt(body, 'knockback_vertical_strength', 1),
+        knockbackFilters: filterAt(body, 'knockback_filters'),
+        damageFilters: filterAt(body, 'damage_filters'),
         onRoarEnd: eventAt(body, 'on_roar_end')
     })),
     create: (params, support) => {
@@ -955,8 +969,12 @@ export const knockbackRoar = goal<KnockbackRoarParams>({
                 remaining -= 1;
                 if (roared || remaining > params.duration - params.attackTime) return;
                 roared = true;
-                for (const mob of support.mobs(params.range))
-                    support.world.knockback?.(mob, params.horizontalStrength, params.verticalStrength);
+                for (const mob of support.mobs(params.range)) {
+                    if (params.damage > 0 && support.matches(params.damageFilters, mob))
+                        support.world.attack?.(mob, params.damage);
+                    if (support.matches(params.knockbackFilters, mob))
+                        support.world.knockback?.(mob, params.horizontalStrength, params.verticalStrength);
+                }
             },
             stop: () => {
                 remaining = 0;
@@ -1321,8 +1339,9 @@ export interface StalkAndPounceParams {
 }
 
 /**
- * `minecraft:behavior.stalk_and_pounce_on_target`, which the fox carries. It
- * creeps into range, waits out `interest_time` and leaps.
+ * `minecraft:behavior.stalk_and_pounce_on_target`, which the fox carries. It creeps into range,
+ * waits out `interest_time` and leaps, and bites once the leap carries it within
+ * `strike_dist`, as Java's `Fox.FoxPounceGoal.tick` does at 2 blocks.
  */
 export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
     name: 'minecraft:behavior.stalk_and_pounce_on_target',
@@ -1338,19 +1357,24 @@ export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
         stuckTime: ticksAt(body, 'stuck_time', 2)
     })),
     create: (params, support) => {
+        /** How long a leap may stay in the air before the goal gives up on it, in ticks. */
+        const leapTicks = 40;
         let target: GoalMob | undefined;
         let interest = 0;
-        let pounced = false;
+        // Ticks the leap has been in the air, or undefined before the pounce.
+        let leaping: number | undefined;
+        let done = false;
 
         return {
             canStart: () => {
                 target = support.target();
                 return target !== undefined && support.distanceTo(target.position()) <= params.maxStalkDistance;
             },
-            canContinue: () => !pounced && support.target() !== undefined,
+            canContinue: () => !done && support.target() !== undefined,
             start: () => {
                 interest = 0;
-                pounced = false;
+                leaping = undefined;
+                done = false;
             },
             tick: () => {
                 const current = target;
@@ -1358,6 +1382,15 @@ export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
                 const where = current.position();
                 support.lookAtMob(current);
                 const range = support.distanceTo(where);
+                if (leaping !== undefined) {
+                    // Java's FoxPounceGoal.tick bites once the leap carries it within reach.
+                    leaping += 1;
+                    if (range <= params.strikeDistance) {
+                        support.world.attack?.(current);
+                        done = true;
+                    } else if (leaping >= leapTicks || (leaping > 2 && support.flag('on_ground'))) done = true;
+                    return;
+                }
                 if (range > params.pounceMaxDistance) {
                     support.navigator.moveTo(where, params.stalkSpeed, 1);
                     interest = 0;
@@ -1365,7 +1398,7 @@ export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
                 }
                 support.navigator.stop();
                 if ((interest += 1) < params.interestTime) return;
-                pounced = true;
+                leaping = 0;
                 const here = support.position();
                 const length = Math.hypot(where.x - here.x, where.z - here.z) || 1;
                 support.world.push?.({
@@ -1373,13 +1406,14 @@ export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
                     y: params.leapHeight,
                     z: ((where.z - here.z) / length) * params.leapDistance
                 });
-                if (range <= params.strikeDistance) support.world.attack?.(current);
             },
             stop: () => {
                 support.navigator.stop();
                 interest = 0;
+                leaping = undefined;
                 target = undefined;
-            }
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });
@@ -1568,6 +1602,8 @@ export interface PotionChoice {
     readonly id: number;
     /** The chance of picking it, in [0, 1]. */
     readonly chance: number;
+    /** When the potion may be picked; absent means always. */
+    readonly filters: Filter | undefined;
 }
 
 /** What `minecraft:behavior.drink_potion` declares. */
@@ -1576,9 +1612,34 @@ export interface DrinkPotionParams {
     readonly speedModifier: number;
 }
 
+/** One status effect a potion gives, in the shape an entity applies it. */
+export interface PotionEffect {
+    readonly id: string;
+    readonly durationTicks: number;
+    readonly amplifier: number;
+}
+
 /**
- * `minecraft:behavior.drink_potion`, which the witch and the pillager carry.
- * The entity picks the first potion whose chance comes up and drinks it.
+ * The effects of the Bedrock potion ids the vanilla `drink_potion` goals name, which are Java's
+ * `Potions` of the same name: three minutes of water breathing, fire resistance, swiftness and
+ * invisibility, eight of long invisibility, and one instant healing.
+ */
+export const DRINKABLE_POTIONS: ReadonlyMap<number, readonly PotionEffect[]> = new Map([
+    [7, [{ id: 'invisibility', durationTicks: 3600, amplifier: 0 }]],
+    [8, [{ id: 'invisibility', durationTicks: 9600, amplifier: 0 }]],
+    [12, [{ id: 'fire_resistance', durationTicks: 3600, amplifier: 0 }]],
+    [14, [{ id: 'speed', durationTicks: 3600, amplifier: 0 }]],
+    [19, [{ id: 'water_breathing', durationTicks: 3600, amplifier: 0 }]],
+    [21, [{ id: 'instant_health', durationTicks: 1, amplifier: 0 }]]
+]);
+
+/** How long drinking a potion or a bucket of milk takes, Java's `PotionItem` and milk use time, in ticks. */
+const DRINK_TICKS = 32;
+
+/**
+ * `minecraft:behavior.drink_potion`, which the witch and the wandering trader carry. The entity
+ * picks the first potion whose filters pass and whose chance comes up, drinks it for Java's 32
+ * ticks and then takes its effects, as Java's `Witch.aiStep` and the trader's `UseItemGoal` do.
  */
 export const drinkPotion = goal<DrinkPotionParams>({
     name: 'minecraft:behavior.drink_potion',
@@ -1586,27 +1647,39 @@ export const drinkPotion = goal<DrinkPotionParams>({
     schema: bodySchema((body) => ({
         potions: recordsAt(body, 'potions').map((potion) => ({
             id: numberAt(potion, 'id', 0),
-            chance: numberAt(potion, 'chance', 1)
+            chance: numberAt(potion, 'chance', 1),
+            filters: filterAt(potion, 'filters')
         })),
         speedModifier: numberAt(body, 'speed_modifier', 1)
     })),
     create: (params, support) => {
-        /** How long drinking takes, which is the vanilla potion use time. */
-        const drinkTicks = 35;
         let remaining = 0;
+        let drinking: PotionChoice | undefined;
         return {
-            canStart: () => params.potions.length > 0 && params.potions.some((potion) => support.chance(potion.chance)),
+            canStart: () => {
+                drinking = params.potions.find(
+                    (potion) => support.matches(potion.filters) && support.chance(potion.chance)
+                );
+                return drinking !== undefined;
+            },
             canContinue: () => remaining > 0,
             start: () => {
-                remaining = drinkTicks;
+                remaining = DRINK_TICKS;
                 support.navigator.stop();
             },
             tick: () => {
                 remaining -= 1;
+                if (remaining > 0 || drinking === undefined) return;
+                const self = support.entity.filterContext().self;
+                for (const effect of DRINKABLE_POTIONS.get(drinking.id) ?? [])
+                    support.entity.applyStatusEffect(self, effect);
+                drinking = undefined;
             },
             stop: () => {
                 remaining = 0;
-            }
+                drinking = undefined;
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });
@@ -1841,41 +1914,60 @@ export const sendEvent = goal<SendEventParams>({
     }
 });
 
+/** How close across Java's wither closes on its target, `horizontalDistanceSqr() > 9.0`, in blocks. */
+const WITHER_APPROACH_DISTANCE = 3;
+
+/** How far above its target Java's wither climbs while it has more than half its health, in blocks. */
+const WITHER_HOVER_HEIGHT = 5;
+
+/** How often the approach re-aims at a target that has moved, in ticks. */
+const WITHER_REPATH_TICKS = 10;
+
 /**
- * `minecraft:behavior.wither_random_attack_pos_goal`, which the wither
- * carries. It keeps the wither drifting around its target instead of standing
- * over it, which is what makes the heads fire from different angles.
+ * `minecraft:behavior.wither_random_attack_pos_goal`, which the wither carries. Java moves the
+ * wither in `WitherBoss.aiStep` rather than with a goal: with a target it flies across until it is
+ * within 3 blocks of it, and climbs while it is below the target, or below 5 blocks over it while
+ * it is not powered, that is while it has more than half its health.
  */
 export const witherRandomAttackPos = goal<Record<string, unknown>>({
     name: 'minecraft:behavior.wither_random_attack_pos_goal',
     controlFlags: ['move'],
     schema: bodySchema((body) => body),
     create: (_params, support) => {
-        /** How far the wither drifts from its target, in blocks. */
-        const orbitRadius = 10;
+        let repath = 0;
+        const approach = (): void => {
+            const target = support.target()?.position();
+            if (target === undefined) return;
+            const here = support.position();
+            const health = support.entity.attributes.get('health');
+            const powered = health !== undefined && health.current <= health.max / 2;
+            const floor = powered ? target.y : target.y + WITHER_HOVER_HEIGHT;
+            const across = support.horizontalDistanceTo(target) > WITHER_APPROACH_DISTANCE;
+            const destination = {
+                x: across ? target.x : here.x,
+                y: Math.max(here.y, floor),
+                z: across ? target.z : here.z
+            };
+            support.navigator.moveTo(destination, 1, across ? WITHER_APPROACH_DISTANCE : 0.5);
+        };
         return {
             canStart: () => support.target() !== undefined,
-            canContinue: () => support.navigator.walking && support.target() !== undefined,
+            canContinue: () => support.target() !== undefined,
             start: () => {
-                const where = support.target()?.position();
-                if (where === undefined) return;
-                const angle = support.random() * Math.PI * 2;
-                support.navigator.moveTo(
-                    {
-                        x: where.x + Math.cos(angle) * orbitRadius,
-                        y: where.y + 4,
-                        z: where.z + Math.sin(angle) * orbitRadius
-                    },
-                    1,
-                    2
-                );
+                repath = 0;
+                approach();
             },
             tick: () => {
+                if ((repath += 1) >= WITHER_REPATH_TICKS) {
+                    repath = 0;
+                    approach();
+                }
                 support.navigator.tick();
             },
             stop: () => {
                 support.navigator.stop();
-            }
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });

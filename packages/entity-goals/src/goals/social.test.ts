@@ -291,3 +291,23 @@ describe('minecraft:behavior.trade_with_player', () => {
         expect(harness.running()).toEqual([]);
     });
 });
+
+describe('minecraft:behavior.offer_flower', () => {
+    it("holds the flower out for Java's adjustedTickDelay(400): 200 selector passes, 400 game ticks", () => {
+        let draws = 0;
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.offer_flower': { priority: 1 } },
+            world: { mobs: () => [testMob('villager', { x: 2, y: 0, z: 0 })] },
+            random: () => (draws++ === 0 ? 0 : 0.99)
+        });
+
+        let held = 0;
+        harness.tick();
+        while (harness.isRunning('minecraft:behavior.offer_flower') && held < 1000) {
+            held += 1;
+            harness.tick();
+        }
+
+        expect(held).toBe(200);
+    });
+});

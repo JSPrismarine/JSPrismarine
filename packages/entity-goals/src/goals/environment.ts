@@ -502,22 +502,25 @@ export const eatCarriedItem = goal<{ readonly delayBeforeEating: number }>({
             },
             stop: () => {
                 remaining = 0;
-            }
+            },
+            // The delay counts game ticks, as Java's `Fox.ticksSinceEaten` does in `aiStep`.
+            requiresUpdateEveryTick: () => true
         };
     }
 });
 
 /**
- * `minecraft:behavior.drink_milk`, which the baby zombie villager carries. It
- * is the cure, and the `filters` decide when it may run.
+ * `minecraft:behavior.drink_milk`, which the wandering trader carries. When its filters pass the
+ * entity drinks a bucket of milk for Java's 32 ticks and then loses every status effect, as the
+ * trader's `UseItemGoal` of milk does once it is light outside and the trader is invisible.
  */
 export const drinkMilk = goal<{ readonly filters: Filter | undefined }>({
     name: 'minecraft:behavior.drink_milk',
     controlFlags: ['move'],
     schema: bodySchema((body) => ({ filters: filterAt(body, 'filters') })),
     create: (params, support) => {
-        /** How long drinking takes, which is the vanilla item use time. */
-        const drinkTicks = 35;
+        /** How long drinking takes, Java's milk bucket use time, in ticks. */
+        const drinkTicks = 32;
         let remaining = 0;
         return {
             canStart: () => support.matches(params.filters),
@@ -528,10 +531,15 @@ export const drinkMilk = goal<{ readonly filters: Filter | undefined }>({
             },
             tick: () => {
                 remaining -= 1;
+                if (remaining > 0) return;
+                const self = support.entity.filterContext().self;
+                for (const effect of new Set(self.names?.('has_mob_effect') ?? []))
+                    support.entity.removeStatusEffect(self, effect);
             },
             stop: () => {
                 remaining = 0;
-            }
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });

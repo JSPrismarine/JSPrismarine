@@ -48,6 +48,22 @@ export interface GoalMob {
     target?(): GoalMob | undefined;
     /** Who last damaged it, which is what `owner_hurt_by_target` reads. */
     lastDamager?(): GoalMob | undefined;
+    /**
+     * The mob it last hurt and the game tick it did, Java's `getLastHurtMob` and
+     * `getLastHurtMobTimestamp`, which `owner_hurt_target` reads.
+     */
+    lastHurt?(): GoalCombatMark | undefined;
+    /**
+     * The mob that last hurt it and the game tick it did, Java's `getLastHurtByMob` and
+     * `getLastHurtByMobTimestamp`, forgotten 100 ticks later as Java forgets it.
+     */
+    lastHurtBy?(): GoalCombatMark | undefined;
+}
+
+/** One blow a mob remembers: the other side of it, and the game tick it landed. */
+export interface GoalCombatMark {
+    readonly mob: GoalMob;
+    readonly tick: number;
 }
 
 /** One item stack lying in the world, as the pickup goals read it. */
@@ -98,6 +114,9 @@ export interface GoalBlock {
     /** The block identifier, such as `minecraft:farmland`. */
     readonly identifier: string;
 }
+
+/** A block's state values, keyed by state name, such as a berry bush's `growth`. */
+export type GoalBlockStates = Readonly<Record<string, string | number | boolean>>;
 
 /** What a goal searches the world for, as the block-seeking goals describe it. */
 export interface BlockQuery {
@@ -174,8 +193,11 @@ export interface GoalWorld {
      * `work`, `bell` or the `poi_type` a goal names.
      */
     poi?(type: string, radius: number): EntityPosition | undefined;
-    /** Deals the entity's melee damage to the mob. */
-    attack?(mob: GoalMob): void;
+    /**
+     * Deals the entity's melee damage to the mob, or `damage` in its place for a blow whose
+     * strength the goal sets, such as a ravager's roar.
+     */
+    attack?(mob: GoalMob, damage?: number): void;
     /** Fires the entity's projectile at the mob. */
     shoot?(mob: GoalMob, projectile: string | undefined): void;
     /** Knocks the mob away from the entity. */
@@ -217,8 +239,10 @@ export interface GoalWorld {
     inventory?(): readonly string[];
     /** The entity's inventory slots and flat items, for `minecraft:behavior.share_items`. */
     shareInventory?(): readonly string[];
-    /** Replaces a block, for the place, plant, compost and egg goals. */
-    setBlock?(position: EntityPosition, identifier: string): void;
+    /** Replaces a block, for the place, plant, compost and egg goals; absent states take the defaults. */
+    setBlock?(position: EntityPosition, identifier: string, states?: GoalBlockStates): void;
+    /** The block at a position with its states, for the goals that read a crop's growth. */
+    blockAt?(position: EntityPosition): { readonly identifier: string; readonly states: GoalBlockStates } | undefined;
     /** Breaks a block, for the eat, harvest and dig goals. */
     breakBlock?(position: EntityPosition): void;
     /** Creates another entity, for the summon and lay goals. */

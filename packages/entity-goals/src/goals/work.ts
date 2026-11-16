@@ -20,7 +20,7 @@ import {
     ticksAt
 } from '../params';
 import type { GoalSupport } from '../support';
-import type { GoalItem, GoalPickupOptions } from '../world';
+import type { GoalBlockStates, GoalItem, GoalPickupOptions } from '../world';
 
 interface PickupRule {
     readonly priority: number;
@@ -440,9 +440,89 @@ export interface RaidGardenParams {
     readonly maxToEat: number;
 }
 
+/** The crop growth a raid needs and what eating one leaves, by Bedrock block. */
+interface Harvest {
+    /** Whether the block at its growth is worth raiding. */
+    readonly ripe: (growth: number) => boolean;
+    /** Eats or picks the block, and hands back what it leaves behind. */
+    readonly eat: (
+        support: GoalSupport,
+        position: EntityPosition,
+        block: { readonly identifier: string; readonly states: GoalBlockStates }
+    ) => void;
+}
+
+/** A block's `growth` state, or 0 when it has none. */
+const growthOf = (states: GoalBlockStates): number => {
+    const growth = states['growth'];
+    return typeof growth === 'number' ? growth : 0;
+};
+
 /**
- * `minecraft:behavior.raid_garden`, which the rabbit and the fox carry. The
- * entity eats its way along a row of crops and leaves when it has had enough.
+ * Picks berries off a bush or a vine and drops the rest at its feet. With an empty mouth the
+ * picker keeps one berry, which is how a fox ends up carrying it.
+ */
+const pickBerries = (support: GoalSupport, position: EntityPosition, item: string, count: number): void => {
+    let left = count;
+    if (support.world.carriedItem?.() === undefined && support.world.setCarriedItem !== undefined) {
+        support.world.setCarriedItem(item);
+        left -= 1;
+    }
+    for (let index = 0; index < left; index += 1) support.world.dropItem?.(item, position);
+};
+
+/** Java's `CaveVines.use`: the vine loses its berries and drops one glow berry. */
+const caveVineHarvest: Harvest = {
+    ripe: () => true,
+    eat: (support, position, block) => {
+        support.world.setBlock?.(position, 'minecraft:cave_vines', block.states);
+        pickBerries(support, position, 'minecraft:glow_berries', 1);
+    }
+};
+
+/**
+ * What each raided crop does, after Java's `Fox.FoxEatBerriesGoal` and `Rabbit.RaidGardenGoal`.
+ *
+ * A fox picks a sweet berry bush that has berries, growth 2 or more, back to growth 1, for one
+ * or two berries and one more from a full bush; a vine with glow berries loses them. A rabbit
+ * eats into a fully grown carrot crop one stage at a time and removes it at the last.
+ */
+const HARVESTS: ReadonlyMap<string, Harvest> = new Map<string, Harvest>([
+    [
+        'minecraft:sweet_berry_bush',
+        {
+            ripe: (growth) => growth >= 2,
+            eat: (support, position, block) => {
+                const growth = growthOf(block.states);
+                support.world.setBlock?.(position, block.identifier, { ...block.states, growth: 1 });
+                pickBerries(
+                    support,
+                    position,
+                    'minecraft:sweet_berries',
+                    1 + support.randomInt(2) + (growth >= 3 ? 1 : 0)
+                );
+            }
+        }
+    ],
+    ['minecraft:cave_vines_head_with_berries', caveVineHarvest],
+    ['minecraft:cave_vines_body_with_berries', caveVineHarvest],
+    [
+        'minecraft:carrots',
+        {
+            ripe: (growth) => growth >= 7,
+            eat: (support, position, block) => {
+                const growth = growthOf(block.states);
+                if (growth <= 0) support.world.breakBlock?.(position);
+                else support.world.setBlock?.(position, block.identifier, { ...block.states, growth: growth - 1 });
+            }
+        }
+    ]
+]);
+
+/**
+ * `minecraft:behavior.raid_garden`, which the rabbit and the fox carry. The entity walks to a
+ * ripe crop it raids and eats into it; a `max_to_eat` of 0 sets no limit. Crops whose growth the
+ * goal knows follow Java's rules ({@link HARVESTS}); any other block a pack lists is broken.
  */
 export const raidGarden = goal<RaidGardenParams>({
     name: 'minecraft:behavior.raid_garden',
@@ -460,20 +540,28 @@ export const raidGarden = goal<RaidGardenParams>({
         let crop: EntityPosition | undefined;
         let eaten = 0;
         let delay = 0;
+        const sated = (): boolean => params.maxToEat > 0 && eaten >= params.maxToEat;
+        const ripe = (position: EntityPosition, identifier: string): boolean => {
+            const harvest = HARVESTS.get(identifier);
+            if (harvest === undefined) return true;
+            const block = support.world.blockAt?.(position);
+            return block !== undefined && harvest.ripe(growthOf(block.states));
+        };
 
         return {
             canStart: () => {
-                if (eaten >= params.maxToEat) return false;
-                const found = support.world.blocks?.({
-                    identifiers: params.blocks,
-                    range: params.searchRange,
-                    height: params.searchHeight,
-                    limit: 1
-                })[0];
+                if (sated()) return false;
+                const found = support.world
+                    .blocks?.({
+                        identifiers: params.blocks,
+                        range: params.searchRange,
+                        height: params.searchHeight
+                    })
+                    .find((block) => ripe(block.position, block.identifier));
                 crop = found === undefined ? undefined : centerOf(found.position);
                 return crop !== undefined;
             },
-            canContinue: () => crop !== undefined && eaten < params.maxToEat,
+            canContinue: () => crop !== undefined && !sated(),
             start: () => {
                 delay = params.initialEatDelay;
                 if (crop !== undefined) support.navigator.moveTo(crop, params.speedMultiplier, params.goalRadius);
@@ -481,7 +569,13 @@ export const raidGarden = goal<RaidGardenParams>({
             tick: () => {
                 if (support.navigator.tick()) return;
                 if ((delay -= 1) > 0) return;
-                if (crop !== undefined) support.world.breakBlock?.(crop);
+                if (crop !== undefined) {
+                    const block = support.world.blockAt?.(crop);
+                    const harvest = block === undefined ? undefined : HARVESTS.get(block.identifier);
+                    if (block !== undefined && harvest !== undefined) {
+                        if (harvest.ripe(growthOf(block.states))) harvest.eat(support, crop, block);
+                    } else support.world.breakBlock?.(crop);
+                }
                 eaten += 1;
                 crop = undefined;
             },
