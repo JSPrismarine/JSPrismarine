@@ -143,6 +143,8 @@ export class Navigator {
     private path: Path | undefined;
     private waypoint = 0;
     private destination: EntityPosition | undefined;
+    /** The block the path under way starts from, Java's first path node. */
+    private pathStart: EntityPosition | undefined;
     private plannedTarget: EntityPosition | undefined;
     private plannedGoalRadius: number | undefined;
     private plannedProfile: NavigationProfile | undefined;
@@ -158,6 +160,19 @@ export class Navigator {
     /** Whether a walk is under way. */
     public get walking(): boolean {
         return this.destination !== undefined;
+    }
+
+    /**
+     * The node of the path under way the entity last left and the one it walks to, Java's
+     * `Path.getPreviousNode` and `getNextNode`: the path's start before the first node is reached.
+     * Undefined while no path is under way.
+     */
+    public pathStep(): { readonly previous: EntityPosition | undefined; readonly next: EntityPosition } | undefined {
+        const path = this.path;
+        if (path === undefined || this.destination === undefined) return undefined;
+        const next = path.nodes[this.waypoint];
+        if (next === undefined) return undefined;
+        return { previous: this.waypoint > 0 ? path.nodes[this.waypoint - 1] : this.pathStart, next };
     }
 
     /** Whether the last walk ended at its destination. */
@@ -212,6 +227,7 @@ export class Navigator {
         }
 
         this.waypoint = 0;
+        this.pathStart = blockOf(actuator.position());
         this.path = findPath(view, profile, {
             from: actuator.position(),
             to: destination,
