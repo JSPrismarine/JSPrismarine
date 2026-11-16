@@ -252,6 +252,36 @@
         }
     },
     "entities.behavior": {
+        "baby-feeding:minecraft:bee": {
+            "kind": "defect",
+            "reason": "Feeding a baby the items Java's mob eats speeds its growth by Java's amount: a tenth of the time left for most animals, a fixed number of seconds per item for horses, llamas and camels. Observed: a baby does not eat minecraft:open_eyeblossom.",
+            "reference": "Java Animal.mobInteract and AgeableMob.getSpeedUpSecondsWhenFeeding, AbstractHorse.handleEating, Llama.handleEating, Camel.handleEating, Dolphin.mobInteract, Panda.mobInteract, Tadpole.feed, and the *_food item tags; issue #3152"
+        },
+        "baby-feeding:minecraft:camel": {
+            "kind": "defect",
+            "reason": "Feeding a baby the items Java's mob eats speeds its growth by Java's amount: a tenth of the time left for most animals, a fixed number of seconds per item for horses, llamas and camels. Observed: minecraft:cactus at 24000 ticks left leaves 21600, where Java leaves 23800; minecraft:cactus at 6000 ticks left leaves 5400, where Java leaves 5800.",
+            "reference": "Java Animal.mobInteract and AgeableMob.getSpeedUpSecondsWhenFeeding, AbstractHorse.handleEating, Llama.handleEating, Camel.handleEating, Dolphin.mobInteract, Panda.mobInteract, Tadpole.feed, and the *_food item tags; issue #3152"
+        },
+        "baby-feeding:minecraft:dolphin": {
+            "kind": "defect",
+            "reason": "Feeding a baby the items Java's mob eats speeds its growth by Java's amount: a tenth of the time left for most animals, a fixed number of seconds per item for horses, llamas and camels. Observed: a baby does not eat minecraft:cooked_cod; a baby does not eat minecraft:cooked_salmon; a baby does not eat minecraft:pufferfish; a baby does not eat minecraft:tropical_fish.",
+            "reference": "Java Animal.mobInteract and AgeableMob.getSpeedUpSecondsWhenFeeding, AbstractHorse.handleEating, Llama.handleEating, Camel.handleEating, Dolphin.mobInteract, Panda.mobInteract, Tadpole.feed, and the *_food item tags; issue #3152"
+        },
+        "baby-feeding:minecraft:llama": {
+            "kind": "defect",
+            "reason": "Feeding a baby the items Java's mob eats speeds its growth by Java's amount: a tenth of the time left for most animals, a fixed number of seconds per item for horses, llamas and camels. Observed: minecraft:hay_block at 24000 ticks left leaves 2400, where Java leaves 22200; minecraft:hay_block at 6000 ticks left leaves 0, where Java leaves 4200; minecraft:wheat at 24000 ticks left leaves 21600, where Java leaves 23800; minecraft:wheat at 6000 ticks left leaves 3600, where Java leaves 5800.",
+            "reference": "Java Animal.mobInteract and AgeableMob.getSpeedUpSecondsWhenFeeding, AbstractHorse.handleEating, Llama.handleEating, Camel.handleEating, Dolphin.mobInteract, Panda.mobInteract, Tadpole.feed, and the *_food item tags; issue #3152"
+        },
+        "baby-feeding:minecraft:trader_llama": {
+            "kind": "defect",
+            "reason": "Feeding a baby the items Java's mob eats speeds its growth by Java's amount: a tenth of the time left for most animals, a fixed number of seconds per item for horses, llamas and camels. Observed: minecraft:hay_block at 24000 ticks left leaves 2400, where Java leaves 22200; minecraft:hay_block at 6000 ticks left leaves 0, where Java leaves 4200; minecraft:wheat at 24000 ticks left leaves 21600, where Java leaves 23800; minecraft:wheat at 6000 ticks left leaves 3600, where Java leaves 5800.",
+            "reference": "Java Animal.mobInteract and AgeableMob.getSpeedUpSecondsWhenFeeding, AbstractHorse.handleEating, Llama.handleEating, Camel.handleEating, Dolphin.mobInteract, Panda.mobInteract, Tadpole.feed, and the *_food item tags; issue #3152"
+        },
+        "baby-feeding:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "Feeding a baby the items Java's mob eats speeds its growth by Java's amount: a tenth of the time left for most animals, a fixed number of seconds per item for horses, llamas and camels. Observed: a baby does not eat minecraft:cod; a baby does not eat minecraft:cooked_cod; a baby does not eat minecraft:cooked_salmon; a baby does not eat minecraft:pufferfish; a baby does not eat minecraft:rabbit_stew; a baby does not eat minecraft:salmon; a baby does not eat minecraft:tropical_fish.",
+            "reference": "Java Animal.mobInteract and AgeableMob.getSpeedUpSecondsWhenFeeding, AbstractHorse.handleEating, Llama.handleEating, Camel.handleEating, Dolphin.mobInteract, Panda.mobInteract, Tadpole.feed, and the *_food item tags; issue #3152"
+        },
         "breathes-underwater:minecraft:armor_stand": {
             "kind": "defect",
             "reason": "A mob in Java's can_breathe_under_water tag does not drown, and every other mob that breathes air does. Observed: the server drowns it, though Java lets it breathe underwater.",
@@ -261,6 +291,16 @@
             "kind": "defect",
             "reason": "A mob in Java's can_breathe_under_water tag does not drown, and every other mob that breathes air does. Observed: the server drowns it, though Java lets it breathe underwater.",
             "reference": "Java entity type tag can_breathe_under_water and LivingEntity.canBreatheUnderwater"
+        },
+        "breeding-cycle:minecraft:bee": {
+            "kind": "defect",
+            "reason": "A fed adult falls in love for 600 ticks, a pair breeds a baby of Java's type, and both parents wait 6000 ticks before breeding again. Observed: the server breeds it with minecraft:allium, minecraft:azalea_leaves_flowered, minecraft:azure_bluet, minecraft:blue_orchid, minecraft:cactus_flower, minecraft:cherry_leaves, minecraft:chorus_flower, minecraft:cornflower, minecraft:dandelion, minecraft:flowering_azalea, minecraft:lilac, minecraft:lily_of_the_valley, minecraft:mangrove_propagule, minecraft:orange_tulip, minecraft:oxeye_daisy, minecraft:peony, minecraft:pink_petals, minecraft:pink_tulip, minecraft:pitcher_plant, minecraft:poppy, minecraft:red_tulip, minecraft:rose_bush, minecraft:spore_blossom, minecraft:sunflower, minecraft:torchflower, minecraft:white_tulip, minecraft:wildflowers, minecraft:wither_rose, where Java uses minecraft:allium, minecraft:azalea_leaves_flowered, minecraft:azure_bluet, minecraft:blue_orchid, minecraft:cactus_flower, minecraft:cherry_leaves, minecraft:chorus_flower, minecraft:cornflower, minecraft:dandelion, minecraft:flowering_azalea, minecraft:lilac, minecraft:lily_of_the_valley, minecraft:mangrove_propagule, minecraft:open_eyeblossom, minecraft:orange_tulip, minecraft:oxeye_daisy, minecraft:peony, minecraft:pink_petals, minecraft:pink_tulip, minecraft:pitcher_plant, minecraft:poppy, minecraft:red_tulip, minecraft:rose_bush, minecraft:spore_blossom, minecraft:sunflower, minecraft:torchflower, minecraft:white_tulip, minecraft:wildflowers, minecraft:wither_rose.",
+            "reference": "Java Animal.setInLove (600), Animal.finalizeSpawnChildFromBreeding (setAge(6000) on both parents), AbstractHorse and Llama handleEating, and getBreedOffspring of each animal; issue #2911 (bee and wolf food)"
+        },
+        "breeding-cycle:minecraft:wolf": {
+            "kind": "defect",
+            "reason": "A fed adult falls in love for 600 ticks, a pair breeds a baby of Java's type, and both parents wait 6000 ticks before breeding again. Observed: the server breeds it with minecraft:beef, minecraft:chicken, minecraft:cooked_beef, minecraft:cooked_chicken, minecraft:cooked_mutton, minecraft:cooked_porkchop, minecraft:cooked_rabbit, minecraft:mutton, minecraft:porkchop, minecraft:rabbit, minecraft:rotten_flesh, where Java uses minecraft:beef, minecraft:chicken, minecraft:cod, minecraft:cooked_beef, minecraft:cooked_chicken, minecraft:cooked_cod, minecraft:cooked_mutton, minecraft:cooked_porkchop, minecraft:cooked_rabbit, minecraft:cooked_salmon, minecraft:mutton, minecraft:porkchop, minecraft:pufferfish, minecraft:rabbit, minecraft:rabbit_stew, minecraft:rotten_flesh, minecraft:salmon, minecraft:tropical_fish.",
+            "reference": "Java Animal.setInLove (600), Animal.finalizeSpawnChildFromBreeding (setAge(6000) on both parents), AbstractHorse and Llama handleEating, and getBreedOffspring of each animal; issue #2911 (bee and wolf food)"
         },
         "breeding-food:minecraft:axolotl": {
             "kind": "defect",
@@ -287,740 +327,100 @@
             "reason": "A mob in Java's burn_in_daylight tag catches fire in sunlight, and no other mob does. Observed: Java burns it in daylight; the server does not.",
             "reference": "Java entity type tag burn_in_daylight and Mob.isSunBurnTick"
         },
-        "java-rule-boostable:minecraft:pig": {
+        "conversions:minecraft:pig": {
             "kind": "defect",
-            "reason": "Boosting a ridden pig or strider costs the stick Java's durability: 7 for a carrot on a stick, 1 for a warped fungus on a stick. Observed: a boost costs 2 durability, where Java's costs 7; the server runs no boost and charges no durability.",
-            "reference": "Java ItemSteerable.boost and FoodOnAStickItem (consumeItemDamage 7 and 1); issue #3143"
+            "reason": "A mob converts into Java's type on each cause Java converts it on, after as many ticks as Java takes, and a mob Java never converts stays what it is. Observed: become_zombie converts it after 11 to 11 ticks, where Pig.thunderHit, in the lightning tick takes 1 to 1.",
+            "reference": "Java ConversionTracker (Zombie, Husk, Skeleton), AbstractPiglin and Hoglin CONVERSION_TIME, Pig.thunderHit, Villager.thunderHit, Zombie.killedEntity, ZombieVillager.startConverting, MushroomCow.shear and Tadpole.ageUp; issue #3157"
         },
-        "java-rule-boostable:minecraft:strider": {
+        "conversions:minecraft:skeleton": {
             "kind": "defect",
-            "reason": "Boosting a ridden pig or strider costs the stick Java's durability: 7 for a carrot on a stick, 1 for a warped fungus on a stick. Observed: the server runs no boost and charges no durability.",
-            "reference": "Java ItemSteerable.boost and FoodOnAStickItem (consumeItemDamage 7 and 1); issue #3143"
+            "reason": "A mob converts into Java's type on each cause Java converts it on, after as many ticks as Java takes, and a mob Java never converts stays what it is. Observed: got_in_powder_snow converts it after 401 to 401 ticks, where the Skeleton freezing ConversionTracker (140 ticks in powder snow, then 300) takes 441 to 441.",
+            "reference": "Java ConversionTracker (Zombie, Husk, Skeleton), AbstractPiglin and Hoglin CONVERSION_TIME, Pig.thunderHit, Villager.thunderHit, Zombie.killedEntity, ZombieVillager.startConverting, MushroomCow.shear and Tadpole.ageUp; issue #3157"
         },
-        "java-rule-item_controllable:minecraft:pig": {
+        "conversions:minecraft:villager": {
             "kind": "defect",
-            "reason": "A ridden pig or strider follows its rider only while the rider holds the stick. Observed: the server runs nothing for item-controlled riding.",
-            "reference": "Java Pig.getControllingPassenger and Strider.getControllingPassenger (a player holding the steering item); issue #3143"
+            "reason": "A mob converts into Java's type on each cause Java converts it on, after as many ticks as Java takes, and a mob Java never converts stays what it is. Observed: become_witch converts it after 11 to 11 ticks, where Villager.thunderHit, in the lightning tick takes 1 to 1.",
+            "reference": "Java ConversionTracker (Zombie, Husk, Skeleton), AbstractPiglin and Hoglin CONVERSION_TIME, Pig.thunderHit, Villager.thunderHit, Zombie.killedEntity, ZombieVillager.startConverting, MushroomCow.shear and Tadpole.ageUp; issue #3157"
         },
-        "java-rule-item_controllable:minecraft:strider": {
+        "guarded-blocks:minecraft:bee": {
             "kind": "defect",
-            "reason": "A ridden pig or strider follows its rider only while the rider holds the stick. Observed: the server runs nothing for item-controlled riding.",
-            "reference": "Java Pig.getControllingPassenger and Strider.getControllingPassenger (a player holding the steering item); issue #3143"
+            "reason": "Breaking a block Java guards angers the mobs Java angers, as far away as Java reaches. Observed: it hears a break 16 blocks away, where BeehiveBlock.angerNearbyBees, which angers the bees in the hive box inflated by 8, 6, 8.",
+            "reference": "Java BeehiveBlock.angerNearbyBees with the beehives tag, and PiglinAi.angerNearbyPiglins with the guarded_by_piglins tag; issue #3158"
         },
-        "java-rule-lava_movement:minecraft:strider": {
+        "home-range:minecraft:bee": {
             "kind": "defect",
-            "reason": "A strider walks across a lava pool on its surface as it walks on land. Observed: it sinks into the lava, where Java stands it on the surface.",
-            "reference": "Java Strider.canStandOnFluid (lava) and StriderPathNavigation, which paths over lava; issue #3141"
+            "reason": "A mob Java gives a home keeps it from where Java takes it and stays within the radius Java restricts it to. Observed: the server never holds it within 22 blocks of home, where Bee.getWanderThreshold, TOO_FAR_DISTANCE less its wander reduction keeps it within 24 or 32.",
+            "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, WanderingTraderSpawner, HappyGhast and AbstractNautilus restriction radii, CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS and Bee.getWanderThreshold; issue #3159"
         },
-        "java-rule-out_of_control:minecraft:acacia_boat": {
+        "home-range:minecraft:creaking": {
             "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
+            "reason": "A mob Java gives a home keeps it from where Java takes it and stays within the radius Java restricts it to. Observed: the server never holds it within 32 blocks of home, where CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS keeps it within 32.",
+            "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, WanderingTraderSpawner, HappyGhast and AbstractNautilus restriction radii, CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS and Bee.getWanderThreshold; issue #3159"
         },
-        "java-rule-out_of_control:minecraft:acacia_chest_boat": {
+        "home-range:minecraft:happy_ghast": {
             "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
+            "reason": "A mob Java gives a home keeps it from where Java takes it and stays within the radius Java restricts it to. Observed: the server never holds it within 32 or 64 blocks of home, where HappyGhast.SMALL_RESTRICTION_RADIUS and LARGE_RESTRICTION_RADIUS keeps it within 32 or 64.",
+            "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, WanderingTraderSpawner, HappyGhast and AbstractNautilus restriction radii, CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS and Bee.getWanderThreshold; issue #3159"
         },
-        "java-rule-out_of_control:minecraft:bamboo_chest_raft": {
+        "home-range:minecraft:nautilus": {
             "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
+            "reason": "A mob Java gives a home keeps it from where Java takes it and stays within the radius Java restricts it to. Observed: the server never holds it within 16 or 32 blocks of home, where AbstractNautilus.SMALL_RESTRICTION_RADIUS and LARGE_RESTRICTION_RADIUS keeps it within 16 or 32.",
+            "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, WanderingTraderSpawner, HappyGhast and AbstractNautilus restriction radii, CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS and Bee.getWanderThreshold; issue #3159"
         },
-        "java-rule-out_of_control:minecraft:bamboo_raft": {
+        "home-range:minecraft:wandering_trader": {
             "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
+            "reason": "A mob Java gives a home keeps it from where Java takes it and stays within the radius Java restricts it to. Observed: the server never holds it within 16 blocks of home, where WanderingTrader$WanderToPositionGoal, which walks back past 10 blocks keeps it within 10.",
+            "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, WanderingTraderSpawner, HappyGhast and AbstractNautilus restriction radii, CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS and Bee.getWanderThreshold; issue #3159"
         },
-        "java-rule-out_of_control:minecraft:birch_boat": {
+        "home-range:minecraft:zombie_nautilus": {
             "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
+            "reason": "A mob Java gives a home keeps it from where Java takes it and stays within the radius Java restricts it to. Observed: the server never holds it within 16 or 32 blocks of home, where AbstractNautilus.SMALL_RESTRICTION_RADIUS and LARGE_RESTRICTION_RADIUS keeps it within 16 or 32.",
+            "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, WanderingTraderSpawner, HappyGhast and AbstractNautilus restriction radii, CreakingHeartBlockEntity.CREAKING_ROAMING_RADIUS and Bee.getWanderThreshold; issue #3159"
         },
-        "java-rule-out_of_control:minecraft:birch_chest_boat": {
+        "offspring-type:minecraft:frog": {
             "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
+            "reason": "Using a mob's own spawn egg on it makes a baby of Java's offspring type, and a horse and a donkey breed a mule. Observed: its spawn egg makes a minecraft:tadpole, where Java's makes nothing.",
+            "reference": "Java SpawnEggItem.spawnOffspringFromSpawnEgg (getBreedOffspring for an AgeableMob, otherwise the egg type, then setBaby(true), refused when the child cannot be a baby as Frog.canBeABaby says), Horse.getBreedOffspring and Donkey.getBreedOffspring (MULE with the other); issue #3152"
         },
-        "java-rule-out_of_control:minecraft:cherry_boat": {
+        "raiders:minecraft:player": {
             "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
+            "reason": "Exactly Java's raider types join a raid, and a player with Bad Omen in a village starts one when the 600-tick Raid Omen it turns into runs out. Observed: a raid starts 20 ticks after the omen-carrying player reaches the village, where Java's Raid Omen holds it off for 600.",
+            "reference": "Java Raid.RaiderType, the raiders entity type tag, BadOmenMobEffect.applyEffectTick (RAID_OMEN for 600 ticks) and RaidOmenMobEffect; issue #3160"
         },
-        "java-rule-out_of_control:minecraft:cherry_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:dark_oak_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:dark_oak_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:jungle_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:jungle_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:mangrove_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:mangrove_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:oak_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:oak_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:pale_oak_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:pale_oak_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:poplar_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:poplar_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:spruce_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-out_of_control:minecraft:spruce_chest_boat": {
-            "kind": "defect",
-            "reason": "A boat over a bubble column loses its rider's control and is pushed up or pulled down. Observed: the server runs nothing for a boat over a bubble column.",
-            "reference": "Java AbstractBoat.onAboveBubbleColumn and its Status.UNDER_FLOWING_WATER handling; issue #3144"
-        },
-        "java-rule-rail_movement:minecraft:chest_minecart": {
-            "kind": "defect",
-            "reason": "A minecart on a rail runs along it, accelerated by powered rails and slowed by friction. Observed: the server moves no minecart along a rail.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack; issue #3145"
-        },
-        "java-rule-rail_movement:minecraft:command_block_minecart": {
-            "kind": "defect",
-            "reason": "A minecart on a rail runs along it, accelerated by powered rails and slowed by friction. Observed: the server moves no minecart along a rail.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack; issue #3145"
-        },
-        "java-rule-rail_movement:minecraft:hopper_minecart": {
-            "kind": "defect",
-            "reason": "A minecart on a rail runs along it, accelerated by powered rails and slowed by friction. Observed: the server moves no minecart along a rail.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack; issue #3145"
-        },
-        "java-rule-rail_movement:minecraft:minecart": {
-            "kind": "defect",
-            "reason": "A minecart on a rail runs along it, accelerated by powered rails and slowed by friction. Observed: the server moves no minecart along a rail.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack; issue #3145"
-        },
-        "java-rule-rail_movement:minecraft:tnt_minecart": {
-            "kind": "defect",
-            "reason": "A minecart on a rail runs along it, accelerated by powered rails and slowed by friction. Observed: the server moves no minecart along a rail.",
-            "reference": "Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack; issue #3145"
-        },
-        "java-rule-rail_sensor:minecraft:command_block_minecart": {
-            "kind": "defect",
-            "reason": "A minecart over a powered activator rail reacts: a minecart drops its rider, a TNT minecart primes, a hopper minecart locks and a command block minecart runs. Observed: the server senses no activator rail.",
-            "reference": "Java AbstractMinecart.activateMinecart and its Minecart, MinecartTNT, MinecartHopper and MinecartCommandBlock overrides; issue #3145"
-        },
-        "java-rule-rail_sensor:minecraft:hopper_minecart": {
-            "kind": "defect",
-            "reason": "A minecart over a powered activator rail reacts: a minecart drops its rider, a TNT minecart primes, a hopper minecart locks and a command block minecart runs. Observed: the server senses no activator rail.",
-            "reference": "Java AbstractMinecart.activateMinecart and its Minecart, MinecartTNT, MinecartHopper and MinecartCommandBlock overrides; issue #3145"
-        },
-        "java-rule-rail_sensor:minecraft:minecart": {
-            "kind": "defect",
-            "reason": "A minecart over a powered activator rail reacts: a minecart drops its rider, a TNT minecart primes, a hopper minecart locks and a command block minecart runs. Observed: the server senses no activator rail.",
-            "reference": "Java AbstractMinecart.activateMinecart and its Minecart, MinecartTNT, MinecartHopper and MinecartCommandBlock overrides; issue #3145"
-        },
-        "java-rule-rail_sensor:minecraft:tnt_minecart": {
-            "kind": "defect",
-            "reason": "A minecart over a powered activator rail reacts: a minecart drops its rider, a TNT minecart primes, a hopper minecart locks and a command block minecart runs. Observed: the server senses no activator rail.",
-            "reference": "Java AbstractMinecart.activateMinecart and its Minecart, MinecartTNT, MinecartHopper and MinecartCommandBlock overrides; issue #3145"
-        },
-        "java-rule-underwater_mount_breathing:minecraft:nautilus": {
-            "kind": "defect",
-            "reason": "A nautilus gives its player rider Breath of the Nautilus, refreshed for 60 ticks, so the rider does not drown. Observed: the server gives a nautilus's rider no air.",
-            "reference": "Java AbstractNautilus.applyEffects (MobEffects.BREATH_OF_THE_NAUTILUS, 60 ticks); issue #3143"
-        },
-        "java-rule-underwater_mount_breathing:minecraft:zombie_nautilus": {
-            "kind": "defect",
-            "reason": "A nautilus gives its player rider Breath of the Nautilus, refreshed for 60 ticks, so the rider does not drown. Observed: the server gives a nautilus's rider no air.",
-            "reference": "Java AbstractNautilus.applyEffects (MobEffects.BREATH_OF_THE_NAUTILUS, 60 ticks); issue #3143"
-        },
-        "java-rule-underwater_movement:minecraft:axolotl": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:cod": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:dolphin": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:drowned": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:elder_guardian": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:frog": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it does not swim toward its waypoint at all.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:guardian": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:nautilus": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:pufferfish": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:salmon": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:skeleton_horse": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it does not swim toward its waypoint at all.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:tadpole": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:tropical_fish": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:turtle": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it does not swim toward its waypoint at all.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-underwater_movement:minecraft:zombie_nautilus": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by water drag between 0.8 (LivingEntity.travelInFluid) and 0.9 (a swimmer's own travel). Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 to 98 percent.",
-            "reference": "Java LivingEntity.travelInFluid (drag 0.8, or getWaterSlowDown) and the AbstractFish, Dolphin, Guardian, Turtle, Axolotl and Tadpole travel overrides (scale 0.9); issue #3141"
-        },
-        "java-rule-water_movement:minecraft:panda": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by its Java water drag: 0.8, 0.98 for the polar bear, 0.9 for the turtle's own travel. Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 80 percent.",
-            "reference": "Java LivingEntity.getWaterSlowDown (0.8), PolarBear.getWaterSlowDown (0.98), Turtle.travel (scale 0.9); issue #3141"
-        },
-        "java-rule-water_movement:minecraft:polar_bear": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by its Java water drag: 0.8, 0.98 for the polar bear, 0.9 for the turtle's own travel. Observed: it keeps 0 percent of its speed the tick after it stops, where Java's water drag keeps 98 percent.",
-            "reference": "Java LivingEntity.getWaterSlowDown (0.8), PolarBear.getWaterSlowDown (0.98), Turtle.travel (scale 0.9); issue #3141"
-        },
-        "java-rule-water_movement:minecraft:turtle": {
-            "kind": "defect",
-            "reason": "A mob in water keeps drifting once it stops swimming, slowed each tick by its Java water drag: 0.8, 0.98 for the polar bear, 0.9 for the turtle's own travel. Observed: it does not swim toward its waypoint at all.",
-            "reference": "Java LivingEntity.getWaterSlowDown (0.8), PolarBear.getWaterSlowDown (0.98), Turtle.travel (scale 0.9); issue #3141"
-        },
-        "melee-blow:minecraft:hoglin": {
+        "schedules:minecraft:fox": {
             "kind": "intentional",
-            "reason": "Bedrock writes the adult damage as a range whose mean is Java's number and the baby's as a separate component group, where Java halves the one attribute in code. Overriding the type would give a baby the adult's damage.",
-            "reference": "Java Mob.doHurtTarget (the attack_damage attribute), IronGolem.doHurtTarget and HoglinBase.hurtAndThrowTarget (damage / 2 + nextInt(damage)), CaveSpider, Bee, WitherSkeleton and Husk doHurtTarget; docs/adr/0001-entity-stat-authority.md; issue #3139"
+            "reason": "The fox's scheduler only moves it between its sleeping, night and normal ambient sound groups. Which ambient sound plays is sound selection, rendered presentation in category 1 of docs/data-driven/parity.md.",
+            "reference": "Java data/minecraft/timeline/villager_schedule.json, Villager.registerBrainGoals and Fox.getAmbientSound"
         },
-        "melee-blow:minecraft:husk": {
+        "schooling:minecraft:cod": {
             "kind": "defect",
-            "reason": "A mob's melee blow deals its Java attack damage, drawn where Java's class draws it, and adds the status effect Java's doHurtTarget adds on Normal difficulty. Observed: a blow adds hunger for 30s, where Java's adds hunger for 7s.",
-            "reference": "Java Mob.doHurtTarget (the attack_damage attribute), IronGolem.doHurtTarget and HoglinBase.hurtAndThrowTarget (damage / 2 + nextInt(damage)), CaveSpider, Bee, WitherSkeleton and Husk doHurtTarget; docs/adr/0001-entity-stat-authority.md; issue #3139"
+            "reason": "A cod, salmon or tropical fish follows a school leader, and no other fish or dolphin schools. Observed: the server never runs minecraft:flocking, so it swims alone where Java's follows a school.",
+            "reference": "Java AbstractSchoolingFish and FollowFlockLeaderGoal; Pufferfish and Dolphin do not extend it; issue #3161"
         },
-        "melee-blow:minecraft:iron_golem": {
-            "kind": "intentional",
-            "reason": "Bedrock writes the rolled range 7 to 21. Java rolls the same range from a base of 15, so the two editions agree and only the published number differs.",
-            "reference": "Java Mob.doHurtTarget (the attack_damage attribute), IronGolem.doHurtTarget and HoglinBase.hurtAndThrowTarget (damage / 2 + nextInt(damage)), CaveSpider, Bee, WitherSkeleton and Husk doHurtTarget; docs/adr/0001-entity-stat-authority.md; issue #3139"
-        },
-        "melee-blow:minecraft:magma_cube": {
-            "kind": "intentional",
-            "reason": "Java sets a cube's attack damage from its size at spawn, the same way it sets the health.",
-            "reference": "Java Mob.doHurtTarget (the attack_damage attribute), IronGolem.doHurtTarget and HoglinBase.hurtAndThrowTarget (damage / 2 + nextInt(damage)), CaveSpider, Bee, WitherSkeleton and Husk doHurtTarget; docs/adr/0001-entity-stat-authority.md; issue #3139"
-        },
-        "melee-blow:minecraft:stray": {
+        "schooling:minecraft:salmon": {
             "kind": "defect",
-            "reason": "A mob's melee blow deals its Java attack damage, drawn where Java's class draws it, and adds the status effect Java's doHurtTarget adds on Normal difficulty. Observed: a blow adds slowness for 10s, where Java's adds nothing.",
-            "reference": "Java Mob.doHurtTarget (the attack_damage attribute), IronGolem.doHurtTarget and HoglinBase.hurtAndThrowTarget (damage / 2 + nextInt(damage)), CaveSpider, Bee, WitherSkeleton and Husk doHurtTarget; docs/adr/0001-entity-stat-authority.md; issue #3139"
+            "reason": "A cod, salmon or tropical fish follows a school leader, and no other fish or dolphin schools. Observed: the server never runs minecraft:flocking, so it swims alone where Java's follows a school.",
+            "reference": "Java AbstractSchoolingFish and FollowFlockLeaderGoal; Pufferfish and Dolphin do not extend it; issue #3161"
         },
-        "move-control-turn:minecraft:glow_squid": {
+        "schooling:minecraft:tropical_fish": {
             "kind": "defect",
-            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: it turned 90.00 degrees in one tick, where Java turns 18.",
-            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
+            "reason": "A cod, salmon or tropical fish follows a school leader, and no other fish or dolphin schools. Observed: the server never runs minecraft:flocking, so it swims alone where Java's follows a school.",
+            "reference": "Java AbstractSchoolingFish and FollowFlockLeaderGoal; Pufferfish and Dolphin do not extend it; issue #3161"
         },
-        "move-control-turn:minecraft:magma_cube": {
+        "sensor-reach:minecraft:happy_ghast": {
             "kind": "defect",
-            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: it turned 180.00 degrees in one tick, where Java turns 90.",
-            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
+            "reason": "A mob that senses the entities around it searches as far as Java looks. Observed: it searches 3 by 1.5 blocks, where HappyGhast.scanPlayerAboveGhast, a 2 block tall box over the ghast searches its own width by 2.",
+            "reference": "Java Armadillo (inflate 7, 2, 7), Pufferfish$PufferfishPuffGoal (inflate 2) and HappyGhast.scanPlayerAboveGhast; issue #3158"
         },
-        "move-control-turn:minecraft:silverfish": {
+        "sensor-reach:minecraft:parrot": {
+            "kind": "intentional",
+            "reason": "The parrot's sensor only switches where a perched parrot looks. A Java parrot on a shoulder is part of the player and is drawn by the client, so where it looks is rendered presentation, category 1 of docs/data-driven/parity.md.",
+            "reference": "Java Armadillo (inflate 7, 2, 7), Pufferfish$PufferfishPuffGoal (inflate 2) and HappyGhast.scanPlayerAboveGhast; issue #3158"
+        },
+        "sensor-reach:minecraft:pufferfish": {
             "kind": "defect",
-            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: it turned 0.00 degrees in one tick, where Java turns 90.",
-            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
-        },
-        "move-control-turn:minecraft:slime": {
-            "kind": "defect",
-            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: it turned 180.00 degrees in one tick, where Java turns 90.",
-            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
-        },
-        "move-control-turn:minecraft:squid": {
-            "kind": "defect",
-            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: it turned 90.00 degrees in one tick, where Java turns 18.",
-            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
-        },
-        "move-control-turn:minecraft:sulfur_cube": {
-            "kind": "defect",
-            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: it turned 180.00 degrees in one tick, where Java turns 90.",
-            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
-        },
-        "move-control-turn:minecraft:villager": {
-            "kind": "defect",
-            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: the server pins no Java navigation for minecraft:villager_v2.",
-            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
-        },
-        "move-control-turn:minecraft:wither": {
-            "kind": "defect",
-            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: it turned 180.00 degrees in one tick, where Java turns 90.",
-            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
-        },
-        "path-through:minecraft:navigation.climb/minecraft:spider": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.generic/minecraft:drowned": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through a closed wooden door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:donkey": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:evoker": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through a closed wooden door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:hoglin": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:horse": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:husk": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through a closed wooden door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:mule": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:panda": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:polar_bear": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:shulker": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:skeleton_horse": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:sniffer": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:villager": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server pins no Java navigation for minecraft:villager_v2.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:zoglin": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:zombie": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through a closed wooden door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:zombie_horse": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through an open door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:zombie_villager": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through a closed wooden door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:zombified_piglin": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server routes it through a closed wooden door, which Java's navigator refuses.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3138 and #3140"
-        },
-        "rider-controls:minecraft:can_power_jump/minecraft:skeleton_horse": {
-            "kind": "defect",
-            "reason": "A player steers a mount, power-jumps or dashes it, or climbs a happy ghast, only once it is saddled or harnessed. Observed: the server hands the rider control before the mount is saddled or harnessed.",
-            "reference": "Java AbstractHorse.getControllingPassenger and canJump (isSaddled), Camel and AbstractNautilus (PlayerRideableJumping, saddled), HappyGhast.getControllingPassenger (harnessed); issue #3143"
-        },
-        "rider-controls:minecraft:input_ground_controlled/minecraft:skeleton_horse": {
-            "kind": "defect",
-            "reason": "A player steers a mount, power-jumps or dashes it, or climbs a happy ghast, only once it is saddled or harnessed. Observed: the server hands the rider control before the mount is saddled or harnessed.",
-            "reference": "Java AbstractHorse.getControllingPassenger and canJump (isSaddled), Camel and AbstractNautilus (PlayerRideableJumping, saddled), HappyGhast.getControllingPassenger (harnessed); issue #3143"
-        },
-        "spawn-flying_speed:minecraft:bee": {
-            "kind": "intentional",
-            "reason": "Same as movement speed. The flying move controls scale the attribute differently in the two editions, and the happy ghast is ridden.",
-            "reference": "Java minecraft:flying_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-flying_speed:minecraft:ender_dragon": {
-            "kind": "intentional",
-            "reason": "Same as movement speed. The flying move controls scale the attribute differently in the two editions, and the happy ghast is ridden.",
-            "reference": "Java minecraft:flying_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-flying_speed:minecraft:happy_ghast": {
-            "kind": "intentional",
-            "reason": "Same as movement speed. The flying move controls scale the attribute differently in the two editions, and the happy ghast is ridden.",
-            "reference": "Java minecraft:flying_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-health:minecraft:donkey": {
-            "kind": "intentional",
-            "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md; issue #3146"
-        },
-        "spawn-health:minecraft:end_crystal": {
-            "kind": "defect",
-            "reason": "An entity spawns with the max_health its Java attribute supplier publishes, unless ADR 0001 gives the stat or the row to Bedrock. Observed: a half-point blow leaves it standing, where Java breaks an end crystal on any blow.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md; issue #3146"
-        },
-        "spawn-health:minecraft:horse": {
-            "kind": "intentional",
-            "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md; issue #3146"
-        },
-        "spawn-health:minecraft:llama": {
-            "kind": "intentional",
-            "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md; issue #3146"
-        },
-        "spawn-health:minecraft:magma_cube": {
-            "kind": "intentional",
-            "reason": "Java sets a cube's max health from its size at spawn, so the dumped 20 is the living-entity default. Bedrock writes the same per-size values as component groups.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md; issue #3146"
-        },
-        "spawn-health:minecraft:mule": {
-            "kind": "intentional",
-            "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md; issue #3146"
-        },
-        "spawn-health:minecraft:slime": {
-            "kind": "intentional",
-            "reason": "Java sets a cube's max health from its size at spawn, so the dumped 20 is the living-entity default. Bedrock writes the same per-size values as component groups.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md; issue #3146"
-        },
-        "spawn-health:minecraft:sulfur_cube": {
-            "kind": "intentional",
-            "reason": "Java sets a cube's max health from its size at spawn, so the dumped 20 is the living-entity default. Bedrock writes the same per-size values as component groups.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md; issue #3146"
-        },
-        "spawn-health:minecraft:trader_llama": {
-            "kind": "intentional",
-            "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md; issue #3146"
-        },
-        "spawn-knockback_resistance:minecraft:armor_stand": {
-            "kind": "intentional",
-            "reason": "Java makes both immune to knockback in code and leaves the attribute at 0. Taking that 0 would make them knockbackable, which is neither edition's behavior.",
-            "reference": "Java minecraft:knockback_resistance in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-knockback_resistance:minecraft:ender_dragon": {
-            "kind": "intentional",
-            "reason": "Java makes both immune to knockback in code and leaves the attribute at 0. Taking that 0 would make them knockbackable, which is neither edition's behavior.",
-            "reference": "Java minecraft:knockback_resistance in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:axolotl": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:bat": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:breeze": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:cod": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:cow": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:creeper": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:dolphin": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:ender_dragon": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:frog": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:ghast": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:glow_squid": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:goat": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:guardian": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:happy_ghast": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:horse": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:llama": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:magma_cube": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:mooshroom": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:nautilus": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:parrot": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:phantom": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:pufferfish": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:ravager": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:salmon": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:sheep": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:shulker": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:slime": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:sniffer": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:squid": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:strider": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:sulfur_cube": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:tadpole": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:trader_llama": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:tropical_fish": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:turtle": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:vex": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:wandering_trader": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:wither": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:zoglin": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:zombie_horse": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-movement:minecraft:zombie_nautilus": {
-            "kind": "intentional",
-            "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
-        },
-        "spawn-strength:minecraft:llama": {
-            "kind": "defect",
-            "reason": "A llama spawns with strength 1 to 3, or 1 to 5 one time in 25: 32.8 percent each for 1, 2 and 3 and 0.8 percent each for 4 and 5. Observed: the server's strengths spread 1: 32.0%, 2: 32.0%, 3: 32.0%, 4: 2.1%, 5: 1.9%, where Java's are 32.8% for 1 to 3 and 0.8% for 4 and 5 (p 7.0e-155).",
-            "reference": "Java Llama.setRandomStrength (nextFloat() < 0.04 ? 5 : 3, then 1 + nextInt); issue #3142"
-        },
-        "spawn-strength:minecraft:trader_llama": {
-            "kind": "defect",
-            "reason": "A llama spawns with strength 1 to 3, or 1 to 5 one time in 25: 32.8 percent each for 1, 2 and 3 and 0.8 percent each for 4 and 5. Observed: the server's strengths spread 1: 32.0%, 2: 32.0%, 3: 32.0%, 4: 2.1%, 5: 1.9%, where Java's are 32.8% for 1 to 3 and 0.8% for 4 and 5 (p 7.0e-155).",
-            "reference": "Java Llama.setRandomStrength (nextFloat() < 0.04 ? 5 : 3, then 1 + nextInt); issue #3142"
+            "reason": "A mob that senses the entities around it searches as far as Java looks. Observed: it searches 2.5 by 2.5 blocks, where Pufferfish$PufferfishPuffGoal, its box inflated by 2 searches 2 by 2.",
+            "reference": "Java Armadillo (inflate 7, 2, 7), Pufferfish$PufferfishPuffGoal (inflate 2) and HappyGhast.scanPlayerAboveGhast; issue #3158"
         },
         "spawns-in-biome:minecraft:badlands/minecraft:zombie_villager": {
             "kind": "intentional",
@@ -1446,6 +846,46 @@
             "kind": "intentional",
             "reason": "Bedrock gives zombie villagers no spawn rule of their own: the zombie rule swaps in a villager zombie for 5 to 9 percent of its spawns, where Java lists the zombie villager at weight 1 in each overworld monster list.",
             "reference": "Java Biome minecraft:gameplay/natural_mob_spawns attribute; issue #2910"
+        },
+        "spawns-on-a-clock:minecraft:ocelot": {
+            "kind": "intentional",
+            "reason": "Bedrock spawns an ocelot with two kittens one time in seven, where Java's ocelot spawns alone. The litter is part of how Bedrock composes a natural spawn, and docs/data-driven/parity.md category 7 keeps Bedrock's spawn model.",
+            "reference": "Java Chicken.aiStep and gameplay/chicken_lay, Armadillo.pickNextScuteDropTime and gameplay/armadillo_shed, CopperGolem.shear, Drowned.finalizeSpawn, Sniffer.spawnChildFromBreeding and WanderingTraderSpawner.spawn"
+        },
+        "target-range:minecraft:blaze": {
+            "kind": "defect",
+            "reason": "A mob that acts on its target's distance starts and stops at Java's distances. Observed: switch_to_melee fires at 2 blocks as the target closes in, where Blaze$BlazeAttackGoal.tick: melee below distanceToSqr 4, fireballs beyond acts at 1.75; switch_to_ranged fires at 3.25 blocks as the target backs off, where Blaze$BlazeAttackGoal.tick: melee below distanceToSqr 4, fireballs beyond acts at 2.",
+            "reference": "Java SwellGoal (creeper), Blaze$BlazeAttackGoal.tick, Guardian$GuardianAttackGoal.canContinueToUse and the Drowned goal setup (DrownedTridentAttackGoal before DrownedAttackGoal); issues #3129 (creeper) and #3158"
+        },
+        "target-range:minecraft:creeper": {
+            "kind": "defect",
+            "reason": "A mob that acts on its target's distance starts and stops at Java's distances. Observed: minecraft:start_exploding fires at 2.5 blocks as the target closes in, where SwellGoal: swells once distanceToSqr < 9 and stops past distanceToSqr > 49 acts at 2.75; minecraft:stop_exploding fires at 6.25 blocks as the target backs off, where SwellGoal: swells once distanceToSqr < 9 and stops past distanceToSqr > 49 acts at 7.25.",
+            "reference": "Java SwellGoal (creeper), Blaze$BlazeAttackGoal.tick, Guardian$GuardianAttackGoal.canContinueToUse and the Drowned goal setup (DrownedTridentAttackGoal before DrownedAttackGoal); issues #3129 (creeper) and #3158"
+        },
+        "timer-durations:minecraft:bee": {
+            "kind": "defect",
+            "reason": "Each Bedrock timer stands in for a Java countdown and runs as long as Java's, from its shortest draw to its longest. Observed: the stop_panicking_after_fire timer runs 400 to 1000 ticks, where BeehiveBlockEntity.MIN_TICKS_BEFORE_REENTERING_HIVE, the stay-out countdown of a bee a burning hive released gives 400 to 400; the perish_event timer runs 200 to 1200 ticks, where Bee.STING_DEATH_COUNTDOWN: from the fifth tick after stinging, a 1 in (1200 - ticks) chance every fifth tick gives 5 to 1200; the calmed_down timer runs 100 to 100 ticks, where Bee.PERSISTENT_ANGER_TIME, 20 to 39 seconds gives 400 to 780; the find_hive_timeout timer runs 3600 to 3600 ticks, where Bee$BeeGoToHiveGoal's travel limit gives 2400 to 2400; the find_hive_event timer runs 100 to 400 ticks, where Bee.COOLDOWN_BEFORE_LOCATING_NEW_HIVE gives 200 to 200.",
+            "reference": "Java AbstractBoat.BUBBLE_TIME, AllayAi.ITEM_PICKUP_COOLDOWN_DURATION, Armadillo.SCARE_CHECK_INTERVAL, the Bee and BeehiveBlockEntity constants, CopperGolem.WEATHERING_TICK_FROM and _TO, Guardian$GuardianAttackGoal, AbstractPiglin and Hoglin CONVERSION_TIME, the Zombie and Skeleton ConversionTrackers, Pufferfish.tick, Ravager.STUN_DURATION, SulfurCube.PICKUP_TIMER_DURATION, Evoker$EvokerSummonSpellGoal and WanderingTraderSpawner.spawn; issue #3157"
+        },
+        "timer-durations:minecraft:guardian": {
+            "kind": "defect",
+            "reason": "Each Bedrock timer stands in for a Java countdown and runs as long as Java's, from its shortest draw to its longest. Observed: the minecraft:target_far_enough timer runs 20 to 60 ticks, where Guardian$GuardianAttackGoal, which stops within 3 blocks and starts again on the next goal update gives 0 to 2.",
+            "reference": "Java AbstractBoat.BUBBLE_TIME, AllayAi.ITEM_PICKUP_COOLDOWN_DURATION, Armadillo.SCARE_CHECK_INTERVAL, the Bee and BeehiveBlockEntity constants, CopperGolem.WEATHERING_TICK_FROM and _TO, Guardian$GuardianAttackGoal, AbstractPiglin and Hoglin CONVERSION_TIME, the Zombie and Skeleton ConversionTrackers, Pufferfish.tick, Ravager.STUN_DURATION, SulfurCube.PICKUP_TIMER_DURATION, Evoker$EvokerSummonSpellGoal and WanderingTraderSpawner.spawn; issue #3157"
+        },
+        "timer-durations:minecraft:skeleton": {
+            "kind": "defect",
+            "reason": "Each Bedrock timer stands in for a Java countdown and runs as long as Java's, from its shortest draw to its longest. Observed: the become_stray_event timer runs 400 to 400 ticks, where Skeleton's freezing ConversionTracker (FreezingTime 140) gives 140 to 140.",
+            "reference": "Java AbstractBoat.BUBBLE_TIME, AllayAi.ITEM_PICKUP_COOLDOWN_DURATION, Armadillo.SCARE_CHECK_INTERVAL, the Bee and BeehiveBlockEntity constants, CopperGolem.WEATHERING_TICK_FROM and _TO, Guardian$GuardianAttackGoal, AbstractPiglin and Hoglin CONVERSION_TIME, the Zombie and Skeleton ConversionTrackers, Pufferfish.tick, Ravager.STUN_DURATION, SulfurCube.PICKUP_TIMER_DURATION, Evoker$EvokerSummonSpellGoal and WanderingTraderSpawner.spawn; issue #3157"
+        },
+        "timer-durations:minecraft:wandering_trader": {
+            "kind": "defect",
+            "reason": "Each Bedrock timer stands in for a Java countdown and runs as long as Java's, from its shortest draw to its longest. Observed: the minecraft:start_despawn timer runs 48000 to 72000 ticks, where WanderingTraderSpawner.spawn, setDespawnDelay(48000) gives 48000 to 48000.",
+            "reference": "Java AbstractBoat.BUBBLE_TIME, AllayAi.ITEM_PICKUP_COOLDOWN_DURATION, Armadillo.SCARE_CHECK_INTERVAL, the Bee and BeehiveBlockEntity constants, CopperGolem.WEATHERING_TICK_FROM and _TO, Guardian$GuardianAttackGoal, AbstractPiglin and Hoglin CONVERSION_TIME, the Zombie and Skeleton ConversionTrackers, Pufferfish.tick, Ravager.STUN_DURATION, SulfurCube.PICKUP_TIMER_DURATION, Evoker$EvokerSummonSpellGoal and WanderingTraderSpawner.spawn; issue #3157"
+        },
+        "trader-upkeep:minecraft:wandering_trader": {
+            "kind": "defect",
+            "reason": "A villager restocks at most twice a day and never within 2400 ticks of its last restock, and a wandering trader leaves 48000 ticks after it arrives. Observed: it leaves after 72000 ticks, where Java's trader leaves after 48000.",
+            "reference": "Java Villager.allowedToRestock (numberOfRestocksToday < 2, gameTime > lastRestockGameTime + 2400) and WanderingTrader.maybeDespawn with WanderingTraderSpawner.setDespawnDelay(48000); issue #3157"
         }
     },
     "gameplay.datapack": {

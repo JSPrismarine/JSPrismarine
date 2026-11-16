@@ -10,6 +10,7 @@ import { engineScenarios } from './entityScenarios/engine.ts';
 import { physicsScenarios } from './entityScenarios/physics.ts';
 import { damageScenarios } from './entityScenarios/damage.ts';
 import { goalScenarios } from './entityScenarios/goals.ts';
+import { lifecycleScenarios } from './entityScenarios/lifecycle.ts';
 import { spawnScenarios } from './entityScenarios/spawning.ts';
 import { statsScenarios } from './entityScenarios/stats.ts';
 import { javaEntityIds } from './entityScenarios/subjects.ts';
@@ -30,12 +31,18 @@ const ENTITY_SCENARIO_GROUPS: readonly ScenarioGroup[] = [
     scenarioGroup(physicsScenarios),
     scenarioGroup(damageScenarios),
     scenarioGroup(goalScenarios),
-    scenarioGroup(statsScenarios)
+    scenarioGroup(statsScenarios),
+    scenarioGroup(lifecycleScenarios)
 ];
 
 describeFamily(
     FAMILIES.entitiesBehavior,
-    [REFERENCES.javaEntityRegistry, REFERENCES.bedrockBehaviorPack, REFERENCES.javaWorldgenData],
+    [
+        REFERENCES.javaEntityRegistry,
+        REFERENCES.bedrockBehaviorPack,
+        REFERENCES.javaWorldgenData,
+        REFERENCES.javaServerJar
+    ],
     () => {
         it('exercises each Java entity behavior against the server runtime', { timeout: 900_000 }, () => {
             const rows = [
