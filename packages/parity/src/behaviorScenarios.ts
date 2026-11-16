@@ -163,11 +163,32 @@ export const measureScenarios = (
     family: Family,
     sourceFile: string,
     ...groups: readonly ScenarioGroup[]
+): readonly ScenarioRow[] => measureScenarioScope(family, sourceFile, undefined, groups);
+
+/**
+ * {@link measureScenarios} over part of a family: only the scenarios named in `scope` run, the
+ * allow list is checked for their rows alone, and an update rewrites their rows and keeps every
+ * other row of the family's baseline. A family whose scenarios are too costly to run whole while
+ * one part of it changes runs that part this way.
+ * @param family - The family the scenarios belong to.
+ * @param sourceFile - The test file running them, for the tracker's source link.
+ * @param scope - The names of the scenarios that run, or undefined for the whole family.
+ * @param groups - The scenario groups to run, each wrapped with {@link scenarioGroup}.
+ * @returns The rows, for assertions the caller adds on top.
+ */
+export const measureScenarioScope = (
+    family: Family,
+    sourceFile: string,
+    scope: ReadonlySet<string> | undefined,
+    groups: readonly ScenarioGroup[]
 ): readonly ScenarioRow[] => {
     const rows = groups.flatMap((group) => group());
+    const inScope = (id: string): boolean => scope === undefined || scope.has(id.slice(0, id.indexOf(':')));
 
     if (updatingBehaviorGaps()) {
-        const gaps: Record<string, BehaviorGap> = {};
+        const gaps: Record<string, BehaviorGap> = Object.fromEntries(
+            Object.entries(readBehaviorGaps()[family] ?? {}).filter(([id]) => scope !== undefined && !inScope(id))
+        );
         for (const row of rows) if (row.gap !== undefined) gaps[row.id] = row.gap;
         writeBehaviorGaps(family, gaps);
     } else {
@@ -176,7 +197,7 @@ export const measureScenarios = (
             rows.filter((row) => row.difference !== undefined).map((row) => row.id)
         );
         expect(verdict.unexpected).toEqual([]);
-        expect(verdict.stale).toEqual([]);
+        expect(verdict.stale.filter(inScope)).toEqual([]);
     }
 
     // A row that evidences one Java identifier is rolled into that identifier's single row by
