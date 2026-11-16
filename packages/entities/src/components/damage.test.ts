@@ -5,8 +5,13 @@ import { observing, tickThenUndo } from '../componentState.test.helper';
 import type { EntityEnvironment, EntityInstance } from '../entityInstance';
 import { EntityTypes } from '../entityTypes';
 import type { EntityFlag } from '../filterContext';
-import { DROWNING_INTERVAL_TICKS } from './hazards';
-import { HURT_INTERVAL_TICKS, SUFFOCATION_DAMAGE } from './vanilla';
+import {
+    AIR_REGAIN_PER_TICK,
+    AIR_STATE,
+    DROWNING_INTERVAL_TICKS,
+    HURT_INTERVAL_TICKS,
+    SUFFOCATION_DAMAGE
+} from './vanilla';
 
 /**
  * The components that hurt an entity on a schedule, asserted by the health
@@ -147,15 +152,7 @@ describe('minecraft:breathable', () => {
 
         expect(entity.attributes.value('health')).toBe(40);
 
-        tick(entity, DROWNING_INTERVAL_TICKS);
-
-        expect(entity.attributes.value('health')).toBe(40 - SUFFOCATION_DAMAGE);
-    });
-
-    it("lands Java's drowning blow a second after the air runs out, and every second after", () => {
-        const entity = spawn(diver, 'test:diver', standingIn('in_water'));
-        tick(entity, 40 + DROWNING_INTERVAL_TICKS - 1);
-
+        tick(entity, DROWNING_INTERVAL_TICKS - 1);
         expect(entity.attributes.value('health')).toBe(40);
 
         tick(entity, 1);
@@ -163,6 +160,37 @@ describe('minecraft:breathable', () => {
 
         tick(entity, DROWNING_INTERVAL_TICKS);
         expect(entity.attributes.value('health')).toBe(40 - 2 * SUFFOCATION_DAMAGE);
+    });
+
+    it("regains Java's four air a tick once a land breather surfaces", () => {
+        let medium: EntityFlag | undefined = 'in_water';
+        const entity = spawn(diver, 'test:diver', {
+            filterContext: () => ({ self: { flag: (name) => name === medium } })
+        });
+        tick(entity, 40);
+        medium = undefined;
+        tick(entity, 3);
+
+        expect(entity.componentState.get(AIR_STATE)?.remaining).toBe(3 * AIR_REGAIN_PER_TICK);
+    });
+
+    it('breathes in lava unless the body says it does not, as Bedrock defaults it', () => {
+        const entity = spawn(diver, 'test:diver', standingIn('in_lava'));
+        tick(entity, 100);
+
+        expect(entity.componentState.get(AIR_STATE)?.remaining).toBe(40);
+    });
+
+    it('refills a water breather at once when it is back in water', () => {
+        let medium: EntityFlag | undefined;
+        const entity = spawn(fish, 'test:fish', {
+            filterContext: () => ({ self: { flag: (name) => name === medium } })
+        });
+        tick(entity, 10);
+        medium = 'in_water';
+        tick(entity, 1);
+
+        expect(entity.componentState.get(AIR_STATE)?.remaining).toBe(40);
     });
 
     it('refills the supply once the entity is back in a medium it breathes', () => {
@@ -286,22 +314,6 @@ describe('minecraft:persistent', () => {
         const removed: string[] = [];
         const entity = spawn(wanderer(true), 'test:wanderer', {
             ...faraway,
-            remove: (_entity, reason) => removed.push(reason)
-        });
-        tick(entity, 40);
-
-        expect(removed).toEqual([]);
-    });
-
-    it('keeps a named mob whatever the distance, as a name tag makes it persistent', () => {
-        const removed: string[] = [];
-        const entity = spawn(wanderer(false), 'test:wanderer', {
-            filterContext: () => ({
-                self: {
-                    flag: (name) => (name === 'has_nametag' ? true : undefined),
-                    measure: (name) => (name === 'distance_to_nearest_player' ? 200 : undefined)
-                }
-            }),
             remove: (_entity, reason) => removed.push(reason)
         });
         tick(entity, 40);

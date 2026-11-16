@@ -20,15 +20,6 @@ import { asList, booleanAt, isRecord, numberAt, parseFilterValue, stringAt } fro
  */
 export const HURT_INTERVAL_TICKS = 10;
 
-/**
- * How many ticks apart drowning blows land once the air is gone, which is also how long the
- * first one waits.
- *
- * Java's `LivingEntity.baseTick` keeps spending air past zero and hurts at -20, then starts again
- * from zero, so a drowning mob takes a blow every second rather than every half second.
- */
-export const DROWNING_INTERVAL_TICKS = 20;
-
 /** One entry of `minecraft:hurt_on_condition.damage_conditions`. */
 export interface DamageCondition {
     /** Gates the condition; absent means it always hurts. */
@@ -201,6 +192,7 @@ export interface BreathableParams {
     readonly suffocateTime: number;
     readonly breathesAir: boolean;
     readonly breathesWater: boolean;
+    /** Whether lava is breathable, which Bedrock defaults to true and Java agrees with: only water spends air. */
     readonly breathesLava: boolean;
     readonly generatesBubbles: boolean;
     readonly inhaleTime: number;
@@ -208,6 +200,22 @@ export interface BreathableParams {
 
 /** How much health one suffocation hurt takes, which both editions put at one heart. */
 export const SUFFOCATION_DAMAGE = 2;
+
+/**
+ * How many ticks apart an entity out of air is hurt when its body leaves `suffocate_time` at the
+ * vanilla `0`.
+ *
+ * Java's `LivingEntity.baseTick` keeps spending air below zero and hurts once it reaches -20
+ * (`shouldTakeDrowningDamage`), setting it back to 0, so the first blow lands 20 ticks after the
+ * air runs out and the next 20 ticks after that.
+ */
+export const DROWNING_INTERVAL_TICKS = 20;
+
+/**
+ * How much air a land breather regains a tick in a medium it breathes, when its body names no
+ * `inhale_time`: Java's `LivingEntity.increaseAirSupply`.
+ */
+export const AIR_REGAIN_PER_TICK = 4;
 
 /**
  * One entity's air: `remaining` ticks of supply left, and `untilHurt` ticks until the next
@@ -222,10 +230,13 @@ export const AIR_STATE = defineComponentState('minecraft:breathable', {
  * `minecraft:breathable`, carried by 84 vanilla entities.
  *
  * The component holds the air supply and spends it. An entity in a medium it
- * cannot breathe loses a tick of supply per tick; one back in a medium it can
- * breathe refills to full, over `inhale_time` when the body names one. An
- * entity out of supply suffocates every `suffocate_time` seconds, or every
- * second ({@link DROWNING_INTERVAL_TICKS}) when the body writes the vanilla `0`.
+ * cannot breathe loses a tick of supply per tick. One back in a medium it can
+ * breathe refills over `inhale_time` when the body names one; otherwise it
+ * regains {@link AIR_REGAIN_PER_TICK} a tick, as Java's land breathers do, and
+ * a water breather back in water refills at once, as Java's
+ * `WaterAnimal.handleAirSupply` does. An entity out of supply suffocates every
+ * `suffocate_time` seconds, or every {@link DROWNING_INTERVAL_TICKS} when the
+ * body writes the vanilla `0`.
  *
  * Which medium the entity is in comes from the `in_water` and `in_lava` filter
  * facts, so an environment that answers neither leaves the entity breathing.
@@ -245,7 +256,7 @@ export const breathable: ComponentFactory<EntityHooks, BreathableParams> = {
             suffocateTime,
             breathesAir: booleanAt(value, 'breathes_air', true),
             breathesWater: booleanAt(value, 'breathes_water', false),
-            breathesLava: booleanAt(value, 'breathes_lava', false),
+            breathesLava: booleanAt(value, 'breathes_lava', true),
             generatesBubbles: booleanAt(value, 'generates_bubbles', true),
             inhaleTime: numberAt(value, 'inhale_time', 0)
         });
@@ -254,7 +265,15 @@ export const breathable: ComponentFactory<EntityHooks, BreathableParams> = {
         const supply = Math.max(0, Math.round(params.totalSupply * TICKS_PER_SECOND));
         const hurtInterval =
             params.suffocateTime > 0 ? Math.round(params.suffocateTime * TICKS_PER_SECOND) : DROWNING_INTERVAL_TICKS;
-        const inhale = Math.max(1, Math.round(params.inhaleTime * TICKS_PER_SECOND));
+        const inhale = Math.round(params.inhaleTime * TICKS_PER_SECOND);
+        const waterBreather = params.breathesWater && !params.breathesAir;
+        /** The air one tick in a breathable medium gives back. */
+        const regain = (entity: EntityInstance): number => {
+            if (inhale > 0) return Math.ceil(supply / inhale);
+            return waterBreather && entity.filterContext().self.flag?.('in_water') === true
+                ? supply
+                : AIR_REGAIN_PER_TICK;
+        };
 
         /** Whether the medium the entity is in is one the component says it breathes. */
         const canBreathe = (entity: EntityInstance): boolean => {
@@ -274,7 +293,7 @@ export const breathable: ComponentFactory<EntityHooks, BreathableParams> = {
 
                 if (canBreathe(entity)) {
                     entity.componentState.set(AIR_STATE, {
-                        remaining: Math.min(supply, state.remaining + Math.ceil(supply / inhale)),
+                        remaining: Math.min(supply, state.remaining + regain(entity)),
                         untilHurt: hurtInterval
                     });
                     return;
