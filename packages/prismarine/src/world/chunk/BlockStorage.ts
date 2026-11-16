@@ -84,6 +84,32 @@ const writeNetworkPalette = (stream: BinaryStream, bitsPerBlock: number, palette
 };
 
 /**
+ * Counts the block writes and storage swaps under one chunk.
+ *
+ * {@link BlockStorage.writeEpoch} moves on a write anywhere in the process, so a fluid flowing in
+ * one chunk made every other chunk sum its section revisions again. A chunk hands its counter to
+ * each sub chunk it holds, which hands it to each storage, and reads its own count instead.
+ */
+export class BlockWriteCounter {
+    /** Writes and swaps counted so far. */
+    public count = 0;
+    /**
+     * Set once a sub chunk or storage was handed a second counter. Writes then reach only the
+     * last counter, so neither can vouch for its chunk and both fall back to the revisions.
+     */
+    public shared = false;
+
+    /** The counter an object holds after being handed `next`, marking both shared when it held another. */
+    public static attach(current: BlockWriteCounter | undefined, next: BlockWriteCounter): BlockWriteCounter {
+        if (current !== undefined && current !== next) {
+            current.shared = true;
+            next.shared = true;
+        }
+        return next;
+    }
+}
+
+/**
  * A block storage that can be read and not written.
  *
  * What a chunk hands out once it is in a world: a write has to go through the chunk, so the save
@@ -135,6 +161,8 @@ export default class BlockStorage implements ReadonlyBlockStorage {
     private nonAirBlocks: number;
     private readonly airRuntimeId: number;
     private revision = 0;
+    /** The counter of the chunk this storage sits in, once it is in one. */
+    private writeCounter: BlockWriteCounter | undefined;
     /** Present after a generated or loaded section is finalized into Bedrock's packed layout. */
     private packedWords: Uint32Array | undefined;
     private packedBitsPerBlock = 0;
@@ -215,6 +243,11 @@ export default class BlockStorage implements ReadonlyBlockStorage {
         return this.revision;
     }
 
+    /** Counts this storage's later writes on its chunk's counter. */
+    public attachWriteCounter(counter: BlockWriteCounter): void {
+        this.writeCounter = BlockWriteCounter.attach(this.writeCounter, counter);
+    }
+
     /**
      * The runtime id at a position, without resolving it to a state.
      *
@@ -238,6 +271,7 @@ export default class BlockStorage implements ReadonlyBlockStorage {
         else if (previous !== this.airRuntimeId && runtimeId === this.airRuntimeId) this.nonAirBlocks--;
         this.revision++;
         BlockStorage.writeEpoch++;
+        if (this.writeCounter !== undefined) this.writeCounter.count++;
         this.packedNetworkStorage = undefined;
     }
 

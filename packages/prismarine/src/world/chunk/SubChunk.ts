@@ -2,7 +2,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import type { BlockState } from '../../block/state/BlockState';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
-import BlockStorage from './BlockStorage';
+import BlockStorage, { BlockWriteCounter } from './BlockStorage';
 import type { ReadonlyBlockStorage } from './BlockStorage';
 
 /**
@@ -35,6 +35,8 @@ export interface ReadonlySubChunk extends Pick<
 export default class SubChunk implements ReadonlySubChunk {
     private storages: Array<BlockStorage | undefined> = [];
     private readonly storageOrder: number[] = [];
+    /** The counter of the chunk this sub chunk sits in, once it is in one. */
+    private writeCounter: BlockWriteCounter | undefined;
 
     /**
      * The version this sub chunk was read from, so writing it back does not silently upgrade it.
@@ -65,10 +67,20 @@ export default class SubChunk implements ReadonlySubChunk {
         return true;
     }
 
+    /** Counts writes to this sub chunk's storages, and storage swaps, on its chunk's counter. */
+    public attachWriteCounter(counter: BlockWriteCounter): void {
+        this.writeCounter = BlockWriteCounter.attach(this.writeCounter, counter);
+        for (const index of this.storageOrder) this.storages[index]!.attachWriteCounter(counter);
+    }
+
     private setStorage(index: number, storage: BlockStorage): void {
         if (this.storages[index] === undefined) this.storageOrder.push(index);
         this.storages[index] = storage;
         BlockStorage.writeEpoch++;
+        if (this.writeCounter !== undefined) {
+            storage.attachWriteCounter(this.writeCounter);
+            this.writeCounter.count++;
+        }
     }
 
     private getOrCreateStorage(index: number): BlockStorage {

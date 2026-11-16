@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Block } from '../../block/Block';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
@@ -103,6 +103,37 @@ describe('world', () => {
             // @ts-expect-error a write around the chunk, which the revision still has to see
             chunk.getSubChunk(0)!.getStorages()[0]!.setBlock(3, 1, 3, stone);
             expect(chunk.getBlockRevision()).toBeGreaterThan(settled);
+        });
+
+        it('asks no section of a chunk again after a write to another chunk', () => {
+            const stone = BlockRuntimeIds.getByName('minecraft:stone');
+            const quiet = new Chunk(0, 0);
+            const busy = new Chunk(1, 0);
+            for (let y = -64; y < 320; y += 16) quiet.setBlockRuntimeId(0, y, 0, stone);
+            quiet.getRandomTickSections();
+            const revision = quiet.getBlockRevision();
+            const asked = vi.spyOn(SubChunk.prototype, 'getRevision');
+
+            // A fluid flowing next door writes every tick.
+            busy.setBlockRuntimeId(0, 1, 0, stone);
+            quiet.getRandomTickSections();
+            expect(quiet.getBlockRevision()).toBe(revision);
+
+            // Each of the 24 sections was asked for both caches before.
+            expect(asked).not.toHaveBeenCalled();
+            asked.mockRestore();
+        });
+
+        it('sees every write to a sub chunk two chunks hold', () => {
+            const stone = BlockRuntimeIds.getByName('minecraft:stone');
+            const subChunk = new SubChunk();
+            const first = new Chunk(0, 0, new Map([[0, subChunk]]));
+            const second = new Chunk(1, 0, new Map([[0, subChunk]]));
+            const before = first.getBlockRevision();
+
+            second.setBlockRuntimeId(0, 1, 0, stone);
+
+            expect(first.getBlockRevision()).toBeGreaterThan(before);
         });
 
         it('setBlockRuntimeId and setBlock agree', () => {
