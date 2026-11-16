@@ -323,6 +323,28 @@ const snowballDamage = (blaze: boolean): number => {
 /** A thrown water bottle's spawn data, its `minecraft:potion_contents`. */
 const WATER_BOTTLE = { 'minecraft:potion_contents': { potion: 'minecraft:water' } } as const;
 
+/** A thrown potion of Slowness's spawn data. */
+const SLOWNESS = { 'minecraft:potion_contents': { potion: 'minecraft:slowness' } } as const;
+
+/**
+ * The ticks one of Java's potions lasts, read from `Potions.<clinit>`: the first number after the
+ * effect its registration names.
+ */
+const javaPotionTicks = (potion: string): number => {
+    const operations = javaOperations(
+        pinnedJavaClass('net/minecraft/world/item/alchemy/Potions').find((method) => method.name === '<clinit>') ?? {
+            instructions: []
+        }
+    );
+    const named = operations.findIndex((operation) => operation.kind === 'string' && operation.value === potion);
+    const effect = operations.findIndex(
+        (operation, index) => index > named && operation.kind === 'field' && operation.target.startsWith('MobEffects.')
+    );
+    const ticks = operations.slice(effect + 1).find((operation) => operation.kind === 'number');
+    if (named < 0 || ticks?.kind !== 'number') throw new Error(`Java registers no ${potion} potion`);
+    return ticks.value;
+};
+
 /** `WitherSkull.onHitEntity`'s Wither on normal difficulty, owned or not: 10 seconds of Wither II. */
 const javaWitherSkullEffect = (): { readonly id: string; readonly duration: number; readonly amplifier: number } => {
     const [seconds] = numbersAfterField('minecraft:wither_skull', 'onHitEntity', 'Difficulty.NORMAL', 1);
@@ -549,6 +571,15 @@ const JAVA_PROJECTILE_HITS: Readonly<Record<string, readonly JavaHitProbe[]>> = 
             damage: () => 1,
             knockback: 'none',
             removed: true
+        },
+        {
+            label: 'a splash potion of Slowness at a cow',
+            probe: { target: 'minecraft:cow', speed: PROBE_SPEED, data: SLOWNESS },
+            // ThrownSplashPotion.onHitAsPotion: a box it touches takes the full `1 - distance / 4` of 1.
+            damage: () => 0,
+            knockback: 'none',
+            removed: true,
+            effect: () => ({ id: 'minecraft:slowness', duration: javaPotionTicks('slowness'), amplifier: 0 })
         }
     ],
     'minecraft:lingering_potion': [
@@ -558,6 +589,28 @@ const JAVA_PROJECTILE_HITS: Readonly<Record<string, readonly JavaHitProbe[]>> = 
             damage: () => 1,
             knockback: 'none',
             removed: true
+        },
+        {
+            label: 'a lingering potion of Slowness at a cow',
+            probe: { target: 'minecraft:cow', speed: PROBE_SPEED, data: SLOWNESS },
+            // ThrownLingeringPotion.onHitAsPotion leaves a cloud that waits 10 ticks before it reaches anyone.
+            damage: () => 0,
+            knockback: 'none',
+            removed: true,
+            cloud: () => ({
+                radius: pushedBeside(
+                    'minecraft:lingering_potion',
+                    'onHitAsPotion',
+                    'AreaEffectCloud.setRadius',
+                    'before'
+                ),
+                duration: pushedBeside(
+                    'minecraft:lingering_potion',
+                    'onHitAsPotion',
+                    'AreaEffectCloud.setDuration',
+                    'before'
+                )
+            })
         }
     ]
 };

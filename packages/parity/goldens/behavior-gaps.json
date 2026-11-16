@@ -637,16 +637,6 @@
             "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server pins no Java navigation for minecraft:villager_v2.",
             "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3140 and #3181"
         },
-        "projectile-hits-entity:minecraft:lingering_potion": {
-            "kind": "defect",
-            "reason": "A projectile that hits a mob deals Java's blow, push, effect and fire for its class, leaves its cloud or experience, takes its thrower along, and is discarded or stays as Java's is. Observed: a lingering water bottle at a blaze: it takes 0 off the minecraft:blaze, where Java takes 1.",
-            "reference": "Java AbstractArrow.onHitEntity (ceil(speed * baseDamage 2)), ThrownTrident.onHitEntity (8), Snowball.onHitEntity (3 for a blaze), ThrownEgg and ThrownEnderpearl.onHitEntity (0) and ThrownEnderpearl.onHit (teleport, enderPearl 5), LargeFireball (6) and SmallFireball.onHitEntity (5, igniteForSeconds 5), LlamaSpit (1 from a llama), ShulkerBullet (4, Levitation 200), WitherSkull (witherSkull 8 or magic 5, Wither II 10 s on normal), AbstractWindCharge (1), DragonFireball.onHit (cloud radius 3, 600 ticks), ThrownExperienceBottle.onHit (3 + nextInt(5) + nextInt(5)), FishingHook.onHitEntity (hooks, no blow), AbstractThrownPotion.onHitAsWater (indirect magic 1 to a water-sensitive mob), and LivingEntity.hurtServer and knockback (0.4 along the flight, lift capped at 0.4), read from the pinned jar; issue #3184, #3183"
-        },
-        "projectile-hits-entity:minecraft:splash_potion": {
-            "kind": "defect",
-            "reason": "A projectile that hits a mob deals Java's blow, push, effect and fire for its class, leaves its cloud or experience, takes its thrower along, and is discarded or stays as Java's is. Observed: a splash water bottle at a blaze: it takes 0 off the minecraft:blaze, where Java takes 1.",
-            "reference": "Java AbstractArrow.onHitEntity (ceil(speed * baseDamage 2)), ThrownTrident.onHitEntity (8), Snowball.onHitEntity (3 for a blaze), ThrownEgg and ThrownEnderpearl.onHitEntity (0) and ThrownEnderpearl.onHit (teleport, enderPearl 5), LargeFireball (6) and SmallFireball.onHitEntity (5, igniteForSeconds 5), LlamaSpit (1 from a llama), ShulkerBullet (4, Levitation 200), WitherSkull (witherSkull 8 or magic 5, Wither II 10 s on normal), AbstractWindCharge (1), DragonFireball.onHit (cloud radius 3, 600 ticks), ThrownExperienceBottle.onHit (3 + nextInt(5) + nextInt(5)), FishingHook.onHitEntity (hooks, no blow), AbstractThrownPotion.onHitAsWater (indirect magic 1 to a water-sensitive mob), and LivingEntity.hurtServer and knockback (0.4 along the flight, lift capped at 0.4), read from the pinned jar; issue #3184, #3183"
-        },
         "schedules:minecraft:fox": {
             "kind": "intentional",
             "reason": "The fox's scheduler only moves it between its sleeping, night and normal ambient sound groups. Which ambient sound plays is sound selection, rendered presentation in category 1 of docs/data-driven/parity.md.",
