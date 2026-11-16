@@ -2414,7 +2414,8 @@ export class EntityRuntime implements EntityScene {
                   player.position,
                   player.tags,
                   this.host.playerView?.(player.id),
-                  this.playerCombat(player.id)
+                  this.playerCombat(player.id),
+                  () => this.host.heldItemOf?.(player.id)
               );
     }
 

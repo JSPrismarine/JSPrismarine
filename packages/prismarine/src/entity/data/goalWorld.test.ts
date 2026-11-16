@@ -113,6 +113,7 @@ const GOAL_WORLD_ENTITIES: ExtraEntities = {
         }
     }),
     'jsprismarine:sleeper': mob({ 'minecraft:behavior.sleep': { priority: 1, speed_multiplier: 1 } }),
+    'jsprismarine:tempted': mob({ 'minecraft:behavior.tempt': { priority: 1, items: ['wheat'], within_radius: 10 } }),
     'jsprismarine:lounger': mob({
         'minecraft:behavior.lay_down': { priority: 1, interval: 1, random_stop_interval: 0 }
     }),
@@ -737,6 +738,43 @@ describe('the goal world over the entity runtime', () => {
             fixture.runtime.poi('suspicious_location', groundAt(0, 0), 32);
 
             expect(fixture.reports.filter((line) => line.includes('suspicious_location'))).toHaveLength(1);
+        });
+    });
+
+    describe('players', () => {
+        it('tells a tempt goal what a player holds', () => {
+            const world = new TestEntityWorld({
+                players: [{ id: 900, identifier: 'minecraft:player', position: groundAt(5, 0) }]
+            });
+            const fixture = fixtureOf(world);
+            const tempted = spawned(fixture, 'jsprismarine:tempted', groundAt(0, 0));
+
+            run(fixture, 2);
+            expect(tempted.instance.goals.runningGoals()).not.toContain('minecraft:behavior.tempt');
+
+            world.held.set(900, 'minecraft:wheat');
+            run(fixture, 2);
+            expect(tempted.instance.goals.runningGoals()).toContain('minecraft:behavior.tempt');
+        });
+    });
+
+    describe('the sky and the weather over the entity', () => {
+        it('answers is_underground under a roof and not under open sky', () => {
+            const world = new TestEntityWorld({ skyLight: true });
+            const fixture = fixtureOf(world);
+            const roofed = spawned(fixture, 'jsprismarine:lounger', groundAt(0, 0));
+            const open = spawned(fixture, 'jsprismarine:lounger', groundAt(8, 0));
+            world.setBlock({ x: 0, y: FLOOR_Y + 4, z: 0 }, 'minecraft:stone');
+
+            expect(roofed.instance.filterContext().self.flag?.('is_underground')).toBe(true);
+            expect(open.instance.filterContext().self.flag?.('is_underground')).toBe(false);
+        });
+
+        it('names the weather at the entity, clear when none falls there', () => {
+            const fixture = fixtureOf();
+            const lounger = spawned(fixture, 'jsprismarine:lounger', groundAt(0, 0));
+
+            expect(lounger.instance.filterContext().self.names?.('weather_at_position')).toEqual(['clear']);
         });
     });
 

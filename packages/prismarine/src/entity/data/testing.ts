@@ -358,8 +358,9 @@ export interface TestWorldOptions {
      */
     readonly runtimeIds?: boolean;
     /**
-     * Whether the world answers `skyLight`, with the open sky's 15 above the floor and 0 at and
-     * below it. Off by default, because a sky makes daylight burn the mobs that burn in it.
+     * Whether the world answers `skyLight`, with the open sky's 15 above the floor where no placed
+     * block stands overhead, and 0 under a placed block and at and below the floor. Off by
+     * default, because a sky makes daylight burn the mobs that burn in it.
      */
     readonly skyLight?: boolean;
 }
@@ -444,6 +445,8 @@ export class TestEntityWorld {
 
     /** Blocks a test placed, over the flat floor. */
     private readonly placed = new Map<string, ContentBlock>();
+    /** The heights of the blocks other than air a test placed, by column, for the sky light. */
+    private readonly roofs = new Map<string, Set<number>>();
     private blockRevision = 0;
 
     /** The item stacks still lying on the ground, by runtime id. */
@@ -498,17 +501,14 @@ export class TestEntityWorld {
                       }
                     : {}),
                 blockRevision: () => this.blockRevision,
-                set: (at, block) => {
-                    this.placed.set(keyOf(at), block);
-                    this.blockRevision += 1;
-                },
+                set: (at, block) => this.place(at, block),
                 notifyNeighbors: () => undefined,
                 data: () => undefined,
                 setData: () => undefined,
                 executeEntityEvent: (at, source, name) => this.entityEvents.push({ at, source, name }),
                 light: (at) => this.options.lightLevel ?? (at.y > FLOOR_Y ? 15 : 0),
                 ...(this.options.skyLight === true
-                    ? { skyLight: (at: ContentPosition) => (at.y > FLOOR_Y ? 15 : 0) }
+                    ? { skyLight: (at: ContentPosition) => (at.y > FLOOR_Y && !this.roofed(at) ? 15 : 0) }
                     : {}),
                 power: () => 0,
                 isLoaded: () => true,
@@ -625,8 +625,24 @@ export class TestEntityWorld {
 
     /** Replaces one block, so a test can wall a path finder in. */
     public setBlock(at: ContentPosition, identifier: string): void {
-        this.placed.set(keyOf(at), { identifier, states: {} });
+        this.place(at, { identifier, states: {} });
+    }
+
+    private place(at: ContentPosition, block: ContentBlock): void {
+        this.placed.set(keyOf(at), block);
         this.blockRevision += 1;
+        const column = `${at.x},${at.z}`;
+        const heights = this.roofs.get(column) ?? new Set<number>();
+        if (block.identifier === 'minecraft:air') heights.delete(at.y);
+        else heights.add(at.y);
+        if (heights.size === 0) this.roofs.delete(column);
+        else this.roofs.set(column, heights);
+    }
+
+    /** Whether a block a test placed stands anywhere above a position, which shades it from the sky. */
+    private roofed(at: ContentPosition): boolean {
+        const heights = this.roofs.get(`${at.x},${at.z}`);
+        return heights !== undefined && [...heights].some((y) => y > at.y);
     }
 
     /**

@@ -477,7 +477,8 @@ const appendPlayers = (found: Ranked[], here: EntityPosition, radius: number, sc
                     player.position,
                     player.tags,
                     scene.host.playerView?.(player.id),
-                    scene.playerCombat(player.id)
+                    scene.playerCombat(player.id),
+                    () => scene.host.heldItemOf?.(player.id)
                 ),
                 away
             });
@@ -520,6 +521,7 @@ const PLAYER_FAMILIES = ['player', 'mob'] as const;
  * and dynamic-tag facts and leave the rest unanswered.
  *
  * @param filterView - The host's live filter facts for this player, when available.
+ * @param heldItem - What the player holds in its main hand, which the tempt goals read.
  */
 export const playerGoalMob = (
     id: number,
@@ -527,9 +529,11 @@ export const playerGoalMob = (
     position: EntityPosition,
     tags: readonly string[] = [],
     filterView?: FilterEntityView,
-    combat?: Pick<GoalMob, 'lastHurt' | 'lastHurtBy'>
+    combat?: Pick<GoalMob, 'lastHurt' | 'lastHurtBy'>,
+    heldItem?: () => string | undefined
 ): GoalMob => ({
     ...combat,
+    ...(heldItem === undefined ? {} : { heldItem }),
     id,
     position: () => position,
     lookPosition: () => ({ x: position.x, y: position.y + EYE_HEIGHT, z: position.z }),

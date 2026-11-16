@@ -147,6 +147,8 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
             const block = scene.world.blocks.get(blockPositionOf(body.position));
             return block === undefined ? [] : [block.identifier];
         }
+
+        if (name === 'weather_at_position') return weatherAt(body, scene);
         if (name === 'has_mob_effect') {
             const effects = [...body.statusEffects.keys()];
             return [...effects, ...effects.map((identifier) => identifier.slice(identifier.indexOf(':') + 1))];
@@ -196,6 +198,8 @@ const flagOf = (body: MobBody, scene: EntityScene, name: EntityFlag): boolean | 
         case 'in_contact_with_water':
         case 'is_underwater':
             return body.conditions.has(name);
+        case 'is_underground':
+            return underground(body, scene);
         case 'is_visible':
             return !body.statusEffects.has('minecraft:invisibility') && !body.statusEffects.has('invisibility');
         case 'in_water_or_rain':
@@ -206,6 +210,33 @@ const flagOf = (body: MobBody, scene: EntityScene, name: EntityFlag): boolean | 
             // its test false rather than guessing.
             return body.conditions.has(name) ? true : undefined;
     }
+};
+
+/** The sky light Java's `canSeeSky` asks for: the full 15. */
+const OPEN_SKY_LIGHT = 15;
+
+/**
+ * Whether no sky is above the top of the entity, Bedrock's `is_underground`. Java's fox asks the
+ * same in `FoxBehaviorGoal.hasShelter`: `canSeeSky` at the top of its box. A dimension with no sky
+ * light, such as the nether, has no sky to see.
+ * @returns Undefined when the world reports no sky light, so the test fails rather than guesses.
+ */
+const underground = (body: MobBody, scene: EntityScene): boolean | undefined => {
+    if (!scene.world.level.hasSkyLight) return true;
+    const height = scene.byId(body.id)?.facts.box.height ?? 0;
+    const head = blockPositionOf({ ...body.position, y: body.position.y + height });
+    const light = scene.world.blocks.skyLight?.(head);
+    return light === undefined ? undefined : light < OPEN_SKY_LIGHT;
+};
+
+/**
+ * The weather falling on the entity, as Bedrock's `weather_at_position` names it: a
+ * `thunderstorm` or `rain` only where rain reaches the position, and `clear` elsewhere.
+ */
+const weatherAt = (body: MobBody, scene: EntityScene): readonly string[] => {
+    const weather = scene.world.level.weather();
+    if (weather === 'clear' || !scene.world.level.isRainingAt(blockPositionOf(body.position))) return ['clear'];
+    return [weather === 'thunder' ? 'thunderstorm' : 'rain'];
 };
 
 /** One of the numeric facts the runtime owns. */
