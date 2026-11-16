@@ -13,14 +13,21 @@ import type { SensorTrigger } from './shared';
 import { parseComponentTrigger } from './shared';
 
 /**
- * How many ticks apart an environmental hurt lands.
+ * How many ticks apart an environmental hurt lands on an entity with health.
  *
- * Both editions give an entity half a second of invulnerability after
+ * Both editions give a living entity half a second of invulnerability after
  * environmental damage, which is what makes `minecraft:hurt_on_condition`'s
  * `damage_per_tick: 4` in lava the four damage per half second a player sees
  * rather than eighty a second.
  */
 export const HURT_INTERVAL_TICKS = 10;
+
+/**
+ * How many ticks apart a hurt lands on an entity that declares no health, such as a boat. Java's
+ * invulnerable time is `LivingEntity.hurtServer`'s, and `VehicleEntity.hurtServer` has none, so
+ * `Entity.lavaHurt` reaches a boat every tick.
+ */
+const UNGUARDED_HURT_INTERVAL_TICKS = 1;
 
 /** One entry of `minecraft:hurt_on_condition.damage_conditions`. */
 export interface DamageCondition {
@@ -44,7 +51,7 @@ const HURT_ON_CONDITION_STATE = defineComponentState('minecraft:hurt_on_conditio
  * a few of them the lava rule.
  *
  * Every condition whose filters pass hurts, on the {@link HURT_INTERVAL_TICKS}
- * cadence, so the damage reaches the sensors, the immunities and the hurt
+ * cadence, or every tick for an entity with no health, so the damage reaches the sensors, the immunities and the hurt
  * triggers through {@link EntityInstance.damage} like any other.
  */
 export const hurtOnCondition: ComponentFactory<EntityHooks, HurtOnConditionParams> = {
@@ -91,7 +98,9 @@ export const hurtOnCondition: ComponentFactory<EntityHooks, HurtOnConditionParam
                     entity.damage({ cause: condition.cause, amount: condition.damagePerTick });
                     hurt = true;
                 }
-                entity.componentState.set(HURT_ON_CONDITION_STATE, { remaining: hurt ? HURT_INTERVAL_TICKS : 0 });
+                const interval =
+                    entity.attributes.get('health') === undefined ? UNGUARDED_HURT_INTERVAL_TICKS : HURT_INTERVAL_TICKS;
+                entity.componentState.set(HURT_ON_CONDITION_STATE, { remaining: hurt ? interval : 0 });
             }
         };
     }

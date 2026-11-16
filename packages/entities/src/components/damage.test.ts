@@ -113,6 +113,33 @@ describe('minecraft:hurt_on_condition', () => {
         expect(entity.attributes.value('health')).toBe(32);
     });
 
+    it('hurts an entity with no health every tick, as Java hurts a boat in lava', () => {
+        const blows: number[] = [];
+        const raft = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:raft' },
+                    components: {
+                        'minecraft:hurt_on_condition':
+                            toad['minecraft:entity'].components['minecraft:hurt_on_condition']
+                    }
+                }
+            },
+            'test:raft',
+            {
+                ...standingIn('in_lava'),
+                damage: (_entity, event) => {
+                    blows.push(event.amount);
+                    return { amount: event.amount, died: false, events: [] };
+                }
+            }
+        );
+        tick(raft, 3);
+
+        expect(blows).toEqual([4, 4, 4]);
+    });
+
     it('hurts nothing while the condition does not hold', () => {
         const entity = spawn(toad, 'test:toad', standingIn('in_water'));
         tick(entity, 40);

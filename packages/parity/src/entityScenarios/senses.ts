@@ -301,6 +301,18 @@ const javaVehicleHitsToBreak = (lava: number): number => {
     return Math.floor(limit / (lava * scale)) + 1;
 };
 
+/**
+ * The tick Java's cushion first checks for lava and fire: `BlockAttachedEntity.tick` never runs
+ * `Entity.baseTick`, and runs `tickAtCheckInterval` once its counter, counted up from 0, reaches
+ * the interval it compares with.
+ */
+const javaCushionCheckTick = (): number => {
+    const method = javaMethodNamed('net/minecraft/world/entity/decoration/BlockAttachedEntity', 'tick');
+    const interval = pushedNumbers(method).find((value) => value > 1);
+    if (interval === undefined) throw new Error('BlockAttachedEntity.tick compares its counter with nothing');
+    return interval + 1;
+};
+
 /** Java's lava blow, `Entity.lavaHurt`. */
 const javaLavaDamage = (): number => {
     const method = javaMethodNamed('net/minecraft/world/entity/Entity', 'lavaHurt');
@@ -637,9 +649,9 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'vehicle-in-lava',
-        java: "A boat in lava is destroyed once Java's lava blows add past 40 vehicle damage, an arrow is unharmed because Projectile.hurtServer refuses every blow, and a cushion burns away.",
+        java: "A boat in lava is destroyed once Java's lava blows add past 40 vehicle damage, an arrow is unharmed because Projectile.hurtServer refuses every blow, and a cushion burns away on its first lava check.",
         reference:
-            'Java Entity.lavaHurt (lava 4), VehicleEntity.hurtServer (damage grows by 10 a point and destroys past 40), Projectile.hurtServer (no damage) and Cushion.destroyIfInFire, read from the pinned jar; issue #3174',
+            'Java Entity.lavaHurt (lava 4), VehicleEntity.hurtServer (damage grows by 10 a point and destroys past 40), Projectile.hurtServer (no damage), BlockAttachedEntity.tick (checks once its counter reaches 100) and Cushion.tickAtCheckInterval, read from the pinned jar; issue #3174',
         subjects: () =>
             entitiesDeclaring('minecraft:hurt_on_condition')
                 .filter(
@@ -655,10 +667,11 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             const destroyedBy = arrow
                 ? undefined
                 : subject.javaId === 'minecraft:cushion'
-                  ? 1
+                  ? javaCushionCheckTick()
                   : javaVehicleHitsToBreak(javaLavaDamage());
+            const watched = Math.max(LAVA_TICKS, (destroyedBy ?? 0) + 2);
             const gone = inSandbox(subject.bedrock, 'minecraft:lava', (sandbox) => {
-                for (let tick = 1; tick <= LAVA_TICKS; tick += 1) {
+                for (let tick = 1; tick <= watched; tick += 1) {
                     sandbox.tick(1);
                     if (sandbox.stack.runtime.byId(sandbox.entity.id) === undefined) return tick;
                 }
@@ -669,9 +682,9 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 return gone === undefined
                     ? undefined
                     : `lava destroys it after ${gone} ticks, where Java's arrow is unharmed`;
-            return gone !== undefined && gone <= destroyedBy + 1
+            return gone !== undefined && Math.abs(gone - destroyedBy) <= 1
                 ? undefined
-                : `lava ${gone === undefined ? `leaves it whole for ${LAVA_TICKS} ticks` : `destroys it after ${gone} ticks`}, where Java destroys it after ${destroyedBy}`;
+                : `lava ${gone === undefined ? `leaves it whole for ${watched} ticks` : `destroys it after ${gone} ticks`}, where Java destroys it after ${destroyedBy}`;
         }
     },
     {

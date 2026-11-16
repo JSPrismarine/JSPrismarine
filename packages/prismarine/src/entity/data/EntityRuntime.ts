@@ -130,6 +130,8 @@ import { canPickUpLootChance, moonBrightnessAt } from '../regionalDifficulty';
 import type { RegionalDifficultyInputs } from '../regionalDifficulty';
 import { VEHICLE_DAMAGE_DECAY_PER_TICK, boatItemOf, isBreakableVehicle, vehicleBlow } from './vehicleDamage';
 import { ITEM_HOPPER, ITEM_HOPPER_QUERY_RADIUS, inHopperReach, insertStack } from './itemHopper';
+import type { CushionHost } from './cushionFire';
+import { isCushion, updateCushion } from './cushionFire';
 import type { EntityFacts } from './facts';
 import {
     bodyCanOccupy,
@@ -601,6 +603,23 @@ export class EntityRuntime implements EntityScene {
 
     /** Each boat's `VehicleEntity` damage, which blows add to and every tick takes from. */
     private readonly vehicleDamage = new Map<number, number>();
+    /** What a cushion's fire and lava check reads and does. */
+    private readonly cushionHost: CushionHost = {
+        inLava: (entity) => entity.body.conditions.has('in_lava'),
+        touchesFire: (entity) =>
+            bodyTouchesBlock(entity.position, entity.facts.box, (at) => {
+                const block = this.world.blocks.get(at);
+                return (
+                    block !== undefined &&
+                    javaBlockTagsForBedrock(this.content().tags, block.identifier, block.states).includes(FIRE_TAG)
+                );
+            }),
+        destroy: (entity, item) => {
+            const at = blockPositionOf(entity.position);
+            this.remove(entity.id, 'destroyed');
+            if (ruleIsOn(this.world.level, ENTITY_DROPS)) this.host.drop(at, { identifier: item, count: 1 });
+        }
+    };
     /** The sensing of the damage run in progress, which the sensor guard and modifier share. */
     private readonly damageSensing: DamageSensingSlot;
     /**
@@ -2013,6 +2032,7 @@ export class EntityRuntime implements EntityScene {
         this.tickVehicleDamage(entity.id);
         if (entity.instance.hasComponent(ITEM_HOPPER)) this.suckInItems(entity);
         this.updateMedium(entity);
+        if (isCushion(entity) && updateCushion(entity, this.cushionHost)) return;
         this.tickTimers(entity.body);
         if (entity.runsGoals) this.resetNoActionTimeNearPlayers(entity);
         if (clientOwnsMovement(entity.identifier)) this.playerSystems.beforeComponents(entity);
@@ -6959,6 +6979,9 @@ const SERIALIZE_INTO_BLOCK = 'minecraft:serialize_entity';
 
 /** Java's tag of the blocks a leash knot ties to, which `LeashFenceKnotEntity.survives` reads. */
 const FENCES_TAG = 'minecraft:fences';
+
+/** Java's block tag of the fire blocks, which `Cushion.destroyIfInFire` looks for. */
+const FIRE_TAG = 'minecraft:fire';
 
 /** How often a burning entity takes fire damage, in ticks. */
 const FIRE_DAMAGE_INTERVAL_TICKS = 20;
