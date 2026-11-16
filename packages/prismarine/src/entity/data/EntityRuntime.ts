@@ -140,6 +140,8 @@ import type { RegionalDifficultyInputs } from '../regionalDifficulty';
 import { VEHICLE_DAMAGE_DECAY_PER_TICK, boatItemOf, isBreakableVehicle, vehicleBlow } from './vehicleDamage';
 import { ITEM_HOPPER, ITEM_HOPPER_QUERY_RADIUS, inHopperReach, insertStack } from './itemHopper';
 import type { CushionHost } from './cushionFire';
+import type { BoatBubbleHost } from './boatBubbleColumn';
+import { tickBoatBubbles } from './boatBubbleColumn';
 import type { FlappingHost } from './flapping';
 import type { MobBlockHost } from './mobBlockRules';
 import { BREAK_BLOCKS_COMPONENT, breakLeaves, leaveTrail } from './mobBlockRules';
@@ -694,6 +696,23 @@ export class EntityRuntime implements EntityScene {
             this.remove(entity.id, 'destroyed');
             if (ruleIsOn(this.world.level, ENTITY_DROPS)) this.host.drop(at, { identifier: item, count: 1 });
         }
+    };
+    /** What a boat's bubble column step reads and does. */
+    private readonly boatBubbleHost: BoatBubbleHost = {
+        bubbleColumnAt: (at) => {
+            const block = this.world.blocks.get(at);
+            if (block?.identifier !== BUBBLE_COLUMN) return undefined;
+            return block.states.drag_down === true ? 'down' : 'up';
+        },
+        isOpen: (at) => {
+            const block = this.world.blocks.get(at);
+            return (
+                (this.navigation().collisionAt(at)?.length ?? 1) === 0 &&
+                (block === undefined ||
+                    liquidStateOf({ identifier: block.identifier, states: block.states }) === undefined)
+            );
+        },
+        ejectRiders: (entity) => this.ejectRiders(entity.body)
     };
     /** The sensing of the damage run in progress, which the sensor guard and modifier share. */
     private readonly damageSensing: DamageSensingSlot;
@@ -2154,6 +2173,7 @@ export class EntityRuntime implements EntityScene {
         // Java's ender dragon is `noPhysics`: its phases fly it, and nothing pulls it down.
         if (!JAVA_NO_PHYSICS.has(entity.identifier)) this.coast(entity);
         if (entity.removed !== undefined) return;
+        if (this.componentFactsOf(entity).families.includes('boat')) tickBoatBubbles(entity, this.boatBubbleHost);
         this.step(entity);
         this.updateMedium(entity);
         this.updateGrounded(entity);
@@ -6715,7 +6735,7 @@ export class EntityRuntime implements EntityScene {
             for (let z = minZ; z <= maxZ; z += 1) {
                 for (let y = minY; y <= maxY; y += 1) {
                     const block = this.world.blocks.get({ x, y, z });
-                    if (block === undefined || !names.has(block.identifier)) continue;
+                    if (block === undefined || !buoyantIn(names, block.identifier)) continue;
                     const fluid = liquidStateOf({ identifier: block.identifier, states: block.states });
                     if (fluid === undefined) continue;
 
@@ -6751,7 +6771,8 @@ export class EntityRuntime implements EntityScene {
         if (touchesLiquid && cameFromAir && componentFacts.families.includes('boat')) {
             let top = Math.floor(position.y);
             while (
-                names.has(
+                buoyantIn(
+                    names,
                     this.world.blocks.get({ x: Math.floor(position.x), y: top + 1, z: Math.floor(position.z) })
                         ?.identifier ?? ''
                 )
@@ -7386,6 +7407,17 @@ const VANILLA_NAMESPACE = 'minecraft:';
 
 /** Bedrock's name for the cobweb. */
 const COBWEB = 'minecraft:web';
+
+/** The bubble column block, which pushes and drags what floats in and over it. */
+const BUBBLE_COLUMN = 'minecraft:bubble_column';
+
+/**
+ * Whether a buoyant body floats in a block, given the liquids its `minecraft:buoyant` lists. A
+ * bubble column holds a water source, as Java's `BubbleColumnBlock.getFluidState` answers, so a
+ * body that floats in water floats in it too.
+ */
+const buoyantIn = (liquids: ReadonlySet<string>, identifier: string): boolean =>
+    liquids.has(identifier) || (identifier === BUBBLE_COLUMN && liquids.has('minecraft:water'));
 
 /** The horizontal share of a move a cobweb lets through, from Java's `WebBlock.entityInside`. */
 const COBWEB_HORIZONTAL_SPEED = 0.25;

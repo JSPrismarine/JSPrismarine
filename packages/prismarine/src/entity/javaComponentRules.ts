@@ -13,8 +13,11 @@ import { entityFileIdentifier, withComponentRewritten } from './definitionOverla
 /** One component of one entity file that Java's class decides. */
 interface JavaComponentRule {
     readonly component: string;
-    /** The body Java's class means, or undefined when Java's type has no such behavior at all. */
-    readonly rewrite: (body: Record<string, unknown>) => Record<string, unknown> | undefined;
+    /**
+     * The body Java's class means, or undefined when Java's type has no such behavior at all.
+     * `group` names the component group that declares the body, undefined for the base components.
+     */
+    readonly rewrite: (body: Record<string, unknown>, group: string | undefined) => Record<string, unknown> | undefined;
 }
 
 /** The range `TimeUtil.rangeOfSeconds(20, 39)` draws a Java neutral mob's anger from, in seconds. */
@@ -54,6 +57,16 @@ const withoutWaterWeaponSwap = (body: Record<string, unknown>): Record<string, u
         return [trigger];
     });
     return { ...body, triggers: kept };
+};
+
+/**
+ * `AbstractBoat.tickBubbleColumn` drags a boat under after its own 60-tick count and leaves it its
+ * seats (`boatBubbleColumn.ts`). The pack's sinking-column group instead raises
+ * `minecraft:sink` from a three-second timer, which takes the boat's seats and buoyancy away.
+ */
+const BOAT_SINKS_BY_JAVA_COUNT: JavaComponentRule = {
+    component: 'minecraft:timer',
+    rewrite: (body, group) => (group === 'minecraft:above_bubble_column_down' ? undefined : body)
 };
 
 const WEAPON_BY_WEAPON_ALONE: JavaComponentRule = {
@@ -118,7 +131,9 @@ export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponen
     'minecraft:stray': [WEAPON_BY_WEAPON_ALONE],
     'minecraft:bogged': [WEAPON_BY_WEAPON_ALONE],
     'minecraft:parched': [WEAPON_BY_WEAPON_ALONE],
-    'minecraft:pillager': [WEAPON_BY_WEAPON_ALONE]
+    'minecraft:pillager': [WEAPON_BY_WEAPON_ALONE],
+    'minecraft:boat': [BOAT_SINKS_BY_JAVA_COUNT],
+    'minecraft:chest_boat': [BOAT_SINKS_BY_JAVA_COUNT]
 };
 
 /**

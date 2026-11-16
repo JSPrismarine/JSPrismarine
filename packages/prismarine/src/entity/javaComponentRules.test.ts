@@ -172,6 +172,25 @@ describe('withJavaComponentRules', () => {
         });
     });
 
+    it("drops a boat's sinking-column timer, so Java's 60-tick count drags it under and it keeps its seats", () => {
+        const timer = { looping: false, time: 3, time_down_event: { event: 'minecraft:sink', target: 'self' } };
+        for (const identifier of ['minecraft:boat', 'minecraft:chest_boat']) {
+            const data = withJavaComponentRules(
+                entityFile(identifier, {
+                    'minecraft:above_bubble_column_down': { 'minecraft:out_of_control': {}, 'minecraft:timer': timer },
+                    'minecraft:other': { 'minecraft:timer': timer }
+                })
+            );
+
+            expect(data).toEqual(
+                entityFile(identifier, {
+                    'minecraft:above_bubble_column_down': { 'minecraft:out_of_control': {} },
+                    'minecraft:other': { 'minecraft:timer': timer }
+                })
+            );
+        }
+    });
+
     it('leaves a file no rule names unchanged', () => {
         const data = entityFile('minecraft:creeper', {}, { 'minecraft:freezing_immune': {} });
         expect(withJavaComponentRules(data)).toBe(data);
