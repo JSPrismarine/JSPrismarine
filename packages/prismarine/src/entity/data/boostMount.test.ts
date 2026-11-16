@@ -59,6 +59,19 @@ describe('a mount steered with an item', () => {
         expect(runtime.boostMount(player.id, 'minecraft:carrot_on_a_stick')).toBe(true);
     });
 
+    it('is steered by a mob riding it, whatever the mob holds', () => {
+        const world = new TestEntityWorld();
+        const { runtime } = entityFixture(world, {}, { 'minecraft:pig': PIG });
+        const pig = runtime.spawn('minecraft:pig', AT);
+        const jockey = runtime.spawn('minecraft:cow', AT);
+        const mount = pig === undefined ? undefined : runtime.mobById(pig.id);
+        if (pig === undefined || jockey === undefined || mount === undefined)
+            throw new Error('the fixture declares no pig or cow');
+        runtime.mount(jockey.body, mount);
+
+        expect(runtime.itemControllingRider(pig)).toBe(jockey.id);
+    });
+
     it('takes no boost from a rider who does not steer it', () => {
         const { runtime, player } = ridden('minecraft:stick');
         expect(runtime.boostMount(player.id, 'minecraft:carrot_on_a_stick')).toBe(false);

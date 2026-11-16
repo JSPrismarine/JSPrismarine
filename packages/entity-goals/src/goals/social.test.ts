@@ -315,7 +315,11 @@ describe('minecraft:behavior.offer_flower', () => {
 describe('minecraft:behavior.controlled_by_player', () => {
     /** A saddled pig with one rider holding `held`. */
     const ridden = (held: string | undefined) => {
-        const rider = testMob('player', { x: 0, y: 64, z: 0 }, held === undefined ? {} : { heldItem: held });
+        const rider = testMob(
+            'player',
+            { x: 0, y: 64, z: 0 },
+            { identifier: 'minecraft:player', ...(held === undefined ? {} : { heldItem: held }) }
+        );
         return new GoalHarness({
             goals: { 'minecraft:behavior.controlled_by_player': { priority: 0 } },
             components: { 'minecraft:item_controllable': { control_items: 'carrotOnAStick' } },
@@ -335,5 +339,16 @@ describe('minecraft:behavior.controlled_by_player', () => {
         const emptyHanded = ridden(undefined);
         emptyHanded.tick();
         expect(emptyHanded.isRunning('minecraft:behavior.controlled_by_player')).toBe(false);
+    });
+
+    it('is steered by a mob riding it whatever the mob holds, as Mob.getControllingPassenger hands it over', () => {
+        const jockey = testMob('jockey', { x: 0, y: 64, z: 0 }, { identifier: 'minecraft:zombie' });
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.controlled_by_player': { priority: 0 } },
+            components: { 'minecraft:item_controllable': { control_items: 'carrotOnAStick' } },
+            world: { riders: () => [jockey] }
+        });
+        harness.tick();
+        expect(harness.isRunning('minecraft:behavior.controlled_by_player')).toBe(true);
     });
 });

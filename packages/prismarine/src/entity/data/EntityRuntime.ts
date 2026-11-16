@@ -3706,9 +3706,9 @@ export class EntityRuntime implements EntityScene {
 
     /**
      * The rider that steers a mount steered with an item, Java's `getControllingPassenger` for the
-     * pig and the strider: the first rider, when it is a player holding an item the mount's
-     * `minecraft:item_controllable` names. A rider holding none rides along while the mount goes
-     * its own way.
+     * pig and the strider: the first rider, when it is a mob, or a player holding an item the
+     * mount's `minecraft:item_controllable` names. A player holding none rides along while the
+     * mount goes its own way.
      *
      * @returns The rider's runtime id, or undefined when nobody steers it.
      */
@@ -3717,6 +3717,9 @@ export class EntityRuntime implements EntityScene {
         const controlItems = itemsNamed(isRecord(control) ? control.control_items : undefined);
         const rider = this.rides.ridersOf(vehicle.id)[0];
         if (rider === undefined || controlItems.length === 0) return undefined;
+        // A mob riding first steers it with its own AI, as `Mob.getControllingPassenger` hands it over.
+        const carried = this.store.get(rider);
+        if (carried !== undefined && !clientOwnsMovement(carried.identifier)) return rider;
         const held = this.host.heldItemOf?.(rider);
         return held !== undefined && controlItems.includes(normalizedItemIdentifier(held)) ? rider : undefined;
     }
