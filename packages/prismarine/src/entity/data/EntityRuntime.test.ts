@@ -805,6 +805,41 @@ describe('EntityRuntime', () => {
             expect(wolf.instance.hasComponent('minecraft:is_tamed')).toBe(true);
         });
 
+        it("picks a spawn event's biome-filtered group from the biome under the entity", () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:biome_wolf': {
+                        components: { 'minecraft:health': { value: 8, max: 8 } },
+                        component_groups: {
+                            plains: { 'minecraft:variant': { value: 1 } },
+                            beach: { 'minecraft:variant': { value: 2 } }
+                        },
+                        events: {
+                            'minecraft:entity_spawned': {
+                                sequence: [
+                                    {
+                                        filters: { test: 'has_biome_tag', value: 'minecraft:plains' },
+                                        add: { component_groups: ['plains'] }
+                                    },
+                                    {
+                                        filters: { test: 'is_biome', value: 'beach' },
+                                        add: { component_groups: ['beach'] }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            );
+
+            const wolf = runtime.spawn('jsprismarine:biome_wolf', GROUND);
+
+            // The test world's biome is plains, tagged minecraft:plains.
+            expect(wolf?.instance.activeComponentGroups()).toEqual(['plains']);
+        });
+
         it('makes a bred newborn with minecraft:trust trust the players who fed its parents', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

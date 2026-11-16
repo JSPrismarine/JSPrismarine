@@ -135,6 +135,13 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
     measure: (name) => measureOf(body, scene, name),
     names: (name) => {
         if (name === 'has_tag') return [...body.tags];
+        // The biome under the entity, which a spawn event's biome filters read to pick a wolf's,
+        // fox's, frog's or villager's variant.
+        if (name === 'has_biome_tag') return scene.world.blocks.biomeTags(blockPositionOf(body.position));
+        if (name === 'is_biome') {
+            const biome = scene.world.blocks.biome(blockPositionOf(body.position));
+            return biome === undefined ? [] : [biome, biome.slice(biome.indexOf(':') + 1)];
+        }
         if (name === 'has_mob_effect') {
             const effects = [...body.statusEffects.keys()];
             return [...effects, ...effects.map((identifier) => identifier.slice(identifier.indexOf(':') + 1))];
