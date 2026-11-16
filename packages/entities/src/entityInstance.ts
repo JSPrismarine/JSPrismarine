@@ -44,7 +44,7 @@ import type {
     EntityPosition,
     EntitySpawnRequest
 } from './hooks';
-import { FIRE_DAMAGE_CAUSES, FREEZING_DAMAGE_CAUSES } from './hooks';
+import { FALL_DAMAGE_IMMUNE_TAG, FIRE_DAMAGE_CAUSES, FREEZE_IMMUNE_TAG, FREEZING_DAMAGE_CAUSES } from './hooks';
 import { isRideableParams } from './riding';
 import type { PropertyDefinition, PropertyValue, PropertyValueWrite } from './properties';
 import { PropertyValues } from './properties';
@@ -628,11 +628,16 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
      *
      * `minecraft:fire_immune` and `minecraft:freezing_immune` are empty
      * markers, so the cause list is the whole of what each one means and the
-     * entity reads them here rather than through a hook.
+     * entity reads them here rather than through a hook. Java's entity type
+     * tags `freeze_immune_entity_types` and `fall_damage_immune` turn freezing
+     * and falls aside too, for a type whose Bedrock file leaves the immunity out.
      */
     private immuneTo(cause: string): boolean {
         if (this.hasComponent('minecraft:fire_immune') && FIRE_DAMAGE_CAUSES.includes(cause)) return true;
-        return this.hasComponent('minecraft:freezing_immune') && FREEZING_DAMAGE_CAUSES.includes(cause);
+        if (FREEZING_DAMAGE_CAUSES.includes(cause))
+            return this.hasComponent('minecraft:freezing_immune') || this.hasTag(FREEZE_IMMUNE_TAG);
+        // Java's `LivingEntity.calculateFallDamage` gives a type in this tag no fall damage.
+        return cause === 'fall' && this.hasTag(FALL_DAMAGE_IMMUNE_TAG);
     }
 
     /**

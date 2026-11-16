@@ -593,10 +593,12 @@ export type DealsDamage = (typeof DEALS_DAMAGE)[number];
 
 /** One `minecraft:damage_sensor` trigger. */
 export interface DamageSensorTrigger {
-    /** The damage cause it answers for, or `any`. */
+    /** The damage cause it answers for, or `any`, which vanilla also writes as `all`. */
     readonly cause: string;
     readonly dealsDamage: DealsDamage;
     readonly damageMultiplier: number;
+    /** Added to the damage after the multiplier, so a goat's `-10` takes ten off a fall. */
+    readonly damageModifier: number;
     readonly filters?: Filter;
     readonly event?: string;
 }
@@ -605,6 +607,9 @@ export interface DamageSensorTrigger {
 export interface DamageSensorParams {
     readonly triggers: readonly DamageSensorTrigger[];
 }
+
+/** The trigger causes that answer for every cause: the parser's default, and the `all` vanilla writes. */
+const ANY_CAUSE: ReadonlySet<string> = new Set(['any', 'all']);
 
 const parseDealsDamage = (value: unknown): DealsDamage => {
     if (value === true) return 'yes';
@@ -638,6 +643,7 @@ export const damageSensor: ComponentFactory<EntityHooks, DamageSensorParams> = {
                 cause: stringAt(entry, 'cause') ?? 'any',
                 dealsDamage: parseDealsDamage(entry.deals_damage),
                 damageMultiplier: numberAt(entry, 'damage_multiplier', 1),
+                damageModifier: numberAt(entry, 'damage_modifier', 0),
                 filters,
                 event: stringAt(inner, 'event')
             });
@@ -648,11 +654,16 @@ export const damageSensor: ComponentFactory<EntityHooks, DamageSensorParams> = {
         onDamage: (entity, damage) => {
             const context = { ...entity.filterContext(), ...damagerSubjects(damage.damager) };
             for (const trigger of params.triggers) {
-                if (trigger.cause !== 'any' && trigger.cause !== damage.cause) continue;
+                if (!ANY_CAUSE.has(trigger.cause) && trigger.cause !== damage.cause) continue;
                 if (trigger.filters !== undefined && !evaluateFilter(trigger.filters, context)) continue;
                 const events = trigger.event === undefined ? [] : [trigger.event];
-                const amount = trigger.dealsDamage === 'yes' ? damage.amount * trigger.damageMultiplier : 0;
-                return { amount, events, multiplier: trigger.dealsDamage === 'yes' ? trigger.damageMultiplier : 0 };
+                if (trigger.dealsDamage !== 'yes') return { amount: 0, events, multiplier: 0 };
+                const amount = Math.max(0, damage.amount * trigger.damageMultiplier + trigger.damageModifier);
+                return {
+                    amount,
+                    events,
+                    multiplier: trigger.damageModifier === 0 ? trigger.damageMultiplier : undefined
+                };
             }
             return undefined;
         }

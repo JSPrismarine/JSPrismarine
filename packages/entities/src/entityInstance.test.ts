@@ -420,6 +420,62 @@ describe('damage', () => {
         });
     });
 
+    it("adds a sensor's damage_modifier after its multiplier, as a goat's fall sensor takes ten off", () => {
+        const goat = {
+            format_version: '1.26.50',
+            'minecraft:entity': {
+                description: { identifier: 'test:goat' },
+                components: {
+                    'minecraft:health': { value: 40, max: 40 },
+                    'minecraft:damage_sensor': {
+                        triggers: [{ cause: 'fall', deals_damage: 'yes', damage_multiplier: 0.5, damage_modifier: -10 }]
+                    }
+                }
+            }
+        };
+        const entity = load(goat).types.spawn('test:goat');
+
+        expect(entity.damage({ cause: 'fall', amount: 30 }).amount).toBe(5);
+        expect(entity.damage({ cause: 'fall', amount: 10 }).amount).toBe(0);
+    });
+
+    it("answers every cause with a trigger whose cause is vanilla's all", () => {
+        const npc = {
+            format_version: '1.26.50',
+            'minecraft:entity': {
+                description: { identifier: 'test:npc' },
+                components: {
+                    'minecraft:health': { value: 20, max: 20 },
+                    'minecraft:damage_sensor': { triggers: [{ cause: 'all', deals_damage: 'no' }] }
+                }
+            }
+        };
+        const entity = load(npc).types.spawn('test:npc');
+
+        expect(entity.damage({ cause: 'entity_attack', amount: 6 }).amount).toBe(0);
+        expect(entity.damage({ cause: 'magic', amount: 6 }).amount).toBe(0);
+    });
+
+    it("turns falls and freezing aside for Java's fall_damage_immune and freeze_immune_entity_types tags", () => {
+        const golem = {
+            format_version: '1.26.50',
+            'minecraft:entity': {
+                description: { identifier: 'test:golem' },
+                components: { 'minecraft:health': { value: 20, max: 20 } }
+            }
+        };
+        const tagged = new EntityTypes({
+            tagLookup: () => ['minecraft:fall_damage_immune', 'minecraft:freeze_immune_entity_types']
+        });
+        tagged.load([{ data: golem, pack: 'vanilla', path: 'entities/golem.json' }]);
+        const entity = tagged.spawn('test:golem');
+
+        expect(entity.damage({ cause: 'fall', amount: 6 }).amount).toBe(0);
+        expect(entity.damage({ cause: 'freezing', amount: 1 }).amount).toBe(0);
+        expect(entity.damage({ cause: 'entity_attack', amount: 6 }).amount).toBe(6);
+        expect(load(golem).types.spawn('test:golem').damage({ cause: 'fall', amount: 6 }).amount).toBe(6);
+    });
+
     it('fires the event a damage sensor names, applied on the next tick', () => {
         const { types } = load(creeper);
         const entity = types.spawn('test:creeper');

@@ -203,6 +203,12 @@ export const FIRE_DAMAGE_CAUSES: readonly string[] = [
 /** The causes `minecraft:freezing_immune` turns aside. */
 export const FREEZING_DAMAGE_CAUSES: readonly string[] = ['freezing'];
 
+/** Java's entity type tag of the types `Entity.canFreeze` refuses, which freezing never hurts. */
+export const FREEZE_IMMUNE_TAG = 'minecraft:freeze_immune_entity_types';
+
+/** Java's entity type tag of the types `LivingEntity.calculateFallDamage` gives no fall damage. */
+export const FALL_DAMAGE_IMMUNE_TAG = 'minecraft:fall_damage_immune';
+
 /** What one damage event did to the entity. */
 export interface DamageResult {
     /** The damage applied after every component had its say; never negative. */
