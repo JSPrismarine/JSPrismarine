@@ -51,9 +51,6 @@ const STAND_INS: Readonly<Record<string, readonly string[]>> = {
     'minecraft:behavior.nearest_attackable_target': ['Phantom$PhantomAttackPlayerTargetGoal'],
     // `PhantomSweepAttackGoal.canContinueToUse` breaks off a swoop when a cat is near.
     'minecraft:behavior.avoid_mob_type': ['Phantom$PhantomSweepAttackGoal'],
-    // A guardian's `RandomStrollGoal` swims, since its navigation is bound to water, and a turtle's
-    // `TurtleTravelGoal` swims it about in water.
-    'minecraft:behavior.random_swim': ['RandomStrollGoal', 'Turtle$TurtleTravelGoal'],
     // The parrot's, which `withJavaGoals` swaps for the goal that runs `LandOnOwnersShoulderGoal`.
     'minecraft:behavior.find_mount': ['LandOnOwnersShoulderGoal']
 };

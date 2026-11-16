@@ -159,6 +159,8 @@ interface Translation {
     readonly javaClasses: readonly string[];
     /** Narrows the matching Java goals, such as to a look goal that looks at players. */
     readonly select?: (goal: JavaGoalEntry) => boolean;
+    /** Narrows the matching goals by what else matched, such as a stroll that only swims when nothing else does. */
+    readonly among?: (matching: readonly JavaGoalEntry[]) => readonly JavaGoalEntry[];
     readonly translate: Translate;
 }
 
@@ -277,6 +279,9 @@ const tempt: Translate = (body, goals, context) => {
     });
 };
 
+/** The turtle's own swim in water, which travels without a start draw. */
+const TURTLE_TRAVEL = 'Turtle$TurtleTravelGoal';
+
 /** Every Bedrock goal whose body Java's arguments reach, by component name. */
 const TRANSLATIONS: Readonly<Record<string, Translation>> = {
     'minecraft:behavior.look_at_player': {
@@ -305,7 +310,24 @@ const TRANSLATIONS: Readonly<Record<string, Translation>> = {
         select: (goal) => !goal.classes.includes('RandomSwimmingGoal'),
         translate: wander
     },
-    'minecraft:behavior.random_swim': { javaClasses: ['RandomSwimmingGoal'], translate: wander },
+    'minecraft:behavior.random_swim': {
+        javaClasses: ['RandomSwimmingGoal', TURTLE_TRAVEL, 'RandomStrollGoal'],
+        select: (goal) => goal.classes[0] !== 'Turtle$TurtleRandomStrollGoal',
+        // A guardian's plain `RandomStrollGoal` swims, since its navigation is bound to water, so it
+        // stands for the swim only when the mob registers no swim of its own.
+        among: (matching) => {
+            const swims = matching.filter((goal) => isGoal(goal, ['RandomSwimmingGoal', TURTLE_TRAVEL]));
+            return swims.length > 0 ? swims : matching;
+        },
+        // `Turtle$TurtleTravelGoal.canUse` starts whenever the turtle is in water, with no draw.
+        translate: (body, goals, context) =>
+            goals.some((goal) => isGoal(goal, [TURTLE_TRAVEL]))
+                ? withKeys(body, {
+                      speed_multiplier: numberParam(goals[0] ?? EMPTY_GOAL, 'speedModifier'),
+                      interval: 0
+                  })
+                : wander(body, goals, context)
+    },
     // `RandomLookAroundGoal` and `SitWhenOrderedToGoal` take no arguments.
     'minecraft:behavior.random_look_around': { javaClasses: ['RandomLookAroundGoal'], translate: (body) => body },
     'minecraft:behavior.stay_while_sitting': { javaClasses: ['SitWhenOrderedToGoal'], translate: (body) => body },
@@ -444,7 +466,10 @@ export const matchingJavaGoals = (
 ): readonly JavaGoalEntry[] | undefined => {
     const translation = TRANSLATIONS[component];
     if (translation === undefined) return undefined;
-    return goals.filter((goal) => isGoal(goal, translation.javaClasses) && (translation.select?.(goal) ?? true));
+    const matching = goals.filter(
+        (goal) => isGoal(goal, translation.javaClasses) && (translation.select?.(goal) ?? true)
+    );
+    return translation.among?.(matching) ?? matching;
 };
 
 /**

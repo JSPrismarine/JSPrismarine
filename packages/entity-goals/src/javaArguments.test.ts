@@ -42,6 +42,31 @@ describe('javaGoalBody', () => {
         expect(matchingJavaGoals('minecraft:behavior.random_look_around', [look])).toEqual([look]);
     });
 
+    it("swims a guardian by its water-bound stroll and a turtle by its travel goal, with Java's numbers", () => {
+        const stroll = goal('RandomStrollGoal', { speedModifier: 1, interval: 80 });
+        const guardian = javaGoalBody('minecraft:behavior.random_swim', { interval: 120 }, [stroll], context);
+        expect(guardian).toMatchObject({ interval: 80, speed_multiplier: 1 });
+
+        const travel = goal('Turtle$TurtleTravelGoal', { speedModifier: 1 });
+        const landStroll = goal(
+            'RandomStrollGoal',
+            { speedModifier: 1, interval: 100 },
+            { classes: ['Turtle$TurtleRandomStrollGoal', 'RandomStrollGoal'] }
+        );
+        expect(matchingJavaGoals('minecraft:behavior.random_swim', [travel, landStroll])).toEqual([travel]);
+        expect(
+            javaGoalBody('minecraft:behavior.random_swim', { interval: 120 }, [travel, landStroll], context)
+        ).toMatchObject({ interval: 0, speed_multiplier: 1 });
+
+        // A mob with a swim of its own swims by it, not by its stroll on land.
+        const swim = goal(
+            'RandomSwimmingGoal',
+            { speedModifier: 1, interval: 10 },
+            { classes: ['RandomSwimmingGoal', 'RandomStrollGoal'] }
+        );
+        expect(matchingJavaGoals('minecraft:behavior.random_swim', [swim, stroll])).toEqual([swim]);
+    });
+
     it("leaves a body alone when the mob's Java class registers no matching goal", () => {
         const body = { priority: 7, look_distance: 6 };
         expect(javaGoalBody('minecraft:behavior.look_at_player', body, [], context)).toBe(body);
