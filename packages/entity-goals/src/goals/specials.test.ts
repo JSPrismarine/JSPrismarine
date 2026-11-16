@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { GoalHarness, testMob } from '../harness';
 import type { GoalMob, GoalWorld } from '../world';
+import { dragonPhaseState } from './dragonPhases';
 
 /** The single-entity family: the dragon phases, the squid states and the timer flags. */
 
@@ -21,7 +22,7 @@ describe('the ender dragon phases', () => {
         expect(harness.holderOf('jump')).toBe('minecraft:behavior.dragondeath');
     });
 
-    it('let a lower-numbered phase preempt a running one', () => {
+    it('run the goal of the phase the dragon is in, not the one with the lowest priority number', () => {
         const harness = new GoalHarness({
             goals: {
                 'minecraft:behavior.dragonholdingpattern': { priority: 2 },
@@ -31,8 +32,147 @@ describe('the ender dragon phases', () => {
 
         harness.tick();
 
-        expect(harness.holderOf('move')).toBe('minecraft:behavior.dragonscanning');
-        expect(harness.isRunning('minecraft:behavior.dragonholdingpattern')).toBe(false);
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.dragonholdingpattern');
+        expect(harness.isRunning('minecraft:behavior.dragonscanning')).toBe(false);
+    });
+
+    /** A dragon world on a flat floor at y 64, with a player at a fixed spot and a log of breath. */
+    const dragonWorld = (harness: () => GoalHarness, player: GoalMob | undefined) => {
+        let clock = 0;
+        const clouds: { tick: number; x: number; y: number; z: number; data: unknown }[] = [];
+        const discarded: (string | number)[] = [];
+        const world: GoalWorld = {
+            gameTime: () => clock,
+            players: () => (player === undefined ? [] : [player]),
+            seaLevel: () => 62,
+            surfaceY: () => 64,
+            fightOrigin: () => ({ x: 0, y: 64, z: 0 }),
+            navigation: () => ({
+                blockAt: (at) => (at.y < 64 ? 'minecraft:end_stone' : 'minecraft:air'),
+                isPassable: (at) => at.y >= 64,
+                isSolid: (at) => at.y < 64,
+                isWater: () => false,
+                isLava: () => false
+            }),
+            moveSelf: (position) => {
+                harness().actuator.at = position;
+            },
+            spawn: (identifier, position, _event, options) => {
+                clouds.push({ tick: clock, ...position, data: options?.data });
+                return testMob(`${identifier}-${clouds.length}`, position, { identifier });
+            },
+            discard: (mob) => discarded.push(mob.id)
+        };
+        return {
+            world,
+            clouds,
+            discarded,
+            run: (ticks: number) => {
+                for (let index = 0; index < ticks; index += 1) {
+                    clock += 1;
+                    harness().tick();
+                }
+            }
+        };
+    };
+
+    const SITTING = {
+        'minecraft:behavior.dragonlanding': { priority: 0 },
+        'minecraft:behavior.dragonflaming': { priority: 1 },
+        'minecraft:behavior.dragonscanning': { priority: 2 }
+    };
+
+    it('scan for 25 ticks, roar for 40, breathe on the 10th tick of the flame and take the breath back at 200', () => {
+        let harness: GoalHarness | undefined;
+        const dragon = dragonWorld(
+            () => {
+                if (harness === undefined) throw new Error('no harness yet');
+                return harness;
+            },
+            testMob('player', { x: 0, y: 64, z: 12 })
+        );
+        harness = new GoalHarness({ goals: SITTING, world: dragon.world, at: { x: 0, y: 64, z: 0 } });
+        harness.entity.componentState.set(dragonPhaseState, {
+            phase: 'sitting_scanning',
+            flameCount: 0,
+            chargeTarget: null
+        });
+        const phase = () => harness?.entity.componentState.get(dragonPhaseState)?.phase;
+
+        dragon.run(25);
+        expect(phase()).toBe('sitting_scanning');
+        dragon.run(1);
+        expect(phase()).toBe('sitting_attacking');
+        dragon.run(41);
+        expect(phase()).toBe('sitting_flaming');
+        dragon.run(10);
+        expect(dragon.clouds).toHaveLength(1);
+        const [cloud] = dragon.clouds;
+        expect(cloud?.y).toBe(64);
+        expect(Math.hypot(cloud?.x ?? 0, cloud?.z ?? 0)).toBeCloseTo(9, 0);
+        expect(cloud?.data).toMatchObject({ radius: 5, duration: 200, potion_duration_scale: 0.25 });
+        dragon.run(190);
+        expect(phase()).toBe('sitting_scanning');
+        expect(dragon.discarded).toEqual(['minecraft:area_effect_cloud-1']);
+    });
+
+    it('take off once a sitting dragon has lost a quarter of its health', () => {
+        let harness: GoalHarness | undefined;
+        const dragon = dragonWorld(
+            () => {
+                if (harness === undefined) throw new Error('no harness yet');
+                return harness;
+            },
+            testMob('player', { x: 0, y: 64, z: 12 })
+        );
+        harness = new GoalHarness({
+            goals: SITTING,
+            components: { 'minecraft:health': { value: 200, max: 200 } },
+            world: dragon.world,
+            at: { x: 0, y: 64, z: 0 }
+        });
+        harness.entity.componentState.set(dragonPhaseState, {
+            phase: 'sitting_scanning',
+            flameCount: 0,
+            chargeTarget: null
+        });
+        const phase = () => harness?.entity.componentState.get(dragonPhaseState)?.phase;
+        dragon.run(2);
+
+        harness.entity.attributes.set('health', 160);
+        dragon.run(2);
+        expect(phase()).toBe('sitting_scanning');
+        harness.entity.attributes.set('health', 149);
+        dragon.run(2);
+        expect(phase()).toBe('takeoff');
+    });
+
+    it('land on the portal from the approach and start scanning there', () => {
+        let harness: GoalHarness | undefined;
+        const dragon = dragonWorld(() => {
+            if (harness === undefined) throw new Error('no harness yet');
+            return harness;
+        }, undefined);
+        harness = new GoalHarness({ goals: SITTING, world: dragon.world, at: { x: 30, y: 90, z: 0 } });
+        harness.entity.componentState.set(dragonPhaseState, {
+            phase: 'landing_approach',
+            flameCount: 0,
+            chargeTarget: null
+        });
+
+        const phase = () => harness?.entity.componentState.get(dragonPhaseState)?.phase;
+        let ticks = 0;
+        while (phase() !== 'sitting_scanning' && ticks < 600) {
+            dragon.run(1);
+            ticks += 1;
+        }
+
+        const here = harness.actuator.at;
+        expect(phase()).toBe('sitting_scanning');
+        expect(Math.hypot(here.x - 0.5, here.y - 64, here.z - 0.5)).toBeLessThan(1);
+        // With nobody within 20 blocks, Java's scan gives up after 100 ticks and takes off.
+        dragon.run(100);
+        expect(phase()).toBe('takeoff');
     });
 });
 

@@ -184,6 +184,11 @@ export interface GoalWorld {
     blocks?(query: BlockQuery): readonly GoalBlock[];
     /** Whether the entity has line of sight to the mob, for `must_see`. */
     canSee?(mob: GoalMob): boolean;
+    /**
+     * Java's `LivingEntity.hasLineOfSight`: whether no block stands between the entity's eyes and
+     * the mob's, up to 128 blocks, whatever the entity's follow range.
+     */
+    hasLineOfSight?(mob: GoalMob): boolean;
     /** Whether Java's combat target rules allow this mob to be selected or retained. */
     isAttackable?(mob: GoalMob): boolean;
     /** The entity's current attack target. */
@@ -281,6 +286,28 @@ export interface GoalWorld {
     fireOn?(mob: GoalMob, event: string): void;
     /** Java's `Level.getGameTime`: ticks since the world was created, which spell intervals count against. */
     gameTime?(): number;
+    /** Removes another entity the goal made, as the dragon's flame phase takes back its breath. */
+    discard?(mob: GoalMob): void;
+    /**
+     * Moves the entity and turns it, with no teleport and no physics of the runtime's own: the
+     * ender dragon flies by Java's `aiStep`, which a `noPhysics` dragon moves itself.
+     * @param yaw - Which way it faces, in degrees, in the convention every mob's yaw uses.
+     */
+    moveSelf?(position: EntityPosition, yaw: number, pitch: number): void;
+    /**
+     * The first y above the highest motion-blocking block of a column, Java's
+     * `MOTION_BLOCKING_NO_LEAVES` heightmap, or undefined when the world cannot say.
+     */
+    surfaceY?(x: number, z: number): number | undefined;
+    /** The dimension's sea level. */
+    seaLevel?(): number;
+    /** Where the dragon fight the entity belongs to is centered, Java's `EnderDragon.getFightOrigin`. */
+    fightOrigin?(): EntityPosition;
+    /**
+     * How many end crystals still stand on the fight's pillars, Java's `getCrystalsAlive`, or
+     * undefined when the entity belongs to no dragon fight.
+     */
+    endCrystalsAlive?(): number | undefined;
     /** Plays one of the entity's sound events. */
     playSound?(name: string): void;
     /** Opens the trade screen with a player. */

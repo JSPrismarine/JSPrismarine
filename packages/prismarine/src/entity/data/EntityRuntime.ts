@@ -1961,7 +1961,8 @@ export class EntityRuntime implements EntityScene {
         this.index.refreshFamilies(entity);
         this.tickBrain(entity);
         tickBrainNavigation(entity);
-        this.coast(entity);
+        // Java's ender dragon is `noPhysics`: its phases fly it, and nothing pulls it down.
+        if (!JAVA_NO_PHYSICS.has(entity.identifier)) this.coast(entity);
         if (entity.removed !== undefined) return;
         this.step(entity);
         this.updateMedium(entity);
@@ -6227,6 +6228,9 @@ const CLIMB_SPEED = 0.15;
 
 /** The block tag Java's `LivingEntity.onClimbable` reads. */
 const CLIMBABLE_TAG = 'minecraft:climbable';
+
+/** The entities Java marks `noPhysics`, which move themselves and fall under no gravity. */
+const JAVA_NO_PHYSICS: ReadonlySet<string> = new Set(['minecraft:ender_dragon']);
 
 /**
  * The gravity Java gives a body that is not a living entity, where it differs from the living

@@ -8,6 +8,8 @@ import type { GoalBody, GoalEvent, Range } from '../params';
 import { bodySchema, eventAt, numberAt, stringAt, tickRangeAt, ticksAt } from '../params';
 import type { GoalSupport } from '../support';
 import type { GoalMob } from '../world';
+import type { DragonPhaseName } from './dragonPhases';
+import { dragonPhasesOf } from './dragonPhases';
 import { SLIME_HOP_REACH, slimeHeadingOf } from './slimeHeading';
 
 /**
@@ -19,9 +21,6 @@ import { SLIME_HOP_REACH, slimeHeadingOf } from './slimeHeading';
  * squid's five swimming states, the slime's jumping, the silverfish's stone
  * and the three generic timer flags.
  */
-
-/** How long one phase of a scripted sequence lasts when the body names none, in ticks. */
-const DEFAULT_PHASE_TICKS = 100;
 
 /** A goal that holds its flags for a drawn time and does nothing else. */
 const phase = (support: GoalSupport, duration: Range, onStart?: () => void, onEnd?: () => void): Goal => {
@@ -44,42 +43,58 @@ const phase = (support: GoalSupport, duration: Range, onStart?: () => void, onEn
 };
 
 /**
- * Builds one of the ender dragon's flight phases.
+ * Builds one of the ender dragon's phase goals.
  *
- * All eight are `{"priority": n}` in the vanilla file and nothing else: the
- * dragon's flight is engine code driven by its `minecraft:dragon_*` component
- * groups, and the goal is the switch that selects a phase. Each one here
- * holds the dragon's control flags for the phase and leaves the flight path
- * to the server.
+ * All eight are `{"priority": n}` in the vanilla file and nothing else. Each one here runs while
+ * the dragon's Java phase manager is in one of its phases, and ticks the manager, which runs the
+ * phase and flies the dragon; see `dragonPhases.ts`.
  */
-const dragonPhase = (name: string, controlFlags: readonly ControlFlag[]): RegisterableGoal =>
+const dragonPhase = (
+    name: string,
+    controlFlags: readonly ControlFlag[],
+    phases: readonly DragonPhaseName[]
+): RegisterableGoal =>
     goal<GoalBody>({
         name: `minecraft:behavior.${name}`,
         controlFlags,
         schema: bodySchema((body) => body),
-        create: (_params, support) => phase(support, [DEFAULT_PHASE_TICKS, DEFAULT_PHASE_TICKS])
+        create: (_params, support) => {
+            const owns = (): boolean => phases.includes(dragonPhasesOf(support).phase);
+            return {
+                canStart: owns,
+                canContinue: owns,
+                tick: () => dragonPhasesOf(support).tick(),
+                requiresUpdateEveryTick: () => true
+            };
+        }
     });
 
-/** `minecraft:behavior.dragonholdingpattern`, the dragon's default circling of the end crystals. */
-export const dragonHoldingPattern = dragonPhase('dragonholdingpattern', ['move']);
+/** `minecraft:behavior.dragonholdingpattern`, Java's `DragonHoldingPatternPhase`: laps of the node rings. */
+export const dragonHoldingPattern = dragonPhase('dragonholdingpattern', ['move'], ['holding_pattern']);
 
-/** `minecraft:behavior.dragonscanning`, the dragon's pause on the portal while it chooses a target. */
-export const dragonScanning = dragonPhase('dragonscanning', ['move', 'look']);
+/** `minecraft:behavior.dragonscanning`, Java's `DragonSittingScanningPhase`: turning on the portal toward a player. */
+export const dragonScanning = dragonPhase('dragonscanning', ['move', 'look'], ['sitting_scanning']);
 
-/** `minecraft:behavior.dragonstrafeplayer`, the dragon's strafing fireball run. */
-export const dragonStrafePlayer = dragonPhase('dragonstrafeplayer', ['move', 'look']);
+/** `minecraft:behavior.dragonstrafeplayer`, Java's `DragonStrafePlayerPhase`: a fireball run at the target. */
+export const dragonStrafePlayer = dragonPhase('dragonstrafeplayer', ['move', 'look'], ['strafe_player']);
 
-/** `minecraft:behavior.dragonchargeplayer`, the dragon's dive at a player. */
-export const dragonChargePlayer = dragonPhase('dragonchargeplayer', ['move', 'look']);
+/** `minecraft:behavior.dragonchargeplayer`, Java's `DragonChargePlayerPhase`: a dive at where a player stood. */
+export const dragonChargePlayer = dragonPhase('dragonchargeplayer', ['move', 'look'], ['charging_player']);
 
-/** `minecraft:behavior.dragonlanding`, the dragon's descent to the portal. */
-export const dragonLanding = dragonPhase('dragonlanding', ['move', 'look']);
+/**
+ * `minecraft:behavior.dragonlanding`, Java's `DragonLandingApproachPhase` and `DragonLandingPhase`:
+ * the path in and the descent onto the exit portal.
+ */
+export const dragonLanding = dragonPhase('dragonlanding', ['move', 'look'], ['landing_approach', 'landing']);
 
-/** `minecraft:behavior.dragontakeoff`, the dragon's climb back off the portal. */
-export const dragonTakeoff = dragonPhase('dragontakeoff', ['move']);
+/** `minecraft:behavior.dragontakeoff`, Java's `DragonTakeoffPhase`: the climb back off the portal. */
+export const dragonTakeoff = dragonPhase('dragontakeoff', ['move'], ['takeoff']);
 
-/** `minecraft:behavior.dragonflaming`, the dragon's breath attack from the portal. */
-export const dragonFlaming = dragonPhase('dragonflaming', ['move', 'look']);
+/**
+ * `minecraft:behavior.dragonflaming`, Java's `DragonSittingAttackingPhase` and
+ * `DragonSittingFlamingPhase`: the roar, then the breath.
+ */
+export const dragonFlaming = dragonPhase('dragonflaming', ['move', 'look'], ['sitting_attacking', 'sitting_flaming']);
 
 /** How long Java's Ender Dragon death animation takes, in server ticks. */
 const DRAGON_DEATH_TICKS = 200;

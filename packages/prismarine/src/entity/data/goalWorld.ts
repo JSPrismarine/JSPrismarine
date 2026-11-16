@@ -28,6 +28,34 @@ import { blockPositionOf, entityEyePosition } from './position';
 import type { EntityScene } from './scene';
 import { clientOwnsMovement } from '../playerOverlay';
 
+/** How far Java's `LivingEntity.hasLineOfSight` looks, in blocks. */
+const LINE_OF_SIGHT_REACH = 128;
+
+/** The dimension whose dragon fight counts crystals. */
+const END_DIMENSION = 'minecraft:the_end';
+
+/** The crystals the fight counts. */
+const END_CRYSTAL = 'minecraft:ender_crystal';
+
+/**
+ * How far from the fight's origin a crystal still stands on one of the pillars: the pillar ring's
+ * radius of 42 and the widest pillar's radius of 5.
+ */
+const CRYSTAL_RING_REACH = 47;
+
+/**
+ * Where a dragon's fight is centered: the `fight_origin` its spawn recorded, or the world origin,
+ * which is Java's default `fightOrigin` and where the End's fight always is.
+ */
+const fightOriginOf = (data: Readonly<Record<string, unknown>> | undefined): EntityPosition => {
+    const origin = data?.['fight_origin'];
+    if (Array.isArray(origin)) {
+        const [x, y, z] = origin;
+        if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') return { x, y, z };
+    }
+    return { x: 0, y: 0, z: 0 };
+};
+
 /** The reach of a melee swing, in blocks, which is Java's base attack range. */
 const MELEE_REACH = 3;
 
@@ -323,6 +351,34 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             if (typeof mob.id === 'number') scene.byId(mob.id)?.instance.fire(event);
         },
         gameTime: () => scene.world.level.gameTime(),
+        discard: (mob) => {
+            if (typeof mob.id === 'number') scene.remove(mob.id, 'discarded');
+        },
+        moveSelf: (position, yaw, pitch) => {
+            entity.position = position;
+            entity.yaw = yaw;
+            entity.pitch = pitch;
+        },
+        surfaceY: (x, z) => {
+            const { level } = scene.world;
+            const view = scene.navigation();
+            for (let y = level.maxY - 1; y >= level.minY; y -= 1) if (view.isSolid({ x, y, z })) return y + 1;
+            return level.minY;
+        },
+        seaLevel: () => scene.world.level.seaLevel,
+        fightOrigin: () => fightOriginOf(scene.byId(entity.id)?.spawnData),
+        endCrystalsAlive: () => {
+            if (scene.world.level.dimension !== END_DIMENSION) return undefined;
+            const origin = fightOriginOf(scene.byId(entity.id)?.spawnData);
+            let alive = 0;
+            for (const other of scene.near(origin, CRYSTAL_RING_REACH))
+                if (
+                    other.identifier === END_CRYSTAL &&
+                    Math.hypot(other.position.x - origin.x, other.position.z - origin.z) <= CRYSTAL_RING_REACH
+                )
+                    alive += 1;
+            return alive;
+        },
         playSound: (name) => scene.world.effects.playSound(blockPositionOf(entity.position), name),
         dropLoot: (table, position) => scene.dropLoot(table, position),
         openTrade: (player) => scene.openTrade(entity, player),
@@ -368,6 +424,11 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             // Copy endpoints: entity positions are live objects and can be replaced or moved.
             sightByTarget.set(mob.id, { from: { ...from }, to: { ...to }, blockRevision, visible });
             return visible;
+        },
+        hasLineOfSight: (mob) => {
+            const to = mob.lookPosition?.() ?? mob.position();
+            if (distance(entity.position, to) > LINE_OF_SIGHT_REACH) return false;
+            return scene.hasLineOfSight(entityEyePosition(entity.position, entity.facts.box.height), to);
         },
         trigger: (event, target) => scene.trigger(entity, event, target),
         report: (message) => scene.report(`${entity.identifier}: ${message}`)
