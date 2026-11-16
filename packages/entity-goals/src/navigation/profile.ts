@@ -128,11 +128,20 @@ const avoidedBlocks = (value: unknown): readonly string[] => {
     return avoided;
 };
 
-/** How tall an entity is, from `minecraft:collision_box`, rounded up to whole blocks. */
+/** The active `minecraft:scale`, which a baby's hitbox shrinks by as Java's `getBbWidth` and `getBbHeight` do. */
+const scaleOf = (entity: NavigationSource): number => {
+    const scale = entity.componentParams('minecraft:scale');
+    return typeof scale === 'number' ? scale : 1;
+};
+
+/**
+ * How tall an entity is, from `minecraft:collision_box` times `minecraft:scale`, rounded up to
+ * whole blocks.
+ */
 const heightOf = (entity: NavigationSource): number => {
     const box = entity.componentParams('minecraft:collision_box');
     const height = isRecord(box) && typeof box.height === 'number' ? box.height : 1.8;
-    return Math.max(1, Math.ceil(height));
+    return Math.max(1, Math.ceil(height * scaleOf(entity)));
 };
 
 /**
@@ -144,9 +153,7 @@ const widthOf = (entity: NavigationSource): number => {
     const box = entity.componentParams('minecraft:collision_box');
     // Without a collision box, the component's documented default of one block, as the server's hitbox takes.
     const width = isRecord(box) && typeof box.width === 'number' ? box.width : 1;
-    // A baby's hitbox shrinks with its scale, as Java's `getBbWidth` does.
-    const scale = entity.componentParams('minecraft:scale');
-    return Math.max(1, Math.floor(width * (typeof scale === 'number' ? scale : 1) + 1));
+    return Math.max(1, Math.floor(width * scaleOf(entity) + 1));
 };
 
 /** How high the entity steps, from `minecraft:variable_max_auto_step`. */

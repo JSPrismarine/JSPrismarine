@@ -95,4 +95,23 @@ describe('navigationProfile', () => {
         };
         expect(navigationProfile(foal).width).toBe(1);
     });
+
+    it("scales a baby's path height with its hitbox, so a ghastling fits through a door", () => {
+        // A happy ghast's 4 by 4 box at the ghastling's 0.2375 scale is under a block tall.
+        const ghastling: NavigationSource = {
+            componentSetToken: {},
+            componentParams: (name) =>
+                name === 'minecraft:navigation.hover'
+                    ? {}
+                    : name === 'minecraft:collision_box'
+                      ? { width: 4, height: 4 }
+                      : name === 'minecraft:scale'
+                        ? 0.2375
+                        : undefined,
+            hasComponent: () => false,
+            javaNavigation: undefined
+        };
+
+        expect(navigationProfile(ghastling)).toMatchObject({ width: 1, height: 1 });
+    });
 });
