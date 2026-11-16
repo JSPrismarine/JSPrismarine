@@ -1786,14 +1786,21 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }),
     goalScenario({
         goals: ['nap'],
-        java: 'A fox naps in the day when nothing hostile is near and it is not in water.',
-        reference: 'Java Fox.SleepGoal (daytime, no hostile within 12, a 1 in 140 roll)',
-        run: (subject) =>
-            probeGoals(subject, ['nap'], { groups: ['minecraft:fox_day'], random: [0.001] }, (probe) => {
-                windTo(probe, 1000);
-                const slept = probe.until(() => probe.entity.body.sleeping, 300);
-                return slept === undefined ? 'it never napped in the day' : undefined;
-            })
+        java: 'A fox naps in the day under a roof when nothing hostile is near; under open sky it stays awake.',
+        reference:
+            'Java Fox.SleepGoal.canSleep (a countdown from random.nextInt(reducedTickDelay(140)), then isBrightOutside, hasShelter: no sky above its head, and nothing alertable within 12)',
+        run: (subject) => {
+            const naps = (roofed: boolean): boolean =>
+                probeGoals(subject, ['nap'], { groups: ['minecraft:fox_day'], random: [0.001] }, (probe) => {
+                    windTo(probe, 1000);
+                    if (roofed) probe.fill([-2, 2, -2], [2, 2, 2], 'minecraft:stone');
+                    return probe.until(() => probe.entity.body.sleeping, 300) !== undefined;
+                });
+            return differences([
+                !naps(true) && 'it never napped in the day under a roof',
+                naps(false) && 'it napped under open sky'
+            ]);
+        }
     }),
     goalScenario({
         goals: ['find_cover'],
@@ -1908,18 +1915,45 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }),
     goalScenario({
         goals: ['sneeze'],
-        java: 'A sneezing panda sneezes and may drop a slime ball.',
+        java: 'A weak baby panda sneezes now and then, and every sneeze rolls the panda_sneeze gift table, which holds one slime ball in 700.',
         reference:
-            'Java Panda.afterSneeze (drops a slime ball one sneeze in 700) and Panda.tick (weak or baby sneeze rolls)',
+            'Java Panda.PandaSneezeGoal.canUse (a baby: nextInt(reducedTickDelay(500)) == 1 when weak) and Panda.afterSneeze (dropFromGiftLootTable(BuiltInLootTables.PANDA_SNEEZE) on every sneeze)',
         run: (subject) =>
-            probeGoals(subject, ['sneeze'], { groups: ['minecraft:panda_sneezing'], random: [0.00001] }, (probe) => {
-                const before = probe.world.drops.length;
-                probe.tick(200);
-                const dropped = probe.world.drops
-                    .slice(before)
-                    .some((drop) => drop.item.identifier === 'minecraft:slime_ball');
-                return dropped ? undefined : 'it never sneezed out a slime ball on rolls that always succeed';
-            })
+            probeGoals(
+                subject,
+                ['sneeze'],
+                {
+                    groups: ['minecraft:panda_baby', 'minecraft:panda_sneezing'],
+                    without: (group) => group === 'minecraft:panda_adult',
+                    // Under the 0.002 sneeze roll of a weak baby, and not under the 0.001 drop roll
+                    // Bedrock adds in front of the table, which Java does not have.
+                    random: [0.001]
+                },
+                (probe) => {
+                    const rolled: string[] = [];
+                    const { dropLoot } = probe.runtime;
+                    probe.runtime.dropLoot = (table, at) => {
+                        rolled.push(table);
+                        dropLoot.call(probe.runtime, table, at);
+                    };
+                    const sounds = probe.world.sounds.length;
+                    try {
+                        probe.tick(200);
+                    } finally {
+                        probe.runtime.dropLoot = dropLoot;
+                    }
+                    const sneezes = probe.world.sounds.slice(sounds).filter((sound) => sound === 'sneeze').length;
+                    const gifts = rolled.filter((table) => table.endsWith('gameplay/panda_sneeze.json')).length;
+                    return differences([
+                        sneezes === 0 && 'a weak baby never sneezed on rolls under its chance',
+                        sneezes > 0 &&
+                            gifts !== sneezes &&
+                            `it rolled the panda_sneeze table ${gifts} times in ${sneezes} sneezes, where Java rolls it on every sneeze`,
+                        rolled.some((table) => !table.endsWith('gameplay/panda_sneeze.json')) &&
+                            `it rolled ${rolled.join(', ')} for a sneeze`
+                    ]);
+                }
+            )
     }),
     goalScenario({
         goals: ['scared'],
@@ -2114,15 +2148,28 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }),
     goalScenario({
         goals: ['move_to_liquid'],
-        java: 'A strider on land walks back to lava within 16 blocks.',
-        reference: 'Java Strider.StriderGoToLavaGoal (MoveToBlockGoal over lava, range 16)',
-        run: (subject) =>
-            probeGoals(subject, ['move_to_liquid'], { groups: ['minecraft:strider_pathing_behaviors'] }, (probe) => {
-                probe.fill([8, -1, -3], [14, -1, 3], 'minecraft:lava');
-                probe.tick(300);
-                const x = probe.entity.position.x - probe.at(0, 0, 0).x;
-                return x > 7 ? undefined : 'it did not walk to the lava 8 blocks away';
-            })
+        java: 'A strider on land walks to lava up to 7 blocks across, and leaves lava further off alone.',
+        reference:
+            'Java Strider.StriderGoToLavaGoal (MoveToBlockGoal(strider, 1.0, 8, 2), whose findNearestBlock scans offsets below the search range of 8)',
+        run: (subject) => {
+            const walked = (from: number): number =>
+                probeGoals(
+                    subject,
+                    ['move_to_liquid'],
+                    { groups: ['minecraft:strider_pathing_behaviors'] },
+                    (probe) => {
+                        probe.fill([from, -1, -3], [from + 6, -1, 3], 'minecraft:lava');
+                        probe.tick(300);
+                        return probe.entity.position.x - probe.at(0, 0, 0).x;
+                    }
+                );
+            const near = walked(5);
+            const far = walked(9);
+            return differences([
+                near < 4.5 && `it moved ${near.toFixed(1)} blocks toward lava 5 blocks away`,
+                far > 1 && `it walked ${far.toFixed(1)} blocks toward lava 9 blocks away, past Java's search`
+            ]);
+        }
     }),
     goalScenario({
         goals: ['rise_to_liquid_level'],
@@ -2198,20 +2245,27 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         goals: ['follow_mob'],
         name: 'happy-ghast-follow_mob',
         java: 'A ghastling follows a nearby player.',
-        reference: 'Java HappyGhastAi (a ghastling stays close to a nearby player)',
+        reference:
+            'Java HappyGhastAi.initIdleActivity (BabyFollowAdult over NEAREST_VISIBLE_PLAYER within UniformInt.of(3, 16)), which HappyGhast.customServerAiStep ticks for a baby',
         entities: ['minecraft:happy_ghast'],
         run: (subject) =>
-            probeGoals(subject, ['follow_mob'], { groups: ['minecraft:baby'] }, (probe) => {
-                probe.player(12, 0, 0);
-                probe.tick(300);
-                const away = distanceBetween(probe.entity.position, probe.at(12, 0, 0));
-                return away < 8 ? undefined : `it stayed ${away.toFixed(1)} blocks from a player`;
-            })
+            probeGoals(
+                subject,
+                ['follow_mob'],
+                { groups: ['minecraft:baby'], without: (group) => group.startsWith('minecraft:adult') },
+                (probe) => {
+                    probe.player(12, 0, 0);
+                    probe.tick(300);
+                    const away = distanceBetween(probe.entity.position, probe.at(12, 0, 0));
+                    return away < 8 ? undefined : `it stayed ${away.toFixed(1)} blocks from a player`;
+                }
+            )
     }),
     goalScenario({
         goals: ['float_tempt'],
-        java: 'A happy ghast drifts toward a player holding a snowball.',
-        reference: 'Java HappyGhast.registerGoals (TemptGoal.ForNonPathfinders over #happy_ghast_tempt_items)',
+        java: 'A grown happy ghast drifts toward a player holding a snowball, stopping 7 blocks off.',
+        reference:
+            'Java HappyGhast.registerGoals (TemptGoal.ForNonPathfinders over #happy_ghast_tempt_items, stop distance 7), with the brain left unticked for a grown ghast by HappyGhast.customServerAiStep',
         run: (subject) =>
             probeGoals(
                 subject,
@@ -2233,15 +2287,21 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'copper-golem-statue',
         java: 'A fully oxidized copper golem that turns to a statue puts an oxidized copper golem statue block where it stood and is gone.',
         reference:
-            'Java CopperGolem.turnToStatue (sets the oxidized copper golem statue block, facing its rotation, then discards the golem)',
+            'Java CopperGolem.updateWeathering (fully oxidized: canTurnToStatue, its block is air and nextFloat() <= 0.0058) and CopperGolem.turnToStatue (sets the oxidized copper golem statue block, facing its rotation, then discards the golem)',
         entities: ['minecraft:copper_golem'],
         run: (subject) =>
-            withProbe(subject.bedrock, { groups: ['minecraft:becoming_statue'], random: [0.01] }, (probe) => {
+            withProbe(subject.bedrock, { groups: ['minecraft:becoming_statue'], random: [0.005] }, (probe) => {
+                // Facing west, Java's Direction.fromYRot(90).
+                probe.entity.body.yaw = 90;
                 probe.tick(200);
                 const statue = probe.blockAt(0, 0, 0);
+                const facing = probe.statesAt(0, 0, 0)?.['minecraft:cardinal_direction'];
                 return differences([
                     statue?.includes('copper_golem_statue') !== true &&
                         `it left ${statue ?? 'nothing'} where it stood, not a statue`,
+                    statue?.includes('copper_golem_statue') === true &&
+                        facing !== 'west' &&
+                        `its statue faces ${String(facing)}, where Java's faces the golem's way, west`,
                     statue?.includes('copper_golem_statue') === true &&
                         probe.entity.removed === undefined &&
                         'it stayed in the world beside its statue'

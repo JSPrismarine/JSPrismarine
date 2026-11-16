@@ -1,6 +1,6 @@
 import { buildServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
-import type { ContentEntity } from '@jsprismarine/prismarine/content/world/adapter';
+import type { ContentEntity, RandomSource } from '@jsprismarine/prismarine/content/world/adapter';
 import { singleDimension } from '@jsprismarine/prismarine/content/world/adapter';
 import { entityContentGroups } from '@jsprismarine/prismarine/entity/contentAdapter';
 import { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
@@ -19,8 +19,27 @@ import type { EntityPosition } from '@jsprismarine/entities';
 /** A live entity in the runtime, as `EntityRuntime.spawn` hands one back. */
 export type DataEntity = NonNullable<ReturnType<EntityRuntime['spawn']>>;
 
-/** The values the world's random source replays, which a probe rewrites before it ticks. */
-const draws: number[] = [0.5];
+/**
+ * The world's random source: it replays `values` from the start each time a probe writes them,
+ * so every probe sees its own draws in order whatever the probes before it drew.
+ */
+const draws: { values: readonly number[]; next: number; replay(values: readonly number[]): void } = {
+    values: [0.5],
+    next: 0,
+    replay(values) {
+        this.values = values.length === 0 ? [0.5] : values;
+        this.next = 0;
+    }
+};
+
+const random: RandomSource = {
+    nextFloat: () => {
+        const value = draws.values[draws.next % draws.values.length] ?? 0;
+        draws.next += 1;
+        return value;
+    },
+    nextInt: (bound) => (bound <= 0 ? 0 : Math.floor(random.nextFloat() * bound))
+};
 
 interface GoalStack {
     readonly content: ServerContent;
@@ -33,7 +52,7 @@ let built: GoalStack | undefined;
 
 const goalStack = (): GoalStack => {
     if (built !== undefined) return built;
-    const world = new TestEntityWorld({ random: draws });
+    const world = new TestEntityWorld({ random, skyLight: true });
     const reports: string[] = [];
     let content: ServerContent | undefined;
     const runtime = new EntityRuntime({
@@ -115,9 +134,9 @@ export interface Probe {
 /**
  * Runs a scenario body against one freshly spawned entity, and cleans up after it.
  *
- * The entity's goals other than `keep` are taken off its scheduler, so the goal under test runs
- * alone with the entity's own parameters, its real component set and the server's real goal
- * world behind it.
+ * The entity's goals other than `keep` are taken off its scheduler before every tick, so the goal
+ * under test runs alone with the entity's own parameters, its real component set and the server's
+ * real goal world behind it.
  * @param bedrock - The entity type to spawn.
  * @param options - What to set up.
  * @param body - The scenario, which returns what differed from Java.
@@ -136,7 +155,7 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
         const where = at(x, y, z);
         return { x: Math.floor(where.x), y: Math.floor(where.y), z: Math.floor(where.z) };
     };
-    draws.splice(0, draws.length, ...(options.random ?? [0.5]));
+    draws.replay(options.random ?? [0.5]);
 
     const spawned: DataEntity[] = [];
     const players: ContentEntity[] = [];
@@ -150,10 +169,14 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
         const kept = entity.instance.activeComponentGroups().filter((group) => options.without?.(group) !== true);
         entity.instance.restoreComponentGroups([...kept, ...(options.groups ?? [])]);
     }
-    if (options.keep !== undefined) {
+    // A component group the entity gains later, such as a panda's gene, schedules its goals
+    // again, so the probe takes them off before every tick as well as now.
+    const isolate = (): void => {
+        if (options.keep === undefined) return;
         for (const name of entity.instance.goals.names())
             if (!options.keep.includes(name)) entity.instance.goals.remove(name);
-    }
+    };
+    isolate();
 
     let nextPlayer = 9_000_000 + patches * 16;
     const probe: Probe = {
@@ -188,13 +211,14 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
         },
         tick: (count = 1) => {
             for (let index = 0; index < count; index += 1) {
+                isolate();
                 clock += 1;
                 world.advance(1);
                 runtime.tick(clock);
             }
         },
         reroll: (values) => {
-            draws.splice(0, draws.length, ...values);
+            draws.replay(values);
         },
         until: (predicate, limit) => {
             for (let ticks = 1; ticks <= limit; ticks += 1) {
@@ -210,6 +234,6 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
     } finally {
         for (const other of spawned) if (other.removed === undefined) runtime.remove(other.id, 'parity probe');
         world.players = world.players.filter((player) => !players.includes(player));
-        draws.splice(0, draws.length, 0.5);
+        draws.replay([0.5]);
     }
 };

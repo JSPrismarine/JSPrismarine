@@ -330,8 +330,11 @@ export const scriptedRandom = (values: readonly number[]): RandomSource => {
 
 /** What a test says about the world it puts entities in. */
 export interface TestWorldOptions {
-    /** The values the world's random source replays. */
-    readonly random?: readonly number[];
+    /**
+     * The values the world's random source replays, or the source itself, for a test that
+     * rewinds or rewrites its draws between steps.
+     */
+    readonly random?: readonly number[] | RandomSource;
     /** The players the host reports. */
     readonly players?: readonly ContentEntity[];
     /** A fixed light level for the world, used by entity filter regressions. */
@@ -466,6 +469,12 @@ export class TestEntityWorld {
         this.dayTimeTicks = options.dayTime ?? 0;
     }
 
+    /** The random source a world view draws from: the one the test gave, or a fresh replay of its values. */
+    private randomSource(): RandomSource {
+        const random = this.options.random ?? [0.5];
+        return 'nextFloat' in random ? random : scriptedRandom(random);
+    }
+
     /** Advances the test world's clocks together, as one server tick does. */
     public advance(ticks = 1): void {
         this.gameTimeTicks += ticks;
@@ -521,7 +530,7 @@ export class TestEntityWorld {
                 spawnParticle: (_at, particle) => this.particles.push(particle),
                 emitGameEvent: (event, at, sourceId) => this.gameEvents.push({ event, at, sourceId })
             },
-            random: scriptedRandom(this.options.random ?? [0.5])
+            random: this.randomSource()
         };
     }
 
