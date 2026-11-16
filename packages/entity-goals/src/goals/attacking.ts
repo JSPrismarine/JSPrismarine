@@ -10,6 +10,7 @@ import {
     eventAt,
     eventsAt,
     filterAt,
+    isRecord,
     numberAt,
     rangeAt,
     recordsAt,
@@ -482,15 +483,18 @@ const chargeLoop = (support: GoalSupport, params: ChargeAttackParams): Goal => {
     };
 };
 
+/** Reads a charge body, with the defaults of the goal that declares it. */
+const chargeFrom = (body: GoalBody, defaults: Partial<ChargeAttackParams> = {}): ChargeAttackParams => ({
+    chargeSpeed: numberAt(body, 'charge_speed', defaults.chargeSpeed ?? 1.5),
+    maxChargeDistance: numberAt(body, 'max_charge_distance', defaults.maxChargeDistance ?? 16),
+    overshootDistance: numberAt(body, 'charge_overshoot_distance', defaults.overshootDistance ?? 1),
+    attackReach: numberAt(body, 'attack_reach', defaults.attackReach ?? 2),
+    knockbackForce: numberAt(body, 'knockback_force', defaults.knockbackForce ?? 0),
+    cooldown: tickRangeAt(body, 'charge_cooldown_time', [1, 1])
+});
+
 const readCharge = (defaults: Partial<ChargeAttackParams> = {}) =>
-    bodySchema((body): ChargeAttackParams => ({
-        chargeSpeed: numberAt(body, 'charge_speed', defaults.chargeSpeed ?? 1.5),
-        maxChargeDistance: numberAt(body, 'max_charge_distance', defaults.maxChargeDistance ?? 16),
-        overshootDistance: numberAt(body, 'charge_overshoot_distance', defaults.overshootDistance ?? 1),
-        attackReach: numberAt(body, 'attack_reach', defaults.attackReach ?? 2),
-        knockbackForce: numberAt(body, 'knockback_force', defaults.knockbackForce ?? 0),
-        cooldown: tickRangeAt(body, 'charge_cooldown_time', [1, 1])
-    }));
+    bodySchema((body): ChargeAttackParams => chargeFrom(body, defaults));
 
 /**
  * `minecraft:behavior.charge_attack`, which the vex carries. It rushes the
@@ -515,15 +519,77 @@ export const aquaticChargeAttack = goal<ChargeAttackParams>({
     create: (params, support) => chargeLoop(support, params)
 });
 
+/** What `minecraft:behavior.swoop_attack` declares: a charge, and what breaks a swoop off. */
+export interface SwoopAttackParams extends ChargeAttackParams {
+    /** The mobs whose nearness breaks a swoop off, with each as `other`; absent breaks none. A server key. */
+    readonly scaredOf: Filter | undefined;
+    /** How far past the entity's box it looks for them, in blocks. A server key. */
+    readonly scareRange: number;
+}
+
+/** How many game ticks Java's `PhantomSweepAttackGoal` waits between two searches for cats. */
+const SCARE_SEARCH_TICKS = 20;
+
 /**
  * `minecraft:behavior.swoop_attack`, which the phantom carries. It is a charge
  * that dives from above, so it keeps the look flag while it falls.
+ *
+ * Java's `PhantomSweepAttackGoal.canContinueToUse` looks for cats in its box inflated by 16 at
+ * most once every 20 ticks, and while one is there it breaks the swoop off, and `stop` drops the
+ * target. `scared_of` and `scare_range` carry that rule.
  */
-export const swoopAttack = goal<ChargeAttackParams>({
+export const swoopAttack = goal<SwoopAttackParams>({
     name: 'minecraft:behavior.swoop_attack',
     controlFlags: ['move', 'look'],
-    schema: readCharge({ chargeSpeed: 1 }),
-    create: (params, support) => chargeLoop(support, params)
+    schema: bodySchema((body): SwoopAttackParams => ({
+        ...chargeFrom(body, { chargeSpeed: 1 }),
+        scaredOf: filterAt(body, 'scared_of'),
+        scareRange: numberAt(body, 'scare_range', 16)
+    })),
+    create: (params, support) => {
+        const charge = chargeLoop(support, params);
+        let ticks = 0;
+        let nextSearch = 0;
+        let scared = false;
+        /** Whether a mob it is scared of is in its box inflated by the scare range. */
+        const scaredNow = (): boolean => {
+            const here = support.position();
+            const box = support.entity.componentParams('minecraft:collision_box');
+            const half = (isRecord(box) && typeof box.width === 'number' ? box.width : 0.9) / 2;
+            const height = isRecord(box) && typeof box.height === 'number' ? box.height : 0.5;
+            const reach = half + params.scareRange;
+            return support.mobs(Math.hypot(reach, reach, height + params.scareRange)).some((mob) => {
+                const there = mob.position();
+                return (
+                    Math.abs(there.x - here.x) <= reach &&
+                    Math.abs(there.z - here.z) <= reach &&
+                    there.y >= here.y - params.scareRange &&
+                    there.y <= here.y + height + params.scareRange &&
+                    support.matches(params.scaredOf, mob)
+                );
+            });
+        };
+        return {
+            ...charge,
+            canContinue: () => {
+                if (!(charge.canContinue?.() ?? true)) return false;
+                if (params.scaredOf === undefined) return true;
+                if (ticks > nextSearch) {
+                    nextSearch = ticks + SCARE_SEARCH_TICKS;
+                    scared = scaredNow();
+                }
+                return !scared;
+            },
+            tick: () => {
+                ticks += 1;
+                charge.tick?.();
+            },
+            stop: () => {
+                charge.stop?.();
+                if (scared) support.setTarget(undefined);
+            }
+        };
+    }
 });
 
 /** What `minecraft:behavior.leap_at_target` declares. */

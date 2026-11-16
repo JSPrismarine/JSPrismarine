@@ -688,3 +688,43 @@ describe('minecraft:behavior.stalk_and_pounce_on_target', () => {
         expect(player.running()).toEqual([]);
     });
 });
+
+describe('minecraft:behavior.swoop_attack', () => {
+    it('breaks a swoop off and drops its target while a cat is within 16 blocks', () => {
+        const player = testMob('player', { x: 8, y: 0, z: 0 }, { families: ['player'] });
+        const nearby: GoalMob[] = [player];
+        let target: GoalMob | undefined = player;
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.swoop_attack': {
+                    priority: 2,
+                    scared_of: { test: 'is_family', subject: 'other', value: 'cat' },
+                    scare_range: 16
+                }
+            },
+            components: { 'minecraft:collision_box': { width: 0.9, height: 0.5 } },
+            at: { x: 0, y: 10, z: 0 },
+            world: {
+                target: () => target,
+                setTarget: (mob) => {
+                    target = mob;
+                },
+                mobs: () => nearby,
+                canSee: () => true
+            }
+        });
+        // The swoop never reaches its target, so only the cat can end it.
+        harness.actuator.follow = false;
+        harness.tick(2);
+        expect(harness.isRunning('minecraft:behavior.swoop_attack')).toBe(true);
+
+        // An ocelot is no cat to Java's phantom; a cat 15 blocks off is.
+        nearby.push(testMob('ocelot', { x: -15, y: 10, z: 0 }, { families: ['ocelot'] }));
+        harness.tick(22);
+        expect(harness.isRunning('minecraft:behavior.swoop_attack')).toBe(true);
+        nearby.push(testMob('cat', { x: -15, y: 10, z: 0 }, { families: ['cat'] }));
+        harness.tick(22);
+        expect(harness.isRunning('minecraft:behavior.swoop_attack')).toBe(false);
+        expect(target).toBeUndefined();
+    });
+});

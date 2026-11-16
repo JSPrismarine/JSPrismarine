@@ -11,7 +11,12 @@
  * that only exists to drive a goal, such as the sensor that lights a creeper's fuse.
  */
 import { TICKS_PER_SECOND } from '@jsprismarine/entities/hooks';
-import { BLAZE_ATTACK, GHAST_SHOOT_FIREBALL, SHULKER_ATTACK } from '@jsprismarine/entity-goals/goals/mobAttacks';
+import {
+    BLAZE_ATTACK,
+    GHAST_SHOOT_FIREBALL,
+    PHANTOM_ATTACK_PLAYER_TARGET,
+    SHULKER_ATTACK
+} from '@jsprismarine/entity-goals/goals/mobAttacks';
 import { LAND_ON_OWNERS_SHOULDER } from '@jsprismarine/entity-goals/goals/shoulder';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
@@ -101,6 +106,34 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
             [SHULKER_ATTACK]: {
                 ...(priority === undefined ? {} : { priority }),
                 projectile: 'minecraft:shulker_bullet'
+            }
+        })
+    },
+    {
+        // Java `Phantom.registerGoals` targets through `PhantomAttackPlayerTargetGoal`: the highest
+        // player in its box inflated by 16 across and 64 up and down, every 30 updates.
+        entity: 'minecraft:phantom',
+        component: 'minecraft:behavior.nearest_attackable_target',
+        java: ({ priority }) => ({
+            [PHANTOM_ATTACK_PLAYER_TARGET]: priority === undefined ? {} : { priority }
+        })
+    },
+    {
+        // Java's phantom flees nothing: `PhantomSweepAttackGoal.canContinueToUse` breaks a swoop
+        // off while a cat is in its box inflated by 16, and `stop` drops the target. Ocelots do
+        // not count.
+        entity: 'minecraft:phantom',
+        component: 'minecraft:behavior.avoid_mob_type',
+        java: absent
+    },
+    {
+        entity: 'minecraft:phantom',
+        component: 'minecraft:behavior.swoop_attack',
+        java: (body) => ({
+            'minecraft:behavior.swoop_attack': {
+                ...body,
+                scared_of: { test: 'is_family', subject: 'other', value: 'cat' },
+                scare_range: 16
             }
         })
     },

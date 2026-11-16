@@ -1,6 +1,6 @@
 import type { RegisterableGoal } from '../goal';
 import { goal } from '../goal';
-import { bodySchema, stringAt } from '../params';
+import { bodySchema, isRecord, stringAt } from '../params';
 import type { GoalMob } from '../world';
 
 /**
@@ -206,5 +206,80 @@ export const shulkerAttack = goal<MobAttackParams>({
     }
 });
 
-/** The attack goals of the blaze, the ghast and the shulker. */
-export const mobAttackGoals: readonly RegisterableGoal[] = [blazeAttack, ghastShootFireball, shulkerAttack];
+/** The phantom's target goal. */
+export const PHANTOM_ATTACK_PLAYER_TARGET = 'jsprismarine:behavior.phantom_attack_player_target';
+
+/** `Phantom$PhantomAttackPlayerTargetGoal`'s numbers. */
+const PHANTOM_TARGET = {
+    /** `reducedTickDelay(20)`: the selector updates before the first scan. */
+    firstScan: 10,
+    /** `reducedTickDelay(60)`: the selector updates between two scans. */
+    scanInterval: 30,
+    /** `TargetingConditions.forCombat().range(64.0)`. */
+    range: 64,
+    /** `getBoundingBox().inflate(16.0, 64.0, 16.0)`: how far past its box it looks across and up or down. */
+    across: 16,
+    upDown: 64
+} as const;
+
+/** A player's box, which Java's `EntityType.PLAYER` sizes 0.6 across and 1.8 tall. */
+const PLAYER_BOX = { width: 0.6, height: 1.8 } as const;
+
+/**
+ * Java's `Phantom$PhantomAttackPlayerTargetGoal`, a target goal that holds no flag.
+ *
+ * Ten selector updates after it appears, and then every 30 while it has no target, the phantom
+ * takes the highest player it may attack among those in its box inflated by 16 across and 64 up
+ * and down and within 64 blocks. It keeps the target while it may still attack it.
+ */
+export const phantomAttackPlayerTarget = goal<Record<string, unknown>>({
+    name: PHANTOM_ATTACK_PLAYER_TARGET,
+    controlFlags: [],
+    schema: bodySchema((body) => body),
+    create: (_params, support) => {
+        let nextScan: number = PHANTOM_TARGET.firstScan;
+        const inBox = (mob: GoalMob): boolean => {
+            const here = support.position();
+            const there = mob.position();
+            const box = support.entity.componentParams('minecraft:collision_box');
+            const width = isRecord(box) && typeof box.width === 'number' ? box.width : 0.9;
+            const height = isRecord(box) && typeof box.height === 'number' ? box.height : 0.5;
+            const across = (width + PLAYER_BOX.width) / 2 + PHANTOM_TARGET.across;
+            return (
+                Math.abs(there.x - here.x) < across &&
+                Math.abs(there.z - here.z) < across &&
+                there.y + PLAYER_BOX.height > here.y - PHANTOM_TARGET.upDown &&
+                there.y < here.y + height + PHANTOM_TARGET.upDown
+            );
+        };
+        return {
+            canStart: () => {
+                if (nextScan > 0) {
+                    nextScan -= 1;
+                    return false;
+                }
+                nextScan = PHANTOM_TARGET.scanInterval;
+                const players = support
+                    .players(PHANTOM_TARGET.range)
+                    .filter((player) => inBox(player) && support.isAttackable(player))
+                    .sort((left, right) => right.position().y - left.position().y);
+                const [highest] = players;
+                if (highest === undefined) return false;
+                support.setTarget(highest);
+                return true;
+            },
+            canContinue: () => {
+                const target = support.target();
+                return target !== undefined && support.isAttackable(target);
+            }
+        };
+    }
+});
+
+/** The attack goals of the blaze, the ghast and the shulker, and the phantom's target goal. */
+export const mobAttackGoals: readonly RegisterableGoal[] = [
+    blazeAttack,
+    ghastShootFireball,
+    shulkerAttack,
+    phantomAttackPlayerTarget
+];

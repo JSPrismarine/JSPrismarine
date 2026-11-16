@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { GoalHarness, testMob } from '../harness';
 import type { GoalMob, GoalWorld } from '../world';
-import { BLAZE_ATTACK, GHAST_SHOOT_FIREBALL, SHULKER_ATTACK } from './mobAttacks';
+import { BLAZE_ATTACK, GHAST_SHOOT_FIREBALL, PHANTOM_ATTACK_PLAYER_TARGET, SHULKER_ATTACK } from './mobAttacks';
 
 /** A world with one target at a fixed spot, which records the tick of every bite and shot. */
 const arena = (target: GoalMob | undefined, options: { readonly canSee?: boolean } = {}) => {
@@ -112,5 +112,48 @@ describe(SHULKER_ATTACK, () => {
         const calm = arena(at(10));
         calm.run(shulker(calm.world, 'peaceful'), 30);
         expect(calm.shots).toEqual([]);
+    });
+});
+
+describe(PHANTOM_ATTACK_PLAYER_TARGET, () => {
+    /** A phantom 20 blocks up whose world holds the given players, recording what it targets. */
+    const phantom = (players: readonly GoalMob[]) => {
+        let target: GoalMob | undefined;
+        const harness = new GoalHarness({
+            goals: { [PHANTOM_ATTACK_PLAYER_TARGET]: { priority: 1 } },
+            components: { 'minecraft:collision_box': { width: 0.9, height: 0.5 } },
+            at: { x: 0, y: 20, z: 0 },
+            world: {
+                players: () => players,
+                target: () => target,
+                setTarget: (mob) => {
+                    target = mob;
+                },
+                isAttackable: () => true
+            }
+        });
+        return { harness, target: () => target };
+    };
+
+    it('scans after 10 updates and takes the highest player in its box', () => {
+        const low = testMob('low', { x: 3, y: 0, z: 0 });
+        const high = testMob('high', { x: -10, y: 10, z: 5 });
+        const wide = testMob('wide', { x: 18, y: 15, z: 0 });
+        const watch = phantom([low, wide, high]);
+        watch.harness.tick(10);
+        expect(watch.target()).toBeUndefined();
+        watch.harness.tick();
+        expect(watch.target()?.id).toBe('high');
+    });
+
+    it('scans again 30 updates after a scan that found nobody', () => {
+        const players: GoalMob[] = [];
+        const watch = phantom(players);
+        watch.harness.tick(11);
+        players.push(testMob('late', { x: 0, y: 0, z: 0 }));
+        watch.harness.tick(30);
+        expect(watch.target()).toBeUndefined();
+        watch.harness.tick();
+        expect(watch.target()?.id).toBe('late');
     });
 });
