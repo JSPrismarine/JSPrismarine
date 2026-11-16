@@ -196,13 +196,15 @@ export interface SpawnEntityParams {
     readonly entries: readonly SpawnEntityEntry[];
 }
 
-/** Draws an entry's next wait in server ticks. */
+/**
+ * Draws an entry's next wait in whole server ticks, from `min_wait_time` up to but not including
+ * `max_wait_time`, the way Java's `random.nextInt(6000) + 6000` gives a chicken's next egg.
+ */
 const spawnWaitTicks = (entity: EntityInstance, entry: SpawnEntityEntry): number => {
-    const seconds =
-        entry.minWait < entry.maxWait
-            ? entry.minWait + entity.random.next() * (entry.maxWait - entry.minWait)
-            : entry.minWait;
-    return Math.max(0, Math.round(seconds * TICKS_PER_SECOND));
+    const shortest = Math.round(entry.minWait * TICKS_PER_SECOND);
+    const longest = Math.round(entry.maxWait * TICKS_PER_SECOND);
+    if (longest <= shortest) return Math.max(0, shortest);
+    return Math.max(0, shortest + Math.floor(entity.random.next() * (longest - shortest)));
 };
 
 /**
