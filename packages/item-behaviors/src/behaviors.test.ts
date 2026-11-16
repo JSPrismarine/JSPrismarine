@@ -348,7 +348,7 @@ describe('armor and equipment', () => {
     it('swaps a chestplate into the chest slot', () => {
         const recording = withWorld();
         expect(use(stackOf('minecraft:diamond_chestplate'))).toEqual({});
-        expect(recording.performed('equip')[0]).toMatchObject({ target: source, slot: 'chest' });
+        expect(recording.performed('equip')[0]).toMatchObject({ target: source, slot: 'chest', fromHand: true });
     });
 
     it('puts a saddle on an entity that allows it, and takes one off the stack', () => {

@@ -426,6 +426,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
             const slot = field(subject.components['minecraft:equippable'], 'slot');
             if (equipped === undefined) return 'using it equipped nothing';
             if (equipped.slot !== slot) return `using it equips the ${equipped.slot} slot, Java names ${String(slot)}`;
+            if (equipped.fromHand !== true) return 'using it leaves the item in the hand as well as the slot';
             return undefined;
         }
     }

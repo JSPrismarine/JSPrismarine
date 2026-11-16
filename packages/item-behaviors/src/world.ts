@@ -214,6 +214,12 @@ export interface EquipAction {
     readonly target: ItemSource;
     readonly slot: EquipmentSlot;
     readonly item: ItemStack;
+    /**
+     * Whether the target is wearing the item out of its own hand, which makes the equip a swap:
+     * one item leaves the hand for the slot, and what the slot held goes to the hand, or to the
+     * inventory while the hand still holds more. Java's `Equippable.swapWithEquipmentSlot`.
+     */
+    readonly fromHand?: boolean;
 }
 
 /** Name an entity, which is the name tag. */

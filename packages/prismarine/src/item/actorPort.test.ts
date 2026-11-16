@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype } from '@jsprismarine/minecraft';
+import { ArmorSlot, Gametype } from '@jsprismarine/minecraft';
 import { PositionMode } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
@@ -310,6 +310,70 @@ describe('the item actor port', () => {
         expect(inventory.getEntry(0)?.getCount()).toBe(2);
         // The wire writes the item's own count, so the two have to agree.
         expect(inventory.getItemInHand().getAmount()).toBe(2);
+    });
+
+    /** Right-clicks the held armor on, from a hand of `count`, over whatever is already worn. */
+    const wearing = (count: number, worn?: Item, gamemode = Gametype.SURVIVAL) => {
+        const recorded = recording();
+        const inventory = new HumanInventory();
+        const chestplate = new Item({ name: 'minecraft:diamond_chestplate' }).withDisplay('Held plate');
+        inventory.setItem(0, new ContainerEntry({ item: chestplate.withCount(count), count }));
+        if (worn !== undefined) inventory.getArmor().setItem(ArmorSlot.TORSO, new ContainerEntry({ item: worn }));
+        const player = sessionOnPrototype(
+            {
+                getPosition: () => Position.fromVector3(new Vector3(1.5, 65, 1.5), stub<World>()),
+                gamemode,
+                getInventory: () => inventory,
+                getServer: () => stub<Server>({ getContent: () => testContent() })
+            },
+            { runtimeId: 7n, actor: { getPosition: () => new Vector3(1.5, 65, 1.5) } }
+        );
+        const port = createItemActorPort({
+            world: () => worldDouble(player, recorded),
+            entities: entityAccess(),
+            level: clock()
+        });
+        // The fixture content carries no armor. A swap moves the hand's own entry and never
+        // reads the action's stack, so any stack the content has stands in for it.
+        const item = contentStackOf(testContent(), new Item({ name: 'minecraft:diamond_pickaxe', runtimeId: 1 }))!;
+        port.perform({ kind: 'equip', target: SOURCE, slot: 'chest', item: item.copy(1), fromHand: true });
+        return { inventory, worn: inventory.getArmor().getItem(ArmorSlot.TORSO) };
+    };
+
+    it('moves worn armor out of the hand rather than copying it', () => {
+        const { inventory, worn } = wearing(1);
+
+        expect(worn.getName()).toBe('minecraft:diamond_chestplate');
+        expect(worn.getCustomName()).toBe('Held plate');
+        expect(inventory.isEmpty(0)).toBe(true);
+    });
+
+    it('swaps the armor already worn into the hand', () => {
+        const old = new Item({ name: 'minecraft:iron_chestplate' });
+        const { inventory, worn } = wearing(1, old);
+
+        expect(worn.getName()).toBe('minecraft:diamond_chestplate');
+        expect(inventory.getItemInHand().getName()).toBe('minecraft:iron_chestplate');
+        expect(
+            inventory.getItems().filter((entry) => entry.getItem().getName() === 'minecraft:diamond_chestplate')
+        ).toEqual([]);
+    });
+
+    it('wears one of a stack and puts the old armor in the inventory', () => {
+        const { inventory, worn } = wearing(2, new Item({ name: 'minecraft:iron_chestplate' }));
+
+        expect(worn.getName()).toBe('minecraft:diamond_chestplate');
+        expect(inventory.getEntry(0)?.getCount()).toBe(1);
+        expect(inventory.getItems().some((entry) => entry.getItem().getName() === 'minecraft:iron_chestplate')).toBe(
+            true
+        );
+    });
+
+    it('leaves a creative hand holding the armor it put on an empty slot', () => {
+        const { inventory, worn } = wearing(1, undefined, Gametype.CREATIVE);
+
+        expect(worn.getName()).toBe('minecraft:diamond_chestplate');
+        expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_chestplate');
     });
 
     it('wears the held tool by writing a worn copy into the hand slot', () => {

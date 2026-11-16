@@ -77,7 +77,9 @@ export const equippableBehavior: ItemBehaviorSpec = {
             }
 
             if (rules.swappable === false) return undefined;
-            context.world.perform({ kind: 'equip', target: source, slot, item: itemStack.copy() });
+            // The swap moves the hand's own stack, and what was worn, so the hand is the world's
+            // to write: a stack handed back here would put the worn item back in the hand.
+            context.world.perform({ kind: 'equip', target: source, slot, item: itemStack.copy(1), fromHand: true });
             playEquipSound(context, rules.equip_sound, source);
             return {};
         };

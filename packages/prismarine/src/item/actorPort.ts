@@ -403,10 +403,57 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         }
     };
 
-    const equip = (source: ItemSource, slot: EquipmentSlot, stack: ItemStack): boolean => {
+    /**
+     * Wears one of the held item in an armor slot, as Java's `Equippable.swapWithEquipmentSlot`
+     * does.
+     *
+     * The hand's own entry moves, so its durability, enchantments and name go with it. What the
+     * slot held goes to the hand when the hand empties, and to the inventory when it does not. A
+     * creative hand keeps its item unless the swap hands it the worn one.
+     */
+    const swapFromHand = (entity: ItemPlayer, index: number): boolean => {
+        const inventory = entity.getInventory();
+        const handSlot = inventory.getHandSlotIndex();
+        const held = inventory.getEntry(handSlot);
+        if (held === null || inventory.isEmpty(handSlot)) return false;
+
+        const armor = inventory.getArmor();
+        const worn = armor.isEmpty(index) ? null : armor.getEntry(index);
+        const creative = entity.gamemode === Gametype.CREATIVE;
+        const count = held.getCount();
+
+        armor.setItem(index, new ContainerEntry({ item: held.getItem().withCount(1), count: 1 }));
+
+        if (count <= 1) {
+            if (worn !== null) inventory.setItemInHand(worn);
+            else if (!creative) inventory.removeItem(handSlot);
+            return true;
+        }
+
+        if (!creative) inventory.setHandCount(count - 1);
+        if (worn === null) return true;
+
+        const leftOver = inventory.addItem(worn);
+        const position = entity.getPosition();
+        const stored = storedItem(worn.getItem(), leftOver);
+        if (stored !== null && position !== undefined) {
+            entities.drop(
+                { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
+                itemDropOf(stored)
+            );
+        }
+        return true;
+    };
+
+    const equip = (source: ItemSource, slot: EquipmentSlot, stack: ItemStack, fromHand: boolean): boolean => {
         const entity = playerOf(source);
+        if (entity === undefined) return false;
+
+        const armorIndex = ARMOR_INDEX[slot];
+        if (fromHand && armorIndex !== undefined) return swapFromHand(entity, armorIndex);
+
         const item = itemOf(stack);
-        if (entity === undefined || item === null) return false;
+        if (item === null) return false;
 
         const entry = new ContainerEntry({ item, count: stack.count });
         const inventory = entity.getInventory();
@@ -420,10 +467,9 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             return true;
         }
 
-        const index = ARMOR_INDEX[slot];
-        if (index === undefined) return false;
+        if (armorIndex === undefined) return false;
 
-        inventory.getArmor().setItem(index, entry);
+        inventory.getArmor().setItem(armorIndex, entry);
         return true;
     };
 
@@ -550,7 +596,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 give(action.source, action.item);
                 return;
             case 'equip':
-                if (!equip(action.target, action.slot, action.item))
+                if (!equip(action.target, action.slot, action.item, action.fromHand === true))
                     missing(action, `an equipment slot for ${action.slot}`);
                 return;
             case 'consume-durability':
