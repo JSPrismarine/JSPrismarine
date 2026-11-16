@@ -709,7 +709,7 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'boat-over-bubble-column',
         java: "A boat over a downward bubble column is dragged under after Java's 60 ticks.",
         reference:
-            'Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar; issue #3144',
+            'Java BubbleColumnBlock.entityInside (onAboveBubbleColumn below air), AbstractBoat.onAboveBubbleColumn (bubbleTime 60) and AbstractBoat.tickBubbleColumn (handleBubbleColumnEffect once it runs out), read from the pinned jar',
         subjects: () => entitiesDeclaring('minecraft:inside_block_notifier'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:inside_block_notifier'],
@@ -727,12 +727,19 @@ export const sensesScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                         { identifier: 'minecraft:bubble_column', states: { drag_down: true } },
                         false
                     );
-                // Open the roof over the column, so the boat floats above it with air on top.
-                world.setBlock(
-                    { x: Math.floor(SANDBOX_ORIGIN.x), y: top + 1, z: Math.floor(SANDBOX_ORIGIN.z) },
-                    'minecraft:air'
-                );
-                sandbox.entity.position = { ...SANDBOX_ORIGIN, y: top + 0.5 };
+                // Open the roof over the column and the water its width covers, and set the boat on
+                // the surface, so it floats on the water over the column with air on top.
+                for (let dx = -1; dx <= 1; dx += 1)
+                    for (let dz = -1; dz <= 1; dz += 1)
+                        world.setBlock(
+                            {
+                                x: Math.floor(SANDBOX_ORIGIN.x) + dx,
+                                y: top + 1,
+                                z: Math.floor(SANDBOX_ORIGIN.z) + dz
+                            },
+                            'minecraft:air'
+                        );
+                sandbox.entity.position = { ...SANDBOX_ORIGIN, y: top + 1 };
                 const startY = sandbox.entity.position.y;
                 for (let tick = 1; tick <= java + 20; tick += 1) {
                     sandbox.tick(1);

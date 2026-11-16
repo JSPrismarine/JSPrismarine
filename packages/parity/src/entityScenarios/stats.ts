@@ -849,8 +849,16 @@ const boatOverBubbles = (bedrock: string, down: boolean): BubbleRide | string =>
     }
 };
 
-/** What a pushed minecart does on a run of one rail: the share of its speed it keeps over a tick, and how far it strays from the rail. */
-const minecartRun = (bedrock: string, rail: string): { readonly kept: number; readonly drift: number } | string => {
+/**
+ * What a minecart pushed at `push` blocks a tick does on a run of one rail: the share of its
+ * speed it keeps over its last tick, its longest move in a tick, and how far it strays from the
+ * rail.
+ */
+const minecartRun = (
+    bedrock: string,
+    rail: string,
+    push: number
+): { readonly kept: number; readonly fastest: number; readonly drift: number } | string => {
     const { runtime, world } = realStack();
     const at = slotAt(10);
     const run = (block: string, states: Readonly<Record<string, BlockStateValue>>) => {
@@ -867,7 +875,7 @@ const minecartRun = (bedrock: string, rail: string): { readonly kept: number; re
         return withSpawned(
             bedrock,
             (cart) => {
-                cart.body.push({ x: 0.3, y: 0, z: 0 });
+                cart.body.push({ x: push, y: 0, z: 0 });
                 const steps: number[] = [];
                 for (let tick = 1; tick <= 6; tick += 1) {
                     const before = cart.position.x;
@@ -876,7 +884,7 @@ const minecartRun = (bedrock: string, rail: string): { readonly kept: number; re
                 }
                 const [last = 0, previous = 0] = [steps.at(-1), steps.at(-2)];
                 if (previous <= 1e-6) return 'a push does not move it along the rail at all';
-                return { kept: last / previous, drift: cart.position.z - at.z };
+                return { kept: last / previous, fastest: Math.max(...steps), drift: cart.position.z - at.z };
             },
             at
         );
@@ -1048,15 +1056,22 @@ const SERVER_RULES: readonly ServerRule[] = [
     },
     {
         component: 'minecraft:rail_movement',
-        java: 'A minecart pushed along a rail runs along it, slowed only by its rolling drag, and a powered rail speeds it up.',
+        java: 'A minecart pushed along a rail runs along it, slowed only by its rolling drag, a powered rail speeds it up, and it moves no more than 0.4 blocks a tick.',
         reference:
-            'Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack (getSlowdownFactor 0.96 empty, a powered rail adds 0.06 a tick), PoweredRailBlock',
+            'Java AbstractMinecart.moveAlongTrack and OldMinecartBehavior.moveAlongTrack (getSlowdownFactor 0.96 empty, a powered rail adds 0.06 a tick, getMaxSpeed 0.4), PoweredRailBlock',
         check: (subject) => {
-            const plain = minecartRun(subject.bedrock, 'minecraft:rail');
-            const powered = minecartRun(subject.bedrock, 'minecraft:golden_rail');
+            // Pushed slowly enough that six ticks of a powered rail's boost stay under the 0.4 cap.
+            const plain = minecartRun(subject.bedrock, 'minecraft:rail', 0.1);
+            const powered = minecartRun(subject.bedrock, 'minecraft:golden_rail', 0.1);
+            const fast = minecartRun(subject.bedrock, 'minecraft:rail', 1);
             if (typeof plain === 'string') return plain;
             if (typeof powered === 'string') return powered;
+            if (typeof fast === 'string') return fast;
             const differences: string[] = [];
+            if (fast.fastest > 0.4 + 1e-6)
+                differences.push(
+                    `pushed hard it moves ${fast.fastest.toFixed(2)} blocks in a tick, where Java's moves 0.4`
+                );
             if (plain.kept < 0.9)
                 differences.push(
                     `on a rail it keeps ${(plain.kept * 100).toFixed(0)} percent of its speed over a tick, where Java keeps 96`
@@ -1307,10 +1322,7 @@ const scenarios: readonly BehaviorScenario<EntitySubject>[] = [
 /** The issues that track the differences each scenario still finds, which its gap rows cite. */
 const OPEN_GAPS: Readonly<Record<string, string>> = {
     'move-control-turn': 'issue #3140',
-    'path-through': 'issues #3140 and #3181',
-    'java-rule-out_of_control': 'issue #3144',
-    'java-rule-rail_movement': 'issue #3145',
-    'java-rule-rail_sensor': 'issue #3145'
+    'path-through': 'issues #3140 and #3181'
 };
 
 /** The scenarios that compare what an entity spawns with, and how it moves, against Java. */
