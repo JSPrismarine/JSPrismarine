@@ -36,6 +36,7 @@ import type { ContentItemDrop } from '../../content/world/adapter';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
 import type { MobEquipmentSet, MobEquipmentSlot } from '../equipment';
 import type { DataEntity } from './DataEntity';
+import { numberOf } from './numberOf';
 
 /** The actor tag holding the whole record, as JSON. */
 export const DATA_ENTITY_TAG = 'jsprismarine:entity';
@@ -259,8 +260,6 @@ const equipmentInventorySlotsOf = (value: unknown): Partial<Record<MobEquipmentS
 /** All saved container slots, preserving indices and treating invalid or absent stacks as empty. */
 export const containerSlotsOf = (value: unknown): readonly (ContentItemDrop | null)[] | undefined =>
     Array.isArray(value) ? value.map((item) => itemDropOf(item) ?? null) : undefined;
-
-const numberOf = (value: unknown, fallback: number): number => (typeof value === 'number' ? value : fallback);
 
 /** A saved position, when the value holds three numbers under `x`, `y` and `z`. */
 export const positionOf = (value: unknown): EntityPosition | undefined => {

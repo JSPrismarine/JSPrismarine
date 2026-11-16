@@ -144,6 +144,7 @@ import { itemDropOf } from '../../inventory/persistence';
 import { maxStackSizeOf, resistsDamageOf } from '../../item/Item';
 import { navigationViewOf } from './navigationView';
 import { DEFAULT_BLOCK_FRICTION, DRAG } from './travel';
+import { projectileFlight, velocityAfterMove, velocityBeforeMove } from './projectileFlight';
 import type { CachedNavigationView, EntityBlockView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
 import { applyDataEntityRecord, dataEntityRecordFrom, dataEntityRecordOf } from './persistence';
@@ -3190,8 +3191,9 @@ export class EntityRuntime implements EntityScene {
     /**
      * Spawns a projectile with its owner and launch velocity recorded in the live entity runtime.
      *
-     * Its flight is read from `minecraft:projectile`; a type without that component is refused
-     * instead of leaving a body that can only fall like an ordinary entity.
+     * Its hits are read from `minecraft:projectile`, and its flight from Java's class for a vanilla
+     * type or from that component otherwise ({@link projectileFlight}); a type without the
+     * component is refused instead of leaving a body that can only fall like an ordinary entity.
      *
      * @param identifier - The projectile entity definition to instantiate.
      * @param at - The launch position, in world coordinates.
@@ -5150,7 +5152,7 @@ export class EntityRuntime implements EntityScene {
         return block !== undefined && this.content().tags.includes('block', CLIMBABLE_TAG, block.identifier);
     }
 
-    /** Applies projectile gravity, swept collisions, and the active component's hit actions. */
+    /** Applies projectile gravity and drag ({@link projectileFlight}), swept collisions, and the active component's hit actions. */
     private coastProjectile(entity: DataEntity, params: Record<string, unknown>): void {
         const state = this.projectiles.get(entity.id) ?? { hitEntities: new Set<number>() };
         this.projectiles.set(entity.id, state);
@@ -5164,8 +5166,12 @@ export class EntityRuntime implements EntityScene {
         if (entity.body.projectileStuck) return;
 
         const { body } = entity;
+        const flight = projectileFlight(entity.identifier, params);
+        // Java's projectile classes read only water; the component's inertia counts any liquid.
+        const inWater =
+            body.conditions.has('in_water') || (flight.order === 'component' && body.conditions.has('in_lava'));
         const from = body.position;
-        const velocity = body.velocity;
+        const velocity = velocityBeforeMove(flight, body.velocity, inWater);
         const to = { x: from.x + velocity.x, y: from.y + velocity.y, z: from.z + velocity.z };
         const distance = Math.hypot(velocity.x, velocity.y, velocity.z);
         const steps = Math.max(1, Math.ceil(distance / PROJECTILE_SWEEP_STEP));
@@ -5215,22 +5221,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         body.position = lastSafe;
-        const inFluid = body.conditions.has('in_water') || body.conditions.has('in_lava');
-        const inertia = inFluid
-            ? typeof params.liquid_inertia === 'number'
-                ? params.liquid_inertia
-                : 0.6
-            : typeof params.air_inertia === 'number'
-              ? params.air_inertia
-              : typeof params.inertia === 'number'
-                ? params.inertia
-                : 0.99;
-        const gravity = typeof params.gravity === 'number' ? params.gravity : 0.03;
-        body.velocity = {
-            x: velocity.x * inertia,
-            y: (velocity.y - gravity) * inertia,
-            z: velocity.z * inertia
-        };
+        body.velocity = velocityAfterMove(flight, velocity, inWater);
     }
 
     /** Finds the first entity whose current hitbox intersects the projectile. */

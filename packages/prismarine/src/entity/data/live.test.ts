@@ -1428,7 +1428,7 @@ describe('the data-driven entity runtime over a live world', () => {
         expect(arrow.body.velocity.z).toBeGreaterThan(0);
 
         await run(1);
-        expect(arrow.body.velocity.y).toBeCloseTo(-0.0495);
+        expect(arrow.body.velocity.y).toBeCloseTo(-0.05, 6);
 
         await run(1);
 
