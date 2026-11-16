@@ -249,6 +249,12 @@ export interface ContentLevelFacts {
     /** Ticks into the current day, 0 to 23999. */
     dayTime(): number;
     difficulty(): Difficulty;
+    /**
+     * Ticks players have spent in the chunk that holds a block position, Java's
+     * `LevelChunk.getInhabitedTime`, which ramps the regional difficulty there. Left out by a level
+     * that keeps none, which reads as a new chunk.
+     */
+    inhabitedTime?(at: ContentPosition): number;
     weather(): Weather;
     /** Whether rain is falling on a position, which needs the host's heightmap. */
     isRainingAt(at: ContentPosition): boolean;

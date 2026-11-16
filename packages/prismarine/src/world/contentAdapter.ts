@@ -232,6 +232,10 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         gameTime: () => live().getTicks(),
         dayTime: () => timeOfDay(live().getTicks()),
         difficulty: () => contentDifficulty(options.difficulty()),
+        inhabitedTime: (at) =>
+            live()
+                .getLoadedChunk(at.x >> 4, at.z >> 4)
+                ?.getInhabitedTime() ?? 0,
         weather: () => live().getWeather(),
         isRainingAt: (at) => live().isRainingAt(at.x, at.y, at.z),
         spawnPosition: () => {

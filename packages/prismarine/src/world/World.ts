@@ -91,6 +91,8 @@ import { currentTickWaitTracker } from './TickWaits';
 import { ChunkTickets } from './ChunkTickets';
 import { isPortalBlock } from './portal/rules';
 import { furnaceScreenData, tickFurnace } from './cooking';
+import { tickInhabitedTime } from './inhabitedTime';
+import type { InhabitingPlayer } from './inhabitedTime';
 import { tickSpawner } from './spawners';
 import type { SpawnerSurroundings } from './spawners';
 import type { GameEventListener } from './GameEventListenerRegistry';
@@ -996,6 +998,18 @@ export class World implements Service {
         }
     }
 
+    /** Where this world's players stand, as the inhabited time count reads them. */
+    private inhabitingPlayers(): InhabitingPlayer[] {
+        return this.getViewers().map((session) => {
+            const position = session.getViewPosition();
+            return {
+                x: position.getX(),
+                z: position.getZ(),
+                spectator: session.getPlayer().gamemode === Gametype.SPECTATOR
+            };
+        });
+    }
+
     /** What one spawner sees of the world around its block, with the box rules Java's `BaseSpawner` reads by. */
     private spawnerSurroundings(at: Vector3, view: BlockView, random: () => number): SpawnerSurroundings {
         const center = new Vector3(at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5);
@@ -1198,6 +1212,7 @@ export class World implements Service {
         playerChunkRefCounts.synchronize(this.players);
         this.tickCookingStations(playerChunkRefCounts);
         this.tickSpawners(playerChunkRefCounts);
+        tickInhabitedTime(this.simulationChunks(playerChunkRefCounts), this.inhabitingPlayers());
         const isPositionTicking = (x: number, z: number): boolean =>
             playerChunkRefCounts.simulates(CoordinateUtils.fromBlockToChunk(x), CoordinateUtils.fromBlockToChunk(z));
 

@@ -3963,16 +3963,15 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * What Java's `DifficultyInstance` reads where a mob stands: the world's difficulty, its time
-     * and moon. The server keeps no chunk inhabited time yet, so every chunk reads as new
-     * (issue #3168).
+     * What Java's `DifficultyInstance` reads where a mob stands: the world's difficulty, its time,
+     * the ticks players have spent in the chunk there and the moon.
      */
-    private regionalDifficultyInputs(): RegionalDifficultyInputs {
+    private regionalDifficultyInputs(at: EntityPosition): RegionalDifficultyInputs {
         const { level } = this.world;
         return {
             difficulty: level.difficulty(),
             worldTime: level.gameTime(),
-            inhabitedTime: 0,
+            inhabitedTime: level.inhabitedTime?.(blockPositionOf(at)) ?? 0,
             moonBrightness: moonBrightnessAt(level.gameTime())
         };
     }
@@ -3985,7 +3984,8 @@ export class EntityRuntime implements EntityScene {
     public canPickUpLoot(taker: MobBody): boolean {
         if (taker.canPickUpLoot !== undefined) return taker.canPickUpLoot;
         const random = this.store.get(taker.id)?.instance.random;
-        const rolled = random !== undefined && random.next() < canPickUpLootChance(this.regionalDifficultyInputs());
+        const rolled =
+            random !== undefined && random.next() < canPickUpLootChance(this.regionalDifficultyInputs(taker.position));
         taker.canPickUpLoot = rolled;
         return rolled;
     }
@@ -5057,7 +5057,7 @@ export class EntityRuntime implements EntityScene {
 
         const content = this.content();
         entity.body.setEquipment(
-            content.equipmentDifficulty.during(this.regionalDifficultyInputs(), () =>
+            content.equipmentDifficulty.during(this.regionalDifficultyInputs(entity.position), () =>
                 rollMobEquipment({
                     content,
                     table,
@@ -7311,6 +7311,7 @@ const RESTOCKS_PER_DAY = 2;
 
 /** The Java loot table a piglin's barter rolls, from `PiglinAi.getBarterResponseItems`. */
 const JAVA_BARTER_TABLE = 'minecraft:gameplay/piglin_bartering';
+
 /** How close another cured villager counts as nearby for the trading discount, in blocks. */
 const NEARBY_CURED_RANGE = 16;
 /** Java stops a villager from breeding again for five minutes. */

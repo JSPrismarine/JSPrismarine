@@ -126,9 +126,9 @@ describe('a LevelDB save pass', () => {
         await pass.commit({ sync: true });
 
         expect(commits.batches).toBe(1);
-        // Per chunk: two sub chunks, Data3D, Version, FinalizedState, BlendingData and the
-        // generation record.
-        expect(commits.keys).toBe(21);
+        // Per chunk: two sub chunks, Data3D, Version, FinalizedState, BlendingData, the
+        // generation record and the inhabited time record.
+        expect(commits.keys).toBe(24);
         expect(pass.stats.subChunkEncodes).toBe(6);
         expect(pass.stats.forcedSubChunkEncodes).toBe(0);
         await leveldb.disable();

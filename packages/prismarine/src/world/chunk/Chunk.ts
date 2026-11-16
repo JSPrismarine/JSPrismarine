@@ -142,6 +142,9 @@ export interface ChunkNetworkBlobs {
     };
 }
 
+/** How often a chunk's inhabited time marks it changed, in ticks: once a minute. */
+const INHABITED_SAVE_TICKS = 1200;
+
 export default class Chunk {
     private x: number;
     private z: number;
@@ -210,6 +213,12 @@ export default class Chunk {
      * it with what the save says. See {@link ChunkGeneration}.
      */
     private generation: ChunkGeneration = CURRENT_GENERATION;
+
+    /**
+     * Ticks players have spent near this chunk, Java's `ChunkAccess.inhabitedTime`, which ramps
+     * the regional difficulty here and is saved with the chunk.
+     */
+    private inhabitedTime = 0;
 
     /** Entity NBT read from disk, waiting for the world to restore it. */
     private readonly storedEntities: NBTTagCompound[] = [];
@@ -525,6 +534,26 @@ export default class Chunk {
         if (generation === this.generation) return;
         this.generation = generation;
         this.markChanged();
+    }
+
+    /** Ticks players have spent near this chunk; see {@link Chunk.incrementInhabitedTime}. */
+    public getInhabitedTime(): number {
+        return this.inhabitedTime;
+    }
+
+    /** Restores the inhabited time a save held, which leaves the chunk as clean as it was. */
+    public setInhabitedTime(ticks: number): void {
+        this.inhabitedTime = ticks;
+    }
+
+    /**
+     * Counts one more tick a player spent near this chunk, Java's `incrementInhabitedTime`. Every
+     * {@link INHABITED_SAVE_TICKS} ticks it marks the chunk changed, so a chunk nothing else changes
+     * still saves its count before it unloads, losing at most that many ticks.
+     */
+    public incrementInhabitedTime(): void {
+        this.inhabitedTime += 1;
+        if (this.inhabitedTime % INHABITED_SAVE_TICKS === 0) this.markChanged();
     }
 
     public getHasChanged(): boolean {

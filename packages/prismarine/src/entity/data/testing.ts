@@ -19,6 +19,7 @@ import { definitionOf, definitionsOf } from '../../content/ContentOptions';
 import type { ContentOptions } from '../../content/ContentOptions';
 import { builtInEntityDefinitions, fixtureItemDefinitions } from '../../content/testing';
 import { singleDimension } from '../../content/world/adapter';
+import type { Difficulty } from '../../content/world/adapter';
 import type {
     ContentBlock,
     ContentEntity,
@@ -365,6 +366,10 @@ export interface TestWorldOptions {
     readonly lightLevel?: number;
     readonly dayTime?: number;
     readonly gameTime?: number;
+    /** The world difficulty, normal when left out; {@link TestEntityWorld.difficulty} changes it later. */
+    readonly difficulty?: Difficulty;
+    /** The inhabited time every chunk reports, in ticks; 0 when left out. */
+    readonly inhabitedTime?: number;
     /**
      * The game rules this world carries, keyed by any spelling the
      * `@jsprismarine/commands` registry knows.
@@ -450,6 +455,10 @@ export class TestEntityWorld {
 
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
+    /** The world difficulty, which a test changes between ticks. */
+    public difficulty: Difficulty;
+    /** Game rules a test set after building the world, read before {@link TestWorldOptions.gameRules}. */
+    public readonly gameRules = new Map<string, boolean | number>();
     private readonly runtimeIds = new Map<string, number>();
     /** The item each store player holds in its main hand, by runtime id. */
     public readonly held = new Map<number, string>();
@@ -488,6 +497,7 @@ export class TestEntityWorld {
     public constructor(options: TestWorldOptions = {}) {
         this.options = options;
         this.players = options.players ?? [];
+        this.difficulty = options.difficulty ?? 'normal';
         this.villagerRaidState = options.villagerRaidState;
         this.gameTimeTicks = options.gameTime ?? 0;
         this.dayTimeTicks = options.dayTime ?? 0;
@@ -517,7 +527,8 @@ export class TestEntityWorld {
                 seed: 0n,
                 gameTime: () => this.gameTimeTicks,
                 dayTime: () => this.dayTimeTicks,
-                difficulty: () => 'normal',
+                difficulty: () => this.difficulty,
+                inhabitedTime: () => this.options.inhabitedTime ?? 0,
                 weather: () => 'clear',
                 isRainingAt: () => false,
                 spawnPosition: () => ({ x: 0, y: FLOOR_Y + 1, z: 0 }),
@@ -657,8 +668,8 @@ export class TestEntityWorld {
     }
 
     /** Replaces one block, so a test can wall a path finder in. */
-    public setBlock(at: ContentPosition, identifier: string): void {
-        this.place(at, { identifier, states: {} });
+    public setBlock(at: ContentPosition, identifier: string, states: ContentBlock['states'] = {}): void {
+        this.place(at, { identifier, states });
     }
 
     private place(at: ContentPosition, block: ContentBlock): void {
@@ -686,10 +697,8 @@ export class TestEntityWorld {
      */
     private gameRuleOf(name: string): boolean | number | undefined {
         const rules = this.options.gameRules;
-        if (rules === undefined) return undefined;
-
         for (const spelling of gameRuleSpellings(name)) {
-            const value = rules[spelling];
+            const value = this.gameRules.get(spelling) ?? rules?.[spelling];
             if (value !== undefined) return value;
         }
         return undefined;

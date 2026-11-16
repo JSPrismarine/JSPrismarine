@@ -52,6 +52,11 @@ import {
     encodeChunkGenerationKey,
     generationOnLoad
 } from './ChunkGenerationRecord';
+import {
+    decodeChunkInhabitedTime,
+    encodeChunkInhabitedTime,
+    encodeChunkInhabitedTimeKey
+} from './ChunkInhabitedTimeRecord';
 import type { ChunkGeneration } from '../../chunk/ChunkGeneration';
 import { CURRENT_GENERATION } from '../../chunk/ChunkGeneration';
 import { applyBelowZeroRetrogen, belowZeroRetrogenOf } from '../../chunk/belowZeroRetrogen';
@@ -712,6 +717,8 @@ export default class LevelDB extends BaseProvider {
 
         const { chunk, persistedSubChunkKeys } = this.decodeTerrain(dimension, cx, cz);
         chunk.setGeneration(this.generationOf(dimension, cx, cz) ?? CURRENT_GENERATION);
+        const inhabited = this.read(encodeChunkInhabitedTimeKey(cx, cz, dimension.bedrockId));
+        chunk.setInhabitedTime((inhabited === null ? undefined : decodeChunkInhabitedTime(inhabited)) ?? 0);
 
         const blockEntityRecord = this.read(key(ChunkTag.BlockEntity));
         for (const blockEntity of this.readBlockEntities(blockEntityRecord)) {
@@ -1059,6 +1066,9 @@ export default class LevelDB extends BaseProvider {
         const generationKey = encodeChunkGenerationKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
         const generation = encodeChunkGeneration(chunk.getGeneration());
         if (!this.holds(generationKey, generation)) staged.put(generationKey, generation);
+        const inhabitedKey = encodeChunkInhabitedTimeKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
+        const inhabited = encodeChunkInhabitedTime(chunk.getInhabitedTime());
+        if (!this.holds(inhabitedKey, inhabited)) staged.put(inhabitedKey, inhabited);
         const blendingKey = key(ChunkTag.BlendingData);
         if (!this.holds(blendingKey, BEDROCK_BLENDING_DATA)) staged.put(blendingKey, BEDROCK_BLENDING_DATA);
         const pendingEntitiesKey = encodePendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);

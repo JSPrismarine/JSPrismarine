@@ -31,6 +31,7 @@ import Chunk from '../../chunk/Chunk';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type SubChunk from '../../chunk/SubChunk';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
+import { encodeChunkInhabitedTimeKey } from './ChunkInhabitedTimeRecord';
 import type { Position } from '../../Position';
 import LevelDB, { CHUNK_VERSION } from './LevelDB';
 import {
@@ -1517,6 +1518,42 @@ describe('world', () => {
                 await expect(second.provider.enable()).rejects.toThrow(/already open/);
                 await first.provider.disable();
             });
+        });
+    });
+
+    describe('chunk inhabited time', () => {
+        it('saves the ticks players spent near a chunk and reads them back', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            await provider.enable();
+            const chunk = buildChunk();
+            chunk.setInhabitedTime(3_600_123);
+            await provider.writeChunk(chunk);
+            await provider.disable();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            const restored = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
+            expect(restored.getInhabitedTime()).toBe(3_600_123);
+            expect(restored.getHasChanged()).toBe(false);
+            await reopened.provider.disable();
+        });
+
+        it('reads a chunk saved without the record as never inhabited', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            await provider.enable();
+            await provider.writeChunk(buildChunk());
+            await provider.disable();
+            const database = await Database.open(path.join(worldPath, 'db'));
+            database.del(encodeChunkInhabitedTimeKey(0, 0, 0));
+            await database.close();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            const restored = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
+            expect(restored.getInhabitedTime()).toBe(0);
+            await reopened.provider.disable();
         });
     });
 
