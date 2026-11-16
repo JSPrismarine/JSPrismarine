@@ -38,8 +38,6 @@ What done looks like:
 
 Out of scope for now:
 
-- `-beta` module versions. They break on minor releases and need the Beta APIs experiment. They
-  get their own slice once the stable surface is broad.
 - `@minecraft/server-editor` and the editor experience.
 - Scripts in resource packs. The server has nothing to run for them.
 - Marketplace and other closed packs as test fixtures.
@@ -117,16 +115,19 @@ left open goes into `goldens/behavior-gaps.json` with its issue.
 
 ## The add-on corpus
 
-A manifest in the package lists open-source add-ons with licenses that allow use, each pinned by
-repository and commit. A fetch script puts them in the cache, as the BDS pins are fetched, and
-nothing from them is checked in except the manifest and the usage counts. A counter reads each
+The repository never holds a copy of an add-on. A manifest in the package lists open-source
+add-ons with licenses that allow use, each as a repository URL and a full commit hash. Tests and
+the counter fetch each pack at its pinned commit into the cache on demand, as the BDS pins are
+fetched, and reuse the cached copy after that. The fetch checks out the exact commit, so an
+upstream force-push or a deleted branch cannot change what a test runs; a commit that is gone
+fails the fetch and names the pack. Only the manifest and the usage counts are checked in. A counter reads each
 pack's scripts and records which modules, classes, members and events it uses. The counts set the
 order of the breadth slices, and each breadth slice names the corpus packs it makes run.
 
 ## Slices
 
 1. [x] **Grill and decide.** ADRs 0020 to 0023 and the ADR 0015 amendment.
-2. [ ] **Research note.** [bedrock-script-api.md](../research/bedrock-script-api.md): versions
+2. [x] **Research note.** [bedrock-script-api.md](../research/bedrock-script-api.md): versions
    and their members, timing, configuration, storage, the debugger protocol, engine options, and
    corpus candidates.
 3. [ ] **The engine on one platform.** Linux x64 first.
@@ -143,8 +144,8 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
    - The overrides list for metadata gaps, starting with `registerCommand`'s privilege.
    - Tests: a pack declaring 1.3.0 gets the newest 1.x, argument validation errors match the
      metadata, an unimplemented call names its member.
-5. [ ] **The parity families.** Declare the `scripting.*` families, write the BDS runner and the golden format, and
-   land one scenario that runs on BDS, with JSP's row recorded as a gap.
+5. [ ] **The parity families.** Declare the `scripting.*` families, write the BDS runner and the
+   golden format, and land one scenario that runs on BDS, with JSP's row recorded as a gap.
 6. [ ] **The skeleton.** The milestone that proves every mechanism once:
    - manifest and native module resolution, including an undeclared `@jsprismarine/server` import
      that rejects on BDS and resolves on JSP
@@ -165,28 +166,34 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
    after it if the port is large.
    - Done when VS Code attaches and stops at a breakpoint in a scenario pack.
 8. [ ] **The corpus.** The manifest, the fetch script and the usage counter, starting from the
-   candidates in the research note. Count beta packs too, since their stable usage still orders
-   the work. Order slices 9 onward by the counts.
-9. [ ] **Core server breadth.** Players, entities, blocks, dimensions, items and the events the
-   corpus uses most, in batches. Each batch names the corpus packs it makes run.
-10. [ ] **Custom components.** `registerCustomComponent` for blocks and items registers into the
+   candidates in the research note. Count beta packs too. Order slices 9 onward by the counts.
+9. [ ] **Beta modules.** Right after the skeleton, because most open-source add-ons in the corpus
+   depend on a beta `@minecraft/server`.
+   - The Beta APIs experiment as a world setting, sent to clients and required by a pack that
+     declares a `-beta` version, with BDS's message when it is off.
+   - The generated shape of each beta version the pinned BDS ships. Beta versions do not follow
+     semver, so a `scripting.lifecycle` row records what BDS does with a pack that names another
+     beta version.
+   - From here on, breadth slices implement a member in the stable and beta shapes together.
+10. [ ] **Core server breadth.** Players, entities, blocks, dimensions, items and the events the
+    corpus uses most, in batches. Each batch names the corpus packs it makes run.
+11. [ ] **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.
-11. [ ] **Persistence.** Dynamic properties and script scoreboards, byte-compatible with BDS and
+12. [ ] **Persistence.** Dynamic properties and script scoreboards, byte-compatible with BDS and
     checked by the LevelDB compatibility suite in both directions.
-12. [ ] **`@minecraft/server-ui`.** Forms, over the modal form packets.
-13. [ ] **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
+13. [ ] **`@minecraft/server-ui`.** Forms, over the modal form packets.
+14. [ ] **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
     same tests.
-14. [ ] **`@minecraft/server-net` and `@minecraft/server-admin`.** Responses as inputs, and the
+15. [ ] **`@minecraft/server-net` and `@minecraft/server-admin`.** Responses as inputs, and the
     permissions BDS requires.
-15. [ ] **`@jsprismarine/server`.** The first JSP-only members, the npm typings package, and a
+16. [ ] **`@jsprismarine/server`.** The first JSP-only members, the npm typings package, and a
     docs page with the detect-and-fall-back pattern.
-16. [ ] **The docs.** Rewrite [Extending JSPrismarine](../guide/extending.md) around script packs,
+17. [ ] **The docs.** Rewrite [Extending JSPrismarine](../guide/extending.md) around script packs,
     with embedding as the lower-level option.
-17. [ ] **Every platform.** The native builds for each platform ADR 0006 lists.
-18. [ ] **scriptc.** The scriptc binding over the same C layer, once the server compiles under
+18. [ ] **Every platform.** The native builds for each platform ADR 0006 lists.
+19. [ ] **scriptc.** The scriptc binding over the same C layer, once the server compiles under
     scriptc.
-19. [ ] **Beta modules.** Behind the Beta APIs experiment.
 20. [ ] **The rest.** `debug-utilities`, `diagnostics` and `server-graphics`, as the corpus asks.
 
 ## Risks
@@ -208,11 +215,13 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
   are designed to batch.
 - **Step budgets differ from milliseconds.** A script BDS lets finish may stop on JSP, or the
   reverse. The default ratio comes from corpus runs, and an admin can change it.
+- **Beta churn.** Beta modules can break on any minor release, so each BDS bump can change what a
+  beta pack sees. The regenerated shape's diff shows it, and corpus packs pinned to a beta BDS no
+  longer ships fail their fetch-and-load row with that reason.
 - **Two lifecycles.** Version 1 and version 2 differ in startup and promise timing, and both stay
   in use for years.
 
 ## Open questions
 
 - The default ratio from milliseconds to steps.
-- Whether the many corpus packs on beta modules pull the beta slice earlier.
 - The rest are in the research note's open questions.
