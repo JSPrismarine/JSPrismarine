@@ -4140,11 +4140,9 @@ export class EntityRuntime implements EntityScene {
             ...entity.body.equipment,
             offhand: { identifier: itemIdentifier, count: 1 }
         });
-        if (canStartAdmiring) {
-            const duration =
-                isRecord(admireParams) && typeof admireParams.duration === 'number' ? admireParams.duration : 10;
-            admireGoldItem(context, Math.ceil(duration * TICKS_PER_SECOND));
-        }
+        // Java's PiglinAi.mobInteract admires a handed ingot for ADMIRE_DURATION, as long as a
+        // picked-up one, whatever `minecraft:admire_item.duration` says.
+        if (canStartAdmiring) admireGoldItem(context);
         if (canStartBartering) this.pendingBarters.add(entity);
         return true;
     }
@@ -4173,15 +4171,15 @@ export class EntityRuntime implements EntityScene {
 
         this.removeInteractionEquipment(entity, 'offhand');
         this.pendingBarters.delete(entity);
-        const drops = bedrockItemDrops(
-            this.content()
-                .equipmentLoot.roll(table, {
-                    parameterSet: 'barter',
-                    parameters: { this_entity: this.lootEntityViewOf(entity) }
-                })
-                .filter((drop) => drop.count > 0)
-                .map(dropOfRolledStack)
-        );
+        // Java's PiglinAi.getBarterResponseItems rolls gameplay/piglin_bartering. The stack carries it
+        // whenever it carries Java's loot, and the pack's own table answers only when it does not.
+        const content = this.content();
+        const javaTable = content.loot.table(JAVA_BARTER_TABLE) !== undefined;
+        const rolled = (javaTable ? content.loot : content.equipmentLoot).roll(javaTable ? JAVA_BARTER_TABLE : table, {
+            parameterSet: 'barter',
+            parameters: { this_entity: this.lootEntityViewOf(entity) }
+        });
+        const drops = bedrockItemDrops(rolled.filter((drop) => drop.count > 0).map(dropOfRolledStack));
         const position = blockPositionOf(entity.position);
         for (const drop of drops) {
             this.host.drop(position, drop);
@@ -5974,6 +5972,9 @@ const FIRE_DAMAGE_INTERVAL_TICKS = 20;
 
 /** Java's `Villager` allows two restocks a day, at least this many ticks apart. */
 const RESTOCKS_PER_DAY = 2;
+
+/** The Java loot table a piglin's barter rolls, from `PiglinAi.getBarterResponseItems`. */
+const JAVA_BARTER_TABLE = 'minecraft:gameplay/piglin_bartering';
 /** How close another cured villager counts as nearby for the trading discount, in blocks. */
 const NEARBY_CURED_RANGE = 16;
 /** Java stops a villager from breeding again for five minutes. */

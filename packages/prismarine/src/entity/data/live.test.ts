@@ -4141,6 +4141,28 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(eggTargets.length).toBeGreaterThan(0);
             });
 
+            it("admires a handed gold ingot for Java's ADMIRE_DURATION", { timeout: 180_000 }, () => {
+                useVanillaContent();
+
+                const piglin = live.runtime.spawn('minecraft:piglin', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                if (piglin === undefined) throw new Error('vanilla content declares no piglin');
+                if (piglin.instance.hasComponent('minecraft:is_baby')) return;
+
+                // The vanilla interaction reads a player holding the ingot.
+                const player = {
+                    id: () => 990_001,
+                    names: (name: string) => (name === 'is_family' ? ['player'] : undefined),
+                    equipment: (slot: string) =>
+                        slot === 'hand' ? { identifier: () => 'minecraft:gold_ingot' } : undefined
+                };
+                expect(live.runtime.interactWithItem(piglin.id, 990_001, 'minecraft:gold_ingot', player).accepted).toBe(
+                    true
+                );
+
+                // Java's PiglinAi.ADMIRE_DURATION is 119 ticks; the pack's admire_item writes 8 seconds.
+                expect(piglin.brain?.getTimeUntilExpiry(MemoryModuleTypes.ADMIRING_ITEM)).toBe(119);
+            });
+
             it('makes a vanilla frog pregnant instead of spawning a tadpole', { timeout: 180_000 }, () => {
                 useVanillaContent();
 
