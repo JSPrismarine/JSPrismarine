@@ -228,6 +228,15 @@ that water, or an update it sets off, writes a block in another loaded chunk, th
 too. A chunk stops settling once it and its <!-- fact:settling.neighbors -->8<!-- /fact --> neighbors are loaded with no fluid tick and no
 block update queued, or when a player or a command writes a block in it.
 
+Generation also marks the blocks Java's post-processing settles against their neighbors: the
+fluids the terrain fill, the carvers and the surface rules place, each face of a multiface growth,
+a mushroom, the block above soul sand or magma, and the fences, torches, ladders and iron bars a
+structure piece places. When the chunk enters the world, each marked block that is not itself a
+fluid hears from its six neighbors in Java's order through its families' `onNeighborChanged`, so a
+torch whose wall a later piece removed lets go. What the block writes tells no neighbor and drops
+nothing, as Java's post-processing write does. A block on the chunk's edge waits until the chunk
+beside it is loaded.
+
 ## Fire
 
 Fire is `FireBlock.tick` and `FireBlock.checkBurnOut`, implemented by `portalFamily` in

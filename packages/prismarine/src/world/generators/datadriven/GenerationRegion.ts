@@ -196,7 +196,7 @@ export interface GenerationRegionPayload {
     readonly blockEntities: ReadonlyArray<readonly [index: number, entity: RegionBlockEntity]>;
     readonly entitySpawns: readonly RegionEntitySpawn[];
     /** The fluid positions to tick once the chunk is in a world; see {@link GenerationRegion.scheduleFluidTick}. */
-    readonly fluidTicks?: readonly RegionBlockPosition[];
+    readonly fluidTicks?: readonly RegionFluidTick[];
 }
 
 /**
@@ -290,10 +290,24 @@ export interface RegionBlockPosition {
 }
 
 /**
+ * A position generation asks the world to revisit once the chunk is in it: the fluid standing
+ * there is ticked, and a mark for post-processing also has the block settled against its
+ * neighbors. See {@link GenerationRegion.scheduleFluidTick} and
+ * {@link GenerationRegion.markForPostProcessing}.
+ */
+export interface RegionFluidTick extends RegionBlockPosition {
+    /**
+     * Whether this is Java's `ChunkAccess.markPosForPostProcessing` rather than a scheduled fluid
+     * tick, so `LevelChunk.postProcessGeneration` also runs `Block.updateFromNeighbourShapes` here.
+     */
+    readonly postProcess?: boolean;
+}
+
+/**
  * Whether a value that crossed a thread or came off disk is absent or a list of block positions,
  * which is the shape a region's and a patch's fluid ticks travel in.
  */
-export const isOptionalFluidTickList = (value: unknown): value is readonly RegionBlockPosition[] | undefined =>
+export const isOptionalFluidTickList = (value: unknown): value is readonly RegionFluidTick[] | undefined =>
     value === undefined ||
     (Array.isArray(value) &&
         value.every(
@@ -305,7 +319,8 @@ export const isOptionalFluidTickList = (value: unknown): value is readonly Regio
                 'y' in tick &&
                 Number.isSafeInteger(tick.y) &&
                 'z' in tick &&
-                Number.isSafeInteger(tick.z)
+                Number.isSafeInteger(tick.z) &&
+                (!('postProcess' in tick) || tick.postProcess === undefined || typeof tick.postProcess === 'boolean')
         ));
 
 /** Decoration output that belongs to one chunk. */
@@ -317,7 +332,7 @@ export interface RegionChunkPatch {
     readonly blockEntities: readonly RegionBlockEntity[];
     readonly entitySpawns: readonly RegionEntitySpawn[];
     /** The fluid ticks a feature asked for in this chunk; see {@link GenerationRegion.scheduleFluidTick}. */
-    readonly fluidTicks?: readonly RegionBlockPosition[];
+    readonly fluidTicks?: readonly RegionFluidTick[];
     /**
      * The positions among {@link RegionChunkPatch.blocks} a structure piece wrote.
      *
@@ -338,7 +353,7 @@ interface MutableRegionPatch {
     readonly blockEntityRemovals: RegionBlockEntityRemoval[];
     readonly blockEntities: RegionBlockEntity[];
     readonly entitySpawns: RegionEntitySpawn[];
-    readonly fluidTicks: RegionBlockPosition[];
+    readonly fluidTicks: RegionFluidTick[];
     readonly structureBlocks: RegionBlockPosition[];
 }
 
@@ -444,7 +459,7 @@ export class GenerationRegion {
     private entitySpawns: RegionEntitySpawn[] = [];
 
     /** The fluid positions to tick once the chunk is in a world, in the order they were asked for. */
-    private fluidTicks: RegionBlockPosition[] = [];
+    private fluidTicks: RegionFluidTick[] = [];
 
     private trackingWrites = false;
     /** Whether the writes arriving now come from a structure piece; see {@link GenerationRegion.withStructureWrites}. */
@@ -454,7 +469,7 @@ export class GenerationRegion {
     private readonly trackedBlockEntityRemovals = new Map<number, RegionBlockEntityRemoval>();
     private readonly trackedBlockEntities = new Map<number, RegionBlockEntity>();
     private readonly trackedEntitySpawns: RegionEntitySpawn[] = [];
-    private readonly trackedFluidTicks: RegionBlockPosition[] = [];
+    private readonly trackedFluidTicks: RegionFluidTick[] = [];
 
     /** The `WORLD_SURFACE_WG` heights frozen after the terrain fill, as Java freezes them. */
     private frozenSurface: Int32Array<ArrayBuffer> | null = null;
@@ -1105,7 +1120,7 @@ export class GenerationRegion {
             setBlock: (x, y, z, state) => {
                 this.writeName(x, y, z, state);
                 // Java's surface pass marks a block it places that holds fluid for post-processing.
-                if (this.options.blocks.fluid(this.stateAt(x, y, z)) !== 'empty') this.scheduleFluidTick(x, y, z);
+                if (this.options.blocks.fluid(this.stateAt(x, y, z)) !== 'empty') this.markForPostProcessing(x, y, z);
             },
             surfaceHeight: (localX, localZ) => {
                 const column = this.columnIndex(this.chunkX * 16 + localX, this.chunkZ * 16 + localZ);
@@ -1134,7 +1149,7 @@ export class GenerationRegion {
             setBlockEntity: (position, data) => this.attachBlockEntity(position, data),
             spawnEntity: (type, position, options) => this.recordEntity(type, position, options),
             scheduleFluidTick: (position) => this.scheduleFluidTick(position.x, position.y, position.z),
-            markForPostProcessing: (position) => this.scheduleFluidTick(position.x, position.y, position.z),
+            markForPostProcessing: (position) => this.markForPostProcessing(position.x, position.y, position.z),
             placeTemplate: (request) => this.stampTemplate(request),
             ...(this.options.isColdEnoughToSnow
                 ? {
@@ -1156,40 +1171,50 @@ export class GenerationRegion {
     }
 
     /** The fluid ticks asked for inside the center chunk, in the order they were asked for. */
-    public centerFluidTicks(): readonly RegionBlockPosition[] {
+    public centerFluidTicks(): readonly RegionFluidTick[] {
         return this.fluidTicks.filter((tick) => this.isInCenterChunk(tick.x, tick.z));
     }
 
     /**
-     * Asks for the fluid at a position to be ticked once the chunk is in a world.
-     *
-     * Java's two routes to that tick: a position the noise fill or a carver marks for
-     * post-processing, which `LevelChunk.postProcessGeneration` ticks when the chunk becomes
-     * full, and a feature's `WorldGenLevel.scheduleTick`. Both name a fluid and a position, and
-     * the world ticks it only if fluid still stands there, so one list carries both.
+     * Asks for the fluid at a position to be ticked once the chunk is in a world, a feature's or a
+     * structure piece's `WorldGenLevel.scheduleTick`. The world ticks it only if fluid still
+     * stands there.
      */
     public scheduleFluidTick(x: number, y: number, z: number): void {
-        if (this.indexOf(x, y, z) === -1) return;
+        this.recordFluidTick(x, y, z, false);
+    }
 
-        const tick = { x, y, z };
-        this.fluidTicks.push(tick);
-        if (this.trackingWrites) this.trackedFluidTicks.push(tick);
+    /**
+     * Marks a position for the work Java's `LevelChunk.postProcessGeneration` does once the chunk
+     * is in a world, Java's `ChunkAccess.markPosForPostProcessing`: the fluid standing there is
+     * ticked, and a block that is not itself a fluid is settled against its neighbors.
+     *
+     * The noise fill, the carvers and the surface pass mark the fluids they place, a multiface
+     * growth marks each face it places, and a structure piece marks its fences, torches, ladders
+     * and bars.
+     */
+    public markForPostProcessing(x: number, y: number, z: number): void {
+        this.recordFluidTick(x, y, z, true);
     }
 
     /**
      * Marks the position a block just written asks post-processing for, Java's
-     * `WorldGenRegion.setBlock` calling `BlockState.getPostProcessPos`.
-     *
-     * The mark joins the same list as {@link scheduleFluidTick}, because the fluid tick is the part
-     * of Java's `LevelChunk.postProcessGeneration` this server runs: the world ticks a marked
-     * position only where fluid stands, which for soul sand and magma is the water a bubble column
-     * would rise through. The shape update Java runs on the other marks has no counterpart here.
+     * `WorldGenRegion.setBlock` calling `BlockState.getPostProcessPos`: a mushroom marks itself,
+     * and soul sand and magma mark the block above, where a bubble column would rise.
      *
      * @param name - The block's name, in Java or Bedrock spelling.
      */
     public markPostProcessOf(x: number, y: number, z: number, name: string): void {
         const offset = POST_PROCESS_OFFSETS.get(name);
-        if (offset !== undefined) this.scheduleFluidTick(x, y + offset, z);
+        if (offset !== undefined) this.markForPostProcessing(x, y + offset, z);
+    }
+
+    private recordFluidTick(x: number, y: number, z: number, postProcess: boolean): void {
+        if (this.indexOf(x, y, z) === -1) return;
+
+        const tick: RegionFluidTick = postProcess ? { x, y, z, postProcess } : { x, y, z };
+        this.fluidTicks.push(tick);
+        if (this.trackingWrites) this.trackedFluidTicks.push(tick);
     }
 
     /**

@@ -375,6 +375,42 @@ describe('world chunk requests', () => {
         expect(world.loadedLiquidAt(38, 64, 54)).toBeUndefined();
     });
 
+    it('settles the blocks a chunk brings shape updates for, once the chunks beside them are loaded', async () => {
+        const water = BlockRuntimeIds.getByName('minecraft:water');
+        const torch = BlockRuntimeIds.getByName('minecraft:torch');
+        const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
+            const chunk = new Chunk(x, z, new Map(), Dimensions.Overworld);
+            if (x !== 2 || z !== 3) return chunk;
+            chunk.setBlockRuntimeId(5, 64, 5, torch);
+            chunk.setBlockRuntimeId(4, 64, 4, water);
+            chunk.setBlockRuntimeId(0, 64, 5, torch);
+            chunk.getPendingShapeUpdates().push(
+                { x: 37, y: 64, z: 53 },
+                // A fluid block's mark is its tick alone, as Java leaves a `LiquidBlock` be.
+                { x: 36, y: 64, z: 52 },
+                // On the west edge, beside chunk 1,3.
+                { x: 32, y: 64, z: 53 }
+            );
+            return chunk;
+        });
+        const world = testWorld(readChunk);
+        const settled: string[] = [];
+        vi.spyOn(testContent().world.blockWorld, 'updateShape').mockImplementation((at) => {
+            settled.push(`${at.x},${at.y},${at.z}`);
+        });
+
+        const chunk = await world.getChunk(2, 3);
+
+        expect(settled).toEqual(['37,64,53']);
+        expect(chunk.getPendingShapeUpdates()).toEqual([{ x: 32, y: 64, z: 53 }]);
+
+        // The north and south sides of the edge block are in its own chunk; only the west one waits.
+        await world.getChunk(1, 3);
+
+        expect(settled).toEqual(['37,64,53', '32,64,53']);
+        expect(chunk.getPendingShapeUpdates()).toEqual([]);
+    });
+
     describe('settling a freshly generated chunk', () => {
         /** A provider that generates every chunk it is asked for, as one with no stored chunks does. */
         const generating = (pendingAt?: { x: number; z: number }) =>

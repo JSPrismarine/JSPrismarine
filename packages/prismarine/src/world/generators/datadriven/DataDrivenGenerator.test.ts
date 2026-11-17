@@ -259,6 +259,11 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
                     expect(chunk.getBlock(tick.x & 15, tick.y, tick.z & 15).name).toMatch(/water|lava/);
                     ticks++;
                 }
+                // With no features, every tick is a fill or carver mark for post-processing, which
+                // also asks for the block's shape update.
+                expect(chunk.getPendingShapeUpdates()).toEqual(
+                    chunk.getPendingFluidTicks().map(({ x, y, z }) => ({ x, y, z }))
+                );
             }
             expect(ticks).toBeGreaterThan(0);
         },

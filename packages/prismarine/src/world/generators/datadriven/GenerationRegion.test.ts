@@ -477,24 +477,30 @@ describe('neighbor chunk data', () => {
         built.beginWriteTracking();
         world.scheduleFluidTick?.({ x: 3, y: 40, z: 5 });
         world.scheduleFluidTick?.({ x: 17, y: 41, z: 6 });
+        world.markForPostProcessing?.({ x: 18, y: 42, z: 7 });
 
         const patches = built.takeTrackedPatches();
         const own = patches.find((patch) => patch.chunkX === 0 && patch.chunkZ === 0);
         const east = patches.find((patch) => patch.chunkX === 1 && patch.chunkZ === 0);
         expect(own?.fluidTicks).toEqual([{ x: 3, y: 40, z: 5 }]);
-        expect(east?.fluidTicks).toEqual([{ x: 17, y: 41, z: 6 }]);
+        const eastTicks = [
+            { x: 17, y: 41, z: 6 },
+            { x: 18, y: 42, z: 7, postProcess: true }
+        ];
+        expect(east?.fluidTicks).toEqual(eastTicks);
 
-        // The neighbor's merge keeps it, and its chunk is the only one that carries it.
+        // The neighbor's merge keeps them, and its chunk is the only one that carries them.
         const destination = terrainTile(1, 0);
         if (east === undefined) throw new Error('The cross-chunk tick did not produce a patch');
         destination.applyPatch(east);
-        expect(destination.centerFluidTicks()).toEqual([{ x: 17, y: 41, z: 6 }]);
+        expect(destination.centerFluidTicks()).toEqual(eastTicks);
         expect(built.centerFluidTicks()).toEqual([{ x: 3, y: 40, z: 5 }]);
     });
 
     it("carries a terrain tile's fluid ticks across a thread and into the region built from it", () => {
         const tile = terrainTile(1, -2);
         tile.scheduleFluidTick(20, 10, -30);
+        tile.markForPostProcessing(21, 11, -29);
         // Outside the tile: nothing there to tick, as Java's region drops a write it does not hold.
         tile.scheduleFluidTick(40, 10, -30);
         const options = {
@@ -510,12 +516,16 @@ describe('neighbor chunk data', () => {
             structuredClone(transferred.payload, { transfer: [...transferred.transferList] }),
             options
         );
-        expect(fromInput.centerFluidTicks()).toEqual([{ x: 20, y: 10, z: -30 }]);
-        expect(fromTransfer.centerFluidTicks()).toEqual([{ x: 20, y: 10, z: -30 }]);
+        const expected = [
+            { x: 20, y: 10, z: -30 },
+            { x: 21, y: 11, z: -29, postProcess: true }
+        ];
+        expect(fromInput.centerFluidTicks()).toEqual(expected);
+        expect(fromTransfer.centerFluidTicks()).toEqual(expected);
 
         const merged = new GenerationRegion({ ...options, chunkX: 1, chunkZ: -2, minY: -64, height: 384, radius: 0 });
         merged.copyCenterFrom(fromTransfer);
-        expect(merged.centerFluidTicks()).toEqual([{ x: 20, y: 10, z: -30 }]);
+        expect(merged.centerFluidTicks()).toEqual(expected);
     });
 
     it("marks a block's post-process position the way Java's WorldGenRegion.setBlock does", () => {
@@ -536,10 +546,10 @@ describe('neighbor chunk data', () => {
         tile.markPostProcessOf(12, 15, 13, 'minecraft:magma');
 
         expect(tile.centerFluidTicks()).toEqual([
-            { x: 2, y: 11, z: 3 },
-            { x: 4, y: 12, z: 5 },
-            { x: 6, y: 12, z: 7 },
-            { x: 12, y: 16, z: 13 }
+            { x: 2, y: 11, z: 3, postProcess: true },
+            { x: 4, y: 12, z: 5, postProcess: true },
+            { x: 6, y: 12, z: 7, postProcess: true },
+            { x: 12, y: 16, z: 13, postProcess: true }
         ]);
     });
 
@@ -547,7 +557,7 @@ describe('neighbor chunk data', () => {
         const tile = terrainTile(0, 0);
         tile.featureWorld().markForPostProcessing?.({ x: 1, y: 20, z: 1 });
 
-        expect(tile.centerFluidTicks()).toEqual([{ x: 1, y: 20, z: 1 }]);
+        expect(tile.centerFluidTicks()).toEqual([{ x: 1, y: 20, z: 1, postProcess: true }]);
     });
 
     it('does not let a patch drop grass or leaf litter over a block it never saw', () => {

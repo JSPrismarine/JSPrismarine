@@ -21,7 +21,10 @@ const patch = (writes: number): RegionChunkPatch => ({
     blockEntityRemovals: [{ x: 50, y: 70, z: -30 }],
     blockEntities: [],
     entitySpawns: [],
-    fluidTicks: [{ x: 49, y: 62, z: -31 }],
+    fluidTicks: [
+        { x: 49, y: 62, z: -31 },
+        { x: 50, y: 63, z: -30, postProcess: true }
+    ],
     structureBlocks: [
         { x: 48, y: -64, z: -32 },
         { x: 51, y: 0, z: -20 }

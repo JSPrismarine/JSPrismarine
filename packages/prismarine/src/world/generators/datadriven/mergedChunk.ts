@@ -14,7 +14,7 @@
 import { isRecord } from '../../../utils/isRecord';
 import type { BedrockSection } from './bedrockSections';
 import { isBedrockSections } from './bedrockSections';
-import type { RegionBlock, RegionBlockEntity, RegionBlockPosition, RegionEntitySpawn } from './GenerationRegion';
+import type { RegionBlock, RegionBlockEntity, RegionEntitySpawn, RegionFluidTick } from './GenerationRegion';
 import { isOptionalFluidTickList, paletteKeyOf } from './GenerationRegion';
 
 /** The Bedrock form of every palette entry a merge can produce, keyed by {@link paletteKeyOf}. */
@@ -37,8 +37,8 @@ export interface MergedChunkParts {
     readonly blockEntities: readonly RegionBlockEntity[];
     /** The entities features asked for inside the chunk, in the order they asked. */
     readonly entitySpawns: readonly RegionEntitySpawn[];
-    /** The fluid ticks asked for inside the chunk, in the order they were asked for. */
-    readonly fluidTicks: readonly RegionBlockPosition[];
+    /** The fluid ticks and post-processing marks asked for inside the chunk, in the order they were asked for. */
+    readonly fluidTicks: readonly RegionFluidTick[];
 }
 
 /**

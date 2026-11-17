@@ -117,9 +117,9 @@ import type {
     RegionBiomeCells,
     RegionBlock,
     RegionBlockEntity,
-    RegionBlockPosition,
     RegionChunkPatch,
-    RegionEntitySpawn
+    RegionEntitySpawn,
+    RegionFluidTick
 } from './GenerationRegion';
 import type { MergedChunkParts } from './mergedChunk';
 import { isMergedChunkParts, translatePalette, translateSlots } from './mergedChunk';
@@ -2515,7 +2515,7 @@ export class DataDrivenGenerator implements Generator {
                 writeTerrainName(x, y, z, state);
                 // Java's `doFill` marks the fluid the aquifer asked to update for post-processing,
                 // which ticks it once the chunk is in a world. The flag is only ever set on fluid.
-                if (scheduleFluidUpdate) region.scheduleFluidTick(x, y, z);
+                if (scheduleFluidUpdate) region.markForPostProcessing(x, y, z);
             });
 
             // A yield is a trip around the event loop, which on a loaded host costs more than
@@ -3154,21 +3154,29 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /**
-     * Hands the chunk the fluid ticks generation asked for, once each.
+     * Hands the chunk the fluid ticks and shape updates generation asked for, once each.
      *
      * Java ticks a post-processing mark when the chunk becomes full and a feature's tick on the
-     * world's next tick, so both fire as soon as the chunk is in a world. The fill, a carver and a
-     * neighbor's patch can mark one position more than once; the world would drop the repeats,
-     * and dropping them here keeps the list the chunk carries short.
+     * world's next tick, so both fire as soon as the chunk is in a world; a mark also asks for
+     * the block to be settled against its neighbors. The fill, a carver and a neighbor's patch can
+     * mark one position more than once; the world would drop the repeats, and dropping them here
+     * keeps the lists the chunk carries short.
      */
-    private recordFluidTicks(requested: readonly RegionBlockPosition[], chunk: Chunk): void {
+    private recordFluidTicks(requested: readonly RegionFluidTick[], chunk: Chunk): void {
         const ticks = chunk.getPendingFluidTicks();
-        const seen = new Set<string>();
-        for (const { x, y, z } of requested) {
+        const shapes = chunk.getPendingShapeUpdates();
+        const ticked = new Set<string>();
+        const shaped = new Set<string>();
+        for (const { x, y, z, postProcess } of requested) {
             const key = `${x},${y},${z}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            ticks.push({ x, y, z, delay: 0 });
+            if (!ticked.has(key)) {
+                ticked.add(key);
+                ticks.push({ x, y, z, delay: 0 });
+            }
+            if (postProcess === true && !shaped.has(key)) {
+                shaped.add(key);
+                shapes.push({ x, y, z });
+            }
         }
     }
 

@@ -46,7 +46,7 @@ import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
 import type { Breaker } from './blockBreak';
 import { EYE_HEIGHT } from '../entity/playerEyes';
-import { notifyContentNeighbors } from './neighborContent';
+import { notifyContentNeighbors, updateContentShape } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
 import type { ShownActor, ShownEntity } from './ShownActor';
 import { byRuntimeId } from './runtimeIdOrder';
@@ -1757,6 +1757,57 @@ export class World implements Service {
     }
 
     /**
+     * Settles each block a chunk brought a shape update for against its neighbors, the half of
+     * Java's `LevelChunk.postProcessGeneration` that runs `Block.updateFromNeighbourShapes` on a
+     * position generation marked: a torch whose wall a later structure piece took away lets go,
+     * and a mushroom in daylight off mycelium is gone.
+     *
+     * A fluid block is left alone, as Java leaves a `LiquidBlock`: its mark is the fluid tick
+     * alone. A block on the chunk's edge waits for the chunk beside it, because what it settles
+     * to depends on that neighbor and a block that read an unloaded chunk as empty would let go
+     * of a wall it is fixed to. So a chunk entering also retries what waits in the four beside it.
+     */
+    private settlePendingShapes(chunk: Chunk): void {
+        this.settleShapesIn(chunk);
+        for (const [dx, dz] of [
+            [-1, 0],
+            [1, 0],
+            [0, -1],
+            [0, 1]
+        ] as const) {
+            const neighbor = this.getLoadedChunk(chunk.getX() + dx, chunk.getZ() + dz);
+            if (neighbor !== null) this.settleShapesIn(neighbor);
+        }
+    }
+
+    /** Settles the waiting blocks of one loaded chunk that can be, and keeps the rest waiting. */
+    private settleShapesIn(chunk: Chunk): void {
+        if (chunk.getPendingShapeUpdates().length === 0) return;
+
+        const waiting = chunk.getPendingShapeUpdates();
+        for (const at of chunk.takePendingShapeUpdates()) {
+            if (!this.sideNeighborsLoaded(at.x, at.z)) {
+                waiting.push(at);
+                continue;
+            }
+            if (liquidOf(chunk.getBlock(at.x & 0xf, at.y, at.z & 0xf).name) !== null) continue;
+            updateContentShape(this, at);
+        }
+    }
+
+    /** Whether the chunks holding a column's four side neighbors are loaded. */
+    private sideNeighborsLoaded(x: number, z: number): boolean {
+        const cx = x >> 4;
+        const cz = z >> 4;
+        return (
+            ((x & 0xf) !== 0 || this.getLoadedChunk(cx - 1, cz) !== null) &&
+            ((x & 0xf) !== 0xf || this.getLoadedChunk(cx + 1, cz) !== null) &&
+            ((z & 0xf) !== 0 || this.getLoadedChunk(cx, cz - 1) !== null) &&
+            ((z & 0xf) !== 0xf || this.getLoadedChunk(cx, cz + 1) !== null)
+        );
+    }
+
+    /**
      * The world's scheduled fluid ticks by chunk, for a save to write with each chunk; see
      * {@link ChunkSaveContext.pendingFluidTicks}.
      */
@@ -1879,6 +1930,7 @@ export class World implements Service {
         this.measured('chunk-fluids', () => {
             if (chunk.takeFreshlyGenerated()) this.markChunkSettling(x, z);
             this.schedulePendingFluidTicks(chunk);
+            this.settlePendingShapes(chunk);
         });
 
         return this.measured('chunk-entities', () => {

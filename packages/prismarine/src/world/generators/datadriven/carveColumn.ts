@@ -18,7 +18,7 @@ const DIRT = 'minecraft:dirt';
 
 /** What carving one column reads and writes. */
 export interface CarveColumnContext {
-    readonly region: Pick<GenerationRegion, 'stateAt' | 'writeName' | 'scheduleFluidTick'>;
+    readonly region: Pick<GenerationRegion, 'stateAt' | 'writeName' | 'markForPostProcessing'>;
     readonly aquifer: Aquifer;
     readonly oracle: Pick<BlockOracle, 'isAir' | 'hasTag' | 'fluid'>;
     readonly surface: Pick<SurfacePass, 'topMaterial'>;
@@ -62,7 +62,7 @@ export const carveColumn = (context: CarveColumnContext, x: number, z: number, b
         if (substance === undefined) continue;
         region.writeName(x, y, z, substance);
         if (aquifer.shouldScheduleFluidUpdate() && oracle.fluid(region.stateAt(x, y, z)) !== 'empty') {
-            region.scheduleFluidTick(x, y, z);
+            region.markForPostProcessing(x, y, z);
         }
 
         if (!tookGrass || region.stateAt(x, y - 1, z).name !== DIRT) continue;
@@ -74,6 +74,6 @@ export const carveColumn = (context: CarveColumnContext, x: number, z: number, b
         if (material === undefined) continue;
         region.writeName(x, y - 1, z, material);
         // Java marks the re-surfaced block too when the material it chose holds fluid.
-        if (oracle.fluid(region.stateAt(x, y - 1, z)) !== 'empty') region.scheduleFluidTick(x, y - 1, z);
+        if (oracle.fluid(region.stateAt(x, y - 1, z)) !== 'empty') region.markForPostProcessing(x, y - 1, z);
     }
 };

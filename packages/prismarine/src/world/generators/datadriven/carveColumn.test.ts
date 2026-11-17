@@ -67,7 +67,7 @@ describe('carveColumn', () => {
 
         expect(region.stateAt(1, 11, 1).name).toBe('minecraft:water');
         expect(region.stateAt(1, 10, 1).name).toBe('minecraft:water');
-        expect(region.centerFluidTicks()).toEqual([{ x: 1, y: 10, z: 1 }]);
+        expect(region.centerFluidTicks()).toEqual([{ x: 1, y: 10, z: 1, postProcess: true }]);
     });
 
     it('latches on a barrier grass block and re-surfaces dirt under the next block it opens', () => {

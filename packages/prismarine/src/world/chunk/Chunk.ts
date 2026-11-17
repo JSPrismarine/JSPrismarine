@@ -59,6 +59,18 @@ export interface PendingFluidTick {
     readonly delay: number;
 }
 
+/**
+ * A block a chunk carries until a world settles it against its neighbors; see
+ * {@link Chunk.getPendingShapeUpdates}.
+ */
+export interface PendingShapeUpdate {
+    /** World x of the block. */
+    readonly x: number;
+    readonly y: number;
+    /** World z of the block. */
+    readonly z: number;
+}
+
 /** The persisted parts a chunk write needs to update. */
 export interface ChunkPersistenceChanges {
     /** This chunk has never been written to its provider. */
@@ -240,6 +252,15 @@ export default class Chunk {
      * when the chunk enters and schedules each tick where fluid still stands.
      */
     private readonly pendingFluidTicks: PendingFluidTick[] = [];
+    /**
+     * Blocks waiting for a world to settle them against their neighbors, in world coordinates.
+     *
+     * The other half of Java's `LevelChunk.postProcessGeneration`: generation leaves the
+     * positions Java marks for post-processing here as well as in {@link pendingFluidTicks}, and
+     * the world runs the shape update on each when the chunk enters. Neither Bedrock's format nor
+     * this server keeps the list on disk.
+     */
+    private readonly pendingShapeUpdates: PendingShapeUpdate[] = [];
     /** Whether the stored `PendingTicks` record holds fluid ticks; see {@link Chunk.hasStoredFluidTicks}. */
     private storedFluidTicks = false;
 
@@ -1018,6 +1039,23 @@ export default class Chunk {
      */
     public takePendingFluidTicks(): PendingFluidTick[] {
         return this.pendingFluidTicks.splice(0, this.pendingFluidTicks.length);
+    }
+
+    /**
+     * The blocks waiting for a world to settle them against their neighbors, live, for a generator
+     * to append to and for the world to keep the ones it could not settle yet.
+     * @returns {PendingShapeUpdate[]} The list itself, not a copy.
+     */
+    public getPendingShapeUpdates(): PendingShapeUpdate[] {
+        return this.pendingShapeUpdates;
+    }
+
+    /**
+     * Hands over the blocks waiting for a shape update and forgets them.
+     * @returns {PendingShapeUpdate[]} What was waiting, which may be nothing.
+     */
+    public takePendingShapeUpdates(): PendingShapeUpdate[] {
+        return this.pendingShapeUpdates.splice(0, this.pendingShapeUpdates.length);
     }
 
     /**

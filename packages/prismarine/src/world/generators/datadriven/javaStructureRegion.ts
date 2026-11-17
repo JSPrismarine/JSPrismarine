@@ -13,6 +13,26 @@ import type { GenerationRegion } from './GenerationRegion';
 import type { StructureLevel, StructureWriter } from './javaStructureWorld';
 import { boxContains } from './javaStructureWorld';
 
+/**
+ * The blocks Java's `StructurePiece.placeBlock` marks for post-processing once it has placed them,
+ * its `SHAPE_CHECK_BLOCKS`: fences and bars that join what stands beside them, and torches and
+ * ladders that let go of a wall a later piece took away.
+ */
+export const SHAPE_CHECK_BLOCKS: ReadonlySet<string> = new Set([
+    'minecraft:nether_brick_fence',
+    'minecraft:torch',
+    'minecraft:wall_torch',
+    'minecraft:oak_fence',
+    'minecraft:spruce_fence',
+    'minecraft:dark_oak_fence',
+    'minecraft:pale_oak_fence',
+    'minecraft:acacia_fence',
+    'minecraft:birch_fence',
+    'minecraft:jungle_fence',
+    'minecraft:ladder',
+    'minecraft:iron_bars'
+]);
+
 /** The box covering one chunk's full height, which is the box Java clips a structure to. */
 export const chunkWriteBox = (chunkX: number, chunkZ: number, minY: number, maxY: number): BoundingBox => ({
     minX: chunkX * 16,
@@ -47,6 +67,7 @@ export const createRegionStructureWriter = (
             // It writes through `WorldGenRegion.setBlock`, which marks a block's post-process
             // position: a ruined portal's magma marks the block above it.
             region.markPostProcessOf(x, y, z, state.name);
+            if (SHAPE_CHECK_BLOCKS.has(state.name)) region.markForPostProcessing(x, y, z);
             return true;
         },
         setBedrockBlock: (x, y, z, state) => {
