@@ -147,4 +147,12 @@ describe('worldDataOf', () => {
         expect(Object.keys(written)).toStrictEqual(['preset', 'provider', 'seed', 'dimensions']);
         expect(written.dimensions?.['minecraft:overworld']?.generator?.type).toBe('minecraft:flat');
     });
+
+    it('keeps the experiments an entry turns on when it rewrites the entry', () => {
+        const written = worldDataOf(
+            normalizeWorldData({ seed: '1', generator: 'Flat', experiments: ['gametest'] }, KINDS)
+        );
+
+        expect(written.experiments).toStrictEqual(['gametest']);
+    });
 });

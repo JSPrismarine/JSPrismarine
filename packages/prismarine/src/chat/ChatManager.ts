@@ -73,6 +73,25 @@ export const chatRecipientOf = (
 /** The part of the server's event bus chat uses. */
 export type ChatBus = Pick<ServerEventBus, 'post'>;
 
+/** A line a player typed, as the chat action's guard stage sees it. */
+export interface PlayerChatIntent {
+    /** The entity id of the player who typed it. */
+    readonly sender: bigint;
+    readonly message: string;
+}
+
+/**
+ * A guard in the chat action's guard stage ([ADR 0013](../../../../docs/adr/0013-vetoable-actions-are-staged.md)).
+ * It reads the line, writes nothing, and lets it through or vetoes it.
+ */
+export type PlayerChatGuard = (
+    intent: PlayerChatIntent
+) => { readonly veto: true } | { readonly veto: false; readonly intent: PlayerChatIntent };
+
+/** A sender that is a player in a world, which is what a player's own chat comes from. */
+const hasRuntimeId = (sender: CommandExecutor): sender is CommandExecutor & { getRuntimeId(): bigint } =>
+    'getRuntimeId' in sender && typeof sender.getRuntimeId === 'function';
+
 /** A sender that names an account, which is what a player's own chat carries to the client. */
 const hasXuid = (sender: CommandExecutor): sender is CommandExecutor & { getXUID(): string | null } =>
     'getXUID' in sender && typeof sender.getXUID === 'function';
@@ -97,12 +116,16 @@ const reaches = (channel: string, recipient: ChatRecipient): boolean =>
  * {@link ChatManager.leave}, both keyed by `keyOfPlayer`. The table is server-wide state, not a
  * world's, so it changes when the call is made, inside a tick or between ticks.
  *
+ * A line a player typed goes past the guard stage first, where a script's `chatSend`
+ * before-event runs, and a veto there drops it before the event or any player sees it.
+ *
  * The event is a before-hook: its listeners are called in the order they subscribed, and a
  * listener that cancels it before its first wait stops every player, whenever they joined. The
  * players are not listeners themselves, so the fan-out is one pass over them after the event.
  */
 export class ChatManager {
     private readonly events: ChatBus;
+    private readonly guards: PlayerChatGuard[] = [];
     /** Each joined player, by `keyOfPlayer`, in the order they joined. */
     private readonly recipients = new Map<string, ChatRecipient>();
 
@@ -120,12 +143,29 @@ export class ChatManager {
      * @returns When the transport has framed every player's line.
      */
     public send(chat: Chat): Promise<void> {
+        const sender = chat.getSender();
+        if (chat.getType() === ChatType.CHAT && hasRuntimeId(sender)) {
+            const intent: PlayerChatIntent = { sender: sender.getRuntimeId(), message: chat.getMessage() };
+            if (this.guards.some((guard) => guard(intent).veto)) return Promise.resolve();
+        }
         const event = new ChatEvent(chat);
         this.events.post('chat', event);
         if (event.isCanceled()) return Promise.resolve();
         return Promise.all([...this.recipients.values()].map((recipient) => this.deliver(chat, recipient))).then(
             () => {}
         );
+    }
+
+    /**
+     * Adds a guard to the guard stage of a player's chat, after the ones already there.
+     * @returns A function that removes it.
+     */
+    public addGuard(guard: PlayerChatGuard): () => void {
+        this.guards.push(guard);
+        return () => {
+            const index = this.guards.indexOf(guard);
+            if (index >= 0) this.guards.splice(index, 1);
+        };
     }
 
     /**

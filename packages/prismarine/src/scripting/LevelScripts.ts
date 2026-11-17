@@ -10,6 +10,7 @@
 import type { ScriptLog, WorldScripts } from '@jsprismarine/script-host/host/WorldScripts';
 
 import type { ScriptWatchdogConfig } from '../config/Config';
+import { BETA_APIS } from '../world/WorldExperiments';
 import { LevelScriptWorld } from './LevelScriptWorld';
 import type { ScriptWorldSources } from './LevelScriptWorld';
 
@@ -23,6 +24,11 @@ export interface LevelScriptsOptions {
     /** The level's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
     readonly watchdog: ScriptWatchdogConfig;
+    /**
+     * The experiments the level has on, by their `level.dat` names. Beta APIs lets a pack
+     * declare a beta Script API version. None when absent.
+     */
+    readonly experiments?: readonly string[];
     readonly log: ScriptLog;
     /** Asked to stop the server after a critical exception the watchdog does not let pass. */
     readonly onShutdown: () => void;
@@ -81,6 +87,7 @@ export class LevelScripts {
             world,
             packs,
             config: host.readScriptConfig(options.configDirectory),
+            betaApis: options.experiments?.includes(BETA_APIS) === true,
             log: options.log,
             seed: options.seed,
             watchdog: host.watchdogSettings({

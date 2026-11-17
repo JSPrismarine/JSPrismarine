@@ -1,4 +1,5 @@
 import type { WorldConfig, WorldPlayerData } from '../World';
+import type { WorldExperiment } from '../WorldExperiments';
 import type { Service } from '../../utils/Service';
 import type { ChunkRequestOptions, Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
@@ -31,6 +32,11 @@ export interface LevelDatInputs {
      * `JSPrismarineJavaDataVersion`. A level refuses to open under an older release.
      */
     readonly javaDataVersion?: number;
+    /**
+     * The experiments that are on, under `experiments`. Each one is written on and never off,
+     * and a toggle this server does not implement keeps whatever the file holds.
+     */
+    readonly experiments?: readonly WorldExperiment[];
 }
 
 /**

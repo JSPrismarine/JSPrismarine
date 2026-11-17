@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { PlayerChatGuard } from '../chat/ChatManager';
 import { fakeLevel } from '../testing/level';
 import { LevelScriptWorld } from './LevelScriptWorld';
 import type { ScriptWorldSources } from './LevelScriptWorld';
@@ -11,6 +12,7 @@ const scriptWorld = (overrides: Partial<ScriptWorldSources> = {}) => {
         dimensions: () => ['minecraft:overworld'],
         players: () => [],
         weather,
+        chat: { addGuard: () => () => {} },
         clock: () => 0,
         ...overrides
     });
@@ -18,6 +20,35 @@ const scriptWorld = (overrides: Partial<ScriptWorldSources> = {}) => {
 };
 
 describe('LevelScriptWorld', () => {
+    it("runs a script guard on the chat of the level's players only, by their script ids", () => {
+        const guards: PlayerChatGuard[] = [];
+        const { world } = scriptWorld({
+            chat: {
+                addGuard: (guard) => {
+                    guards.push(guard);
+                    return () => void guards.splice(guards.indexOf(guard), 1);
+                }
+            },
+            players: () => [{ id: '7', sendMessage: () => {} }]
+        });
+        const seen: unknown[] = [];
+        const remove = world.guardChat((intent) => {
+            seen.push(intent);
+            return { veto: true };
+        });
+        const [guard] = guards;
+        if (guard === undefined) throw new Error('no chat guard was added');
+
+        expect(guard({ sender: 7n, message: 'mine' })).toEqual({ veto: true });
+        expect(guard({ sender: 9n, message: 'elsewhere' })).toEqual({
+            veto: false,
+            intent: { sender: 9n, message: 'elsewhere' }
+        });
+        expect(seen).toEqual([{ sender: '7', message: 'mine' }]);
+        remove();
+        expect(guards).toEqual([]);
+    });
+
     it('runs a script guard in the level’s weather action, in the Script API’s names', () => {
         const { world, weather } = scriptWorld();
         const seen: unknown[] = [];

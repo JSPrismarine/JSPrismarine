@@ -2,6 +2,7 @@ import type { PlayerProgressJson } from '@jsprismarine/advancements';
 import type { LogLevel } from '@jsprismarine/logger';
 import type { StoredInventory } from '../inventory/persistence';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
+import type { WorldExperiment } from '../world/WorldExperiments';
 
 /** One layer of a `minecraft:flat` generator's `settings.layers`, bottom first, in Java's spelling. */
 export interface FlatLayerJson {
@@ -83,6 +84,12 @@ export interface WorldData {
     preset?: string;
     /** Per-dimension overrides of the preset's stems, and dimensions the preset lacks. */
     dimensions?: Record<string, DimensionConfig>;
+    /**
+     * Bedrock experiments to turn on, by the id `level.dat` keeps them under. `gametest` is Beta
+     * APIs, which a behavior pack script needs to declare a beta Script API version. An
+     * experiment the world's `level.dat` already has on stays on.
+     */
+    experiments?: WorldExperiment[];
 }
 
 /** The subset of world settings read by a generator or provider. */

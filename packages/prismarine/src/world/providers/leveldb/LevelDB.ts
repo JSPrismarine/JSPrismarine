@@ -75,6 +75,7 @@ import type { DimensionType } from '../../DimensionType';
 import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
+import { WORLD_EXPERIMENTS } from '../../WorldExperiments';
 import type { LevelDatInputs, StoredChunkReader } from '../Provider';
 import type { ChunkSaveContext, PendingFluidTicksToSave } from '../ChunkSaveContext';
 import { createChunkSaveContext } from '../ChunkSaveContext';
@@ -114,6 +115,9 @@ const DEFAULT_NETHER_SCALE = Dimensions.Nether.java.coordinateScale;
  * `JSPrismarineSpawnKnown`, since BDS has no such tag and ignores one it does not know.
  */
 export const JAVA_DATA_VERSION_TAG = 'JSPrismarineJavaDataVersion';
+
+/** The `level.dat` compound that holds a world's experiment toggles. */
+const LEVEL_DAT_EXPERIMENTS = 'experiments';
 
 const DATABASE_DIRECTORY = 'db';
 const WORLD_DATA_KEY = Buffer.from('jsprismarine:world_data', 'ascii');
@@ -1627,6 +1631,14 @@ export default class LevelDB extends BaseProvider {
         if (level.javaDataVersion !== undefined) {
             root.addValue(JAVA_DATA_VERSION_TAG, new Types.NumberVal(level.javaDataVersion));
         }
+        if (level.experiments !== undefined && level.experiments.length > 0) {
+            const toggles = root.getCompound(LEVEL_DAT_EXPERIMENTS, false) ?? new NBTTagCompound(LEVEL_DAT_EXPERIMENTS);
+            root.addValue(LEVEL_DAT_EXPERIMENTS, toggles);
+            for (const experiment of level.experiments) toggles.addValue(experiment, new Types.ByteVal(1));
+            // The two flags Bedrock sets beside the first toggle a world turns on.
+            toggles.addValue('experiments_ever_used', new Types.ByteVal(1));
+            toggles.addValue('saved_with_toggled_experiments', new Types.ByteVal(1));
+        }
         if (level.stems !== undefined) {
             const overworld = level.stems[OVERWORLD_STEM_ID]?.generator;
             root.addValue('Generator', new Types.NumberVal(levelDatGeneratorOf(overworld)));
@@ -1641,8 +1653,9 @@ export default class LevelDB extends BaseProvider {
     }
 
     /**
-     * The clock and the Java data version `level.dat` holds, which {@link LevelDB.saveLevelData}
-     * writes as `Time` and `JSPrismarineJavaDataVersion`.
+     * The clock, the Java data version and the experiments `level.dat` holds, which
+     * {@link LevelDB.saveLevelData} writes as `Time`, `JSPrismarineJavaDataVersion` and
+     * `experiments`. Only the experiments this server implements are read back.
      *
      * Null before the file exists. A file without the `Time` tag, which this server never writes
      * but another might, answers no clock, so the level starts its own at zero. A file without the
@@ -1652,11 +1665,14 @@ export default class LevelDB extends BaseProvider {
         const level = readLevelDat(this.getPath());
         if (level === null) return null;
 
+        const toggles = level.root.getCompound(LEVEL_DAT_EXPERIMENTS, false);
+        const experiments = WORLD_EXPERIMENTS.filter((experiment) => toggles?.getByte(experiment, 0) === 1);
         const time = level.root.getLong('Time', -1n);
         const javaDataVersion = level.root.getNumber(JAVA_DATA_VERSION_TAG, -1);
         return {
             ...(time < 0n ? {} : { time: Number(time) }),
-            ...(javaDataVersion < 0 ? {} : { javaDataVersion })
+            ...(javaDataVersion < 0 ? {} : { javaDataVersion }),
+            experiments
         };
     }
 

@@ -5,6 +5,7 @@ import Ajv from 'ajv';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import pkg from '../../package.json' with { type: 'json' };
+import { WORLD_EXPERIMENTS } from '../world/WorldExperiments';
 
 const schemaFiles = [
     'config.schema.json',
@@ -144,10 +145,15 @@ describe('JSON schemas', () => {
         it('describes a world by preset and dimensions, without the old generator and layers keys', () => {
             const { properties } = readSchema('config.schema.json').definitions.WorldData;
 
-            expect(Object.keys(properties).sort()).toEqual(['dimensions', 'preset', 'provider', 'seed']);
+            expect(Object.keys(properties).sort()).toEqual(['dimensions', 'experiments', 'preset', 'provider', 'seed']);
             expect(properties.preset.default).toBe('minecraft:normal');
             expect(validate({ seed: 1, preset: 'minecraft:flat' })).toBe(true);
             expect(validate({ seed: 1, generator: 'Flat', layers: [{ block: 'stone', size: 1 }] })).toBe(false);
+        });
+
+        it('takes only the experiments the server implements', () => {
+            expect(validate({ seed: 1, experiments: [...WORLD_EXPERIMENTS] })).toBe(true);
+            expect(validate({ seed: 1, experiments: ['data_driven_items'] })).toBe(false);
         });
 
         it('limits load to eager or lazy and requires a generator to name its type', () => {
