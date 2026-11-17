@@ -11,6 +11,7 @@ import {
 import type { Observation, ScenarioRecord } from './record.ts';
 import { diffScenarioRecords, readScenarioRecord, readServerVersion } from './record.ts';
 import type { ScriptScenario } from './scenarios.ts';
+import { SCRIPT_SCENARIOS } from './scenarios.ts';
 
 /** A content-log line the way BDS decorates one. */
 const logged = (body: string): string => `[2026-11-16 23:00:00:000 WARN] [Scripting] DUMP ${body}`;
@@ -155,6 +156,16 @@ describe('scenarioRecordComparison', () => {
     it('runs the rows of a family whose scenario has no golden, so the defect is not skipped', () => {
         expect(scriptingFamilyReferences(FAMILIES.scriptingLifecycle, [scenario])).toEqual([]);
         expect(scriptingFamilyReferences(FAMILIES.scriptingEvents, [])).toHaveLength(1);
+    });
+
+    it('gives a scenario that threw on JSPrismarine a defect row', () => {
+        const golden = SCRIPT_SCENARIOS[0];
+        if (golden === undefined) throw new Error('No scenario is declared');
+        const [row] = runScenarios([
+            scenarioRecordComparison([golden], new Map([[golden.id, { failed: new Error('boom') }]]))
+        ]);
+        expect(row?.difference).toBe('JSPrismarine threw while running the scenario: Error: boom');
+        expect(row?.gap?.kind).toBe('defect');
     });
 
     it('defers a scenario JSPrismarine has no script host for, under the host issue', () => {
