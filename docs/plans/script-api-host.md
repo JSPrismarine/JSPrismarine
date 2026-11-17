@@ -337,8 +337,50 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
 11. [ ] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.
-12. [ ] [#3209](https://github.com/JSPrismarine/JSPrismarine/issues/3209) **Persistence.** Dynamic properties and script scoreboards, byte-compatible with BDS and
+12. [x] [#3209](https://github.com/JSPrismarine/JSPrismarine/issues/3209) **Persistence.** Dynamic properties and script scoreboards, byte-compatible with BDS and
     checked by the LevelDB compatibility suite in both directions.
+    - Done (2026-11-17): the dynamic property members of `World`, `Entity` and `ItemStack`, with
+      `setDynamicProperties`; `world.scoreboard` with every member of `Scoreboard`,
+      `ScoreboardObjective`, `ScoreboardIdentity` and `ScoreboardScoreInfo`, and
+      `Entity.scoreboardIdentity`. The level keeps the world's properties and the scoreboard,
+      `/scoreboard` uses the same store, and the save pass writes both as BDS does. The
+      `persistence` scenario of `scripting.world` holds the values and errors, and
+      `persistenceCompat.test.ts` moves a world from BDS to JSPrismarine and back.
+    - Learned, from the pinned BDS 1.26.51.1's LevelDB: an entity keeps its properties in its actor
+      record's `DynamicProperties` compound, by pack header UUID, in the same form as the world's
+      record. An item keeps them in its `tag.DynamicProperties`, by the script module UUID, not
+      the header UUID. Only an item that does not stack holds them, even a stack of one apple
+      throws `UnsupportedFunctionalityError`.
+    - Learned: the `scoreboard` record is one compound of `Criteria` (empty), `DisplayObjectives`
+      (`Name`, `ObjectiveName`, `SortOrder` byte, 1 descending), `Entries` (`IdentityType` 1
+      player, 2 entity, 3 fake player, `ScoreboardId`, and `PlayerId`, `EntityID` or
+      `FakePlayerName`), `LastUniqueID`, and `Objectives` (`Criteria`, `DisplayName`, `Name`,
+      `Scores` of `Score` and `ScoreboardId`). BDS writes each list newest first and the slots in
+      byte order. `setObjectiveAtDisplaySlot` and `/scoreboard objectives setdisplay` both default
+      to descending.
+    - Learned: `getDynamicPropertyTotalByteCount` is, per property, the id's UTF-8 bytes plus one
+      plus 8 for a number, 1 for a boolean, 12 for a vector or a string's UTF-8 bytes plus one;
+      this explains the 8 bytes the research note left open. The 32767 limit counts UTF-8 bytes.
+      A vector part past the float range is stored as infinity, the set succeeds, and the get
+      throws `Infinity value is not supported.` `NaN`, `Infinity`, a bigint, an array and an
+      object without `x`, `y` and `z` throw `Native variant type conversion failed.` with no
+      argument named, `null` deletes, and a bad value in `setDynamicProperties` writes none.
+    - Learned: a scoreboard participant gets its id the first time it scores, from one counter;
+      an entity's `displayName` is its id. `getScore` of a name the board has never scored throws
+      `Failed to resolve identity`, and a removed objective's members throw `Failed to find
+      objective`.
+    - Left: a command's holder is still a name, so `/scoreboard` scores a player or a selected
+      entity as a fake player of that name, while a script scores its identity; a player's own
+      dynamic properties and player identities are not saved, since the player record keeps no
+      unmodeled tags; an item stack's properties stay on the script's stack and are dropped when
+      it goes into an inventory; clients are not sent a script's scoreboard changes;
+      `/scoreboard objectives setdisplay` defaults to ascending, as Java does, where BDS
+      defaults to descending; and the level's properties and scores are written through the
+      level's setters but, like the weather, reach no change log, which has no level-wide entry
+      yet.
+    - Learned: JSPrismarine neither saves nor loads an actor's `CustomName`, so a name tag a
+      script sets is gone after a restart, and an entity from a BDS world loads without its name.
+      The compatibility pack finds its armor stand by a tag instead.
 13. [ ] [#3210](https://github.com/JSPrismarine/JSPrismarine/issues/3210) **`@minecraft/server-ui`.** Forms, over the modal form packets.
     - Learned (2026-11-17): a GameTest simulated player has no client, so the form captures join a
       headless `@jsprismarine/client` to BDS. A scenario's `client` lists its answers, and the

@@ -31,6 +31,8 @@ const HOST: PackHost = {
     },
     // The implementations keep the world when they register; they read nothing from it until called.
     world: new MemoryWorld(),
+    packUuid: '00000000-0000-4000-8000-000000000001',
+    moduleUuid: '00000000-0000-4000-8000-000000000002',
     currentTick: unreachable,
     schedule: unreachable,
     clearRun: unreachable,

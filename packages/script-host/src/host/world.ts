@@ -75,6 +75,18 @@ export interface ScriptEntityState {
     readonly inventorySize?: number;
 }
 
+/**
+ * A dynamic property's value as BDS keeps it: a number, which is a double, a boolean, a string, or
+ * a vector whose parts are 32-bit floats.
+ */
+export type ScriptPropertyValue = number | boolean | string | ScriptVector3;
+
+/** One pack's dynamic properties of one owner, by id, in the order they were first set. */
+export type ScriptProperties = ReadonlyMap<string, ScriptPropertyValue>;
+
+/** Whose dynamic properties a script reads or writes: the world's, or an entity's by its id. */
+export type ScriptPropertyOwner = 'world' | { readonly entity: string };
+
 /** An item stack as plain data. */
 export interface ScriptItem {
     /** The item's type, such as `minecraft:apple`. */
@@ -84,6 +96,77 @@ export interface ScriptItem {
     readonly nameTag?: string;
     /** The lines of lore under its name. Absent or empty when it has none. */
     readonly lore?: readonly string[];
+    /**
+     * The stack's dynamic properties, by the script module UUID of the pack that set them, as BDS
+     * keys them on an item. Absent or empty when it has none. Only a stack of one item can hold
+     * them.
+     */
+    readonly dynamicProperties?: ReadonlyMap<string, ScriptProperties>;
+}
+
+/** How a scoreboard participant is known, as `ScoreboardIdentityType` names it. */
+export type ScriptParticipantType = 'Entity' | 'FakePlayer' | 'Player';
+
+/** A scoreboard participant: a name with no entity, an entity or a player. */
+export interface ScriptParticipant {
+    /** The id the scoreboard gave it, which a save keeps. */
+    readonly id: number;
+    readonly type: ScriptParticipantType;
+    /** A fake player's name, a player's name, or an entity's id. */
+    readonly displayName: string;
+    /** The id of its entity, when it is an entity or a player who is in the world. */
+    readonly entity?: string;
+}
+
+/** Who a scoreboard call names: a fake player by name, an entity by id, or a participant by its id. */
+export type ScriptParticipantRef =
+    { readonly name: string } | { readonly entity: string } | { readonly participant: number };
+
+/** A scoreboard objective. */
+export interface ScriptObjective {
+    readonly id: string;
+    readonly displayName: string;
+}
+
+/** A display slot, as `DisplaySlotId` names it. */
+export type ScriptDisplaySlot = 'BelowName' | 'List' | 'Sidebar';
+
+/** What a display slot shows: an objective, and its order, as `ObjectiveSortOrder` numbers it. */
+export interface ScriptDisplay {
+    readonly objective: string;
+    /** 0 for ascending, 1 for descending. */
+    readonly sortOrder: 0 | 1;
+}
+
+/** The world's one scoreboard, which `/scoreboard` and the scripts share. */
+export interface ScriptScoreboard {
+    /** Every objective, in the order they were added. */
+    objectives(): readonly ScriptObjective[];
+    objective(id: string): ScriptObjective | undefined;
+    /** @returns False when an objective with the id exists. */
+    addObjective(id: string, displayName: string): boolean;
+    /** Removes an objective, its scores, and every display slot showing it. @returns False when there is none. */
+    removeObjective(id: string): boolean;
+    /** Every participant with a score in some objective, in the order they first got one. */
+    participants(): readonly ScriptParticipant[];
+    /** Finds a participant that has a score in some objective, without making one. */
+    participant(ref: ScriptParticipantRef): ScriptParticipant | undefined;
+    /** Every score of an objective, by participant, in the order the participants first got one. */
+    scores(objective: string): readonly { readonly participant: ScriptParticipant; readonly score: number }[];
+    /** A participant's score, or undefined when it has none in the objective. */
+    score(objective: string, participant: number): number | undefined;
+    /**
+     * Writes a score, making the participant when it has none.
+     * @param score - A whole number in the 32-bit range.
+     * @returns The participant.
+     */
+    setScore(objective: string, ref: ScriptParticipantRef, score: number): ScriptParticipant;
+    /** @returns False when the participant had no score in the objective. */
+    removeScore(objective: string, participant: number): boolean;
+    /** What a display slot shows, or undefined when it is empty. */
+    display(slot: ScriptDisplaySlot): ScriptDisplay | undefined;
+    /** Shows an objective in a slot, or empties the slot when `display` is undefined. */
+    setDisplay(slot: ScriptDisplaySlot, display: ScriptDisplay | undefined): void;
 }
 
 /** A block's type and the value of each of its states, as the Script API's `BlockPermutation` holds them. */
@@ -318,6 +401,26 @@ export interface ScriptWorld {
      * ([ADR 0021](../../../../docs/adr/0021-the-script-watchdog-counts-steps.md)).
      */
     clock(): number;
+    /**
+     * One pack's dynamic properties of the world or of an entity.
+     * @param pack - The pack's header UUID, which BDS keys a world's and an entity's properties by.
+     * @returns Undefined for an entity that is gone.
+     */
+    dynamicProperties(owner: ScriptPropertyOwner, pack: string): ScriptProperties | undefined;
+    /**
+     * Writes some of one pack's dynamic properties of the world or of a live entity through the
+     * world's setter: each value replaces the property's, and undefined deletes it.
+     * @param pack - The pack's header UUID.
+     */
+    setDynamicProperties(
+        owner: ScriptPropertyOwner,
+        pack: string,
+        values: ReadonlyMap<string, ScriptPropertyValue | undefined>
+    ): void;
+    /** Deletes every dynamic property one pack set on the world or on a live entity. */
+    clearDynamicProperties(owner: ScriptPropertyOwner, pack: string): void;
+    /** The world's scoreboard, which `/scoreboard` shares. */
+    readonly scoreboard: ScriptScoreboard;
     /** The channel `@minecraft/server-ui` forms travel over. A world without one sends no form. */
     readonly forms?: ScriptFormChannel;
     /** The world's GameTest simulated players. A world without them refuses to spawn one. */

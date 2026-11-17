@@ -79,6 +79,17 @@ export type ScriptMemberName<
 
 const keyOf = (module: string, owner: string, member: string): string => `${module}\n${owner}\n${member}`;
 
+/** How a member's implementation takes its arguments. */
+export interface ImplementationOptions {
+    /**
+     * The arguments, by their metadata names, that the implementation converts and checks itself.
+     * The binding passes them on unchecked, for a member whose errors BDS words itself, such as
+     * `setDynamicProperty`'s value, which refuses `NaN` with `Native variant type conversion
+     * failed.` and nothing after it.
+     */
+    readonly converts?: readonly string[];
+}
+
 /**
  * The behavior written for Script API members, by module, class and member. A member with no entry
  * is still present in every script that resolves to a version with it, and throws
@@ -86,6 +97,7 @@ const keyOf = (module: string, owner: string, member: string): string => `${modu
  */
 export class ScriptApiImplementations {
     private readonly entries = new Map<string, Implementation>();
+    private readonly converted = new Map<string, readonly string[]>();
 
     /**
      * Registers one member's behavior. The generated `ScriptApiMembers` types the names and the
@@ -100,12 +112,19 @@ export class ScriptApiImplementations {
         module: Module,
         owner: Owner,
         member: Member,
-        implementation: ImplementationOf<ScriptApiMembers[Module][Owner][Member]>
+        implementation: ImplementationOf<ScriptApiMembers[Module][Owner][Member]>,
+        options: ImplementationOptions = {}
     ): this {
         const key = keyOf(module, owner, member);
         if (this.entries.has(key)) throw new Error(`${owner}.${member} from ${module} is implemented twice`);
         this.entries.set(key, implementation);
+        if (options.converts !== undefined) this.converted.set(key, options.converts);
         return this;
+    }
+
+    /** The arguments a member's implementation converts itself; see {@link ImplementationOptions.converts}. */
+    public converts(module: string, owner: string, member: string): readonly string[] {
+        return this.converted.get(keyOf(module, owner, member)) ?? [];
     }
 
     /** Finds a member's behavior. */

@@ -2,7 +2,8 @@
  * The behavior of the `@minecraft/server` members JSPrismarine implements, for one pack: the
  * system tasks, the lifecycle, the world, player, weather, chat and script events, the watchdog's
  * terminate event, dimensions, and through the modules it registers, entities and players
- * (`serverEntities.ts`), blocks (`serverBlocks.ts`) and item stacks (`serverItems.ts`). Every
+ * (`serverEntities.ts`), blocks (`serverBlocks.ts`), item stacks (`serverItems.ts`), dynamic
+ * properties (`serverProperties.ts`) and the scoreboard (`serverScoreboard.ts`). Every
  * other member is present and throws `NotImplementedError`
  * ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
  *
@@ -18,6 +19,8 @@ import { ScriptHandle } from '../values';
 import { implementBlocks } from './serverBlocks';
 import { implementEntities } from './serverEntities';
 import { implementItems } from './serverItems';
+import { implementDynamicProperties } from './serverProperties';
+import { implementScoreboard } from './serverScoreboard';
 import type { EntityKey } from './serverObjects';
 import { PLAYER, readMessage, SERVER, shortName, TAG } from './serverObjects';
 import type { TaskKind } from './tasks';
@@ -135,6 +138,10 @@ export type EventData =
 /** What the members of one pack's `@minecraft/server` reach of the runtime and the world. */
 export interface PackHost {
     readonly engine: ScriptEngine;
+    /** The pack's header UUID, which BDS keys the world's and an entity's dynamic properties by. */
+    readonly packUuid: string;
+    /** The pack's script module UUID, which BDS keys an item stack's dynamic properties by. */
+    readonly moduleUuid: string;
     /** The world, which the members read and write directly. */
     readonly world: ScriptWorld;
     /** `system.currentTick`. */
@@ -349,6 +356,8 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     implementEntities(implementations, host);
     implementBlocks(implementations, host);
     implementItems(implementations, host);
+    implementDynamicProperties(implementations, host);
+    implementScoreboard(implementations, host);
     for (const name of SIGNALS) {
         implementations
             .implement(SERVER, name, 'subscribe', (call) => {
