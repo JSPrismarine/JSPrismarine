@@ -143,6 +143,12 @@ describe('javaStateAttributes', () => {
 
     it('answers nothing for a group no row names', () => {
         expect(javaStateAttributes('minecraft:wolf', 'minecraft:wolf_tame').size).toBe(0);
+        // A slow bouncy archetype adds 0.4 to the sulfur cube's knockback resistance of 0.
+        expect(
+            javaStateAttributes('minecraft:sulfur_cube', 'minecraft:sulfur_cube_slow_bouncy').get(
+                'knockback_resistance'
+            )
+        ).toBe(0.4);
         expect(javaStateAttributes('minecraft:cat', 'minecraft:wolf_increased_max_health').size).toBe(0);
     });
 });

@@ -197,6 +197,26 @@ export interface JavaStateStat {
     readonly reason: string;
 }
 
+/**
+ * The knockback resistance each Java sulfur cube archetype adds to the type's 0, the `add_value`
+ * `minecraft:knockback_resistance` modifier of `data/minecraft/sulfur_cube_archetype/<archetype>.json`,
+ * which the pack's `minecraft:sulfur_cube_<archetype>` group stands for.
+ */
+const SULFUR_CUBE_ARCHETYPE_RESISTANCE: ReadonlyArray<readonly [string, number]> = [
+    ['bouncy', -2],
+    ['explosive', -1],
+    ['fast_flat', -1],
+    ['fast_sliding', 0.5],
+    ['high_resistance', 0.7],
+    ['hot', -1],
+    ['light', -1],
+    ['regular', -1],
+    ['slow_bouncy', 0.4],
+    ['slow_flat', 0.5],
+    ['slow_sliding', 0.8],
+    ['sticky', -2]
+];
+
 /** The component groups whose stat Java's class sets for the state they stand for. */
 export const JAVA_STATE_STATS: readonly JavaStateStat[] = [
     {
@@ -205,7 +225,14 @@ export const JAVA_STATE_STATS: readonly JavaStateStat[] = [
         stat: 'max_health',
         value: 40,
         reason: "Java's Wolf.applyTamingSideEffects sets a tame wolf's max health to 40 and a wild one's to 8. The pack adds this group once the wolf is tamed."
-    }
+    },
+    ...SULFUR_CUBE_ARCHETYPE_RESISTANCE.map(([archetype, value]): JavaStateStat => ({
+        identifier: 'minecraft:sulfur_cube',
+        group: `minecraft:sulfur_cube_${archetype}`,
+        stat: 'knockback_resistance',
+        value,
+        reason: `Java's SulfurCube applies the ${archetype} archetype's attribute modifiers once it swallows one of its blocks, which add ${value} to the type's knockback resistance of 0. The pack adds this group then.`
+    }))
 ];
 
 /** What the decision says about one entity's value for one shared stat. */
