@@ -93,9 +93,11 @@ const JAVA_STAT_DISAGREEMENTS = 151;
 
 /**
  * How many of those the server resolves to Java's value, which is every
- * disagreement on a stat Java decides that is not a reviewed exception.
+ * disagreement on a stat Java decides that is not a reviewed exception. The
+ * phantom's attack damage is one such exception: Java's dump holds the monster
+ * default of 2, and `Phantom.updatePhantomSizeInfo` sets 6 plus the size.
  */
-const RESOLVED_TO_JAVA = 33;
+const RESOLVED_TO_JAVA = 32;
 
 /**
  * Components the host reads without a component hook.
