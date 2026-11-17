@@ -142,7 +142,8 @@ const implementations = new ScriptApiImplementations().implement(
 const engine = ScriptHostLibrary.load().createEngine();
 const context = new ScriptApiContext(engine, { pack: 'my pack - 1.0.0', implementations, logger: console });
 try {
-    if (resolution.ok) context.bind(resolution.shape); // the namespace a script's import sees
+    // A namespace handle. A script's import reaches it only through the engine's `loadModule`.
+    if (resolution.ok) context.bind(resolution.shape);
 } finally {
     context.destroy();
     engine.destroy();
@@ -206,6 +207,80 @@ version has show up under "Not in the shape".
 is already cached, and skips otherwise, so an ordinary test run needs no network. Set
 `JSP_ADDON_CORPUS_TESTS=1` to fetch what is missing and run it anyway.
 
+## The debugger
+
+`engine.attachDebugger(listener)` attaches a debugger to an engine. From then on, every function
+the engine enters reports each new line, and the engine stops the script at a breakpoint, after a
+step, on a pause request, and, when asked, on every value the script throws. A stop calls
+`listener.paused(reason)` on the engine's thread, inside the engine call that ran the script, so
+that call, and the world tick that made it, stays blocked until the listener returns. Before it
+returns, the listener reads the stopped script and calls `resume` with `continue`, `stepOver`,
+`stepIn` or `stepOut`.
+
+```ts
+const debug = engine.attachDebugger({
+    paused(reason) {
+        const [top] = debug.frames(); // { name, file, line, column }
+        const locals = debug.scope(0, 'local');
+        console.log(reason, top, debug.properties(locals).properties);
+        engine.free(locals);
+        debug.resume('stepOver');
+        return 'resume';
+    },
+    poll() {} // read the debugger's messages without waiting
+});
+debug.setBreakpoints('main.js', [12]);
+```
+
+Nothing reads a clock. A script stops at the same line on every run, a running script calls
+`poll` once every `pollLines` lines (`DEFAULT_POLL_LINES` unless set) so a debugger can pause a
+loop that never ends, and stopping costs no steps. `evaluate(frame, source)` runs source with
+a frame's variables in scope and writes through to them. It gets its own budget of
+`JSH_DEBUG_EVALUATE_STEPS` steps, and the stopped script keeps its step counts. `describe` and
+`properties` read values without running a getter or a proxy's handler. A replay never attaches
+a debugger. Functions already running when a debugger attaches do not report lines, so attach
+between calls into the engine.
+
+### The VS Code extension's protocol
+
+`src/debugger/` speaks the protocol of Mojang's Minecraft Bedrock Debugger for VS Code
+(`Mojang/minecraft-debugger`), at version `DEBUGGER_PROTOCOL_VERSION`, so the extension attaches
+to JSPrismarine as it attaches to Bedrock Dedicated Server (BDS). The work splits across two
+threads, because a stopped script blocks the thread its engine runs on:
+
+- On a thread with an event loop, `listenForDebugger` waits for the extension (the extension's
+  `connect` mode, `/script debugger listen`) and `connectToDebugger` reaches one that listens
+  (its `listen` mode, `/script debugger connect`). Both default to `DEFAULT_DEBUGGER_PORT`. A
+  listener on an address other than loopback needs a passcode, and refuses to start without one
+  with BDS's message. `DebuggerSocket` frames each message as its length in 8 hexadecimal digits,
+  a newline, and the JSON with a newline after it.
+- `DebuggerChannelBridge` hands the socket's messages to the engine's thread. There,
+  `PortDebuggerChannel` reads them with `receiveMessageOnPort`, and waits on a shared counter
+  while a script is stopped, since that thread's event loop does not run.
+- `ScriptDebugSession` runs on the engine's thread. `handshake` offers the protocol, the
+  passcode requirement and the packs, and refuses a wrong version, a wrong passcode or an unknown
+  `targetModuleUUID` with BDS's messages. `attach` takes the engine of the pack the extension
+  picked and handles its breakpoints until it sends `resume`. While a script is stopped, the
+  session answers `stackTrace`, `scopes`, `variables`, `evaluate`, `continue`, `next`, `stepIn`,
+  `stepOut` and `pause`, and `poll` handles what arrives between ticks.
+
+```ts
+// On the thread with the event loop:
+const listener = await listenForDebugger({ port, address, passcode });
+const bridge = new DebuggerChannelBridge();
+listener.connection.then((socket) => bridge.connect(socket));
+worldThread.postMessage({ debugger: bridge.endpoint }, [bridge.endpoint.port]);
+
+// On the world's thread:
+const session = new ScriptDebugSession(new PortDebuggerChannel(endpoint), { plugins, passcode });
+const target = session.handshake(); // the script module UUID the extension picked
+session.attach(engineFor(target));
+// then session.poll() between ticks, and session.detach() for /script debugger detach
+```
+
+The host does not implement the extension's profiler, diagnostics or `debugger-request`
+messages yet. It answers a `debugger-request` as refused.
+
 ## Building it
 
 The package is private, and not published to npm, until each platform has a prebuilt library that
@@ -237,3 +312,21 @@ calls one:
   modifier groups and a group name used twice, as releases before them did.
 - `JS_AddLegacyMembers`, which defines `Object.__getClass` and `String.prototype.__quote` as
   earlier releases defined them.
+
+`native/patches/quickjs-debugger.patch` ports the debugger hooks of koush's QuickJS fork
+(`koush/quickjs`, `quickjs-debugger.c` and its `quickjs.c` changes), which the VS Code extension's
+protocol was written against. As koush's does, the interpreter keeps a second dispatch table whose
+entries call the debugger before each instruction. A function uses it only when a line hook is
+set as it starts, so with no debugger attached every instruction runs the usual table and does
+no extra work. The patch adds:
+
+- `JS_SetDebugHooks`, which sets a line hook and a throw hook. The line hook runs before the first
+  instruction of each line, when a loop jumps back, and when a call returns to a line partway
+  through. The throw hook runs once for each thrown value, before any handler.
+- `JS_GetDebugStackDepth` and `JS_GetDebugFrame`, the stack with each frame's function, file,
+  line and column.
+- `JS_GetDebugLocals` and `JS_GetDebugClosure`, a frame's variables.
+- `JS_DebugEvaluate`, which compiles source as a direct `eval` inside a frame with all of the
+  frame's variables in scope. A variable no closure captures has no reference in its frame, so
+  the evaluation borrows the variable's slot and leaves any closure it made with a copy.
+- `JS_GetDebugClassName`, an object's class name without running script.

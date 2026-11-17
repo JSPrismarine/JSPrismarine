@@ -25,6 +25,30 @@
 /* What QuickJS's own allocator counts for each block beyond its usable size. */
 #define JSH_MALLOC_OVERHEAD 8
 
+/* The breakpoint lines of one file. */
+typedef struct {
+	JSAtom file;
+	int32_t *lines;
+	int32_t count;
+} jsh_breakpoints;
+
+/* The debugger's state, which exists only while one is attached. */
+typedef struct {
+	jsh_breakpoints *files;
+	int32_t file_count;
+	double poll_lines;
+	double lines_until_poll;
+	int stop_on_exception;
+	int pause_requested;
+	/* Set while the host handles a stop or the debugger runs script, which then never stops. */
+	int stopped;
+	int resume_mode;
+	/* The stack depth a step started at. */
+	int step_depth;
+	/* The value a script stopped on with JSH_DEBUG_EXCEPTION, undefined otherwise. */
+	JSValue exception;
+} jsh_debugger;
+
 typedef struct {
 	JSValue value;
 	/* The next free slot's index while this one is free, -1 at the end of the list. */
@@ -64,6 +88,8 @@ struct jsh_engine {
 	int out_of_memory;
 	/* Set while fail() describes an error, when a host call would overwrite the description. */
 	int describing;
+
+	jsh_debugger *debugger;
 };
 
 /* The steps a script's getters and conversions may take while fail() describes its error. */
@@ -677,6 +703,165 @@ static void remove_absent(JSContext *ctx) {
 	JS_FreeValue(ctx, global);
 }
 
+/* ---------------------------------------------------------------- debugger */
+
+/* Stops the script and hands it to the host until the host returns. Returns -1 to terminate it. */
+static int debug_stop(jsh_engine *engine, int reason) {
+	jsh_debugger *debugger = engine->debugger;
+	debugger->stopped = 1;
+	debugger->pause_requested = 0;
+	debugger->resume_mode = JSH_DEBUG_CONTINUE;
+	int32_t answer = engine->host(JSH_OP_DEBUG_PAUSED, reason, 0);
+	/* The host may have detached the debugger while the script was stopped. */
+	if (engine->debugger) engine->debugger->stopped = 0;
+	if (answer < 0 || engine->terminated) {
+		engine->terminated = 1;
+		throw_terminated(engine->ctx);
+		return -1;
+	}
+	return 0;
+}
+
+static int has_breakpoint(jsh_debugger *debugger, JSAtom file, int line) {
+	for (int32_t i = 0; i < debugger->file_count; i++) {
+		if (debugger->files[i].file != file) continue;
+		for (int32_t j = 0; j < debugger->files[i].count; j++) {
+			if (debugger->files[i].lines[j] == line) return 1;
+		}
+		return 0;
+	}
+	return 0;
+}
+
+/* Whether a step that is under way ends at the line the script has reached. */
+static int step_done(JSContext *ctx, jsh_debugger *debugger) {
+	switch (debugger->resume_mode) {
+	case JSH_DEBUG_STEP_IN:
+		return 1;
+	case JSH_DEBUG_STEP_OVER:
+		return JS_GetDebugStackDepth(ctx) <= debugger->step_depth;
+	case JSH_DEBUG_STEP_OUT:
+		return JS_GetDebugStackDepth(ctx) < debugger->step_depth;
+	default:
+		return 0;
+	}
+}
+
+/*
+ * QuickJS's line hook: a frame the debugger watches has reached a new line, or, when `resumed` is
+ * set, goes on with its line after a call returned to it.
+ */
+static int on_line(JSContext *ctx, void *opaque, JSAtom file, int line, int resumed) {
+	jsh_engine *engine = opaque;
+	jsh_debugger *debugger = engine->debugger;
+	if (!debugger || debugger->stopped || engine->describing) return 0;
+	if (resumed) {
+		/* Only a step that has left the function it started in stops where a call returned. */
+		int left = debugger->resume_mode != JSH_DEBUG_CONTINUE && JS_GetDebugStackDepth(ctx) < debugger->step_depth;
+		return left ? debug_stop(engine, JSH_DEBUG_STEP) : 0;
+	}
+	int reason = -1;
+	if (has_breakpoint(debugger, file, line)) {
+		reason = JSH_DEBUG_BREAKPOINT;
+	} else if (debugger->pause_requested) {
+		reason = JSH_DEBUG_PAUSE;
+	} else if (step_done(ctx, debugger)) {
+		reason = JSH_DEBUG_STEP;
+	} else if (debugger->poll_lines > 0 && --debugger->lines_until_poll <= 0) {
+		debugger->lines_until_poll = debugger->poll_lines;
+		debugger->stopped = 1;
+		engine->host(JSH_OP_DEBUG_POLL, 0, 0);
+		debugger = engine->debugger;
+		if (!debugger) return 0;
+		debugger->stopped = 0;
+		if (debugger->pause_requested) reason = JSH_DEBUG_PAUSE;
+	}
+	return reason < 0 ? 0 : debug_stop(engine, reason);
+}
+
+/* QuickJS's throw hook: a script threw a value, and no handler has seen it yet. */
+static void on_throw(JSContext *ctx, void *opaque) {
+	jsh_engine *engine = opaque;
+	jsh_debugger *debugger = engine->debugger;
+	if (!debugger || debugger->stopped || engine->describing || !debugger->stop_on_exception) return;
+	/* The host's queries run script, so the thrown value waits outside the runtime. */
+	JSValue exception = JS_GetException(ctx);
+	debugger->exception = JS_DupValue(ctx, exception);
+	int stopped = debug_stop(engine, JSH_DEBUG_EXCEPTION);
+	if (engine->debugger) {
+		JS_FreeValue(ctx, engine->debugger->exception);
+		engine->debugger->exception = JS_UNDEFINED;
+	}
+	/* A terminated script leaves the termination pending instead. */
+	if (stopped < 0) {
+		JS_FreeValue(ctx, exception);
+	} else {
+		JS_Throw(ctx, exception);
+	}
+}
+
+static void free_breakpoints(JSContext *ctx, jsh_breakpoints *file) {
+	JS_FreeAtom(ctx, file->file);
+	free(file->lines);
+}
+
+static void free_debugger(jsh_engine *engine) {
+	jsh_debugger *debugger = engine->debugger;
+	if (!debugger) return;
+	JS_SetDebugHooks(engine->rt, NULL, NULL, NULL);
+	for (int32_t i = 0; i < debugger->file_count; i++) free_breakpoints(engine->ctx, &debugger->files[i]);
+	free(debugger->files);
+	JS_FreeValue(engine->ctx, debugger->exception);
+	free(debugger);
+	engine->debugger = NULL;
+}
+
+/* An own property's value if it is a data property, without running a getter; undefined otherwise. */
+static JSValue own_data(JSContext *ctx, JSValueConst object, const char *key) {
+	JSPropertyDescriptor descriptor;
+	JSAtom atom = JS_NewAtom(ctx, key);
+	int found = JS_GetOwnProperty(ctx, &descriptor, object, atom);
+	JS_FreeAtom(ctx, atom);
+	if (found <= 0) {
+		if (found < 0) JS_FreeValue(ctx, JS_GetException(ctx));
+		return JS_UNDEFINED;
+	}
+	JS_FreeValue(ctx, descriptor.getter);
+	JS_FreeValue(ctx, descriptor.setter);
+	if (descriptor.flags & JS_PROP_GETSET) {
+		JS_FreeValue(ctx, descriptor.value);
+		return JS_UNDEFINED;
+	}
+	return descriptor.value;
+}
+
+/* Whether a value is a proxy, whose every inspection would run its handler's script. */
+static int is_proxy(JSContext *ctx, JSValueConst value) {
+	JSValue class_name = JS_GetDebugClassName(ctx, value);
+	const char *text = JS_ToCString(ctx, class_name);
+	int proxy = text && strcmp(text, "Proxy") == 0;
+	JS_FreeCString(ctx, text);
+	JS_FreeValue(ctx, class_name);
+	return proxy;
+}
+
+/* The name of an object's constructor, read from data properties only, or its class name. */
+static JSValue constructor_name(JSContext *ctx, JSValueConst object) {
+	JSValue prototype = JS_GetPrototype(ctx, object);
+	JSValue constructor = JS_IsObject(prototype) ? own_data(ctx, prototype, "constructor") : JS_UNDEFINED;
+	JSValue name = JS_IsObject(constructor) ? own_data(ctx, constructor, "name") : JS_UNDEFINED;
+	JS_FreeValue(ctx, constructor);
+	JS_FreeValue(ctx, prototype);
+	if (JS_IsString(name)) {
+		size_t length = 0;
+		const char *text = JS_ToCStringLen(ctx, &length, name);
+		JS_FreeCString(ctx, text);
+		if (length > 0) return name;
+	}
+	JS_FreeValue(ctx, name);
+	return JS_GetDebugClassName(ctx, object);
+}
+
 /* ---------------------------------------------------------------- interface */
 
 int32_t jsh_abi_version(void) {
@@ -729,6 +914,7 @@ jsh_engine *jsh_engine_create(jsh_host_fn host, uint8_t *buffer, int32_t capacit
 
 void jsh_engine_destroy(jsh_engine *engine) {
 	if (!engine || engine->depth > 0) return;
+	free_debugger(engine);
 	for (int32_t i = 0; i < engine->slot_count; i++) {
 		if (engine->slots[i].used) JS_FreeValue(engine->ctx, engine->slots[i].value);
 	}
@@ -940,4 +1126,242 @@ int32_t jsh_dup(jsh_engine *engine, int32_t handle) {
 
 void jsh_free(jsh_engine *engine, int32_t handle) {
 	if (engine) release(engine, handle);
+}
+
+/* ---------------------------------------------------------------- debugger interface */
+
+int32_t jsh_debug_attach(jsh_engine *engine, double poll_lines) {
+	if (!engine) return JSH_INVALID;
+	if (!engine->debugger) {
+		jsh_debugger *debugger = calloc(1, sizeof(jsh_debugger));
+		if (!debugger) return JSH_OUT_OF_MEMORY;
+		debugger->exception = JS_UNDEFINED;
+		engine->debugger = debugger;
+		JS_SetDebugHooks(engine->rt, on_line, on_throw, engine);
+	}
+	engine->debugger->poll_lines = poll_lines > 0 ? poll_lines : 0;
+	engine->debugger->lines_until_poll = engine->debugger->poll_lines;
+	return 0;
+}
+
+void jsh_debug_detach(jsh_engine *engine) {
+	if (engine) free_debugger(engine);
+}
+
+int32_t jsh_debug_set_breakpoints(jsh_engine *engine, const char *path, int32_t length) {
+	jsh_debugger *debugger = engine ? engine->debugger : NULL;
+	if (!debugger || !path || length < 0 || length > engine->capacity) return JSH_INVALID;
+	JSContext *ctx = engine->ctx;
+	reader in = {engine->buffer, length, 0};
+	JSValue *values;
+	int count;
+	if (read_list(engine, &in, &values, &count) < 0) return JSH_INVALID;
+	int32_t *lines = count > 0 ? malloc(sizeof(int32_t) * (size_t)count) : NULL;
+	if (count > 0 && !lines) {
+		free_list(engine, values, count);
+		return JSH_OUT_OF_MEMORY;
+	}
+	int32_t set = 0;
+	for (int i = 0; i < count; i++) {
+		int32_t line;
+		if (JS_IsNumber(values[i]) && JS_ToInt32(ctx, &line, values[i]) == 0 && line > 0) lines[set++] = line;
+	}
+	free_list(engine, values, count);
+
+	JSAtom file = JS_NewAtom(ctx, path);
+	int32_t index = 0;
+	while (index < debugger->file_count && debugger->files[index].file != file) index++;
+	if (index < debugger->file_count) {
+		free_breakpoints(ctx, &debugger->files[index]);
+		debugger->files[index] = debugger->files[--debugger->file_count];
+	}
+	if (set == 0) {
+		JS_FreeAtom(ctx, file);
+		free(lines);
+		return 0;
+	}
+	jsh_breakpoints *files = realloc(debugger->files, sizeof(jsh_breakpoints) * (size_t)(debugger->file_count + 1));
+	if (!files) {
+		JS_FreeAtom(ctx, file);
+		free(lines);
+		return JSH_OUT_OF_MEMORY;
+	}
+	debugger->files = files;
+	debugger->files[debugger->file_count++] = (jsh_breakpoints){file, lines, set};
+	return set;
+}
+
+void jsh_debug_set_stop_on_exception(jsh_engine *engine, int32_t stop) {
+	if (engine && engine->debugger) engine->debugger->stop_on_exception = stop != 0;
+}
+
+void jsh_debug_pause(jsh_engine *engine) {
+	if (engine && engine->debugger) engine->debugger->pause_requested = 1;
+}
+
+int32_t jsh_debug_resume(jsh_engine *engine, int32_t mode) {
+	jsh_debugger *debugger = engine ? engine->debugger : NULL;
+	if (!debugger || !debugger->stopped || mode < JSH_DEBUG_CONTINUE || mode > JSH_DEBUG_STEP_OUT) return JSH_INVALID;
+	debugger->resume_mode = mode;
+	debugger->step_depth = JS_GetDebugStackDepth(engine->ctx);
+	return 0;
+}
+
+int32_t jsh_debug_frames(jsh_engine *engine) {
+	if (!engine) return JSH_INVALID;
+	JSContext *ctx = engine->ctx;
+	int depth = JS_GetDebugStackDepth(ctx);
+	writer out = {engine, 0, 0, NULL, 0, 0, 0};
+	write_u32(&out, (uint32_t)depth * 4);
+	for (int level = 0; level < depth; level++) {
+		const char *name, *file;
+		int line, column;
+		JS_GetDebugFrame(ctx, level, &name, &file, &line, &column);
+		write_string(&out, name ? name : "", name ? strlen(name) : 0);
+		write_string(&out, file ? file : "", file ? strlen(file) : 0);
+		write_u8(&out, JSH_TAG_NUMBER);
+		write_f64(&out, line);
+		write_u8(&out, JSH_TAG_NUMBER);
+		write_f64(&out, column);
+		JS_FreeCString(ctx, name);
+		JS_FreeCString(ctx, file);
+	}
+	return out.failed ? JSH_OUT_OF_MEMORY : out.length;
+}
+
+int32_t jsh_debug_scope(jsh_engine *engine, int32_t frame, int32_t scope) {
+	if (!engine) return JSH_INVALID;
+	JSContext *ctx = engine->ctx;
+	switch (scope) {
+	case JSH_SCOPE_LOCAL:
+		return settle(engine, JS_GetDebugLocals(ctx, frame));
+	case JSH_SCOPE_CLOSURE:
+		return settle(engine, JS_GetDebugClosure(ctx, frame));
+	case JSH_SCOPE_GLOBAL:
+		return keep(engine, JS_GetGlobalObject(ctx));
+	default:
+		return JSH_INVALID;
+	}
+}
+
+int32_t jsh_debug_exception(jsh_engine *engine) {
+	if (!engine) return JSH_INVALID;
+	return keep(engine, engine->debugger ? JS_DupValue(engine->ctx, engine->debugger->exception) : JS_UNDEFINED);
+}
+
+int32_t jsh_debug_evaluate(jsh_engine *engine, int32_t frame, const uint8_t *source, int32_t length) {
+	if (!engine || !source || length < 0) return JSH_INVALID;
+	jsh_debugger *debugger = engine->debugger;
+	int stopped = debugger ? debugger->stopped : 0;
+	if (debugger) debugger->stopped = 1;
+	double steps = engine->steps, callback_steps = engine->callback_steps, tick_steps = engine->tick_steps;
+	double budget_callback = engine->budget_callback, budget_tick = engine->budget_tick;
+	int terminated = engine->terminated, out_of_memory = engine->out_of_memory;
+
+	enter(engine);
+	engine->terminated = 0;
+	engine->out_of_memory = 0;
+	engine->budget_callback = engine->callback_steps + JSH_DEBUG_EVALUATE_STEPS;
+	engine->budget_tick = engine->tick_steps + JSH_DEBUG_EVALUATE_STEPS;
+	int32_t result = settle(engine, JS_DebugEvaluate(engine->ctx, frame, (const char *)source, (size_t)length));
+	leave(engine);
+
+	/* The stopped script goes on with the counts it had. */
+	engine->steps = steps;
+	engine->callback_steps = callback_steps;
+	engine->tick_steps = tick_steps;
+	engine->budget_callback = budget_callback;
+	engine->budget_tick = budget_tick;
+	engine->terminated = terminated;
+	engine->out_of_memory = out_of_memory;
+	if (engine->debugger) engine->debugger->stopped = stopped;
+	return result;
+}
+
+int32_t jsh_debug_describe(jsh_engine *engine, int32_t handle) {
+	JSValue *held = engine ? lookup(engine, handle) : NULL;
+	if (!held) return JSH_INVALID;
+	JSContext *ctx = engine->ctx;
+	JSValueConst value = *held;
+	const char *kind = "object";
+	JSValue name = JS_UNDEFINED, detail = JS_UNDEFINED;
+	if (!JS_IsObject(value)) {
+		/* A symbol or a bigint, the values without a byte form. */
+		if (JS_IsSymbol(value)) {
+			kind = "symbol";
+			JSAtom atom = JS_ValueToAtom(ctx, value);
+			name = JS_AtomToString(ctx, atom);
+			JS_FreeAtom(ctx, atom);
+		} else {
+			kind = "bigint";
+			name = JS_ToString(ctx, value);
+		}
+	} else if (is_proxy(ctx, value)) {
+		kind = "proxy";
+		name = JS_NewString(ctx, "Proxy");
+	} else if (JS_IsFunction(ctx, value)) {
+		kind = "function";
+		name = own_data(ctx, value, "name");
+	} else if (JS_IsArray(ctx, value) > 0) {
+		kind = "array";
+		name = constructor_name(ctx, value);
+		detail = own_data(ctx, value, "length");
+	} else if (JS_IsError(ctx, value)) {
+		kind = "error";
+		name = constructor_name(ctx, value);
+		detail = own_data(ctx, value, "message");
+	} else {
+		name = constructor_name(ctx, value);
+	}
+	if (JS_IsException(name)) {
+		JS_FreeValue(ctx, JS_GetException(ctx));
+		name = JS_UNDEFINED;
+	}
+	writer out = {engine, 0, 0, NULL, 0, 0, 0};
+	write_string(&out, kind, strlen(kind));
+	/* Only strings and numbers cross: a name or detail of another type is left out. */
+	write_value(&out, JS_IsString(name) ? name : JS_UNDEFINED, 0);
+	write_value(&out, JS_IsString(detail) || JS_IsNumber(detail) ? detail : JS_UNDEFINED, 0);
+	JS_FreeValue(ctx, name);
+	JS_FreeValue(ctx, detail);
+	return out.failed ? JSH_OUT_OF_MEMORY : out.length;
+}
+
+int32_t jsh_debug_properties(jsh_engine *engine, int32_t handle, int32_t start, int32_t count) {
+	JSValue *held = engine ? lookup(engine, handle) : NULL;
+	if (!held || start < 0 || count < 0) return JSH_INVALID;
+	JSContext *ctx = engine->ctx;
+	JSValue object = JS_DupValue(ctx, *held);
+	writer out = {engine, 0, 0, NULL, 0, 0, 0};
+	JSPropertyEnum *keys = NULL;
+	uint32_t key_count = 0;
+	if (JS_IsObject(object) && !is_proxy(ctx, object) &&
+		JS_GetOwnPropertyNames(ctx, &keys, &key_count, object, JS_GPN_STRING_MASK | JS_GPN_SYMBOL_MASK) < 0) {
+		JS_FreeValue(ctx, JS_GetException(ctx));
+		keys = NULL;
+		key_count = 0;
+	}
+	write_u8(&out, JSH_TAG_NUMBER);
+	write_f64(&out, key_count);
+	for (uint32_t i = (uint32_t)start; i < key_count && i - (uint32_t)start < (uint32_t)count; i++) {
+		size_t name_length;
+		const char *name = JS_AtomToCStringLen(ctx, &name_length, keys[i].atom);
+		write_string(&out, name ? name : "", name ? name_length : 0);
+		JS_FreeCString(ctx, name);
+		JSPropertyDescriptor descriptor;
+		int found = JS_GetOwnProperty(ctx, &descriptor, object, keys[i].atom);
+		if (found < 0) JS_FreeValue(ctx, JS_GetException(ctx));
+		int accessor = found > 0 && (descriptor.flags & JS_PROP_GETSET);
+		write_u8(&out, JSH_TAG_NUMBER);
+		write_f64(&out, accessor ? 1 : 0);
+		write_value(&out, found > 0 && !accessor ? descriptor.value : JS_UNDEFINED, 0);
+		if (found > 0) {
+			JS_FreeValue(ctx, descriptor.value);
+			JS_FreeValue(ctx, descriptor.getter);
+			JS_FreeValue(ctx, descriptor.setter);
+		}
+	}
+	if (keys) JS_FreePropertyEnum(ctx, keys, key_count);
+	JS_FreeValue(ctx, object);
+	return out.failed ? JSH_OUT_OF_MEMORY : out.length;
 }

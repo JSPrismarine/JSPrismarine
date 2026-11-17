@@ -4,9 +4,8 @@
  * repository is the codeload zip of its pinned commit, so a force-push or a deleted branch upstream
  * cannot change what is read, and a commit that is gone fails the fetch.
  */
-import { existsSync } from 'node:fs';
 import type { FetchOptions } from '../../../bedrock-data/utils/fetch/fetch.ts';
-import { fetchSource, resolveContentRoot, sourceCachePath } from '../../../bedrock-data/utils/fetch/fetch.ts';
+import { fetchSource, isSourceCached, resolveContentRoot } from '../../../bedrock-data/utils/fetch/fetch.ts';
 import type { SourceDescriptor } from '../../../bedrock-data/utils/fetch/manifest.ts';
 import { cacheRoot as sharedCacheRoot } from '../../../bedrock-data/utils/fetch/paths.ts';
 import type { CorpusManifest, CorpusRepository } from './manifest.mts';
@@ -60,8 +59,16 @@ export const fetchCorpusRepository = async (
 };
 
 /**
- * Whether every pinned repository is already unpacked in the cache, so reading the corpus needs no
- * network. The fetch renames a repository into place only after its digest matched.
+ * Whether every pinned repository has a verified copy in the cache, so reading the corpus needs no
+ * network. It makes the check the fetch makes, so a fetch interrupted before it finished counts
+ * as missing.
  */
-export const isCorpusCached = (manifest: CorpusManifest, cacheRoot: string = sharedCacheRoot): boolean =>
-    manifest.repositories.every((repository) => existsSync(sourceCachePath(corpusDescriptor(repository), cacheRoot)));
+export const isCorpusCached = async (
+    manifest: CorpusManifest,
+    cacheRoot: string = sharedCacheRoot
+): Promise<boolean> => {
+    for (const repository of manifest.repositories) {
+        if (!(await isSourceCached(corpusDescriptor(repository), cacheRoot))) return false;
+    }
+    return true;
+};

@@ -1,3 +1,5 @@
+import { EngineDebugger, PauseReason } from './debugger/EngineDebugger';
+import type { DebuggerListener } from './debugger/EngineDebugger';
 import { ScriptError, ScriptOutOfMemoryError, ScriptTerminatedError } from './errors';
 import { bindLibrary } from './ffi';
 import type { BoundLibrary, NativePointer, NativeSymbols } from './ffi';
@@ -6,13 +8,13 @@ import { ScriptHandle, TransferBuffer, ValueReader, ValueWriter } from './values
 import type { ScriptValue } from './values';
 
 /** The C interface version this binding speaks, `JSH_ABI_VERSION` in the header. */
-export const ABI_VERSION = 1;
+export const ABI_VERSION = 2;
 
 /** The `jsh_status` codes an entry returns instead of a handle or a count. */
 const Status = { Thrown: -1, Terminated: -2, OutOfMemory: -3, Invalid: -4 } as const;
 
 /** The `jsh_op` requests the engine sends its callback. */
-const Op = { Call: 0, LoadModule: 1, Grow: 2 } as const;
+const Op = { Call: 0, LoadModule: 1, Grow: 2, DebugPaused: 3, DebugPoll: 4 } as const;
 
 /** The `jsh_stat` counters, by the field of {@link EngineStats} each fills. */
 const Stat = {
@@ -61,6 +63,19 @@ export interface ScriptEngineOptions {
     /** Supplies the source of each module a script imports. */
     readonly loadModule?: ModuleLoader;
 }
+
+/** How {@link ScriptEngine.attachDebugger} attaches a debugger. */
+export interface DebuggerOptions {
+    /**
+     * How many lines a running script runs between {@link DebuggerListener.poll} calls, which let a
+     * debugger pause a script that never ends. A count of lines, not a time, so a script polls at
+     * the same lines every run. No polling when 0.
+     */
+    readonly pollLines?: number;
+}
+
+/** The lines between polls when {@link DebuggerOptions.pollLines} is absent. */
+export const DEFAULT_POLL_LINES = 10_000;
 
 /** How many steps one entry from the host, and one tick, may take. Unlimited when absent. */
 export interface StepBudget {
@@ -124,6 +139,7 @@ export class ScriptEngine {
     private readonly functions = new Map<number, HostFunction>();
     private readonly loadModule: ModuleLoader | undefined;
     private nextFunctionId = 1;
+    private debuggerListener: DebuggerListener | undefined;
     /** How many callbacks from the engine are running. */
     private active = 0;
     private destroyed = false;
@@ -267,6 +283,29 @@ export class ScriptEngine {
         this.native.jsh_engine_begin_tick(this.live());
     }
 
+    /**
+     * Attaches a debugger. Functions the engine enters from now on report their lines; those
+     * already running do not, so attach between calls into the engine. A replay never attaches one.
+     * @param listener - Handles each stop and poll, on this thread.
+     * @returns The debugger, which detaches with {@link EngineDebugger.detach}.
+     * @throws {Error} When a debugger is already attached.
+     */
+    public attachDebugger(listener: DebuggerListener, options: DebuggerOptions = {}): EngineDebugger {
+        if (this.debuggerListener !== undefined) throw new Error('A debugger is already attached to this engine');
+        this.check(this.native.jsh_debug_attach(this.live(), options.pollLines ?? DEFAULT_POLL_LINES));
+        this.debuggerListener = listener;
+        return new EngineDebugger({
+            native: this.native,
+            buffer: this.buffer,
+            pointer: () => this.live(),
+            check: (result) => this.check(result),
+            take: (handle) => this.take(handle),
+            detached: () => {
+                this.debuggerListener = undefined;
+            }
+        });
+    }
+
     /** Reads the engine's counters. */
     public stats(): EngineStats {
         const pointer = this.live();
@@ -338,6 +377,11 @@ export class ScriptEngine {
             }
             if (op === Op.Call) return this.dispatch(id, length);
             if (op === Op.LoadModule) return this.load(length);
+            if (op === Op.DebugPaused) return this.paused(id);
+            if (op === Op.DebugPoll) {
+                this.debuggerListener?.poll();
+                return 0;
+            }
             throw new RangeError(`The engine sent an unknown request ${op}`);
         } catch (error) {
             return this.describe(error);
@@ -353,6 +397,12 @@ export class ScriptEngine {
         if (fn === undefined) throw new ReferenceError(`No host function has id ${id}`);
         const result = fn(...args);
         return new ValueWriter(this.buffer).value(result).length;
+    }
+
+    private paused(code: number): number {
+        const reason = PauseReason[code];
+        if (reason === undefined) throw new RangeError(`The engine stopped for an unknown reason ${code}`);
+        return this.debuggerListener?.paused(reason) === 'terminate' ? -1 : 0;
     }
 
     private load(length: number): number {

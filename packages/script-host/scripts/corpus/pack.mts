@@ -10,7 +10,7 @@ import type { ModuleHistory, VersionStability } from '../../src/shape/format.ts'
 import type { ModuleShape } from '../../src/shape/history.ts';
 import { shapeAt } from '../../src/shape/history.ts';
 import { parseVersion } from '../../src/shape/version.ts';
-import { isRecord } from '../isRecord.mts';
+import { isRecord } from '../../src/isRecord.ts';
 import type { CorpusPack } from './manifest.mts';
 import { UsageCollector } from './usage.mts';
 

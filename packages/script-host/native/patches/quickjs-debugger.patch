@@ -1,0 +1,550 @@
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -361,6 +361,14 @@
+     void *interrupt_opaque;
+     /* JSPrismarine: stack overflows thrown, caught or not */
+     uint64_t stack_overflow_count;
++    /* JSPrismarine: the debugger hooks, NULL while no debugger is attached */
++    JSDebugLineHook *debug_line_hook;
++    JSDebugThrowHook *debug_throw_hook;
++    void *debug_opaque;
++    /* JSPrismarine: a value was thrown that the throw hook has not seen */
++    BOOL debug_throw_pending;
++    /* JSPrismarine: the frame the line hook last saw run an instruction */
++    struct JSStackFrame *debug_last_frame;
+ 
+     JSHostPromiseRejectionTracker *host_promise_rejection_tracker;
+     void *host_promise_rejection_tracker_opaque;
+@@ -419,6 +427,10 @@
+     /* only used in generators. Current stack pointer value. NULL if
+        the function is running. */
+     JSValue *cur_sp;
++    /* JSPrismarine: the line and bytecode position where the line hook
++       last saw this frame, set only while a line hook is set */
++    int debug_line;
++    int debug_pos;
+ } JSStackFrame;
+ 
+ typedef enum {
+@@ -641,6 +653,8 @@
+ 
+ #define ARG_SCOPE_INDEX 1
+ #define ARG_SCOPE_END (-2)
++/* JSPrismarine: a debugger evaluation, which sees every variable */
++#define JS_DEBUG_SCOPE_INDEX (-3)
+ 
+ typedef enum {
+     /* XXX: add more variable kinds here instead of using bit fields */
+@@ -720,6 +734,9 @@
+     JSValue *cpool; /* constant pool (self pointer) */
+     int cpool_count;
+     int closure_var_count;
++    /* JSPrismarine: the line of each bytecode position, built when a line
++       hook first runs the function */
++    int *debug_lines;
+     struct {
+         /* debug info, move to separate structure to save memory? */
+         JSAtom filename;
+@@ -7385,6 +7402,8 @@
+     JS_FreeValue(ctx, rt->current_exception);
+     rt->current_exception = obj;
+     rt->current_exception_is_uncatchable = FALSE;
++    if (unlikely(rt->debug_throw_hook))
++        rt->debug_throw_pending = TRUE;
+     return JS_EXCEPTION;
+ }
+ 
+@@ -17068,7 +17087,15 @@
+         vd = &b->vardefs[b->arg_count + var_idx];
+         pvalue = &sf->var_buf[var_idx];
+     }
+-    assert(vd->is_captured);
++    if (!vd->is_captured) {
++        /* JSPrismarine: only JS_DebugEvaluate asks for an uncaptured
++           variable. The reference borrows the frame's slot until the
++           evaluation ends. */
++        var_ref = js_create_var_ref(ctx, FALSE);
++        if (var_ref)
++            var_ref->pvalue = pvalue;
++        return var_ref;
++    }
+     var_ref_idx = vd->var_ref_idx;
+     assert(var_ref_idx < b->var_ref_count);
+     var_ref = sf->var_refs[var_ref_idx];
+@@ -17796,6 +17823,113 @@
+ #pragma GCC diagnostic ignored "-Wunused-label"
+ #endif
+ 
++/* JSPrismarine: the line of a bytecode position, from a table built on
++   first use; 0 for the function's prologue, before its first statement,
++   and when it has no line information */
++static int js_debug_line_of(JSFunctionBytecode *b, int pos)
++{
++    const uint8_t *p, *p_end;
++    int base, line, new_line, pc, start, v, ret;
++    uint32_t val;
++    unsigned int op;
++
++    if (!b->has_debug || !b->debug.pc2line_buf || pos < 0 ||
++        pos >= b->byte_code_len)
++        return 0;
++    if (!b->debug_lines) {
++        /* debugger state, so it stays out of the runtime's memory limit;
++           the parentheses step around the macro that forbids malloc */
++        int *lines = (malloc)(sizeof(int) * b->byte_code_len);
++        if (!lines)
++            return 0;
++        p = b->debug.pc2line_buf;
++        p_end = p + b->debug.pc2line_len;
++        ret = get_leb128(&val, p, p_end);
++        if (ret < 0)
++            goto fail;
++        p += ret;
++        base = val + 1;
++        ret = get_leb128(&val, p, p_end); /* the function's column */
++        if (ret < 0)
++            goto fail;
++        p += ret;
++        pc = 0;
++        start = 0;
++        /* the prologue runs before the first entry, on no line of its own */
++        line = 0;
++        while (p < p_end) {
++            op = *p++;
++            if (op == 0) {
++                ret = get_leb128(&val, p, p_end);
++                if (ret < 0)
++                    goto fail;
++                pc += val;
++                p += ret;
++                ret = get_sleb128(&v, p, p_end);
++                if (ret < 0)
++                    goto fail;
++                p += ret;
++                new_line = base + v;
++            } else {
++                op -= PC2LINE_OP_FIRST;
++                pc += (op / PC2LINE_RANGE);
++                new_line = base + (op % PC2LINE_RANGE) + PC2LINE_BASE;
++            }
++            base = new_line;
++            ret = get_sleb128(&v, p, p_end); /* the column */
++            if (ret < 0)
++                goto fail;
++            p += ret;
++            for (; start < pc && start < b->byte_code_len; start++)
++                lines[start] = line;
++            line = new_line;
++        }
++        for (; start < b->byte_code_len; start++)
++            lines[start] = line;
++        b->debug_lines = lines;
++        goto done;
++    fail:
++        (free)(lines);
++        return 0;
++    }
++ done:
++    return b->debug_lines[pos];
++}
++
++/* JSPrismarine: runs before each instruction of a frame on the debugger's
++   dispatch table, and calls the line hook when the frame reaches a new line
++   or jumps back. `pc` is just past the opcode. */
++static no_inline int js_debug_instruction(JSContext *ctx, JSStackFrame *sf,
++                                          const uint8_t *pc)
++{
++    JSRuntime *rt = ctx->rt;
++    JSFunctionBytecode *b;
++    int pos, line;
++
++    if (!rt->debug_line_hook)
++        return 0;
++    b = JS_VALUE_GET_OBJ(sf->cur_func)->u.func.function_bytecode;
++    pos = pc - b->byte_code_buf - 1;
++    sf->cur_pc = pc;
++    line = js_debug_line_of(b, pos);
++    if (line == sf->debug_line && pos >= sf->debug_pos) {
++        sf->debug_pos = pos;
++        if (rt->debug_last_frame == sf || line <= 0)
++            return 0;
++        /* a call into script has returned to this frame mid-line */
++        rt->debug_last_frame = sf;
++        return rt->debug_line_hook(ctx, rt->debug_opaque, b->debug.filename,
++                                   line, TRUE);
++    }
++    rt->debug_last_frame = sf;
++    sf->debug_line = line;
++    sf->debug_pos = pos;
++    if (line <= 0)
++        return 0;
++    return rt->debug_line_hook(ctx, rt->debug_opaque, b->debug.filename,
++                               line, FALSE);
++}
++
+ /* argv[] is modified if (flags & JS_CALL_FLAG_COPY_ARGV) = 0. */
+ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
+                                JSValueConst this_obj, JSValueConst new_target,
+@@ -17828,11 +17962,25 @@
+ #include "quickjs-opcode.h"
+         [ OP_COUNT ... 255 ] = &&case_default
+     };
+-#define SWITCH(pc)      goto *dispatch_table[opcode = *pc++];
++    /* JSPrismarine: the same handlers, each entered through the debugger's
++       hook, which the usual table's fall-through never reaches */
++    static const void * const debug_dispatch_table[256] = {
++#define DEF(id, size, n_pop, n_push, f) && case_debug_OP_ ## id,
++#if SHORT_OPCODES
++#define def(id, size, n_pop, n_push, f)
++#else
++#define def(id, size, n_pop, n_push, f) && case_default,
++#endif
++#include "quickjs-opcode.h"
++        [ OP_COUNT ... 255 ] = &&case_default
++    };
++    const void * const *active_dispatch_table = dispatch_table;
++#define SWITCH(pc)      goto *active_dispatch_table[opcode = *pc++];
++#define DEBUG_CASE(op)  if (0) { case_debug_ ## op: if (js_debug_instruction(ctx, sf, pc)) goto exception; }
+ #ifdef OPCODE_ASM_LABEL
+-#define CASE(op)        case_ ## op: asm volatile("label_" #op ":\n.globl label_" #op); dummy_case_ ## op
++#define CASE(op)        DEBUG_CASE(op) case_ ## op: asm volatile("label_" #op ":\n.globl label_" #op); dummy_case_ ## op
+ #else
+-#define CASE(op)        case_ ## op
++#define CASE(op)        DEBUG_CASE(op) case_ ## op
+ #endif
+ #define DEFAULT         case_default
+ #define BREAK           SWITCH(pc)
+@@ -17925,10 +18073,27 @@
+     ctx = b->realm; /* set the current realm */
+ 
+  restart:
++    /* JSPrismarine: a frame entered or resumed while a line hook is set runs
++       the debugger's table */
++#if DIRECT_DISPATCH
++    if (unlikely(rt->debug_line_hook)) {
++        active_dispatch_table = debug_dispatch_table;
++        sf->debug_line = -1;
++        sf->debug_pos = -1;
++    }
++#else
++    sf->debug_line = -1;
++    sf->debug_pos = -1;
++#endif
+     for(;;) {
+         int call_argc;
+         JSValue *call_argv;
+ 
++#if !DIRECT_DISPATCH
++        if (unlikely(rt->debug_line_hook) &&
++            js_debug_instruction(ctx, sf, pc + 1))
++            goto exception;
++#endif
+         SWITCH(pc) {
+         CASE(OP_push_i32):
+             *sp++ = JS_NewInt32(ctx, get_u32(pc));
+@@ -20578,6 +20743,16 @@
+         sf->cur_pc = pc;
+         build_backtrace(ctx, rt->current_exception, NULL, 0, 0, 0);
+     }
++    /* JSPrismarine: the innermost bytecode frame shows a new throw to the
++       debugger before it looks for a handler */
++    if (unlikely(rt->debug_throw_pending)) {
++        rt->debug_throw_pending = FALSE;
++        if (rt->debug_throw_hook && !rt->current_exception_is_uncatchable) {
++            sf->cur_pc = pc;
++            rt->debug_throw_hook(ctx, rt->debug_opaque);
++            rt->debug_throw_pending = FALSE;
++        }
++    }
+     if (!rt->current_exception_is_uncatchable) {
+         while (sp > stack_buf) {
+             JSValue val = *--sp;
+@@ -33705,7 +33880,17 @@
+     if (!s->closure_var)
+         return -1;
+     /* Add lexical variables in scope at the point of evaluation */
+-    for (i = scope_idx; i >= 0;) {
++    if (scope_idx == JS_DEBUG_SCOPE_INDEX) {
++        /* JSPrismarine: a debugger stops anywhere, so it sees them all */
++        for (i = 0; i < b->var_count; i++) {
++            vd = &b->vardefs[b->arg_count + i];
++            if (vd->has_scope) {
++                JSClosureVar *cv = &s->closure_var[s->closure_var_count++];
++                set_closure_from_var(ctx, cv, vd, i);
++            }
++        }
++    }
++    for (i = scope_idx == JS_DEBUG_SCOPE_INDEX ? -1 : scope_idx; i >= 0;) {
+         vd = &b->vardefs[b->arg_count + i];
+         if (vd->has_scope) {
+             JSClosureVar *cv = &s->closure_var[s->closure_var_count++];
+@@ -36221,6 +36406,7 @@
+         JS_FreeContext(b->realm);
+ 
+     JS_FreeAtomRT(rt, b->func_name);
++    (free)(b->debug_lines); /* JSPrismarine: see js_debug_line_of */
+     if (b->has_debug) {
+         JS_FreeAtomRT(rt, b->debug.filename);
+         js_free_rt(rt, b->debug.pc2line_buf);
+@@ -40975,6 +41161,220 @@
+                                       countof(js_string_proto_legacy_funcs));
+ }
+ 
++/* JSPrismarine: what a debugger reads from a paused script */
++
++void JS_SetDebugHooks(JSRuntime *rt, JSDebugLineHook *line_hook,
++                      JSDebugThrowHook *throw_hook, void *opaque)
++{
++    rt->debug_line_hook = line_hook;
++    rt->debug_throw_hook = throw_hook;
++    rt->debug_opaque = opaque;
++    rt->debug_throw_pending = FALSE;
++}
++
++static JSStackFrame *js_debug_frame(JSContext *ctx, int level)
++{
++    JSStackFrame *sf;
++
++    if (level < 0)
++        return NULL;
++    for (sf = ctx->rt->current_stack_frame; sf && level > 0; level--)
++        sf = sf->prev_frame;
++    return sf;
++}
++
++/* the function a frame runs, when it runs bytecode */
++static JSObject *js_debug_bytecode_function(JSStackFrame *sf)
++{
++    JSObject *p;
++
++    if (!sf || JS_VALUE_GET_TAG(sf->cur_func) != JS_TAG_OBJECT)
++        return NULL;
++    p = JS_VALUE_GET_OBJ(sf->cur_func);
++    return js_class_has_bytecode(p->class_id) ? p : NULL;
++}
++
++int JS_GetDebugStackDepth(JSContext *ctx)
++{
++    JSStackFrame *sf;
++    int depth = 0;
++
++    for (sf = ctx->rt->current_stack_frame; sf; sf = sf->prev_frame)
++        depth++;
++    return depth;
++}
++
++int JS_GetDebugFrame(JSContext *ctx, int level, const char **function_name,
++                     const char **filename, int *line, int *column)
++{
++    JSStackFrame *sf = js_debug_frame(ctx, level);
++    JSObject *p;
++    JSFunctionBytecode *b;
++
++    *function_name = NULL;
++    *filename = NULL;
++    *line = 0;
++    *column = 0;
++    if (!sf)
++        return -1;
++    *function_name = get_prop_string(ctx, sf->cur_func, JS_ATOM_name);
++    p = js_debug_bytecode_function(sf);
++    if (p) {
++        b = p->u.func.function_bytecode;
++        if (b->has_debug) {
++            *filename = JS_AtomToCString(ctx, b->debug.filename);
++            *line = find_line_num(ctx, b, sf->cur_pc - b->byte_code_buf - 1,
++                                  column);
++        }
++    }
++    return 0;
++}
++
++/* whether a variable's name is one a script can write */
++static BOOL js_debug_is_visible(JSContext *ctx, JSAtom name)
++{
++    char buf[ATOM_GET_STR_BUF_SIZE];
++    const char *str;
++
++    if (name == JS_ATOM_new_target || name == JS_ATOM_this_active_func)
++        return FALSE;
++    str = JS_AtomGetStr(ctx, buf, sizeof(buf), name);
++    return str[0] != '<';
++}
++
++static int js_debug_add(JSContext *ctx, JSValueConst obj, JSAtom name,
++                        JSValueConst val)
++{
++    if (JS_IsUninitialized(val) || !js_debug_is_visible(ctx, name))
++        return 0;
++    return JS_DefinePropertyValue(ctx, obj, name, JS_DupValue(ctx, val),
++                                  JS_PROP_C_W_E);
++}
++
++JSValue JS_GetDebugLocals(JSContext *ctx, int level)
++{
++    JSStackFrame *sf = js_debug_frame(ctx, level);
++    JSObject *p = js_debug_bytecode_function(sf);
++    JSFunctionBytecode *b;
++    JSValue ret;
++    int i;
++
++    ret = JS_NewObjectProto(ctx, JS_NULL);
++    if (JS_IsException(ret) || !p)
++        return ret;
++    b = p->u.func.function_bytecode;
++    if (!b->vardefs)
++        return ret;
++    for (i = 0; i < b->arg_count + b->var_count; i++) {
++        JSValueConst val = i < b->arg_count ? sf->arg_buf[i] :
++            sf->var_buf[i - b->arg_count];
++        if (js_debug_add(ctx, ret, b->vardefs[i].var_name, val) < 0) {
++            JS_FreeValue(ctx, ret);
++            return JS_EXCEPTION;
++        }
++    }
++    return ret;
++}
++
++JSValue JS_GetDebugClosure(JSContext *ctx, int level)
++{
++    JSObject *p = js_debug_bytecode_function(js_debug_frame(ctx, level));
++    JSFunctionBytecode *b;
++    JSVarRef *var_ref;
++    JSValue ret;
++    int i;
++
++    ret = JS_NewObjectProto(ctx, JS_NULL);
++    if (JS_IsException(ret) || !p || !p->u.func.var_refs)
++        return ret;
++    b = p->u.func.function_bytecode;
++    for (i = 0; i < b->closure_var_count; i++) {
++        var_ref = p->u.func.var_refs[i];
++        if (!var_ref || !var_ref->pvalue)
++            continue;
++        if (js_debug_add(ctx, ret, b->closure_var[i].var_name,
++                         *var_ref->pvalue) < 0) {
++            JS_FreeValue(ctx, ret);
++            return JS_EXCEPTION;
++        }
++    }
++    return ret;
++}
++
++JSValue JS_DebugEvaluate(JSContext *ctx, int level, const char *source,
++                         size_t length)
++{
++    JSStackFrame *sf = js_debug_frame(ctx, level);
++    JSObject *p = js_debug_bytecode_function(sf);
++    JSParseState s1, *s = &s1;
++    JSFunctionBytecode *b;
++    JSFunctionDef *fd;
++    JSVarRef *var_ref;
++    JSValue fun_obj, ret;
++    int i, interrupt_counter;
++
++    if (!p)
++        return JS_Eval(ctx, source, length, "<debugger>", JS_EVAL_TYPE_GLOBAL);
++    b = p->u.func.function_bytecode;
++
++    /* compiled as __JS_EvalInternal compiles a direct eval */
++    js_parse_init(ctx, s, source, length, "<debugger>");
++    skip_shebang(&s->buf_ptr, s->buf_end);
++    fd = js_new_function_def(ctx, NULL, TRUE, FALSE, "<debugger>",
++                             s->buf_start, &s->get_line_col_cache);
++    if (!fd)
++        return JS_EXCEPTION;
++    s->cur_func = fd;
++    fd->eval_type = JS_EVAL_TYPE_DIRECT;
++    fd->has_this_binding = FALSE;
++    fd->new_target_allowed = b->new_target_allowed;
++    fd->super_call_allowed = b->super_call_allowed;
++    fd->super_allowed = b->super_allowed;
++    fd->arguments_allowed = b->arguments_allowed;
++    fd->js_mode = b->js_mode;
++    fd->func_name = JS_DupAtom(ctx, JS_ATOM__eval_);
++    if (add_closure_variables(ctx, fd, b, JS_DEBUG_SCOPE_INDEX))
++        goto fail;
++    s->is_module = FALSE;
++    s->allow_html_comments = TRUE;
++    push_scope(s); /* body scope */
++    fd->body_scope = fd->scope_level;
++    if (js_parse_program(s)) {
++    fail:
++        free_token(s, &s->token);
++        js_free_function_def(ctx, fd);
++        return JS_EXCEPTION;
++    }
++    fun_obj = js_create_function(ctx, fd);
++    if (JS_IsException(fun_obj))
++        return JS_EXCEPTION;
++    fun_obj = js_closure(ctx, fun_obj, p->u.func.var_refs, sf, TRUE);
++    if (JS_IsException(fun_obj))
++        return JS_EXCEPTION;
++    /* the stopped script polls for interrupts as if nothing had run */
++    interrupt_counter = ctx->interrupt_counter;
++    ret = JS_Call(ctx, fun_obj, JS_UNDEFINED, 0, NULL);
++    ctx->interrupt_counter = interrupt_counter;
++
++    /* a closure the evaluation made keeps a copy of each borrowed slot */
++    p = JS_VALUE_GET_OBJ(fun_obj);
++    for (i = 0; i < p->u.func.function_bytecode->closure_var_count; i++) {
++        var_ref = p->u.func.var_refs[i];
++        if (var_ref && var_ref->is_detached &&
++            var_ref->pvalue != &var_ref->value) {
++            var_ref->value = JS_DupValue(ctx, *var_ref->pvalue);
++            var_ref->pvalue = &var_ref->value;
++        }
++    }
++    JS_FreeValue(ctx, fun_obj);
++    return ret;
++}
++
++JSValue JS_GetDebugClassName(JSContext *ctx, JSValueConst obj)
++{
++    return js_object___getClass(ctx, JS_UNDEFINED, 1, &obj);
++}
++
+ static const JSCFunctionListEntry js_object_funcs[] = {
+     JS_CFUNC_DEF("create", 2, js_object_create ),
+     JS_CFUNC_MAGIC_DEF("getPrototypeOf", 1, js_object_getPrototypeOf, 0 ),
+--- a/quickjs.h
++++ b/quickjs.h
+@@ -940,6 +940,38 @@
+ /* JSPrismarine: defines Object.__getClass and String.prototype.__quote,
+    which older releases had; returns -1 on an exception */
+ int JS_AddLegacyMembers(JSContext *ctx);
++/* JSPrismarine: debugger hooks. Without hooks the interpreter runs its
++   usual dispatch table. A frame entered while a line hook is set runs a
++   second table, which calls the hook. */
++/* called with the frame's file name before the first instruction of each
++   line a frame runs, when a frame jumps back within a line, and with
++   `resumed` set when a frame goes on with a line after a call into script
++   returns to it; a nonzero return throws the pending exception */
++typedef int JSDebugLineHook(JSContext *ctx, void *opaque, JSAtom filename,
++                            int line, int resumed);
++/* called once for each thrown value, in the innermost bytecode frame,
++   before any handler runs; never for an uncatchable error */
++typedef void JSDebugThrowHook(JSContext *ctx, void *opaque);
++void JS_SetDebugHooks(JSRuntime *rt, JSDebugLineHook *line_hook,
++                      JSDebugThrowHook *throw_hook, void *opaque);
++/* the frames on the stack; level 0 is the innermost */
++int JS_GetDebugStackDepth(JSContext *ctx);
++/* a frame's function name, file name, line and column. The names are NULL
++   when unknown and freed with JS_FreeCString, and the line is 0 in a
++   native frame. Returns -1 when the stack has no such level. */
++int JS_GetDebugFrame(JSContext *ctx, int level, const char **function_name,
++                     const char **filename, int *line, int *column);
++/* an object with a frame's arguments and local variables, or with its
++   closure variables, leaving out those not yet initialized */
++JSValue JS_GetDebugLocals(JSContext *ctx, int level);
++JSValue JS_GetDebugClosure(JSContext *ctx, int level);
++/* runs source[length], followed by a 0 byte, as a direct eval inside the
++   frame with all of its variables in scope; an assignment to one writes
++   the frame's variable */
++JSValue JS_DebugEvaluate(JSContext *ctx, int level, const char *source,
++                         size_t length);
++/* an object's class name, such as "Map", without running script */
++JSValue JS_GetDebugClassName(JSContext *ctx, JSValueConst obj);
+ /* if can_block is TRUE, Atomics.wait() can be used */
+ void JS_SetCanBlock(JSRuntime *rt, JS_BOOL can_block);
+ /* select which debug info is stripped from the compiled code */

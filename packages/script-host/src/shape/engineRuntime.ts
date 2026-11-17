@@ -83,16 +83,24 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         return error;
     };
 
+    /**
+     * Makes an own element. Assigning to an index instead would call a setter a script put on
+     * `Array.prototype`, which could swallow the value and hand back its own through a getter.
+     */
+    const put = (target: unknown[], index: number, value: unknown): void => {
+        defineProperty(target, index, { value, writable: true, enumerable: true, configurable: true });
+    };
+
     /** Copies an array by index, which no replaced iterator or method can reach. */
     const copy = (values: readonly unknown[]): unknown[] => {
         const result: unknown[] = [];
-        for (let index = 0; index < values.length; index++) result[index] = values[index];
+        for (let index = 0; index < values.length; index++) put(result, index, values[index]);
         return result;
     };
 
     const invoke = (id: number, self: unknown, args: readonly unknown[]): unknown => {
         const list: unknown[] = [id, self];
-        for (let index = 0; index < args.length; index++) list[index + 2] = args[index];
+        for (let index = 0; index < args.length; index++) put(list, index + 2, args[index]);
         const result = apply(host, undefined, list);
         if (pending !== undefined) {
             const { error } = pending;
@@ -195,9 +203,10 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         for (let index = 0; index < call.arguments.length; index++) {
             const argument = call.arguments[index];
             if (argument === undefined) continue;
-            const value = checked[index];
+            // An omitted argument has no element, and reading one would reach a getter on the prototype.
+            const value = index < checked.length ? checked[index] : undefined;
             if (value === undefined && argument.optional) {
-                if (argument.default !== undefined) checked[index] = argument.default;
+                if (argument.default !== undefined) put(checked, index, argument.default);
                 continue;
             }
             if (!matches(argument.type, value)) {

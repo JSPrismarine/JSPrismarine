@@ -92,6 +92,9 @@ const ARRAY_CALLBACKS: Readonly<Record<string, 'array' | 'element' | 'other'>> =
     toSorted: 'array'
 };
 
+/** Array methods whose callback compares two elements rather than visiting one. */
+const ARRAY_COMPARATORS: ReadonlySet<string> = new Set(['sort', 'toSorted']);
+
 /** Array methods without a callback that return an element or the same kind of array. */
 const ARRAY_RESULTS: Readonly<Record<string, 'array' | 'element'>> = {
     at: 'element',
@@ -545,9 +548,14 @@ export class UsageCollector {
 
     #call(node: ESTree.CallExpression, scope: Scope): Value | undefined {
         const callee = node.callee;
-        if (callee.type === 'MemberExpression' && !callee.computed && callee.property.type === 'Identifier') {
+        if (callee.type === 'MemberExpression' && callee.property.type !== 'PrivateIdentifier') {
             const target = this.#visit(callee.object, scope);
-            const name = callee.property.name;
+            // `world.getPlayers()` and `world['getPlayers']()` name the same member.
+            const name = this.#staticKey(callee.property, callee.computed, scope);
+            if (name === undefined) {
+                // A key only known at run time, such as `handlers[index]()`.
+                return this.#callStatic(target?.kind === 'array' ? target.element : undefined, node.arguments, scope);
+            }
             if (target?.kind === 'array') return this.#arrayCall(target, name, node.arguments, scope);
             if (target?.kind === 'promise' && name === 'then') {
                 const [callback, ...rest] = node.arguments;
@@ -629,7 +637,10 @@ export class UsageCollector {
         const callback = ARRAY_CALLBACKS[name];
         const [first, ...rest] = args;
         if (callback !== undefined && first !== undefined) {
-            this.#callback(first, [target.element, undefined, target], scope);
+            const parameters = ARRAY_COMPARATORS.has(name)
+                ? [target.element, target.element]
+                : [target.element, undefined, target];
+            this.#callback(first, parameters, scope);
             for (const each of rest) this.#visit(each, scope);
             return callback === 'array' ? target : callback === 'element' ? target.element : undefined;
         }
@@ -742,8 +753,16 @@ export class UsageCollector {
                 const value = this.#visit(node.right, scope);
                 if (node.left.type === 'Identifier') {
                     const binding = scope.lookup(node.left.name);
-                    if (binding !== undefined && binding.imported === undefined && binding.value === undefined)
-                        binding.value = value;
+                    if (binding !== undefined && binding.imported === undefined) {
+                        // `=` replaces the value, even with one the counter cannot follow. `??=` and
+                        // `||=` keep a value the name already has. Arithmetic leaves no API value.
+                        binding.value =
+                            node.operator === '='
+                                ? value
+                                : node.operator === '??=' || node.operator === '||='
+                                  ? (binding.value ?? value)
+                                  : undefined;
+                    }
                 } else {
                     this.#assignTarget(node.left, scope);
                 }

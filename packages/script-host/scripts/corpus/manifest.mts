@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { isRecord } from '../isRecord.mts';
+import { isRecord } from '../../src/isRecord.ts';
 
 /** The `corpus` directory of the package, which holds the manifest and the generated counts. */
 export const CORPUS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../corpus');
