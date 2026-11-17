@@ -123,6 +123,7 @@ Dedicated Server, so a pack that declares 2.0.0 sees every 2.x member the pinned
 a module.
 
 ```ts
+import { ScriptHostLibrary } from '@jsprismarine/script-host';
 import { ScriptApiContext } from '@jsprismarine/script-host/shape/binding';
 import { ScriptApiImplementations } from '@jsprismarine/script-host/shape/implementations';
 import { resolveDependency } from '@jsprismarine/script-host/shape/resolve';
@@ -138,21 +139,72 @@ const implementations = new ScriptApiImplementations().implement(
     'getDimension',
     (call) => `the ${call.args[0]} dimension`
 );
+const engine = ScriptHostLibrary.load().createEngine();
 const context = new ScriptApiContext(engine, { pack: 'my pack - 1.0.0', implementations, logger: console });
-if (resolution.ok) context.bind(resolution.shape); // the namespace a script's import sees
+try {
+    if (resolution.ok) context.bind(resolution.shape); // the namespace a script's import sees
+} finally {
+    context.destroy();
+    engine.destroy();
+}
 ```
 
 `ScriptApiContext` installs a module into a namespace object with every class, enum, constant and
 error class the served version has. Every member is present, so `typeof world.sendMessage` and other
 feature tests see what they see on BDS. Before anything else runs, a member checks its arguments
-against the metadata and throws a `TypeError` or an `ArgumentOutOfBoundsError` worded the way BDS
-words them. Then it calls the implementation registered for its module, class and member. A member with none throws `NotImplementedError`, which names the module, the class
+against the metadata and throws a `TypeError` or an `ArgumentOutOfBoundsError`. The research note
+confirms BDS's wording for a variant that fails to convert and for an argument out of bounds. The
+messages for a wrong type, a wrong argument count, a class with no constructor and a member called
+on something that is not an instance follow the same style and are provisional until a
+`scripting.engine` parity row checks them against BDS. Then it calls the implementation registered for its module, class and member. A member with none throws `NotImplementedError`, which names the module, the class
 and the member, and the context logs it the first time each pack uses it.
 
 `implement` takes the names the generated `ScriptApiMembers` lists, so a misspelled member does not
 compile, and the form a member needs: a function for a method or constructor, `{ get }` for a
 read-only property and `{ get, set }` for a writable one. An implementation throws one of the API's
 own error classes, such as `LocationInUnloadedChunkError`, by throwing a `ScriptApiError`.
+
+## The add-on corpus
+
+The order in which members get behavior comes from what real add-ons use. `corpus/packs.json` pins
+open-source behavior packs with scripts: each repository by its GitHub URL, a full commit hash, the
+sha256 of GitHub's zip of that commit, and its license. Only permissive licenses such as MIT and
+Apache-2.0 are accepted, and `scripts/corpus/manifest.mts` lists them. The file also records the
+candidates the corpus leaves out and why. The repository holds no copy of any add-on.
+
+```sh
+pnpm --filter @jsprismarine/script-host run count:corpus   # fetches what is missing, then counts
+pnpm --filter @jsprismarine/script-host run check:corpus   # fails when the counts are stale
+```
+
+`count:corpus` downloads each pinned commit into `node_modules/.cache/jsprismarine/addon-corpus/`
+through `@jsprismarine/bedrock-data`'s fetch, which checks the digest before unpacking anything, and
+reuses the cached copy after that. A commit that no longer exists upstream fails with HTTP 404 and an
+error naming the packs it holds. The counter then reads each pack's `manifest.json` for the modules
+and versions it declares, and walks its scripts. It writes two files beside the manifest:
+`corpus/usage.json`, every pack's uses with one key per line, and `corpus/ranking.md`, the modules,
+declarations, events, members and interface fields ordered by how many packs use them, split by
+whether the pack declares the module as stable or beta.
+
+The counter reads a TypeScript pack from its TypeScript sources and never runs its build. A build
+would mean installing the pack's npm dependencies and running its scripts, and the bundle it makes
+mixes the pack's code with the libraries it bundles. The sources also carry type annotations, which
+tell the counter what a value is. A pack's `build` field in the manifest says what its build step
+would do. Libraries a pack bundles from npm, such as `@minecraft/math`, are not counted.
+
+The counter parses each file with oxc and follows values through the generated shape: from an
+import, through property types and method return types, `await`, array elements and destructuring,
+into a callback whose parameters the shape types, and from `getComponent('minecraft:inventory')` to
+`EntityInventoryComponent`. It counts a member on the class that declares it, so `player.kill()`
+counts as `Entity.kill`. A value it cannot follow, such as one passed in from another file, goes
+uncounted, so the counts are a lower bound. A member a pack adds to an API type through
+`declare module` is the pack's own and is not counted. The shape has no beta versions yet, so a beta
+pack resolves against the newest stable version of its major version, and members only a beta
+version has show up under "Not in the shape".
+
+`scripts/corpus/corpus.test.mts` checks the counts against the corpus when every pinned repository
+is already cached, and skips otherwise, so an ordinary test run needs no network. Set
+`JSP_ADDON_CORPUS_TESTS=1` to fetch what is missing and run it anyway.
 
 ## Building it
 

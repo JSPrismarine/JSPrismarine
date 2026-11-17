@@ -176,10 +176,23 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
    ported to the pinned QuickJS. Planned with the skeleton, and split into its own slice right
    after it if the port is large.
    - Done when VS Code attaches and stops at a breakpoint in a scenario pack.
-8. [ ] [#3205](https://github.com/JSPrismarine/JSPrismarine/issues/3205) **The corpus.** The manifest, the fetch script and the usage counter, starting from the
+8. [x] [#3205](https://github.com/JSPrismarine/JSPrismarine/issues/3205) **The corpus.** The manifest, the fetch script and the usage counter, starting from the
    candidates in the research note. Count beta packs too. Order slices 9 onward by the counts.
-9. [ ] [#3206](https://github.com/JSPrismarine/JSPrismarine/issues/3206) **Beta modules.** Right after the skeleton, because most open-source add-ons in the corpus
-   depend on a beta `@minecraft/server`.
+   - Learned (2026-11-17): the corpus is 19 packs from 13 repositories, 11 of them stable on
+     `@minecraft/server` and 8 beta. Mojang's three editor samples, its project template, a
+     ChestLockAddon pack on `2.0.0-alpha` and Protection-Area-Addon, whose entry script is missing
+     at its commit, stay out with the research note's three exclusions. The research note's samples
+     commit `73a171fc8b` names no commit; the pin is the head, `73a171fc83`.
+   - Learned: `system.run`, `runTimeout` and `runInterval`, the players and dimensions of `world`,
+     `getComponent` with the inventory's container, `new ItemStack`, `scriptEventReceive` and
+     `startup` lead both rankings. Custom commands (`CustomCommandParamType`,
+     `CommandPermissionLevel`) appear in 6 of the 8 beta packs, world dynamic properties in 7 of
+     them, and `@minecraft/server-ui` forms in 11 packs in all. `WorldBeforeEvents.chatSend` and
+     `playerPlaceBlock` are beta-only and used by 5 beta packs each, which supports doing slice 9
+     first. `packages/script-host/corpus/ranking.md` has the full ranking.
+9. [ ] [#3206](https://github.com/JSPrismarine/JSPrismarine/issues/3206) **Beta modules.** Right after the skeleton, because 8 of the 19 corpus packs depend on a
+   beta `@minecraft/server`, and members 5 of them use, such as `WorldBeforeEvents.chatSend`, exist
+   only in beta.
    - The Beta APIs experiment as a world setting, sent to clients and required by a pack that
      declares a `-beta` version, with BDS's message when it is off.
    - The generated shape of each beta version the pinned BDS ships. Beta versions do not follow
