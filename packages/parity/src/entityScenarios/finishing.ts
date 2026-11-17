@@ -1,8 +1,10 @@
 import { bedrockBlockStateToJava, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import type { BlockStateValue } from '@jsprismarine/mapping';
 
+import type { ContentEntity } from '@jsprismarine/prismarine/content/world/adapter';
+
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
-import { javaOperations } from '../javaClassFile.ts';
+import { javaOperations, pinnedJavaClass } from '../javaClassFile.ts';
 import { withProbe } from './goalProbe.ts';
 import { javaAncestry, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
@@ -184,6 +186,86 @@ const compareCropGrowth = (subject: EntitySubject): string | undefined => {
     return differences.length === 0 ? undefined : differences.join('; ');
 };
 
+const PHANTOM_SPAWNER = 'net/minecraft/world/level/levelgen/PhantomSpawner';
+
+/**
+ * What Java's `PhantomSpawner.tick` reads, from the pinned jar: the ticks without rest it waits for,
+ * and whether it reads `Stats.TIME_SINCE_REST` at all.
+ */
+const javaInsomnia = (): { readonly restTicks: number } | string => {
+    const tick = pinnedJavaClass(PHANTOM_SPAWNER).find((method) => method.name === 'tick');
+    if (tick === undefined) return "Java's PhantomSpawner is gone";
+    const operations = javaOperations(tick);
+    const read = operations.findIndex(
+        (operation) => operation.kind === 'field' && operation.target === 'Stats.TIME_SINCE_REST'
+    );
+    if (read < 0) return "Java's PhantomSpawner no longer reads the time since rest";
+    // `random.nextInt(timeSinceRest) >= 72000`: the number pushed right after that draw.
+    const after = operations.slice(read);
+    const draw = after.findIndex((operation) => operation.kind === 'call' && operation.target.endsWith('.nextInt'));
+    const bound = draw < 0 ? undefined : after[draw + 1];
+    return bound?.kind === 'number'
+        ? { restTicks: bound.value }
+        : 'PhantomSpawner.tick compares the draw with no number';
+};
+
+/** Ticks a probe waits for the spawner's next look: Java's longest countdown, `(60 + 59) * 20`, and a margin. */
+const PHANTOM_WAIT = 2_400;
+
+/**
+ * Stands players under the open night sky, one for each time since rest, waits for the phantom
+ * spawner's next look and counts the phantoms that came within 40 blocks of each.
+ */
+const phantomsOver = (restTicks: readonly number[]): readonly number[] =>
+    withProbe('minecraft:armor_stand', { keep: [], random: [0.3] }, (probe) => {
+        const dayTime = probe.world.world.level.dayTime();
+        // Midnight, the darkest the overworld sky gets.
+        probe.world.advance((18_000 - dayTime + 24_000) % 24_000);
+        const players: ContentEntity[] = restTicks.map((timeSinceRest, index) => ({
+            id: 9_500_000 + index,
+            identifier: 'minecraft:player',
+            position: probe.at(index * 120, 0, 0),
+            timeSinceRest
+        }));
+        const before = probe.world.players;
+        probe.world.players = [...before, ...players];
+        try {
+            probe.tick(PHANTOM_WAIT);
+            const phantoms = [...probe.runtime.entities()].filter(
+                (entity) => entity.identifier === 'minecraft:phantom' && entity.removed === undefined
+            );
+            const counts = players.map(
+                (player) =>
+                    phantoms.filter(
+                        (phantom) =>
+                            Math.abs(phantom.position.x - player.position.x) <= 40 &&
+                            Math.abs(phantom.position.z - player.position.z) <= 40
+                    ).length
+            );
+            for (const phantom of phantoms) probe.runtime.remove(phantom.id, 'parity probe');
+            return counts;
+        } finally {
+            probe.world.players = before;
+        }
+    });
+
+const compareInsomnia = (): string | undefined => {
+    const java = javaInsomnia();
+    if (typeof java === 'string') return java;
+    // Three days and more without rest, and one tick short of three days: the draw of 0.3 the
+    // probe world gives beats Java's bound only for the sleepless one.
+    const sleepless = 100 * java.restTicks;
+    const [overSleepless = 0, overRested = 0] = phantomsOver([sleepless, java.restTicks - 1]);
+    const differences: string[] = [];
+    if (overSleepless === 0)
+        differences.push(`no phantom comes for a player ${sleepless} ticks without rest, where Java sends them`);
+    if (overRested > 0)
+        differences.push(
+            `${overRested} phantoms come for a player ${java.restTicks - 1} ticks without rest, where Java waits for ${java.restTicks}`
+        );
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
 /** The scenarios of the finishing theme. */
 export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
@@ -195,5 +277,16 @@ export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:grows_crop'],
         run: compareCropGrowth
+    },
+    {
+        name: 'insomnia-calls-phantoms',
+        java: "Phantoms spawn over a player who has not slept for three days, and only over such a player, by Java's PhantomSpawner.",
+        reference:
+            'Java PhantomSpawner.tick (spawnPhantoms game rule, getSkyDarken() < 5, getSeaLevel and canSeeSky, isHarderThan(nextFloat() * 3), Stats.TIME_SINCE_REST clamped and random.nextInt(timeSinceRest) >= 72000, 20 + nextInt(15) up, 1 + nextInt(difficulty + 1) phantoms), ServerPlayer.doTick, startSleeping and die (TIME_SINCE_REST), read from the pinned jar; issue #3191',
+        subjects: () =>
+            entitiesDeclaring('minecraft:insomnia').filter((subject) => subject.javaId === 'minecraft:player'),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:insomnia'],
+        run: compareInsomnia
     }
 ];

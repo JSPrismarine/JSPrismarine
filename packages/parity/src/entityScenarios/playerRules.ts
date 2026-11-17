@@ -6,8 +6,6 @@ import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPla
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
-import { pinnedJavaClassNames } from '../javaClassFile.ts';
-import { serverContent } from '../serverStack.ts';
 import { javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
 import { entitiesDeclaring } from './subjects.ts';
@@ -153,29 +151,6 @@ export const playerRuleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                     `100 exhaustion at once leaves ${left} saturation and ${food} food, where Java caps it at ${cap} and spends one step a tick`
                 );
             return differences.length === 0 ? undefined : differences.join('; ');
-        }
-    },
-    {
-        name: 'insomnia-calls-phantoms',
-        java: "Phantoms spawn over a player who has not slept for three days, and only over such a player, by Java's PhantomSpawner.",
-        reference:
-            'Java PhantomSpawner.tick (spawnPhantoms game rule, Stats.TIME_SINCE_REST, random.nextInt(timeSinceRest) >= 72000), read from the pinned jar; issue #3191',
-        subjects: () => playerSubjects('minecraft:insomnia'),
-        idOf: (subject) => subject.javaId,
-        aspects: () => ['minecraft:insomnia'],
-        run: () => {
-            if (
-                !pinnedJavaClassNames('net/minecraft/world/level/levelgen/').some((name) =>
-                    name.endsWith('/PhantomSpawner')
-                )
-            )
-                return "Java's PhantomSpawner is gone";
-            const hooks = serverContent().entities.components.hooksOf('minecraft:insomnia');
-            if (hooks.size > 0) return undefined;
-            const darkness = serverContent().spawnRules.some((rule) => rule.identifier === 'minecraft:phantom');
-            return darkness
-                ? "the server never reads minecraft:insomnia and spawns phantoms from the pack's spawn rule by darkness alone, so a rested player sees them too, where Java spawns them only over a player 72000 ticks without rest"
-                : 'the server runs nothing for minecraft:insomnia, so a sleepless player never sees a phantom, where Java spawns them after 72000 ticks without rest';
         }
     }
 ];

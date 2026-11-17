@@ -527,11 +527,6 @@
             "reason": "A mob Java gives a home keeps it from where Java takes it, and its random wandering stays within the radius Java's setHomeTo gives it, or within none. Observed: the server holds its wandering within 22 blocks of home, where Java holds it to no radius.",
             "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, every Mob.setHomeTo call (HappyGhast and AbstractNautilus checkRestriction, ElderGuardian.customServerAiStep, WanderingTraderSpawner.spawn), GoalUtils.mobRestricted and isRestricted, and Bee$BeeWanderGoal.getWanderThreshold; issues #3159 and #3170 (the bee)"
         },
-        "insomnia-calls-phantoms:minecraft:player": {
-            "kind": "defect",
-            "reason": "Phantoms spawn over a player who has not slept for three days, and only over such a player, by Java's PhantomSpawner. Observed: the server never reads minecraft:insomnia and spawns phantoms from the pack's spawn rule by darkness alone, so a rested player sees them too, where Java spawns them only over a player 72000 ticks without rest.",
-            "reference": "Java PhantomSpawner.tick (spawnPhantoms game rule, Stats.TIME_SINCE_REST, random.nextInt(timeSinceRest) >= 72000), read from the pinned jar; issue #3191"
-        },
         "java-rule-lava_movement:minecraft:strider": {
             "kind": "defect",
             "reason": "A strider walks across a lava pool on its surface as it walks on land. Observed: it covers 0.03 blocks of lava in a second, where Java walks it across.",
