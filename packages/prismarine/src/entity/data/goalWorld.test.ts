@@ -432,6 +432,19 @@ describe('the goal world over the entity runtime', () => {
             expect(fixture.runtime.ridersOf(mount.body).map((seated) => seated.id)).toEqual([rider.id]);
         });
 
+        it('names the families of the rider in the first seat as the controlling passenger', () => {
+            const fixture = fixtureOf();
+            const mount = spawned(fixture, 'jsprismarine:mount', groundAt(0, 0));
+            const rider = spawned(fixture, 'jsprismarine:rider', groundAt(3, 0));
+            const controlling = () => mount.instance.filterContext().self.names?.('is_controlling_passenger_family');
+            expect(controlling()).toEqual([]);
+
+            run(fixture, 20);
+
+            expect(fixture.runtime.vehicleOf(rider.body)?.id).toBe(mount.id);
+            expect(controlling()).toEqual(rider.instance.families());
+        });
+
         it('carries the rider wherever the mount goes', () => {
             const fixture = fixtureOf();
             const mount = spawned(fixture, 'jsprismarine:mount', groundAt(0, 0));

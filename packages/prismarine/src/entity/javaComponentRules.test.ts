@@ -74,6 +74,40 @@ describe('withJavaComponentRules', () => {
         );
     });
 
+    it('lets a tamed zombie horse keep its lead under any rider, and a wild one lose it under any mob', () => {
+        const mounted = {
+            filters: { test: 'is_controlling_passenger_family', subject: 'self', value: 'zombie' },
+            event: 'minecraft:hostile_mounted'
+        };
+        const data = withJavaComponentRules(
+            entityFile('minecraft:zombie_horse', {
+                'minecraft:horse_can_be_leashed': { 'minecraft:environment_sensor': { triggers: [mounted] } }
+            })
+        );
+
+        expect(data).toMatchObject({
+            'minecraft:entity': {
+                component_groups: {
+                    'minecraft:horse_can_be_leashed': {
+                        'minecraft:environment_sensor': {
+                            triggers: [
+                                {
+                                    event: 'minecraft:hostile_mounted',
+                                    filters: {
+                                        all_of: [
+                                            { test: 'is_controlling_passenger_family', value: 'mob' },
+                                            { test: 'has_component', operator: '!=', value: 'minecraft:is_tamed' }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        });
+    });
+
     it("takes the creaking's freezing immunity out, which Java's creaking does not have", () => {
         const data = withJavaComponentRules(
             entityFile('minecraft:creaking', {}, { 'minecraft:freezing_immune': {}, 'minecraft:health': { value: 1 } })

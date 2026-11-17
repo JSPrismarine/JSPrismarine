@@ -75,6 +75,25 @@ const withoutTriggerFor = (body: Record<string, unknown>, event: string): Record
     return { ...body, triggers: triggers.filter((trigger) => !(isRecord(trigger) && trigger.event === event)) };
 };
 
+/** An environment sensor whose triggers that raise one event test a new filter instead. */
+const withTriggerFilter = (body: Record<string, unknown>, event: string, filters: unknown): Record<string, unknown> => {
+    const triggers: readonly unknown[] = Array.isArray(body.triggers) ? body.triggers : [body.triggers];
+    return {
+        ...body,
+        triggers: triggers.map((trigger) =>
+            isRecord(trigger) && trigger.event === event ? { ...trigger, filters } : trigger
+        )
+    };
+};
+
+/** A wild mount with a mob in its first seat, Java's `!isTamed() && isMobControlled()`. */
+const WILD_HORSE_MOB_RIDDEN = {
+    all_of: [
+        { test: 'is_controlling_passenger_family', subject: 'self', value: 'mob' },
+        { test: 'has_component', subject: 'self', operator: '!=', value: 'minecraft:is_tamed' }
+    ]
+};
+
 const WEAPON_BY_WEAPON_ALONE: JavaComponentRule = {
     component: 'minecraft:environment_sensor',
     rewrite: withoutWaterWeaponSwap
@@ -151,6 +170,15 @@ export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponen
         {
             component: 'minecraft:environment_sensor',
             rewrite: (body) => withoutTriggerFor(body, 'minecraft:on_tame')
+        }
+    ],
+    // `ZombieHorse.canBeLeashed` refuses a lead only while it is wild and a mob rides it
+    // (`isMobControlled`), where the pack's sensor takes the lead away from a tamed one too, and only
+    // for a zombie rider.
+    'minecraft:zombie_horse': [
+        {
+            component: 'minecraft:environment_sensor',
+            rewrite: (body) => withTriggerFilter(body, 'minecraft:hostile_mounted', WILD_HORSE_MOB_RIDDEN)
         }
     ],
     'minecraft:skeleton': [WEAPON_BY_WEAPON_ALONE],

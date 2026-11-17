@@ -152,6 +152,9 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
         }
 
         if (name === 'weather_at_position') return weatherAt(body, scene);
+        // The families of the rider in the first seat, which steers: a zombie on a zombie horse.
+        if (name === 'is_controlling_passenger_family')
+            return scene.ridersOf(body)[0]?.view().names?.('is_family') ?? [];
         if (name === 'has_mob_effect') {
             const effects = [...body.statusEffects.keys()];
             return [...effects, ...effects.map((identifier) => identifier.slice(identifier.indexOf(':') + 1))];
