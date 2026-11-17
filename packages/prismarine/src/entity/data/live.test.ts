@@ -3689,6 +3689,9 @@ describe('the data-driven entity runtime over a live world', () => {
                 { timeout: 180_000 },
                 async () => {
                     useVanillaContent();
+                    // These direct runtime ticks leave the level clock where it starts, so in daylight
+                    // a zombie's burn would land every tick and kill it before it got anywhere.
+                    startAtNight();
 
                     // Water replaces the two water spawns' floor blocks. Keep the pursuer and pig on dry
                     // land; the float goal is covered by the separate liquid-physics test below.
@@ -3741,17 +3744,19 @@ describe('the data-driven entity runtime over a live world', () => {
                     expect(villager.brain).toBeDefined();
                     expect(waterZombie.facts.underwaterMovement).toBeLessThan(waterZombie.facts.movement);
 
+                    // Java's living travel moves a body by its velocity before gravity, so a mob
+                    // spawned at rest over the water only starts to sink on its second tick.
                     await live.tick(1);
                     expect(zombie.position.y).toBe(GROUND_Y);
-                    expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
                     expect(Math.abs(pig.position.y - GROUND_Y)).toBeLessThan(0.1);
-                    for (let tick = 2; tick <= 30; tick += 1) await live.tick(tick);
+                    await live.tick(2);
+                    expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
+                    for (let tick = 3; tick <= 30; tick += 1) await live.tick(tick);
 
                     expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
                     expect(zombie.target).toBe(Number(player.getRuntimeId()));
                     // Walking toward the player at Java's stride, about 0.117 blocks a tick for the
-                    // zombie's 0.23. These direct runtime ticks leave the level clock at 0, so its
-                    // daylight burn lands every tick and it dies at tick 20, two blocks on.
+                    // zombie's 0.23, from whenever its one-in-five target scan first finds the player.
                     expect(zombie.position.x).toBeGreaterThan(4);
                     expect(zombie.position.y).toBe(GROUND_Y);
                     expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
