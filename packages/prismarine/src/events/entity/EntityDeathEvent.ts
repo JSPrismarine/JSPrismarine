@@ -5,6 +5,11 @@ import { Event } from '../Event';
 /**
  * Fired once, when an entity's health has reached zero.
  *
+ * It is posted once the unit of the killing blow has kept its writes, so a blow that a later
+ * failure in the same unit took back posts nothing. By then a mob that died is out of the world:
+ * {@link EntityDeathEvent.getEntity} still answers its type, name, position and equipment as they
+ * were when it died, though the world no longer finds it by its runtime id.
+ *
  * Not cancellable: by the time this runs the health is already gone and the client has been told,
  * so a listener that "canceled" it would leave a corpse walking around with no hearts. What it
  * is for is reacting - loot, statistics, an announcement - and for that, knowing who did it is

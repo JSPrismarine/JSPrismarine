@@ -1872,6 +1872,86 @@ describe('the data-driven entity runtime over a live world', () => {
                 ).toEqual(['player_killed_entity', 'player_hurt_entity']);
             });
 
+            describe('a lethal blow in a unit', () => {
+                /** A player's blow on a cow, with every death event and raised trigger recorded. */
+                const lethalBlow = async () => {
+                    const player = addPlayer(0.5, 0.5);
+                    const { cow, body } = await cowAt(1.5);
+                    const position = body.getPosition();
+                    const deaths: { type: string; position: Vector3; health: number }[] = [];
+                    onTestFinished(
+                        world
+                            .getServer()
+                            .getKernel()
+                            .events.on('entityDeath', (event) => {
+                                const entity = event.getEntity();
+                                deaths.push({
+                                    type: entity.getType(),
+                                    position: entity.getPosition(),
+                                    health: entity.getHealth()
+                                });
+                            })
+                    );
+                    const { advancements } = player.getServer().getContent();
+                    vi.spyOn(advancements, 'listensFor').mockReturnValue(true);
+                    const raised: string[] = [];
+                    vi.spyOn(advancements, 'raise').mockImplementation((trigger) => {
+                        raised.push(trigger);
+                        return [];
+                    });
+                    const strike = () =>
+                        live.runtime.damage({
+                            target: cow.id,
+                            attacker: Number(player.getRuntimeId()),
+                            cause: 'entity_attack',
+                            amount: 100,
+                            source: { route: 'mob_attack' }
+                        });
+                    return { cow, position, deaths, raised, strike };
+                };
+
+                it('posts no death and raises no trigger when a later write undoes the unit', async () => {
+                    const { cow, deaths, raised, strike } = await lethalBlow();
+                    const { store } = live.runtime;
+
+                    store.beginTick();
+                    const outcome = store.unit(() => {
+                        strike();
+                        throw new Error('a later write in the unit failed');
+                    });
+                    store.sealTick();
+
+                    expect(outcome.failed).toBe(true);
+
+                    expect(live.runtime.byId(cow.id)?.instance.attributes.get('health')?.current).toBe(10);
+                    expect(deaths).toEqual([]);
+                    expect(raised).toEqual([]);
+                });
+
+                it('posts the death with the mob as it died, then raises the triggers, once the unit keeps it', async () => {
+                    const { cow, position, deaths, raised, strike } = await lethalBlow();
+                    const { store } = live.runtime;
+
+                    let inUnit: unknown;
+                    store.beginTick();
+                    const outcome = store.unit(() => {
+                        strike();
+                        inUnit = {
+                            removed: live.runtime.byId(cow.id) === undefined,
+                            deaths: [...deaths],
+                            raised: [...raised]
+                        };
+                    });
+                    store.sealTick();
+
+                    expect(outcome.failed).toBe(false);
+                    // The mob is out of the world before anything hears of its death.
+                    expect(inUnit).toEqual({ removed: true, deaths: [], raised: [] });
+                    expect(deaths).toEqual([{ type: 'minecraft:cow', position, health: 0 }]);
+                    expect(raised).toEqual(['player_killed_entity', 'player_hurt_entity']);
+                });
+            });
+
             it('lets an entityDamage listener cancel or rewrite a blow, as a before-hook', async () => {
                 const player = addPlayer(0.5, 0.5);
                 Object.assign(player.getActor()!, { inventory: new HumanInventory() });

@@ -73,6 +73,8 @@ import type HumanInventory from '../../inventory/HumanInventory';
 import type PlayerSession from '../../network/PlayerSession';
 import type { StatusEffect } from '../StatusEffect';
 import { advancementDamage, advancementKill, advancementPickedUpItem } from '../../advancement/triggers';
+import { raiseAdvancement } from '../../advancement/raise';
+import type { AdvancementRaiser } from '../../advancement/raise';
 import { itemDropOf, itemOfDrop } from '../../inventory/persistence';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { TakeItemActorPacket } from '@jsprismarine/protocol';
@@ -385,26 +387,35 @@ const liveHost = (
         // A dropped stack raises no plugin event or trigger, as its legacy body never did.
         if (world === undefined || victim === undefined || victim instanceof ItemActor) return;
 
-        // The order the legacy pipeline raised them in: the death, then the blow.
+        // The order the legacy pipeline raised them in: the death, then the blow. All of it waits
+        // for the unit this blow is in to keep its writes: an undo gives the victim its health
+        // back, and a plugin told of the death or a kill advancement already earned could not be
+        // taken back with it. A mob that died is out of the world by then, so the trigger events
+        // are built here, from the victim and the attacker as the blow left them, and the death
+        // event carries the actor, which still answers what the mob was when it died.
         const source = legacySourceOfIntent(world, commit.intent);
-        if (commit.died) {
-            world.getServer().getKernel().events.post('entityDeath', new EntityDeathEvent(victim, source));
-            advancementKill(victim, source);
-        }
-        advancementDamage(victim, source, commit.dealt, commit.taken, false);
+        const raises: (() => void)[] = [];
+        const raiseOnceKept: AdvancementRaiser = (player, trigger, event) =>
+            void raises.push(() => raiseAdvancement(player, trigger, event));
+        if (commit.died) advancementKill(victim, source, raiseOnceKept);
+        advancementDamage(victim, source, commit.dealt, commit.taken, false, raiseOnceKept);
 
-        // A player's death is also its session's: the death message, the respawn search and the
-        // death screen. None of that is in the log, so it waits for the unit this blow is in to
-        // keep its writes: an undo gives the player its health back, and a client already sent
-        // health 0, the chat line and a respawn would be showing a death that never happened.
-        if (commit.died && victim instanceof StorePlayerActor)
-            runtime().store.afterUnit((kept) => {
-                if (!kept) return;
+        runtime().store.afterUnit((kept) => {
+            if (!kept) return;
+            if (commit.died)
+                world.getServer().getKernel().events.post('entityDeath', new EntityDeathEvent(victim, source));
+            for (const raise of raises) raise();
+
+            // A player's death is also its session's: the death message, the respawn search and
+            // the death screen. None of that is in the log, so it waits with the rest: a client
+            // already sent health 0, the chat line and a respawn would be showing a death that
+            // never happened.
+            if (commit.died && victim instanceof StorePlayerActor)
                 void world
                     .viewerOf(victim.getRuntimeId())
                     ?.die(source)
                     .catch((error: unknown) => options.report(String(error)));
-            });
+        });
     },
     players: () => options.entities.players(),
     playerView: (id) => {
