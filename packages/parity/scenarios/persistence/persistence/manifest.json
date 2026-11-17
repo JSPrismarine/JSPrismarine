@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario persistence",
+        "description": "Records the dynamic property and scoreboard members of world, entities and item stacks, their values and their errors. Written for packages/parity.",
+        "uuid": "35579972-c85f-41ef-afae-6f7fd4ce0a02",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "2e16220c-c7cd-4fc0-82f7-2b1558b93741",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

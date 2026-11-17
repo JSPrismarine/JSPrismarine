@@ -1,0 +1,2201 @@
+{
+    "$comment": [
+        "What the scripts of scenario `persistence` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.world",
+    "scenario": "persistence",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "persistence",
+            "seq": 1,
+            "tick": 0,
+            "event": "world ids at first",
+            "value": []
+        },
+        {
+            "pack": "persistence",
+            "seq": 2,
+            "tick": 0,
+            "event": "world bytes at first",
+            "value": 0
+        },
+        {
+            "pack": "persistence",
+            "seq": 3,
+            "tick": 0,
+            "event": "world get a missing id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 4,
+            "tick": 0,
+            "event": "world set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 5,
+            "tick": 0,
+            "event": "world get jsp:a",
+            "value": 1
+        },
+        {
+            "pack": "persistence",
+            "seq": 6,
+            "tick": 0,
+            "event": "world bytes after jsp:a",
+            "value": 14
+        },
+        {
+            "pack": "persistence",
+            "seq": 7,
+            "tick": 0,
+            "event": "world set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 8,
+            "tick": 0,
+            "event": "world get jsp:a",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 9,
+            "tick": 0,
+            "event": "world bytes after jsp:a",
+            "value": 7
+        },
+        {
+            "pack": "persistence",
+            "seq": 10,
+            "tick": 0,
+            "event": "world set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 11,
+            "tick": 0,
+            "event": "world get jsp:a",
+            "value": false
+        },
+        {
+            "pack": "persistence",
+            "seq": 12,
+            "tick": 0,
+            "event": "world bytes after jsp:a",
+            "value": 7
+        },
+        {
+            "pack": "persistence",
+            "seq": 13,
+            "tick": 0,
+            "event": "world set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 14,
+            "tick": 0,
+            "event": "world get jsp:a",
+            "value": "xyz"
+        },
+        {
+            "pack": "persistence",
+            "seq": 15,
+            "tick": 0,
+            "event": "world bytes after jsp:a",
+            "value": 10
+        },
+        {
+            "pack": "persistence",
+            "seq": 16,
+            "tick": 0,
+            "event": "world set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 17,
+            "tick": 0,
+            "event": "world get jsp:a",
+            "value": ""
+        },
+        {
+            "pack": "persistence",
+            "seq": 18,
+            "tick": 0,
+            "event": "world bytes after jsp:a",
+            "value": 7
+        },
+        {
+            "pack": "persistence",
+            "seq": 19,
+            "tick": 0,
+            "event": "world set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 20,
+            "tick": 0,
+            "event": "world get jsp:a",
+            "value": "é"
+        },
+        {
+            "pack": "persistence",
+            "seq": 21,
+            "tick": 0,
+            "event": "world bytes after jsp:a",
+            "value": 9
+        },
+        {
+            "pack": "persistence",
+            "seq": 22,
+            "tick": 0,
+            "event": "world set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 23,
+            "tick": 0,
+            "event": "world get jsp:a",
+            "value": {
+                "x": 1,
+                "y": 2,
+                "z": 3
+            }
+        },
+        {
+            "pack": "persistence",
+            "seq": 24,
+            "tick": 0,
+            "event": "world bytes after jsp:a",
+            "value": 18
+        },
+        {
+            "pack": "persistence",
+            "seq": 25,
+            "tick": 0,
+            "event": "world set jsp:bb",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 26,
+            "tick": 0,
+            "event": "world get jsp:bb",
+            "value": 1.5
+        },
+        {
+            "pack": "persistence",
+            "seq": 27,
+            "tick": 0,
+            "event": "world bytes after jsp:bb",
+            "value": 33
+        },
+        {
+            "pack": "persistence",
+            "seq": 28,
+            "tick": 0,
+            "event": "world set jsp:neg0",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 29,
+            "tick": 0,
+            "event": "world get jsp:neg0",
+            "value": "-0"
+        },
+        {
+            "pack": "persistence",
+            "seq": 30,
+            "tick": 0,
+            "event": "world bytes after jsp:neg0",
+            "value": 50
+        },
+        {
+            "pack": "persistence",
+            "seq": 31,
+            "tick": 0,
+            "event": "world set jsp:big",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 32,
+            "tick": 0,
+            "event": "world get jsp:big",
+            "value": 9007199254740992
+        },
+        {
+            "pack": "persistence",
+            "seq": 33,
+            "tick": 0,
+            "event": "world bytes after jsp:big",
+            "value": 66
+        },
+        {
+            "pack": "persistence",
+            "seq": 34,
+            "tick": 0,
+            "event": "world set jsp:float",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 35,
+            "tick": 0,
+            "event": "world get jsp:float",
+            "value": {
+                "x": 0.10000000149011612,
+                "y": -2.5,
+                "z": 16777216
+            }
+        },
+        {
+            "pack": "persistence",
+            "seq": 36,
+            "tick": 0,
+            "event": "world bytes after jsp:float",
+            "value": 88
+        },
+        {
+            "pack": "persistence",
+            "seq": 37,
+            "tick": 0,
+            "event": "world set plain",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 38,
+            "tick": 0,
+            "event": "world get plain",
+            "value": 4
+        },
+        {
+            "pack": "persistence",
+            "seq": 39,
+            "tick": 0,
+            "event": "world bytes after plain",
+            "value": 102
+        },
+        {
+            "pack": "persistence",
+            "seq": 40,
+            "tick": 0,
+            "event": "world set ",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 41,
+            "tick": 0,
+            "event": "world get ",
+            "value": 5
+        },
+        {
+            "pack": "persistence",
+            "seq": 42,
+            "tick": 0,
+            "event": "world bytes after ",
+            "value": 111
+        },
+        {
+            "pack": "persistence",
+            "seq": 43,
+            "tick": 0,
+            "event": "world set NaN",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 44,
+            "tick": 0,
+            "event": "world set Infinity",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 45,
+            "tick": 0,
+            "event": "world set an infinite vector",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 46,
+            "tick": 0,
+            "event": "world get an infinite vector",
+            "error": "TypeError: Infinity value is not supported."
+        },
+        {
+            "pack": "persistence",
+            "seq": 47,
+            "tick": 0,
+            "event": "world set a bigint",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 48,
+            "tick": 0,
+            "event": "world set an object",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 49,
+            "tick": 0,
+            "event": "world set an array",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 50,
+            "tick": 0,
+            "event": "world set null",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 51,
+            "tick": 0,
+            "event": "world set a number id",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: string"
+        },
+        {
+            "pack": "persistence",
+            "seq": 52,
+            "tick": 0,
+            "event": "world set 32767 characters",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 53,
+            "tick": 0,
+            "event": "world length of 32767 characters",
+            "value": 32767
+        },
+        {
+            "pack": "persistence",
+            "seq": 54,
+            "tick": 0,
+            "event": "world set 32768 characters",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: String length for dynamic property 'jsp:longer', Value: 32768, Argument max: 32767"
+        },
+        {
+            "pack": "persistence",
+            "seq": 55,
+            "tick": 0,
+            "event": "world get 32768 characters",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 56,
+            "tick": 0,
+            "event": "world set 20000 two-byte characters",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: String length for dynamic property 'jsp:wide', Value: 40000, Argument max: 32767"
+        },
+        {
+            "pack": "persistence",
+            "seq": 57,
+            "tick": 0,
+            "event": "world get 20000 two-byte characters",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 58,
+            "tick": 0,
+            "event": "world set a 300 character id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 59,
+            "tick": 0,
+            "event": "world ids",
+            "value": [
+                "",
+                "300 characters",
+                "jsp:a",
+                "jsp:bb",
+                "jsp:big",
+                "jsp:float",
+                "jsp:long",
+                "jsp:neg0",
+                "jsp:vinf",
+                "plain"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 60,
+            "tick": 0,
+            "event": "world bytes",
+            "value": 33218
+        },
+        {
+            "pack": "persistence",
+            "seq": 61,
+            "tick": 0,
+            "event": "world delete with undefined",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 62,
+            "tick": 0,
+            "event": "world delete with no value",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 63,
+            "tick": 0,
+            "event": "world get after the delete",
+            "value": [
+                "undefined",
+                "undefined"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 64,
+            "tick": 0,
+            "event": "world delete a missing id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 65,
+            "tick": 0,
+            "event": "world setDynamicProperties",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 66,
+            "tick": 0,
+            "event": "world get after setDynamicProperties",
+            "value": [
+                1,
+                "two",
+                {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                }
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 67,
+            "tick": 0,
+            "event": "world setDynamicProperties with a bad value",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 68,
+            "tick": 0,
+            "event": "world get after the bad setDynamicProperties",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 69,
+            "tick": 0,
+            "event": "world clear",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 70,
+            "tick": 0,
+            "event": "world ids after clear",
+            "value": []
+        },
+        {
+            "pack": "persistence",
+            "seq": 71,
+            "tick": 0,
+            "event": "world bytes after clear",
+            "value": 0
+        },
+        {
+            "pack": "persistence",
+            "seq": 72,
+            "tick": 0,
+            "event": "entity ids at first",
+            "value": []
+        },
+        {
+            "pack": "persistence",
+            "seq": 73,
+            "tick": 0,
+            "event": "entity bytes at first",
+            "value": 0
+        },
+        {
+            "pack": "persistence",
+            "seq": 74,
+            "tick": 0,
+            "event": "entity get a missing id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 75,
+            "tick": 0,
+            "event": "entity set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 76,
+            "tick": 0,
+            "event": "entity get jsp:a",
+            "value": 1
+        },
+        {
+            "pack": "persistence",
+            "seq": 77,
+            "tick": 0,
+            "event": "entity bytes after jsp:a",
+            "value": 14
+        },
+        {
+            "pack": "persistence",
+            "seq": 78,
+            "tick": 0,
+            "event": "entity set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 79,
+            "tick": 0,
+            "event": "entity get jsp:a",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 80,
+            "tick": 0,
+            "event": "entity bytes after jsp:a",
+            "value": 7
+        },
+        {
+            "pack": "persistence",
+            "seq": 81,
+            "tick": 0,
+            "event": "entity set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 82,
+            "tick": 0,
+            "event": "entity get jsp:a",
+            "value": false
+        },
+        {
+            "pack": "persistence",
+            "seq": 83,
+            "tick": 0,
+            "event": "entity bytes after jsp:a",
+            "value": 7
+        },
+        {
+            "pack": "persistence",
+            "seq": 84,
+            "tick": 0,
+            "event": "entity set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 85,
+            "tick": 0,
+            "event": "entity get jsp:a",
+            "value": "xyz"
+        },
+        {
+            "pack": "persistence",
+            "seq": 86,
+            "tick": 0,
+            "event": "entity bytes after jsp:a",
+            "value": 10
+        },
+        {
+            "pack": "persistence",
+            "seq": 87,
+            "tick": 0,
+            "event": "entity set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 88,
+            "tick": 0,
+            "event": "entity get jsp:a",
+            "value": ""
+        },
+        {
+            "pack": "persistence",
+            "seq": 89,
+            "tick": 0,
+            "event": "entity bytes after jsp:a",
+            "value": 7
+        },
+        {
+            "pack": "persistence",
+            "seq": 90,
+            "tick": 0,
+            "event": "entity set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 91,
+            "tick": 0,
+            "event": "entity get jsp:a",
+            "value": "é"
+        },
+        {
+            "pack": "persistence",
+            "seq": 92,
+            "tick": 0,
+            "event": "entity bytes after jsp:a",
+            "value": 9
+        },
+        {
+            "pack": "persistence",
+            "seq": 93,
+            "tick": 0,
+            "event": "entity set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 94,
+            "tick": 0,
+            "event": "entity get jsp:a",
+            "value": {
+                "x": 1,
+                "y": 2,
+                "z": 3
+            }
+        },
+        {
+            "pack": "persistence",
+            "seq": 95,
+            "tick": 0,
+            "event": "entity bytes after jsp:a",
+            "value": 18
+        },
+        {
+            "pack": "persistence",
+            "seq": 96,
+            "tick": 0,
+            "event": "entity set jsp:bb",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 97,
+            "tick": 0,
+            "event": "entity get jsp:bb",
+            "value": 1.5
+        },
+        {
+            "pack": "persistence",
+            "seq": 98,
+            "tick": 0,
+            "event": "entity bytes after jsp:bb",
+            "value": 33
+        },
+        {
+            "pack": "persistence",
+            "seq": 99,
+            "tick": 0,
+            "event": "entity set jsp:neg0",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 100,
+            "tick": 0,
+            "event": "entity get jsp:neg0",
+            "value": "-0"
+        },
+        {
+            "pack": "persistence",
+            "seq": 101,
+            "tick": 0,
+            "event": "entity bytes after jsp:neg0",
+            "value": 50
+        },
+        {
+            "pack": "persistence",
+            "seq": 102,
+            "tick": 0,
+            "event": "entity set jsp:big",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 103,
+            "tick": 0,
+            "event": "entity get jsp:big",
+            "value": 9007199254740992
+        },
+        {
+            "pack": "persistence",
+            "seq": 104,
+            "tick": 0,
+            "event": "entity bytes after jsp:big",
+            "value": 66
+        },
+        {
+            "pack": "persistence",
+            "seq": 105,
+            "tick": 0,
+            "event": "entity set jsp:float",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 106,
+            "tick": 0,
+            "event": "entity get jsp:float",
+            "value": {
+                "x": 0.10000000149011612,
+                "y": -2.5,
+                "z": 16777216
+            }
+        },
+        {
+            "pack": "persistence",
+            "seq": 107,
+            "tick": 0,
+            "event": "entity bytes after jsp:float",
+            "value": 88
+        },
+        {
+            "pack": "persistence",
+            "seq": 108,
+            "tick": 0,
+            "event": "entity set plain",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 109,
+            "tick": 0,
+            "event": "entity get plain",
+            "value": 4
+        },
+        {
+            "pack": "persistence",
+            "seq": 110,
+            "tick": 0,
+            "event": "entity bytes after plain",
+            "value": 102
+        },
+        {
+            "pack": "persistence",
+            "seq": 111,
+            "tick": 0,
+            "event": "entity set ",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 112,
+            "tick": 0,
+            "event": "entity get ",
+            "value": 5
+        },
+        {
+            "pack": "persistence",
+            "seq": 113,
+            "tick": 0,
+            "event": "entity bytes after ",
+            "value": 111
+        },
+        {
+            "pack": "persistence",
+            "seq": 114,
+            "tick": 0,
+            "event": "entity set NaN",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 115,
+            "tick": 0,
+            "event": "entity set Infinity",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 116,
+            "tick": 0,
+            "event": "entity set an infinite vector",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 117,
+            "tick": 0,
+            "event": "entity get an infinite vector",
+            "error": "TypeError: Infinity value is not supported."
+        },
+        {
+            "pack": "persistence",
+            "seq": 118,
+            "tick": 0,
+            "event": "entity set a bigint",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 119,
+            "tick": 0,
+            "event": "entity set an object",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 120,
+            "tick": 0,
+            "event": "entity set an array",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 121,
+            "tick": 0,
+            "event": "entity set null",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 122,
+            "tick": 0,
+            "event": "entity set a number id",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: string"
+        },
+        {
+            "pack": "persistence",
+            "seq": 123,
+            "tick": 0,
+            "event": "entity set 32767 characters",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 124,
+            "tick": 0,
+            "event": "entity length of 32767 characters",
+            "value": 32767
+        },
+        {
+            "pack": "persistence",
+            "seq": 125,
+            "tick": 0,
+            "event": "entity set 32768 characters",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: String length for dynamic property 'jsp:longer', Value: 32768, Argument max: 32767"
+        },
+        {
+            "pack": "persistence",
+            "seq": 126,
+            "tick": 0,
+            "event": "entity get 32768 characters",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 127,
+            "tick": 0,
+            "event": "entity set 20000 two-byte characters",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: String length for dynamic property 'jsp:wide', Value: 40000, Argument max: 32767"
+        },
+        {
+            "pack": "persistence",
+            "seq": 128,
+            "tick": 0,
+            "event": "entity get 20000 two-byte characters",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 129,
+            "tick": 0,
+            "event": "entity set a 300 character id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 130,
+            "tick": 0,
+            "event": "entity ids",
+            "value": [
+                "",
+                "300 characters",
+                "jsp:a",
+                "jsp:bb",
+                "jsp:big",
+                "jsp:float",
+                "jsp:long",
+                "jsp:neg0",
+                "jsp:vinf",
+                "plain"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 131,
+            "tick": 0,
+            "event": "entity bytes",
+            "value": 33218
+        },
+        {
+            "pack": "persistence",
+            "seq": 132,
+            "tick": 0,
+            "event": "entity delete with undefined",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 133,
+            "tick": 0,
+            "event": "entity delete with no value",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 134,
+            "tick": 0,
+            "event": "entity get after the delete",
+            "value": [
+                "undefined",
+                "undefined"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 135,
+            "tick": 0,
+            "event": "entity delete a missing id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 136,
+            "tick": 0,
+            "event": "entity setDynamicProperties",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 137,
+            "tick": 0,
+            "event": "entity get after setDynamicProperties",
+            "value": [
+                1,
+                "two",
+                {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                }
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 138,
+            "tick": 0,
+            "event": "entity setDynamicProperties with a bad value",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 139,
+            "tick": 0,
+            "event": "entity get after the bad setDynamicProperties",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 140,
+            "tick": 0,
+            "event": "entity clear",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 141,
+            "tick": 0,
+            "event": "entity ids after clear",
+            "value": []
+        },
+        {
+            "pack": "persistence",
+            "seq": 142,
+            "tick": 0,
+            "event": "entity bytes after clear",
+            "value": 0
+        },
+        {
+            "pack": "persistence",
+            "seq": 143,
+            "tick": 0,
+            "event": "item ids at first",
+            "value": []
+        },
+        {
+            "pack": "persistence",
+            "seq": 144,
+            "tick": 0,
+            "event": "item bytes at first",
+            "value": 0
+        },
+        {
+            "pack": "persistence",
+            "seq": 145,
+            "tick": 0,
+            "event": "item get a missing id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 146,
+            "tick": 0,
+            "event": "item set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 147,
+            "tick": 0,
+            "event": "item get jsp:a",
+            "value": 1
+        },
+        {
+            "pack": "persistence",
+            "seq": 148,
+            "tick": 0,
+            "event": "item bytes after jsp:a",
+            "value": 14
+        },
+        {
+            "pack": "persistence",
+            "seq": 149,
+            "tick": 0,
+            "event": "item set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 150,
+            "tick": 0,
+            "event": "item get jsp:a",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 151,
+            "tick": 0,
+            "event": "item bytes after jsp:a",
+            "value": 7
+        },
+        {
+            "pack": "persistence",
+            "seq": 152,
+            "tick": 0,
+            "event": "item set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 153,
+            "tick": 0,
+            "event": "item get jsp:a",
+            "value": false
+        },
+        {
+            "pack": "persistence",
+            "seq": 154,
+            "tick": 0,
+            "event": "item bytes after jsp:a",
+            "value": 7
+        },
+        {
+            "pack": "persistence",
+            "seq": 155,
+            "tick": 0,
+            "event": "item set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 156,
+            "tick": 0,
+            "event": "item get jsp:a",
+            "value": "xyz"
+        },
+        {
+            "pack": "persistence",
+            "seq": 157,
+            "tick": 0,
+            "event": "item bytes after jsp:a",
+            "value": 10
+        },
+        {
+            "pack": "persistence",
+            "seq": 158,
+            "tick": 0,
+            "event": "item set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 159,
+            "tick": 0,
+            "event": "item get jsp:a",
+            "value": ""
+        },
+        {
+            "pack": "persistence",
+            "seq": 160,
+            "tick": 0,
+            "event": "item bytes after jsp:a",
+            "value": 7
+        },
+        {
+            "pack": "persistence",
+            "seq": 161,
+            "tick": 0,
+            "event": "item set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 162,
+            "tick": 0,
+            "event": "item get jsp:a",
+            "value": "é"
+        },
+        {
+            "pack": "persistence",
+            "seq": 163,
+            "tick": 0,
+            "event": "item bytes after jsp:a",
+            "value": 9
+        },
+        {
+            "pack": "persistence",
+            "seq": 164,
+            "tick": 0,
+            "event": "item set jsp:a",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 165,
+            "tick": 0,
+            "event": "item get jsp:a",
+            "value": {
+                "x": 1,
+                "y": 2,
+                "z": 3
+            }
+        },
+        {
+            "pack": "persistence",
+            "seq": 166,
+            "tick": 0,
+            "event": "item bytes after jsp:a",
+            "value": 18
+        },
+        {
+            "pack": "persistence",
+            "seq": 167,
+            "tick": 0,
+            "event": "item set jsp:bb",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 168,
+            "tick": 0,
+            "event": "item get jsp:bb",
+            "value": 1.5
+        },
+        {
+            "pack": "persistence",
+            "seq": 169,
+            "tick": 0,
+            "event": "item bytes after jsp:bb",
+            "value": 33
+        },
+        {
+            "pack": "persistence",
+            "seq": 170,
+            "tick": 0,
+            "event": "item set jsp:neg0",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 171,
+            "tick": 0,
+            "event": "item get jsp:neg0",
+            "value": "-0"
+        },
+        {
+            "pack": "persistence",
+            "seq": 172,
+            "tick": 0,
+            "event": "item bytes after jsp:neg0",
+            "value": 50
+        },
+        {
+            "pack": "persistence",
+            "seq": 173,
+            "tick": 0,
+            "event": "item set jsp:big",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 174,
+            "tick": 0,
+            "event": "item get jsp:big",
+            "value": 9007199254740992
+        },
+        {
+            "pack": "persistence",
+            "seq": 175,
+            "tick": 0,
+            "event": "item bytes after jsp:big",
+            "value": 66
+        },
+        {
+            "pack": "persistence",
+            "seq": 176,
+            "tick": 0,
+            "event": "item set jsp:float",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 177,
+            "tick": 0,
+            "event": "item get jsp:float",
+            "value": {
+                "x": 0.10000000149011612,
+                "y": -2.5,
+                "z": 16777216
+            }
+        },
+        {
+            "pack": "persistence",
+            "seq": 178,
+            "tick": 0,
+            "event": "item bytes after jsp:float",
+            "value": 88
+        },
+        {
+            "pack": "persistence",
+            "seq": 179,
+            "tick": 0,
+            "event": "item set plain",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 180,
+            "tick": 0,
+            "event": "item get plain",
+            "value": 4
+        },
+        {
+            "pack": "persistence",
+            "seq": 181,
+            "tick": 0,
+            "event": "item bytes after plain",
+            "value": 102
+        },
+        {
+            "pack": "persistence",
+            "seq": 182,
+            "tick": 0,
+            "event": "item set ",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 183,
+            "tick": 0,
+            "event": "item get ",
+            "value": 5
+        },
+        {
+            "pack": "persistence",
+            "seq": 184,
+            "tick": 0,
+            "event": "item bytes after ",
+            "value": 111
+        },
+        {
+            "pack": "persistence",
+            "seq": 185,
+            "tick": 0,
+            "event": "item set NaN",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 186,
+            "tick": 0,
+            "event": "item set Infinity",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 187,
+            "tick": 0,
+            "event": "item set an infinite vector",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 188,
+            "tick": 0,
+            "event": "item get an infinite vector",
+            "error": "TypeError: Infinity value is not supported."
+        },
+        {
+            "pack": "persistence",
+            "seq": 189,
+            "tick": 0,
+            "event": "item set a bigint",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 190,
+            "tick": 0,
+            "event": "item set an object",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 191,
+            "tick": 0,
+            "event": "item set an array",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 192,
+            "tick": 0,
+            "event": "item set null",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 193,
+            "tick": 0,
+            "event": "item set a number id",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: string"
+        },
+        {
+            "pack": "persistence",
+            "seq": 194,
+            "tick": 0,
+            "event": "item set 32767 characters",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 195,
+            "tick": 0,
+            "event": "item length of 32767 characters",
+            "value": 32767
+        },
+        {
+            "pack": "persistence",
+            "seq": 196,
+            "tick": 0,
+            "event": "item set 32768 characters",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: String length for dynamic property 'jsp:longer', Value: 32768, Argument max: 32767"
+        },
+        {
+            "pack": "persistence",
+            "seq": 197,
+            "tick": 0,
+            "event": "item get 32768 characters",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 198,
+            "tick": 0,
+            "event": "item set 20000 two-byte characters",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: String length for dynamic property 'jsp:wide', Value: 40000, Argument max: 32767"
+        },
+        {
+            "pack": "persistence",
+            "seq": 199,
+            "tick": 0,
+            "event": "item get 20000 two-byte characters",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 200,
+            "tick": 0,
+            "event": "item set a 300 character id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 201,
+            "tick": 0,
+            "event": "item ids",
+            "value": [
+                "",
+                "300 characters",
+                "jsp:a",
+                "jsp:bb",
+                "jsp:big",
+                "jsp:float",
+                "jsp:long",
+                "jsp:neg0",
+                "jsp:vinf",
+                "plain"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 202,
+            "tick": 0,
+            "event": "item bytes",
+            "value": 33218
+        },
+        {
+            "pack": "persistence",
+            "seq": 203,
+            "tick": 0,
+            "event": "item delete with undefined",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 204,
+            "tick": 0,
+            "event": "item delete with no value",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 205,
+            "tick": 0,
+            "event": "item get after the delete",
+            "value": [
+                "undefined",
+                "undefined"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 206,
+            "tick": 0,
+            "event": "item delete a missing id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 207,
+            "tick": 0,
+            "event": "item setDynamicProperties",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 208,
+            "tick": 0,
+            "event": "item get after setDynamicProperties",
+            "value": [
+                1,
+                "two",
+                {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                }
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 209,
+            "tick": 0,
+            "event": "item setDynamicProperties with a bad value",
+            "error": "TypeError: Native variant type conversion failed."
+        },
+        {
+            "pack": "persistence",
+            "seq": 210,
+            "tick": 0,
+            "event": "item get after the bad setDynamicProperties",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 211,
+            "tick": 0,
+            "event": "item clear",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 212,
+            "tick": 0,
+            "event": "item ids after clear",
+            "value": []
+        },
+        {
+            "pack": "persistence",
+            "seq": 213,
+            "tick": 0,
+            "event": "item bytes after clear",
+            "value": 0
+        },
+        {
+            "pack": "persistence",
+            "seq": 214,
+            "tick": 0,
+            "event": "stackable item set",
+            "error": "UnsupportedFunctionalityError: Unsupported functionality: Cannot set dynamic properties on stackable items."
+        },
+        {
+            "pack": "persistence",
+            "seq": 215,
+            "tick": 0,
+            "event": "stackable item get",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 216,
+            "tick": 0,
+            "event": "stackable item ids",
+            "value": []
+        },
+        {
+            "pack": "persistence",
+            "seq": 217,
+            "tick": 0,
+            "event": "stackable item bytes",
+            "value": 0
+        },
+        {
+            "pack": "persistence",
+            "seq": 218,
+            "tick": 0,
+            "event": "stackable item clear",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 219,
+            "tick": 0,
+            "event": "a single stackable item set",
+            "error": "UnsupportedFunctionalityError: Unsupported functionality: Cannot set dynamic properties on stackable items."
+        },
+        {
+            "pack": "persistence",
+            "seq": 220,
+            "tick": 0,
+            "event": "a new item keeps what it was set",
+            "value": "yes"
+        },
+        {
+            "pack": "persistence",
+            "seq": 221,
+            "tick": 0,
+            "event": "scoreboard is the same object",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 222,
+            "tick": 0,
+            "event": "getObjectives at first",
+            "value": 0
+        },
+        {
+            "pack": "persistence",
+            "seq": 223,
+            "tick": 0,
+            "event": "getParticipants at first",
+            "value": 0
+        },
+        {
+            "pack": "persistence",
+            "seq": 224,
+            "tick": 0,
+            "event": "getObjective a missing id",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 225,
+            "tick": 0,
+            "event": "addObjective",
+            "value": {
+                "displayName": "jspone",
+                "id": "jspone",
+                "isValid": true
+            }
+        },
+        {
+            "pack": "persistence",
+            "seq": 226,
+            "tick": 0,
+            "event": "addObjective with a display name",
+            "value": "Two"
+        },
+        {
+            "pack": "persistence",
+            "seq": 227,
+            "tick": 0,
+            "event": "addObjective again",
+            "error": "Error: Failed to add objective 'jspone' as it is already being tracked."
+        },
+        {
+            "pack": "persistence",
+            "seq": 228,
+            "tick": 0,
+            "event": "addObjective an empty id",
+            "value": ""
+        },
+        {
+            "pack": "persistence",
+            "seq": 229,
+            "tick": 0,
+            "event": "getObjective is the same object",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 230,
+            "tick": 0,
+            "event": "getObjectives",
+            "value": [
+                "",
+                "jspone",
+                "jsptwo"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 231,
+            "tick": 0,
+            "event": "getScore of nobody",
+            "error": "Error: Failed to resolve identity for 'nobody'."
+        },
+        {
+            "pack": "persistence",
+            "seq": 232,
+            "tick": 0,
+            "event": "hasParticipant nobody",
+            "value": false
+        },
+        {
+            "pack": "persistence",
+            "seq": 233,
+            "tick": 0,
+            "event": "setScore",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 234,
+            "tick": 0,
+            "event": "getScore",
+            "value": 5
+        },
+        {
+            "pack": "persistence",
+            "seq": 235,
+            "tick": 0,
+            "event": "addScore",
+            "value": 8
+        },
+        {
+            "pack": "persistence",
+            "seq": 236,
+            "tick": 0,
+            "event": "addScore a new participant",
+            "value": 2
+        },
+        {
+            "pack": "persistence",
+            "seq": 237,
+            "tick": 0,
+            "event": "setScore a fraction",
+            "value": 1
+        },
+        {
+            "pack": "persistence",
+            "seq": 238,
+            "tick": 0,
+            "event": "setScore past int32",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 2147483648.00, Argument bounds: [-2147483648, 2147483647]"
+        },
+        {
+            "pack": "persistence",
+            "seq": 239,
+            "tick": 0,
+            "event": "setScore the int32 minimum",
+            "value": -2147483648
+        },
+        {
+            "pack": "persistence",
+            "seq": 240,
+            "tick": 0,
+            "event": "addScore past int32",
+            "error": "Error: Encountered an integer overflow when trying to modify objective score for participant 'edge'."
+        },
+        {
+            "pack": "persistence",
+            "seq": 241,
+            "tick": 0,
+            "event": "setScore an empty name",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 242,
+            "tick": 0,
+            "event": "setScore an entity",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 243,
+            "tick": 0,
+            "event": "getScore an entity",
+            "value": 9
+        },
+        {
+            "pack": "persistence",
+            "seq": 244,
+            "tick": 0,
+            "event": "entity scoreboardIdentity",
+            "value": {
+                "displayName": "the stand",
+                "entityMatches": true,
+                "id": 7,
+                "isValid": true,
+                "type": "Entity"
+            }
+        },
+        {
+            "pack": "persistence",
+            "seq": 245,
+            "tick": 0,
+            "event": "scoreboardIdentity is the same object",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 246,
+            "tick": 0,
+            "event": "getParticipants",
+            "value": [
+                {
+                    "displayName": "fake",
+                    "id": 1,
+                    "isValid": true,
+                    "type": "FakePlayer"
+                },
+                {
+                    "displayName": "fresh",
+                    "id": 2,
+                    "isValid": true,
+                    "type": "FakePlayer"
+                },
+                {
+                    "displayName": "fraction",
+                    "id": 3,
+                    "isValid": true,
+                    "type": "FakePlayer"
+                },
+                {
+                    "displayName": "low",
+                    "id": 4,
+                    "isValid": true,
+                    "type": "FakePlayer"
+                },
+                {
+                    "displayName": "edge",
+                    "id": 5,
+                    "isValid": true,
+                    "type": "FakePlayer"
+                },
+                {
+                    "displayName": "",
+                    "id": 6,
+                    "isValid": true,
+                    "type": "FakePlayer"
+                },
+                {
+                    "displayName": "the stand",
+                    "id": 7,
+                    "isValid": true,
+                    "type": "Entity"
+                }
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 247,
+            "tick": 0,
+            "event": "a participant is a ScoreboardIdentity",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 248,
+            "tick": 0,
+            "event": "getScores",
+            "value": [
+                {
+                    "participant": "",
+                    "score": 1,
+                    "type": "FakePlayer"
+                },
+                {
+                    "participant": "edge",
+                    "score": 2147483647,
+                    "type": "FakePlayer"
+                },
+                {
+                    "participant": "fake",
+                    "score": 8,
+                    "type": "FakePlayer"
+                },
+                {
+                    "participant": "fraction",
+                    "score": 1,
+                    "type": "FakePlayer"
+                },
+                {
+                    "participant": "fresh",
+                    "score": 2,
+                    "type": "FakePlayer"
+                },
+                {
+                    "participant": "low",
+                    "score": -2147483648,
+                    "type": "FakePlayer"
+                },
+                {
+                    "participant": "the stand",
+                    "score": 9,
+                    "type": "Entity"
+                }
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 249,
+            "tick": 0,
+            "event": "fake player getEntity",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 250,
+            "tick": 0,
+            "event": "getScore by identity",
+            "value": 8
+        },
+        {
+            "pack": "persistence",
+            "seq": 251,
+            "tick": 0,
+            "event": "hasParticipant fake",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 252,
+            "tick": 0,
+            "event": "board getParticipants",
+            "value": [
+                "",
+                "edge",
+                "fake",
+                "fraction",
+                "fresh",
+                "low",
+                "the stand"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 253,
+            "tick": 0,
+            "event": "a command reads a script score",
+            "value": 1
+        },
+        {
+            "pack": "persistence",
+            "seq": 254,
+            "tick": 0,
+            "event": "a command writes a score",
+            "value": 1
+        },
+        {
+            "pack": "persistence",
+            "seq": 255,
+            "tick": 0,
+            "event": "the script reads the command score",
+            "value": 12
+        },
+        {
+            "pack": "persistence",
+            "seq": 256,
+            "tick": 0,
+            "event": "a command adds an objective",
+            "value": 1
+        },
+        {
+            "pack": "persistence",
+            "seq": 257,
+            "tick": 0,
+            "event": "the script sees the command objective",
+            "value": "Command"
+        },
+        {
+            "pack": "persistence",
+            "seq": 258,
+            "tick": 0,
+            "event": "removeParticipant",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 259,
+            "tick": 0,
+            "event": "removeParticipant again",
+            "value": false
+        },
+        {
+            "pack": "persistence",
+            "seq": 260,
+            "tick": 0,
+            "event": "removeParticipant an entity",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 261,
+            "tick": 0,
+            "event": "board participants after removal",
+            "value": [
+                "",
+                "cmd",
+                "edge",
+                "fraction",
+                "fresh",
+                "low"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 262,
+            "tick": 0,
+            "event": "getObjectiveAtDisplaySlot empty",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 263,
+            "tick": 0,
+            "event": "setObjectiveAtDisplaySlot",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 264,
+            "tick": 0,
+            "event": "getObjectiveAtDisplaySlot",
+            "value": {
+                "objective": "jspone",
+                "same": true,
+                "sortOrder": 0
+            }
+        },
+        {
+            "pack": "persistence",
+            "seq": 265,
+            "tick": 0,
+            "event": "setObjectiveAtDisplaySlot over another",
+            "value": "jspone"
+        },
+        {
+            "pack": "persistence",
+            "seq": 266,
+            "tick": 0,
+            "event": "getObjectiveAtDisplaySlot default sort",
+            "value": 1
+        },
+        {
+            "pack": "persistence",
+            "seq": 267,
+            "tick": 0,
+            "event": "setObjectiveAtDisplaySlot List",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 268,
+            "tick": 0,
+            "event": "clearObjectiveAtDisplaySlot",
+            "value": "jsptwo"
+        },
+        {
+            "pack": "persistence",
+            "seq": 269,
+            "tick": 0,
+            "event": "clearObjectiveAtDisplaySlot empty",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 270,
+            "tick": 0,
+            "event": "removeObjective by id",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 271,
+            "tick": 0,
+            "event": "removeObjective a missing id",
+            "error": "Error: Failed to find the objective specified."
+        },
+        {
+            "pack": "persistence",
+            "seq": 272,
+            "tick": 0,
+            "event": "removeObjective by object",
+            "value": true
+        },
+        {
+            "pack": "persistence",
+            "seq": 273,
+            "tick": 0,
+            "event": "a removed objective isValid",
+            "value": false
+        },
+        {
+            "pack": "persistence",
+            "seq": 274,
+            "tick": 0,
+            "event": "a removed objective getScore",
+            "error": "Error: Failed to find objective 'jspone'."
+        },
+        {
+            "pack": "persistence",
+            "seq": 275,
+            "tick": 0,
+            "event": "a removed objective setScore",
+            "error": "Error: Failed to find objective 'jspone'."
+        },
+        {
+            "pack": "persistence",
+            "seq": 276,
+            "tick": 0,
+            "event": "a removed objective id",
+            "error": "Error: Failed to find objective 'jspone'."
+        },
+        {
+            "pack": "persistence",
+            "seq": 277,
+            "tick": 0,
+            "event": "the List slot after its objective went",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 278,
+            "tick": 0,
+            "event": "getObjectives at the end",
+            "value": [
+                "",
+                "jspcmd"
+            ]
+        },
+        {
+            "pack": "persistence",
+            "seq": 279,
+            "tick": 0,
+            "event": "a killed entity get",
+            "error": "InvalidEntityError: Failed to call function 'getDynamicProperty' due to Entity being invalid (has the Entity been removed?)."
+        },
+        {
+            "pack": "persistence",
+            "seq": 280,
+            "tick": 0,
+            "event": "a killed entity set",
+            "error": "InvalidEntityError: Failed to call function 'setDynamicProperty' due to Entity being invalid (has the Entity been removed?)."
+        },
+        {
+            "pack": "persistence",
+            "seq": 281,
+            "tick": 0,
+            "event": "a killed entity ids",
+            "error": "InvalidEntityError: Failed to call function 'getDynamicPropertyIds' due to Entity being invalid (has the Entity been removed?)."
+        },
+        {
+            "pack": "persistence",
+            "seq": 282,
+            "tick": 0,
+            "event": "a killed entity scoreboardIdentity",
+            "value": "undefined"
+        },
+        {
+            "pack": "persistence",
+            "seq": 283,
+            "tick": 0,
+            "event": "done"
+        }
+    ]
+}

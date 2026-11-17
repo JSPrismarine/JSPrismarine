@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine persistence compatibility",
+        "description": "Reads the dynamic properties and scores the last server saved, then writes the next generation of them. Written for packages/parity.",
+        "uuid": "ebe7e9af-55b2-4dc7-9eca-f77d1e11e021",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "3a6418bb-f757-4f96-89af-724c1a8416c8",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}
