@@ -61,6 +61,20 @@ const MAX_CATCH_UP_MS = 2000;
 /** Weight of the newest tick in the tick-duration average: the last ten or so ticks carry most of it. */
 const TICK_MS_SMOOTHING = 0.2;
 
+/** Ticks per sample of the long TPS averages: five seconds at the default rate, as Spigot samples. */
+const TPS_SAMPLE_TICKS = 100;
+
+/** The windows of the long TPS averages, in minutes, as Spigot's `/tps` reports them. */
+export const TPS_AVERAGE_MINUTES = [1, 5, 15] as const;
+
+/**
+ * How much of each long average one sample leaves standing: `exp(-sample / window)`, which is the
+ * 0.92, 0.9835 and 0.9945 that Spigot hardcodes for its one, five and fifteen minute windows.
+ */
+const TPS_AVERAGE_DECAYS = TPS_AVERAGE_MINUTES.map((minutes) =>
+    Math.exp(-(TPS_SAMPLE_TICKS / DEFAULT_TICK_RATE) / (minutes * 60))
+);
+
 const summarizeLateTicks = (profiles: readonly LateTickProfile[]): string => {
     const totals = profiles.reduce(
         (summary, profile) => ({
@@ -194,6 +208,12 @@ export interface Ticker {
     /** The current TPS, measured over a sliding one-second window. */
     getTPS(): number;
     /**
+     * The TPS averaged over the last 1, 5 and 15 minutes ({@link TPS_AVERAGE_MINUTES}), as
+     * exponential moving averages of one sample every 100 ticks, the way Spigot's `/tps` measures
+     * them. Each starts at the default 20 and moves toward the measured rate as samples arrive.
+     */
+    getTPSAverages(): number[];
+    /**
      * How long a tick's work has been taking, in milliseconds, as a moving average
      * over the most recent ticks. It leaves out the sleep between ticks, so a healthy
      * server reads well under the 50 ms period. Zero until the first tick completes.
@@ -238,6 +258,7 @@ export class ServerTicker implements Ticker, TickControl {
     /** Set while {@link ServerTicker.advance} runs a tick, so two manual ticks never interleave. */
     private advancing = false;
     private tps = 20;
+    private tpsAverages = TPS_AVERAGE_MINUTES.map(() => DEFAULT_TICK_RATE);
     private tickMs = 0;
     private currentTick = 0n;
     private tickRate = DEFAULT_TICK_RATE;
@@ -275,6 +296,11 @@ export class ServerTicker implements Ticker, TickControl {
     /** The current TPS, measured over a sliding one-second window. */
     public getTPS(): number {
         return Number.parseFloat(this.tps.toFixed(2));
+    }
+
+    /** The TPS averaged over the last 1, 5 and 15 minutes; see {@link Ticker.getTPSAverages}. */
+    public getTPSAverages(): number[] {
+        return [...this.tpsAverages];
     }
 
     /** The smoothed per-tick work duration in milliseconds; see {@link Ticker.getTickMs}. */
@@ -381,6 +407,9 @@ export class ServerTicker implements Ticker, TickControl {
 
         // Completion times of the ticks within the last second, oldest first.
         const recentTicks: number[] = [];
+        // Where the current sample of the long averages began, and the ticks run since.
+        let sampleStartedAt = epoch;
+        let sampleTicks = 0;
         const lateTickProfiles: LateTickProfile[] = [];
         const maxProfileCount = Math.ceil(MAX_CATCH_UP_MS / MINECRAFT_TICK_TIME_MS);
         const tick = () => {
@@ -429,6 +458,15 @@ export class ServerTicker implements Ticker, TickControl {
                 // runs faster than that, and hiding it behind the target rate meant the
                 // one metric that should expose the fault reported perfect health.
                 if (window > 0) this.tps = ((recentTicks.length - 1) * 1000) / window;
+                if (++sampleTicks === TPS_SAMPLE_TICKS) {
+                    const sampled = (sampleTicks * 1000) / (endTime - sampleStartedAt);
+                    this.tpsAverages = this.tpsAverages.map(
+                        (average, index) =>
+                            average * TPS_AVERAGE_DECAYS[index]! + sampled * (1 - TPS_AVERAGE_DECAYS[index]!)
+                    );
+                    sampleStartedAt = endTime;
+                    sampleTicks = 0;
+                }
                 // Work per tick, smoothed. TPS alone hides load: the loop holds 20 TPS
                 // until a tick overruns its 50 ms, so this is what shows a tick at 40.
                 this.tickMs =

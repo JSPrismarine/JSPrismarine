@@ -121,6 +121,25 @@ describe('modules/ticker', () => {
         }
     });
 
+    it('starts the 1, 5 and 15 minute TPS averages at 20 and moves the shortest fastest', async () => {
+        const harness = buildHarness();
+        expect(harness.ticker.getTPSAverages()).toEqual([20, 20, 20]);
+        // A loop held at 10 TPS, so one sample measures 10.
+        harness.ticker.setTickRate(10);
+        const handle = await startTestModule(tickerModule(harness.ticker));
+        try {
+            // One sample is 100 ticks: the first runs at once, the hundredth 99 periods later.
+            await vi.advanceTimersByTimeAsync(TICK_MS * 2 * 99);
+            const [oneMinute, fiveMinutes, fifteenMinutes] = harness.ticker.getTPSAverages();
+            // Spigot's decays: one sample of 10 TPS moves each average by 1 - decay of the gap.
+            expect(oneMinute).toBeCloseTo(20 * 0.92 + 10 * 0.08, 1);
+            expect(fiveMinutes).toBeCloseTo(20 * 0.9835 + 10 * 0.0165, 1);
+            expect(fifteenMinutes).toBeCloseTo(20 * 0.9945 + 10 * 0.0055, 1);
+        } finally {
+            await handle.stop();
+        }
+    });
+
     it('runs the input step before anything else in the tick and polls the network last', async () => {
         const order: string[] = [];
         const harness = buildHarness({

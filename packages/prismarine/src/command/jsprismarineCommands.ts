@@ -23,6 +23,7 @@ import { CommandPermissionLevel, getGametypeId } from '@jsprismarine/minecraft';
 
 import type Server from '../Server';
 import type { Config } from '../config/Config';
+import { TPS_AVERAGE_MINUTES } from '../modules/ticker';
 import { describeSupportedProtocols } from '../network/codec/describeCodecs';
 import { softwareLabel } from '../version';
 import { deferCommandWork } from './deferred';
@@ -64,10 +65,15 @@ const later = (context: Context, run: (current: CommandSource) => Promise<string
     return RAN;
 };
 
-/** TPS colored green at 19 and above, yellow from 15, red below. */
+/**
+ * One TPS average as Spigot's `/tps` prints it: green above 18, yellow above 16, red below, with a
+ * `*` when the server ran faster than 20, and the figure rounded to two places and capped at 20.
+ * Java prints a whole double with a trailing `.0`, so `20` reads `20.0`.
+ */
 const formatTps = (tps: number): string => {
-    const color = tps >= 19 ? '§2' : tps >= 15 ? '§e' : '§4';
-    return `${color}${tps.toFixed(2)}§r`;
+    const color = tps > 18 ? '§a' : tps > 16 ? '§e' : '§c';
+    const shown = Math.min(Math.round(tps * 100) / 100, 20);
+    return `${color}${tps > 20 ? '*' : ''}${Number.isInteger(shown) ? shown.toFixed(1) : shown}`;
 };
 
 /**
@@ -178,11 +184,16 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
     registry.register(
         lit('tps').executes(
             command((context) => {
-                source(context).sendFeedback(`TPS: ${formatTps(server.getTPS())} (Tick: ${server.getTick()})`);
+                const windows = TPS_AVERAGE_MINUTES.map((minutes) => `${minutes}m`).join(', ');
+                const averages = server.getTPSAverages().map(formatTps).join(', ');
+                source(context).sendFeedback(`§6TPS from last ${windows}: ${averages}`);
                 return RAN;
             })
         ),
-        { description: 'Get current TPS.' }
+        {
+            description:
+                'This command will show TPS (ticks per second) averages of your server from the last 1, 5, and 15 minutes.'
+        }
     );
 
     registry.register(

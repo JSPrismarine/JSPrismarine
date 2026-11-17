@@ -18,12 +18,14 @@ describe("this server's own commands", () => {
     let setUnbanned: ReturnType<typeof vi.fn<BanManager['setUnbanned']>>;
     let kick: ReturnType<typeof vi.fn<PlayerSession['kick']>>;
     let feedback: string[];
+    let tpsAverages: number[];
 
     beforeEach(() => {
         setBanned = vi.fn<BanManager['setBanned']>(async () => true);
         setUnbanned = vi.fn<BanManager['setUnbanned']>(async () => {});
         kick = vi.fn<PlayerSession['kick']>(async () => {});
         feedback = [];
+        tpsAverages = [20, 20, 20];
 
         const target = stub<PlayerSession>({
             identity: identityNamed('testPlayer'),
@@ -33,8 +35,7 @@ describe("this server's own commands", () => {
         const server = stub<Server>({
             getBanManager: () => stub<BanManager>({ setBanned, setUnbanned }),
             getSessionManager: () => stub<SessionManager>({ getSessions: () => [target] }),
-            getTPS: () => 18.5,
-            getTick: () => 42
+            getTPSAverages: () => tpsAverages
         });
         registry = new CommandRegistry<CommandSource>();
         registerJsprismarineCommands(registry, server);
@@ -79,10 +80,17 @@ describe("this server's own commands", () => {
         expect(feedback).toEqual(['Unbanned testPlayer']);
     });
 
-    it('reports the tick rate and the tick', async () => {
+    it('reports the 1, 5 and 15 minute TPS averages as Spigot does', async () => {
         await run('tps');
 
-        expect(feedback).toEqual(['TPS: §e18.50§r (Tick: 42)']);
+        expect(feedback).toEqual(['§6TPS from last 1m, 5m, 15m: §a20.0, §a20.0, §a20.0']);
+    });
+
+    it('colors each average by health, rounds it, and stars and caps one above 20', async () => {
+        tpsAverages = [20.456, 17.004, 9.5];
+        await run('tps');
+
+        expect(feedback).toEqual(['§6TPS from last 1m, 5m, 15m: §a*20.0, §e17.0, §c9.5']);
     });
 
     it('reports the version with the same v prefix as the startup log', async () => {

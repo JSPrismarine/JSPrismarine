@@ -1152,6 +1152,11 @@ export default class Server {
         return this.ticker.getTPS();
     }
 
+    /** The TPS averaged over the last 1, 5 and 15 minutes, the figures `/tps` reports. */
+    public getTPSAverages(): number[] {
+        return this.ticker.getTPSAverages();
+    }
+
     /**
      * Returns how long a tick's work has been taking, in milliseconds, as a moving average
      * over the most recent ticks. It leaves out the sleep between ticks, so a healthy server
