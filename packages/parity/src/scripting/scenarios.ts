@@ -44,6 +44,12 @@ export interface ScriptScenario {
      */
     readonly properties?: Readonly<Record<string, string>>;
     /**
+     * The world experiments the scenario's world has on, by their `level.dat` names, such as
+     * `gametest` for Beta APIs. The capture writes them into the staged world's `level.dat`, and
+     * JSPrismarine's runner turns on the ones its script host reads.
+     */
+    readonly experiments?: readonly string[];
+    /**
      * The packs BDS refuses to load. A refused pack runs no line, so it records nothing and
      * writes no end line, and the capture does not wait for one.
      */
@@ -55,6 +61,12 @@ export interface ScriptScenario {
      * JSPrismarine's scripts, for a scenario about what a reload does.
      */
     readonly reloadAfter?: string;
+    /**
+     * A GameTest the capture runs on BDS's console with `/gametest run` once a pack records the
+     * event, for a scenario that needs a player: a test can spawn a simulated player, and the
+     * capture has no client. JSPrismarine's runner has no GameTest runner yet.
+     */
+    readonly gametestAfter?: { readonly event: string; readonly test: string };
     /**
      * Observations JSPrismarine makes differently from BDS on purpose, by event: what JSPrismarine
      * records instead of the golden's value or error, and the decision that makes it differ.
@@ -236,6 +248,54 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         packs: ['reloaded'],
         runs: 2,
         reloadAfter: 'ready for /reload',
+        needs: 'world'
+    },
+    {
+        id: 'beta-versions',
+        family: 'scripting.lifecycle',
+        description:
+            'With the Beta APIs experiment on, a pack gets a beta module version only when it is the one beta BDS ships, ' +
+            'which the version word beta also names; any other version, beta or stable, gets no context, and the ' +
+            'content log names the version asked for.',
+        reference: 'docs/research/bedrock-script-api.md section 2',
+        packs: ['shipped', 'word', 'others', 'newer', 'older', 'unshipped', 'v1beta'],
+        refused: ['newer', 'older', 'unshipped', 'v1beta'],
+        experiments: ['gametest'],
+        needs: 'world'
+    },
+    {
+        id: 'beta-experiment-off',
+        family: 'scripting.lifecycle',
+        description:
+            'Without the Beta APIs experiment, a pack that declares a beta version of any module does not load, whether ' +
+            'BDS ships that version or not, and the content log names the experiment.',
+        reference: 'docs/research/bedrock-script-api.md section 2',
+        packs: ['shipped', 'newer', 'word', 'ui-beta', 'control'],
+        refused: ['shipped', 'newer', 'word', 'ui-beta'],
+        needs: 'world'
+    },
+    {
+        id: 'watchdog-terminate',
+        family: 'scripting.events',
+        description:
+            'With watchdog shutdown on, a hang and a caught stack overflow each raise system.beforeEvents.watchdogTerminate ' +
+            'with their reason, and a script that cancels it keeps the server and the pack running.',
+        reference: 'docs/plans/script-api-host.md slice 9',
+        packs: ['terminate'],
+        experiments: ['gametest'],
+        properties: { 'script-watchdog-hang-threshold': '500' },
+        needs: 'world'
+    },
+    {
+        id: 'chat-send',
+        family: 'scripting.events',
+        description:
+            "A player's chat raises world.beforeEvents.chatSend while the line is sent, with its message and its sender, " +
+            'and a cancel there stops the line, so only the other one reaches world.afterEvents.chatSend in the flush.',
+        reference: 'docs/plans/script-api-host.md slice 9',
+        packs: ['chat'],
+        experiments: ['gametest'],
+        gametestAfter: { event: 'ready for /gametest', test: 'jsp:chat' },
         needs: 'world'
     }
 ];

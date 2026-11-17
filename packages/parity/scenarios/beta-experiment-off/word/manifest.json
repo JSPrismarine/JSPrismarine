@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario beta-experiment-off word",
+        "description": "Declares @minecraft/server as beta. Written for packages/parity.",
+        "uuid": "156ea60a-84b2-4e3a-a4a6-2f8c9ccbead2",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "08911c29-881d-4272-aa7e-53ecde7da5e3",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "beta"
+        }
+    ]
+}

@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { dumpArgs } from '../../bedrock-data/utils/bedrock-dump/cli.ts';
+import { renderLevelDat } from '../../bedrock-data/utils/bedrock-dump/levelDat.ts';
 import { stageBehaviorPacks } from '../../bedrock-data/utils/bedrock-dump/pack.ts';
 import { spawnProbe } from '../../bedrock-data/utils/bedrock-dump/probe.ts';
 import { launcherForHost } from '../../bedrock-data/utils/bedrock-dump/runner.ts';
@@ -67,6 +68,9 @@ const SCENARIO_PROPERTIES = {
     'server-port': '29132',
     'server-portv6': '29133'
 };
+
+/** `level.dat`'s `Generator` for a flat world, which `level-type` FLAT asks for. */
+const FLAT_GENERATOR = 2;
 
 const { values } = parseArgs({
     args: dumpArgs(process.argv.slice(2)),
@@ -122,6 +126,14 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         levelName: `jsp-${scenario.id}`,
         properties: { ...SCENARIO_PROPERTIES, ...scenario.properties }
     });
+    // `server.properties` has no key for an experiment, so the world starts from a `level.dat`
+    // that has them on. It says flat, as `level-type` does.
+    if (scenario.experiments !== undefined) {
+        await writeFile(
+            join(staged.worldDirectory, 'level.dat'),
+            renderLevelDat({ experiments: scenario.experiments, generator: FLAT_GENERATOR })
+        );
+    }
     await stageBehaviorPacks(
         staged.root,
         staged.worldDirectory,
@@ -154,6 +166,15 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
                 NATIVE_TIMEOUTS.scenario * launcher.timeoutScale
             );
             server.send('reload');
+        }
+        if (scenario.gametestAfter !== undefined) {
+            const { event, test } = scenario.gametestAfter;
+            await server.waitForLine(
+                (line) => line.includes(`"event":${JSON.stringify(event)}`),
+                `the ${event} observation`,
+                NATIVE_TIMEOUTS.scenario * launcher.timeoutScale
+            );
+            server.send(`gametest run ${test}`);
         }
         for (const pack of loadedPacks(scenario)) {
             const endLine = `DUMP ${END_TABLE} {"pack":${JSON.stringify(pack)},`;

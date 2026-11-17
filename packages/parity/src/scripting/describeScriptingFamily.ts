@@ -86,6 +86,7 @@ export const expectedOnJsp = (golden: ScenarioRecord, scenario: ScriptScenario):
     const differs = scenario.jsprismarineDiffers;
     if (differs === undefined) return golden;
     return {
+        ...golden,
         observations: golden.observations.map((observation) => {
             const instead = differs[observation.event];
             if (instead === undefined) return observation;

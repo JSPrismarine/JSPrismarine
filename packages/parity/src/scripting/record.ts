@@ -14,6 +14,10 @@
  *   made, so a lost line fails the capture instead of shortening the golden. A scenario that
  *   reloads its packs has each pack end once per run, and the next run counts from 1 again.
  *
+ * The record also keeps the content log's plugin errors, the lines BDS refuses to load a pack
+ * with, such as `Plugin [my pack - 1.0.0] - failed to create context.`, from `Plugin [` on. A
+ * refused pack runs no line of script, so these lines are the only record of why.
+ *
  * An observation never holds a wall-clock time. Everything in it is decided by the engine's own
  * order and tick count, so a record taken on any machine is the same record.
  *
@@ -56,7 +60,15 @@ export interface Observation {
 /** Everything a scenario's scripts observed, in log order across all of its packs. */
 export interface ScenarioRecord {
     readonly observations: readonly Observation[];
+    /**
+     * The first line of each plugin error the content log holds, in log order, from `Plugin [`
+     * on. Absent when no pack was refused.
+     */
+    readonly refusals?: readonly string[];
 }
+
+/** What starts a plugin error on the content log, after its time and level. */
+const PLUGIN_ERROR = '[Scripting] Plugin [';
 
 /** The version of {@link ScenarioGolden}'s shape. A reader refuses any other. */
 export const SCENARIO_GOLDEN_FORMAT = 1;
@@ -147,7 +159,13 @@ export const readScenarioRecord = (lines: Iterable<string>, packs: readonly stri
         running.set(pack, []);
     };
 
+    const refusals: string[] = [];
     for (const line of lines) {
+        // A message of several lines arrives as one string from JSPrismarine, and as several
+        // lines from BDS, whose later lines start with no prefix and are dropped here.
+        const first = line.split('\n')[0] ?? '';
+        const at = first.indexOf(PLUGIN_ERROR);
+        if (at >= 0) refusals.push(first.slice(at + '[Scripting] '.length));
         const row = parseDumpLine(line);
         if (row === undefined) {
             // parseDumpLine drops a line whose JSON does not parse, and a lost observation would
@@ -182,7 +200,7 @@ export const readScenarioRecord = (lines: Iterable<string>, packs: readonly stri
         if ((running.get(pack) ?? []).length > 0) checkRun(pack, 0);
         if (count !== runs) throw new Error(`Pack ${pack} ended ${count} times, not ${runs}.`);
     }
-    return { observations };
+    return refusals.length === 0 ? { observations } : { observations, refusals };
 };
 
 /**
@@ -212,13 +230,18 @@ export const readScenarioGolden = (scenario: string): ScenarioGolden | undefined
     if (!Array.isArray(observations) || !observations.every(isObservation)) {
         throw refuse('an observation is malformed');
     }
+    const { refusals } = parsed;
+    if (refusals !== undefined && (!Array.isArray(refusals) || !refusals.every((line) => typeof line === 'string'))) {
+        throw refuse('its refusals are not a list of lines');
+    }
     return {
         $comment,
         format: SCENARIO_GOLDEN_FORMAT,
         family,
         scenario,
         server: { protocolVersion: Number(server.protocolVersion), serverVersion: server.serverVersion },
-        observations
+        observations,
+        ...(refusals === undefined ? {} : { refusals })
     };
 };
 
@@ -231,10 +254,29 @@ const describeObservation = (observation: Observation | undefined): string =>
 /**
  * Compares a record with the golden's.
  *
- * @returns Undefined when the two hold the same observations in the same order, otherwise one
- *   sentence naming the first observation that differs and the counts on each side.
+ * @returns Undefined when the two hold the same observations and refusals in the same order,
+ *   otherwise one sentence naming the first observation, or else the first refusal, that differs
+ *   and the counts on each side.
  */
-export const diffScenarioRecords = (expected: ScenarioRecord, actual: ScenarioRecord): string | undefined => {
+export const diffScenarioRecords = (expected: ScenarioRecord, actual: ScenarioRecord): string | undefined =>
+    diffObservations(expected, actual) ?? diffRefusals(expected.refusals ?? [], actual.refusals ?? []);
+
+const diffRefusals = (expected: readonly string[], actual: readonly string[]): string | undefined => {
+    const length = Math.max(expected.length, actual.length);
+    for (let index = 0; index < length; index++) {
+        const want = expected[index];
+        const got = actual[index];
+        if (want === got) continue;
+        const describe = (line: string | undefined): string => (line === undefined ? 'nothing' : JSON.stringify(line));
+        return (
+            `refusal ${index + 1} differs: BDS logged ${describe(want)}, JSPrismarine logged ${describe(got)} ` +
+            `(${expected.length} refusals on BDS, ${actual.length} on JSPrismarine)`
+        );
+    }
+    return undefined;
+};
+
+const diffObservations = (expected: ScenarioRecord, actual: ScenarioRecord): string | undefined => {
     const length = Math.max(expected.observations.length, actual.observations.length);
     for (let index = 0; index < length; index++) {
         const want = expected.observations[index];
