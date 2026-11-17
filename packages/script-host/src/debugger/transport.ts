@@ -9,13 +9,10 @@ import { isIP } from 'node:net';
 import { connect, createServer } from 'node:net';
 import type { AddressInfo, Server, Socket } from 'node:net';
 
-import { DebuggerFramingError, FrameDecoder, encodeFrame } from './framing';
-import { DEFAULT_DEBUGGER_PORT, DebuggerMessages } from './protocol';
+import { DebuggerFramingError, ScriptHostErrors } from '@jsprismarine/errors/script-host';
 
-/** Why the transport refused to listen or a connection failed. */
-export class DebuggerTransportError extends Error {
-    public override readonly name = 'DebuggerTransportError';
-}
+import { FrameDecoder, encodeFrame } from './framing';
+import { DEFAULT_DEBUGGER_PORT } from './protocol';
 
 /** The address a listener binds when none is given, as `script-debugger-listen-address` defaults. */
 export const DEFAULT_LISTEN_ADDRESS = '127.0.0.1';
@@ -42,7 +39,7 @@ export const isLoopbackAddress = (address: string): boolean => {
  */
 export const checkListenAddress = (address: string, passcode: string | undefined): void => {
     if (!isLoopbackAddress(address) && (passcode ?? '') === '') {
-        throw new DebuggerTransportError(DebuggerMessages.nonLoopbackWithoutPasscode(address));
+        throw new ScriptHostErrors.ListenerNeedsPasscode({ address });
     }
 };
 
@@ -63,7 +60,11 @@ export class DebuggerSocket {
             try {
                 messages = this.decoder.push(chunk);
             } catch (error) {
-                this.finish(error instanceof DebuggerFramingError ? error : new DebuggerFramingError(String(error)));
+                this.finish(
+                    error instanceof DebuggerFramingError
+                        ? error
+                        : new ScriptHostErrors.FrameNotRead({ reason: String(error) }, { cause: error })
+                );
                 return;
             }
             for (const message of messages) for (const listener of this.messageListeners) listener(message);
@@ -150,18 +151,19 @@ export const listenForDebugger = async (options: ListenOptions = {}): Promise<De
         settle?.resolve(new DebuggerSocket(socket));
     });
     await new Promise<void>((resolve, reject) => {
-        server.once('error', (error) => reject(new DebuggerTransportError(error.message)));
+        server.once('error', (error) =>
+            reject(new ScriptHostErrors.ListenFailed({ reason: error.message }, { cause: error }))
+        );
         server.listen(options.port ?? DEFAULT_DEBUGGER_PORT, host, resolve);
     });
     const address = server.address();
-    if (address === null || typeof address === 'string')
-        throw new DebuggerTransportError('The listener has no TCP address');
+    if (address === null || typeof address === 'string') throw new ScriptHostErrors.ListenerHasNoAddress();
     return {
         address,
         connection,
         close: () => {
             server.close();
-            settle?.reject(new DebuggerTransportError('The debugger listener closed'));
+            settle?.reject(new ScriptHostErrors.ListenerClosed());
         }
     };
 };
@@ -183,5 +185,7 @@ export const connectToDebugger = (options: ConnectOptions = {}): Promise<Debugge
             socket.removeAllListeners('error');
             resolve(new DebuggerSocket(socket));
         });
-        socket.once('error', (error) => reject(new DebuggerTransportError(error.message)));
+        socket.once('error', (error) =>
+            reject(new ScriptHostErrors.ConnectFailed({ reason: error.message }, { cause: error }))
+        );
     });

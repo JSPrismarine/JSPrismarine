@@ -5,19 +5,14 @@
  * session whole messages.
  */
 
+import { ScriptError, ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { DEFAULT_CONTEXT } from '../ScriptEngine';
 import type { ScriptContextId, ScriptEngine } from '../ScriptEngine';
-import { ScriptError } from '../errors';
 import { ScriptHandle } from '../values';
 import type { ScriptValue } from '../values';
 import type { EngineDebugger, PauseOutcome, PauseReason, PropertyPage, ResumeMode, ScopeKind } from './EngineDebugger';
-import {
-    DEBUGGER_PROTOCOL_VERSION,
-    DebuggerMessages,
-    LogLevel,
-    parseExtensionMessage,
-    requestedBreakpointLines
-} from './protocol';
+import { DEBUGGER_PROTOCOL_VERSION, LogLevel, parseExtensionMessage, requestedBreakpointLines } from './protocol';
 import type { DebuggerEvent, DebuggerPlugin, ExtensionMessage, ForwardedRequest, HostMessage } from './protocol';
 
 /**
@@ -56,11 +51,6 @@ export interface DebugSessionOptions {
     readonly runCommand?: (command: string, dimension: string) => void;
     /** The lines a running script runs between polls, {@link DebuggerOptions.pollLines}. */
     readonly pollLines?: number;
-}
-
-/** Why a debugger connection was refused, with Bedrock Dedicated Server's message for it. */
-export class DebuggerConnectionError extends Error {
-    public override readonly name = 'DebuggerConnectionError';
 }
 
 /** The thread id a session reports when none is given. */
@@ -160,21 +150,21 @@ export class ScriptDebugSession {
             const message = this.next(this.channel.receive());
             if (message === undefined) {
                 this.close();
-                throw new DebuggerConnectionError('The debugger closed the connection');
+                throw new ScriptHostErrors.DebuggerClosedConnection();
             }
             if (message.type !== 'protocol') continue;
             if (message.version !== DEBUGGER_PROTOCOL_VERSION) {
-                throw new DebuggerConnectionError(DebuggerMessages.versionMismatch);
+                throw new ScriptHostErrors.DebuggerProtocolVersionMismatch();
             }
             if (passcode !== '' && message.passcode !== passcode) {
-                throw new DebuggerConnectionError(DebuggerMessages.passcodeMismatch);
+                throw new ScriptHostErrors.DebuggerPasscodeMismatch();
             }
             const target = message.targetModuleUuid?.toLowerCase();
             if (
                 target !== undefined &&
                 !this.options.plugins.some((plugin) => plugin.module_uuid.toLowerCase() === target)
             ) {
-                throw new DebuggerConnectionError(DebuggerMessages.noPlugin(message.targetModuleUuid ?? ''));
+                throw new ScriptHostErrors.DebuggerPluginNotFound({ uuid: message.targetModuleUuid ?? '' });
             }
             return target;
         }
@@ -188,7 +178,7 @@ export class ScriptDebugSession {
      * @param context - The pack's context in the engine.
      */
     public attach(engine: ScriptEngine, context: ScriptContextId = DEFAULT_CONTEXT): void {
-        if (this.engine !== undefined) throw new Error('The session is already attached to an engine');
+        if (this.engine !== undefined) throw new ScriptHostErrors.DebugSessionAlreadyAttached();
         this.engine = engine;
         this.debug = engine.attachDebugger(
             { paused: (reason) => this.paused(reason), poll: () => this.pollRunning() },
@@ -357,7 +347,7 @@ export class ScriptDebugSession {
                     this.respond(request, this.evaluate(request.args));
                     return;
                 default:
-                    throw new Error(`JSPrismarine does not handle the debugger command '${request.command}'`);
+                    throw new ScriptHostErrors.UnhandledDebuggerCommand({ command: request.command });
             }
         } catch (error) {
             this.channel.send({
@@ -375,7 +365,7 @@ export class ScriptDebugSession {
     }
 
     private requireStopped(): EngineDebugger {
-        if (this.stopped === undefined || this.debug === undefined) throw new Error('No script is stopped');
+        if (this.stopped === undefined || this.debug === undefined) throw new ScriptHostErrors.NoScriptStopped();
         return this.debug;
     }
 
@@ -411,7 +401,7 @@ export class ScriptDebugSession {
         const debug = this.requireStopped();
         const id = typeof args.variablesReference === 'number' ? args.variablesReference : 0;
         const reference = this.references.get(id);
-        if (reference === undefined) throw new Error(`No variables have reference ${id}`);
+        if (reference === undefined) throw new ScriptHostErrors.UnknownVariablesReference({ id });
         if (reference.kind === 'value') return this.page(debug, reference.handle, args);
         const scope = debug.scope(reference.frame, reference.scope);
         try {
@@ -474,7 +464,7 @@ export class ScriptDebugSession {
 
     /** The `evaluate` body. A failed evaluation is a result too: the extension never answers an error here. */
     private evaluate(args: Record<string, unknown>): object {
-        if (this.running || this.debug === undefined) throw new Error('A running script cannot evaluate');
+        if (this.running || this.debug === undefined) throw new ScriptHostErrors.EvaluateWhileRunning();
         const expression = typeof args.expression === 'string' ? args.expression : '';
         const frame = this.stopped !== undefined && typeof args.frameId === 'number' ? args.frameId : -1;
         try {
@@ -506,7 +496,7 @@ export class ScriptDebugSession {
         if (typeof value === 'string')
             return { name, value: JSON.stringify(value), type: 'string', variablesReference: 0 };
 
-        if (this.debug === undefined) throw new Error('The session has detached');
+        if (this.debug === undefined) throw new ScriptHostErrors.DebugSessionDetached();
         const { kind, name: label, detail } = this.debug.describe(value);
         if (kind === 'symbol' || kind === 'bigint') {
             this.engine?.free(value);

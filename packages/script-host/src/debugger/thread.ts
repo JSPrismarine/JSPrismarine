@@ -8,9 +8,10 @@
 
 import { Worker } from 'node:worker_threads';
 
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import type { DebuggerChannelEndpoint, PortDebuggerChannel } from './channel';
 import type { ConnectOptions, ListenOptions } from './transport';
-import { DebuggerTransportError } from './transport';
 
 /** A connection the socket thread made or accepted. */
 export interface DebuggerThreadConnection {
@@ -107,8 +108,7 @@ export class DebuggerThread {
     public async terminate(): Promise<void> {
         const worker = this.worker;
         this.worker = undefined;
-        for (const { reject } of this.pending.values())
-            reject(new DebuggerTransportError('The debugger thread stopped'));
+        for (const { reject } of this.pending.values()) reject(new ScriptHostErrors.DebuggerThreadStopped());
         this.pending.clear();
         if (worker !== undefined) await worker.terminate();
     }
@@ -125,8 +125,13 @@ export class DebuggerThread {
         const worker = new Worker(workerUrl(), { execArgv: workerExecArgv() });
         worker.unref();
         worker.on('message', (message: unknown) => this.receive(message));
-        worker.on('error', (error) => this.fail(worker, error instanceof Error ? error : new Error(String(error))));
-        worker.on('exit', (code) => this.fail(worker, new Error(`The debugger thread exited with code ${code}`)));
+        worker.on('error', (error) =>
+            this.fail(
+                worker,
+                error instanceof Error ? error : new ScriptHostErrors.DebuggerThreadThrew({ value: error })
+            )
+        );
+        worker.on('exit', (code) => this.fail(worker, new ScriptHostErrors.DebuggerThreadExited({ code })));
         this.worker = worker;
         return worker;
     }
@@ -144,7 +149,7 @@ export class DebuggerThread {
                 const waiter = this.pending.get(message.id);
                 this.pending.delete(message.id);
                 if (message.error === undefined) waiter?.resolve(message.port ?? 0);
-                else waiter?.reject(new DebuggerTransportError(message.error));
+                else waiter?.reject(new ScriptHostErrors.DebuggerThreadRequestFailed({ reason: message.error }));
                 return;
             }
         }

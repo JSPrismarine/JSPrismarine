@@ -1,3 +1,5 @@
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { NotImplementedError, ScriptApiError } from '../errors';
 import type { ScriptEngine } from '../ScriptEngine';
 import type { ScriptValue } from '../values';
@@ -77,7 +79,7 @@ const closureSignature = (arguments_: readonly ShapeType[], returns: ShapeType):
 
 const handleOf = (value: ScriptValue, what: string): ScriptHandle => {
     if (value instanceof ScriptHandle) return value;
-    throw new TypeError(`${what} is not an object`);
+    throw new ScriptHostErrors.NotAnObject({ what });
 };
 
 /** The function an implementation runs for one access, or undefined when it has none. */
@@ -164,9 +166,12 @@ export class ScriptApiContext {
         const existing = this.bound.get(shape.module);
         if (existing !== undefined) {
             if (existing.shape.version.version === shape.version.version) return existing.namespace;
-            throw new Error(
-                `${this.options.pack} already has ${shape.module} ${existing.shape.version.version}, not ${shape.version.version}`
-            );
+            throw new ScriptHostErrors.ModuleVersionConflict({
+                pack: this.options.pack,
+                module: shape.module,
+                bound: existing.shape.version.version,
+                requested: shape.version.version
+            });
         }
         for (const [module, version] of Object.entries(shape.version.dependencies))
             this.bindDependency(module, version);
@@ -262,7 +267,7 @@ export class ScriptApiContext {
         const major = parseVersion(version)?.major;
         const served = major === undefined ? undefined : history?.resolves[String(major)];
         if (history === undefined || served === undefined) {
-            throw new Error(`${module} ${version}, a dependency of the bound modules, has no generated shape`);
+            throw new ScriptHostErrors.DependencyHasNoShape({ module, version });
         }
         this.bind(shapeAt(history, served));
     }
@@ -275,11 +280,14 @@ export class ScriptApiContext {
         args: ScriptValue[]
     ): ScriptValue {
         const entry = typeof id === 'number' ? this.entries[id] : undefined;
-        if (entry === undefined) throw new RangeError(`No Script API member has id ${String(id)}`);
+        if (entry === undefined) throw new ScriptHostErrors.UnknownApiMember({ id });
         const tag = typeof tagValue === 'number' ? tagValue : 0;
         const privilege = this.options.privilege?.() ?? 'default';
         if (privilege !== 'default' && !entry.privilege.includes(privilege)) {
-            throw new ReferenceError(`${nativeName(entry)} cannot be used in ${PRIVILEGE_NAMES[privilege]}.`);
+            throw new ScriptHostErrors.MemberNotPrivileged({
+                member: nativeName(entry),
+                privilege: PRIVILEGE_NAMES[privilege]
+            });
         }
         const implementation = pick(
             this.options.implementations.find(entry.module, entry.owner, entry.member),
@@ -580,7 +588,7 @@ export class ScriptApiContext {
                             ? declaration.type.type
                             : declaration.type;
                     if (typeof type !== 'string')
-                        throw new TypeError(`${shape.module}'s ${name} is not of a class in it`);
+                        throw new ScriptHostErrors.ExportNotOfModuleClass({ module: shape.module, name });
                     exports.push({ kind: 'object', name, module: shape.module, className: type });
                     break;
                 }

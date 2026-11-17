@@ -81,11 +81,6 @@ await server.bootstrap();
 
 `server.shutdown()` stops it and saves the worlds.
 
-An embedded server reports usage statistics to bStats, as the prebuilt server does, and its
-`statsProviders` option takes providers of your own that read the same numbers.
-[Usage statistics](usage-statistics.md#embedding-the-server) says what is sent and how to turn it
-off.
-
 The server reads its game data the way the prebuilt server does: from
 `node_modules/.cache/jsprismarine/` in the working directory. Point `JSP_VANILLA_BEHAVIOR_PACK`,
 `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` at copies made by a checkout, or run a
@@ -93,7 +88,7 @@ The server reads its game data the way the prebuilt server does: from
 
 ### Entry points
 
-The package publishes <!-- fact:prismarine.entryPoints.count -->47<!-- /fact --> entry points, and
+The package publishes <!-- fact:prismarine.entryPoints.count -->44<!-- /fact --> entry points, and
 each one is the module that defines what it exports. The root exports `Server` and nothing else.
 Import every other symbol from its own module, such as `Config` from
 `@jsprismarine/prismarine/config/Config`. Each event class and `PlayerSession` is the default
@@ -137,11 +132,6 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/network/PlayerSession
 @jsprismarine/prismarine/network/ReplayManifest
 @jsprismarine/prismarine/about
-@jsprismarine/prismarine/stats/StatsMetric
-@jsprismarine/prismarine/stats/StatsPlatform
-@jsprismarine/prismarine/stats/StatsProvider
-@jsprismarine/prismarine/stats/StatsRegistry
-@jsprismarine/prismarine/stats/serverMetrics
 @jsprismarine/prismarine/version
 @jsprismarine/prismarine/world/GeneratorFactories
 @jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator

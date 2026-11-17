@@ -11,6 +11,8 @@
  * It reaches the runtime and the world only through {@link PackHost}, which `WorldScripts` gives
  * each pack.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { ScriptApiError } from '../errors';
 import type { ScriptEngine } from '../ScriptEngine';
 import { ScriptApiImplementations } from '../shape/implementations';
@@ -184,7 +186,7 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     const callbackOf = (call: ScriptCall): ScriptHandle => {
         const [callback] = call.args;
         // The binding checked the argument against its closure type.
-        if (!(callback instanceof ScriptHandle)) throw new TypeError('The callback is not a function');
+        if (!(callback instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'The callback' });
         return callback;
     };
     const delayOf = (call: ScriptCall): number => {
@@ -193,7 +195,7 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     };
     const data = <Kind extends EventData['kind']>(call: ScriptCall, kind: Kind): Extract<EventData, { kind: Kind }> => {
         const found = host.eventData(call.tag);
-        if (found?.kind !== kind) throw new ReferenceError('The event is no longer valid');
+        if (found?.kind !== kind) throw new ScriptHostErrors.EventNoLongerValid();
         // Narrowed by its kind, which the compiler cannot carry through the generic Extract.
         return found as Extract<EventData, { kind: Kind }>;
     };
@@ -248,7 +250,8 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         .implement(SERVER, 'Dimension', 'id', { get: (call) => call.state })
         .implement(SERVER, 'Dimension', 'setWeather', (call) => {
             const [weather, duration] = call.args;
-            if (!isWeather(weather)) throw new TypeError('The weather is not a WeatherType');
+            if (!isWeather(weather))
+                throw new ScriptHostErrors.ArgumentNotOfType({ argument: 'weather', type: 'WeatherType' });
             host.world.setWeather(call.state, weather, typeof duration === 'number' ? Math.floor(duration) : 6000);
             return undefined;
         })

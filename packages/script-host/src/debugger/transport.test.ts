@@ -1,20 +1,15 @@
 import { createConnection, createServer } from 'node:net';
 import type { Socket } from 'node:net';
 import { Worker } from 'node:worker_threads';
+import { DebuggerFramingError, DebuggerTransportError } from '@jsprismarine/errors/script-host';
 import { describe, expect, it } from 'vitest';
 
 import { scriptHostAvailable } from '../testing/library.test.helper';
 import type { DebuggerWorkerData, DebuggerWorkerReport } from '../testing/debuggerWorker';
 import { DebuggerChannelBridge } from './channel';
-import { DebuggerFramingError, FrameDecoder, MAX_RECEIVED_FRAME_LENGTH, encodeFrame } from './framing';
+import { FrameDecoder, MAX_RECEIVED_FRAME_LENGTH, encodeFrame } from './framing';
 import { isRecord } from '../isRecord';
-import {
-    DebuggerTransportError,
-    checkListenAddress,
-    connectToDebugger,
-    isLoopbackAddress,
-    listenForDebugger
-} from './transport';
+import { checkListenAddress, connectToDebugger, isLoopbackAddress, listenForDebugger } from './transport';
 
 /** Node.js strips the worker's types; the repository's resolver adds its extensionless imports. */
 const loader = new URL('../../../../scripts/native-typescript-loader.mjs', import.meta.url).href;

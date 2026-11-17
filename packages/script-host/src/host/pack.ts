@@ -3,6 +3,8 @@
  * may use, in the layout Bedrock Dedicated Server (BDS) reads them in, so a pack and its
  * configuration move from BDS without edits.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
@@ -46,7 +48,7 @@ export const readScriptPack = (directory: string): ScriptPack | undefined => {
     const path = join(directory, 'manifest.json');
     if (!existsSync(path)) return undefined;
     const manifest: unknown = JSON.parse(readFileSync(path, 'utf8'));
-    if (!isRecord(manifest)) throw new Error(`${path} is not an object`);
+    if (!isRecord(manifest)) throw new ScriptHostErrors.PackFileNotAnObject({ path });
     const modules = Array.isArray(manifest.modules) ? manifest.modules : [];
     const script = modules.find(
         (module): module is Record<string, unknown> =>
@@ -57,10 +59,10 @@ export const readScriptPack = (directory: string): ScriptPack | undefined => {
     const { header } = manifest;
     const version = isRecord(header) ? versionText(header.version) : undefined;
     if (!isRecord(header) || typeof header.name !== 'string' || typeof header.uuid !== 'string' || !version) {
-        throw new Error(`${path} has no header name, uuid and version`);
+        throw new ScriptHostErrors.ManifestHeaderIncomplete({ path });
     }
     if (typeof script.uuid !== 'string' || typeof script.entry !== 'string') {
-        throw new Error(`${path} has a script module without a uuid`);
+        throw new ScriptHostErrors.ScriptModuleWithoutUuid({ path });
     }
 
     const dependencies: ModuleDependency[] = [];
@@ -162,7 +164,7 @@ export interface ScriptConfig {
 const readJsonObject = (path: string): Record<string, unknown> | undefined => {
     if (!existsSync(path)) return undefined;
     const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
-    if (!isRecord(value)) throw new Error(`${path} is not an object`);
+    if (!isRecord(value)) throw new ScriptHostErrors.PackFileNotAnObject({ path });
     return value;
 };
 

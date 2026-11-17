@@ -105,6 +105,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         const ErrorClass = mapGet(errors, key(module, name));
         let error: Error;
         if (ErrorClass === undefined) {
+            // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
             error = new Error(message);
             define(error, 'name', { value: name, writable: true, configurable: true });
         } else {
@@ -266,6 +267,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 call.required === call.arguments.length
                     ? `${call.required}`
                     : `${call.required}-${call.arguments.length}`;
+            // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
             throw new TypeError(
                 `Incorrect number of arguments to function. Expected ${expected}, received ${args.length}`
             );
@@ -284,6 +286,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 const inner = argument.type.kind === 'optional' ? argument.type.type : argument.type;
                 const conversion =
                     inner.kind === 'variant' ? 'Native variant type conversion' : 'Native type conversion';
+                // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
                 throw new TypeError(
                     `${conversion} failed. Function argument [${index}] expected type: ${describe(argument.type)}`
                 );
@@ -291,6 +294,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             if (typeof value === 'number' && argument.type.kind !== 'host') {
                 // BDS refuses NaN and an infinity before it checks any bounds.
                 if (!isFinite(value)) {
+                    // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
                     throw new TypeError(
                         `${value} value is not supported. Function argument [${index}] expected type: ${describe(argument.type)}`
                     );
@@ -314,6 +318,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     const checkReceiver = (self: unknown, label: string | undefined): void => {
         if (label === undefined) return;
         if ((typeof self === 'object' || typeof self === 'function') && self !== null && weakHas(bound, self)) return;
+        // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
         throw new ReferenceError(`${label} object bound to prototype does not exist.`);
     };
 
@@ -334,6 +339,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             }
         };
         const fn = holder[name];
+        // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, which cannot load the catalog, and only a binding bug throws it.
         if (fn === undefined) throw new ReferenceError(`The method ${name} was not made`);
         return fn;
     };
@@ -346,6 +352,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             }
         };
         const fn = holder[name];
+        // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, which cannot load the catalog, and only a binding bug throws it.
         if (fn === undefined) throw new ReferenceError(`The function ${name} was not made`);
         return fn;
     };
@@ -367,6 +374,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 return decode(json, invoke(get, this, []));
             },
             set [name](value: unknown) {
+                // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
                 if (set === undefined) throw new TypeError(`'${name}' is read-only`);
                 const checked = check(set, [value], name);
                 checkReceiver(this, owner === undefined ? undefined : `Native property setter [${owner}::${name}]`);
@@ -400,12 +408,14 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     };
 
     const noConstructor = (name: string): ReferenceError =>
+        // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
         new ReferenceError(`No constructor for native class '${name}'.`);
 
     const bindClass = (module: string, entry: Extract<RuntimeExport, { kind: 'class' }>): NativeClass => {
         const { name, construct } = entry;
         const holder = {
             [name]: function (this: object, ...args: unknown[]): void {
+                // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
                 if (new.target === undefined) throw new TypeError('must be called with new');
                 if (construct === undefined) throw noConstructor(name);
                 const checked = check(construct, args);
@@ -416,9 +426,11 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             }
         };
         const Class = holder[name];
+        // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, which cannot load the catalog, and only a binding bug throws it.
         if (Class === undefined) throw new ReferenceError(`The class ${name} was not made`);
         if (entry.base !== undefined) {
             const Base = mapGet(classes, key(entry.base.module, entry.base.name));
+            // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, which cannot load the catalog, and only a binding bug throws it.
             if (Base === undefined) throw new ReferenceError(`${name} extends ${entry.base.name}, which is not bound`);
             setPrototypeOf(Class.prototype, Base.prototype);
             setPrototypeOf(Class, Base);
@@ -441,6 +453,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     const bindError = (module: string, entry: Extract<RuntimeExport, { kind: 'error' }>): NativeError => {
         const { name, construct } = entry;
         const holder = {
+            // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine; the Script API error classes a script catches extend Error, as on BDS.
             [name]: class extends Error {
                 public constructor(...args: unknown[]) {
                     if (internal) {
@@ -455,6 +468,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             }
         };
         const ErrorClass = holder[name];
+        // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, which cannot load the catalog, and only a binding bug throws it.
         if (ErrorClass === undefined) throw new ReferenceError(`The error class ${name} was not made`);
         define(ErrorClass.prototype, 'name', { value: name, writable: true, configurable: true });
         for (const property of entry.properties) {
@@ -471,6 +485,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
 
     const create = (module: string, name: string, tag: number, state: string): object => {
         const Class = mapGet(classes, key(module, name));
+        // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, which cannot load the catalog, and only a binding bug throws it.
         if (Class === undefined) throw new ReferenceError(`${module} has no bound class ${name}`);
         const instance = createObject(Class.prototype);
         weakSet(bound, instance, tag);

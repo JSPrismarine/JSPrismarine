@@ -511,5 +511,14 @@ export const PrismarineWorldErrors = defineErrors('prismarine', {
      * setting `content-java-version`, or start the server on another world.
      */
     JavaDataDowngrade:
-        'the world {level} was saved with Java data version {stored}, newer than Java {release} ({dataVersion}); run that release or a newer one'
+        'the world {level} was saved with Java data version {stored}, newer than Java {release} ({dataVersion}); run that release or a newer one',
+    /**
+     * Code asked the scoreboard for a participant by an id the scoreboard never gave out, or one it
+     * has since removed. Look a participant up by its entity or fake player name instead, or check
+     * that the id came from this world's scoreboard.
+     */
+    UnknownScoreboardParticipant: {
+        message: 'No scoreboard participant has the id {participant}',
+        base: RangeError
+    }
 });

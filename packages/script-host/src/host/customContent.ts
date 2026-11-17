@@ -6,6 +6,8 @@
  * `world.beforeEvents.worldInitialize` does, and at no other time. The messages are the ones the
  * `custom-commands` and `custom-components` scenarios recorded on the pinned BDS.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { engineFunctionSource } from '../engineSource';
 import { ScriptApiError } from '../errors';
 import type { ScriptEngine } from '../ScriptEngine';
@@ -273,7 +275,7 @@ export class CustomContent<Owner> {
     ): Map<string, ScriptHandle> {
         const engine = this.engine;
         const read = engine.evaluate(engineFunctionSource(readHooks.toString()), '<jsp custom component>');
-        if (!(read instanceof ScriptHandle)) throw new TypeError('The hook reader is not a function');
+        if (!(read instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'The hook reader' });
         const list = toScriptArray(engine, names);
         let found: ScriptValue;
         try {
@@ -283,9 +285,10 @@ export class CustomContent<Owner> {
             engine.free(read);
         }
         if (typeof found === 'string') {
-            throw new TypeError(
-                `Native type conversion failed. Interface property ['${found}'] expected type: ${expected(found)} (failed parsing interface to Function argument [1]).`
-            );
+            throw new ScriptHostErrors.InterfacePropertyConversionFailed({
+                property: found,
+                expected: expected(found)
+            });
         }
         const hooks = new Map<string, ScriptHandle>();
         if (!(found instanceof ScriptHandle)) return hooks;
@@ -304,7 +307,7 @@ export class CustomContent<Owner> {
 /** A list of strings as a script array, which the caller frees. */
 const toScriptArray = (engine: ScriptEngine, values: readonly string[]): ScriptHandle => {
     const parsed = engine.evaluate(`(${JSON.stringify(values)})`);
-    if (!(parsed instanceof ScriptHandle)) throw new TypeError('An array literal evaluated to a primitive');
+    if (!(parsed instanceof ScriptHandle)) throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'array' });
     return parsed;
 };
 

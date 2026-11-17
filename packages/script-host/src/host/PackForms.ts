@@ -1,3 +1,5 @@
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { ScriptApiError } from '../errors';
 import type { ScriptContextId, ScriptEngine } from '../ScriptEngine';
 import type { ScriptApiContext } from '../shape/binding';
@@ -36,7 +38,7 @@ export interface FormDeferred {
 
 const handleOf = (value: ScriptValue, what: string): ScriptHandle => {
     if (value instanceof ScriptHandle) return value;
-    throw new TypeError(`${what} is not an object`);
+    throw new ScriptHostErrors.NotAnObject({ what });
 };
 
 /**
@@ -186,7 +188,7 @@ export class PackForms {
 
     private call(name: string, ...args: ScriptValue[]): ScriptValue {
         const fn = this.functions[name];
-        if (fn === undefined) throw new ReferenceError(`The form kit has no ${name}`);
+        if (fn === undefined) throw new ScriptHostErrors.FormKitFunctionMissing({ name });
         return this.engine.call(fn, this.kit, ...args);
     }
 }

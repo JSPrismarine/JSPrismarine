@@ -12,6 +12,8 @@
  * bytes throws `ArgumentOutOfBoundsError`, and a vector keeps 32-bit floats, an infinite one
  * included, which then throws when it is read.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { ScriptApiError } from '../errors';
 import { isRecord } from '../isRecord';
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
@@ -52,7 +54,7 @@ export const propertiesByteCount = (properties: ScriptProperties | undefined): n
 };
 
 /** BDS's error for a value no property can hold, which names no argument. */
-const conversionFailed = (): TypeError => new TypeError('Native variant type conversion failed.');
+const conversionFailed = (): TypeError => new ScriptHostErrors.VariantConversionFailed();
 
 /**
  * Converts a value a script passed to the value BDS stores: undefined and null delete, a number
@@ -94,13 +96,13 @@ export const propertyValueOf = (call: ScriptCall, id: string, value: ScriptValue
 const scriptValueOf = (call: ScriptCall, value: ScriptPropertyValue | undefined): ScriptValue => {
     if (value === undefined || typeof value !== 'object') return value;
     // BDS stores a part a float cannot hold as infinity and refuses to read it back.
-    if (![value.x, value.y, value.z].every(Number.isFinite)) throw new TypeError('Infinity value is not supported.');
+    if (![value.x, value.y, value.z].every(Number.isFinite)) throw new ScriptHostErrors.InfinityNotSupported();
     return vectorObject(call, value);
 };
 
 const vectorObject = (call: ScriptCall, { x, y, z }: ScriptVector3): ScriptHandle => {
     const object = call.engine.evaluate('({})');
-    if (!(object instanceof ScriptHandle)) throw new TypeError('An object literal evaluated to a primitive');
+    if (!(object instanceof ScriptHandle)) throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'object' });
     call.engine.set(object, 'x', x);
     call.engine.set(object, 'y', y);
     call.engine.set(object, 'z', z);
@@ -119,10 +121,10 @@ const recordArgument = (call: ScriptCall): Map<string, ScriptPropertyValue | und
     if (!(record instanceof ScriptHandle)) throw conversionFailed();
     const { engine } = call;
     const keys = engine.get(engine.global(), 'Object');
-    if (!(keys instanceof ScriptHandle)) throw new TypeError('The global Object is missing');
+    if (!(keys instanceof ScriptHandle)) throw new ScriptHostErrors.EngineGlobalMissing({ name: 'The global Object' });
     const keysOf = engine.get(keys, 'keys');
     engine.free(keys);
-    if (!(keysOf instanceof ScriptHandle)) throw new TypeError('Object.keys is missing');
+    if (!(keysOf instanceof ScriptHandle)) throw new ScriptHostErrors.EngineGlobalMissing({ name: 'Object.keys' });
     const listed = engine.call(keysOf, undefined, record);
     engine.free(keysOf);
     const json = call.stringify(listed);
