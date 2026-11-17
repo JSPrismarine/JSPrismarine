@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { runScenarios } from '../behaviorScenarios.ts';
 import { FAMILIES } from '../families.ts';
-import { NO_SCRIPT_HOST, SCRIPT_HOST_ISSUE, scenarioRecordComparison } from './describeScriptingFamily.ts';
+import {
+    NO_SCRIPT_HOST,
+    SCRIPT_HOST_ISSUE,
+    scenarioRecordComparison,
+    scriptingFamilyReferences
+} from './describeScriptingFamily.ts';
 import type { Observation, ScenarioRecord } from './record.ts';
-import { diffScenarioRecords, readScenarioRecord } from './record.ts';
+import { diffScenarioRecords, readScenarioRecord, readServerVersion } from './record.ts';
 import type { ScriptScenario } from './scenarios.ts';
 
 /** A content-log line the way BDS decorates one. */
@@ -57,6 +62,16 @@ describe('readScenarioRecord', () => {
         ).toThrow('Pack v2 reported 2 observations but the log holds seq [2].');
     });
 
+    it('fails an end line with a negative count rather than reading it as an empty pack', () => {
+        expect(() => readScenarioRecord([logged('end {"pack":"v2","records":-1}')], ['v2'])).toThrow(
+            'An end line is malformed'
+        );
+    });
+
+    it('accepts a pack that ended with no observations', () => {
+        expect(readScenarioRecord([logged('end {"pack":"v2","records":0}')], ['v2']).observations).toEqual([]);
+    });
+
     it('fails a record line whose JSON does not parse rather than dropping it', () => {
         expect(() => readScenarioRecord([logged('record {"pack":"v2","seq":1,')], ['v2'])).toThrow(
             'A record line did not parse'
@@ -73,6 +88,21 @@ describe('readScenarioRecord', () => {
         expect(() =>
             readScenarioRecord([logged('record {"pack":"other","seq":1,"tick":0,"event":"e"}')], ['v2'])
         ).toThrow('Pack other is not in the scenario.');
+    });
+});
+
+describe('readServerVersion', () => {
+    it('reads the version line BDS prints at boot', () => {
+        expect(
+            readServerVersion([
+                '[2026-11-17 00:43:35:900 INFO] Starting Server',
+                '[2026-11-17 00:43:35:918 INFO] Version: 1.26.51.1'
+            ])
+        ).toBe('1.26.51.1');
+    });
+
+    it('reports no version when the server printed none', () => {
+        expect(readServerVersion(['[2026-11-17 00:43:35:900 INFO] Starting Server'])).toBeUndefined();
     });
 });
 
@@ -111,7 +141,8 @@ describe('scenarioRecordComparison', () => {
         family: FAMILIES.scriptingLifecycle,
         description: 'Nothing happens.',
         reference: 'test',
-        packs: ['v2']
+        packs: ['v2'],
+        needs: 'world'
     };
 
     it('fails a declared scenario that has no golden', () => {
@@ -119,6 +150,11 @@ describe('scenarioRecordComparison', () => {
         expect(row?.id).toBe('bds-record:no-such-scenario');
         expect(row?.difference).toContain('no BDS golden');
         expect(row?.gap?.kind).toBe('defect');
+    });
+
+    it('runs the rows of a family whose scenario has no golden, so the defect is not skipped', () => {
+        expect(scriptingFamilyReferences(FAMILIES.scriptingLifecycle, [scenario])).toEqual([]);
+        expect(scriptingFamilyReferences(FAMILIES.scriptingEvents, [])).toHaveLength(1);
     });
 
     it('defers a scenario JSPrismarine has no script host for, under the host issue', () => {

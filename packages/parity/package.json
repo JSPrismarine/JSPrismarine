@@ -49,6 +49,7 @@
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/recipes": "workspace:*",
+        "@jsprismarine/script-host": "workspace:*",
         "@jsprismarine/spawning": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
         "@types/node": "26.6.6",

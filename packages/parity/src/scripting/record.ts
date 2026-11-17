@@ -109,6 +109,20 @@ export const isObservation = (value: unknown): value is Observation =>
     (value.error === undefined || typeof value.error === 'string');
 
 /**
+ * Reads the version the server printed at boot, from its `Version: 1.26.51.1` line.
+ *
+ * @param lines - The server's output lines.
+ * @returns The version, or undefined when the server printed none.
+ */
+export const readServerVersion = (lines: Iterable<string>): string | undefined => {
+    for (const line of lines) {
+        const match = /\] Version: (\S+)$/.exec(line);
+        if (match !== null) return match[1];
+    }
+    return undefined;
+};
+
+/**
  * Reads a scenario's record off a server's output.
  *
  * @param lines - Every line the server printed, in order.
@@ -135,7 +149,13 @@ export const readScenarioRecord = (lines: Iterable<string>, packs: readonly stri
             observations.push(row.value);
         } else if (row.table === END_TABLE) {
             const end = row.value;
-            if (!isRecord(end) || typeof end.pack !== 'string' || !Number.isInteger(end.records)) {
+            // A negative count would read as zero observations and pass the sequence check below.
+            if (
+                !isRecord(end) ||
+                typeof end.pack !== 'string' ||
+                !Number.isInteger(end.records) ||
+                Number(end.records) < 0
+            ) {
                 throw new Error(`An end line is malformed: ${line}`);
             }
             ended.set(end.pack, Number(end.records));
