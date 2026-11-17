@@ -360,6 +360,37 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       not captured, so JSPrismarine's is its own.
 14. [ ] [#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211) **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
     same tests.
+    - Done (2026-11-17): `register`, `registerAsync`, the `RegistrationBuilder` options, `Test`'s
+      `succeed`, `fail`, `assert`, `runAfterDelay`, `runAtTickTime`, `idle`, `succeedWhen`, the
+      location conversions and the simulated player calls, and `/gametest run`, `runset`,
+      `stopall` and `clearall`. A simulated player is a `PlayerSession` whose connection reaches
+      no client, so the session manager, commands, chat and other clients list it. The
+      `scripting.gametest` family's `gametest` scenario records the runner on BDS.
+    - Learned, from the pinned BDS 1.26.51.1: `/gametest` has `clearall`, `create`, `pos`, `run`,
+      `runset`, `runsetuntilfail`, `runthese`, `runthis` and `stopall`, and no `runall`. `runset`
+      with no tag runs `suite:default`, which an untagged test is not in, and says `No tests found
+      for tag 'suite:default'`; `runset jsp` also ran an untagged test of class `jsp`. `register`
+      after startup returns a builder and the test runs.
+    - Learned: a test with a batch ran before the 12 tests without one, which started 4 ticks after
+      it ended. Every structure loads before any test function runs, and the functions run in
+      registration order. A missing structure fails the test with `Failed to spawn test structure
+      with path 'structures/jsp/late.mcstructure'`. `succeed` and `fail` end a test at once, and
+      later members throw `GameTestCompletedError` (`GameTest jsp:succeeds has already completed and
+      can no longer access method: succeed`, reason `Done`), except `isCompleted`. A failed
+      `assert` throws `GameTestError` with type `Assert`, which a script can catch. `maxTicks(5)`
+      failed the test 5 ticks after it started with `Didn't succeed or fail within 5 ticks`, and its
+      `Test` threw `object bound to prototype does not exist` in that tick. `runAfterDelay(2)` ran 2
+      ticks after the start, `idle(3)` resolved 3 ticks after it, and `succeedWhen` ran its callback
+      once when called and once each tick after. A test's simulated players are gone 3 ticks after
+      it passes. `worldLocation({ x: 1, y: 2, z: 1 })` of a test at `(0, -60, 0)` is `(1, -58, 1)`.
+    - Learned: `removeSimulatedPlayer` sends `world.beforeEvents.playerLeave` and makes the player
+      invalid in the call, and `world.afterEvents.playerLeave` follows in the next tick, so a
+      player who leaves during a flush is reported in the next one.
+    - Left: `.mcstructure` blocks are placed, but their block entities and entities are not; a
+      simulated player has no physics, so it walks and jumps on a straight line and does not fall;
+      `useItem` returns false; `maxAttempts`, `padding`, `rotateTest` and `setupTicks` are kept and
+      not acted on; the batch callbacks, `GameTestSequence`, the navigation and block-interaction
+      members of `SimulatedPlayer` and most `Test` assertions throw `NotImplementedError`.
 15. [ ] [#3212](https://github.com/JSPrismarine/JSPrismarine/issues/3212) **`@minecraft/server-net` and `@minecraft/server-admin`.** Responses as inputs, and the
     permissions BDS requires.
 16. [ ] [#3213](https://github.com/JSPrismarine/JSPrismarine/issues/3213) **`@jsprismarine/server`.** The first JSP-only members, the npm typings package, and a

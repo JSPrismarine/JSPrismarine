@@ -94,12 +94,27 @@ const isBelow = (root: string, file: string): boolean => {
  * @returns Its text, or undefined when it does not exist or the path leaves the pack.
  */
 export const readPackFile = (pack: ScriptPack, path: string): string | undefined => {
+    const target = packFilePath(pack, path);
+    return target === undefined ? undefined : readFileSync(target, 'utf8');
+};
+
+/**
+ * Reads a binary file of a pack, such as a GameTest's `.mcstructure`, under the same rule as
+ * {@link readPackFile}.
+ * @returns Undefined when the file is missing or outside the pack.
+ */
+export const readPackBytes = (pack: ScriptPack, path: string): Uint8Array | undefined => {
+    const target = packFilePath(pack, path);
+    return target === undefined ? undefined : readFileSync(target);
+};
+
+/** Where a path of a pack is on disk, or undefined when it is missing or leads out of the pack. */
+const packFilePath = (pack: ScriptPack, path: string): string | undefined => {
     const root = resolve(pack.directory);
     const file = resolve(root, path);
     if (!isBelow(root, file) || !existsSync(file)) return undefined;
     const target = realpathSync(file);
-    if (!isBelow(realpathSync(root), target)) return undefined;
-    return readFileSync(target, 'utf8');
+    return isBelow(realpathSync(root), target) ? target : undefined;
 };
 
 /** Every JavaScript file of a pack's `scripts` folder, by its path relative to the pack. */
