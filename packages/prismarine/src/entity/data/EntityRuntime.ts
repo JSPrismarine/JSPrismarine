@@ -253,7 +253,7 @@ import type { DamageCause } from '../DamageCause';
 import { damageCauseOf } from '../DamageCause';
 import { damageCausesInTag } from '../damageTypes';
 import type { HitGrace } from './damageStages';
-import { KNOCKBACK_LIFT, knockbackOf } from '../knockback';
+import { BASE_KNOCKBACK, KNOCKBACK_PER_LEVEL, behind, livingKnockback } from '../knockback';
 import {
     attributeIn,
     attributeNamed,
@@ -378,6 +378,15 @@ const ENDER_PEARL_DAMAGE = 5;
 
 /** What a melee blow adds to its target's upward motion beyond the push, Java's `IronGolem.doHurtTarget` 0.4. */
 const JAVA_ATTACK_LIFT: ReadonlyMap<string, number> = new Map([['minecraft:iron_golem', 0.4]]);
+
+/**
+ * The types whose blow Java throws the target with by its own rule, `HoglinBase.throwTarget`,
+ * rather than `Mob.doHurtTarget`'s `causeExtraKnockback`.
+ */
+const THROWS_ON_ITS_OWN: ReadonlySet<string> = new Set(['minecraft:hoglin', 'minecraft:zoglin']);
+
+/** What `LivingEntity.causeExtraKnockback` leaves of the attacker's horizontal motion. */
+const EXTRA_KNOCKBACK_SLOWDOWN = 0.6;
 
 /** The types whose vibrations no listener hears, Java's `Entity.dampensVibrations` overrides. */
 const DAMPENS_VIBRATIONS: ReadonlySet<string> = new Set(['minecraft:warden']);
@@ -2942,9 +2951,25 @@ export class EntityRuntime implements EntityScene {
             // period, hit nothing, so it leaves no effect either: Java's `doHurtTarget` adds its
             // effect only once `hurt` answered true. A blow the armor or the absorption took whole
             // still landed, which is why this reads the commit and not the health taken.
-            const blow = player ? { mitigated: true, graced: true } : {};
+            const throws = THROWS_ON_ITS_OWN.has(attacker.identifier);
+            const extra = throws ? 0 : this.attackKnockback(attacker) / 2;
+            const knockback = {
+                origin: attacker.position,
+                levels: 0,
+                ...(extra > 0 ? { extra: { power: extra, yaw: attacker.yaw } } : {})
+            };
+            const blow = player ? { mitigated: true, graced: true, knockback } : { knockback };
             const landed = this.blow(other, attacker.id, 'entity_attack', damage, blow).committed;
             if (landed && attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
+            // `causeExtraKnockback` slows the attacker as it pushes.
+            if (landed && extra > 0)
+                attacker.velocity = {
+                    x: attacker.velocity.x * EXTRA_KNOCKBACK_SLOWDOWN,
+                    y: attacker.velocity.y,
+                    z: attacker.velocity.z * EXTRA_KNOCKBACK_SLOWDOWN
+                };
+            if (landed && throws && attackerEntity?.instance.hasComponent('minecraft:is_baby') === false)
+                this.throwTarget(attacker, other);
             const lift = JAVA_ATTACK_LIFT.get(attacker.identifier);
             if (landed && lift !== undefined) {
                 const resisted = Math.max(0, 1 - other.facts.knockbackResistance);
@@ -2956,6 +2981,36 @@ export class EntityRuntime implements EntityScene {
         hurtPlayer?.(target.id, damage, 'entity_attack', attacker.id);
         this.markPlayerBlow(target.id, 'hurtBy', attacker.id);
         if (attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
+    }
+
+    /** The attacker's Java `minecraft:attack_knockback`, 0 for a type Java gives none. */
+    private attackKnockback(attacker: MobBody): number {
+        const stats = javaEntityStats(attacker.identifier, this.content().entities.javaStats);
+        return stats?.attributes['minecraft:attack_knockback'] ?? 0;
+    }
+
+    /**
+     * Throws a target an adult hoglin or zoglin hit, Java's `HoglinBase.throwTarget`: by the
+     * attacker's attack knockback less the target's resistance, away from the attacker and turned
+     * by a whole number of radians from -10 to 10, with a lift of up to half of it.
+     */
+    private throwTarget(attacker: MobBody, target: DataEntity): void {
+        const strength = this.attackKnockback(attacker) - target.facts.knockbackResistance;
+        if (strength <= 0) return;
+        const dx = target.position.x - attacker.position.x;
+        const dz = target.position.z - attacker.position.z;
+        const { random } = this.world;
+        const turn = random.nextInt(21) - 10;
+        const across = strength * (random.nextFloat() * 0.5 + 0.2);
+        const length = Math.hypot(dx, dz);
+        const x = length === 0 ? 0 : (dx / length) * across;
+        const z = length === 0 ? 0 : (dz / length) * across;
+        // `Vec3.yRot` turns by radians.
+        target.body.push({
+            x: x * Math.cos(turn) + z * Math.sin(turn),
+            y: strength * random.nextFloat() * 0.5,
+            z: z * Math.cos(turn) - x * Math.sin(turn)
+        });
     }
 
     /**
@@ -3170,9 +3225,12 @@ export class EntityRuntime implements EntityScene {
         sourceId: number | undefined,
         cause: string,
         amount: number,
-        options: Pick<Partial<DamageSourceFacts>, 'feedback' | 'route' | 'mitigated' | 'graced' | 'measured'>
+        options: Pick<
+            Partial<DamageSourceFacts>,
+            'feedback' | 'route' | 'mitigated' | 'graced' | 'measured' | 'knockback'
+        >
     ): DamageOutcome {
-        const { feedback, mitigated, graced, measured } = options;
+        const { feedback, mitigated, graced, measured, knockback } = options;
         return this.damage({
             target: entity.id,
             ...(sourceId === undefined ? {} : { attacker: sourceId }),
@@ -3183,7 +3241,8 @@ export class EntityRuntime implements EntityScene {
                 ...(feedback === undefined ? {} : { feedback }),
                 ...(mitigated === undefined ? {} : { mitigated }),
                 ...(graced === undefined ? {} : { graced }),
-                ...(measured === undefined ? {} : { measured })
+                ...(measured === undefined ? {} : { measured }),
+                ...(knockback === undefined ? {} : { knockback })
             }
         });
     }
@@ -3714,29 +3773,47 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * Shoves an entity away from where a blow came from.
+     * Shoves an entity away from where a blow came from, as Java's `LivingEntity.hurtServer` and
+     * the attack that dealt it do: `dealDefaultKnockback`'s 0.4 away from the blow, then a second
+     * shove for the sprint and Knockback levels, then the attacker's own `causeExtraKnockback` the
+     * way it faces. Each is `LivingEntity.knockback`, which halves what the last one left.
      *
-     * The damping first, because vanilla's rule is that each shove halves whatever motion the
-     * last one left before adding its own. The lift is vanilla's cap, and the runtime's gravity
-     * brings the entity back down.
+     * They are worked out together and written once, because a player is sent its knockback and a
+     * second packet in the same tick would overwrite the first.
      */
-    private shove(entity: DataEntity, knockback: { readonly origin: EntityPosition; readonly levels: number }): void {
-        const shove = knockbackOf({
-            target: entity.position,
-            origin: knockback.origin,
-            resistance: entity.facts.knockbackResistance,
-            levels: knockback.levels,
-            tieBreak: entity.id % 8
-        });
-        if (shove === undefined) return;
+    private shove(entity: DataEntity, knockback: NonNullable<DamageSourceFacts['knockback']>): void {
+        const onGround = entity.body.conditions.has('on_ground');
+        const toward = { x: knockback.origin.x - entity.position.x, z: knockback.origin.z - entity.position.z };
+        const shoves = [
+            { power: BASE_KNOCKBACK, toward },
+            ...(knockback.levels > 0 ? [{ power: knockback.levels * KNOCKBACK_PER_LEVEL, toward }] : []),
+            ...(knockback.extra !== undefined && knockback.extra.power > 0
+                ? [{ power: knockback.extra.power, toward: behind(knockback.extra.yaw) }]
+                : [])
+        ];
+        let velocity = entity.body.velocity;
+        for (const shove of shoves)
+            velocity = livingKnockback({
+                velocity,
+                onGround,
+                resistance: entity.facts.knockbackResistance,
+                power: shove.power,
+                toward: shove.toward,
+                tieBreak: entity.id % 8
+            });
+        this.knockTo(entity, velocity);
+    }
 
+    /**
+     * Gives a body the velocity a shove worked out. A body whose client owns its movement takes
+     * the change as one impulse, which its client is sent; any other is set to it.
+     */
+    private knockTo(entity: DataEntity, velocity: EntityPosition): void {
         const carried = entity.body.velocity;
-        entity.body.velocity = { x: carried.x * shove.damping, y: carried.y, z: carried.z * shove.damping };
-        entity.body.push({
-            x: shove.directionX * shove.strength,
-            y: KNOCKBACK_LIFT,
-            z: shove.directionZ * shove.strength
-        });
+        if (velocity.x === carried.x && velocity.y === carried.y && velocity.z === carried.z) return;
+        const halved = { x: carried.x / 2, y: carried.y, z: carried.z / 2 };
+        entity.body.velocity = halved;
+        entity.body.push({ x: velocity.x - halved.x, y: velocity.y - halved.y, z: velocity.z - halved.z });
     }
 
     /** Notifies combat-regeneration components watching the target that just died. */

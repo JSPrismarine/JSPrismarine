@@ -11,12 +11,7 @@ import type { EntityPosition, EntityStatusEffect } from '@jsprismarine/entities'
 import { isRecord } from '@jsprismarine/entities';
 
 import type { RandomSource } from '../../content/world/adapter';
-
-/** How hard a blow pushes, Java's `LivingEntity.hurtServer` calling `knockback(0.4F, ...)`. */
-const KNOCKBACK_STRENGTH = 0.4;
-
-/** The highest a push lifts a body on the ground, Java's `LivingEntity.knockback` cap. */
-const KNOCKBACK_LIFT_CAP = 0.4;
+import { BASE_KNOCKBACK, livingKnockback } from '../knockback';
 
 /** What one level of Punch adds to an arrow's push, Java's `AbstractArrow.doKnockback` scale. */
 const PUNCH_PER_LEVEL = 0.6;
@@ -79,19 +74,20 @@ export interface KnockbackInput {
  * @returns The new velocity, or the old one when the body resists every push.
  */
 export const projectileKnockback = (input: KnockbackInput): EntityPosition => {
-    const resisted = 1 - Math.min(1, Math.max(0, input.resistance));
-    const strength = KNOCKBACK_STRENGTH * resisted;
+    const resistance = Math.min(1, Math.max(0, input.resistance));
     const length = Math.hypot(input.direction.x, input.direction.z);
-    if (strength <= 0 || length < 1e-5) return input.velocity;
+    if (resistance >= 1 || length < 1e-5) return input.velocity;
     const unitX = input.direction.x / length;
     const unitZ = input.direction.z / length;
-    const { velocity } = input;
-    let next = {
-        x: velocity.x / 2 + unitX * strength,
-        y: input.onGround ? Math.min(KNOCKBACK_LIFT_CAP, velocity.y / 2 + strength) : velocity.y,
-        z: velocity.z / 2 + unitZ * strength
-    };
-    const punch = input.punch * PUNCH_PER_LEVEL * resisted;
+    let next = livingKnockback({
+        velocity: input.velocity,
+        onGround: input.onGround,
+        resistance,
+        power: BASE_KNOCKBACK,
+        toward: { x: -unitX, z: -unitZ },
+        tieBreak: 0
+    });
+    const punch = input.punch * PUNCH_PER_LEVEL * (1 - resistance);
     if (punch > 0) next = { x: next.x + unitX * punch, y: next.y + PUNCH_LIFT, z: next.z + unitZ * punch };
     return next;
 };

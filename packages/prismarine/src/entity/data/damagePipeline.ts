@@ -71,7 +71,16 @@ export interface DamageSourceFacts {
      */
     readonly measured?: boolean;
     /** Where the blow shoves the target away from, and with how many Knockback levels. */
-    readonly knockback?: { readonly origin: ContentPosition; readonly levels: number };
+    readonly knockback?: {
+        readonly origin: ContentPosition;
+        readonly levels: number;
+        /**
+         * The attacker's own push on top, Java's `LivingEntity.causeExtraKnockback`: its strength,
+         * which is half the attacker's `minecraft:attack_knockback`, and the attacker's yaw in
+         * degrees, the way the push goes.
+         */
+        readonly extra?: { readonly power: number; readonly yaw: number };
+    };
     /** Whether a blow that lands shows the hurt animation and sound; true when left out. */
     readonly feedback?: boolean;
     /**

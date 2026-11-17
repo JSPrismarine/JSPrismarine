@@ -1,87 +1,98 @@
 /**
- * Which way a blow shoves its target, and how hard.
+ * Which way a blow shoves its target, and how hard: Java's `LivingEntity.knockback`.
  *
- * One home for vanilla's knockback rule, which the entity store's damage pipeline shoves with.
+ * One home for vanilla's knockback rule, which the entity store's damage pipeline and the
+ * projectile hits shove with.
  */
+import type { EntityPosition } from '@jsprismarine/entities';
 
-/** The shove a plain hit gives, before sprint or enchantments add to it. */
-const BASE_KNOCKBACK = 0.4;
+/** The shove a blow with an attacker gives, Java's `LivingEntity.dealDefaultKnockback` `knockback(0.4F, ...)`. */
+export const BASE_KNOCKBACK = 0.4;
 
-/** What each level of sprint-or-Knockback adds on top. */
-const KNOCKBACK_PER_LEVEL = 0.5;
+/** What each level of sprint-or-Knockback adds, as a second shove after the blow's own. */
+export const KNOCKBACK_PER_LEVEL = 0.5;
 
 /**
- * How much of what an entity was already doing survives a shove.
- *
- * Vanilla halves the existing horizontal motion for each `knockback` call it makes - one for a
- * plain hit, two for a sprint hit, since the attack adds its own on top of the one being hurt
- * already gave. Two halvings leave a quarter, which is why a sprint hit both throws harder *and*
- * cancels more of the run the target was making.
- */
-export const SINGLE_DAMPING = 0.5;
-const COMPOUND_DAMPING = 0.25;
-
-/**
- * How far up a shove lifts, in blocks per tick.
+ * How far up a shove lifts a body on the ground, at most, in blocks per tick.
  *
  * Vanilla's cap, which is what a hit from a standing start produces. Gravity brings the entity
  * back down, so this is only the first tick of the arc.
  */
 export const KNOCKBACK_LIFT = 0.4;
 
-/** One shove: a unit direction away from the blow, its strength and what it leaves of the old motion. */
-export interface Knockback {
-    readonly directionX: number;
-    readonly directionZ: number;
-    readonly strength: number;
-    readonly damping: number;
-}
+/**
+ * The range of Java's `minecraft:knockback_resistance` attribute. A resistance below 0, which a
+ * sulfur cube's archetype gives it, makes a shove stronger.
+ */
+const MIN_RESISTANCE = -2;
+const MAX_RESISTANCE = 1;
 
-/** What {@link knockbackOf} works a shove out from. */
-export interface KnockbackInput {
-    /** Where the target stands, horizontally. */
-    readonly target: { readonly x: number; readonly z: number };
-    /** Where the blow came from, horizontally. */
-    readonly origin: { readonly x: number; readonly z: number };
-    /** The target's knockback resistance, clamped to 0 to 1 here. */
+/** The shortest direction Java's `knockback` pushes along, `1.0E-5F` squared; a shorter one is replaced. */
+const SHORTEST_DIRECTION = Math.sqrt(1e-5);
+
+/** What {@link livingKnockback} works a shove out from. */
+export interface LivingKnockbackInput {
+    /** The body's velocity before the shove. */
+    readonly velocity: EntityPosition;
+    /** Whether the body stands on the ground, which is the only time a shove lifts it. */
+    readonly onGround: boolean;
+    /** The body's knockback resistance. */
     readonly resistance: number;
-    /** Sprint and Knockback levels behind the blow. */
-    readonly levels: number;
+    /** How hard the shove is before resistance, such as {@link BASE_KNOCKBACK}. */
+    readonly power: number;
     /**
-     * Picks a direction when the target stands exactly inside the origin, so the same entity is
-     * always shoved the same way and does not jitter. An integer, such as the runtime id.
+     * The way toward what shoves, horizontally, Java's `xd` and `zd`: the body goes the other way.
+     * Only its direction counts.
+     */
+    readonly toward: { readonly x: number; readonly z: number };
+    /**
+     * Picks a direction when `toward` is too short to have one, so the same entity is always
+     * shoved the same way and does not jitter, where Java draws a random one. An integer, such as
+     * the runtime id.
      */
     readonly tieBreak: number;
 }
 
 /**
- * The shove one blow gives, or undefined when it gives none.
+ * The velocity one shove leaves a body with, Java's `LivingEntity.knockback(power, xd, zd)`.
  *
- * Vanilla shoves *twice* for a sprint hit and once for a plain one, and each shove halves
- * whatever the last one left before adding its own. One combined impulse of `0.4 + 0.5` is not
- * the same thing and is noticeably stronger, so the two are composed here into one strength and
- * one damping. A player is *sent* their knockback, and two packets in one tick would only
- * overwrite each other.
+ * The power is scaled by `1 - resistance`, and nothing happens when that leaves none. The
+ * horizontal motion is halved and the shove taken off it along `toward`. A body on the ground is
+ * lifted to half its vertical motion plus the power, at most {@link KNOCKBACK_LIFT}; one in the
+ * air or in water keeps its vertical motion.
+ *
+ * @returns The new velocity, or the old one when the body resists the shove.
  */
-export const knockbackOf = (input: KnockbackInput): Knockback | undefined => {
-    const resistance = Math.min(1, Math.max(0, input.resistance));
-    const base = BASE_KNOCKBACK * (1 - resistance);
-    const bonus = input.levels * KNOCKBACK_PER_LEVEL * (1 - resistance);
+export const livingKnockback = (input: LivingKnockbackInput): EntityPosition => {
+    const resistance = Math.min(MAX_RESISTANCE, Math.max(MIN_RESISTANCE, input.resistance));
+    const power = input.power * (1 - resistance);
+    if (power <= 0) return input.velocity;
 
-    const strength = bonus > 0 ? base / 2 + bonus : base;
-    const damping = bonus > 0 ? COMPOUND_DAMPING : SINGLE_DAMPING;
-    if (strength <= 0) return undefined;
-
-    let dx = input.target.x - input.origin.x;
-    let dz = input.target.z - input.origin.z;
-    let distance = Math.hypot(dx, dz);
-
-    if (distance < Number.EPSILON) {
+    let { x, z } = input.toward;
+    let length = Math.hypot(x, z);
+    if (length < SHORTEST_DIRECTION) {
         const angle = ((((input.tieBreak % 8) + 8) % 8) / 8) * Math.PI * 2;
-        dx = Math.cos(angle);
-        dz = Math.sin(angle);
-        distance = 1;
+        x = Math.cos(angle);
+        z = Math.sin(angle);
+        length = 1;
     }
 
-    return { directionX: dx / distance, directionZ: dz / distance, strength, damping };
+    const { velocity } = input;
+    return {
+        x: velocity.x / 2 - (x / length) * power,
+        y: input.onGround ? Math.min(KNOCKBACK_LIFT, velocity.y / 2 + power) : velocity.y,
+        z: velocity.z / 2 - (z / length) * power
+    };
+};
+
+/**
+ * The way an entity faces, horizontally, as Java's `causeExtraKnockback` passes it to
+ * `knockback`: `(sin(yaw), -cos(yaw))`, which points behind the entity, so the shove goes the way
+ * it faces.
+ *
+ * @param yaw - The entity's yaw, in degrees.
+ */
+export const behind = (yaw: number): { readonly x: number; readonly z: number } => {
+    const radians = (yaw * Math.PI) / 180;
+    return { x: Math.sin(radians), z: -Math.cos(radians) };
 };

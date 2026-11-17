@@ -2974,6 +2974,44 @@ describe('EntityRuntime', () => {
             expect(victim!.body.damage.last()?.sourceId).toBe(attacker!.id);
         });
 
+        it("pushes a mob's target 0.4 away from the attacker, less its resistance, as Java's dealDefaultKnockback does", () => {
+            const { runtime } = runtimeOf();
+            const attacker = runtime.spawn('minecraft:cow', GROUND);
+            const victim = runtime.spawn('minecraft:cow', { ...GROUND, x: GROUND.x + 1 });
+            runtime.attack(attacker!.body, runtime.mobById(victim!.id)!);
+
+            const resisted = 1 - victim!.facts.knockbackResistance;
+            expect(victim!.body.velocity.x).toBeCloseTo(0.4 * resisted);
+            expect(victim!.body.velocity.z).toBeCloseTo(0);
+        });
+
+        it("adds a ravager's attack knockback the way it faces and slows it, as Java's causeExtraKnockback does", () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'minecraft:ravager': {
+                        components: {
+                            'minecraft:health': { value: 100, max: 100 },
+                            'minecraft:attack': { damage: 2 },
+                            'minecraft:collision_box': { width: 1.95, height: 2.2 }
+                        }
+                    }
+                }
+            );
+            const ravager = runtime.spawn('minecraft:ravager', GROUND);
+            const victim = runtime.spawn('minecraft:cow', { ...GROUND, x: GROUND.x + 1 });
+            // Facing +x: Java's look is (-sin(yaw), cos(yaw)).
+            ravager!.body.yaw = -90;
+            ravager!.body.velocity = { x: 0.1, y: 0, z: 0 };
+            runtime.attack(ravager!.body, runtime.mobById(victim!.id)!);
+
+            // The blow's 0.4, halved by the second push, then half of Java's attack_knockback 1.5.
+            const resisted = 1 - victim!.facts.knockbackResistance;
+            expect(victim!.body.velocity.x).toBeCloseTo((0.4 * resisted) / 2 + 0.75 * resisted);
+            expect(ravager!.body.velocity.x).toBeCloseTo(0.06);
+        });
+
         it("throws an iron golem's target up 0.4 beyond the push, as Java's IronGolem.doHurtTarget does", () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),
