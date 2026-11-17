@@ -1,0 +1,43 @@
+{
+    "$comment": [
+        "What the scripts of scenario `beta-experiment-off` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.lifecycle",
+    "scenario": "beta-experiment-off",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "control",
+            "seq": 1,
+            "tick": 0,
+            "event": "@minecraft/server exports",
+            "value": 536
+        },
+        {
+            "pack": "control",
+            "seq": 2,
+            "tick": 0,
+            "event": "'chatSend' in world.beforeEvents",
+            "value": false
+        },
+        {
+            "pack": "control",
+            "seq": 3,
+            "tick": 0,
+            "event": "'watchdogTerminate' in system.beforeEvents",
+            "value": false
+        }
+    ],
+    "refusals": [
+        "Plugin [JSPrismarine scenario beta-experiment-off shipped - 1.0.0] - requesting dependency on beta APIs [@minecraft/server - 2.11.0-beta], but the Beta APIs experiment is not enabled.",
+        "Plugin [JSPrismarine scenario beta-experiment-off newer - 1.0.0] - requesting dependency on beta APIs [@minecraft/server - 2.12.0-beta], but the Beta APIs experiment is not enabled.",
+        "Plugin [JSPrismarine scenario beta-experiment-off word - 1.0.0] - requesting dependency on beta APIs [@minecraft/server - 2.11.0-beta], but the Beta APIs experiment is not enabled.",
+        "Plugin [JSPrismarine scenario beta-experiment-off ui-beta - 1.0.0] - requesting dependency on beta APIs [@minecraft/server-ui - 2.3.0-beta], but the Beta APIs experiment is not enabled."
+    ]
+}

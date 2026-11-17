@@ -45,6 +45,36 @@ describe('readScenarioRecord', () => {
         ]);
     });
 
+    it("keeps the first line of each of BDS's plugin errors, in log order, apart from the observations", () => {
+        const record = readScenarioRecord(
+            [
+                '[2026-11-16 23:00:00:000 ERROR] [Scripting] Plugin [late - 1.0.0] - failed to create context.',
+                '',
+                '[2026-11-16 23:00:00:000 ERROR] [Scripting] Plugin [late] - module [late - 1.0.0] requested invalid version [2.12.0-beta] of [@minecraft/server].',
+                '',
+                'Available versions:',
+                '2.10.0',
+                // JSPrismarine logs a message of several lines as one.
+                '[Scripting] Plugin [late - 1.0.0] - run failed, no runtime or context available.\nmore',
+                logged('end {"pack":"v2","records":0}')
+            ],
+            ['v2']
+        );
+
+        expect(record).toEqual({
+            observations: [],
+            refusals: [
+                'Plugin [late - 1.0.0] - failed to create context.',
+                'Plugin [late] - module [late - 1.0.0] requested invalid version [2.12.0-beta] of [@minecraft/server].',
+                'Plugin [late - 1.0.0] - run failed, no runtime or context available.'
+            ]
+        });
+    });
+
+    it('leaves refusals out when no pack was refused', () => {
+        expect(readScenarioRecord([logged('end {"pack":"v2","records":0}')], ['v2'])).toEqual({ observations: [] });
+    });
+
     it('fails a pack that never ended', () => {
         expect(() =>
             readScenarioRecord([logged('record {"pack":"v2","seq":1,"tick":0,"event":"top-level"}')], ['v2'])
@@ -151,6 +181,15 @@ describe('diffScenarioRecords', () => {
             'observation 1 differs: BDS recorded {"pack":"v2","seq":1,"tick":0,"event":"a"}, ' +
                 'JSPrismarine recorded {"pack":"v2","seq":1,"tick":0,"event":"b"} ' +
                 '(2 observations on BDS, 2 on JSPrismarine)'
+        );
+    });
+
+    it('names the first refusal that differs', () => {
+        const refused: ScenarioRecord = { ...bds, refusals: ['Plugin [a - 1.0.0] - failed to create context.'] };
+
+        expect(diffScenarioRecords(refused, bds)).toBe(
+            'refusal 1 differs: BDS logged "Plugin [a - 1.0.0] - failed to create context.", JSPrismarine logged nothing ' +
+                '(1 refusals on BDS, 0 on JSPrismarine)'
         );
     });
 

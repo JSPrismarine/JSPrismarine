@@ -1839,6 +1839,12 @@
     },
     "items.behavior": {},
     "scripting.engine": {},
-    "scripting.events": {},
+    "scripting.events": {
+        "bds-record:chat-send": {
+            "kind": "deferred",
+            "reason": "The scenario's chat comes from a GameTest simulated player, which needs @minecraft/server-gametest, so the pack's register call throws NotImplementedError on JSPrismarine and it never ends. On BDS: a player's chat raises world.beforeEvents.chatSend while the line is sent, with its message and its sender, and a cancel there stops the line.",
+            "reference": "issue #3211"
+        }
+    },
     "scripting.lifecycle": {}
 }

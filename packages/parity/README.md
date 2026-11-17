@@ -89,6 +89,14 @@ two records.
 - A scenario with `reloadAfter` has the runner send `/reload` once its packs record that event: on
   BDS's console, and to JSPrismarine's scripts between two ticks. Each pack then ends once per
   run, `runs` times, and each run counts its observations from 1.
+- A scenario's `experiments` are world experiments by their `level.dat` names, such as
+  `gametest` for Beta APIs. The capture starts the world from a `level.dat` that has them on,
+  since `server.properties` has no key for one, and JSPrismarine's runner gives the script host
+  the same experiments.
+- A scenario with `gametestAfter` has the capture run a GameTest with `/gametest run` once its
+  packs record the event, because a GameTest can spawn a simulated player and the capture has no
+  client. `chat-send` raises its chat that way. JSPrismarine has no GameTest runner yet, so such a
+  scenario's row is a deferred gap.
 - `scenarios/<scenario>/config/` holds a scenario's module folders in BDS's `config/` layout. The
   capture copies them beside the server's shipped `config/default` for the run, and JSPrismarine's
   runner reads the same folder.
@@ -138,7 +146,10 @@ values skip, so a lost line cannot shorten a golden.
 
 The golden holds the observations in log order across every pack of the scenario, under
 `observations`, beside `format` (1), `family`, `scenario` and the `server` that produced it
-(`protocolVersion` and `serverVersion`). Two records match when they hold the same observations
+(`protocolVersion` and `serverVersion`). A refused pack runs no line, so the golden also keeps,
+under `refusals`, the first line of each plugin error the content log holds, from `Plugin [` on,
+such as `Plugin [my pack - 1.0.0] - failed to create context.`. A golden with no refused pack has
+no `refusals`. Two records match when they hold the same observations and the same refusals, each
 in the same order. [`src/scripting/record.ts`](src/scripting/record.ts) reads both sides.
 
 ### Capturing a golden

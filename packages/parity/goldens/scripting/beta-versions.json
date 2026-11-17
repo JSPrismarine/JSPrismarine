@@ -1,0 +1,107 @@
+{
+    "$comment": [
+        "What the scripts of scenario `beta-versions` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.lifecycle",
+    "scenario": "beta-versions",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "shipped",
+            "seq": 1,
+            "tick": 0,
+            "event": "@minecraft/server exports",
+            "value": 584
+        },
+        {
+            "pack": "shipped",
+            "seq": 2,
+            "tick": 0,
+            "event": "'chatSend' in world.beforeEvents",
+            "value": true
+        },
+        {
+            "pack": "shipped",
+            "seq": 3,
+            "tick": 0,
+            "event": "'watchdogTerminate' in system.beforeEvents",
+            "value": true
+        },
+        {
+            "pack": "word",
+            "seq": 1,
+            "tick": 0,
+            "event": "@minecraft/server exports",
+            "value": 584
+        },
+        {
+            "pack": "word",
+            "seq": 2,
+            "tick": 0,
+            "event": "'chatSend' in world.beforeEvents",
+            "value": true
+        },
+        {
+            "pack": "word",
+            "seq": 3,
+            "tick": 0,
+            "event": "'watchdogTerminate' in system.beforeEvents",
+            "value": true
+        },
+        {
+            "pack": "others",
+            "seq": 1,
+            "tick": 0,
+            "event": "@minecraft/server exports",
+            "value": 536
+        },
+        {
+            "pack": "others",
+            "seq": 2,
+            "tick": 0,
+            "event": "@minecraft/server-ui exports",
+            "value": 26
+        },
+        {
+            "pack": "others",
+            "seq": 3,
+            "tick": 0,
+            "event": "@minecraft/server-gametest exports",
+            "value": 21
+        },
+        {
+            "pack": "others",
+            "seq": 4,
+            "tick": 0,
+            "event": "@minecraft/server-admin exports",
+            "value": 25
+        },
+        {
+            "pack": "others",
+            "seq": 5,
+            "tick": 0,
+            "event": "@minecraft/debug-utilities exports",
+            "value": 24
+        }
+    ],
+    "refusals": [
+        "Plugin [JSPrismarine scenario beta-versions newer - 1.0.0] - failed to create context.",
+        "Plugin [JSPrismarine scenario beta-versions newer] - module [JSPrismarine scenario beta-versions newer - 1.0.0] requested invalid version [2.12.0-beta] of [@minecraft/server].",
+        "Plugin [JSPrismarine scenario beta-versions older - 1.0.0] - failed to create context.",
+        "Plugin [JSPrismarine scenario beta-versions older] - module [JSPrismarine scenario beta-versions older - 1.0.0] requested invalid version [2.9.0-beta] of [@minecraft/server].",
+        "Plugin [JSPrismarine scenario beta-versions unshipped - 1.0.0] - failed to create context.",
+        "Plugin [JSPrismarine scenario beta-versions unshipped] - module [JSPrismarine scenario beta-versions unshipped - 1.0.0] requested invalid version [2.11.0] of [@minecraft/server].",
+        "Plugin [JSPrismarine scenario beta-versions newer - 1.0.0] - run failed, no runtime or context available.",
+        "Plugin [JSPrismarine scenario beta-versions older - 1.0.0] - run failed, no runtime or context available.",
+        "Plugin [JSPrismarine scenario beta-versions unshipped - 1.0.0] - run failed, no runtime or context available.",
+        "Plugin [JSPrismarine scenario beta-versions v1beta - 1.0.0] - failed to create context.",
+        "Plugin [JSPrismarine scenario beta-versions v1beta] - module [JSPrismarine scenario beta-versions v1beta - 1.0.0] requested invalid version [1.17.0-beta] of [@minecraft/server].",
+        "Plugin [JSPrismarine scenario beta-versions v1beta - 1.0.0] - run failed, no runtime or context available."
+    ]
+}
