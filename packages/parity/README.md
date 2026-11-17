@@ -81,21 +81,35 @@ the log becomes a golden. The family's test runs the same packs on JSPrismarine 
 two records.
 
 - [`src/scripting/scenarios.ts`](src/scripting/scenarios.ts) declares each scenario: its id, its
-  family, its packs in world order and what JSPrismarine needs to run it.
+  family, its packs in world order, what JSPrismarine needs to run it, and any `server.properties`
+  values its server runs with, such as the watchdog's.
 - `scenarios/<scenario>/<pack>/` holds each pack, with its own `manifest.json`, so the directory
-  loads on BDS as it is.
+  loads on BDS as it is. A scenario's `refused` packs are ones BDS refuses to load, which record
+  nothing and write no end line.
+- A scenario with `reloadAfter` has the runner send `/reload` once its packs record that event: on
+  BDS's console, and to JSPrismarine's scripts between two ticks. Each pack then ends once per
+  run, `runs` times, and each run counts its observations from 1.
+- `scenarios/<scenario>/config/` holds a scenario's module folders in BDS's `config/` layout. The
+  capture copies them beside the server's shipped `config/default` for the run, and JSPrismarine's
+  runner reads the same folder.
 - `goldens/scripting/<scenario>.json` is the BDS record.
 - `runScenarioOnJsp` in [`src/scripting/jspHost.ts`](src/scripting/jspHost.ts) returns
   JSPrismarine's record.
 
 A scenario that `needs` only the `engine` imports no module and reports only through `console`.
 `runScenarioOnJsp` runs each of its packs in a bare `@jsprismarine/script-host` engine, with the
-entry loaded as a module and `console` and `print` writing the log lines. Its family's test skips
-where the script host library is not built, unless `JSP_SCRIPT_HOST_REQUIRE=1` is set, as CI sets
-it on Linux x64. A scenario that `needs` a `world` waits for the script host that loads packs into
-one ([#3203](https://github.com/JSPrismarine/JSPrismarine/issues/3203)). Until then
-`runScenarioOnJsp` returns nothing for it, and its row is a `deferred` gap in
-`goldens/behavior-gaps.json`.
+entry loaded as a module and `console` and `print` writing the log lines. A scenario that `needs`
+a `world` runs its packs together through `@jsprismarine/prismarine`'s `LevelScripts`, the code a
+server runs them with, over a test level with the three vanilla dimensions and its real weather,
+flushing once per tick until every pack has written its end line. Every family's test skips where
+the script host library is not built, unless `JSP_SCRIPT_HOST_REQUIRE=1` is set, as CI sets it on
+Linux x64.
+
+A scenario can list observations JSPrismarine makes differently on purpose in
+`jsprismarineDiffers`, each with the decision behind it. The row compares JSPrismarine's record
+with the golden after those observations are replaced. `module-resolution` uses it for the
+undeclared `import('@jsprismarine/server')`, which rejects on BDS and resolves on JSPrismarine
+([ADR 0020](../../docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md)).
 
 A family with no captured scenario reports "not measured". A declared scenario with no golden
 fails its row.

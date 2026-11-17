@@ -62,7 +62,7 @@ export const scenarioRecordComparison = (
         const record = records.get(scenario.id);
         if (record === undefined) return NO_SCRIPT_HOST;
         if ('failed' in record) return `JSPrismarine threw while running the scenario: ${String(record.failed)}`;
-        return diffScenarioRecords(golden, record);
+        return diffScenarioRecords(expectedOnJsp(golden, scenario), record);
     },
     classify: (scenario, difference) =>
         difference === NO_SCRIPT_HOST
@@ -77,6 +77,23 @@ export const scenarioRecordComparison = (
                   reference: scenario.reference
               }
 });
+
+/**
+ * The record JSPrismarine should make: the golden, with each observation the scenario says
+ * JSPrismarine makes differently on purpose replaced by what it makes instead.
+ */
+export const expectedOnJsp = (golden: ScenarioRecord, scenario: ScriptScenario): ScenarioRecord => {
+    const differs = scenario.jsprismarineDiffers;
+    if (differs === undefined) return golden;
+    return {
+        observations: golden.observations.map((observation) => {
+            const instead = differs[observation.event];
+            if (instead === undefined) return observation;
+            const { value: _value, error: _error, ...rest } = observation;
+            return { ...rest, ...instead.observed };
+        })
+    };
+};
 
 /**
  * The references a scripting family needs before its rows run. A family that declares scenarios
@@ -98,14 +115,15 @@ export const scriptingFamilyReferences = (
  *
  * A family with no declared scenario reports "not measured"; a declared scenario with no golden
  * fails its row. Rows that differ are checked against `goldens/behavior-gaps.json`, and `PARITY_UPDATE_BEHAVIOR_GAPS=1` rewrites the family's
- * baseline from what they observed. A family with a scenario that runs in a bare engine skips
- * where no script host library is built, unless `JSP_SCRIPT_HOST_REQUIRE=1` asks for it.
+ * baseline from what they observed. A family with a scenario skips where no script host library
+ * is built, unless `JSP_SCRIPT_HOST_REQUIRE=1` asks for it.
  * @param family - The family, which is also the describe title the dashboard groups by.
  * @param sourceFile - The test file, for the tracker's source link.
  */
 export const describeScriptingFamily = (family: ScriptingFamily, sourceFile: string): void => {
     const scenarios = SCRIPT_SCENARIOS.filter((scenario) => scenario.family === family);
-    const needsLibrary = scenarios.some((scenario) => scenario.needs === 'engine');
+    // Every scenario runs in the script host, a bare engine or a level's.
+    const needsLibrary = scenarios.length > 0;
 
     describeFamily(family, scriptingFamilyReferences(family, scenarios), () => {
         // A missing golden's row matches the scenario's allow-list entry by id, which would let it

@@ -10,10 +10,11 @@
  * This module imports nothing beyond node and relative paths, so the capture script runs it
  * under plain node.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { Family } from '../families.ts';
+import type { Observation } from './record.ts';
 import { isRecord } from '../isRecord.ts';
 
 /** A family of the `scripting` group. */
@@ -32,14 +33,52 @@ export interface ScriptScenario {
     readonly packs: readonly string[];
     /**
      * What JSPrismarine needs to run the scenario. `engine` packs import no module and report
-     * only through `console`, so a bare script engine runs them with no world. `world` packs need
-     * the script host that loads packs into a world, issue #3203.
+     * only through `console`, so a bare script engine runs them with no world. `world` packs run
+     * together in a level, through the script host that loads a level's packs.
      */
     readonly needs: 'engine' | 'world';
+    /**
+     * `server.properties` values the scenario's server runs with, under their BDS names. The
+     * capture writes them for BDS, and JSPrismarine's runner reads the ones its script host
+     * knows, such as the `script-watchdog-*` keys.
+     */
+    readonly properties?: Readonly<Record<string, string>>;
+    /**
+     * The packs BDS refuses to load. A refused pack runs no line, so it records nothing and
+     * writes no end line, and the capture does not wait for one.
+     */
+    readonly refused?: readonly string[];
+    /** How many times each pack ends its record: 1, or once per run for a scenario that reloads. */
+    readonly runs?: number;
+    /**
+     * An event whose observation makes the runner send `/reload` once, on BDS's console and to
+     * JSPrismarine's scripts, for a scenario about what a reload does.
+     */
+    readonly reloadAfter?: string;
+    /**
+     * Observations JSPrismarine makes differently from BDS on purpose, by event: what JSPrismarine
+     * records instead of the golden's value or error, and the decision that makes it differ.
+     */
+    readonly jsprismarineDiffers?: Readonly<
+        Record<string, { readonly observed: Pick<Observation, 'value' | 'error'>; readonly because: string }>
+    >;
 }
 
 /** The directory the scenario packs live in. */
 export const SCENARIO_DIRECTORY = join(import.meta.dirname, '..', '..', 'scenarios');
+
+/**
+ * The scenario's `config/` folder, in BDS's layout, when it has one: a folder per script module
+ * UUID that the capture copies into the server's `config/` and JSPrismarine's runner reads.
+ */
+export const scenarioConfigDirectory = (scenario: ScriptScenario): string | undefined => {
+    const directory = join(SCENARIO_DIRECTORY, scenario.id, 'config');
+    return existsSync(directory) ? directory : undefined;
+};
+
+/** The packs of a scenario that load, and so have to write their end line. */
+export const loadedPacks = (scenario: ScriptScenario): readonly string[] =>
+    scenario.packs.filter((pack) => !(scenario.refused ?? []).includes(pack));
 
 /** Where one of a scenario's packs is. */
 export const scenarioPackDirectory = (scenario: ScriptScenario, pack: string): string =>
@@ -91,5 +130,112 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         reference: 'docs/research/bedrock-script-api.md section 1',
         packs: ['engine'],
         needs: 'engine'
+    },
+    {
+        id: 'system-tasks',
+        family: 'scripting.lifecycle',
+        description:
+            'system.run, runTimeout and runInterval callbacks run in the script flush of the tick they are due, in the ' +
+            'order they were queued, each followed by the promise jobs it queued; a system.run queued by a running task ' +
+            'waits for the next tick while a runTimeout of 0 does not, and a cleared run never runs.',
+        reference: 'docs/research/bedrock-script-api.md section 5',
+        packs: ['tasks'],
+        needs: 'world'
+    },
+    {
+        id: 'module-resolution',
+        family: 'scripting.lifecycle',
+        description:
+            'A pack gets the newest stable minor of each major version it declares, a relative import loads from the ' +
+            'pack, and a dynamic import of a module the manifest does not declare rejects.',
+        reference: 'docs/research/bedrock-script-api.md section 4',
+        packs: ['v2', 'v1'],
+        needs: 'world',
+        jsprismarineDiffers: {
+            'import @jsprismarine/server': {
+                observed: { value: 'resolved' },
+                because:
+                    'ADR 0020: JSPrismarine resolves an undeclared @jsprismarine/server, so a pack can detect it and fall back on BDS'
+            }
+        }
+    },
+    {
+        id: 'contexts',
+        family: 'scripting.engine',
+        description:
+            "Each pack runs in a context of its own, so one pack's globals and built-ins are not another's, and " +
+            'Math.random and Date give a script a number in range and the current date.',
+        reference: 'docs/plans/script-api-host.md slice 6',
+        packs: ['first', 'second'],
+        needs: 'world'
+    },
+    {
+        id: 'argument-errors',
+        family: 'scripting.engine',
+        description:
+            'A member checks its arguments against the metadata before it runs, and throws a fixed TypeError, ' +
+            'ArgumentOutOfBoundsError or ReferenceError for a wrong type, a wrong count, a value out of bounds and a ' +
+            'class with no constructor.',
+        reference: 'docs/plans/script-api-host.md slice 4',
+        packs: ['args'],
+        needs: 'world'
+    },
+    {
+        id: 'watchdog',
+        family: 'scripting.engine',
+        description:
+            'A callback that never returns is stopped without running its catch or finally block, a caught stack ' +
+            'overflow reaches the script, and with watchdog shutdown off the pack keeps running.',
+        reference: 'docs/research/bedrock-script-api.md section 7',
+        packs: ['spin'],
+        needs: 'world',
+        properties: {
+            'script-watchdog-enable-shutdown': 'false',
+            'script-watchdog-hang-threshold': '500'
+        }
+    },
+    {
+        id: 'weather-events',
+        family: 'scripting.events',
+        description:
+            'Dimension.setWeather raises weatherChange as a before-event a script can cancel, in restricted execution, ' +
+            'and as an after-event in the script flush, and world.sendMessage works in both.',
+        reference: 'docs/plans/script-api-host.md slice 6',
+        packs: ['weather'],
+        needs: 'world'
+    },
+    {
+        id: 'privileges',
+        family: 'scripting.lifecycle',
+        description:
+            "A member that does not list early execution among its privileges throws a fixed ReferenceError at a version 2 pack's " +
+            'top level and in startup, and works once the world has loaded.',
+        reference: 'docs/research/bedrock-script-api.md section 5',
+        packs: ['early'],
+        needs: 'world'
+    },
+    {
+        id: 'config-permissions',
+        family: 'scripting.lifecycle',
+        description:
+            'A pack loads only when config/<script module uuid>/permissions.json, or config/default/permissions.json when ' +
+            'the pack has no folder, allows every module it declares: a folder can allow a module the default does not, ' +
+            'and refuse one it does.',
+        reference: 'docs/research/bedrock-script-api.md section 6',
+        packs: ['widened', 'narrowed', 'unconfigured', 'control'],
+        refused: ['narrowed', 'unconfigured'],
+        needs: 'world'
+    },
+    {
+        id: 'reload',
+        family: 'scripting.lifecycle',
+        description:
+            '/reload sends system.beforeEvents.shutdown, then runs every pack again from its top level, with startup and ' +
+            'worldLoad, while system.currentTick carries on and the tasks queued before it are dropped.',
+        reference: 'docs/research/bedrock-script-api.md section 5',
+        packs: ['reloaded'],
+        runs: 2,
+        reloadAfter: 'ready for /reload',
+        needs: 'world'
     }
 ];
