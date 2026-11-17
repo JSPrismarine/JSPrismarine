@@ -105,6 +105,12 @@ export interface WorldScriptsOptions {
     readonly onShutdown?: (reason: CriticalException) => void;
 }
 
+/** Where a debugger attaches to debug one pack: the world's engine and the pack's context in it. */
+export interface ScriptDebugTarget {
+    readonly engine: ScriptEngine;
+    readonly context: ScriptContextId;
+}
+
 /** The module JSPrismarine resolves for a pack without a manifest entry (ADR 0020). */
 export const JSPRISMARINE_MODULE = '@jsprismarine/server';
 
@@ -180,6 +186,18 @@ export class WorldScripts {
     /** The engine's counters, for tests that count host calls and steps. */
     public stats(): ReturnType<ScriptEngine['stats']> {
         return this.engine.stats();
+    }
+
+    /**
+     * Finds the pack a debugger's `targetModuleUuid` picks.
+     * @param moduleUuid - The UUID of the pack's script module, in any case.
+     * @returns The engine and the pack's context, or undefined when no loaded pack has that module.
+     * A reload makes a new engine and new contexts, so a debugger attaches again after one.
+     */
+    public debugTarget(moduleUuid: string): ScriptDebugTarget | undefined {
+        const wanted = moduleUuid.toLowerCase();
+        const loaded = this.loaded.find((each) => each.pack.moduleUuid.toLowerCase() === wanted);
+        return loaded === undefined ? undefined : { engine: this.engine, context: loaded.context };
     }
 
     /**

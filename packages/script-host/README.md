@@ -229,12 +229,20 @@ returns, the listener reads the stopped script and calls `resume` with `continue
 `stepIn` or `stepOut`.
 
 ```ts
+import { ScriptHandle } from '@jsprismarine/script-host/values';
+
 const debug = engine.attachDebugger({
     paused(reason) {
         const [top] = debug.frames(); // { name, file, line, column }
         const locals = debug.scope(0, 'local');
-        console.log(reason, top, debug.properties(locals).properties);
-        engine.free(locals);
+        const { properties } = debug.properties(locals);
+        try {
+            console.log(reason, top, properties);
+        } finally {
+            // Each object among the values is a handle of its own, as the scope is.
+            for (const { value } of properties) if (value instanceof ScriptHandle) engine.free(value);
+            engine.free(locals);
+        }
         debug.resume('stepOver');
         return 'resume';
     },
@@ -264,16 +272,20 @@ threads, because a stopped script blocks the thread its engine runs on:
   (its `listen` mode, `/script debugger connect`). Both default to `DEFAULT_DEBUGGER_PORT`. A
   listener on an address other than loopback needs a passcode, and refuses to start without one
   with BDS's message. `DebuggerSocket` frames each message as its length in 8 hexadecimal digits,
-  a newline, and the JSON with a newline after it.
+  a newline, and the JSON with a newline after it. It closes a connection whose header states a
+  body over `MAX_RECEIVED_FRAME_LENGTH`, before the body arrives.
 - `DebuggerChannelBridge` hands the socket's messages to the engine's thread. There,
   `PortDebuggerChannel` reads them with `receiveMessageOnPort`, and waits on a shared counter
   while a script is stopped, since that thread's event loop does not run.
 - `ScriptDebugSession` runs on the engine's thread. `handshake` offers the protocol, the
   passcode requirement and the packs, and refuses a wrong version, a wrong passcode or an unknown
-  `targetModuleUUID` with BDS's messages. `attach` takes the engine of the pack the extension
-  picked and handles its breakpoints until it sends `resume`. While a script is stopped, the
-  session answers `stackTrace`, `scopes`, `variables`, `evaluate`, `continue`, `next`, `stepIn`,
-  `stepOut` and `pause`, and `poll` handles what arrives between ticks.
+  `targetModuleUUID` with BDS's messages. `attach` takes the engine and the context of the pack
+  the extension picked, which `WorldScripts.debugTarget` finds, and handles its breakpoints until
+  it sends `resume`. Only that context's scripts stop, so another pack's `scripts/main.js` never
+  hits a breakpoint set for this one. While a script is stopped, the session answers
+  `stackTrace`, `scopes`, `variables`, `evaluate`, `continue`, `next`, `stepIn`, `stepOut` and
+  `pause`, and `poll` handles what arrives between ticks. When the connection closes, at any of
+  these points, the session detaches from the engine, so a new debugger can attach.
 
 ```ts
 // On the thread with the event loop:
@@ -285,7 +297,8 @@ worldThread.postMessage({ debugger: bridge.endpoint }, [bridge.endpoint.port]);
 // On the world's thread:
 const session = new ScriptDebugSession(new PortDebuggerChannel(endpoint), { plugins, passcode });
 const target = session.handshake(); // the script module UUID the extension picked
-session.attach(engineFor(target));
+const picked = target === undefined ? undefined : worldScripts.debugTarget(target);
+if (picked !== undefined) session.attach(picked.engine, picked.context);
 // then session.poll() between ticks, and session.detach() for /script debugger detach
 ```
 

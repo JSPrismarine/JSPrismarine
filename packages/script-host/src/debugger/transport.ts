@@ -93,9 +93,12 @@ export class DebuggerSocket {
         if (!this.closedValue) this.socket.write(encodeFrame(message));
     }
 
-    /** Closes the connection once what was sent has gone. */
+    /**
+     * Closes the connection once what was sent has gone. It destroys the socket then, rather than
+     * only ending its side, so the close completes even when the peer keeps its own side open.
+     */
     public close(): void {
-        this.socket.end();
+        this.socket.destroySoon();
     }
 
     private finish(error: Error | undefined): void {

@@ -45,7 +45,7 @@
      struct {
          /* debug info, move to separate structure to save memory? */
          JSAtom filename;
-@@ -7385,6 +7402,8 @@
+@@ -7411,6 +7428,8 @@
      JS_FreeValue(ctx, rt->current_exception);
      rt->current_exception = obj;
      rt->current_exception_is_uncatchable = FALSE;
@@ -54,7 +54,7 @@
      return JS_EXCEPTION;
  }
  
-@@ -17068,7 +17087,15 @@
+@@ -17094,7 +17113,15 @@
          vd = &b->vardefs[b->arg_count + var_idx];
          pvalue = &sf->var_buf[var_idx];
      }
@@ -71,7 +71,7 @@
      var_ref_idx = vd->var_ref_idx;
      assert(var_ref_idx < b->var_ref_count);
      var_ref = sf->var_refs[var_ref_idx];
-@@ -17796,6 +17823,113 @@
+@@ -17822,6 +17849,113 @@
  #pragma GCC diagnostic ignored "-Wunused-label"
  #endif
  
@@ -185,7 +185,7 @@
  /* argv[] is modified if (flags & JS_CALL_FLAG_COPY_ARGV) = 0. */
  static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                                 JSValueConst this_obj, JSValueConst new_target,
-@@ -17828,11 +17962,25 @@
+@@ -17854,11 +17988,25 @@
  #include "quickjs-opcode.h"
          [ OP_COUNT ... 255 ] = &&case_default
      };
@@ -214,7 +214,7 @@
  #endif
  #define DEFAULT         case_default
  #define BREAK           SWITCH(pc)
-@@ -17925,10 +18073,27 @@
+@@ -17951,10 +18099,27 @@
      ctx = b->realm; /* set the current realm */
  
   restart:
@@ -242,7 +242,7 @@
          SWITCH(pc) {
          CASE(OP_push_i32):
              *sp++ = JS_NewInt32(ctx, get_u32(pc));
-@@ -20578,6 +20743,16 @@
+@@ -20604,6 +20769,16 @@
          sf->cur_pc = pc;
          build_backtrace(ctx, rt->current_exception, NULL, 0, 0, 0);
      }
@@ -259,7 +259,7 @@
      if (!rt->current_exception_is_uncatchable) {
          while (sp > stack_buf) {
              JSValue val = *--sp;
-@@ -33705,7 +33880,17 @@
+@@ -33731,7 +33906,17 @@
      if (!s->closure_var)
          return -1;
      /* Add lexical variables in scope at the point of evaluation */
@@ -278,7 +278,7 @@
          vd = &b->vardefs[b->arg_count + i];
          if (vd->has_scope) {
              JSClosureVar *cv = &s->closure_var[s->closure_var_count++];
-@@ -36221,6 +36406,7 @@
+@@ -36247,6 +36432,7 @@
          JS_FreeContext(b->realm);
  
      JS_FreeAtomRT(rt, b->func_name);
@@ -286,7 +286,7 @@
      if (b->has_debug) {
          JS_FreeAtomRT(rt, b->debug.filename);
          js_free_rt(rt, b->debug.pc2line_buf);
-@@ -40975,6 +41161,220 @@
+@@ -41001,6 +41187,244 @@
                                        countof(js_string_proto_legacy_funcs));
  }
  
@@ -331,6 +331,21 @@
 +    for (sf = ctx->rt->current_stack_frame; sf; sf = sf->prev_frame)
 +        depth++;
 +    return depth;
++}
++
++JSContext *JS_GetDebugFrameRealm(JSContext *ctx, int level)
++{
++    JSStackFrame *sf = js_debug_frame(ctx, level);
++    JSObject *p;
++
++    if (!sf || JS_VALUE_GET_TAG(sf->cur_func) != JS_TAG_OBJECT)
++        return NULL;
++    p = JS_VALUE_GET_OBJ(sf->cur_func);
++    if (js_class_has_bytecode(p->class_id))
++        return p->u.func.function_bytecode->realm;
++    if (p->class_id == JS_CLASS_C_FUNCTION)
++        return p->u.cfunc.realm;
++    return NULL;
 +}
 +
 +int JS_GetDebugFrame(JSContext *ctx, int level, const char **function_name,
@@ -442,8 +457,13 @@
 +    JSValue fun_obj, ret;
 +    int i, interrupt_counter;
 +
-+    if (!p)
-+        return JS_Eval(ctx, source, length, "<debugger>", JS_EVAL_TYPE_GLOBAL);
++    /* the stopped script polls for interrupts as if nothing had run */
++    interrupt_counter = ctx->interrupt_counter;
++    if (!p) {
++        ret = JS_Eval(ctx, source, length, "<debugger>", JS_EVAL_TYPE_GLOBAL);
++        ctx->interrupt_counter = interrupt_counter;
++        return ret;
++    }
 +    b = p->u.func.function_bytecode;
 +
 +    /* compiled as __JS_EvalInternal compiles a direct eval */
@@ -480,8 +500,6 @@
 +    fun_obj = js_closure(ctx, fun_obj, p->u.func.var_refs, sf, TRUE);
 +    if (JS_IsException(fun_obj))
 +        return JS_EXCEPTION;
-+    /* the stopped script polls for interrupts as if nothing had run */
-+    interrupt_counter = ctx->interrupt_counter;
 +    ret = JS_Call(ctx, fun_obj, JS_UNDEFINED, 0, NULL);
 +    ctx->interrupt_counter = interrupt_counter;
 +
@@ -504,15 +522,21 @@
 +    return js_object___getClass(ctx, JS_UNDEFINED, 1, &obj);
 +}
 +
++JS_BOOL JS_IsDebugProxy(JSValueConst obj)
++{
++    return JS_VALUE_GET_TAG(obj) == JS_TAG_OBJECT &&
++           JS_VALUE_GET_OBJ(obj)->class_id == JS_CLASS_PROXY;
++}
++
  static const JSCFunctionListEntry js_object_funcs[] = {
      JS_CFUNC_DEF("create", 2, js_object_create ),
      JS_CFUNC_MAGIC_DEF("getPrototypeOf", 1, js_object_getPrototypeOf, 0 ),
 --- a/quickjs.h
 +++ b/quickjs.h
-@@ -940,6 +940,38 @@
- /* JSPrismarine: defines Object.__getClass and String.prototype.__quote,
-    which older releases had; returns -1 on an exception */
- int JS_AddLegacyMembers(JSContext *ctx);
+@@ -944,6 +944,45 @@
+    others' jobs in order; returns 0 when that context has none, 1 when the job
+    ran and -1 when it threw */
+ int JS_ExecutePendingJobOf(JSRuntime *rt, JSContext *realm);
 +/* JSPrismarine: debugger hooks. Without hooks the interpreter runs its
 +   usual dispatch table. A frame entered while a line hook is set runs a
 +   second table, which calls the hook. */
@@ -529,6 +553,10 @@
 +                      JSDebugThrowHook *throw_hook, void *opaque);
 +/* the frames on the stack; level 0 is the innermost */
 +int JS_GetDebugStackDepth(JSContext *ctx);
++/* the context a frame's function belongs to, which runs its code, or NULL
++   when the stack has no such level or the frame's function has no context
++   of its own */
++JSContext *JS_GetDebugFrameRealm(JSContext *ctx, int level);
 +/* a frame's function name, file name, line and column. The names are NULL
 +   when unknown and freed with JS_FreeCString, and the line is 0 in a
 +   native frame. Returns -1 when the stack has no such level. */
@@ -545,6 +573,9 @@
 +                         size_t length);
 +/* an object's class name, such as "Map", without running script */
 +JSValue JS_GetDebugClassName(JSContext *ctx, JSValueConst obj);
++/* whether a value is a proxy, callable or not, whose every inspection
++   would run its handler's script */
++JS_BOOL JS_IsDebugProxy(JSValueConst obj);
  /* if can_block is TRUE, Atomics.wait() can be used */
  void JS_SetCanBlock(JSRuntime *rt, JS_BOOL can_block);
  /* select which debug info is stripped from the compiled code */

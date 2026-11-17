@@ -150,6 +150,24 @@ describe('the corpus usage counter', () => {
         expect(modules.get('@minecraft/server')?.unmatched.size).toBe(0);
     });
 
+    it('keeps a reassignment inside a function body from changing the enclosing name', () => {
+        const modules = count(`
+            import { world } from '@minecraft/server';
+            let player = world.getAllPlayers()[0];
+            function clear() {
+                player = undefined;
+            }
+            function swap() {
+                player = world.getDimension('overworld');
+                player.getBlock({ x: 0, y: 0, z: 0 });
+            }
+            player.sendMessage('hello');
+        `);
+        const uses = modules.get('@minecraft/server')?.uses;
+        expect(uses?.get('Player.sendMessage')).toBe(1);
+        expect(uses?.get('Dimension.getBlock')).toBe(1);
+    });
+
     it('gives getComponent the class of a literal component id', () => {
         const modules = count(`
             import { EntityComponentTypes, world } from '@minecraft/server';

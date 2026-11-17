@@ -78,6 +78,12 @@ export interface ScriptEngineOptions {
 /** How {@link ScriptEngine.attachDebugger} attaches a debugger. */
 export interface DebuggerOptions {
     /**
+     * The context the debugger watches, {@link DEFAULT_CONTEXT} when absent. Only its scripts stop
+     * and poll; the other contexts' scripts run as if no debugger were attached, even in a file
+     * with a breakpoint. A stop's frames still include every context's, each queried in its own.
+     */
+    readonly context?: ScriptContextId;
+    /**
      * How many lines a running script runs between {@link DebuggerListener.poll} calls, which let a
      * debugger pause a script that never ends. A count of lines, not a time, so a script polls at
      * the same lines every run. No polling when 0.
@@ -329,15 +335,23 @@ export class ScriptEngine {
     }
 
     /**
-     * Attaches a debugger. Functions the engine enters from now on report their lines; those
-     * already running do not, so attach between calls into the engine. A replay never attaches one.
+     * Attaches a debugger to one context. Functions the engine enters from now on report their
+     * lines; those already running do not, so attach between calls into the engine. A replay
+     * never attaches one. While the listener handles a stop or a poll, the watched context is current.
      * @param listener - Handles each stop and poll, on this thread.
      * @returns The debugger, which detaches with {@link EngineDebugger.detach}.
      * @throws {Error} When a debugger is already attached.
+     * @throws {RangeError} When the engine has no such context.
      */
     public attachDebugger(listener: DebuggerListener, options: DebuggerOptions = {}): EngineDebugger {
         if (this.debuggerListener !== undefined) throw new Error('A debugger is already attached to this engine');
-        this.check(this.native.jsh_debug_attach(this.live(), options.pollLines ?? DEFAULT_POLL_LINES));
+        this.check(
+            this.native.jsh_debug_attach(
+                this.live(),
+                options.context ?? DEFAULT_CONTEXT,
+                options.pollLines ?? DEFAULT_POLL_LINES
+            )
+        );
         this.debuggerListener = listener;
         return new EngineDebugger({
             native: this.native,

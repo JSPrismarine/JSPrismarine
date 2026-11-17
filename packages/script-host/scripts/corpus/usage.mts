@@ -41,13 +41,32 @@ interface Binding {
 class Scope {
     readonly bindings = new Map<string, Binding>();
     readonly parent: Scope | undefined;
+    /** Whether a function body starts here. */
+    readonly body: boolean;
 
-    constructor(parent?: Scope) {
+    constructor(parent?: Scope, body = false) {
         this.parent = parent;
+        this.body = body;
     }
 
     lookup(name: string): Binding | undefined {
         return this.bindings.get(name) ?? this.parent?.lookup(name);
+    }
+
+    /**
+     * The binding an assignment to `name` writes. The counter visits a function body where it is
+     * written, which is not when it runs, and it may never run. So a name bound outside the
+     * nearest function body gets a copy in that body, which the assignment changes instead.
+     */
+    assignable(name: string): Binding | undefined {
+        const own = this.bindings.get(name);
+        if (own !== undefined) return own;
+        if (!this.body) return this.parent?.assignable(name);
+        const outer = this.parent?.lookup(name);
+        if (outer === undefined) return undefined;
+        const copy = { ...outer };
+        this.bindings.set(name, copy);
+        return copy;
     }
 
     declare(name: string, value: Value | undefined): void {
@@ -492,7 +511,7 @@ export class UsageCollector {
         scope: Scope,
         parameters: readonly (Value | undefined)[] = []
     ): void {
-        const inner = new Scope(scope);
+        const inner = new Scope(scope, true);
         if (node.type !== 'ArrowFunctionExpression' && node.id !== null && node.type === 'FunctionExpression')
             inner.declare(node.id.name, undefined);
         node.params.forEach((parameter, index) => this.#bind(parameter, parameters[index], inner));
@@ -752,7 +771,7 @@ export class UsageCollector {
             case 'AssignmentExpression': {
                 const value = this.#visit(node.right, scope);
                 if (node.left.type === 'Identifier') {
-                    const binding = scope.lookup(node.left.name);
+                    const binding = scope.assignable(node.left.name);
                     if (binding !== undefined && binding.imported === undefined) {
                         // `=` replaces the value, even with one the counter cannot follow. `??=` and
                         // `||=` keep a value the name already has. Arithmetic leaves no API value.

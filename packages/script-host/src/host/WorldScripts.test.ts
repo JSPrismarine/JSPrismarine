@@ -10,6 +10,7 @@ import type { ScriptPack } from './pack';
 import { readScriptConfig, readScriptPack } from './pack';
 import type { CriticalException, WatchdogSettings } from './WorldScripts';
 import { WorldScripts } from './WorldScripts';
+import type { ScriptValue } from '../values';
 import type { Guard, ScriptWeather, ScriptWorld, ScriptWorldEvent, WeatherChangeIntent } from './world';
 
 /** A world in memory: one weather, its guards, and the messages it was sent. */
@@ -83,7 +84,12 @@ afterAll(() => {
 });
 
 /** Writes a pack whose entry is `source`, declaring `@minecraft/server` at `version`. */
-const writePack = (source: string, version = '2.0.0', name = 'probe'): ScriptPack => {
+const writePack = (
+    source: string,
+    version = '2.0.0',
+    name = 'probe',
+    moduleUuid = '13f251b3-41c9-4271-b2d1-d4abde28890b'
+): ScriptPack => {
     const directory = mkdtempSync(join(tmpdir(), 'jsp-world-scripts-'));
     directories.push(directory);
     mkdirSync(join(directory, 'scripts'));
@@ -91,7 +97,7 @@ const writePack = (source: string, version = '2.0.0', name = 'probe'): ScriptPac
         join(directory, 'manifest.json'),
         JSON.stringify({
             header: { name, uuid: 'aac52733-889b-4c87-abcb-f064ea7735a2', version: [1, 0, 0] },
-            modules: [{ type: 'script', uuid: '13f251b3-41c9-4271-b2d1-d4abde28890b', entry: 'scripts/main.js' }],
+            modules: [{ type: 'script', uuid: moduleUuid, entry: 'scripts/main.js' }],
             dependencies: [{ module_name: '@minecraft/server', version }]
         })
     );
@@ -297,6 +303,39 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             )
         ]);
         expect(log.printed()).toEqual(['first true true', 'second false']);
+    });
+
+    it('gives a debugger the pack its script module UUID picks, which alone stops at its breakpoints', () => {
+        const uuids = ['4f2b6b3a-0000-4000-8000-000000000001', '4f2b6b3a-0000-4000-8000-000000000002'];
+        const source = (label: string) => `import { system } from '@minecraft/server';
+system.run(() => {
+    const label = '${label}';
+    console.warn(label);
+});`;
+        const { scripts, log } = start([
+            writePack(source('first'), '2.0.0', 'first', uuids[0]),
+            writePack(source('second'), '2.0.0', 'second', uuids[1])
+        ]);
+        const target = scripts.debugTarget(uuids[1]?.toUpperCase() ?? '');
+        if (target === undefined) throw new Error('the second pack is loaded');
+        const stops: ScriptValue[] = [];
+        const debug = target.engine.attachDebugger(
+            {
+                paused: () => {
+                    stops.push(debug.evaluate(0, 'label'));
+                    return 'resume';
+                },
+                poll: () => undefined
+            },
+            { context: target.context }
+        );
+        debug.setBreakpoints('scripts/main.js', [4]);
+
+        scripts.flush();
+
+        expect(stops).toEqual(['second']);
+        expect(log.printed()).toEqual(['first', 'second']);
+        expect(scripts.debugTarget('4f2b6b3a-0000-4000-8000-00000000ffff')).toBeUndefined();
     });
 
     it('refuses a pack the config does not allow a module, with BDS’s message', () => {

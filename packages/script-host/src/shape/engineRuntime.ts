@@ -29,10 +29,33 @@ export interface EngineRuntime {
  * It must not refer to anything outside its own body.
  *
  * Every member it installs checks its arguments against the metadata before it calls the host,
- * and an instance member checks that `this` is an instance the host made. The messages are BDS's,
- * as the `argument-errors` scenario of the parity suite's `scripting.engine` family records them.
+ * and an instance member checks that `this` is an instance the host made. A module function
+ * passes the host no `this`. The messages are BDS's, as the `argument-errors` scenario of the
+ * parity suite's `scripting.engine` family records them.
  */
 export function engineRuntime(host: RuntimeHost): EngineRuntime {
+    // Scripts share this realm and can replace any built-in, so every check below calls copies of
+    // the built-ins taken now, before a pack's code runs, and never looks one up on a value.
+    const { apply } = Reflect;
+    const { create: createObject, defineProperty, getOwnPropertyDescriptor, setPrototypeOf } = Object;
+    const { isArray } = Array;
+    const { isInteger } = Number;
+    const { parse } = JSON;
+    const { Error, TypeError, ReferenceError, Map, Set, WeakMap, String } = globalThis;
+    const iterator = Symbol.iterator;
+    const uncurry =
+        <This, Args extends unknown[], Result>(fn: (this: This, ...args: Args) => Result) =>
+        (self: This, ...args: Args): Result =>
+            apply(fn, self, args);
+    const isPrototypeOf = uncurry(Object.prototype.isPrototypeOf);
+    const toFixed = uncurry(Number.prototype.toFixed);
+    // The uncurried accessors lose the collections' type parameters, which these restore.
+    const mapGet = uncurry(Map.prototype.get) as <V>(map: Map<string, V>, key: string) => V | undefined;
+    const mapSet = uncurry(Map.prototype.set);
+    const setHas = uncurry(Set.prototype.has);
+    const weakGet = uncurry(WeakMap.prototype.get) as <V>(map: WeakMap<object, V>, key: object) => V | undefined;
+    const weakSet = uncurry(WeakMap.prototype.set);
+    const weakHas = uncurry(WeakMap.prototype.has);
     const COMMON = '@minecraft/common';
     type NativeClass = { readonly prototype: object };
     type NativeError = new (...args: unknown[]) => Error;
@@ -48,11 +71,11 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
 
     const key = (module: string, name: string): string => `${module}\n${name}`;
     const define = (target: object, name: PropertyKey, descriptor: PropertyDescriptor): void => {
-        Object.defineProperty(target, name, descriptor);
+        defineProperty(target, name, descriptor);
     };
 
     const makeError = (module: string, name: string, message: string, fields?: Readonly<Record<string, unknown>>) => {
-        const ErrorClass = errors.get(key(module, name));
+        const ErrorClass = mapGet(errors, key(module, name));
         let error: Error;
         if (ErrorClass === undefined) {
             error = new Error(message);
@@ -65,15 +88,32 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 internal = false;
             }
         }
-        if (fields !== undefined) errorFields.set(error, fields);
+        if (fields !== undefined) weakSet(errorFields, error, fields);
         return error;
     };
 
+    /**
+     * Makes an own element. Assigning to an index instead would call a setter a script put on
+     * `Array.prototype`, which could swallow the value and hand back its own through a getter.
+     */
+    const put = (target: unknown[], index: number, value: unknown): void => {
+        defineProperty(target, index, { value, writable: true, enumerable: true, configurable: true });
+    };
+
+    /** Copies an array by index, which no replaced iterator or method can reach. */
+    const copy = (values: readonly unknown[]): unknown[] => {
+        const result: unknown[] = [];
+        for (let index = 0; index < values.length; index++) put(result, index, values[index]);
+        return result;
+    };
+
     const tagOf = (self: unknown): number =>
-        (typeof self === 'object' || typeof self === 'function') && self !== null ? (bound.get(self) ?? 0) : 0;
+        (typeof self === 'object' || typeof self === 'function') && self !== null ? (weakGet(bound, self) ?? 0) : 0;
 
     const invoke = (id: number, self: unknown, args: readonly unknown[]): unknown => {
-        const result = host(id, self, tagOf(self), ...args);
+        const list: unknown[] = [id, self, tagOf(self)];
+        for (let index = 0; index < args.length; index++) put(list, index + 3, args[index]);
+        const result = apply(host, undefined, list);
         if (pending !== undefined) {
             const { error } = pending;
             pending = undefined;
@@ -94,22 +134,32 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 return typeof value === type.kind;
             case 'object':
                 // An interface such as RawMessage is a plain object; BDS refuses an array for one.
-                return typeof value === 'object' && value !== null && !Array.isArray(value);
+                return typeof value === 'object' && value !== null && !isArray(value);
             case 'instance': {
-                const Class = classes.get(key(type.module, type.name)) ?? errors.get(key(type.module, type.name));
+                const Class =
+                    mapGet(classes, key(type.module, type.name)) ?? mapGet(errors, key(type.module, type.name));
                 if (Class === undefined) return typeof value === 'object' && value !== null;
-                return typeof value === 'object' && value !== null && Class.prototype.isPrototypeOf(value);
+                return typeof value === 'object' && value !== null && isPrototypeOf(Class.prototype, value);
             }
             case 'enum': {
-                const values = enums.get(key(type.module, type.name));
-                return values === undefined || values.has(value);
+                const values = mapGet(enums, key(type.module, type.name));
+                return values === undefined || setHas(values, value);
             }
-            case 'array':
-                return Array.isArray(value) && value.every((element) => matches(type.element, element));
+            case 'array': {
+                if (!isArray(value)) return false;
+                for (let index = 0; index < value.length; index++) {
+                    if (!matches(type.element, value[index])) return false;
+                }
+                return true;
+            }
             case 'optional':
                 return value === undefined || matches(type.type, value);
             case 'variant':
-                return type.types.some((each) => matches(each, value));
+                for (let index = 0; index < type.types.length; index++) {
+                    const each = type.types[index];
+                    if (each !== undefined && matches(each, value)) return true;
+                }
+                return false;
         }
     };
 
@@ -128,8 +178,14 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             }
             case 'optional':
                 return `${describe(type.type)} | undefined`;
-            case 'variant':
-                return [...type.types].reverse().map(describe).join(' | ');
+            case 'variant': {
+                let text = '';
+                for (let index = type.types.length - 1; index >= 0; index--) {
+                    const each = type.types[index];
+                    if (each !== undefined) text += `${text === '' ? '' : ' | '}${describe(each)}`;
+                }
+                return text;
+            }
             default:
                 return type.kind;
         }
@@ -137,7 +193,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
 
     /** A bound as BDS writes it: a whole number in the int32 range as it is, anything else with two decimals. */
     const bound32 = (value: number): string =>
-        Number.isInteger(value) && value >= -2147483648 && value <= 2147483647 ? String(value) : value.toFixed(2);
+        isInteger(value) && value >= -2147483648 && value <= 2147483647 ? String(value) : toFixed(value, 2);
 
     const outOfBounds = (index: number, value: number, min?: number, max?: number): Error => {
         const bounds =
@@ -165,12 +221,15 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 `Incorrect number of arguments to function. Expected ${expected}, received ${args.length}`
             );
         }
-        const checked = [...args];
-        call.arguments.forEach((argument, index) => {
-            const value = checked[index];
+        const checked = copy(args);
+        for (let index = 0; index < call.arguments.length; index++) {
+            const argument = call.arguments[index];
+            if (argument === undefined) continue;
+            // An omitted argument has no element, and reading one would reach a getter on the prototype.
+            const value = index < checked.length ? checked[index] : undefined;
             if (value === undefined && argument.optional) {
-                if (argument.default !== undefined) checked[index] = argument.default;
-                return;
+                if (argument.default !== undefined) put(checked, index, argument.default);
+                continue;
             }
             if (!matches(argument.type, value)) {
                 const inner = argument.type.kind === 'optional' ? argument.type.type : argument.type;
@@ -188,14 +247,14 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             if (typeof value === 'string' && argument.maxLength !== undefined && value.length > argument.maxLength) {
                 throw outOfBounds(index, value.length, undefined, argument.maxLength);
             }
-        });
+        }
         return checked;
     };
 
     /** Throws BDS's error for an instance member called on something the host did not make. */
     const checkReceiver = (self: unknown, label: string | undefined): void => {
         if (label === undefined) return;
-        if ((typeof self === 'object' || typeof self === 'function') && self !== null && bound.has(self)) return;
+        if ((typeof self === 'object' || typeof self === 'function') && self !== null && weakHas(bound, self)) return;
         throw new ReferenceError(`${label} object bound to prototype does not exist.`);
     };
 
@@ -213,6 +272,18 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         };
         const fn = holder[name];
         if (fn === undefined) throw new ReferenceError(`The method ${name} was not made`);
+        return fn;
+    };
+
+    /** A module function, which passes the host no `this` whatever it was called on. */
+    const moduleFunction = (name: string, call: RuntimeCall): ((...args: unknown[]) => unknown) => {
+        const holder = {
+            [name](...args: unknown[]): unknown {
+                return invoke(call.id, undefined, check(call, args));
+            }
+        };
+        const fn = holder[name];
+        if (fn === undefined) throw new ReferenceError(`The function ${name} was not made`);
         return fn;
     };
 
@@ -238,7 +309,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 invoke(set.id, this, checked);
             }
         };
-        const descriptor = Object.getOwnPropertyDescriptor(holder, name) ?? {};
+        const descriptor = getOwnPropertyDescriptor(holder, name) ?? {};
         return { get: descriptor.get, set: descriptor.set, configurable: true };
     };
 
@@ -274,21 +345,21 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 if (new.target === undefined) throw new TypeError('must be called with new');
                 if (construct === undefined) throw noConstructor(name);
                 const checked = check(construct, args);
-                bound.set(this, 0);
+                weakSet(bound, this, 0);
                 invoke(construct.id, this, checked);
             }
         };
         const Class = holder[name];
         if (Class === undefined) throw new ReferenceError(`The class ${name} was not made`);
         if (entry.base !== undefined) {
-            const Base = classes.get(key(entry.base.module, entry.base.name));
+            const Base = mapGet(classes, key(entry.base.module, entry.base.name));
             if (Base === undefined) throw new ReferenceError(`${name} extends ${entry.base.name}, which is not bound`);
-            Object.setPrototypeOf(Class.prototype, Base.prototype);
-            Object.setPrototypeOf(Class, Base);
+            setPrototypeOf(Class.prototype, Base.prototype);
+            setPrototypeOf(Class, Base);
         }
         for (const member of entry.members) installMember(member.static ? Class : Class.prototype, member, name);
         if (entry.iterable) {
-            define(Class.prototype, Symbol.iterator, {
+            define(Class.prototype, iterator, {
                 value: function (this: unknown) {
                     return this;
                 },
@@ -297,7 +368,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             });
         }
         define(Class, 'prototype', { writable: false });
-        classes.set(key(module, name), Class);
+        mapSet(classes, key(module, name), Class);
         return Class;
     };
 
@@ -323,20 +394,20 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         for (const property of entry.properties) {
             define(ErrorClass.prototype, property, {
                 get(this: object) {
-                    return errorFields.get(this)?.[property];
+                    return weakGet(errorFields, this)?.[property];
                 },
                 configurable: true
             });
         }
-        errors.set(key(module, name), ErrorClass);
+        mapSet(errors, key(module, name), ErrorClass);
         return ErrorClass;
     };
 
     const create = (module: string, name: string, tag: number): object => {
-        const Class = classes.get(key(module, name));
+        const Class = mapGet(classes, key(module, name));
         if (Class === undefined) throw new ReferenceError(`${module} has no bound class ${name}`);
-        const instance = Object.create(Class.prototype);
-        bound.set(instance, tag);
+        const instance = createObject(Class.prototype);
+        weakSet(bound, instance, tag);
         return instance;
     };
 
@@ -349,7 +420,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             case 'enum': {
                 const values: Record<string, unknown> = {};
                 for (const [name, value] of entry.values) define(values, name, { value, enumerable: true });
-                enums.set(key(module, entry.name), new Set(entry.values.map(([, value]) => value)));
+                mapSet(enums, key(module, entry.name), new Set(entry.values.map(([, value]) => value)));
                 return values;
             }
             case 'constant':
@@ -357,24 +428,24 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             case 'object':
                 return create(entry.module, entry.className, 0);
             case 'function':
-                return method(entry.name, entry.call);
+                return moduleFunction(entry.name, entry.call);
         }
     };
 
     return {
         bind(planJson: string): object {
-            const plan: RuntimePlan = JSON.parse(planJson);
+            const plan: RuntimePlan = parse(planJson);
             const values = new Map<string, unknown>();
             for (const entry of plan.exports) values.set(entry.name, bindExport(plan.module, entry));
             // A module namespace lists its names in code unit order and has no prototype.
-            const namespace = Object.create(null);
+            const namespace = createObject(null);
             for (const name of [...values.keys()].sort())
                 define(namespace, name, { value: values.get(name), enumerable: true });
             return namespace;
         },
         create,
         raise(module: string, name: string, message: string, fields: string): void {
-            pending = { error: makeError(module, name, message, fields === '' ? undefined : JSON.parse(fields)) };
+            pending = { error: makeError(module, name, message, fields === '' ? undefined : parse(fields)) };
         }
     };
 }

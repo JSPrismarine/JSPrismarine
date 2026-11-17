@@ -34,6 +34,11 @@ typedef struct {
 
 /* The debugger's state, which exists only while one is attached. */
 typedef struct {
+	/*
+	 * The context the debugger watches. Only its frames stop and count lines; a frame of another
+	 * context runs as if no debugger were attached, even when its file has a breakpoint.
+	 */
+	JSContext *context;
 	jsh_breakpoints *files;
 	int32_t file_count;
 	double poll_lines;
@@ -802,18 +807,27 @@ static void remove_absent(JSContext *ctx) {
 
 /* ---------------------------------------------------------------- debugger */
 
+/* Sends the host a debugger request with the stopped context current, as a host call does. */
+static int32_t debug_request(jsh_engine *engine, JSContext *ctx, int32_t op, int32_t id) {
+	JSContext *saved = engine->ctx;
+	engine->ctx = ctx;
+	int32_t answer = engine->host(op, id, 0);
+	engine->ctx = saved;
+	return answer;
+}
+
 /* Stops the script and hands it to the host until the host returns. Returns -1 to terminate it. */
-static int debug_stop(jsh_engine *engine, int reason) {
+static int debug_stop(jsh_engine *engine, JSContext *ctx, int reason) {
 	jsh_debugger *debugger = engine->debugger;
 	debugger->stopped = 1;
 	debugger->pause_requested = 0;
 	debugger->resume_mode = JSH_DEBUG_CONTINUE;
-	int32_t answer = engine->host(JSH_OP_DEBUG_PAUSED, reason, 0);
+	int32_t answer = debug_request(engine, ctx, JSH_OP_DEBUG_PAUSED, reason);
 	/* The host may have detached the debugger while the script was stopped. */
 	if (engine->debugger) engine->debugger->stopped = 0;
 	if (answer < 0 || engine->terminated) {
 		engine->terminated = 1;
-		throw_terminated(engine->ctx);
+		throw_terminated(ctx);
 		return -1;
 	}
 	return 0;
@@ -851,11 +865,12 @@ static int step_done(JSContext *ctx, jsh_debugger *debugger) {
 static int on_line(JSContext *ctx, void *opaque, JSAtom file, int line, int resumed) {
 	jsh_engine *engine = opaque;
 	jsh_debugger *debugger = engine->debugger;
-	if (!debugger || debugger->stopped || engine->describing) return 0;
+	/* QuickJS calls the hook with the context of the frame's function. */
+	if (!debugger || debugger->stopped || engine->describing || ctx != debugger->context) return 0;
 	if (resumed) {
 		/* Only a step that has left the function it started in stops where a call returned. */
 		int left = debugger->resume_mode != JSH_DEBUG_CONTINUE && JS_GetDebugStackDepth(ctx) < debugger->step_depth;
-		return left ? debug_stop(engine, JSH_DEBUG_STEP) : 0;
+		return left ? debug_stop(engine, ctx, JSH_DEBUG_STEP) : 0;
 	}
 	int reason = -1;
 	if (has_breakpoint(debugger, file, line)) {
@@ -867,13 +882,13 @@ static int on_line(JSContext *ctx, void *opaque, JSAtom file, int line, int resu
 	} else if (debugger->poll_lines > 0 && --debugger->lines_until_poll <= 0) {
 		debugger->lines_until_poll = debugger->poll_lines;
 		debugger->stopped = 1;
-		engine->host(JSH_OP_DEBUG_POLL, 0, 0);
+		debug_request(engine, ctx, JSH_OP_DEBUG_POLL, 0);
 		debugger = engine->debugger;
 		if (!debugger) return 0;
 		debugger->stopped = 0;
 		if (debugger->pause_requested) reason = JSH_DEBUG_PAUSE;
 	}
-	return reason < 0 ? 0 : debug_stop(engine, reason);
+	return reason < 0 ? 0 : debug_stop(engine, ctx, reason);
 }
 
 /* QuickJS's throw hook: a script threw a value, and no handler has seen it yet. */
@@ -881,10 +896,12 @@ static void on_throw(JSContext *ctx, void *opaque) {
 	jsh_engine *engine = opaque;
 	jsh_debugger *debugger = engine->debugger;
 	if (!debugger || debugger->stopped || engine->describing || !debugger->stop_on_exception) return;
+	/* As with lines, the context is that of the frame that threw. */
+	if (ctx != debugger->context) return;
 	/* The host's queries run script, so the thrown value waits outside the runtime. */
 	JSValue exception = JS_GetException(ctx);
 	debugger->exception = JS_DupValue(ctx, exception);
-	int stopped = debug_stop(engine, JSH_DEBUG_EXCEPTION);
+	int stopped = debug_stop(engine, ctx, JSH_DEBUG_EXCEPTION);
 	if (engine->debugger) {
 		JS_FreeValue(ctx, engine->debugger->exception);
 		engine->debugger->exception = JS_UNDEFINED;
@@ -913,8 +930,12 @@ static void free_debugger(jsh_engine *engine) {
 	engine->debugger = NULL;
 }
 
-/* An own property's value if it is a data property, without running a getter; undefined otherwise. */
+/*
+ * An own property's value if it is a data property, without running a getter; undefined otherwise.
+ * A proxy's descriptor comes from its handler's script, so a proxy has none to read.
+ */
 static JSValue own_data(JSContext *ctx, JSValueConst object, const char *key) {
+	if (!JS_IsObject(object) || JS_IsDebugProxy(object)) return JS_UNDEFINED;
 	JSPropertyDescriptor descriptor;
 	JSAtom atom = JS_NewAtom(ctx, key);
 	int found = JS_GetOwnProperty(ctx, &descriptor, object, atom);
@@ -932,21 +953,11 @@ static JSValue own_data(JSContext *ctx, JSValueConst object, const char *key) {
 	return descriptor.value;
 }
 
-/* Whether a value is a proxy, whose every inspection would run its handler's script. */
-static int is_proxy(JSContext *ctx, JSValueConst value) {
-	JSValue class_name = JS_GetDebugClassName(ctx, value);
-	const char *text = JS_ToCString(ctx, class_name);
-	int proxy = text && strcmp(text, "Proxy") == 0;
-	JS_FreeCString(ctx, text);
-	JS_FreeValue(ctx, class_name);
-	return proxy;
-}
-
 /* The name of an object's constructor, read from data properties only, or its class name. */
 static JSValue constructor_name(JSContext *ctx, JSValueConst object) {
 	JSValue prototype = JS_GetPrototype(ctx, object);
-	JSValue constructor = JS_IsObject(prototype) ? own_data(ctx, prototype, "constructor") : JS_UNDEFINED;
-	JSValue name = JS_IsObject(constructor) ? own_data(ctx, constructor, "name") : JS_UNDEFINED;
+	JSValue constructor = own_data(ctx, prototype, "constructor");
+	JSValue name = own_data(ctx, constructor, "name");
 	JS_FreeValue(ctx, constructor);
 	JS_FreeValue(ctx, prototype);
 	if (JS_IsString(name)) {
@@ -957,6 +968,16 @@ static JSValue constructor_name(JSContext *ctx, JSValueConst object) {
 	}
 	JS_FreeValue(ctx, name);
 	return JS_GetDebugClassName(ctx, object);
+}
+
+/*
+ * The context a frame's code runs in, which its variables and its global object belong to. A
+ * frame of -1, or one QuickJS knows no context for, is the watched context's.
+ */
+static JSContext *frame_context(jsh_engine *engine, int32_t frame) {
+	JSContext *ctx = frame < 0 ? NULL : JS_GetDebugFrameRealm(engine->ctx, frame);
+	if (ctx) return ctx;
+	return engine->debugger ? engine->debugger->context : engine->ctx;
 }
 
 /* ---------------------------------------------------------------- interface */
@@ -1257,8 +1278,8 @@ void jsh_free(jsh_engine *engine, int32_t handle) {
 
 /* ---------------------------------------------------------------- debugger interface */
 
-int32_t jsh_debug_attach(jsh_engine *engine, double poll_lines) {
-	if (!engine) return JSH_INVALID;
+int32_t jsh_debug_attach(jsh_engine *engine, int32_t context, double poll_lines) {
+	if (!engine || context < 0 || context >= engine->context_count) return JSH_INVALID;
 	if (!engine->debugger) {
 		jsh_debugger *debugger = calloc(1, sizeof(jsh_debugger));
 		if (!debugger) return JSH_OUT_OF_MEMORY;
@@ -1266,6 +1287,7 @@ int32_t jsh_debug_attach(jsh_engine *engine, double poll_lines) {
 		engine->debugger = debugger;
 		JS_SetDebugHooks(engine->rt, on_line, on_throw, engine);
 	}
+	engine->debugger->context = engine->contexts[context];
 	engine->debugger->poll_lines = poll_lines > 0 ? poll_lines : 0;
 	engine->debugger->lines_until_poll = engine->debugger->poll_lines;
 	return 0;
@@ -1358,7 +1380,7 @@ int32_t jsh_debug_frames(jsh_engine *engine) {
 
 int32_t jsh_debug_scope(jsh_engine *engine, int32_t frame, int32_t scope) {
 	if (!engine) return JSH_INVALID;
-	JSContext *ctx = engine->ctx;
+	JSContext *ctx = frame_context(engine, frame);
 	switch (scope) {
 	case JSH_SCOPE_LOCAL:
 		return settle(engine, JS_GetDebugLocals(ctx, frame));
@@ -1390,7 +1412,8 @@ int32_t jsh_debug_evaluate(jsh_engine *engine, int32_t frame, const uint8_t *sou
 	engine->out_of_memory = 0;
 	engine->budget_callback = engine->callback_steps + JSH_DEBUG_EVALUATE_STEPS;
 	engine->budget_tick = engine->tick_steps + JSH_DEBUG_EVALUATE_STEPS;
-	int32_t result = settle(engine, JS_DebugEvaluate(engine->ctx, frame, (const char *)source, (size_t)length));
+	int32_t result =
+		settle(engine, JS_DebugEvaluate(frame_context(engine, frame), frame, (const char *)source, (size_t)length));
 	leave(engine);
 
 	/* The stopped script goes on with the counts it had. */
@@ -1423,7 +1446,7 @@ int32_t jsh_debug_describe(jsh_engine *engine, int32_t handle) {
 			kind = "bigint";
 			name = JS_ToString(ctx, value);
 		}
-	} else if (is_proxy(ctx, value)) {
+	} else if (JS_IsDebugProxy(value)) {
 		kind = "proxy";
 		name = JS_NewString(ctx, "Proxy");
 	} else if (JS_IsFunction(ctx, value)) {
@@ -1462,7 +1485,7 @@ int32_t jsh_debug_properties(jsh_engine *engine, int32_t handle, int32_t start, 
 	writer out = {engine, 0, 0, NULL, 0, 0, 0};
 	JSPropertyEnum *keys = NULL;
 	uint32_t key_count = 0;
-	if (JS_IsObject(object) && !is_proxy(ctx, object) &&
+	if (JS_IsObject(object) && !JS_IsDebugProxy(object) &&
 		JS_GetOwnPropertyNames(ctx, &keys, &key_count, object, JS_GPN_STRING_MASK | JS_GPN_SYMBOL_MASK) < 0) {
 		JS_FreeValue(ctx, JS_GetException(ctx));
 		keys = NULL;

@@ -11,6 +11,16 @@ export const FRAME_HEADER_BYTES = 9;
 /** The largest length a header can state, its body's JSON and newline together. */
 export const MAX_FRAME_LENGTH = 0xffffffff;
 
+/**
+ * The largest body the host reads from the extension: 1 MiB. The extension's messages are small,
+ * and the largest carry what a person writes: an `evaluate` expression, a command, or one file's
+ * breakpoint lines in `setBreakpoints`. A breakpoint list reaches the engine through its transfer
+ * buffer, `DEFAULT_BUFFER_SIZE` (64 KiB) unless an engine sets another size, and the limit is 16
+ * times that, which leaves room for a pasted expression. A peer has given no passcode before its
+ * first message decodes, so a header that states more is refused before its body is buffered.
+ */
+export const MAX_RECEIVED_FRAME_LENGTH = 1024 * 1024;
+
 /** Why bytes from a debugger connection are not a frame. */
 export class DebuggerFramingError extends Error {
     public override readonly name = 'DebuggerFramingError';
@@ -31,35 +41,45 @@ export const encodeFrame = (message: unknown): Buffer => {
 /**
  * Splits the bytes of a connection into messages, whatever sizes the chunks arrive in. The
  * extension reads each body as JSON whole, so a body's trailing newline is part of the JSON's
- * whitespace and the decoder does not require it.
+ * whitespace and the decoder does not require it. Chunks wait in a list until a header or a body
+ * is complete, so each byte is copied at most once more however small the chunks are.
  */
 export class FrameDecoder {
-    private pending: Buffer = Buffer.alloc(0);
+    private readonly chunks: Buffer[] = [];
+    private buffered = 0;
     private bodyLength: number | undefined;
 
     /**
      * Takes the next chunk of bytes.
      * @returns The messages the bytes so far complete, in order.
-     * @throws {DebuggerFramingError} When a header is not 8 hexadecimal digits and a newline, or a body is not JSON.
+     * @throws {DebuggerFramingError} When a header is not 8 hexadecimal digits and a newline, a header states a body
+     * longer than {@link MAX_RECEIVED_FRAME_LENGTH}, or a body is not JSON.
      */
     public push(chunk: Uint8Array): unknown[] {
-        this.pending = this.pending.byteLength === 0 ? Buffer.from(chunk) : Buffer.concat([this.pending, chunk]);
+        if (chunk.byteLength > 0) {
+            this.chunks.push(Buffer.from(chunk));
+            this.buffered += chunk.byteLength;
+        }
         const messages: unknown[] = [];
         for (;;) {
             if (this.bodyLength === undefined) {
-                if (this.pending.byteLength < FRAME_HEADER_BYTES) break;
-                const header = this.pending.toString('ascii', 0, FRAME_HEADER_BYTES);
+                if (this.buffered < FRAME_HEADER_BYTES) break;
+                const header = this.take(FRAME_HEADER_BYTES).toString('ascii');
                 if (!/^[0-9a-fA-F]{8}\n$/.test(header)) {
                     throw new DebuggerFramingError(
                         `A frame header is 8 hexadecimal digits and a newline, not ${JSON.stringify(header)}`
                     );
                 }
-                this.bodyLength = Number.parseInt(header.slice(0, 8), 16);
-                this.pending = this.pending.subarray(FRAME_HEADER_BYTES);
+                const length = Number.parseInt(header.slice(0, 8), 16);
+                if (length > MAX_RECEIVED_FRAME_LENGTH) {
+                    throw new DebuggerFramingError(
+                        `A ${length}-byte frame is over the ${MAX_RECEIVED_FRAME_LENGTH}-byte limit`
+                    );
+                }
+                this.bodyLength = length;
             }
-            if (this.pending.byteLength < this.bodyLength) break;
-            const body = this.pending.toString('utf8', 0, this.bodyLength);
-            this.pending = this.pending.subarray(this.bodyLength);
+            if (this.buffered < this.bodyLength) break;
+            const body = this.take(this.bodyLength).toString('utf8');
             this.bodyLength = undefined;
             try {
                 messages.push(JSON.parse(body));
@@ -70,5 +90,31 @@ export class FrameDecoder {
             }
         }
         return messages;
+    }
+
+    /** Removes the first `length` buffered bytes, copying them only when they span chunks. */
+    private take(length: number): Buffer {
+        this.buffered -= length;
+        const first = this.chunks[0];
+        if (first !== undefined && first.byteLength >= length) {
+            if (first.byteLength === length) this.chunks.shift();
+            else this.chunks[0] = first.subarray(length);
+            return first.subarray(0, length);
+        }
+        // One splice takes every chunk the bytes span, and one copy joins them. The bytes of the
+        // last chunk past `length` go back uncopied.
+        let spanned = 0;
+        let covered = 0;
+        for (; covered < length && spanned < this.chunks.length; spanned++) {
+            covered += this.chunks[spanned]?.byteLength ?? 0;
+        }
+        const parts = this.chunks.splice(0, spanned);
+        const last = parts.pop();
+        if (last !== undefined) {
+            const kept = last.byteLength - (covered - length);
+            parts.push(last.subarray(0, kept));
+            if (kept < last.byteLength) this.chunks.unshift(last.subarray(kept));
+        }
+        return Buffer.concat(parts, length);
     }
 }

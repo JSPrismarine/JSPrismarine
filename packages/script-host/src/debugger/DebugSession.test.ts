@@ -22,6 +22,8 @@ class FakeExtension implements DebuggerChannel {
     /** Messages the extension sent while a script ran, which arrive at the next poll. */
     public readonly whileRunning: unknown[] = [];
     private seq = 100;
+    /** Set once the extension has gone away. Messages queued before then still arrive. */
+    public closed = false;
 
     public constructor(turns: Turn[]) {
         this.turns = turns;
@@ -34,7 +36,10 @@ class FakeExtension implements DebuggerChannel {
     public receive(): unknown {
         while (this.inbox.length === 0) {
             const turn = this.turns.shift();
-            if (turn === undefined) return undefined;
+            if (turn === undefined) {
+                this.closed = true;
+                return undefined;
+            }
             turn(this);
         }
         return this.inbox.shift();
@@ -42,6 +47,11 @@ class FakeExtension implements DebuggerChannel {
 
     public poll(): unknown {
         return this.whileRunning.shift() ?? this.inbox.shift();
+    }
+
+    /** Goes away between the session's reads, as a closed socket does. */
+    public disconnect(): void {
+        this.closed = true;
     }
 
     /** Queues a message for the session. */
@@ -243,6 +253,67 @@ describe.skipIf(!scriptHostAvailable())('a debugger session', () => {
         expect(engine.stats().handles).toBe(0);
     });
 
+    it('reads a scope afresh for each variables request, so it shows what an evaluation wrote', () => {
+        const seqs: number[] = [];
+        const { engine, extension } = start([
+            accept(),
+            configure({ 'scope.js': [3] }),
+            (ext) => {
+                ext.request('scopes', { frameId: 0 });
+                seqs.push(ext.request('variables', { variablesReference: 1 }));
+                ext.request('evaluate', { expression: 'x = 2', frameId: 0 });
+                seqs.push(ext.request('variables', { variablesReference: 1 }));
+                ext.request('continue', { threadId: 1 });
+            }
+        ]);
+
+        expect(engine.evaluate('function f() {\n    let x = 1;\n    return x;\n}\nf();', 'scope.js')).toBe(2);
+        expect(seqs.map((seq) => extension.body(seq))).toEqual([
+            [{ name: 'x', value: '1', type: 'number', variablesReference: 0 }],
+            [{ name: 'x', value: '2', type: 'number', variablesReference: 0 }]
+        ]);
+        expect(engine.stats().handles).toBe(0);
+    });
+
+    it('pages a sparse array’s indices and its named properties apart, by name', () => {
+        const seqs: number[] = [];
+        let evaluateSeq = 0;
+        const { engine, extension } = start([
+            accept(),
+            configure({ 'sparse.js': [4] }),
+            (ext) => {
+                evaluateSeq = ext.request('evaluate', { expression: 'list', frameId: 0 });
+            },
+            (ext) => {
+                const evaluated = ext.body(evaluateSeq);
+                const reference =
+                    typeof evaluated === 'object' && evaluated !== null && 'variablesReference' in evaluated
+                        ? evaluated.variablesReference
+                        : undefined;
+                seqs.push(
+                    ext.request('variables', { variablesReference: reference, filter: 'indexed', start: 0, count: 50 })
+                );
+                seqs.push(ext.request('variables', { variablesReference: reference, filter: 'named' }));
+                seqs.push(
+                    ext.request('variables', { variablesReference: reference, filter: 'named', start: 1, count: 1 })
+                );
+                ext.request('continue', { threadId: 1 });
+            }
+        ]);
+
+        engine.evaluate("const list = [];\nlist[100] = 'x';\nlist.label = 'y';\nlist.length;", 'sparse.js');
+
+        expect(seqs.map((seq) => extension.body(seq))).toEqual([
+            [{ name: '100', value: '"x"', type: 'string', variablesReference: 0 }],
+            [
+                { name: 'length', value: '101', type: 'number', variablesReference: 0 },
+                { name: 'label', value: '"y"', type: 'string', variablesReference: 0 }
+            ],
+            [{ name: 'label', value: '"y"', type: 'string', variablesReference: 0 }]
+        ]);
+        expect(engine.stats().handles).toBe(0);
+    });
+
     it('steps with next, stepIn and stepOut, reporting each stop as a step', () => {
         const lines: unknown[] = [];
         const trace = (ext: FakeExtension, then: string): void => {
@@ -344,6 +415,33 @@ describe.skipIf(!scriptHostAvailable())('a debugger session', () => {
         expect(session.closed).toBe(true);
     });
 
+    /** Whether the engine stops nowhere and takes a new debugger, as one with none attached does. */
+    const expectDetached = (engine: ScriptEngine, extension: FakeExtension): void => {
+        expect(engine.evaluate(program, 'main.js')).toBe(30);
+        expect(extension.events().filter((event) => event.type === 'StoppedEvent')).toEqual([]);
+        const replacement = engine.attachDebugger({ paused: () => 'resume', poll: () => undefined });
+        replacement.detach();
+    };
+
+    it('detaches when the extension goes away during its configuration', () => {
+        const { engine, extension, session } = start([
+            accept(),
+            (ext) => ext.request('setBreakpoints', { path: 'main.js', breakpoints: [2] })
+        ]);
+
+        expect(session.closed).toBe(true);
+        expectDetached(engine, extension);
+    });
+
+    it('detaches at the next poll when the extension goes away between stops', () => {
+        const { engine, extension, session } = start([accept(), configure({ 'main.js': [2] })]);
+        extension.disconnect();
+        session.poll();
+
+        expect(session.closed).toBe(true);
+        expectDetached(engine, extension);
+    });
+
     it('refuses requests that need a stopped script while none is, and debugger requests it does not know', () => {
         const { extension, session } = start([accept(), configure({})]);
         extension.queue({ type: 'request', request: { request_seq: 1, command: 'stackTrace', args: {} } });
@@ -390,6 +488,24 @@ describe.skipIf(!scriptHostAvailable())('a debugger session', () => {
         engine.evaluate(program, 'main.js');
 
         expect(extension.events()).toContainEqual({ type: 'StoppedEvent', reason: 'breakpoint', thread: 1 });
+    });
+
+    it('attaches to the context it is given, and stops only in that pack', () => {
+        const engine = library.createEngine();
+        engines.push(engine);
+        const second = engine.createContext();
+        const extension = new FakeExtension([accept(), configure({ 'main.js': [2] }), () => undefined]);
+        const session = new ScriptDebugSession(extension, { plugins: [plugin] });
+        session.handshake();
+        session.attach(engine, second);
+
+        expect(engine.evaluate(program, 'main.js')).toBe(30);
+        expect(extension.events().filter((event) => event.type === 'StoppedEvent')).toEqual([]);
+
+        expect(engine.inContext(second, () => engine.evaluate(program, 'main.js'))).toBe(30);
+        expect(extension.events().filter((event) => event.type === 'StoppedEvent')).toEqual([
+            { type: 'StoppedEvent', reason: 'breakpoint', thread: 1 }
+        ]);
     });
 
     it('tells the extension the scripts’ thread exited when it detaches, and stops stopping', () => {
