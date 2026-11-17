@@ -1,4 +1,4 @@
-import { item_components, item_table } from '@jsprismarine/bedrock-data';
+import { item_components, item_table, item_tags } from '@jsprismarine/bedrock-data';
 import { loadItemTypes } from '@jsprismarine/items';
 import { describe, expect, it } from 'vitest';
 
@@ -155,6 +155,33 @@ describe('buildItemRegistry', () => {
 
             expect(bundle['minecraft:max_stack_size']).toEqual({ value: 'byte:1' });
             expect((bundle.item_properties as Record<string, PlainNbt>).max_stack_size).toBe('int:1');
+        });
+
+        it("writes an item's tags both as item_tags and as the minecraft:tags component", () => {
+            // With the Bedrock tag catalog, as the server loads its items.
+            const tagged = loadItemTypes({ bedrockTags: item_tags }).types.get('minecraft:coal')!;
+            const coal = componentsOf(buildItemRegistry([tagged], { table: item_table }).entries[0]!);
+
+            expect(coal.item_tags).toContain('string:minecraft:coals');
+            expect(coal['minecraft:tags']).toEqual({ tags: coal.item_tags });
+        });
+
+        it('writes no minecraft:tags component for an item with no tags', () => {
+            const bundle = componentsOf(
+                buildItemRegistry([typeOf('minecraft:bundle')], { table: item_table }).entries[0]!
+            );
+
+            expect(bundle.item_tags).toEqual([]);
+            expect(bundle).not.toHaveProperty('minecraft:tags');
+        });
+
+        it('pairs the two the way the captured server does', () => {
+            const captured = (identifier: string) =>
+                (nbtToPlain(readNetworkNbt(item_components[identifier]!)) as Record<string, Record<string, PlainNbt>>)
+                    .components!;
+            const theirs = captured('minecraft:iron_spear');
+
+            expect(theirs['minecraft:tags']).toEqual({ tags: theirs.item_tags });
         });
 
         it('round trips through the writer and the reader', () => {

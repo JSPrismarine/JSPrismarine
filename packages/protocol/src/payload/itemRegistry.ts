@@ -378,15 +378,23 @@ const itemComponentData = (
     projected: BedrockItemComponents,
     bedrockOnly: BedrockOnlyItemProperties,
     identifier?: string
-): NBTTagCompound =>
-    nbtCompound({
+): NBTTagCompound => {
+    // This is the resolved Bedrock membership, including definition overrides.
+    const tags = projected.item_tags ?? [];
+    return nbtCompound({
         components: nbtCompound({
             ...namedComponents(projected),
             item_properties: itemProperties(projected, bedrockOnly, identifier),
-            // This is the resolved Bedrock membership, including definition overrides.
-            item_tags: nbtList((projected.item_tags ?? []).map((tag) => nbtString(tag)))
+            item_tags: nbtList(tags.map((tag) => nbtString(tag))),
+            // The same list again as the data-driven component, which is the one a client reads
+            // to match a component based item against a recipe's tag: without it, coal is not
+            // `minecraft:coals` and the recipe book leaves it out of a torch. The captured server
+            // writes both whenever the list is not empty, and neither component otherwise.
+            'minecraft:tags':
+                tags.length === 0 ? undefined : nbtCompound({ tags: nbtList(tags.map((tag) => nbtString(tag))) })
         })
     });
+};
 
 /** Merges the Java projection over captured Bedrock components for one vanilla item. */
 const itemComponentDataWithCapture = (
