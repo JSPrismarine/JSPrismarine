@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario blocks blocks",
+        "description": "Records the Block and BlockPermutation members, reading and setting blocks. Written for packages/parity.",
+        "uuid": "2259e9b7-cb52-448b-a653-d8cf646110fd",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "52620466-f26d-4ad0-ac8b-b5bd55e776b4",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

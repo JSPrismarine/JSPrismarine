@@ -1,0 +1,271 @@
+{
+    "$comment": [
+        "What the scripts of scenario `players` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.entities",
+    "scenario": "players",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "players",
+            "seq": 1,
+            "tick": 0,
+            "event": "ready for /gametest"
+        },
+        {
+            "pack": "players",
+            "seq": 2,
+            "tick": 0,
+            "event": "spawned"
+        },
+        {
+            "pack": "players",
+            "seq": 3,
+            "tick": 0,
+            "event": "a Player instance",
+            "value": true
+        },
+        {
+            "pack": "players",
+            "seq": 4,
+            "tick": 0,
+            "event": "world.getAllPlayers",
+            "value": [
+                "Tester"
+            ]
+        },
+        {
+            "pack": "players",
+            "seq": 5,
+            "tick": 0,
+            "event": "world.getAllPlayers holds the same object",
+            "value": true
+        },
+        {
+            "pack": "players",
+            "seq": 6,
+            "tick": 0,
+            "event": "world.getPlayers by name",
+            "value": 1
+        },
+        {
+            "pack": "players",
+            "seq": 7,
+            "tick": 0,
+            "event": "world.getPlayers by another name",
+            "value": 0
+        },
+        {
+            "pack": "players",
+            "seq": 8,
+            "tick": 0,
+            "event": "world.getPlayers by type",
+            "error": "CommandError: Error occurred with parsing command params: Type argument applied to player-only selector"
+        },
+        {
+            "pack": "players",
+            "seq": 9,
+            "tick": 0,
+            "event": "name",
+            "value": "Tester"
+        },
+        {
+            "pack": "players",
+            "seq": 10,
+            "tick": 0,
+            "event": "typeId",
+            "value": "minecraft:player"
+        },
+        {
+            "pack": "players",
+            "seq": 11,
+            "tick": 0,
+            "event": "nameTag",
+            "value": "Tester"
+        },
+        {
+            "pack": "players",
+            "seq": 12,
+            "tick": 0,
+            "event": "id is a string",
+            "value": "string"
+        },
+        {
+            "pack": "players",
+            "seq": 13,
+            "tick": 0,
+            "event": "isValid",
+            "value": true
+        },
+        {
+            "pack": "players",
+            "seq": 14,
+            "tick": 0,
+            "event": "dimension",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "players",
+            "seq": 15,
+            "tick": 0,
+            "event": "sendMessage"
+        },
+        {
+            "pack": "players",
+            "seq": 16,
+            "tick": 0,
+            "event": "addTag",
+            "value": true
+        },
+        {
+            "pack": "players",
+            "seq": 17,
+            "tick": 0,
+            "event": "hasTag",
+            "value": true
+        },
+        {
+            "pack": "players",
+            "seq": 18,
+            "tick": 0,
+            "event": "runCommand",
+            "value": 1
+        },
+        {
+            "pack": "players",
+            "seq": 19,
+            "tick": 0,
+            "event": "getTags after runCommand",
+            "value": [
+                "commanded",
+                "tested"
+            ]
+        },
+        {
+            "pack": "players",
+            "seq": 20,
+            "tick": 0,
+            "event": "inventory size",
+            "value": 36
+        },
+        {
+            "pack": "players",
+            "seq": 21,
+            "tick": 0,
+            "event": "inventory emptySlotsCount",
+            "value": 36
+        },
+        {
+            "pack": "players",
+            "seq": 22,
+            "tick": 0,
+            "event": "inventory setItem"
+        },
+        {
+            "pack": "players",
+            "seq": 23,
+            "tick": 0,
+            "event": "inventory getItem",
+            "value": {
+                "typeId": "minecraft:apple",
+                "amount": 3
+            }
+        },
+        {
+            "pack": "players",
+            "seq": 24,
+            "tick": 0,
+            "event": "teleport"
+        },
+        {
+            "pack": "players",
+            "seq": 25,
+            "tick": 0,
+            "event": "location after teleport, from the target",
+            "value": {
+                "x": 0.5,
+                "y": 0,
+                "z": 0.5
+            }
+        },
+        {
+            "pack": "players",
+            "seq": 26,
+            "tick": 0,
+            "event": "world.afterEvents.playerJoin",
+            "value": {
+                "playerId": "string",
+                "playerName": "Tester"
+            }
+        },
+        {
+            "pack": "players",
+            "seq": 27,
+            "tick": 0,
+            "event": "world.afterEvents.playerSpawn",
+            "value": {
+                "player": "Tester",
+                "initialSpawn": true
+            }
+        },
+        {
+            "pack": "players",
+            "seq": 28,
+            "tick": 5,
+            "event": "removing"
+        },
+        {
+            "pack": "players",
+            "seq": 29,
+            "tick": 5,
+            "event": "world.beforeEvents.playerLeave",
+            "value": {
+                "player": "Tester"
+            }
+        },
+        {
+            "pack": "players",
+            "seq": 30,
+            "tick": 5,
+            "event": "isValid after removal",
+            "value": false
+        },
+        {
+            "pack": "players",
+            "seq": 31,
+            "tick": 6,
+            "event": "world.afterEvents.playerLeave",
+            "value": {
+                "playerId": "string",
+                "playerName": "Tester"
+            }
+        },
+        {
+            "pack": "players",
+            "seq": 32,
+            "tick": 10,
+            "event": "isValid later",
+            "value": false
+        },
+        {
+            "pack": "players",
+            "seq": 33,
+            "tick": 10,
+            "event": "name later",
+            "error": "Error: Failed to get property 'name'."
+        },
+        {
+            "pack": "players",
+            "seq": 34,
+            "tick": 10,
+            "event": "world.getAllPlayers later",
+            "value": 0
+        }
+    ]
+}

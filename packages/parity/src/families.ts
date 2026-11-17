@@ -143,6 +143,14 @@ export const FAMILIES = {
     scriptingEngine: 'scripting.engine',
     /** `@minecraft/server-ui` forms: the form JSON a client receives and the responses a script reads. */
     scriptingUi: 'scripting.ui',
+    /** What a script reads and runs of the world, its dimensions and its players, and the system's own events. */
+    scriptingWorld: 'scripting.world',
+    /** What a script reads and changes of an entity or a player, and of its inventory. */
+    scriptingEntities: 'scripting.entities',
+    /** What a script reads and sets of a block and its permutation. */
+    scriptingBlocks: 'scripting.blocks',
+    /** The item stacks a script makes, and what it reads and writes on them. */
+    scriptingItems: 'scripting.items',
 
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',
