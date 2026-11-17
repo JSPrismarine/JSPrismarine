@@ -72,6 +72,7 @@ import { javaGoalOverlay } from '../entity/javaGoalArguments';
 import { withJavaComponentTuning } from '../entity/javaComponentTuning';
 import { withJavaLlamaStrength } from '../entity/javaLlamaStrength';
 import { withJavaSkeletonHorseSaddle } from '../entity/javaSkeletonHorseSaddle';
+import { withJavaCamelHuskLead } from '../entity/javaCamelHuskLead';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
 
 /** The resolved block domain. */
@@ -403,6 +404,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const overlays: readonly ((data: unknown) => unknown)[] = [
         withPlayerOverlay,
         withJavaSkeletonHorseSaddle,
+        withJavaCamelHuskLead,
         withJavaLlamaStrength,
         (data) => withJavaBreedingFood(data, breedingFoods),
         (data) => withJavaBabyFood(data, babyFoods),
