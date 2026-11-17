@@ -2,7 +2,8 @@ import type { ParseResults, RootCommandNode } from '@jsprismarine/brigadier';
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { CommandHost, CommandRegistry, CommandSource, FlattenedCommand } from '@jsprismarine/commands';
 import { bedrockCommand, createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
-import { Error } from '@jsprismarine/errors';
+import { MinecraftErrors } from '@jsprismarine/errors/minecraft';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 import { TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
@@ -698,7 +699,10 @@ export class CommandManager implements Service {
                 case error instanceof CommandSyntaxException:
                     started.push(Promise.resolve(sender.sendMessage(`§c${error.getMessage()}`)));
                     return { ran: false, finished: settle() };
-                case error instanceof Error:
+                // A command that names a player or a game mode that does not exist is the sender's mistake,
+                // so the sender reads why; anything else is the server's and goes to the log.
+                case error instanceof PrismarineServerErrors.PlayerNotFound ||
+                    error instanceof MinecraftErrors.GametypeInvalid:
                     started.push(Promise.resolve(sender.sendMessage(`§c${error.message}`)));
                     return { ran: false, finished: settle() };
                 default:
@@ -720,12 +724,11 @@ export class CommandManager implements Service {
 
     /** Tells the sender why work its command started failed, as a body that threw is told. */
     private async tellFailure(sender: CommandExecutor, error: unknown): Promise<void> {
-        // The global `Error`, which this module's import of `@jsprismarine/errors` shadows: work a
-        // body started rejects with whatever it threw, such as a plain `Error`.
+        // Work a body started rejects with whatever it threw, such as a plain `Error`.
         const message =
             error instanceof CommandSyntaxException
                 ? error.getMessage()
-                : error instanceof globalThis.Error
+                : error instanceof Error
                   ? error.message
                   : String(error);
         try {

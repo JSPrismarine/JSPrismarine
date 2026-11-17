@@ -64,6 +64,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/mapping",
     "dependencies": {
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*"
     },
     "devDependencies": {

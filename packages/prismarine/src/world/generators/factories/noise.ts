@@ -8,6 +8,7 @@ import { DataDrivenGenerator, defaultChunkPipeline } from '../datadriven/DataDri
 import { findJavaTemplateSource } from '../datadriven/javaStructureTemplates';
 import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
 import { cacheRoot } from '../datadriven/javaWorldgenSources';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** The kind id of Java's noise generator, which every vanilla dimension uses. */
 export const NOISE_GENERATOR_KIND = 'minecraft:noise';
@@ -53,7 +54,7 @@ export const createNoiseGeneratorFactory = (): GeneratorFactory => {
         build(context) {
             const generator = context.stem.generator;
             if (generator.type !== NOISE_GENERATOR_KIND || !('biomeSource' in generator)) {
-                throw new TypeError(`The ${context.dimension.id} stem carries no noise generator settings`);
+                throw new PrismarineGenerationErrors.MissingNoiseSettings({ id: context.dimension.id });
             }
 
             const registries = context.worldgen();
@@ -119,9 +120,10 @@ const resolveSettings = (
     }
 
     if (!registries.noiseSettings.has(generator.settings)) {
-        throw new Error(
-            `The ${dimensionType} stem names the noise settings ${generator.settings}, which no worldgen/noise_settings document defines`
-        );
+        throw new PrismarineGenerationErrors.UnknownNoiseSettings({
+            dimensionType,
+            settings: generator.settings
+        });
     }
     return { noiseSettings: generator.settings };
 };

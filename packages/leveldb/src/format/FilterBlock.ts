@@ -1,5 +1,6 @@
 import { bloomFilter2MaxSize, bloomFilter2MayContain, createBloomFilter2 } from './BloomFilter';
 import { ByteWriter } from '../util/ByteWriter';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 const FILTER_BASE_LOG2 = 11;
 const FILTER_BASE_BYTES = 1 << FILTER_BASE_LOG2;
@@ -21,7 +22,7 @@ export class FilterBlockBuilder {
     public startBlock(blockOffset: number): void {
         const filterIndex = Math.floor(blockOffset / FILTER_BASE_BYTES);
         if (!Number.isSafeInteger(filterIndex) || filterIndex < this.filterOffsets.length) {
-            throw new RangeError(`Filter block offsets must be nondecreasing: ${blockOffset}`);
+            throw new LeveldbErrors.FilterBlockOffsetsOutOfOrder({ blockOffset });
         }
 
         while (filterIndex > this.filterOffsets.length) this.generateFilter();

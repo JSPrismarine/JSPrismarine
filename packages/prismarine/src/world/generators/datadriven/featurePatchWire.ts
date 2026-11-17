@@ -9,6 +9,7 @@
 import { isRecord } from '../../../utils/isRecord';
 import type { RegionBlock, RegionBlockPosition, RegionChunkPatch } from './GenerationRegion';
 import { forEachBlockWrite, isOptionalFluidTickList, PackedBlockWrites } from './GenerationRegion';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** One chunk's patch, packed. */
 export interface PackedRegionChunkPatch extends Omit<RegionChunkPatch, 'blocks' | 'structureBlocks'> {
@@ -127,7 +128,7 @@ export const isPackedPatch = (patch: unknown): patch is PackedRegionChunkPatch =
  */
 export const unpackFeaturePatches = (value: unknown): RegionChunkPatch[] => {
     if (!Array.isArray(value) || !value.every(isPackedPatch)) {
-        throw new TypeError('A feature worker returned an invalid patch list.');
+        throw new PrismarineGenerationErrors.InvalidFeaturePatchList();
     }
 
     // Kept packed: the region applies them as they are, so no write becomes an object of its own.

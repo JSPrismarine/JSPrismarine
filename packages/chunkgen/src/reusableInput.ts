@@ -14,6 +14,8 @@
  * first.
  */
 
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
+
 /** A part of a task's input that may be sent once and named after that. */
 export class ReusableInput {
     /**
@@ -144,9 +146,9 @@ export const encodeReusable = (input: unknown, held: ReusableCache<true>): Encod
 };
 
 /** A reference to a value the host does not hold, which the server answers by sending it. */
-export class ReusableMissError extends Error {
+export class ReusableMissError extends ChunkgenErrors.ReusableMiss {
     public constructor(key: string) {
-        super(`The generation host holds no reusable input ${key}`);
+        super({ key });
         this.name = 'ReusableMissError';
     }
 }
@@ -160,7 +162,7 @@ export const decodeReusable = (
     slots: readonly ReusableSlot[],
     kept: ReusableCache<unknown>
 ): Record<string, unknown> => {
-    if (!isPlainObject(input)) throw new TypeError('An encoded reusable input is a plain object');
+    if (!isPlainObject(input)) throw new ChunkgenErrors.InvalidReusableInput();
     const decoded = { ...input };
     const copied = new Set<string>();
     const missing: string[] = [];
@@ -179,7 +181,7 @@ export const decodeReusable = (
             continue;
         }
         const array = decoded[slot.field];
-        if (!Array.isArray(array)) throw new TypeError(`Reusable slot field ${slot.field} is not an array`);
+        if (!Array.isArray(array)) throw new ChunkgenErrors.ReusableSlotNotArray({ field: slot.field });
         const target = copied.has(slot.field) ? array : [...array];
         copied.add(slot.field);
         target[slot.index] = value;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { SnbtSyntaxError, parseSnbtCompound, readMacroArguments } from './snbt';
+import { SnbtSyntaxError } from '@jsprismarine/errors/prismarine/command';
+import { parseSnbtCompound, readMacroArguments } from './snbt';
 
 describe('parseSnbtCompound', () => {
     it('reads the JSON spelling unchanged', () => {

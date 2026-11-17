@@ -45,6 +45,7 @@ import { Dimensions, dimensionByName } from './DimensionType';
 import { maxY } from './Dimension';
 import type { DimensionType } from './DimensionType';
 import type { World } from './World';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** The six members of `ContentBlockAccess` the world subsystem implements. */
 export type WorldBlockGroup = Pick<
@@ -160,7 +161,7 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
 
     const live = (): World => {
         const world = options.world();
-        if (world === undefined) throw new Error(`no ${dimension} world is loaded, so it cannot be read or written`);
+        if (world === undefined) throw new PrismarineWorldErrors.NoWorldInDimension({ dimension });
         return world;
     };
 
@@ -241,7 +242,7 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         isRainingAt: (at) => live().isRainingAt(at.x, at.y, at.z),
         spawnPosition: () => {
             const spawn = live().getKnownSpawnPosition();
-            if (spawn === null) throw new Error(`the ${dimension} world has not found its spawn point yet`);
+            if (spawn === null) throw new PrismarineWorldErrors.SpawnNotFoundYet({ dimension });
             return { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() };
         },
         gameRule: (name) => gameRuleValue(live().getGameRuleManager(), name),
@@ -344,9 +345,10 @@ export const worldBlockStorage = (world: LiveWorld): BlockStorageAccess => ({
     write: (position, block) => {
         const runtimeId = BlockRuntimeIds.tryGetByState(block.identifier, block.states);
         if (runtimeId === null) {
-            throw new Error(
-                `this server's block catalog has no ${block.identifier} in state ${JSON.stringify(block.states)}`
-            );
+            throw new PrismarineWorldErrors.UnknownCatalogBlock({
+                identifier: block.identifier,
+                states: JSON.stringify(block.states)
+            });
         }
 
         // Written bare: `createContentBlockGroup` raises `onPlace` and notifies the neighbors
@@ -363,9 +365,12 @@ export const worldBlockStorage = (world: LiveWorld): BlockStorageAccess => ({
         const movingRuntimeId = BlockRuntimeIds.tryGetByState(moving.name, moving.states);
         const airRuntimeId = BlockRuntimeIds.tryGetByState('minecraft:air', {});
         if (movingRuntimeId === null || airRuntimeId === null) {
-            throw new Error(
-                `this server's block catalog cannot move ${moving.name} at ${from.x}, ${from.y}, ${from.z}`
-            );
+            throw new PrismarineWorldErrors.UnmovableBlock({
+                name: moving.name,
+                x: from.x,
+                y: from.y,
+                z: from.z
+            });
         }
 
         const placeBlockEntity = takeBlockEntity(live, from);

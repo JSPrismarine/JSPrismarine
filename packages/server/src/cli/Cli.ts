@@ -1,6 +1,7 @@
 import { GENERATION_HOST_ROLE } from '@jsprismarine/chunkgen/hostRole';
 import yargs from 'yargs/yargs';
 import { serverVersion } from '@jsprismarine/prismarine/version';
+import { ServerErrors } from '@jsprismarine/errors/server';
 
 /**
  * The roles the entry point can take; `server` is what the host spawns its child with, and the
@@ -61,10 +62,10 @@ export const serverCli = (argv: readonly string[]) =>
         .completion('completion', 'Generate a shell completion script')
         .strict()
         .check(({ _, port, watch, headless }) => {
-            if (_.length > 0) throw new Error(`Unexpected argument "${_.join(' ')}"`);
-            if (watch && headless) throw new Error('--watch needs a console; drop --headless or --watch');
+            if (_.length > 0) throw new ServerErrors.UnexpectedArgument({ argument: _.join(' ') });
+            if (watch && headless) throw new ServerErrors.WatchWithoutConsole();
             if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
-                throw new Error('--port must be a whole number between 1 and 65535');
+                throw new ServerErrors.InvalidPort();
             }
 
             return true;
@@ -72,7 +73,9 @@ export const serverCli = (argv: readonly string[]) =>
         .exitProcess(false)
         .fail((message, error) => {
             if (error) throw error;
-            throw new Error(message ?? 'Invalid command-line arguments');
+            throw message === undefined
+                ? new ServerErrors.InvalidCommandLineArguments()
+                : new ServerErrors.CommandLineRejected({ reason: message });
         });
 
 /** Parses the server's command-line options and handles help and completion commands. */

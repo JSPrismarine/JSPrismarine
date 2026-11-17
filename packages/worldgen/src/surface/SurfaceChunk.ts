@@ -1,4 +1,5 @@
 import { AIR } from '../chunk/FluidPicker';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** The side length of a chunk column in blocks. */
 const CHUNK_SIZE = 16;
@@ -74,7 +75,12 @@ export class BlockArraySurfaceChunk implements SurfaceChunk {
                 const column = [...options.column(localX, localZ)];
                 if (height === 0) height = column.length;
                 else if (column.length !== height) {
-                    throw new RangeError(`Column ${localX},${localZ} has ${column.length} blocks, expected ${height}`);
+                    throw new WorldgenErrors.SurfaceColumnWrongHeight({
+                        localX,
+                        localZ,
+                        columnCount: column.length,
+                        height
+                    });
                 }
                 this.columns[localX * CHUNK_SIZE + localZ] = column;
                 let top = this.minY - 1;

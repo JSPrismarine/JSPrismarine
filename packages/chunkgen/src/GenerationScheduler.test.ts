@@ -4,7 +4,7 @@ import { ChunkHolder } from './ChunkHolder';
 import { ChunkHolderMap } from './ChunkHolderMap';
 import type { ChunkStatus } from './ChunkStatus';
 import { CHUNK_STATUSES } from './ChunkStatus';
-import { ChunkReadOutOfWindowError } from './ChunkStep';
+import { ChunkReadOutOfWindowError } from '@jsprismarine/errors/chunkgen';
 import { GenerationScheduler } from './GenerationScheduler';
 import type { TestChunk } from '../test/TestChunk';
 import { newTestChunk as newChunk } from '../test/TestChunk';

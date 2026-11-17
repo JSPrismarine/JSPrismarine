@@ -5,6 +5,7 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { encodePacketBatchAsync } from './encodePacketBatch';
 import type { EncodedPacketBatch } from './encodePacketBatch';
 import type Chunk from '../world/chunk/Chunk';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** Compressed bytes and the encoded packets used for logging and packet dumps. */
 export interface CachedChunkBatch extends EncodedPacketBatch {
@@ -27,7 +28,7 @@ export class ChunkBatchCache {
 
     public constructor(private readonly maxBytes: number = DEFAULT_MAX_BYTES) {
         if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) {
-            throw new RangeError(`Chunk batch cache limit must be a non-negative integer, got ${maxBytes}`);
+            throw new PrismarineNetworkErrors.InvalidChunkCacheLimit({ maxBytes });
         }
     }
 

@@ -1,4 +1,5 @@
 import type { ProtocolCodec } from './ProtocolCodec';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * Builds a registry over codecs whose protocol versions must be unique.
@@ -13,8 +14,8 @@ export const buildCodecRegistry = (
     list: readonly ProtocolCodec[]
 ): { codecs: ReadonlyMap<number, ProtocolCodec>; latest: ProtocolCodec; advertised: ProtocolCodec } => {
     const codecs = new Map(list.map((codec) => [codec.protocolVersion, codec]));
-    if (codecs.size !== list.length) throw new Error('Two codecs claim the same protocol version!');
-    if (list.length === 0) throw new Error('A protocol codec registry requires at least one codec!');
+    if (codecs.size !== list.length) throw new ProtocolCodecErrors.DuplicateCodecVersion();
+    if (list.length === 0) throw new ProtocolCodecErrors.EmptyCodecRegistry();
 
     const newest = (candidates: readonly ProtocolCodec[]): ProtocolCodec | undefined =>
         candidates.reduce<ProtocolCodec | undefined>(
@@ -24,17 +25,18 @@ export const buildCodecRegistry = (
 
     const previews = list.filter((codec) => codec.preview === true);
     const advertised = newest(list.filter((codec) => codec.preview !== true));
-    if (advertised === undefined) throw new Error('A protocol codec registry requires at least one release codec!');
+    if (advertised === undefined) throw new ProtocolCodecErrors.NoReleaseCodec();
     if (previews.length > 1) {
-        throw new Error(
-            `Only the newest preview is supported, but codecs ${previews.map((codec) => codec.protocolVersion).join(', ')} are previews!`
-        );
+        throw new ProtocolCodecErrors.SeveralPreviewCodecs({
+            previews: previews.map((codec) => codec.protocolVersion).join(', ')
+        });
     }
     const [preview] = previews;
     if (preview !== undefined && preview.protocolVersion < advertised.protocolVersion) {
-        throw new Error(
-            `Preview protocol ${preview.protocolVersion} is older than release ${advertised.protocolVersion}; drop it!`
-        );
+        throw new ProtocolCodecErrors.StalePreviewCodec({
+            protocolVersion: preview.protocolVersion,
+            advertisedProtocolVersion: advertised.protocolVersion
+        });
     }
 
     return { codecs, latest: preview ?? advertised, advertised };

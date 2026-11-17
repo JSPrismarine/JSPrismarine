@@ -4,6 +4,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type { SessionContext } from './HandlerContext';
 import type { ReadLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** The one block whose screen sends this packet. */
 const LAB_TABLES: ReadonlySet<string> = new Set(['minecraft:lab_table']);
@@ -24,7 +25,7 @@ export default class LabTableHandler implements ReadLaneHandler<LabTablePacket> 
     /** Checks the position names a lab table in reach, then logs the action and position. */
     public handle(packet: LabTablePacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a LabTablePacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.LabTableNotDecoded();
 
         const position = new BlockPosition(data.position.x, data.position.y, data.position.z);
         const where = `${position.getX()}, ${position.getY()}, ${position.getZ()}`;

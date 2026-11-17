@@ -8,6 +8,7 @@ import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
 import type { WireType } from '../fieldTypes';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** Which alternative of the `Score Info` `oneOf` an entry is, as the varuint32 selector numbers it. */
 export enum ScorePacketEntryAction {
@@ -104,7 +105,7 @@ export const scorePacketEntry: WireType<ScorePacketEntry> = t.custom(
     },
     (stream) => {
         const action = t.varuint32.read(stream);
-        if (!isScorePacketEntryAction(action)) throw new Error(`Unknown set score alternative ${action}`);
+        if (!isScorePacketEntryAction(action)) throw new ProtocolWireErrors.UnknownSetScoreAlternative({ action });
 
         t.string.read(stream);
         const scoreboardId = t.varint64.read(stream);

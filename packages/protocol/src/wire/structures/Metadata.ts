@@ -2,6 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import { NetworkUtil } from '../networkUtil';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The data item ids and flag bits this server sets, in the protocol 2193 numbering.
@@ -350,7 +351,7 @@ export class MetadataWriter {
             const selector = stream.readUnsignedVarInt();
             const type = stream.readByte();
             if (type !== selector) {
-                throw new Error(`Data item ${id} declares type ${selector} but carries type ${type}`);
+                throw new ProtocolWireErrors.DataItemTypeMismatch({ id, selector, type });
             }
 
             switch (selector) {
@@ -394,7 +395,7 @@ export class MetadataWriter {
                     );
                     break;
                 default:
-                    throw new Error(`Data item ${id} carries unknown type ${selector}`);
+                    throw new ProtocolWireErrors.UnknownDataItemType({ id, selector });
             }
         }
     }

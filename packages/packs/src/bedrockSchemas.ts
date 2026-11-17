@@ -4,6 +4,7 @@ import { join, sep } from 'node:path';
 import { compareVersions, parseVersion } from './formatVersion';
 import type { FormatVersion } from './formatVersion';
 import { isRecord } from './isRecord';
+import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /**
  * Reads Mojang's `metadata/json_schemas` tree out of a bedrock-samples
@@ -99,7 +100,7 @@ export const readBedrockSchemas = (root: string): BedrockSchemaSet => {
         versionsByDocument.set(key, versions);
     }
 
-    if (byId.size === 0) throw new Error(`no bedrock-samples schemas under ${base}`);
+    if (byId.size === 0) throw new PacksErrors.NoBedrockSamplesSchemas({ base });
 
     for (const versions of versionsByDocument.values()) versions.sort((a, b) => compareVersions(a.version, b.version));
 

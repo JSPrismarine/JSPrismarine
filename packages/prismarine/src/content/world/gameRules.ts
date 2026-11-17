@@ -10,6 +10,7 @@
 import { gameRule } from '@jsprismarine/commands';
 
 import type { ContentLevelFacts } from './adapter';
+import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 
 /**
  * The 1.21.11 id of one game rule.
@@ -20,7 +21,7 @@ import type { ContentLevelFacts } from './adapter';
  */
 const idOf = (name: string): string => {
     const rule = gameRule(name);
-    if (rule === undefined) throw new Error(`${name} is not a game rule of the 26.3 registry`);
+    if (rule === undefined) throw new PrismarineContentErrors.UnknownGameRule({ name });
     return rule.name;
 };
 

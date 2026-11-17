@@ -27,6 +27,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 import type NetworkStructure from '../../NetworkStructure';
 import type { PayloadOf } from '../define';
 import type { WireType } from '../fieldTypes';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * Which alternative of the `Data` variant a `ClientboundAttributeLayerSyncPacket` carries. The
@@ -94,7 +95,7 @@ export type AttributeLayerSyncData2225 = AttributeLayerSyncDataOf<AttributeLayer
  */
 const networkStream = (stream: BinaryStream): NetworkBinaryStream => {
     if (stream instanceof NetworkBinaryStream) return stream;
-    throw new TypeError('The attribute layer structures need a NetworkBinaryStream');
+    throw new ProtocolWireErrors.AttributeLayerNeedsNetworkStream();
 };
 
 /**
@@ -147,7 +148,7 @@ const attributeLayerSyncDataWith = <Layer, Attribute>(
         'AttributeLayerSyncData',
         (stream, data) => {
             if (data === null) {
-                throw new TypeError(`The payload carries no Data in the ${layout} layout of this protocol version`);
+                throw new ProtocolWireErrors.MissingAttributeLayerData({ layout });
             }
 
             stream.writeUnsignedVarInt(data.type);
@@ -208,7 +209,7 @@ const attributeLayerSyncDataWith = <Layer, Attribute>(
                     };
 
                 default:
-                    throw new Error(`Unknown ClientboundAttributeLayerSyncPacket data variant ${type}`);
+                    throw new ProtocolWireErrors.UnknownAttributeLayerDataType({ type });
             }
         }
     );

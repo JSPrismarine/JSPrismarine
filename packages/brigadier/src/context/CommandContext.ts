@@ -5,6 +5,7 @@ import isEqual from '../util/isEqual';
 import type ParsedArgument from './ParsedArgument';
 import type ParsedCommandNode from './ParsedCommandNode';
 import type StringRange from './StringRange';
+import { BrigadierErrors } from '@jsprismarine/errors/brigadier';
 
 export default class CommandContext<S> {
     private source: S;
@@ -83,7 +84,7 @@ export default class CommandContext<S> {
         const arg: ParsedArgument<S, any> | null = this.args.get(name) ?? null; // FIXME
 
         if (arg == null) {
-            throw new Error("No such argument '" + name + "' exists on this command");
+            throw new BrigadierErrors.UnknownArgument({ name });
         }
 
         let result = arg.getResult();

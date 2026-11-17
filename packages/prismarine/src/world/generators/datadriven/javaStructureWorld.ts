@@ -14,6 +14,7 @@ import type { BlockEntityRequest, BlockState, HeightmapType } from '@jsprismarin
 import type { BedrockBlockState, BoundingBox, JigsawJunction, RandomSource } from '@jsprismarine/structures';
 
 import type { StructureTemplateStore } from './javaStructureTemplatePiece';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** What laying a structure out needs to know about the world, before any chunk exists. */
 export interface StructureLevel {
@@ -160,7 +161,7 @@ export const registerStructurePieceTransferCodec = <T extends StructurePiece>(
     codec: StructurePieceTransferCodec<T>
 ): void => {
     if (pieceCodecsByType.has(codec.type) || pieceCodecsByPrototype.has(codec.prototype)) {
-        throw new Error(`The structure-piece transfer codec ${codec.type} is already registered.`);
+        throw new PrismarineGenerationErrors.DuplicatePieceCodec({ type: codec.type });
     }
 
     // Each codec is selected by its exact prototype, then held in one erased registry for lookup.
@@ -187,7 +188,7 @@ export const registerStructurePieceFieldsCodec = <T extends StructurePiece>(type
         encode: (piece) => Object.fromEntries(Object.entries(piece)),
         decode: (data) => {
             if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-                throw new TypeError(`The ${type} structure-piece plan has no field record.`);
+                throw new PrismarineGenerationErrors.PiecePlanWithoutFields({ type });
             }
 
             // The decoder restores a registered prototype over the cloneable fields. This is the
@@ -206,7 +207,7 @@ export const registerStructurePieceFieldsCodec = <T extends StructurePiece>(type
 export const structurePiecePlanOf = (piece: StructurePiece): StructurePiecePlan => {
     const prototype = Object.getPrototypeOf(piece) as object | null;
     const codec = prototype === null ? undefined : pieceCodecsByPrototype.get(prototype);
-    if (codec === undefined) throw new TypeError(`No transfer codec is registered for ${piece.constructor.name}.`);
+    if (codec === undefined) throw new PrismarineGenerationErrors.NoTransferCodec({ name: piece.constructor.name });
 
     // The codec registry is keyed by the exact runtime prototype, so this cast only restores the
     // generic type erased by that registry. Any non-cloneable state fails here before a worker
@@ -227,7 +228,7 @@ export const structurePieceFromPlan = (
     context: StructurePieceTransferContext
 ): StructurePiece => {
     const codec = pieceCodecsByType.get(plan.type);
-    if (codec === undefined) throw new TypeError(`No transfer codec is registered for ${plan.type}.`);
+    if (codec === undefined) throw new PrismarineGenerationErrors.NoTransferCodec({ name: plan.type });
     return codec.decode(plan.data, context);
 };
 

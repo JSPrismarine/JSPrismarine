@@ -10,6 +10,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The most `Client Pixels List` entries this decoder accepts in one packet, one per pixel of a
@@ -48,7 +49,10 @@ const clientPixelsList = t.custom<MapClientPixel[]>(
     (s) => {
         const count = t.lu32.read(s);
         if (count > MAX_CLIENT_PIXELS) {
-            throw new Error(`MapInfoRequest claims ${count} client pixels; the limit is ${MAX_CLIENT_PIXELS}`);
+            throw new ProtocolWireErrors.TooManyMapPixels({
+                count,
+                maxClientPixels: MAX_CLIENT_PIXELS
+            });
         }
 
         const pixels: MapClientPixel[] = [];

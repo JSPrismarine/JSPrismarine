@@ -1,3 +1,5 @@
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
+
 /** The kinds of signal NetherNet's signaling carries, by the word that starts each one. */
 export const SignalType = {
     ConnectRequest: 'CONNECTREQUEST',
@@ -74,8 +76,8 @@ export class SignalStructure {
         const second = first < 0 ? -1 : message.indexOf(' ', first + 1);
         const type = first < 0 ? message : message.slice(0, first);
         const id = first < 0 ? '' : message.slice(first + 1, second < 0 ? undefined : second);
-        if (!isSignalType(type)) throw new Error(`Unknown NetherNet signal type ${JSON.stringify(type)}`);
-        if (!/^\d+$/.test(id)) throw new Error(`NetherNet signal connection ID ${JSON.stringify(id)} is not a number`);
+        if (!isSignalType(type)) throw new NethernetErrors.UnknownNethernetSignalType({ type: JSON.stringify(type) });
+        if (!/^\d+$/.test(id)) throw new NethernetErrors.SignalConnectionIdIsNotNumber({ id: JSON.stringify(id) });
         return new SignalStructure(type, BigInt(id), second < 0 ? '' : message.slice(second + 1));
     }
 

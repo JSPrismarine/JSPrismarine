@@ -4,6 +4,7 @@ import { BEHAVIOR_NAMES } from '../bot/behavior/Behaviors';
 import { runBot, runConnect, runPing } from './commands';
 
 import type { Options } from 'yargs';
+import { ClientErrors, UsageError } from '@jsprismarine/errors/client';
 
 /**
  * How long a `--duration` or `--ramp` value means.
@@ -13,7 +14,7 @@ import type { Options } from 'yargs';
  */
 export const parseDuration = (value: string): number => {
     const match = /^(\d+(?:\.\d+)?)(ms|s|m|h)?$/.exec(value.trim());
-    if (!match) throw new UsageError(`Cannot read "${value}" as a duration. Try 30s, 10m, or 500ms.`);
+    if (!match) throw new ClientErrors.InvalidDuration({ value });
 
     const amount = Number(match[1]);
     switch (match[2]) {
@@ -31,7 +32,7 @@ export const parseDuration = (value: string): number => {
 /** Parses a rate expressed as a number per second. */
 export const parseRate = (value: string): number => {
     const match = /^(\d+(?:\.\d+)?)(?:\/s)?$/.exec(value.trim());
-    if (!match) throw new UsageError(`Cannot read "${value}" as a rate. Try 5 or 5/s.`);
+    if (!match) throw new ClientErrors.InvalidRate({ value });
 
     return Number(match[1]);
 };
@@ -40,8 +41,7 @@ export const parseRate = (value: string): number => {
 export const parsePercent = (value: string, flag: string): number => {
     const match = /^(\d+(?:\.\d+)?)%?$/.exec(value.trim());
     const percent = match ? Number(match[1]) : Number.NaN;
-    if (!(percent >= 0 && percent <= 100))
-        throw new UsageError(`${flag} must be a percentage from 0 to 100, got "${value}"`);
+    if (!(percent >= 0 && percent <= 100)) throw new ClientErrors.InvalidPercentage({ flag, value });
 
     return percent / 100;
 };
@@ -49,19 +49,16 @@ export const parsePercent = (value: string, flag: string): number => {
 /** Parses which transport to dial. */
 export const parseNetwork = (value: string): 'raknet' | 'nethernet' => {
     if (value === 'raknet' || value === 'nethernet') return value;
-    throw new UsageError(`--network must be raknet or nethernet, got "${value}"`);
+    throw new ClientErrors.UnknownNetwork({ value });
 };
 
 /** Parses a non-negative whole-number option. */
 export const parseCount = (value: string, flag: string): number => {
     const count = Number(value);
-    if (!Number.isInteger(count) || count < 0) throw new UsageError(`${flag} must be a whole number, got "${value}"`);
+    if (!Number.isInteger(count) || count < 0) throw new ClientErrors.InvalidWholeNumber({ flag, value });
 
     return count;
 };
-
-/** A command-line input mistake that should exit with status 2. */
-export class UsageError extends Error {}
 
 /** Values consumed by the command handlers. */
 export interface Values {
@@ -160,7 +157,10 @@ export const run = async (argv: readonly string[], io: CliIo = CONSOLE_IO): Prom
         .exitProcess(false)
         .fail((message, error) => {
             if (error instanceof UsageError) throw error;
-            throw new UsageError(message ?? error?.message ?? 'Invalid command-line arguments');
+            const reason = message ?? error?.message;
+            throw reason === undefined
+                ? new ClientErrors.InvalidCommandLineArguments()
+                : new ClientErrors.CommandLineRejected({ reason });
         })
         .option('verbose', {
             alias: 'v',

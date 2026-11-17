@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { RandomSource } from '@jsprismarine/predicates';
+import { LootErrors } from '@jsprismarine/errors/loot';
 
 /**
  * Java's `random_sequence` rule, reproduced bit for bit.
@@ -128,12 +129,12 @@ class XoroshiroLootRandom implements StatefulLootRandomSource {
             !isSignedLongString(state.lo) ||
             !isSignedLongString(state.hi)
         ) {
-            throw new TypeError('Invalid loot random state');
+            throw new LootErrors.InvalidLootRandomState();
         }
 
         const lo = BigInt(state.lo);
         const hi = BigInt(state.hi);
-        if ((lo | hi) === 0n) throw new TypeError('Invalid all-zero loot random state');
+        if ((lo | hi) === 0n) throw new LootErrors.InvalidAllZeroLootRandomState();
         this.lo = asLong(lo);
         this.hi = asLong(hi);
     }
@@ -257,7 +258,7 @@ export class LootSequences {
             state.worldSeed !== this.worldSeed.toString() ||
             !Array.isArray(state.streams)
         ) {
-            throw new TypeError('Invalid loot sequence state');
+            throw new LootErrors.InvalidLootSequenceState();
         }
 
         const unkeyed = lootSequenceRandom(this.worldSeed);
@@ -265,9 +266,9 @@ export class LootSequences {
         const streams = new Map<string, StatefulLootRandomSource>();
         for (const entry of state.streams) {
             if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== 'string' || entry[0].length === 0) {
-                throw new TypeError('Invalid named loot sequence state');
+                throw new LootErrors.InvalidNamedLootSequenceState();
             }
-            if (streams.has(entry[0])) throw new TypeError(`Duplicate loot sequence state: ${entry[0]}`);
+            if (streams.has(entry[0])) throw new LootErrors.DuplicateLootSequenceState({ entry: entry[0] });
 
             const random = lootSequenceRandom(this.worldSeed, entry[0]);
             random.restoreState(entry[1]);

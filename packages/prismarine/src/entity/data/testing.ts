@@ -39,6 +39,7 @@ import { EntityRuntime } from './EntityRuntime';
 import { EYE_OF_ENDER_SIGNAL_COMPONENT } from './eyeOfEnderSignals';
 import { HANGING_COMPONENT } from './hangingEntities';
 import type { ContentItemEntity, DamageCommit, EntityHostFacts, EntityWorldFacts } from './host';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /**
  * The blocks the entity fixture declares.
@@ -777,7 +778,7 @@ export const entityFixture = (
 
     const runtime = new EntityRuntime({
         content: () => {
-            if (content === undefined) throw new Error('the entity runtime was read before the content was built');
+            if (content === undefined) throw new PrismarineEntityErrors.EntityRuntimeReadTooEarly();
             return content;
         },
         world: world.world,

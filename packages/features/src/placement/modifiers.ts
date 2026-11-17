@@ -13,6 +13,7 @@ import type { VerticalDirection } from '../world/BlockState';
 import type { BlockPos, FeatureWorld, HeightmapType } from '../world/FeatureWorld';
 import { atY, isOutsideBuildHeight, offset } from '../world/FeatureWorld';
 import { randomElement } from './WorldgenRandom';
+import { FeaturesErrors } from '@jsprismarine/errors/features';
 
 /**
  * The noise Java samples for `noise_based_count` and `noise_threshold_count`.
@@ -412,7 +413,7 @@ export const parsePlacementModifier = (source: unknown, path: string): Placement
             const placements = asArray(raw['placements'], `${path}.placements`).map((entry, index) =>
                 parsePlacementModifier(entry, `${path}.placements[${index}]`)
             );
-            if (placements.length === 0) return fail(`${path}.placements`, 'expected a non-empty list');
+            if (placements.length === 0) return fail(new FeaturesErrors.EmptyPlacements({ path }));
             return randomlySelected(placements);
         }
         case 'fixed_placement':
@@ -420,7 +421,7 @@ export const parsePlacementModifier = (source: unknown, path: string): Placement
                 asArray(raw['positions'], `${path}.positions`).map((entry, index) => {
                     const entryPath = `${path}.positions[${index}]`;
                     const values = asArray(entry, entryPath);
-                    if (values.length !== 3) return fail(entryPath, 'expected three integers');
+                    if (values.length !== 3) return fail(new FeaturesErrors.ExpectedThreeIntegers({ entryPath }));
                     return {
                         x: asInteger(values[0], `${entryPath}[0]`),
                         y: asInteger(values[1], `${entryPath}[1]`),
@@ -429,6 +430,6 @@ export const parsePlacementModifier = (source: unknown, path: string): Placement
                 })
             );
         default:
-            return fail(path, `unknown placement modifier type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownPlacementModifierType({ path, type: JSON.stringify(type) }));
     }
 };

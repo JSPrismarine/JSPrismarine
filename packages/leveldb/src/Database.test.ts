@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CompressionType } from './compression/Compression';
 import { Database, MANIFEST_ROLL_BYTES } from './Database';
-import { DatabaseLockedError } from './Errors';
+import { DatabaseLockedError } from '@jsprismarine/errors/leveldb';
 import { WriteBatch } from './format/WriteBatch';
 import { LOG_BLOCK_SIZE, readLogRecords } from './format/LogFormat';
 import type { CorruptionReport } from './DatabaseOptions';

@@ -1,7 +1,7 @@
 import type { BindContext } from './components';
 import type { Definition } from './definitions';
-import { ContentError } from './errors';
 import type { HookSignatures } from './hooks';
+import { ContentErrors } from '@jsprismarine/errors/content';
 
 /**
  * A named set of handlers attached to types by identifier instead of declared
@@ -70,7 +70,7 @@ export class BehaviorRegistry<H extends HookSignatures<H>> {
      */
     public register(behavior: Behavior<H>): void {
         if (this.behaviors.has(behavior.name)) {
-            throw new ContentError(`the behavior ${behavior.name} is already registered`);
+            throw new ContentErrors.BehaviorIsAlreadyRegistered({ name: behavior.name });
         }
         this.behaviors.set(behavior.name, behavior);
     }
@@ -82,7 +82,7 @@ export class BehaviorRegistry<H extends HookSignatures<H>> {
      */
     public attach(behaviorName: string, selector: BehaviorSelector): void {
         if (!this.behaviors.has(behaviorName)) {
-            throw new ContentError(`no behavior is registered as ${behaviorName}`);
+            throw new ContentErrors.NoBehaviorIsRegistered({ behaviorName });
         }
         this.attachments.push({ behavior: behaviorName, selector });
     }
@@ -117,9 +117,7 @@ export class BehaviorRegistry<H extends HookSignatures<H>> {
             const declared = new Set<string>(behavior.hooks);
             for (const hook of Object.keys(handlers)) {
                 if (declared.has(hook)) continue;
-                throw new ContentError(
-                    `the behavior ${behavior.name} returned a handler for ${hook}, which it does not declare`
-                );
+                throw new ContentErrors.BehaviorUndeclaredHook({ name: behavior.name, hook });
             }
 
             bound.push({ name: behavior.name, handlers, override: behavior.override ?? false });

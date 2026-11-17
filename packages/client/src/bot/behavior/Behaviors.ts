@@ -4,6 +4,7 @@ import LookBehavior from './LookBehavior';
 import WalkBehavior from './WalkBehavior';
 
 import type { Behavior } from './Behavior';
+import { ClientErrors } from '@jsprismarine/errors/client';
 
 /** Behaviors by the name the command line uses. */
 export const BEHAVIORS: Record<string, () => Behavior> = {
@@ -26,7 +27,7 @@ export const createBehaviors = (names: readonly string[]): Behavior[] =>
     names.map((name) => {
         const factory = BEHAVIORS[name];
         if (!factory) {
-            throw new Error(`Unknown behavior "${name}". Known behaviors: ${BEHAVIOR_NAMES.join(', ')}`);
+            throw new ClientErrors.UnknownBehavior({ name, behaviorNames: BEHAVIOR_NAMES.join(', ') });
         }
 
         return factory();

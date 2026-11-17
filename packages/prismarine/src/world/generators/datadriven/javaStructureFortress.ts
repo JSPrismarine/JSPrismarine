@@ -35,6 +35,7 @@ import { chestFacing, makeBoundingBox, orientBox, orientedState } from './javaSt
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
 import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
 import { movedBox, unionOf } from './javaStructureWorld';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** The way a piece was entered, which is the only orientation a fortress piece has. */
 type Facing = (typeof HORIZONTAL_DIRECTIONS)[number];
@@ -1205,7 +1206,7 @@ const settleInsideHeights = (pieces: readonly FortressPiece[], random: RandomSou
 /** Java's `getRandomHorizontalDirection`, which draws from north, east, south, west in that order. */
 const randomFacing = (random: RandomSource): Facing => {
     const facing = HORIZONTAL_DIRECTIONS[random.nextInt(HORIZONTAL_DIRECTIONS.length)];
-    if (facing === undefined) throw new Error('The random source drew an index outside the four horizontal directions');
+    if (facing === undefined) throw new PrismarineGenerationErrors.InvalidHorizontalDirection();
     return facing;
 };
 

@@ -11,17 +11,12 @@
  * @see https://github.com/google/snappy/blob/main/format_description.txt
  */
 
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
+
 const TAG_LITERAL = 0;
 const TAG_COPY_1 = 1;
 const TAG_COPY_2 = 2;
 const TAG_COPY_4 = 3;
-
-export class SnappyError extends Error {
-    public constructor(message: string) {
-        super(`Malformed snappy stream: ${message}`);
-        this.name = 'SnappyError';
-    }
-}
 
 export const snappyDecompress = (input: Buffer): Buffer => {
     let at = 0;
@@ -29,14 +24,14 @@ export const snappyDecompress = (input: Buffer): Buffer => {
     const readVarint = (): number => {
         let result = 0;
         for (let shift = 0; shift <= 28; shift += 7) {
-            if (at >= input.byteLength) throw new SnappyError('truncated length prefix');
+            if (at >= input.byteLength) throw new LeveldbErrors.SnappyTruncatedLengthPrefix();
 
             const byte = input.readUInt8(at++);
             result = (result | ((byte & 0x7f) << shift)) >>> 0;
             if ((byte & 0x80) === 0) return result;
         }
 
-        throw new SnappyError('length prefix did not terminate');
+        throw new LeveldbErrors.SnappyLengthPrefixUnterminated();
     };
 
     const expected = readVarint();
@@ -44,8 +39,8 @@ export const snappyDecompress = (input: Buffer): Buffer => {
     let out = 0;
 
     const copy = (offset: number, length: number): void => {
-        if (offset === 0 || offset > out) throw new SnappyError(`copy offset ${offset} points outside the output`);
-        if (out + length > expected) throw new SnappyError('copy runs past the declared length');
+        if (offset === 0 || offset > out) throw new LeveldbErrors.SnappyCopyOffsetOutOfRange({ offset });
+        if (out + length > expected) throw new LeveldbErrors.SnappyCopyPastDeclaredLength();
 
         // Byte by byte, not `copyWithin`: an overlapping copy is how Snappy expresses a repeat,
         // and it is meant to read the bytes this very loop is writing.
@@ -62,7 +57,7 @@ export const snappyDecompress = (input: Buffer): Buffer => {
                 if (length >= 60) {
                     // 60..63 mean the length itself is the next 1..4 bytes, little endian.
                     const extra = length - 59;
-                    if (at + extra > input.byteLength) throw new SnappyError('truncated literal length');
+                    if (at + extra > input.byteLength) throw new LeveldbErrors.SnappyTruncatedLiteralLength();
 
                     length = 0;
                     for (let i = 0; i < extra; i++) length |= input.readUInt8(at + i) << (8 * i);
@@ -71,8 +66,8 @@ export const snappyDecompress = (input: Buffer): Buffer => {
                 }
 
                 length += 1;
-                if (at + length > input.byteLength) throw new SnappyError('truncated literal');
-                if (out + length > expected) throw new SnappyError('literal runs past the declared length');
+                if (at + length > input.byteLength) throw new LeveldbErrors.SnappyTruncatedLiteral();
+                if (out + length > expected) throw new LeveldbErrors.SnappyLiteralPastDeclaredLength();
 
                 input.copy(output, out, at, at + length);
                 at += length;
@@ -81,7 +76,7 @@ export const snappyDecompress = (input: Buffer): Buffer => {
             }
 
             case TAG_COPY_1: {
-                if (at >= input.byteLength) throw new SnappyError('truncated 1 byte copy');
+                if (at >= input.byteLength) throw new LeveldbErrors.SnappyTruncatedOneByteCopy();
 
                 const length = 4 + ((tag >>> 2) & 0x07);
                 const offset = (((tag >>> 5) & 0x07) << 8) | input.readUInt8(at++);
@@ -90,7 +85,7 @@ export const snappyDecompress = (input: Buffer): Buffer => {
             }
 
             case TAG_COPY_2: {
-                if (at + 2 > input.byteLength) throw new SnappyError('truncated 2 byte copy');
+                if (at + 2 > input.byteLength) throw new LeveldbErrors.SnappyTruncatedTwoByteCopy();
 
                 const length = (tag >>> 2) + 1;
                 const offset = input.readUInt16LE(at);
@@ -101,7 +96,7 @@ export const snappyDecompress = (input: Buffer): Buffer => {
 
             case TAG_COPY_4:
             default: {
-                if (at + 4 > input.byteLength) throw new SnappyError('truncated 4 byte copy');
+                if (at + 4 > input.byteLength) throw new LeveldbErrors.SnappyTruncatedFourByteCopy();
 
                 const length = (tag >>> 2) + 1;
                 const offset = input.readUInt32LE(at);
@@ -113,7 +108,7 @@ export const snappyDecompress = (input: Buffer): Buffer => {
     }
 
     if (out !== expected) {
-        throw new SnappyError(`produced ${out} bytes, the header declared ${expected}`);
+        throw new LeveldbErrors.SnappyLengthMismatch({ out, expected });
     }
 
     return output;

@@ -1,3 +1,5 @@
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
+
 /**
  * Hands out entity runtime ids, counting up from the last one it handed out.
  *
@@ -21,7 +23,7 @@ export class EntityIdAllocator {
      */
     public next(): number {
         if (this.last >= Number.MAX_SAFE_INTEGER) {
-            throw new RangeError('Entity runtime id counter exceeded Number.MAX_SAFE_INTEGER');
+            throw new PrismarineEntityErrors.RuntimeIdsExhausted();
         }
         this.last += 1;
         return this.last;

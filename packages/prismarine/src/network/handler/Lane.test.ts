@@ -36,12 +36,14 @@ const isBindingElement = (node: Node): node is BindingElement => node.kind === S
 const isVariableDeclaration = (node: Node): node is VariableDeclaration => node.kind === SyntaxKind.VariableDeclaration;
 
 /**
- * Modules a connection-lane handler may import: the protocol, plain Bedrock enums, codecs and
- * the handler interfaces. `../../` is the package barrel, allowed for type imports only.
+ * Modules a connection-lane handler may import: the protocol, plain Bedrock enums, the error
+ * catalog, codecs and the handler interfaces. `../../` is the package barrel, allowed for type
+ * imports only.
  */
 const CONNECTION_IMPORTS: readonly RegExp[] = [
     /^@jsprismarine\/protocol(\/|$)/,
     /^@jsprismarine\/minecraft$/,
+    /^@jsprismarine\/errors\//,
     /^\.\.\/PlayerSession$/,
     /^\.\.\/ClientConnection$/,
     /^\.\.\/codec\/CodecRegistry$/,

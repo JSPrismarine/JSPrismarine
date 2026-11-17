@@ -17,6 +17,7 @@ import {
 } from './providers';
 import { mthCos, mthSin, randomBetween } from './trig';
 import { asObject, number } from '../json';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** How many chunks away from the target chunk a carver can start, in each direction. */
 export const CARVER_RANGE = 4;
@@ -131,7 +132,7 @@ export const parseCarver = (source: unknown, path = '<carver>'): CarverConfig =>
         const shape = asObject(raw['shape'], `${path}.shape`);
         const smoothness = shape['width_smoothness'];
         if (typeof smoothness !== 'number' || !Number.isInteger(smoothness) || smoothness <= 0) {
-            throw new TypeError(`${path}.shape.width_smoothness: expected a positive integer`);
+            throw new WorldgenErrors.InvalidWidthSmoothness({ path });
         }
         return {
             type: 'canyon',
@@ -156,7 +157,7 @@ export const parseCarver = (source: unknown, path = '<carver>'): CarverConfig =>
             }
         };
     }
-    throw new TypeError(`${path}: unknown carver type ${JSON.stringify(raw['type'])}`);
+    throw new WorldgenErrors.UnknownCarverType({ path, type: JSON.stringify(raw['type']) });
 };
 
 /** Whether a position inside the ellipsoid stays solid. */

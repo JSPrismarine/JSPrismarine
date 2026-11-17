@@ -6,6 +6,7 @@ import { DiscoveryPacketType, decodeDiscoveryPacket, encodeDiscoveryPacket } fro
 import type { DiscoveryPacket } from './protocol/Discovery';
 import { SignalStructure } from './protocol/Signal';
 import { randomUint64 } from './randomUint64';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /** How often a client asks the network who is there, as Bedrock does. */
 export const DISCOVERY_INTERVAL_MS = 2_000;
@@ -78,7 +79,7 @@ export class LanDiscovery extends EventEmitter {
      */
     public sendSignal(signal: SignalStructure): void {
         const server = signal.networkId === undefined ? undefined : this.servers.get(signal.networkId);
-        if (server === undefined) throw new Error(`No NetherNet server ${signal.networkId} answered on the LAN`);
+        if (server === undefined) throw new NethernetErrors.NoLanServerAnswered({ networkId: signal.networkId });
         this.send(
             {
                 type: DiscoveryPacketType.Message,

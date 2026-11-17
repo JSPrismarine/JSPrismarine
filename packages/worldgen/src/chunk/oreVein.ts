@@ -4,6 +4,7 @@ import type { SampleContext } from '../density/SampleContext';
 import { normalizeIdentifier } from '../identifier';
 import type { PositionalRandomFactory } from '../random/RandomSource';
 import { asObject } from '../json';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** The registry name the ore vein random factory is keyed by. */
 export const ORE_VEIN_SEED = 'minecraft:ore';
@@ -44,7 +45,7 @@ export const parseOreVeinRule = (
     const raw = asObject(source, path);
     const chance = raw['raw_ore_chance'];
     if (typeof chance !== 'number' || !Number.isFinite(chance)) {
-        throw new TypeError(`${path}.raw_ore_chance: expected a finite number`);
+        throw new WorldgenErrors.InvalidRawOreChance({ path });
     }
     return {
         oreBlock: normalizeIdentifier(raw['ore_block']),

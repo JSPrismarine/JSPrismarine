@@ -1,4 +1,5 @@
 import type { GaussianCacheState, RandomSource } from './RandomSource';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /**
  * The Marsaglia polar method Java Edition uses for `nextGaussian`.
@@ -39,7 +40,7 @@ export class MarsagliaPolarGaussian {
             typeof state.cachedGaussian !== 'number' ||
             !Number.isFinite(state.cachedGaussian)
         ) {
-            throw new TypeError('Invalid Gaussian cache state');
+            throw new WorldgenErrors.InvalidGaussianCacheState();
         }
 
         this.haveNextNextGaussian = state.hasCachedGaussian;

@@ -18,6 +18,7 @@ import { defineComponentState, stateField } from '@jsprismarine/entities/compone
 
 import type { ContentItemDrop } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /** The host component that makes a data entity an ominous item spawner, and holds its numbers. */
 export const OMINOUS_ITEM_SPAWNER_COMPONENT = 'jsprismarine:ominous_item_spawner';
@@ -90,11 +91,17 @@ export interface OminousSpawnerTuning {
 export const ominousSpawnerTuningOf = (entity: DataEntity): OminousSpawnerTuning => {
     const params = entity.instance.componentParams(OMINOUS_ITEM_SPAWNER_COMPONENT);
     if (!isRecord(params))
-        throw new TypeError(`${entity.identifier} has no ${OMINOUS_ITEM_SPAWNER_COMPONENT} component`);
+        throw new PrismarineEntityErrors.MissingItemComponent({
+            identifier: entity.identifier,
+            itemComponent: OMINOUS_ITEM_SPAWNER_COMPONENT
+        });
     const number = (key: string): number => {
         const value = params[key];
         if (typeof value !== 'number')
-            throw new TypeError(`${OMINOUS_ITEM_SPAWNER_COMPONENT} needs a number for ${key}`);
+            throw new PrismarineEntityErrors.ItemComponentFieldNotNumber({
+                itemComponent: OMINOUS_ITEM_SPAWNER_COMPONENT,
+                key
+            });
         return value;
     };
     return { minDelay: number('min_delay'), maxDelay: number('max_delay'), soundLead: number('sound_lead') };

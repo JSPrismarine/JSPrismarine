@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { textFiles, writeBrarchive } from '../fixtures/writers';
-import { BrarchiveError, isBrarchive, readBrarchive } from './brarchive';
+import { isBrarchive, readBrarchive } from './brarchive';
+import { BrarchiveError } from '@jsprismarine/errors/packs';
 
 const decoder = new TextDecoder();
 

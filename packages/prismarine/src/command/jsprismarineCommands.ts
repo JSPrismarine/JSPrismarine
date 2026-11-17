@@ -28,6 +28,7 @@ import { describeSupportedProtocols } from '../network/codec/describeCodecs';
 import { softwareLabel } from '../version';
 import { deferCommandWork } from './deferred';
 import { resolvePlayer } from './host/support';
+import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
 /**
  * The permission node each of these commands is gated by.
@@ -92,7 +93,7 @@ const setConfigValue = (config: Config, key: string, data: string): void => {
             config.setGamemode(getGametypeId(data));
             break;
         default:
-            throw new Error(`Config key "${key}" can't be set at runtime`);
+            throw new PrismarineCommandErrors.StartupOnlySetting({ key });
     }
 };
 
@@ -127,15 +128,15 @@ const debugAction = async (server: Server, current: CommandSource, action: strin
     switch (action) {
         case 'loadWorld': {
             const worldData = server.getConfig().getWorlds()[data];
-            if (!worldData) throw new Error(`No world ${data} in config`);
+            if (!worldData) throw new PrismarineCommandErrors.UnknownConfiguredWorld({ data });
             const level = await server.getWorldManager().loadLevel(worldData, data);
             return `Loaded level ${level.name} with ${[...level.getStems().keys()].join(', ')}`;
         }
         case 'changeWorld': {
             const player = current.entity === undefined ? undefined : resolvePlayer(server, current.entity);
-            if (player === undefined) throw new Error(`This command can't be run from the console`);
+            if (player === undefined) throw new PrismarineCommandErrors.CommandCannotRunFromConsole();
             const world = server.getWorldManager().getWorldByName(data);
-            if (!world) throw new Error(`No world ${data} is loaded`);
+            if (!world) throw new PrismarineCommandErrors.WorldNotLoaded({ data });
             // A message the next input step carries out once the world's spawn is known.
             player.setWorld(world);
             return `Moving ${player.getFormattedUsername()} to ${world.getName()}`;
@@ -147,7 +148,7 @@ const debugAction = async (server: Server, current: CommandSource, action: strin
             return `Set config ${key} to ${setting}`;
         }
         default:
-            throw new Error('Invalid action!');
+            throw new PrismarineCommandErrors.UnknownDebugAction();
     }
 };
 

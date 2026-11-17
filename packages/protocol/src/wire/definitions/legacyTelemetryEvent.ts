@@ -11,6 +11,7 @@ import * as t from '../fieldTypes';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The events a {@link LegacyTelemetryEventPacket} reports, numbered by its Event Type varint32.
@@ -327,7 +328,8 @@ const eventData = t.custom<LegacyTelemetryEventData>(
     },
     (stream) => {
         const ordinal = stream.readUnsignedVarInt();
-        if (!isEventDataOrdinal(ordinal)) throw new Error(`Unknown telemetry event data alternative ${ordinal}`);
+        if (!isEventDataOrdinal(ordinal))
+            throw new ProtocolWireErrors.UnknownTelemetryEventDataAlternative({ ordinal });
         return variantFor(ordinal).read(stream);
     }
 );

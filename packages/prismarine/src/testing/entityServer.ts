@@ -32,6 +32,7 @@ import type { StorePlayers } from '../entity/data/storePlayers';
 import type Server from '../Server';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { stub } from './stub.test.helper';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** @see {@link testContent} */
 let sharedContent: ServerContent | undefined;
@@ -188,7 +189,7 @@ export const liveTestEntities = (world: () => World | undefined): LiveTestEntiti
                 world: serverWorldSource({
                     worldFor: () => world(),
                     content: () => {
-                        if (built === undefined) throw new Error('the content was read before it was built');
+                        if (built === undefined) throw new PrismarineServerErrors.TestContentReadTooEarly();
                         return built;
                     },
                     seed: 0n,

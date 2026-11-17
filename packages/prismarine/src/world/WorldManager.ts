@@ -25,6 +25,7 @@ import LevelDB from './providers/leveldb/LevelDB';
 
 import fs from 'node:fs';
 import type { WorldData } from '../config/JsonConfigTypes';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 export type { WorldData } from '../config/JsonConfigTypes';
 
@@ -109,11 +110,11 @@ export default class WorldManager implements Service {
         // Throwing rather than warning-and-returning: `getDefaultWorld()` promises a world to
         // everyone downstream, and returning here would leave that promise unkept while the
         // type said otherwise.
-        if (!defaultName) throw new Error(`Invalid level-name`);
+        if (!defaultName) throw new PrismarineWorldErrors.InvalidLevelName();
 
         const worlds = config.getWorlds();
         const defaultData = worlds[defaultName];
-        if (!defaultData) throw new Error(`Invalid level-name`);
+        if (!defaultData) throw new PrismarineWorldErrors.InvalidLevelName();
 
         // Named as the default before it is enabled, not after. Enabling a level generates the
         // Overworld's start region, which at `preload-radius: 24` is minutes, and until this
@@ -126,7 +127,8 @@ export default class WorldManager implements Service {
         const prepared = await this.prepareLevel(defaultData, defaultName, { overworld: 'eager' });
         const enabling = prepared.level.enable();
         const world = prepared.level.loadedWorld(OVERWORLD_STEM_ID);
-        if (world === undefined) throw new Error(`Level ${defaultName} built no ${OVERWORLD_STEM_ID} world`);
+        if (world === undefined)
+            throw new PrismarineWorldErrors.LevelWithoutOverworld({ defaultName, overworldStemId: OVERWORLD_STEM_ID });
         this.defaultLevel = prepared.level;
         this.defaultWorld = world;
         this.server.getLogger().info(`Loading ${world.getFormattedName()} as default world!`);
@@ -233,10 +235,10 @@ export default class WorldManager implements Service {
         folderName: string,
         options: { overworld?: 'eager' | 'lazy' } = {}
     ): Promise<PreparedLevel> {
-        if (!worldData) throw new Error('Invalid world data');
+        if (!worldData) throw new PrismarineWorldErrors.InvalidWorldConfig();
 
         if (this.isWorldLoaded(folderName)) {
-            throw new Error(`World ${folderName} has already been loaded`);
+            throw new PrismarineWorldErrors.WorldAlreadyLoaded({ folderName });
         }
 
         const levelPath = withCwd(WORLDS_FOLDER, folderName);
@@ -245,10 +247,11 @@ export default class WorldManager implements Service {
             // Named, and with the alternatives listed. The `Filesystem` provider was removed, so
             // this is the first thing an existing config carrying it will hit, and "invalid
             // provider" on its own left nowhere to go from there.
-            throw new Error(
-                `Unknown world provider '${worldData.provider}' for world '${folderName}'. ` +
-                    `Available providers: ${[...this.providers.keys()].join(', ')}.`
-            );
+            throw new PrismarineWorldErrors.UnknownWorldProvider({
+                provider: worldData.provider,
+                folderName,
+                providers: [...this.providers.keys()].join(', ')
+            });
         }
 
         const logger = this.server.getLogger();
@@ -502,9 +505,11 @@ export default class WorldManager implements Service {
         const level = this.getDefaultLevel();
         const stemId = this.stemIdOf(level, dimension);
         if (stemId === undefined) {
-            throw new Error(
-                `Level ${level.name} has no ${dimension} dimension. It has: ${[...level.getStems().keys()].join(', ')}`
-            );
+            throw new PrismarineWorldErrors.UnknownLevelDimension({
+                name: level.name,
+                dimensionId: dimension,
+                stems: [...level.getStems().keys()].join(', ')
+            });
         }
         return level.world(stemId);
     }

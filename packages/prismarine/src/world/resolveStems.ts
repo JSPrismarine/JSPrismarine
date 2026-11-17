@@ -24,6 +24,7 @@ import type { DimensionLoad } from './Level';
 import { VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
 import type { WorldGenSettings } from './WorldPersistence';
 import { levelStemJsonOf } from './WorldPersistence';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * The two presets the old `generator` names stood for, with the Overworld stem alone.
@@ -74,7 +75,10 @@ export const resolveStems = (
 ): ReadonlyMap<string, LevelStem> => {
     const preset = presets.get(world.preset);
     if (preset === undefined) {
-        throw new Error(`Unknown world preset ${world.preset}. Known presets: ${[...presets.keys()].join(', ')}`);
+        throw new PrismarineWorldErrors.UnknownWorldPreset({
+            preset: world.preset,
+            presets: [...presets.keys()].join(', ')
+        });
     }
 
     const stems = new Map(preset.dimensions);
@@ -88,7 +92,11 @@ export const resolveStems = (
 
         if (type === undefined || generator === undefined) {
             const missing = type === undefined ? 'a type' : 'a generator';
-            throw new Error(`dimensions['${id}'] adds a dimension ${world.preset} lacks, so it needs ${missing}`);
+            throw new PrismarineWorldErrors.IncompleteAddedDimension({
+                id,
+                preset: world.preset,
+                missing
+            });
         }
         stems.set(id, { type, generator });
     }
@@ -110,9 +118,7 @@ export const resolveStems = (
     const sharing = sharedTypeOf(stems);
     if (sharing !== undefined) {
         const [first, second, type] = sharing;
-        throw new Error(
-            `The ${first} and ${second} dimensions both bind the dimension type ${type}; a type backs one dimension per level`
-        );
+        throw new PrismarineWorldErrors.ConfigDimensionsShareType({ first, second, type });
     }
 
     return stems;
@@ -177,7 +183,7 @@ export const dimensionTypesOf = (
 
         const document = dimensionTypes().get(stem.type);
         if (document === undefined) {
-            throw new Error(`The ${id} dimension names the dimension type ${stem.type}, which no pack defines`);
+            throw new PrismarineWorldErrors.UnknownConfigDimensionType({ id, type: stem.type });
         }
         types.set(stem.type, parseDimensionType(document, stem.type));
     }

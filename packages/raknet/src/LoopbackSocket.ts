@@ -10,6 +10,7 @@ import InetAddress from './utils/InetAddress';
 
 import type { Logger, RakNetPeer } from './RakNetPeer';
 import type Packet from './protocol/Packet';
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
 
 /**
  * The largest content a single frame can carry.
@@ -237,7 +238,7 @@ export default class LoopbackSocket {
      * would miss its own connection.
      */
     public async connect(timeoutMs = 5_000): Promise<RakNetSession> {
-        if (this.stopped) throw new Error('Cannot connect on a killed LoopbackSocket');
+        if (this.stopped) throw new RaknetErrors.LoopbackSocketClosed();
 
         this.server.openSession(this.client.localAddress, this.clientGuid);
         const clientSession = this.client.openSession(this.server.localAddress, this.serverGuid);
@@ -247,7 +248,7 @@ export default class LoopbackSocket {
         return new Promise<RakNetSession>((resolve, reject) => {
             const timer = setTimeout(() => {
                 this.client.removeListener('openConnection', onOpen);
-                reject(new Error('Loopback handshake timed out'));
+                reject(new RaknetErrors.LoopbackHandshakeTimedOut());
             }, timeoutMs);
             timer.unref();
 

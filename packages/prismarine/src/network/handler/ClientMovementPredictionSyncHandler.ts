@@ -1,6 +1,7 @@
 import type ClientMovementPredictionSyncPacket from '@jsprismarine/protocol/packet/ClientMovementPredictionSyncPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * The client's movement prediction inputs.
@@ -16,7 +17,7 @@ export default class ClientMovementPredictionSyncHandler implements ConnectionLa
     /** Logs the actor, its speeds, and whether it is flying. */
     public handle(packet: ClientMovementPredictionSyncPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a ClientMovementPredictionSyncPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.MovementPredictionSyncNotDecoded();
 
         log.debug(
             `${session.identity.name} predicts actor ${data.actorUniqueId} with speed ${data.movementSpeed}, jump ${data.jumpStrength}, box ${data.boundingBoxWidth}x${data.boundingBoxHeight}, flags 0x${data.actorFlags.toString(16)}${data.actorFlyingState ? ', flying' : ''}`,

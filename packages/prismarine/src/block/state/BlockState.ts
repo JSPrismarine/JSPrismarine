@@ -1,5 +1,6 @@
 import type { BlockStateValue } from '@jsprismarine/blocks';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /**
  * A block state property value, as `@jsprismarine/blocks` defines it. Vanilla only ever uses
@@ -92,7 +93,7 @@ export class BlockState {
                     states.addValue(key, new Types.StringVal(String(value)));
                     break;
                 default:
-                    throw new Error(`Property ${this.name}.${key} has no declared type`);
+                    throw new PrismarineServerErrors.UntypedBlockProperty({ name: this.name, key });
             }
         }
         root.addChild(states);

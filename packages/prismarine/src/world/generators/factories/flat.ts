@@ -13,6 +13,7 @@ import type { SurfaceProbe } from '../../Generator';
 import type { GeneratorFactory } from '../../GeneratorFactories';
 import { bedrockBiomeIdOf } from '../datadriven/javaTranslation';
 import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /**
  * The layers a flat world gets when nobody chose any: bedrock, two of dirt, then grass. The
@@ -161,14 +162,14 @@ export const flatGeneratorFactory: GeneratorFactory = {
         // The stem parser only produces settings for this kind, so a stem of another kind
         // reaching this factory is a registry bug rather than a data error.
         if (generator.type !== FLAT_GENERATOR_KIND || !('settings' in generator)) {
-            throw new TypeError(`The ${context.dimension.id} stem carries no flat generator settings`);
+            throw new PrismarineGenerationErrors.MissingFlatSettings({ id: context.dimension.id });
         }
         const settings =
             typeof generator.settings === 'string'
                 ? presetSettings(context.worldgen(), context.dimension.id, generator.settings)
                 : generator.settings;
         if (!isFlatSettings(settings)) {
-            throw new TypeError(`The ${context.dimension.id} stem carries no flat generator settings`);
+            throw new PrismarineGenerationErrors.MissingFlatSettings({ id: context.dimension.id });
         }
 
         return new FlatGenerator({
@@ -193,9 +194,7 @@ const presetSettings = (
 ): FlatGeneratorSettings => {
     const document = registries.flatLevelGeneratorPresets.get(preset);
     if (document === undefined) {
-        throw new Error(
-            `The ${dimensionType} stem names the flat preset ${preset}, which no worldgen/flat_level_generator_preset document defines`
-        );
+        throw new PrismarineGenerationErrors.UnknownFlatPreset({ dimensionType, preset });
     }
     const path = `worldgen/flat_level_generator_preset/${preset}`;
     const settings =

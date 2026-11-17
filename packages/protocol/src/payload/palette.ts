@@ -27,6 +27,7 @@ import type { BlockProperty } from '../packet/StartGamePacket';
 import { readNetworkNbt } from './nbt';
 
 import type { BlockPalette, BlockStateValue } from '@jsprismarine/blocks';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 export {
     UNKNOWN_BLOCK_NAME,
@@ -116,14 +117,11 @@ export interface PaletteDisagreement {
 }
 
 /** Thrown when a generated block registry would not match the client's. */
-export class BlockPaletteError extends Error {
+export class BlockPaletteError extends ProtocolCodecErrors.BlockPaletteMismatch {
     public override name = 'BlockPaletteError';
 
     public constructor(public readonly disagreements: readonly PaletteDisagreement[]) {
-        super(
-            `the block registry disagrees with the captured palette in ${disagreements.length} place(s), ` +
-                `first: ${disagreements[0]?.block} ${disagreements[0]?.detail}`
-        );
+        super({ count: disagreements.length, block: disagreements[0]?.block, detail: disagreements[0]?.detail });
     }
 }
 

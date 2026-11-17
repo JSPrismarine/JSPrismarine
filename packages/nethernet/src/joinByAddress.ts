@@ -1,20 +1,11 @@
 import { decodeJoinStatus } from './NetherNetStatus';
 import type { NetherNetStatus } from './NetherNetStatus';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /** Where a NetherNet server signals: the TCP side of its game port. */
 export interface SignalingAddress {
     readonly host: string;
     readonly port: number;
-}
-
-/** A failed `POST /v1/join/{networkId}`, with what the server answered. */
-export class JoinRefusedError extends Error {
-    public constructor(
-        public readonly status: number,
-        public readonly body: string
-    ) {
-        super(`The server refused the offer with HTTP ${status}${body === '' ? '' : `: ${body}`}`);
-    }
 }
 
 /** The signaling origin, with an IPv6 host in brackets as a URL needs. */
@@ -68,6 +59,10 @@ export const exchangeOffer = async (
         signal
     });
     const body = await response.text();
-    if (!response.ok) throw new JoinRefusedError(response.status, body);
+    if (!response.ok) {
+        throw body === ''
+            ? new NethernetErrors.JoinRefused({ status: response.status })
+            : new NethernetErrors.JoinRefusedWithBody({ status: response.status, body });
+    }
     return body;
 };

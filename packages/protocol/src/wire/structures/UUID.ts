@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { randomUUID } from 'node:crypto';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** UUID value with conversion helpers for Bedrock's 16-byte protocol representation. */
 export default class UUID {
@@ -32,7 +33,7 @@ export default class UUID {
 
     /** Parses a UUID in canonical hexadecimal form, with or without hyphens. */
     public static fromString(uuid: string, version = 4): UUID {
-        if (!uuid) throw new Error('uuid is null or undefined');
+        if (!uuid) throw new ProtocolWireErrors.MissingUuid();
 
         return UUID.fromBinary(Buffer.from(uuid.trim().replaceAll('-', ''), 'hex'), version);
     }
@@ -40,7 +41,7 @@ export default class UUID {
     /** Reads exactly 16 bytes as four big-endian 32-bit words. */
     public static fromBinary(uuid: Buffer, version: number): UUID {
         if (uuid.byteLength !== 16) {
-            throw new Error('UUID must have 16 bytes');
+            throw new ProtocolWireErrors.InvalidUuidLength();
         }
 
         const stream = new BinaryStream(uuid);

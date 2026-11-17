@@ -17,6 +17,7 @@ import { SINCE_2225, UNTIL_2225 } from '../wireGates';
 
 import type { PayloadOf } from '../define';
 import type { ItemStackRequest } from '../structures/ItemStackRequest';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The most requests one packet carries. The docs cap `Requests` at 100 entries. */
 const MAX_REQUESTS = 100;
@@ -37,9 +38,10 @@ const requestsAt = (protocolVersion: number) =>
         (stream) => {
             const count = stream.readUnsignedVarInt();
             if (count > MAX_REQUESTS) {
-                throw new RangeError(
-                    `An item stack request packet names ${count} requests; the docs allow at most ${MAX_REQUESTS}`
-                );
+                throw new ProtocolWireErrors.TooManyItemStackRequests({
+                    count,
+                    maxRequests: MAX_REQUESTS
+                });
             }
 
             const requests: ItemStackRequest[] = [];

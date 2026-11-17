@@ -1,5 +1,6 @@
 import type { BlockReader } from './BlockReader';
 import type { FilterBlockReader } from './FilterBlock';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /** Current and cumulative point-lookup cache usage. */
 export interface BlockCacheStats {
@@ -48,7 +49,7 @@ export class BlockCache {
     public constructor(byteBudget: number) {
         this.byteBudget = byteBudget;
         if (!Number.isSafeInteger(byteBudget) || byteBudget < 0) {
-            throw new RangeError(`Block cache size must be a non-negative safe integer: ${byteBudget}`);
+            throw new LeveldbErrors.BlockCacheSizeMustBeNonNegative({ byteBudget });
         }
     }
 

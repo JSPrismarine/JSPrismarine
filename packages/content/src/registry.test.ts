@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-
-import { ContentError } from './errors';
 import { Registry } from './registry';
+import { ContentError } from '@jsprismarine/errors/content';
 
 interface Thing {
     hardness: number;

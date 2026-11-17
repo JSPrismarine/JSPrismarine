@@ -2,6 +2,7 @@ import { normalizeIdentifier } from '../identifier';
 import { asObject } from '../json';
 import type { LevelStem } from './LevelStem';
 import { parseLevelStem } from './LevelStem';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** The stem every preset has to define. */
 export const OVERWORLD_STEM_ID = 'minecraft:overworld';
@@ -24,11 +25,14 @@ export const parseWorldPreset = (json: unknown, path = '<world_preset>'): WorldP
     const dimensions = new Map<string, LevelStem>();
     for (const [key, stem] of Object.entries(source)) {
         const id = normalizeIdentifier(key);
-        if (dimensions.has(id)) throw new TypeError(`${path}.dimensions: ${JSON.stringify(id)} is defined twice`);
+        if (dimensions.has(id)) throw new WorldgenErrors.DuplicatePresetDimension({ path, id: JSON.stringify(id) });
         dimensions.set(id, parseLevelStem(stem, `${path}.dimensions[${JSON.stringify(key)}]`));
     }
     if (!dimensions.has(OVERWORLD_STEM_ID)) {
-        throw new TypeError(`${path}.dimensions: a world preset has to define ${JSON.stringify(OVERWORLD_STEM_ID)}`);
+        throw new WorldgenErrors.WorldPresetHasNoOverworld({
+            path,
+            overworldStemId: JSON.stringify(OVERWORLD_STEM_ID)
+        });
     }
     return { dimensions };
 };

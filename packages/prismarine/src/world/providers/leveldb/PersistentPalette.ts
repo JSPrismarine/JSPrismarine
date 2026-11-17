@@ -7,6 +7,7 @@ import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../../../block/state/BlockStateSchema';
 import type { BlockStateValue } from '../../../block/state/BlockState';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 const versionParts = blockSchemas.minecraftVersion.split('.').map(Number);
 const [majorVersion, minorVersion, patchVersion] = versionParts;
@@ -25,7 +26,7 @@ if (
     patchVersion < 0 ||
     patchVersion > 0xff
 ) {
-    throw new Error(`Invalid Minecraft catalog version: ${blockSchemas.minecraftVersion}`);
+    throw new PrismarineWorldErrors.InvalidMinecraftCatalogVersion({ minecraftVersion: blockSchemas.minecraftVersion });
 }
 
 /**
@@ -84,11 +85,11 @@ export const encodePaletteEntry = (runtimeId: number, stream: BinaryStream): voi
 export const paletteEntryCompound = (runtimeId: number): NBTTagCompound => {
     const state = BlockRuntimeIds.getState(runtimeId);
     if (state === null) {
-        throw new Error(`Cannot write runtime id ${runtimeId}: no registered block produces it`);
+        throw new PrismarineWorldErrors.UnsavableRuntimeId({ runtimeId });
     }
 
     const schema = BlockStateSchemas.get(state.name);
-    if (!schema) throw new Error(`No block state schema registered for ${state.name}`);
+    if (!schema) throw new PrismarineWorldErrors.UnknownBlock({ name: state.name });
 
     const compound = state.toNBT(schema.getPropertyTypes());
     compound.addValue('version', new Types.NumberVal(BLOCK_STATE_VERSION));
@@ -111,7 +112,7 @@ export const decodePaletteEntry = (stream: BinaryStream): number => {
 
 export const runtimeIdOf = (compound: NBTTagCompound): number => {
     const name = compound.getString('name', '');
-    if (name.length === 0) throw new Error('Palette entry has no name');
+    if (name.length === 0) throw new PrismarineWorldErrors.UnnamedPaletteEntry();
 
     const schema = BlockStateSchemas.get(name);
     if (!schema) return UNKNOWN_RUNTIME_ID;

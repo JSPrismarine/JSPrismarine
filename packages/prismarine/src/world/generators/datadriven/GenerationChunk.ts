@@ -11,6 +11,7 @@ import { ChunkStatusRegressionError, isOrAfter } from '@jsprismarine/chunkgen';
 
 import type Chunk from '../../chunk/Chunk';
 import type { GenerationRegion, RegionChunkPatch } from './GenerationRegion';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /**
  * What a chunk's merge lays over its terrain tile, gathered by the `full` body.
@@ -26,11 +27,11 @@ export interface MergeInputs {
 }
 
 /** Raised when a status body reads a part of the chunk the status below it never wrote. */
-export class MissingGenerationStateError extends Error {
+export class MissingGenerationStateError extends PrismarineGenerationErrors.MissingGenerationState {
     public override name = 'MissingGenerationStateError';
 
     public constructor(chunkX: number, chunkZ: number, what: string, status: ChunkStatus) {
-        super(`The chunk at ${chunkX}, ${chunkZ} has no ${what} at ${status}, so a status body ran out of order.`);
+        super({ chunkX, chunkZ, what, status });
     }
 }
 

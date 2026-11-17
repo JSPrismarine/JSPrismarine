@@ -4,6 +4,7 @@ import { asArray, asInteger, asNumber, asObject, fail } from '../json';
 import type { Weighted } from '../placement/WorldgenRandom';
 import { normal, randomBetween, randomBetweenInclusive, randomWeighted } from '../placement/WorldgenRandom';
 import { typeNameOf } from '../registry';
+import { FeaturesErrors } from '@jsprismarine/errors/features';
 
 const f32 = Math.fround;
 
@@ -47,7 +48,7 @@ export const constantInt = (value: number): IntProvider => ({
 
 /** A uniform integer in `[min, max]`. Costs one draw. */
 export const uniformInt = (min: number, max: number): IntProvider => {
-    if (max < min) throw new RangeError(`uniform int max ${max} is below min ${min}`);
+    if (max < min) throw new FeaturesErrors.UniformMaxBelowMin({ max, min });
     return {
         type: 'uniform',
         minValue: min,
@@ -58,7 +59,7 @@ export const uniformInt = (min: number, max: number): IntProvider => {
 
 /** A value in `[min, max]` weighted toward `min`. Costs two draws. */
 export const biasedToBottomInt = (min: number, max: number): IntProvider => {
-    if (max < min) throw new RangeError(`biased_to_bottom int max ${max} is below min ${min}`);
+    if (max < min) throw new FeaturesErrors.BiasedToBottomMaxBelowMin({ max, min });
     return {
         type: 'biased_to_bottom',
         minValue: min,
@@ -69,7 +70,7 @@ export const biasedToBottomInt = (min: number, max: number): IntProvider => {
 
 /** A value in `[min, max]` weighted hard toward `min`. Costs three draws. */
 export const veryBiasedToBottomInt = (min: number, max: number): IntProvider => {
-    if (max < min) throw new RangeError(`very_biased_to_bottom int max ${max} is below min ${min}`);
+    if (max < min) throw new FeaturesErrors.VeryBiasedToBottomMaxBelowMin({ max, min });
     return {
         type: 'very_biased_to_bottom',
         minValue: min,
@@ -86,8 +87,8 @@ export const veryBiasedToBottomInt = (min: number, max: number): IntProvider => 
  * two draws from the same bound rather than the general two-draw form.
  */
 export const trapezoidInt = (min: number, max: number, plateau: number): IntProvider => {
-    if (max < min) throw new RangeError(`trapezoid int max ${max} is below min ${min}`);
-    if (plateau > max - min) throw new RangeError(`trapezoid int plateau ${plateau} exceeds the span`);
+    if (max < min) throw new FeaturesErrors.TrapezoidMaxBelowMin({ max, min });
+    if (plateau > max - min) throw new FeaturesErrors.TrapezoidPlateauTooWide({ plateau });
     const range = max - min;
     const plateauStart = Math.trunc((range - plateau) / 2);
     const plateauEnd = range - plateauStart;
@@ -125,7 +126,7 @@ export const clampedNormalInt = (mean: number, deviation: number, min: number, m
 
 /** Picks a nested provider by weight, then draws from it. Costs one draw plus the nested cost. */
 export const weightedListInt = (entries: readonly Weighted<IntProvider>[]): IntProvider => {
-    if (entries.length === 0) throw new RangeError('weighted_list int needs at least one entry');
+    if (entries.length === 0) throw new FeaturesErrors.EmptyWeightedListInt();
     let minValue = Number.POSITIVE_INFINITY;
     let maxValue = Number.NEGATIVE_INFINITY;
     for (const entry of entries) {
@@ -195,7 +196,7 @@ export const parseIntProvider = (source: unknown, path: string): IntProvider => 
                 )
             );
         default:
-            return fail(path, `unknown int provider type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownIntProviderType({ path, type: JSON.stringify(type) }));
     }
 };
 
@@ -283,7 +284,7 @@ export const parseFloatProvider = (source: unknown, path: string): FloatProvider
                 asNumber(raw['max'], `${path}.max`)
             );
         default:
-            return fail(path, `unknown float provider type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownFloatProviderType({ path, type: JSON.stringify(type) }));
     }
 };
 
@@ -299,7 +300,7 @@ export const parseWeightedList = <T>(
     parseEntry: (value: unknown, path: string) => T
 ): Weighted<T>[] => {
     const entries = asArray(source, path);
-    if (entries.length === 0) return fail(path, 'expected a non-empty weighted list');
+    if (entries.length === 0) return fail(new FeaturesErrors.EmptyWeightedList({ path }));
     return entries.map((entry, index) => {
         const entryPath = `${path}[${index}]`;
         const raw = asObject(entry, entryPath);

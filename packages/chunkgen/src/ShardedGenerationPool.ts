@@ -30,6 +30,7 @@ import type {
 import { GenerationPool } from './GenerationPool';
 import type { GenerationStatsSnapshot } from './GenerationStats';
 import { mergeGenerationStats } from './GenerationStats';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /**
  * How wide one region is, in chunks.
@@ -174,7 +175,7 @@ export class ShardedGenerationPool {
         priority: GenerationPriority = 'immediate'
     ): Promise<GenerationResult> {
         const owner = this.shards[shard];
-        if (owner === undefined) throw new RangeError(`Shard ${shard} is outside this pool.`);
+        if (owner === undefined) throw new ChunkgenErrors.ShardOutOfRange({ shard });
         return owner.run(task, priority);
     }
 

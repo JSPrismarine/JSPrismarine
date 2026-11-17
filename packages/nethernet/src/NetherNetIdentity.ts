@@ -7,6 +7,7 @@ import { BEDROCK_CURVE, compactEs384, detachedEs384, verifiesDetachedEs384 } fro
 import { isRecord } from './isRecord';
 import { sdpFingerprints, withoutIdentity, withSessionAttribute } from './sdp';
 import type { SdpFingerprint } from './sdp';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /** How long a signed identity token is valid; go-nethernet and Bedrock Dedicated Server use a minute. */
 const TOKEN_LIFETIME_SECONDS = 60;
@@ -69,7 +70,7 @@ export class NetherNetIdentity {
     ) {
         const publicKey = createPublicKey(privateKey);
         if (publicKey.asymmetricKeyDetails?.namedCurve !== BEDROCK_CURVE) {
-            throw new Error(`A NetherNet identity key must be ${BEDROCK_CURVE}`);
+            throw new NethernetErrors.InvalidIdentityKeyCurve({ bedrockCurve: BEDROCK_CURVE });
         }
         this.x5u = publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
         this.cpk = (options.keyFormat ?? 'jwk') === 'jwk' ? publicKey.export({ format: 'jwk' }) : this.x5u;
@@ -108,7 +109,7 @@ export class NetherNetIdentity {
      */
     public async sign(description: string): Promise<string> {
         const fingerprints = sdpFingerprints(description);
-        if (fingerprints.length === 0) throw new Error('An SDP description without a fingerprint cannot be signed');
+        if (fingerprints.length === 0) throw new NethernetErrors.UnsignableDescription();
 
         const issuedAt = Math.floor(this.now() / 1000);
         const token =
@@ -203,7 +204,7 @@ const claimedKey = (cpk: unknown): KeyObject => {
             return createPublicKey({ key: { kty, crv, x, y }, format: 'jwk' });
         }
     }
-    throw new Error('The identity token has no usable cpk claim');
+    throw new NethernetErrors.IdentityTokenHasNoKey();
 };
 
 /**
@@ -217,15 +218,15 @@ const claimedKey = (cpk: unknown): KeyObject => {
  */
 export const verifySelfSignedIdentity = async (description: string, nowMs = Date.now()): Promise<VerifiedIdentity> => {
     const line = description.split(/\r?\n/).find((candidate) => candidate.startsWith('a=identity:'));
-    if (line === undefined) throw new Error('The description carries no a=identity');
+    if (line === undefined) throw new NethernetErrors.DescriptionHasNoIdentity();
 
     const identity: unknown = JSON.parse(Buffer.from(line.slice('a=identity:'.length), 'base64').toString());
     if (!isRecord(identity) || typeof identity.assertion !== 'string' || !isRecord(identity.idp)) {
-        throw new Error('The a=identity has no assertion');
+        throw new NethernetErrors.IdentityHasNoAssertion();
     }
     const assertion: unknown = JSON.parse(identity.assertion);
     if (!isRecord(assertion) || typeof assertion.token !== 'string' || typeof assertion.fingerprints !== 'string') {
-        throw new Error('The identity assertion is malformed');
+        throw new NethernetErrors.IdentityAssertionIsMalformed();
     }
 
     // The key to check the token with is the one the token names, so it is read unchecked first.
@@ -233,19 +234,20 @@ export const verifySelfSignedIdentity = async (description: string, nowMs = Date
     try {
         claims = decodeJwt(assertion.token);
     } catch {
-        throw new Error('The identity token has no claims');
+        throw new NethernetErrors.IdentityTokenHasNoClaims();
     }
     const publicKey = claimedKey(claims.cpk);
     try {
         await compactVerify(assertion.token, publicKey, { algorithms: ['ES384'] });
     } catch {
-        throw new Error('The identity token is not signed by its own key');
+        throw new NethernetErrors.IdentityTokenNotSelfSigned();
     }
-    if (typeof claims.exp === 'number' && claims.exp < nowMs / 1000) throw new Error('The identity token has expired');
+    if (typeof claims.exp === 'number' && claims.exp < nowMs / 1000)
+        throw new NethernetErrors.IdentityTokenHasExpired();
 
     const fingerprints = canonicalFingerprints(sdpFingerprints(description));
     if (!(await verifiesDetachedEs384(assertion.fingerprints, fingerprints, publicKey))) {
-        throw new Error("The identity does not sign this description's fingerprints");
+        throw new NethernetErrors.IdentityFingerprintMismatch();
     }
 
     return {

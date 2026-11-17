@@ -30,6 +30,7 @@ import { createStartGameData } from '../startGameData';
 import { sendCachedJoinPacket } from '../joinPacketCache';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** The spawn of a world and its level's Overworld spawn, when both are found. */
 const knownSpawns = (world: World): { readonly world: Vector3; readonly overworld: Vector3 } | undefined => {
@@ -92,9 +93,10 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
             definitions: definitions.map((fields) => {
                 const type = types.find((candidate) => candidate.bedrockId === fields.dimensionType);
                 if (type === undefined) {
-                    throw new Error(
-                        `Level ${level.getName()} announces dimension ${fields.dimensionType} without a type`
-                    );
+                    throw new PrismarineNetworkErrors.DimensionWithoutType({
+                        name: level.getName(),
+                        dimensionType: fields.dimensionType
+                    });
                 }
 
                 return {
@@ -290,7 +292,8 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 () =>
                     services.messages.send(world, () => {
                         const found = knownSpawns(world);
-                        if (found === undefined) throw new Error(`${world.getName()} lost its spawn before the join`);
+                        if (found === undefined)
+                            throw new PrismarineNetworkErrors.SpawnLostDuringJoin({ name: world.getName() });
                         session.released(this.sendJoinBurst(context, found));
                     }),
                 (error: unknown) => log.error(error)

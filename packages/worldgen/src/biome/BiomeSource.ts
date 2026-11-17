@@ -4,6 +4,7 @@ import type { ClimateEntry } from './Climate';
 import { ClimateParameterList, parseClimateParameterPoint } from './Climate';
 import type { ClimateParameterIndex } from './Climate';
 import type { ClimateSampler } from './ClimateSampler';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** Returns the biome identifier of one biome cell. */
 export type BiomeResolver = (quartX: number, quartY: number, quartZ: number) => string;
@@ -133,7 +134,7 @@ export class CheckerboardBiomeSource implements BiomeSource {
         /** The square size, as a power of two in biome cells; Java's default is 2. */
         public readonly scale = 2
     ) {
-        if (biomes.length === 0) throw new RangeError('A checkerboard biome source needs at least one biome');
+        if (biomes.length === 0) throw new WorldgenErrors.EmptyCheckerboardBiomeSource();
         this.bitShift = scale + 2;
     }
 
@@ -173,17 +174,17 @@ export class MultiNoiseBiomeSource implements BiomeSource {
             ? source
             : (() => {
                   if (typeof source !== 'object' || source === null) {
-                      throw new TypeError(`${path}: expected an object or an array`);
+                      throw new WorldgenErrors.ExpectedBiomeSource({ path });
                   }
                   // A parsed JSON document is `unknown`; the field is checked right after.
                   const biomes = (source as Record<string, unknown>)['biomes'];
-                  if (!Array.isArray(biomes)) throw new TypeError(`${path}.biomes: expected an array`);
+                  if (!Array.isArray(biomes)) throw new WorldgenErrors.BiomesNotList({ path });
                   return biomes;
               })();
 
         const entries: ClimateEntry<string>[] = list.map((raw, index) => {
             const entryPath = `${path}[${index}]`;
-            if (typeof raw !== 'object' || raw === null) throw new TypeError(`${entryPath}: expected an object`);
+            if (typeof raw !== 'object' || raw === null) throw new WorldgenErrors.ExpectedEntryObject({ entryPath });
             // A parsed JSON document is `unknown`; both fields are checked by their parsers.
             const entry = raw as Record<string, unknown>;
             return {

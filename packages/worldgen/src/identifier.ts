@@ -1,3 +1,5 @@
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
+
 const VALID = /^[a-z0-9_.-]+:[a-z0-9_./-]+$/;
 
 /**
@@ -10,10 +12,10 @@ const VALID = /^[a-z0-9_.-]+:[a-z0-9_./-]+$/;
  */
 export const normalizeIdentifier = (value: unknown): string => {
     if (typeof value !== 'string') {
-        throw new TypeError(`Expected a registry identifier, got ${JSON.stringify(value)}`);
+        throw new WorldgenErrors.ExpectedRegistryIdentifier({ value: JSON.stringify(value) });
     }
     const full = value.includes(':') ? value : `minecraft:${value}`;
-    if (!VALID.test(full)) throw new TypeError(`${JSON.stringify(value)} is not a valid registry identifier`);
+    if (!VALID.test(full)) throw new WorldgenErrors.InvalidRegistryIdentifier({ value: JSON.stringify(value) });
     return full;
 };
 

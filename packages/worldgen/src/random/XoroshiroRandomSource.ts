@@ -11,6 +11,7 @@ import {
     upgradeSeedTo128bit,
     xorSeed
 } from './randomSupport';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 const MASK_64 = 0xffffffffffffffffn;
 const FLOAT_UNIT = f32(5.9604645e-8);
@@ -194,7 +195,7 @@ export class XoroshiroRandomSource implements RandomSource {
             ) ||
             state.lanes.every((lane) => lane === 0)
         ) {
-            throw new TypeError('Invalid xoroshiro random source state');
+            throw new WorldgenErrors.InvalidXoroshiroRandomSourceState();
         }
 
         const gaussian = new MarsagliaPolarGaussian(this);
@@ -216,7 +217,7 @@ export class XoroshiroRandomSource implements RandomSource {
     /** Returns the high `bits` from the next output without constructing a 64-bit bigint. */
     public nextBits(bits: number): number {
         if (!Number.isInteger(bits) || bits < 0 || bits > 32) {
-            throw new RangeError(`Bit count must be an integer in [0, 32], got ${bits}`);
+            throw new WorldgenErrors.InvalidBitCount({ bits });
         }
         this.advance();
         if (bits === 0) return 0;
@@ -232,7 +233,7 @@ export class XoroshiroRandomSource implements RandomSource {
 
     /** @inheritDoc */
     public nextIntBounded(bound: number): number {
-        if (bound <= 0) throw new RangeError('Bound must be positive');
+        if (bound <= 0) throw new WorldgenErrors.BoundMustBePositive();
 
         this.advance();
         let high = this.productHigh32(this.outLo >>> 0, bound);

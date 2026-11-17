@@ -1,6 +1,6 @@
 export type { EventBus, EventListener, EventMap, KernelEventBusOptions, ListenerErrorHandler } from './events';
 export { KernelEventBus } from './events';
-export { Kernel, KernelError } from './kernel';
+export { Kernel } from './kernel';
 export type { KernelOptions } from './kernel';
 export { consoleLogger, scopedLogger } from './logger';
 export type { KernelLogger } from './logger';

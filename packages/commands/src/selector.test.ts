@@ -1,13 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../.test/reportProgress';
 
-import {
-    BEDROCK_BASE_SELECTORS,
-    JAVA_BASE_SELECTORS,
-    JAVA_SELECTOR_ARGUMENTS,
-    SelectorSyntaxError,
-    parseSelector
-} from './selector';
+import { BEDROCK_BASE_SELECTORS, JAVA_BASE_SELECTORS, JAVA_SELECTOR_ARGUMENTS, parseSelector } from './selector';
+import { SelectorSyntaxError } from '@jsprismarine/errors/commands';
 
 describe('the base selectors', () => {
     it('gives Java the six EntitySelectorParser names and Bedrock those plus @initiator', () => {

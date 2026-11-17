@@ -84,6 +84,7 @@ import {
     worldPersistenceDataOf,
     worldPersistenceJsonOf
 } from '../../WorldPersistence';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** The `Version` byte written since 1.21.120. Older values make the game run upgrade passes. */
 export const CHUNK_VERSION = 42;
@@ -137,7 +138,7 @@ const decodeReplaySnapshot = (bytes: Uint8Array): LevelDBReplaySnapshot => {
     try {
         value = JSON.parse(Buffer.from(bytes).toString('utf8'));
     } catch {
-        throw new TypeError('Invalid LevelDB replay snapshot JSON');
+        throw new PrismarineWorldErrors.InvalidReplaySnapshotJson();
     }
 
     if (
@@ -148,20 +149,20 @@ const decodeReplaySnapshot = (bytes: Uint8Array): LevelDBReplaySnapshot => {
         !Array.isArray(value['playerData']) ||
         !recordOf(value['files'])
     ) {
-        throw new TypeError('Unsupported or invalid LevelDB replay snapshot');
+        throw new PrismarineWorldErrors.UnsupportedReplaySnapshot();
     }
 
     const entries: [string, string][] = [];
     const seenKeys = new Set<string>();
     for (const entry of value['entries']) {
         if (!Array.isArray(entry) || entry.length !== 2) {
-            throw new TypeError('Invalid LevelDB replay snapshot entry');
+            throw new PrismarineWorldErrors.InvalidReplaySnapshotEntry();
         }
 
         const key = entry[0];
         const item = entry[1];
         if (!isCanonicalBase64(key) || !isCanonicalBase64(item) || seenKeys.has(key)) {
-            throw new TypeError('Invalid LevelDB replay snapshot entry');
+            throw new PrismarineWorldErrors.InvalidReplaySnapshotEntry();
         }
         seenKeys.add(key);
         entries.push([key, item]);
@@ -176,19 +177,19 @@ const decodeReplaySnapshot = (bytes: Uint8Array): LevelDBReplaySnapshot => {
         !(levelDatOld === null || isCanonicalBase64(levelDatOld)) ||
         !isCanonicalBase64(levelName)
     ) {
-        throw new TypeError('Invalid LevelDB replay snapshot files');
+        throw new PrismarineWorldErrors.InvalidReplaySnapshotFiles();
     }
     try {
         decodeLevelDat(Buffer.from(levelDat, 'base64'));
     } catch {
-        throw new TypeError('Invalid LevelDB replay snapshot level.dat');
+        throw new PrismarineWorldErrors.InvalidReplaySnapshotLevelDat();
     }
 
     const playerData: [string, string][] = [];
     const seenPlayerFiles = new Set<string>();
     for (const entry of value['playerData']) {
         if (!Array.isArray(entry) || entry.length !== 2) {
-            throw new TypeError('Invalid LevelDB replay snapshot player data');
+            throw new PrismarineWorldErrors.InvalidReplaySnapshotPlayerData();
         }
 
         const name = entry[0];
@@ -203,7 +204,7 @@ const decodeReplaySnapshot = (bytes: Uint8Array): LevelDBReplaySnapshot => {
             !isCanonicalBase64(contents) ||
             seenPlayerFiles.has(name)
         ) {
-            throw new TypeError('Invalid LevelDB replay snapshot player data');
+            throw new PrismarineWorldErrors.InvalidReplaySnapshotPlayerData();
         }
         seenPlayerFiles.add(name);
         playerData.push([name, contents]);
@@ -412,7 +413,9 @@ export default class LevelDB extends BaseProvider {
                   .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0))
                   .map((entry) => {
                       if (!entry.isFile() || !entry.name.endsWith('.json')) {
-                          throw new Error(`Cannot capture unsupported replay player data entry '${entry.name}'`);
+                          throw new PrismarineWorldErrors.UncapturablePlayerDataEntry({
+                              name: entry.name
+                          });
                       }
                       return [
                           entry.name,
@@ -448,15 +451,14 @@ export default class LevelDB extends BaseProvider {
      * @throws {Error} When this provider is enabled, its player-data path is invalid, or a file write fails.
      */
     public async restoreReplaySnapshot(bytes: Uint8Array): Promise<void> {
-        if (this.database !== null)
-            throw new Error('Cannot restore a replay snapshot while the LevelDB provider is enabled');
+        if (this.database !== null) throw new PrismarineWorldErrors.RestoreIntoOpenWorld();
 
         const snapshot = decodeReplaySnapshot(bytes);
         const playerDataPath = path.join(this.getPath(), PLAYER_DATA_FOLDER);
         if (fs.existsSync(playerDataPath)) {
             const playerDataStats = fs.lstatSync(playerDataPath);
             if (playerDataStats.isSymbolicLink() || !playerDataStats.isDirectory()) {
-                throw new Error('Cannot restore replay player data into a non-directory path');
+                throw new PrismarineWorldErrors.PlayerDataPathNotFolder();
             }
         }
 
@@ -575,7 +577,7 @@ export default class LevelDB extends BaseProvider {
     }
 
     private requireDatabase(): Database {
-        if (!this.database) throw new Error('The world provider is not enabled');
+        if (!this.database) throw new PrismarineWorldErrors.WorldStorageClosed();
 
         return this.database;
     }
@@ -949,7 +951,7 @@ export default class LevelDB extends BaseProvider {
 
         return {
             cutChunk: (chunk, context) => {
-                if (!open) throw new Error('This save pass has already committed');
+                if (!open) throw new PrismarineWorldErrors.SavePassCommitted();
                 const cut = this.cutChunk(batch, chunk, context, { encoded, bypassed });
                 pending += cut.pending;
                 cuts.push(cut);
@@ -1360,7 +1362,7 @@ export default class LevelDB extends BaseProvider {
         const encoded = this.readActorNbt(value).getString('Data', '');
         if (encoded.length === 0) return [];
         const parsed: unknown = JSON.parse(encoded);
-        if (!Array.isArray(parsed)) throw new Error('Pending actor migration data is not an array');
+        if (!Array.isArray(parsed)) throw new PrismarineWorldErrors.InvalidActorMigration();
 
         return parsed.flatMap((entry) => {
             if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) return [];
@@ -1550,7 +1552,7 @@ export default class LevelDB extends BaseProvider {
             return uniqueId;
         }
 
-        throw new Error('Could not allocate a unique actor id after 32 attempts');
+        throw new PrismarineWorldErrors.ActorIdsExhausted();
     }
 
     private writeActorNbt(nbt: NBTTagCompound): Buffer {

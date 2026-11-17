@@ -4,6 +4,7 @@ import type { VerticalAnchor, WorldGenerationContext } from '../surface/Vertical
 import { parseVerticalAnchor, resolveAnchorY } from '../surface/VerticalAnchor';
 import { randomBetween } from './trig';
 import { asObject, integer, number } from '../json';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** A single-precision value provider: a constant, a uniform draw or a trapezoid draw. */
 export type FloatProvider =
@@ -25,7 +26,7 @@ export type HeightProvider =
 
 const providerType = (raw: Record<string, unknown>, path: string): string => {
     const type = raw['type'];
-    if (typeof type !== 'string') throw new TypeError(`${path}.type: expected a string, got ${JSON.stringify(type)}`);
+    if (typeof type !== 'string') throw new WorldgenErrors.TypeNotString({ path, type: JSON.stringify(type) });
     return type.startsWith('minecraft:') ? type.slice('minecraft:'.length) : type;
 };
 
@@ -54,7 +55,7 @@ export const parseFloatProvider = (source: unknown, path = '<float_provider>'): 
                 plateau: f32(number(raw['plateau'], `${path}.plateau`))
             };
         default:
-            throw new TypeError(`${path}: unknown float provider type ${JSON.stringify(raw['type'])}`);
+            throw new WorldgenErrors.UnknownFloatProviderType({ path, type: JSON.stringify(raw['type']) });
     }
 };
 
@@ -75,7 +76,7 @@ export const parseIntProvider = (source: unknown, path = '<int_provider>'): IntP
             maxInclusive: integer(raw['max_inclusive'], `${path}.max_inclusive`)
         };
     }
-    throw new TypeError(`${path}: unknown int provider type ${JSON.stringify(raw['type'])}`);
+    throw new WorldgenErrors.UnknownIntProviderType({ path, type: JSON.stringify(raw['type']) });
 };
 
 /**
@@ -95,7 +96,7 @@ export const parseHeightProvider = (source: unknown, path = '<height_provider>')
                 maxInclusive: parseVerticalAnchor(raw['max_inclusive'], `${path}.max_inclusive`)
             };
         default:
-            throw new TypeError(`${path}: unknown height provider type ${JSON.stringify(raw['type'])}`);
+            throw new WorldgenErrors.UnknownHeightProviderType({ path, type: JSON.stringify(raw['type']) });
     }
 };
 

@@ -61,7 +61,8 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/items",
     "dependencies": {
-        "@jsprismarine/content": "workspace:*"
+        "@jsprismarine/content": "workspace:*",
+        "@jsprismarine/errors": "workspace:*"
     },
     "devDependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",

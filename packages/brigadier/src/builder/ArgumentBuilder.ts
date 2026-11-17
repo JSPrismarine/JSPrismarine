@@ -5,6 +5,7 @@ import CommandNode from '../tree/CommandNode';
 import RootCommandNode from '../tree/RootCommandNode';
 import type Predicate from '../Predicate';
 import type CommandContext from '../context/CommandContext';
+import { BrigadierErrors } from '@jsprismarine/errors/brigadier';
 
 abstract class ArgumentBuilder<S, T extends ArgumentBuilder<S, T>> {
     private args: RootCommandNode<S> = new RootCommandNode();
@@ -23,7 +24,7 @@ abstract class ArgumentBuilder<S, T extends ArgumentBuilder<S, T>> {
 
     public then(arg: ArgumentBuilder<S, any> | CommandNode<S>): T {
         if (this.target != null) {
-            throw new Error('Cannot add children to a redirected node');
+            throw new BrigadierErrors.CannotAddChildrenToRedirectedNode();
         }
 
         if (arg instanceof CommandNode) this.args.addChild(arg);
@@ -68,7 +69,7 @@ abstract class ArgumentBuilder<S, T extends ArgumentBuilder<S, T>> {
 
     public forward(target: CommandNode<S>, modifier: RedirectModifier<S> | null, fork: boolean): T {
         if (this.args.getChildrenCount() > 0) {
-            throw new Error('Cannot forward a node with children');
+            throw new BrigadierErrors.CannotForwardNodeWithChildren();
         }
 
         this.target = target;

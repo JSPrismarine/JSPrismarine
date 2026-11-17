@@ -1,5 +1,6 @@
 import { ByteReader } from '../util/ByteReader';
 import { ByteWriter } from '../util/ByteWriter';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /** Where a block lives in a table file. Encoded as two varint64s wherever it appears. */
 export interface BlockHandle {
@@ -41,7 +42,7 @@ export const encodeFooter = (footer: Footer): Buffer => {
 
     const handles = writer.finish();
     if (handles.byteLength > FOOTER_LENGTH - 8) {
-        throw new RangeError('Block handles do not fit in the footer');
+        throw new LeveldbErrors.FooterHandlesTooLarge();
     }
 
     const encoded = Buffer.alloc(FOOTER_LENGTH);
@@ -52,11 +53,11 @@ export const encodeFooter = (footer: Footer): Buffer => {
 
 export const decodeFooter = (encoded: Buffer): Footer => {
     if (encoded.byteLength !== FOOTER_LENGTH) {
-        throw new RangeError(`Footer is ${encoded.byteLength} bytes, expected ${FOOTER_LENGTH}`);
+        throw new LeveldbErrors.FooterWrongSize({ byteLength: encoded.byteLength, footerLength: FOOTER_LENGTH });
     }
 
     if (encoded.readBigUInt64LE(FOOTER_LENGTH - 8) !== TABLE_MAGIC) {
-        throw new Error('Not a LevelDB table: the footer magic does not match');
+        throw new LeveldbErrors.NotLeveldbTable();
     }
 
     const reader = new ByteReader(encoded, 0, FOOTER_LENGTH - 8);

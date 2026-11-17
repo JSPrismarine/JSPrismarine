@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChunkStatus } from './ChunkStatus';
 import { CHUNK_STATUSES } from './ChunkStatus';
 import { GENERATION_PYRAMID, RADIUS_AROUND_FULL_CHUNK, SAFETY_MARGIN_CHUNKS } from './ChunkPyramid';
-import { ChunkReadOutOfWindowError } from './ChunkStep';
+import { ChunkgenErrors, ChunkReadOutOfWindowError } from '@jsprismarine/errors/chunkgen';
 
 const repeat = (status: ChunkStatus, count: number): ChunkStatus[] => Array.from({ length: count }, () => status);
 
@@ -222,11 +222,13 @@ describe('the read window', () => {
             expect.unreachable('the read should have thrown');
         } catch (error) {
             expect(error).toBeInstanceOf(ChunkReadOutOfWindowError);
-            const thrown: ChunkReadOutOfWindowError = error as ChunkReadOutOfWindowError;
-            expect(thrown.step).toBe('features');
-            expect(thrown.distance).toBe(2);
-            expect(thrown.requested).toBe('terrain');
-            expect(thrown.allowed).toBe('structure_starts');
+            if (!(error instanceof ChunkgenErrors.ChunkReadPastGuarantee)) throw error;
+            expect(error.params).toEqual({
+                step: 'features',
+                distance: 2,
+                requested: 'terrain',
+                allowed: 'structure_starts'
+            });
         }
     });
 

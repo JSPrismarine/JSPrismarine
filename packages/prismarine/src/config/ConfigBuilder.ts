@@ -4,6 +4,7 @@ import path from 'node:path';
 import { parseConfigDocument } from './ConfigDocument';
 import type { ConfigDocument, ConfigPath } from './ConfigDocument';
 import { toJsonFileContents } from './JsonFile';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** What a whole config file holds once parsed: a map from key to whatever the file says. */
 export type ConfigData = Record<string, unknown>;
@@ -63,7 +64,7 @@ export class ConfigBuilder {
     public constructor(filePath: string, keyOrder?: readonly string[]) {
         const parsed = path.parse(filePath);
         if (parsed.ext.toLowerCase() !== '.json') {
-            throw new Error('Unsupported config type. (Supported types: json)');
+            throw new PrismarineServerErrors.UnsupportedConfigType();
         }
 
         this.keyOrder = keyOrder;
@@ -98,7 +99,7 @@ export class ConfigBuilder {
             return parseConfigDocument(raw, this.keyOrder);
         } catch (error: unknown) {
             const detail = error instanceof Error ? error.message : String(error);
-            throw new Error(`Cannot read ${this.path}: ${detail}`, { cause: error });
+            throw new PrismarineServerErrors.ConfigNotReadable({ path: this.path, detail }, { cause: error });
         }
     }
 

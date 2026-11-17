@@ -17,8 +17,9 @@ import type { RandomSource } from './random';
 import type { Placement } from './transform';
 import { stateDomainsOf, transformBedrockState } from './transform';
 import type { BedrockBlockState, BedrockStructureTemplate, TemplatePosition } from './types';
-import { NO_BLOCK, StructureFormatError } from './types';
+import { NO_BLOCK } from './types';
 import { isRecord } from './isRecord';
+import { StructuresErrors } from '@jsprismarine/errors/structures';
 
 /** The eleven `worldgen/structure_processor` types Java 26.3 registers. */
 export const PROCESSOR_TYPES = [
@@ -138,7 +139,7 @@ const bedrockStateOf = (value: unknown, what: string): BedrockBlockState => {
             : isRecord(value)
               ? (stringAt(value, 'Name') ?? stringAt(value, 'id'))
               : undefined;
-    if (javaId === undefined) throw new StructureFormatError(`${what}: expected a block state`);
+    if (javaId === undefined) throw new StructuresErrors.ExpectedBlockState({ what });
 
     const rawProperties = isRecord(value) ? (value.Properties ?? value.properties) : undefined;
     const properties: Record<string, string> = {};
@@ -149,7 +150,7 @@ const bedrockStateOf = (value: unknown, what: string): BedrockBlockState => {
     }
 
     const result = javaBlockStateToBedrock(javaId, properties);
-    if (result.kind === 'unknown') throw new StructureFormatError(`${what}: ${javaId} is not a Java 26.3 block state`);
+    if (result.kind === 'unknown') throw new StructuresErrors.UnknownJavaBlockState({ what, javaId });
     return result.bedrock;
 };
 
@@ -168,7 +169,7 @@ const sameState = (left: BedrockBlockState, right: BedrockBlockState): boolean =
 type RuleTest = (state: BedrockBlockState, worldY: number, context: ProcessorContext) => boolean;
 
 const createRuleTest = (definition: unknown): RuleTest => {
-    if (!isRecord(definition)) throw new StructureFormatError('rule test: expected an object');
+    if (!isRecord(definition)) throw new StructuresErrors.RuleTestExpectedObject();
     const type = stringAt(definition, 'predicate_type');
     switch (type) {
         case 'minecraft:always_true':
@@ -193,7 +194,7 @@ const createRuleTest = (definition: unknown): RuleTest => {
         }
         case 'minecraft:tag_match': {
             const tag = stringAt(definition, 'tag');
-            if (tag === undefined) throw new StructureFormatError('tag_match: no tag');
+            if (tag === undefined) throw new StructuresErrors.TagMatchNoTag();
             return (state, _worldY, context) => context.hasTag?.(state.name, tag) ?? false;
         }
         case 'minecraft:height_match': {
@@ -214,12 +215,12 @@ const createRuleTest = (definition: unknown): RuleTest => {
             return (state, worldY, context) => tests.some((test) => test(state, worldY, context));
         }
         default:
-            throw new StructureFormatError(`rule test: unknown predicate_type ${String(type)}`);
+            throw new StructuresErrors.RuleTestUnknownPredicateType({ type: String(type) });
     }
 };
 
 const listOfTests = (value: unknown, what: string): RuleTest[] => {
-    if (!Array.isArray(value)) throw new StructureFormatError(`${what}: expected a list of tests`);
+    if (!Array.isArray(value)) throw new StructuresErrors.ExpectedListOfTests({ what });
     return value.map(createRuleTest);
 };
 
@@ -238,7 +239,7 @@ const inverseLerp = (value: number, start: number, end: number): number => (valu
 
 const createPosRuleTest = (definition: unknown): PosRuleTest => {
     if (definition === undefined) return () => true;
-    if (!isRecord(definition)) throw new StructureFormatError('position test: expected an object');
+    if (!isRecord(definition)) throw new StructuresErrors.PositionTestExpectedObject();
     const type = stringAt(definition, 'predicate_type');
     const minChance = numberAt(definition, 'min_chance', 0);
     const maxChance = numberAt(definition, 'max_chance', 0);
@@ -267,7 +268,7 @@ const createPosRuleTest = (definition: unknown): PosRuleTest => {
                 return context.random.nextFloat() < chance;
             };
         default:
-            throw new StructureFormatError(`position test: unknown predicate_type ${String(type)}`);
+            throw new StructuresErrors.PositionTestUnknownPredicateType({ type: String(type) });
     }
 };
 
@@ -276,7 +277,7 @@ type BlockEntityModifier = (existing: NBTTagCompound | undefined) => NBTTagCompo
 
 const createBlockEntityModifier = (definition: unknown): BlockEntityModifier => {
     if (definition === undefined) return () => undefined;
-    if (!isRecord(definition)) throw new StructureFormatError('block entity modifier: expected an object');
+    if (!isRecord(definition)) throw new StructuresErrors.BlockEntityModifierExpectedObject();
     const type = stringAt(definition, 'type');
     switch (type) {
         case 'minecraft:passthrough':
@@ -285,7 +286,7 @@ const createBlockEntityModifier = (definition: unknown): BlockEntityModifier => 
             return () => undefined;
         case 'minecraft:append_loot': {
             const lootTable = stringAt(definition, 'loot_table');
-            if (lootTable === undefined) throw new StructureFormatError('append_loot: no loot_table');
+            if (lootTable === undefined) throw new StructuresErrors.AppendLootNoLootTable();
             return (existing) => {
                 const compound = existing ?? new NBTCompound();
                 compound.addValue('LootTable', new Types.StringVal(lootTable));
@@ -298,7 +299,7 @@ const createBlockEntityModifier = (definition: unknown): BlockEntityModifier => 
             // append is left to the block entity registry.
             return (existing) => existing;
         default:
-            throw new StructureFormatError(`block entity modifier: unknown type ${String(type)}`);
+            throw new StructuresErrors.BlockEntityModifierUnknownType({ type: String(type) });
     }
 };
 
@@ -327,9 +328,9 @@ const worldPositionOf = (pos: TemplatePosition, origin: TemplatePosition): Templ
 
 const createRuleProcessor = (definition: Record<string, unknown>): StructureProcessor => {
     const raw = definition.rules;
-    if (!Array.isArray(raw)) throw new StructureFormatError('rule processor: no rules');
+    if (!Array.isArray(raw)) throw new StructuresErrors.RuleProcessorNoRules();
     const rules: ProcessorRule[] = raw.map((entry) => {
-        if (!isRecord(entry)) throw new StructureFormatError('rule processor: a rule is not an object');
+        if (!isRecord(entry)) throw new StructuresErrors.RuleProcessorRuleIsNotObject();
         return {
             input: createRuleTest(entry.input_predicate),
             location: createRuleTest(entry.location_predicate),
@@ -488,7 +489,7 @@ const createBlackstoneReplaceProcessor = (): StructureProcessor => {
 
 const sampleIntProvider = (value: unknown, random: RandomSource, what: string): number => {
     if (typeof value === 'number') return value;
-    if (!isRecord(value)) throw new StructureFormatError(`${what}: expected an int provider`);
+    if (!isRecord(value)) throw new StructuresErrors.ExpectedIntProvider({ what });
     const type = stringAt(value, 'type');
     if (type === 'minecraft:constant') return numberAt(value, 'value', 0);
     if (type === 'minecraft:uniform' || type === undefined) {
@@ -496,7 +497,7 @@ const sampleIntProvider = (value: unknown, random: RandomSource, what: string): 
         const max = numberAt(value, 'max_inclusive', min);
         return min + random.nextInt(max - min + 1);
     }
-    throw new StructureFormatError(`${what}: unsupported int provider ${type}`);
+    throw new StructuresErrors.UnsupportedIntProvider({ what, type });
 };
 
 /** The highest value an int provider can return, which `capped` checks before doing any work. */
@@ -565,7 +566,7 @@ const shuffled = <T>(values: T[], random: RandomSource): T[] => {
  * a block state the pinned Java version does not have.
  */
 export const createProcessor = (definition: unknown): StructureProcessor => {
-    if (!isRecord(definition)) throw new StructureFormatError('processor: expected an object');
+    if (!isRecord(definition)) throw new StructuresErrors.ProcessorExpectedObject();
     const type = stringAt(definition, 'processor_type');
 
     switch (type) {
@@ -575,7 +576,7 @@ export const createProcessor = (definition: unknown): StructureProcessor => {
             return createRuleProcessor(definition);
         case 'minecraft:block_ignore': {
             const raw = definition.blocks;
-            if (!Array.isArray(raw)) throw new StructureFormatError('block_ignore: no blocks');
+            if (!Array.isArray(raw)) throw new StructuresErrors.BlockIgnoreNoBlocks();
             const ignored = new Set(raw.map((entry) => bedrockIdentifierOf(entry, 'block_ignore')));
             return {
                 type: 'minecraft:block_ignore',
@@ -613,7 +614,7 @@ export const createProcessor = (definition: unknown): StructureProcessor => {
         }
         case 'minecraft:protected_blocks': {
             const tag = stringAt(definition, 'value')?.replace(/^#/, '');
-            if (tag === undefined) throw new StructureFormatError('protected_blocks: no value');
+            if (tag === undefined) throw new StructuresErrors.ProtectedBlocksNoValue();
             return {
                 type: 'minecraft:protected_blocks',
                 process: (block, context) => {
@@ -658,7 +659,7 @@ export const createProcessor = (definition: unknown): StructureProcessor => {
         case 'minecraft:capped':
             return createCappedProcessor(definition);
         default:
-            throw new StructureFormatError(`processor: unknown processor_type ${String(type)}`);
+            throw new StructuresErrors.ProcessorUnknownProcessorType({ type: String(type) });
     }
 };
 
@@ -692,7 +693,7 @@ export const createProcessorList = (definition: unknown): StructureProcessor[] =
         : isRecord(definition) && Array.isArray(definition.processors)
           ? definition.processors
           : undefined;
-    if (processors === undefined) throw new StructureFormatError('processor list: no processors');
+    if (processors === undefined) throw new StructuresErrors.ProcessorListNoProcessors();
     return processors.map(createProcessor);
 };
 

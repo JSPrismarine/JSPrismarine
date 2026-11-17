@@ -11,6 +11,7 @@ import type { PackMcmeta } from './mcmeta';
 import type { DefinitionValidator } from './validation';
 import { isZip, readZip } from './zip';
 import { isRecord } from './isRecord';
+import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /**
  * The Java half of the pack stack: reads one datapack from a directory or a
@@ -80,7 +81,7 @@ const readDatapackFiles = (path: string): DatapackContents => {
     }
 
     const bytes = readFileSync(path);
-    if (!isZip(bytes)) throw new Error(`${path} is neither a directory nor a zip archive`);
+    if (!isZip(bytes)) throw new PacksErrors.NotDatapack({ path });
     for (const [name, data] of readZip(bytes)) {
         if (!isSafePath(name)) continue;
         paths.push(name);

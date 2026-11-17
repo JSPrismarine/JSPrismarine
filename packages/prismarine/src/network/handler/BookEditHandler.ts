@@ -5,6 +5,7 @@ import type { BookEdit } from '@jsprismarine/protocol/packet/BookEditPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ReadLaneHandler } from './SessionHandler';
 import type { StorePlayer } from '../../entity/storePlayer';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** The only item a book edit can apply to. Signing turns it into a written book. */
 const WRITABLE_BOOK = 'minecraft:writable_book';
@@ -58,7 +59,7 @@ export default class BookEditHandler implements ReadLaneHandler<BookEditPacket> 
             return;
         }
 
-        if (data === null) throw new Error('BookEditPacket has no payload after validation');
+        if (data === null) throw new PrismarineNetworkErrors.BookEditNotDecoded();
         const operation = data.operation;
         const edit =
             operation.action === BookEditAction.Finalize

@@ -13,6 +13,7 @@ import type { CompletionResult } from './input/inputBar';
 import { LogStore } from './log/logStore';
 import type { SourceLocation } from './log/sourceLocation';
 import { resolveTheme } from './theme';
+import { ConsoleErrors } from '@jsprismarine/errors/console';
 
 /** The console's view of the server link: it receives server messages and sends console messages. */
 export type ServerLink = MessageLink<ServerMessage, ConsoleMessage>;
@@ -144,7 +145,7 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
             experimental_nativeInput: true
         });
     } catch (error) {
-        throw new Error(`The console could not start its renderer: ${errorText(error)}`, { cause: error });
+        throw new ConsoleErrors.RendererFailed({ errorText: errorText(error) }, { cause: error });
     }
 
     let closed = false;
@@ -172,27 +173,27 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
     let link: ServerLink | undefined;
     let detachLink: (() => void) | undefined;
 
-    const failPending = (reason: string): void => {
+    const failPending = (reason: () => Error): void => {
         for (const [id, request] of pending) {
             clearTimeout(request.timer);
-            request.reject(new Error(reason));
+            request.reject(reason());
             pending.delete(id);
         }
     };
 
     function request<T extends ResultType>(type: T, build: (id: string) => ConsoleMessage): Promise<ResultMessage<T>> {
         const target = link;
-        if (target === undefined) return Promise.reject(new Error('server is not running'));
+        if (target === undefined) return Promise.reject(new ConsoleErrors.ServerIsNotRunning());
         const id = randomUUID();
         return new Promise<ResultMessage<T>>((resolve, reject) => {
             const timer = setTimeout(() => {
                 pending.delete(id);
-                reject(new Error(`no answer from the server after ${REQUEST_TIMEOUT_MS / 1000} s`));
+                reject(new ConsoleErrors.RequestTimedOut({ value: REQUEST_TIMEOUT_MS / 1000 }));
             }, REQUEST_TIMEOUT_MS);
             pending.set(id, {
                 resolve: (message) => {
                     if (message.type === type) resolve(message as ResultMessage<T>);
-                    else reject(new Error(`expected ${type}, got ${message.type}`));
+                    else reject(new ConsoleErrors.UnexpectedReply({ type, messageType: message.type }));
                 },
                 reject,
                 timer
@@ -231,7 +232,7 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
             async openSourceLocation(location: SourceLocation): Promise<void> {
                 const editor = env.VISUAL?.trim() || env.EDITOR;
                 if (editor === undefined || editor.trim() === '') {
-                    throw new Error('set VISUAL or EDITOR to open source locations');
+                    throw new ConsoleErrors.NoEditorSet();
                 }
                 await renderer.suspend();
                 try {
@@ -260,7 +261,7 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
         detachLink = undefined;
         link = next;
         if (next === undefined) {
-            failPending('server link closed');
+            failPending(() => new ConsoleErrors.ServerLinkClosed());
             app.setDisabled(true);
             return;
         }
@@ -295,7 +296,7 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
             offEvent();
             offLink();
             detachLink?.();
-            failPending('console closed');
+            failPending(() => new ConsoleErrors.ConsoleClosed());
             app.dispose();
             try {
                 await history.save(historyFile);

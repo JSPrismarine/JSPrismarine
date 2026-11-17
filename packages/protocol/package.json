@@ -84,6 +84,7 @@
         "@jsprismarine/binaryutils": "workspace:*",
         "@jsprismarine/blocks": "workspace:*",
         "@jsprismarine/content": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/items": "workspace:*",
         "@jsprismarine/math": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",

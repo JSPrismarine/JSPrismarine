@@ -1,5 +1,6 @@
 import type { ProtocolCodec } from './ProtocolCodec';
 import type NetworkPacket from './NetworkPacket';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /** Packet class names allowed before a client announces its protocol version. */
 export const HANDSHAKE_PACKET_NAMES = [
@@ -19,7 +20,7 @@ export const createHandshakeCodec = (baseCodec: ProtocolCodec): ProtocolCodec =>
     const ids: Record<string, number> = {};
     for (const name of HANDSHAKE_PACKET_NAMES) {
         const id = baseCodec.netIdOf(name);
-        if (id === undefined) throw new Error(`Handshake packet ${name} has no id in the base codec!`);
+        if (id === undefined) throw new ProtocolCodecErrors.HandshakePacketHasNoId({ name });
         ids[name] = id;
     }
 

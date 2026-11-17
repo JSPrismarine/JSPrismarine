@@ -10,6 +10,7 @@ import { replaceFileAtomically } from '@jsprismarine/leveldb';
 import type { FlatGeneratorSettings, GeneratorDefinition } from '@jsprismarine/worldgen';
 
 import { bedrockBiomeIdOf } from '../../generators/datadriven/javaTranslation';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * `level.dat`, and the `levelname.txt` beside it.
@@ -38,7 +39,10 @@ export interface LevelDat {
 
 export const decodeLevelDat = (data: Buffer): LevelDat => {
     if (data.byteLength < HEADER_BYTES) {
-        throw new Error(`level.dat is ${data.byteLength} bytes, the header alone is ${HEADER_BYTES}`);
+        throw new PrismarineWorldErrors.LevelDatTruncated({
+            byteLength: data.byteLength,
+            headerBytes: HEADER_BYTES
+        });
     }
 
     const storageVersion = data.readInt32LE(0);
@@ -46,7 +50,7 @@ export const decodeLevelDat = (data: Buffer): LevelDat => {
     const payload = data.subarray(HEADER_BYTES);
 
     if (declared !== payload.byteLength) {
-        throw new Error(`level.dat declares ${declared} bytes of payload but carries ${payload.byteLength}`);
+        throw new PrismarineWorldErrors.LevelDatSizeMismatch({ declared, byteLength: payload.byteLength });
     }
 
     const reader = new NBTReader(new BinaryStream(payload), ByteOrder.LITTLE_ENDIAN);

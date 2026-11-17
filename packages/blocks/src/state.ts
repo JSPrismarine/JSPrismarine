@@ -1,7 +1,6 @@
 import { blockSchemas } from '@jsprismarine/minecraft/generated/block-schemas';
-
-import { BlockError } from './errors';
 import type { BlockStateValue } from './hooks';
+import { BlocksErrors } from '@jsprismarine/errors/blocks';
 
 /** How a block state's values are written: a bit, a number or a name. */
 export type BlockStateType = 'bool' | 'int' | 'string';
@@ -56,8 +55,8 @@ export class BlockStateModel {
 
         const byName = new Map<string, { definition: BlockStateDefinition; position: number }>();
         for (const [position, definition] of sorted.entries()) {
-            if (byName.has(definition.name)) throw new BlockError(`the state ${definition.name} is declared twice`);
-            if (definition.values.length === 0) throw new BlockError(`the state ${definition.name} has no values`);
+            if (byName.has(definition.name)) throw new BlocksErrors.DuplicateState({ name: definition.name });
+            if (definition.values.length === 0) throw new BlocksErrors.StateHasNoValues({ name: definition.name });
             byName.set(definition.name, { definition, position });
         }
 
@@ -87,9 +86,10 @@ export class BlockStateModel {
     public encode(values: Readonly<Record<string, BlockStateValue>>): number {
         for (const name of Object.keys(values)) {
             if (!this.byName.has(name)) {
-                throw new BlockError(
-                    `${name} is not a state of this block (has: ${this.names().join(', ') || 'none'})`
-                );
+                const states = this.names();
+                throw states.length === 0
+                    ? new BlocksErrors.BlockHasNoStates({ name })
+                    : new BlocksErrors.UnknownState({ name, states: states.join(', ') });
             }
         }
 
@@ -99,7 +99,7 @@ export class BlockStateModel {
             const value = given === undefined ? state.defaultValue : normalize(state.type, given);
             const offset = state.values.indexOf(value);
             if (offset < 0) {
-                throw new BlockError(`${String(given)} is not a value of the state ${state.name}`);
+                throw new BlocksErrors.InvalidStateValue({ given: String(given), name: state.name });
             }
             index += offset * this.strides[position]!;
         }
@@ -113,7 +113,7 @@ export class BlockStateModel {
      */
     public decode(index: number): Readonly<Record<string, BlockStateValue>> {
         if (!Number.isInteger(index) || index < 0 || index >= this.size) {
-            throw new BlockError(`the state index ${index} is outside 0 to ${this.size - 1}`);
+            throw new BlocksErrors.StateIndexOutOfRange({ index, value: this.size - 1 });
         }
 
         const values: Record<string, BlockStateValue> = {};
@@ -168,7 +168,7 @@ export class BlockPalette {
 
         let next = 0;
         for (const [identifier, model] of sorted) {
-            if (byIdentifier.has(identifier)) throw new BlockError(`${identifier} appears twice in the palette`);
+            if (byIdentifier.has(identifier)) throw new BlocksErrors.DuplicatePaletteBlock({ identifier });
             const entry: PaletteEntry = { identifier, model, firstRuntimeId: next };
             entries.push(entry);
             byIdentifier.set(identifier, entry);
@@ -193,7 +193,7 @@ export class BlockPalette {
      */
     public runtimeId(identifier: string, values: Readonly<Record<string, BlockStateValue>> = {}): number {
         const entry = this.byIdentifier.get(identifier);
-        if (!entry) throw new BlockError(`the palette has no block ${identifier}`);
+        if (!entry) throw new BlocksErrors.PaletteHasNoBlock({ identifier });
         return entry.firstRuntimeId + entry.model.encode(values);
     }
 
@@ -204,7 +204,7 @@ export class BlockPalette {
      */
     public stateOf(runtimeId: number): { entry: PaletteEntry; values: Readonly<Record<string, BlockStateValue>> } {
         if (!Number.isInteger(runtimeId) || runtimeId < 0 || runtimeId >= this.stateCount) {
-            throw new BlockError(`the runtime id ${runtimeId} is outside 0 to ${this.stateCount - 1}`);
+            throw new BlocksErrors.RuntimeIdOutOfRange({ runtimeId, value: this.stateCount - 1 });
         }
 
         let low = 0;

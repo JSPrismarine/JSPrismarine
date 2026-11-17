@@ -71,6 +71,7 @@
         "vitest": "5.1.0"
     },
     "dependencies": {
+        "@jsprismarine/errors": "workspace:*",
         "piscina": "5.3.2"
     }
 }

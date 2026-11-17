@@ -11,6 +11,7 @@ import { deserialize, serialize } from 'node:v8';
 
 import { isOptionalFluidTickList } from './GenerationRegion';
 import type { GenerationRegionPayload } from './GenerationRegion';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 const RECORD_MAGIC = 'jsprismarine-terrain-proto';
 // Bump when the record header or serialized region shape changes. 2: a tile carries the fluid
@@ -92,7 +93,7 @@ export class TerrainProtoCache {
 
     public constructor(private readonly options: TerrainProtoCacheOptions) {
         if (!Number.isSafeInteger(options.maxBytes) || options.maxBytes < 1) {
-            throw new RangeError('Terrain proto cache maxBytes must be a positive safe integer');
+            throw new PrismarineGenerationErrors.InvalidTerrainCacheLimit();
         }
     }
 
@@ -367,7 +368,7 @@ const writeCanonical = (value: unknown, write: (text: string) => void): void => 
             return;
         }
         if (typeof entry === 'number') {
-            if (!Number.isFinite(entry)) throw new TypeError('Persistent terrain cache inputs must use finite numbers');
+            if (!Number.isFinite(entry)) throw new PrismarineGenerationErrors.NonFiniteCacheInput();
             write(`number:${entry};`);
             return;
         }
@@ -380,7 +381,7 @@ const writeCanonical = (value: unknown, write: (text: string) => void): void => 
         if (entry instanceof Map) {
             const entries = [...entry];
             if (entries.some(([key]) => typeof key !== 'string')) {
-                throw new TypeError('Persistent terrain cache maps must use string keys');
+                throw new PrismarineGenerationErrors.NonStringCacheKey();
             }
             write('map:{');
             for (const [key, item] of entries.sort(([left], [right]) => compareStrings(String(left), String(right)))) {
@@ -393,7 +394,7 @@ const writeCanonical = (value: unknown, write: (text: string) => void): void => 
         if (typeof entry === 'object') {
             const prototype = Object.getPrototypeOf(entry);
             if (prototype !== Object.prototype && prototype !== null) {
-                throw new TypeError('Persistent terrain cache inputs must use plain objects');
+                throw new PrismarineGenerationErrors.NonPlainCacheInput();
             }
             write('object:{');
             for (const [key, item] of Object.entries(entry).sort(([left], [right]) => compareStrings(left, right))) {
@@ -404,7 +405,7 @@ const writeCanonical = (value: unknown, write: (text: string) => void): void => 
             return;
         }
 
-        throw new TypeError('Persistent terrain cache inputs must contain only JSON values and maps');
+        throw new PrismarineGenerationErrors.UncacheableInput();
     };
 
     append(value);

@@ -4,6 +4,7 @@ import type { BlockStateValue } from '@jsprismarine/blocks';
 import type { ServerContent } from '../content/ServerContent';
 import type Chunk from './chunk/Chunk';
 import type { Generator } from './Generator';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * What a generator needs from the server's logger.
@@ -46,7 +47,7 @@ export default abstract class BaseGenerator implements Generator {
 
     protected getBlock(name: string, states: Readonly<Record<string, BlockStateValue>> = {}): Block {
         const block = blockFromContent(name, this.getContent(), states);
-        if (block === null) throw new Error(`invalid block with id ${name}`);
+        if (block === null) throw new PrismarineWorldErrors.UnknownGeneratedBlock({ name });
 
         return block;
     }

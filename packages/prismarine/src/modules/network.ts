@@ -46,6 +46,7 @@ import { softwareLabel } from '../version';
 import type Server from '../Server';
 import { withCwd } from '../utils/cwd';
 import { networkToken } from './tokens';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** The IPv4 bind address meaning every interface, which is what turns on the IPv6 listener too. */
 const IPV4_WILDCARD = '0.0.0.0';
@@ -220,9 +221,7 @@ export class ServerNetworking implements Networking {
                     transports.push(this.startNetherNet(driver, udpPorts, address, port, serverName, ids, listening));
                 }
                 if (transports.length === 0) {
-                    throw new Error(
-                        'No transport is enabled: turn on enable-raknet or enable-nethernet in config.json'
-                    );
+                    throw new PrismarineServerErrors.NoTransportEnabled();
                 }
                 return transports;
             });
@@ -269,7 +268,10 @@ export class ServerNetworking implements Networking {
         );
         if (failures.length > 0) {
             this.kill();
-            throw new Error(failures.map((failure) => errorMessage(failure)).join('; '), { cause: failures[0] });
+            throw new PrismarineServerErrors.ListenersFailedToStart(
+                { reasons: failures.map((failure) => errorMessage(failure)).join('; ') },
+                { cause: failures[0] }
+            );
         }
     }
 
@@ -280,7 +282,7 @@ export class ServerNetworking implements Networking {
      */
     public async replayInboundRecord(record: InboundPacketRecord, tickOffset = 0): Promise<void> {
         const dispatcher = this.dispatcher;
-        if (dispatcher === undefined) throw new Error('Cannot replay a packet before networking starts');
+        if (dispatcher === undefined) throw new PrismarineServerErrors.ReplayBeforeNetworking();
         await dispatcher.replayInboundRecord(record, tickOffset);
     }
 
@@ -338,7 +340,12 @@ export class ServerNetworking implements Networking {
         shared?: SharedPort
     ): RakNetTransport {
         const raknet = this.createRakNetListener(serverName, shared === undefined ? undefined : { shared, family: 4 });
-        listening.push(rakNetListening(raknet, `RakNet cannot listen on UDP port ${port}`));
+        listening.push(
+            rakNetListening(
+                raknet,
+                (cause) => new PrismarineServerErrors.RaknetPortNotBound({ port, reason: cause.message }, { cause })
+            )
+        );
         raknet.start(address, port);
         this.raknet = raknet;
         return new RakNetTransport(raknet, this.server.getKernel().events, ids);
@@ -357,7 +364,12 @@ export class ServerNetworking implements Networking {
         shared?: SharedPort
     ): RakNetTransport {
         const raknet = this.createRakNetListener(serverName, shared === undefined ? undefined : { shared, family: 6 });
-        listening.push(rakNetListening(raknet, `RakNet cannot listen for IPv6 clients on UDP port ${port}`));
+        listening.push(
+            rakNetListening(
+                raknet,
+                (cause) => new PrismarineServerErrors.RaknetIpv6PortNotBound({ port, reason: cause.message }, { cause })
+            )
+        );
         raknet.start(IPV6_WILDCARD, port);
         this.raknetV6 = raknet;
         return new RakNetTransport(raknet, this.server.getKernel().events, ids);
@@ -500,8 +512,10 @@ export class ServerNetworking implements Networking {
                 opened.set(candidate, SharedPort.open(network, candidate, wildcard ? '' : address));
             } catch (error: unknown) {
                 for (const shared of opened.values()) shared.close();
-                const what = withRakNet ? 'RakNet and NetherNet cannot share' : 'NetherNet cannot bind';
-                throw new Error(`${what} UDP port ${candidate}: ${errorMessage(error)}`, { cause: error });
+                const params = { port: candidate, reason: errorMessage(error) };
+                throw withRakNet
+                    ? new PrismarineServerErrors.SharedUdpPortNotBound(params, { cause: error })
+                    : new PrismarineServerErrors.NethernetPortNotBound(params, { cause: error });
             }
             if (withRakNet) this.server.getLogger().info(`RakNet and NetherNet share UDP port ${candidate}`);
         }
@@ -564,8 +578,8 @@ export class ServerNetworking implements Networking {
             this.signaling.listen(port, address).then(
                 (bound) => logger.info(`NetherNet clients can join by address on TCP port ${bound}`),
                 (error: unknown) => {
-                    throw new Error(
-                        `NetherNet cannot listen for signaling on TCP port ${port}: ${errorMessage(error)}`,
+                    throw new PrismarineServerErrors.SignalingPortNotBound(
+                        { port, errorMessage: errorMessage(error) },
                         {
                             cause: error
                         }
@@ -631,8 +645,8 @@ export class ServerNetworking implements Networking {
                 log: ({ text }) => this.server.getLogger().debug(text, 'NetherNet/native')
             });
         } catch (error: unknown) {
-            throw new Error(
-                `NetherNet cannot start: ${errorMessage(error).replace(/\.?$/, '.')} Set "enable-nethernet": false in config.json to run on RakNet alone.`,
+            throw new PrismarineServerErrors.NethernetFailedToStart(
+                { replace: errorMessage(error).replace(/\.?$/, '.') },
                 { cause: error }
             );
         }
@@ -663,10 +677,10 @@ const errorMessage = (error: unknown): string => (error instanceof Error ? error
  * Settles once a RakNet listener binds or fails to. Subscribe before `start`: a worker's failure
  * arrives later, and a socket's `error` with no listener would be thrown instead.
  * @param raknet - The listener, not yet started.
- * @param failure - What the error says before the cause, naming the transport and the port.
+ * @param failure - Builds the error to reject with from the listener's own, naming the transport and the port.
  * @returns A promise that resolves on `listening` and rejects on `error`.
  */
-const rakNetListening = (raknet: RakNetListenerLike, failure: string): Promise<void> =>
+const rakNetListening = (raknet: RakNetListenerLike, failure: (cause: Error) => Error): Promise<void> =>
     new Promise((resolve, reject) => {
         let settled = false;
         raknet.on('listening', () => {
@@ -676,7 +690,7 @@ const rakNetListening = (raknet: RakNetListenerLike, failure: string): Promise<v
         raknet.on('error', (error) => {
             if (settled) return;
             settled = true;
-            reject(new Error(`${failure}: ${error.message}`, { cause: error }));
+            reject(failure(error));
         });
     });
 

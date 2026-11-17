@@ -4,11 +4,11 @@ import {
     hasPublicCandidate,
     parsePublicIp,
     parseUdpPorts,
-    UdpPortsError,
     withAdvertisedCandidates,
     withDialedCandidates,
     withMappedCandidates
 } from './udpPorts';
+import { UdpPortsError } from '@jsprismarine/errors/nethernet';
 
 /**
  * Every value docs/research/bds-server-udp-ports.md started Bedrock Dedicated Server 1.26.70.24

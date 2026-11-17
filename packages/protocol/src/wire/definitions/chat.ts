@@ -9,6 +9,7 @@ import { SINCE_2259, UNTIL_2259 } from '../wireGates';
 
 import type { PayloadOf } from '../define';
 import type { WireType } from '../fieldTypes';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The docs' `TextPacketType`, the "Message Type" of a text packet. The values are the global
@@ -147,7 +148,7 @@ const textBodyWith = (carriesQueue: boolean): WireType<TextBody> =>
                 }
 
                 default:
-                    throw new Error(`Unknown TextPacket body variant ${variant}`);
+                    throw new ProtocolWireErrors.UnknownTextBodyType({ variant });
             }
         }
     );

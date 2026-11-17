@@ -27,6 +27,8 @@ import type {
 import { deriveEncryptionKey, readHandshake } from './Handshake';
 import type { ClientContext } from '../net/ClientHandler';
 import type ClientSession from '../net/ClientSession';
+import { ClientErrors } from '@jsprismarine/errors/client';
+import { asError } from '@jsprismarine/errors/common';
 
 /** How far a login has got. Every step is driven by a packet, never by a timer. */
 export enum LoginStage {
@@ -129,7 +131,7 @@ export default class LoginSequence {
         });
 
         this.timer = setTimeout(() => {
-            this.fail(new Error(`Login timed out at stage ${LoginStage[this.stage]}`));
+            this.fail(new ClientErrors.LoginTimedOut({ stage: LoginStage[this.stage] }));
         }, this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
         this.timer.unref();
 
@@ -158,7 +160,7 @@ export default class LoginSequence {
 
     /** Called when the transport dies under us, so the promise does not hang until timeout. */
     public onTransportClosed(reason: string): void {
-        this.fail(new Error(`Disconnected during login: ${reason}`));
+        this.fail(new ClientErrors.DisconnectedDuringLogin({ reason }));
     }
 
     /**
@@ -179,7 +181,7 @@ export default class LoginSequence {
                 try {
                     await Promise.race([respond(data, context), this.failed]);
                 } catch (error: unknown) {
-                    this.fail(error instanceof Error ? error : new Error(String(error)));
+                    this.fail(asError(error));
                 }
             }
         });
@@ -268,16 +270,16 @@ export default class LoginSequence {
             // The refusals. Each is terminal and each is worth its own words: "login failed"
             // on its own sends people looking in the wrong place.
             case PlayStatus.LoginFailed_ClientOld:
-                this.fail(new Error('The server refused the login: this client is out of date'));
+                this.fail(new ClientErrors.ClientOutdated());
                 break;
             case PlayStatus.LoginFailed_ServerOld:
-                this.fail(new Error('The server refused the login: the server is out of date'));
+                this.fail(new ClientErrors.ServerOutdated());
                 break;
             case PlayStatus.LoginFailed_ServerFullSubClient:
-                this.fail(new Error('The server refused the login: the server is full'));
+                this.fail(new ClientErrors.ServerFull());
                 break;
             default:
-                this.fail(new Error(`The server refused the login with status ${status.status}`));
+                this.fail(new ClientErrors.LoginRefused({ status: status.status }));
                 break;
         }
     }
@@ -296,7 +298,7 @@ export default class LoginSequence {
         if (this.settled) return;
 
         if (this.startGame === null) {
-            this.fail(new Error('The server spawned us without ever sending StartGame'));
+            this.fail(new ClientErrors.SpawnedWithoutStartGame());
             return;
         }
 
@@ -314,7 +316,12 @@ export default class LoginSequence {
     }
 
     private onDisconnect(disconnect: Disconnect): void {
-        this.fail(new Error(`Disconnected by the server: ${disconnect.messages.message || 'no reason given'}`));
+        const reason = disconnect.messages.message;
+        this.fail(
+            reason
+                ? new ClientErrors.DisconnectedByServer({ reason })
+                : new ClientErrors.DisconnectedByServerWithoutReason()
+        );
     }
 
     private fail(error: Error): void {

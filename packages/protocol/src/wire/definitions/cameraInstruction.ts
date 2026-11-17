@@ -34,6 +34,7 @@ import type {
 } from '../../structure/CameraInstruction';
 import type { PayloadOf } from '../define';
 import type { WireType } from '../fieldTypes';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * A presence byte, then the value when the byte is 1. Absent is `undefined`, which is how the
@@ -97,7 +98,7 @@ const easingFunction: WireType<EasingFunction> = t.custom(
     (stream) => {
         const name = t.string.read(stream);
         if (!isEasingFunction(name)) {
-            throw new Error(`Unknown easing_function "${name}"`);
+            throw new ProtocolWireErrors.UnknownEasingFunction({ name });
         }
         return name;
     }

@@ -12,6 +12,7 @@ import { bedrockBlockPropertiesOf, javaBlockStates } from '@jsprismarine/mapping
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import type { ServerContent } from '../content/ServerContent';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** The block and the per-state facts used by the engine systems. */
 export interface EngineBlockFacts {
@@ -57,7 +58,7 @@ export const createEngineBlockCache = (contentAtCall: () => ServerContent): Engi
 
             const state = BlockRuntimeIds.getState(runtimeId);
             if (state === null) {
-                throw new Error(`Chunk holds runtime id ${runtimeId}, which no registered block produces`);
+                throw new PrismarineWorldErrors.UnknownRuntimeId({ runtimeId });
             }
 
             const contentState = currentContent.blocks.types.get(state.name)?.state(state.properties);

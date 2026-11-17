@@ -1,4 +1,5 @@
 import dgram from 'node:dgram';
+import { ClientErrors } from '@jsprismarine/errors/client';
 
 /** What a simulated network path does to each UDP datagram this process sends. */
 export interface LinkConditions {
@@ -58,9 +59,9 @@ export const conditionLink = ({
     random = Math.random,
     sockets = () => true
 }: LinkConditions): ConditionedLink => {
-    if (!(latencyMs >= 0)) throw new RangeError(`Link latency must be at least 0 ms, got ${latencyMs}`);
-    if (!(loss >= 0 && loss <= 1)) throw new RangeError(`Link loss must be from 0 to 1, got ${loss}`);
-    if (active !== undefined) throw new Error('This process is already sending over a conditioned link');
+    if (!(latencyMs >= 0)) throw new ClientErrors.NegativeLinkLatency({ latencyMs });
+    if (!(loss >= 0 && loss <= 1)) throw new ClientErrors.InvalidLinkLoss({ loss });
+    if (active !== undefined) throw new ClientErrors.LinkAlreadyConditioned();
 
     const send = dgram.Socket.prototype.send;
     let sent = 0;

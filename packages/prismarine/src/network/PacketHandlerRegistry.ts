@@ -6,6 +6,7 @@ import type { ConnectionHandler } from './handler/ConnectionContext';
 import { strictestLane } from '@jsprismarine/protocol/handler/Lane';
 import type { InputContext, SessionContext } from './handler/HandlerContext';
 import type { SessionHandler } from './handler/SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** Handler kind stored by the server; phases determine which one receives a packet. */
 export type RegisteredHandler = ConnectionHandler<any> | SessionHandler<any>;
@@ -31,7 +32,7 @@ export default class PacketHandlerRegistry {
 
     /** Register a handler for the packet name it handles. */
     public registerHandler(packetName: string, handler: RegisteredHandler): void {
-        if (this.handlers.has(packetName)) throw new Error(`Handler for ${packetName} already exists!`);
+        if (this.handlers.has(packetName)) throw new PrismarineNetworkErrors.DuplicateHandler({ packetName });
 
         this.handlers.set(packetName, handler);
         this.server
@@ -44,7 +45,7 @@ export default class PacketHandlerRegistry {
 
     /** Find the handler registered for a packet class name. */
     public getHandler(packetName: string): RegisteredHandler {
-        if (!this.handlers.has(packetName)) throw new Error(`Invalid handler for packet ${packetName}!`);
+        if (!this.handlers.has(packetName)) throw new PrismarineNetworkErrors.NoHandler({ packetName });
 
         return this.handlers.get(packetName)!;
     }

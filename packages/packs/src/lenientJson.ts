@@ -1,10 +1,4 @@
-/**
- * Error thrown when a pack file is not valid JSON even after comments and
- * trailing commas are removed.
- */
-export class JsonParseError extends Error {
-    public override name = 'JsonParseError';
-}
+import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /**
  * Parses JSON the way the Bedrock engine reads pack files: line and block
@@ -31,7 +25,7 @@ export const parseLenientJson = (text: string): unknown => {
     try {
         return JSON.parse(stripTrailingCommas(stripComments(text))) as unknown;
     } catch (error) {
-        throw new JsonParseError(error instanceof Error ? error.message : String(error));
+        throw new PacksErrors.NotValidJson({ reason: error instanceof Error ? error.message : String(error) });
     }
 };
 

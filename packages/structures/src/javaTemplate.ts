@@ -5,7 +5,7 @@ import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 
 import { compoundAt, compoundListAt, listAt, numberAt, stringAt, stringRecord, tripleAt } from './nbtAccess';
 import type { JavaBlockState, JavaPaletteKeySpelling, JavaStructureTemplate, TemplateEntity } from './types';
-import { StructureFormatError } from './types';
+import { StructuresErrors } from '@jsprismarine/errors/structures';
 
 /**
  * The first `DataVersion` observed to spell palette entries `id`/`properties`
@@ -38,7 +38,7 @@ const readPalette = (entries: NBTTagCompound[], spelling: JavaPaletteKeySpelling
     for (const [index, entry] of entries.entries()) {
         const state = readPaletteEntry(entry, spelling);
         if (state === undefined) {
-            throw new StructureFormatError(`java structure template: palette entry ${index} has no block identifier`);
+            throw new StructuresErrors.JavaTemplatePaletteEntryUnnamed({ index });
         }
         palette.push(state);
     }
@@ -79,9 +79,9 @@ export const readJavaStructureTemplate = (bytes: Uint8Array): JavaStructureTempl
     try {
         root = NBTTagCompound.readFromStream(new BinaryStream(raw), ByteOrder.BIG_ENDIAN);
     } catch (error) {
-        throw new StructureFormatError(
-            `java structure template: ${error instanceof Error ? error.message : String(error)}`
-        );
+        throw new StructuresErrors.JavaTemplateUnreadable({
+            value: error instanceof Error ? error.message : String(error)
+        });
     }
 
     const size = tripleAt(root, 'size', 'java structure template');
@@ -97,7 +97,7 @@ export const readJavaStructureTemplate = (bytes: Uint8Array): JavaStructureTempl
 
     const firstEntries = paletteEntryLists[0] ?? [];
     if (firstEntries.length === 0) {
-        throw new StructureFormatError('java structure template: no palette');
+        throw new StructuresErrors.JavaTemplateNoPalette();
     }
 
     const preferred: JavaPaletteKeySpelling =

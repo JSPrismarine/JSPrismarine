@@ -6,6 +6,7 @@ import type { BlockState } from '../world/BlockState';
 import { blockStateKey } from '../world/BlockState';
 import type { BlockOracle, BlockPos } from '../world/FeatureWorld';
 import { parseBlockState } from '../providers/blockStateProvider';
+import { FeaturesErrors } from '@jsprismarine/errors/features';
 
 /**
  * A test on a block state and its position, Java's `RuleTest`.
@@ -88,7 +89,7 @@ export const parseRuleTest = (source: unknown, path: string): RuleTest => {
         }
 
         default:
-            return fail(path, `unknown rule test type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownRuleTestType({ path, type: JSON.stringify(type) }));
     }
 };
 

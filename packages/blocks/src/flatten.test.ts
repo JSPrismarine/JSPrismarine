@@ -1,11 +1,12 @@
 import type { Definition } from '@jsprismarine/content';
-import { BehaviorRegistry, FlattenError } from '@jsprismarine/content';
+import { BehaviorRegistry } from '@jsprismarine/content';
 import { describe, expect, it } from 'vitest';
 
 import { EXPLOSION_PROOF_RESISTANCE, UNBREAKABLE_HARDNESS, flattenBlockStates } from './flatten';
 import type { BlockHooks } from './hooks';
 import { BlockPalette } from './state';
 import { resolveBlocks } from './types';
+import { FlattenError } from '@jsprismarine/errors/content';
 
 const definition = (identifier: string, components: Record<string, unknown>): Definition => ({
     identifier,

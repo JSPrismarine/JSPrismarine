@@ -13,6 +13,7 @@
  */
 
 import { isRecord } from './components/schemas';
+import { EntitiesErrors } from '@jsprismarine/errors/entities';
 
 /** A value a component state may hold anywhere below its top level. */
 export type ComponentStateData =
@@ -322,7 +323,7 @@ export class ComponentStates {
     private claim<S extends ComponentStateRecord>(key: ComponentStateKey<S>): void {
         const known = this.keys.get(key.component);
         if (known === key) return;
-        if (known !== undefined) throw new Error(`${key.component} declares its component state twice`);
+        if (known !== undefined) throw new EntitiesErrors.DeclaresItsComponentStateTwice({ component: key.component });
         this.keys.set(key.component, key);
     }
 }

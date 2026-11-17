@@ -37,6 +37,7 @@ import type {
     LegacyTransactionRequest,
     TransactionPayload
 } from '../structures/InventoryTransaction';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * `Legacy Request ID` plus `Legacy Set Item Slots`, as one value: a valid id always carries
@@ -73,7 +74,7 @@ const transactionBody = (carriesHand: boolean) =>
     t.custom<TransactionPayload | null>(
         carriesHand ? 'ComplexInventoryTransaction[hand]' : 'ComplexInventoryTransaction',
         (stream, value) => {
-            if (value === null) throw new TypeError('An inventory transaction needs its transaction payload');
+            if (value === null) throw new ProtocolWireErrors.MissingTransactionPayload();
 
             stream.writeUnsignedVarInt(value.transactionType);
             stream.writeUnsignedVarInt(value.inventoryActions.length);
@@ -85,13 +86,13 @@ const transactionBody = (carriesHand: boolean) =>
                 case TransactionType.MISMATCH:
                     break;
                 case TransactionType.USE_ITEM: {
-                    if (data?.kind !== 'useItem') throw new TypeError('A use-item transaction needs use-item data');
+                    if (data?.kind !== 'useItem') throw new ProtocolWireErrors.MissingUseItemData();
                     writeUseItemData(stream, data);
                     break;
                 }
                 case TransactionType.USE_ITEM_ON_ENTITY: {
                     if (data?.kind !== 'useItemOnEntity') {
-                        throw new TypeError('A use-item-on-entity transaction needs use-item-on-entity data');
+                        throw new ProtocolWireErrors.MissingUseItemOnEntityData();
                     }
                     stream.writeUnsignedVarLong(data.entityRuntimeId);
                     stream.writeVarInt(data.actionType);
@@ -104,7 +105,7 @@ const transactionBody = (carriesHand: boolean) =>
                 }
                 case TransactionType.RELEASE_ITEM: {
                     if (data?.kind !== 'releaseItem') {
-                        throw new TypeError('A release-item transaction needs release-item data');
+                        throw new ProtocolWireErrors.MissingReleaseItemData();
                     }
                     stream.writeVarInt(data.actionType);
                     stream.writeVarInt(data.hotbarSlot);
@@ -115,7 +116,7 @@ const transactionBody = (carriesHand: boolean) =>
                     break;
                 }
                 default:
-                    throw new TypeError(`Unknown transaction type ${value.transactionType}`);
+                    throw new ProtocolWireErrors.UnknownTransactionType({ transactionType: value.transactionType });
             }
         },
         (stream) => {
@@ -123,9 +124,10 @@ const transactionBody = (carriesHand: boolean) =>
 
             const actionsCount = stream.readUnsignedVarInt();
             if (actionsCount > MAX_INVENTORY_ACTIONS) {
-                throw new RangeError(
-                    `An inventory transaction carried ${actionsCount} actions; the docs allow ${MAX_INVENTORY_ACTIONS}`
-                );
+                throw new ProtocolWireErrors.TooManyTransactionActions({
+                    actionsCount,
+                    maxInventoryActions: MAX_INVENTORY_ACTIONS
+                });
             }
             const inventoryActions: InventoryActionData[] = Array.from({ length: actionsCount }, () =>
                 readInventoryAction(stream)
@@ -145,9 +147,9 @@ const transactionBody = (carriesHand: boolean) =>
                     // a position nobody touched. Leftover bytes mean the layout is wrong, and
                     // saying so is worth more than the guess.
                     if (!stream.feof()) {
-                        throw new Error(
-                            `UseItem transaction left ${stream.readRemaining().byteLength} bytes unread: the packet layout does not match the client's`
-                        );
+                        throw new ProtocolWireErrors.UseItemTransactionHasTrailingBytes({
+                            byteLength: stream.readRemaining().byteLength
+                        });
                     }
                     break;
                 case TransactionType.USE_ITEM_ON_ENTITY: {

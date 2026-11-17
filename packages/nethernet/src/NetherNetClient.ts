@@ -5,6 +5,7 @@ import type { ConnectionOptions } from './Connection';
 import { ErrorCode, SignalStructure, SignalType } from './protocol/Signal';
 import { randomUint64 } from './randomUint64';
 import type { PeerConfig, WebRtcDriver } from './WebRtcDriver';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /** How long a join may wait for the answer, and then for the connection to open. */
 export const DEFAULT_CLIENT_TIMEOUT_MS = 15_000;
@@ -63,7 +64,7 @@ export class NetherNetClient extends EventEmitter {
      * @throws {Error} When the client was used before or closed, or the peer cannot be built.
      */
     public async connect(): Promise<void> {
-        if (this.closed || this.connection !== undefined) throw new Error('A NetherNet client connects once');
+        if (this.closed || this.connection !== undefined) throw new NethernetErrors.ClientConnectsOnce();
         const timeoutMs = this.options.timeoutMs ?? DEFAULT_CLIENT_TIMEOUT_MS;
         this.timer = setTimeout(() => this.fail(ErrorCode.NegotiationTimeoutWaitingForResponse), timeoutMs);
 
@@ -128,7 +129,7 @@ export class NetherNetClient extends EventEmitter {
      * @throws {Error} When the connection is not open.
      */
     public send(message: Uint8Array): void {
-        if (!this.connected || this.connection === undefined) throw new Error('The NetherNet connection is not open');
+        if (!this.connected || this.connection === undefined) throw new NethernetErrors.ConnectionIsNotOpen();
         this.connection.send(message);
     }
 

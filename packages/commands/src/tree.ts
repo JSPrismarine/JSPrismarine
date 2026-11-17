@@ -14,6 +14,7 @@
 import type { LiteralArgumentBuilder, LiteralCommandNode, RootCommandNode } from '@jsprismarine/brigadier';
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
+import { CommandsErrors } from '@jsprismarine/errors/commands';
 
 /** The per-command data `AvailableCommandsPacket` carries and Brigadier does not. */
 export interface CommandMetadata {
@@ -137,7 +138,7 @@ export class CommandRegistry<S> {
     public register(builder: LiteralArgumentBuilder<S>, metadata: CommandMetadataInput = {}): LiteralCommandNode<S> {
         const name = builder.getLiteral();
         if (this.metadata.has(name) || this.aliasOwners.has(name) || this.excluded.has(name)) {
-            throw new Error(`The command '${name}' is already registered`);
+            throw new CommandsErrors.CommandIsAlreadyRegistered({ name });
         }
 
         if (!this.include(name)) {
@@ -158,7 +159,7 @@ export class CommandRegistry<S> {
 
         for (const alias of resolved.aliases) {
             if (this.metadata.has(alias) || this.aliasOwners.has(alias)) {
-                throw new Error(`The command alias '${alias}' is already registered`);
+                throw new CommandsErrors.CommandAliasIsAlreadyRegistered({ alias });
             }
             // A bare `/tp` has no further input for the redirect to consume, so
             // the alias carries the same executor as well as the redirect.

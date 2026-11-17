@@ -2,6 +2,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import { getGametypeName } from '@jsprismarine/minecraft';
 
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** What a selector reads of an entity: its id, its type, its name and where it is. */
 export interface SelectorEntity {
@@ -74,7 +75,7 @@ const ParseTargetSelector = <T extends SelectorEntity>({
     /** Random draw for `@r`, supplied by the live server during command execution. */
     random?: () => number;
 }): T[] => {
-    if (!input.startsWith('@')) throw new Error('input does not start with "@"');
+    if (!input.startsWith('@')) throw new PrismarineServerErrors.SelectorWithoutAt();
 
     let targets: T[] = entities;
 
@@ -121,7 +122,7 @@ const ParseTargetSelector = <T extends SelectorEntity>({
             targets = [source];
             break;
         default:
-            throw new Error(`type "${type}" is invalid. Expected "a", "e", "p", "r" or "s"`);
+            throw new PrismarineServerErrors.UnknownSelectorType({ type });
     }
 
     args.forEach((filter) => {
@@ -184,7 +185,7 @@ const ParseTargetSelector = <T extends SelectorEntity>({
     }
 
     targets = targets.slice(0, limit);
-    if (targets.length <= 0) throw new Error('no results');
+    if (targets.length <= 0) throw new PrismarineServerErrors.SelectorMatchedNoOne();
     return targets;
 };
 

@@ -7,6 +7,7 @@ import { textClaim } from './claims';
 import type { LoginCredentials } from './IAuthProvider';
 import { isRecord } from './isRecord';
 import { AuthenticationType, TOKEN_ISSUER } from './protocol';
+import { AuthErrors, LoginRefused } from '@jsprismarine/errors/auth';
 
 const KEYS_URL = new URL('.well-known/keys', TOKEN_ISSUER);
 
@@ -25,18 +26,6 @@ export type VerificationKey = CryptoKey | KeyObject;
 export interface LoginKeySource {
     /** The public key a token's `kid` names, or undefined when the issuer has no such key. */
     keyFor(kid: string): Promise<VerificationKey | undefined>;
-}
-
-/** A login that cannot be attributed to an account. The message is safe to show the player. */
-export class LoginRefused extends Error {
-    public constructor(
-        message: string,
-        /** What went wrong, for the server log. */
-        public readonly detail: string
-    ) {
-        super(message);
-        this.name = 'LoginRefused';
-    }
 }
 
 /** The claims a verified multiplayer token vouches for. */
@@ -98,23 +87,24 @@ export const useLoginKeys = (keys: LoginKeySource): (() => void) => {
 /** Why `jose` refused a token, as a refusal: the message for the player and the detail for the log. */
 const refusalOf = (error: unknown, what: string): LoginRefused => {
     if (error instanceof LoginRefused) return error;
-    if (error instanceof errors.JWTExpired) return new LoginRefused('Your login has expired.', `${what} has expired`);
+    if (error instanceof errors.JWTExpired)
+        return new AuthErrors.LoginExpired({ cause: new AuthErrors.TokenExpired({ what }) });
     if (error instanceof errors.JWTClaimValidationFailed) {
-        const detail =
-            error.claim === 'nbf'
-                ? `${what} is not valid yet`
-                : `${what} has the wrong ${error.claim}: ${error.reason}`;
-        return new LoginRefused('Invalid login!', error.claim === 'iss' ? `${what} names another issuer` : detail);
+        const cause =
+            error.claim === 'iss'
+                ? new AuthErrors.TokenNamesAnotherIssuer({ what })
+                : error.claim === 'nbf'
+                  ? new AuthErrors.TokenNotValidYet({ what })
+                  : new AuthErrors.TokenHasWrongClaim({ what, claim: error.claim, reason: error.reason });
+        return new AuthErrors.InvalidLogin({ cause });
     }
     if (error instanceof errors.JOSEAlgNotAllowed)
-        return new LoginRefused('Invalid login!', `${what} uses a refused algorithm`);
+        return new AuthErrors.InvalidLogin({ cause: new AuthErrors.TokenUsesRefusedAlgorithm({ what }) });
     if (error instanceof errors.JWSSignatureVerificationFailed) {
-        return new LoginRefused('Invalid login!', `${what} signature does not match`);
+        return new AuthErrors.InvalidLogin({ cause: new AuthErrors.TokenSignatureDoesNotMatch({ what }) });
     }
-    return new LoginRefused(
-        'Invalid login!',
-        `${what} is not a valid JWS: ${error instanceof Error ? error.message : String(error)}`
-    );
+    const reason = error instanceof Error ? error.message : String(error);
+    return new AuthErrors.InvalidLogin({ cause: new AuthErrors.TokenIsNotValidJws({ what, reason }) });
 };
 
 /**
@@ -148,34 +138,36 @@ export const verifyLogin = async (
     } catch {
         parsed = undefined;
     }
-    if (!isRecord(parsed)) throw new LoginRefused('Invalid login!', 'the connection request is not a JSON object');
+    if (!isRecord(parsed)) {
+        throw new AuthErrors.InvalidLogin({ cause: new AuthErrors.ConnectionRequestIsNotJsonObject() });
+    }
     const request = parsed;
 
     if (request.AuthenticationType !== AuthenticationType.Full) {
-        throw new LoginRefused(
-            'Please sign in to Xbox Live to join.',
-            `authentication type ${String(request.AuthenticationType)}`
-        );
+        throw new AuthErrors.XboxSignInRequired({
+            cause: new AuthErrors.UnsupportedAuthenticationType({ type: String(request.AuthenticationType) })
+        });
     }
     const token = textClaim(request, 'Token');
-    if (token === undefined) throw new LoginRefused('Please sign in to Xbox Live to join.', 'no token');
+    if (token === undefined) throw new AuthErrors.XboxSignInRequired({ cause: new AuthErrors.NoToken() });
 
     let claims: JWTPayload;
     try {
         ({ payload: claims } = await jwtVerify(
             token,
             async ({ kid }) => {
-                if (kid === undefined) throw new LoginRefused('Invalid login!', 'the token names no key');
+                if (kid === undefined) throw new AuthErrors.InvalidLogin({ cause: new AuthErrors.TokenNamesNoKey() });
                 let key: VerificationKey | undefined;
                 try {
                     key = await keys.keyFor(kid);
                 } catch (error: unknown) {
-                    throw new LoginRefused(
-                        'Could not verify your account right now. Please try again.',
-                        `the issuer's keys could not be fetched: ${error instanceof Error ? error.message : String(error)}`
-                    );
+                    const reason = error instanceof Error ? error.message : String(error);
+                    throw new AuthErrors.AccountUnverifiable({
+                        cause: new AuthErrors.IssuerKeysCouldNotBeFetched({ reason })
+                    });
                 }
-                if (key === undefined) throw new LoginRefused('Invalid login!', `unknown token key ${kid}`);
+                if (key === undefined)
+                    throw new AuthErrors.InvalidLogin({ cause: new AuthErrors.UnknownTokenKey({ kid }) });
                 return key;
             },
             {
@@ -194,7 +186,7 @@ export const verifyLogin = async (
     const displayName = textClaim(claims, 'xname');
     const identityPublicKey = textClaim(claims, 'cpk');
     if (xuid === undefined || displayName === undefined || identityPublicKey === undefined) {
-        throw new LoginRefused('Invalid login!', 'the token lacks an account or a client key');
+        throw new AuthErrors.InvalidLogin({ cause: new AuthErrors.TokenLacksAccountOrClientKey() });
     }
 
     await verifyClientData(login.clientData, identityPublicKey);
@@ -208,14 +200,14 @@ const verifyClientData = async (clientData: string, identityPublicKey: string): 
     try {
         key = createPublicKey({ key: Buffer.from(identityPublicKey, 'base64'), format: 'der', type: 'spki' });
     } catch {
-        throw new LoginRefused('Invalid login!', 'the token names an unusable client key');
+        throw new AuthErrors.InvalidLogin({ cause: new AuthErrors.TokenNamesUnusableClientKey() });
     }
 
     try {
         await compactVerify(clientData, key, { algorithms: ['ES384'] });
     } catch (error: unknown) {
         if (error instanceof errors.JWSSignatureVerificationFailed) {
-            throw new LoginRefused('Invalid login!', 'the client data is not signed by the account key');
+            throw new AuthErrors.InvalidLogin({ cause: new AuthErrors.ClientDataNotSignedByAccountKey() });
         }
         throw refusalOf(error, 'the client data');
     }

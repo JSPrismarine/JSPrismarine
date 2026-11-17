@@ -10,6 +10,7 @@ import * as t from '../fieldTypes';
 import { uuid } from '../structureTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** A pack setting value in one of the alternatives the packet carries. */
 export type PackSettingValue = number | boolean | string | string[];
@@ -57,7 +58,7 @@ const packSettingValue = t.custom<PackSettingValue>(
             case PackSettingValueType.StringList:
                 return t.list(t.string).read(stream);
             default:
-                throw new Error(`Unknown pack setting value alternative ${selector}`);
+                throw new ProtocolWireErrors.UnknownPackSettingValueAlternative({ selector });
         }
     }
 );

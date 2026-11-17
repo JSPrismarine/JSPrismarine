@@ -26,6 +26,7 @@ import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { PlainData, PlainRecord } from '../world/changelog/PlainData';
 import { isPlainRecord, plainOf } from '../world/changelog/PlainData';
 import { booleanField, numberField, optionalNumberField } from './data/entityFields';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /**
  * The block a player is mining, as plain data: its position, the face being mined, its runtime id,
@@ -213,7 +214,7 @@ const spawnPointIn = (value: PlainData): StoredSpawnPoint | null => {
         const { x, y, z, dimension, forced } = value;
         return forced === undefined ? { x, y, z, dimension } : { x, y, z, dimension, forced };
     }
-    throw new TypeError(`respawn.spawnPoint cannot hold ${JSON.stringify(value)}`);
+    throw new PrismarineEntityErrors.InvalidSavedSpawnPoint({ value: JSON.stringify(value) });
 };
 
 // Taken as written, not through `getGametypeId`: that reads command input, where 3 means spectator
@@ -221,7 +222,7 @@ const spawnPointIn = (value: PlainData): StoredSpawnPoint | null => {
 const gamemodeIn = (value: PlainData): Gametype => {
     const mode = numberField('abilities.gamemode')(value);
     if (isGametype(mode)) return mode;
-    throw new TypeError(`abilities.gamemode cannot hold ${JSON.stringify(value)}`);
+    throw new PrismarineEntityErrors.InvalidSavedGameMode({ value: JSON.stringify(value) });
 };
 
 const startedAtIn = (value: PlainData): number | null => optionalNumberField('itemUse.startedAt')(value) ?? null;
@@ -245,7 +246,7 @@ const miningIn = (value: PlainData): PlayerMining | null => {
         )
             return { x, y, z, face, runtimeId, progressPerTick, breakTicks, startedAt };
     }
-    throw new TypeError(`mining.block cannot hold ${JSON.stringify(value)}`);
+    throw new PrismarineEntityErrors.InvalidSavedMining({ value: JSON.stringify(value) });
 };
 
 const mealIn = (value: PlainData): PlayerMeal | null => {
@@ -255,7 +256,7 @@ const mealIn = (value: PlainData): PlayerMeal | null => {
         if (typeof startedAt === 'number' && typeof ticks === 'number' && typeof item === 'string')
             return { startedAt, ticks, item };
     }
-    throw new TypeError(`consumption.meal cannot hold ${JSON.stringify(value)}`);
+    throw new PrismarineEntityErrors.InvalidSavedMeal({ value: JSON.stringify(value) });
 };
 
 /** Every field, where it lives and how its logged value reads back. */

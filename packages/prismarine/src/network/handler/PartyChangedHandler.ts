@@ -2,6 +2,7 @@ import type PartyChangedPacket from '@jsprismarine/protocol/packet/PartyChangedP
 import { MAX_PARTY_ID_LENGTH } from '@jsprismarine/protocol/structure/PlayerPartyInfo';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * The client reporting a platform party change.
@@ -20,7 +21,7 @@ export default class PartyChangedHandler implements ConnectionLaneHandler<PartyC
     public handle(packet: PartyChangedPacket, { session, log }: SessionContext): void {
         const name = session.identity.name;
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a PartyChangedPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.PartyChangedNotDecoded();
 
         const partyInfo = data.partyInfo;
         if (partyInfo === null) {

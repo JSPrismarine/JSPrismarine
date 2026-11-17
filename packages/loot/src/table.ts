@@ -48,6 +48,7 @@ import type {
     SlotSourceView,
     StackSink
 } from './model';
+import { LootErrors } from '@jsprismarine/errors/loot';
 
 /**
  * The loot table grammar of Java 26.3: a table of pools, a pool of entry
@@ -133,13 +134,13 @@ const grammarOf = (options: Pick<LootParseOptions, 'dialect' | 'difficulty'>): L
  *
  * @see {@link LootParseOptions.strict}
  */
-export class LootGrammarError extends Error {
+export class LootGrammarError extends LootErrors.LootTableGrammarErrors {
     /** The errors that stopped the parse, in the order they were reported. */
     public readonly diagnostics: readonly Diagnostic[];
 
     public constructor(diagnostics: readonly Diagnostic[]) {
         const listed = diagnostics.map((entry) => `${entry.path || '<root>'}: ${entry.message}`).join('; ');
-        super(`the loot table reported ${diagnostics.length} grammar error(s): ${listed}`);
+        super({ count: diagnostics.length, listed });
         this.name = 'LootGrammarError';
         this.diagnostics = diagnostics;
     }

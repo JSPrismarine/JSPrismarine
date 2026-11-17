@@ -4,6 +4,7 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { SourceLocation } from '../log/sourceLocation';
+import { ConsoleErrors } from '@jsprismarine/errors/console';
 
 /** Splits an editor command into arguments without passing it through a shell. */
 function parseCommand(value: string): string[] {
@@ -43,9 +44,9 @@ function parseCommand(value: string): string[] {
         } else word += character;
     }
 
-    if (quote !== undefined) throw new Error('EDITOR contains an unmatched quote');
+    if (quote !== undefined) throw new ConsoleErrors.EditorUnmatchedQuote();
     if (word !== '') words.push(word);
-    if (words.length === 0) throw new Error('EDITOR is empty');
+    if (words.length === 0) throw new ConsoleErrors.EditorIsEmpty();
     return words;
 }
 
@@ -68,7 +69,7 @@ function sourcePathOf(location: SourceLocation, cwd: string): string {
     if (repositoryRoot === undefined) {
         const localPath = resolve(cwd, source);
         if (existsSync(localPath)) return localPath;
-        throw new Error(`source file not found: ${source}`);
+        throw new ConsoleErrors.SourceFileNotFound({ source });
     }
 
     const packagePath = /(?:^|[/\\])packages[/\\]([^/\\]+)[/\\]src[/\\](.+)$/.exec(source);
@@ -87,7 +88,7 @@ function sourcePathOf(location: SourceLocation, cwd: string): string {
 
     const repositoryPath = resolve(repositoryRoot, source);
     if (existsSync(repositoryPath)) return repositoryPath;
-    throw new Error(`source file not found in workspace: ${source}`);
+    throw new ConsoleErrors.SourceFileNotFoundInWorkspace({ source });
 }
 
 function editorArguments(command: string, base: readonly string[], location: SourceLocation, path: string): string[] {
@@ -115,11 +116,11 @@ export async function openSourceInEditor(
     env: NodeJS.ProcessEnv
 ): Promise<void> {
     if (editorValue === undefined || editorValue.trim() === '') {
-        throw new Error('set VISUAL or EDITOR to open source locations');
+        throw new ConsoleErrors.NoEditorSet();
     }
 
     const [command, ...baseArguments] = parseCommand(editorValue);
-    if (command === undefined) throw new Error('EDITOR is empty');
+    if (command === undefined) throw new ConsoleErrors.EditorIsEmpty();
     const path = sourcePathOf(location, cwd);
     const childArguments = editorArguments(command, baseArguments, location, path);
 
@@ -128,7 +129,12 @@ export async function openSourceInEditor(
         child.once('error', rejectProcess);
         child.once('exit', (code, signal) => {
             if (code === 0) resolveProcess();
-            else rejectProcess(new Error(signal ? `EDITOR exited from ${signal}` : `EDITOR exited with code ${code}`));
+            else
+                rejectProcess(
+                    signal
+                        ? new ConsoleErrors.EditorExitedFromSignal({ signal })
+                        : new ConsoleErrors.EditorExitedWithCode({ code })
+                );
         });
     });
 }

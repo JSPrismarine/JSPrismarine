@@ -34,6 +34,7 @@ import type { BoxBounds, CellShape } from './collision';
 import { boundsHitSolid, closestOpenFace, sweepAxis } from './collision';
 import type { DataEntity } from './DataEntity';
 import type { SpawnOptions } from './scene';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /** The type of every dropped stack. */
 export const ITEM_ENTITY = 'minecraft:item';
@@ -163,14 +164,19 @@ const tunings = new WeakMap<object, ItemTuning>();
  */
 export const itemTuningOf = (entity: DataEntity): ItemTuning => {
     const params = entity.instance.componentParams(ITEM_COMPONENT);
-    if (!isRecord(params)) throw new TypeError(`${entity.identifier} has no ${ITEM_COMPONENT} component`);
+    if (!isRecord(params))
+        throw new PrismarineEntityErrors.MissingItemComponent({
+            identifier: entity.identifier,
+            itemComponent: ITEM_COMPONENT
+        });
     const cached = tunings.get(params);
     if (cached !== undefined) return cached;
 
     const tuning: Record<string, number> = {};
     for (const [field, key] of Object.entries(TUNING_FIELDS)) {
         const value = params[key];
-        if (typeof value !== 'number') throw new TypeError(`${ITEM_COMPONENT} needs a number for ${key}`);
+        if (typeof value !== 'number')
+            throw new PrismarineEntityErrors.ItemComponentFieldNotNumber({ itemComponent: ITEM_COMPONENT, key });
         tuning[field] = value;
     }
     const read: ItemTuning = {

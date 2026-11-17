@@ -1,8 +1,9 @@
 import type { EventBus, EventMap } from './events';
-import { Kernel, KernelError } from './kernel';
+import { Kernel } from './kernel';
 import type { KernelLogger } from './logger';
 import type { Module } from './module';
 import type { ServiceToken } from './token';
+import { KernelErrors } from '@jsprismarine/errors/kernel';
 
 /**
  * A stub provider for one declared dependency of the module under test. Create
@@ -71,9 +72,7 @@ export async function startTestModule<Config, Events extends EventMap>(
     });
     for (const stub of options.stubs ?? []) {
         if (!declared.has(stub.token.id)) {
-            throw new KernelError(
-                `Stub for "${stub.token.id}" is not in module "${module.id}"'s declared dependencies`
-            );
+            throw new KernelErrors.UndeclaredStub({ id: stub.token.id, moduleId: module.id });
         }
         kernel.register({
             id: `test:stub/${stub.token.id}`,

@@ -1,5 +1,6 @@
 import { advertisedCodec, registeredCodecs } from './network/codec/CodecRegistry';
 import { SOFTWARE_NAME, serverVersion } from './version';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** One protocol version the server speaks and the Minecraft releases that use it. */
 export interface AboutProtocol {
@@ -39,7 +40,7 @@ export interface About {
  */
 export const about = (): About => {
     const minecraftVersion = advertisedCodec.minecraftVersions.at(-1);
-    if (minecraftVersion === undefined) throw new Error('The advertised codec names no Minecraft version!');
+    if (minecraftVersion === undefined) throw new PrismarineServerErrors.AdvertisedCodecWithoutVersion();
     return {
         software: SOFTWARE_NAME,
         version: serverVersion(),

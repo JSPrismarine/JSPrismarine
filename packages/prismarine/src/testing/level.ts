@@ -34,6 +34,7 @@ import type { World } from '../world/World';
 import type { LegacyWorldEntity } from '../world/WorldPersistence';
 import { testEntityServer } from './entityServer';
 import { stub } from './stub.test.helper';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** The generator kind {@link testLevel} registers the test's generator under. */
 export const TEST_GENERATOR_KIND = 'jsprismarine:test';
@@ -95,7 +96,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
     const stems = options.stems ?? new Map([[OVERWORLD_STEM_ID, TEST_OVERWORLD_STEM]]);
     const world = async (dimensionId: string): Promise<World> => {
         const found = worlds().find((each) => each.getDimension().id === dimensionId);
-        if (found === undefined) throw new Error(`the fake level has no ${dimensionId} world`);
+        if (found === undefined) throw new PrismarineServerErrors.FakeLevelHasNoWorld({ dimensionId });
         return found;
     };
     // A real save over the provider, without the level's own state, so a world that saves
@@ -127,7 +128,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         getName: () => options.name ?? 'test',
         getServer: () => server,
         getProvider: () => {
-            if (options.provider === undefined) throw new Error('the fake level was built without a provider');
+            if (options.provider === undefined) throw new PrismarineServerErrors.FakeLevelWithoutProvider();
             return options.provider;
         },
         getStems: () => stems,
@@ -231,7 +232,7 @@ export const testLevel = (options: TestLevelOptions): Level => {
             }
         ]),
         worldgen: () => {
-            throw new Error('A test level never reads the Java registries');
+            throw new PrismarineServerErrors.TestLevelReadsJavaRegistries();
         },
         config: options.config,
         onWorldBuilt: options.onWorldBuilt

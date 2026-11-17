@@ -2,6 +2,7 @@ import { f32 } from '../math';
 import { MarsagliaPolarGaussian } from './MarsagliaPolarGaussian';
 import type { LegacyRandomSourceState, PositionalRandomFactory, RandomSource } from './RandomSource';
 import { asLong, javaStringHashCode, positionalSeed } from './randomSupport';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 const MULTIPLIER = 25214903917n;
 const MULTIPLIER_LOW = 0xece66d;
@@ -57,7 +58,7 @@ export class LegacyRandomSource implements RandomSource {
             state.seed < 0 ||
             state.seed >= 2 ** 48
         ) {
-            throw new TypeError('Invalid legacy random source state');
+            throw new WorldgenErrors.InvalidLegacyRandomSourceState();
         }
 
         const gaussian = new MarsagliaPolarGaussian(this);
@@ -90,7 +91,7 @@ export class LegacyRandomSource implements RandomSource {
 
     /** @inheritDoc */
     public nextIntBounded(bound: number): number {
-        if (bound <= 0) throw new RangeError('Bound must be positive');
+        if (bound <= 0) throw new WorldgenErrors.BoundMustBePositive();
         if ((bound & (bound - 1)) === 0) {
             return this.next(31) >>> (31 - Math.log2(bound));
         }

@@ -1,6 +1,7 @@
 import type { BedrockBiomeLoss, RegistryLoss } from './lossList';
 import { BEDROCK_BIOME_LOSSES, REGISTRY_LOSSES } from './lossList';
 import { registriesTable } from './tables';
+import { MappingErrors } from '@jsprismarine/errors/mapping';
 
 /** The registries beyond blocks, items and entities that this package maps. */
 export const MAPPED_REGISTRIES = ['biome', 'enchantment', 'mob_effect', 'potion'] as const;
@@ -104,6 +105,6 @@ export const bedrockBiomeToJava = (biome: number | string): BedrockBiomeResult =
     const loss = bedrockBiomeLossById.get(identifier);
     // The generator refuses to emit a Bedrock biome that has neither a Java source nor a
     // reviewed loss, so this is unreachable with the committed table.
-    if (loss === undefined) throw new Error(`${identifier} has no Java source and no reviewed loss`);
+    if (loss === undefined) throw new MappingErrors.UnmappedBiome({ identifier });
     return { kind: 'loss', bedrock, loss };
 };

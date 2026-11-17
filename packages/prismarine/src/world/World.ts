@@ -111,6 +111,7 @@ import type { TickHeader } from './changelog/TickHeader';
 import type { ChangeLogCost } from './changelog/changeLogCost';
 import { changeLogCost } from './changelog/changeLogCost';
 import { canUsePortal } from '../entity/portalUse';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 export type { LevelData, StoredPlayerAttribute, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 
@@ -1457,7 +1458,13 @@ export class World implements Service {
         const state = (await this.getChunkAt(x, z)).getBlock(x, y, z, layer);
         const block = blockFromContent(state.name, this.server.getContent(), state.properties);
         if (!block) {
-            throw new Error(`No block named ${state.name}, held at ${x} ${y} ${z} in world ${this.getName()}`);
+            throw new PrismarineWorldErrors.UnknownSavedBlock({
+                name: state.name,
+                x,
+                y,
+                z,
+                name2: this.getName()
+            });
         }
 
         return block;
@@ -1549,7 +1556,13 @@ export class World implements Service {
         const state = chunk.getBlock(x, y, z, layer);
         const block = blockFromContent(state.name, this.server.getContent(), state.properties);
         if (!block) {
-            throw new Error(`No block named ${state.name}, held at ${x} ${y} ${z} in world ${this.getName()}`);
+            throw new PrismarineWorldErrors.UnknownSavedBlock({
+                name: state.name,
+                x,
+                y,
+                z,
+                name2: this.getName()
+            });
         }
 
         return block;
@@ -1674,7 +1687,7 @@ export class World implements Service {
         // Refused here rather than left to the provider, which answers with "The world
         // provider is not enabled" - the symptom, not the reason. The caller asked a world
         // that has shut down for a chunk, and that is what it should be told.
-        if (this.level.isClosed()) throw new Error(`Cannot load chunk ${x},${z}: world ${this.name} has been closed`);
+        if (this.level.isClosed()) throw new PrismarineWorldErrors.ChunkLoadAfterClose({ x, z, name: this.name });
 
         const index = Chunk.packXZ(x, z);
         const running = this.loading.get(index);
@@ -3042,7 +3055,7 @@ export class World implements Service {
         if (inverse.field !== 'block' && inverse.field !== 'block-entity') return false;
         const { x, y, z } = inverse.address;
         const chunk = this.getLoadedChunk(x >> 4, z >> 4);
-        if (chunk === null) throw new Error(`Cannot undo the ${inverse.field} at ${x}, ${y}, ${z}: its chunk left`);
+        if (chunk === null) throw new PrismarineWorldErrors.UndoInUnloadedChunk({ field: inverse.field, x, y, z });
 
         if (inverse.field === 'block') {
             const { layer } = inverse.address;

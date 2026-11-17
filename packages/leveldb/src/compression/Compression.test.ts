@@ -3,7 +3,8 @@ import zlib from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
 import { CompressionType, compress, decompress, isCompressionType } from './Compression';
-import { SnappyError, snappyDecompress } from './Snappy';
+import { snappyDecompress } from './Snappy';
+import { SnappyError } from '@jsprismarine/errors/leveldb';
 
 /**
  * Snappy streams assembled by hand from the format description rather than captured from a

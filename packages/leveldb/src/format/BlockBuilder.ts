@@ -1,5 +1,6 @@
 import { sharedPrefixLength } from '../util/Comparator';
 import { ByteWriter } from '../util/ByteWriter';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /**
  * Builds one block: a run of entries, then the restart array, then the restart count.
@@ -33,7 +34,7 @@ export class BlockBuilder {
 
     /** Keys must arrive in ascending order; a block whose keys are unsorted is unsearchable. */
     public add(key: Buffer, value: Buffer): void {
-        if (this.finished) throw new Error('Cannot add to a finished block');
+        if (this.finished) throw new LeveldbErrors.CannotAddToFinishedBlock();
 
         let shared = 0;
         if (this.sinceRestart < this.restartInterval) {

@@ -7,6 +7,7 @@ import type ParsedArgument from './ParsedArgument';
 import ParsedCommandNode from './ParsedCommandNode';
 import StringRange from './StringRange';
 import SuggestionContext from './SuggestionContext';
+import { BrigadierErrors } from '@jsprismarine/errors/brigadier';
 
 export default class CommandContextBuilder<S> {
     private args: Map<String, ParsedArgument<S, any>> = new Map();
@@ -172,6 +173,6 @@ export default class CommandContextBuilder<S> {
                 return new SuggestionContext(prev, this.range.getStart());
             }
         }
-        throw new Error("Can't find node before cursor");
+        throw new BrigadierErrors.CannotFindNodeBeforeCursor();
     }
 }

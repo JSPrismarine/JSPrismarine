@@ -1,4 +1,5 @@
 import { compareBytewise, findShortSuccessor, findShortestSeparator } from '../util/Comparator';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /**
  * What a key looks like once it is inside a table or a memtable: the user's key followed by an
@@ -36,14 +37,14 @@ export const encodeInternalKey = (userKey: Buffer, sequence: bigint, type: Value
 
 export const parseInternalKey = (key: Buffer): ParsedInternalKey => {
     if (key.byteLength < 8) {
-        throw new RangeError(`Internal key is ${key.byteLength} bytes, the trailer alone is 8`);
+        throw new LeveldbErrors.InternalKeyTooShort({ byteLength: key.byteLength });
     }
 
     const trailer = key.readBigUInt64LE(key.byteLength - 8);
     const type = Number(trailer & 0xffn);
 
     if (type !== ValueType.Deletion && type !== ValueType.Value) {
-        throw new RangeError(`Internal key has value type ${type}`);
+        throw new LeveldbErrors.UnknownInternalKeyType({ type });
     }
 
     return { userKey: key.subarray(0, key.byteLength - 8), sequence: trailer >> 8n, type };

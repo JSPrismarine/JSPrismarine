@@ -26,6 +26,7 @@ import type { SurfaceChunk } from '@jsprismarine/worldgen';
 
 import type { TemplateSource, TemplateTarget } from './javaTemplatePlacement';
 import { placeJavaTemplate } from './javaTemplatePlacement';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** The radius of Java's feature view around its generating chunk. */
 const FEATURE_RADIUS = 1;
@@ -246,9 +247,9 @@ export class PackedBlockWrites {
         public readonly positions: Int32Array,
         public readonly slots: Uint32Array
     ) {
-        if (positions.length !== slots.length * 3) throw new TypeError('A packed write list has a position per write');
+        if (positions.length !== slots.length * 3) throw new PrismarineGenerationErrors.PackedWriteCountMismatch();
         for (const slot of slots) {
-            if (slot >= palette.length) throw new TypeError('A packed write names a block its palette does not hold');
+            if (slot >= palette.length) throw new PrismarineGenerationErrors.PackedWriteOutOfPalette();
         }
     }
 
@@ -504,26 +505,26 @@ export class GenerationRegion {
      * @returns An isolated feature view that does not copy the tiles' block-state arrays.
      */
     public static featureView(options: GenerationRegionOptions, tiles: readonly GenerationRegion[]): GenerationRegion {
-        if (tiles.length !== 9) throw new RangeError('A feature view needs nine terrain tiles.');
+        if (tiles.length !== 9) throw new PrismarineGenerationErrors.FeatureViewTileCountMismatch();
 
         const sources: (GenerationRegion | undefined)[] = new Array(9);
         for (const tile of tiles) {
             if (tile.radius !== 0 || tile.minY !== options.minY || tile.maxY !== options.minY + options.height - 1) {
-                throw new RangeError('Feature-view terrain tiles must be radius-zero and match its vertical extent.');
+                throw new PrismarineGenerationErrors.InvalidFeatureTile();
             }
 
             const relativeX = tile.chunkX - options.chunkX;
             const relativeZ = tile.chunkZ - options.chunkZ;
             if (Math.abs(relativeX) > FEATURE_RADIUS || Math.abs(relativeZ) > FEATURE_RADIUS) {
-                throw new RangeError('Feature-view terrain tiles must fit its three by three window.');
+                throw new PrismarineGenerationErrors.FeatureTileOutOfWindow();
             }
             const index = (relativeX + FEATURE_RADIUS) * 3 + relativeZ + FEATURE_RADIUS;
-            if (sources[index] !== undefined) throw new RangeError('A feature view needs distinct terrain tiles.');
+            if (sources[index] !== undefined) throw new PrismarineGenerationErrors.DuplicateFeatureTiles();
             sources[index] = tile;
         }
 
         if (sources.some((tile) => tile === undefined)) {
-            throw new RangeError('A feature view needs every terrain tile in its three by three window.');
+            throw new PrismarineGenerationErrors.MissingFeatureTile();
         }
 
         const view = new GenerationRegion({ ...options, radius: FEATURE_RADIUS, [READ_THROUGH_TERRAIN]: true });
@@ -658,7 +659,7 @@ export class GenerationRegion {
         region.highest = new Int32Array(payload.highest);
         region.frozenSurface = payload.frozenSurface === undefined ? null : new Int32Array(payload.frozenSurface);
         if ((payload.biomeSections === undefined) !== (payload.biomeSectionOffsets === undefined)) {
-            throw new RangeError('A generation region must carry both biome section buffers or neither');
+            throw new PrismarineGenerationErrors.PartialBiomeSections();
         }
         if (payload.biomeSections !== undefined && payload.biomeSectionOffsets !== undefined) {
             region.setBiomeSections({
@@ -677,13 +678,13 @@ export class GenerationRegion {
     public setBiomeSections(sections: PackedBiomeSections): void {
         const { ids, offsets } = sections;
         if (offsets.length < 2 || offsets[0] !== 0 || offsets.at(-1) !== ids.length) {
-            throw new RangeError('Biome section offsets must span the biome ID buffer');
+            throw new PrismarineGenerationErrors.BiomeSectionOffsetsMismatch();
         }
 
         for (let section = 0; section < offsets.length - 1; section++) {
             const length = offsets[section + 1]! - offsets[section]!;
             if (length !== 1 && length !== 4096) {
-                throw new RangeError(`Biome section ${section} must hold one or 4096 IDs, got ${length}`);
+                throw new PrismarineGenerationErrors.InvalidBiomeSectionSize({ section, length });
             }
         }
 
@@ -699,12 +700,14 @@ export class GenerationRegion {
     public setBiomeCells(cells: RegionBiomeCells): void {
         const indices = new Uint16Array(cells.indices);
         if (indices.length !== (this.height >> 2) * 16) {
-            throw new RangeError(
-                `A chunk of height ${this.height} has ${(this.height >> 2) * 16} biome cells, not ${indices.length}`
-            );
+            throw new PrismarineGenerationErrors.BiomeCellCountMismatch({
+                height: this.height,
+                value: (this.height >> 2) * 16,
+                indicesCount: indices.length
+            });
         }
         for (const index of indices) {
-            if (index >= cells.palette.length) throw new RangeError(`Biome cell index ${index} is outside its palette`);
+            if (index >= cells.palette.length) throw new PrismarineGenerationErrors.BiomeCellOutOfPalette({ index });
         }
         this.centerBiomeCells = cells;
     }
@@ -791,7 +794,7 @@ export class GenerationRegion {
             this.frozenSurface !== null ||
             this.palette.length !== 1
         ) {
-            throw new Error('A terrain name writer requires a fresh, untracked region');
+            throw new PrismarineGenerationErrors.TerrainNamesIntoUsedRegion();
         }
         this.directTerrainWriting = true;
 
@@ -931,7 +934,7 @@ export class GenerationRegion {
     public copyCenterFrom(source: GenerationRegion): void {
         this.directTerrainWriting = false;
         if (source.minY !== this.minY || source.maxY !== this.maxY) {
-            throw new RangeError('Cannot combine generation regions with different vertical extents');
+            throw new PrismarineGenerationErrors.RegionHeightMismatch();
         }
 
         // Move the source palette indices in bulk so this merge does not allocate a RegionBlock

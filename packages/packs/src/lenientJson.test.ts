@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { JsonParseError, parseLenientJson } from './lenientJson';
+import { parseLenientJson } from './lenientJson';
+import { JsonParseError } from '@jsprismarine/errors/packs';
 
 describe('parseLenientJson', () => {
     it('parses plain JSON', () => {

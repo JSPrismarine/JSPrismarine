@@ -12,6 +12,7 @@ import type { Experiment } from '@jsprismarine/minecraft';
 import type { WireType } from '../fieldTypes';
 import type { PackIdVersion, ResourcePackEntry } from '../../packet/ResourcePacksInfoPacket';
 import type { ResourcePackStackEntry } from '../../packet/ResourcePackStackPacket';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** `PackIdVersion` on the wire: the two uuid halves, then the version string. */
 const packIdVersion = t.custom<PackIdVersion>(
@@ -233,7 +234,7 @@ export const resourcePackResponse: WireType<ResourcePackResponseData> = t.custom
     (stream, response) => {
         const selector = response.status - ALTERNATIVE_OFFSET;
         const name = RESPONSE_TYPE_NAMES[selector];
-        if (name === undefined) throw new Error(`No resource pack response alternative for status ${response.status}`);
+        if (name === undefined) throw new ProtocolWireErrors.UnknownResourcePackStatus({ status: response.status });
 
         t.varuint32.write(stream, selector);
         t.string.write(stream, name);
@@ -248,7 +249,7 @@ export const resourcePackResponse: WireType<ResourcePackResponseData> = t.custom
     (stream) => {
         const selector = t.varuint32.read(stream);
         if (selector >= RESPONSE_TYPE_NAMES.length) {
-            throw new Error(`Unknown resource pack response alternative ${selector}`);
+            throw new ProtocolWireErrors.UnknownResourcePackResponseAlternative({ selector });
         }
 
         const status = selector + ALTERNATIVE_OFFSET;

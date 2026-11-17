@@ -1,6 +1,7 @@
 import type EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * A client's list of equipped emotes.
@@ -19,7 +20,7 @@ export default class EmoteListHandler implements ConnectionLaneHandler<EmoteList
      */
     public handle(packet: EmoteListPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle an EmoteListPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.EmoteListNotDecoded();
 
         // `Runtime id` names whose emotes these are, and a client only equips its own.
         if (data.runtimeId !== session.runtimeId) {

@@ -2,6 +2,7 @@ import { NetworkBinaryStream, v2193 } from '@jsprismarine/protocol';
 
 import type { NetworkPacket } from '@jsprismarine/protocol';
 import type { ClientContext, ClientPacketHandler, ClientPhase } from './ClientHandler';
+import { ClientErrors } from '@jsprismarine/errors/client';
 
 /** A packet class that can be built with no arguments, i.e. for decoding into. */
 export type PacketConstructor = new () => NetworkPacket<any>;
@@ -64,7 +65,10 @@ export default class ClientPacketRegistry {
         const id = new constructor().getId();
 
         if (this.packets.has(id)) {
-            throw new Error(`Packet id 0x${id.toString(16)} is already registered to ${this.packets.get(id)!.name}`);
+            throw new ClientErrors.DuplicatePacketId({
+                id: id.toString(16),
+                name: this.packets.get(id)!.name
+            });
         }
 
         this.packets.set(id, constructor);
@@ -184,7 +188,7 @@ export default class ClientPacketRegistry {
         let value = 0;
 
         for (let shift = 0, cursor = 0; shift <= 28; shift += 7, cursor++) {
-            if (cursor >= buffer.byteLength) throw new Error('Packet header runs past the end of the buffer');
+            if (cursor >= buffer.byteLength) throw new ClientErrors.PacketHeaderTruncated();
 
             const byte = buffer[cursor]!;
             value |= (byte & 0x7f) << shift;
@@ -192,6 +196,6 @@ export default class ClientPacketRegistry {
             if ((byte & 0x80) === 0) return value & PID_MASK;
         }
 
-        throw new Error('Packet header varint did not terminate after 5 bytes');
+        throw new ClientErrors.PacketHeaderUnterminated();
     }
 }

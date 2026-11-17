@@ -9,6 +9,7 @@ import type { ChunkStep } from './ChunkStep';
 import type { StagedChunk } from './StagedChunk';
 import type { StepTask, StepTasks } from './StepTasks';
 import { StepRegion } from './StepTasks';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /** What a scheduler is built over. */
 export interface GenerationSchedulerOptions<TChunk extends StagedChunk> {
@@ -27,14 +28,14 @@ export interface GenerationSchedulerOptions<TChunk extends StagedChunk> {
  * status below it. It is here so a transcription slip reports itself rather than appearing as a
  * chunk that skipped a rung.
  */
-export class MissingGenerationLayerError extends Error {
+export class MissingGenerationLayerError extends ChunkgenErrors.MissingGenerationLayer {
     public override name = 'MissingGenerationLayerError';
 
     public constructor(
         public readonly target: ChunkStatus,
         public readonly status: ChunkStatus
     ) {
-        super(`Reaching ${target} needs a ${status} layer, and the step table gives it no radius.`);
+        super({ target, status });
     }
 }
 

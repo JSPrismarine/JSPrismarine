@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { BYTEWISE_COMPARATOR } from '../util/Comparator';
 import { ByteWriter } from '../util/ByteWriter';
-import { CorruptionError } from '../Errors';
 import { decodeVersionEdit, encodeVersionEdit } from './VersionEdit';
 import { ValueType, encodeInternalKey } from '../format/InternalKey';
 import { VersionSet } from './VersionSet';
 import type { FileMetaData, VersionEdit } from './VersionEdit';
+import { CorruptionError } from '@jsprismarine/errors/leveldb';
 
 const internal = (text: string, sequence = 1n) => encodeInternalKey(Buffer.from(text), sequence, ValueType.Value);
 

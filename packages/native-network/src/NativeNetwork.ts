@@ -2,7 +2,8 @@ import dgram from 'node:dgram';
 
 import { bindLibrary } from './ffi';
 import type { BoundLibrary, NativeSymbols } from './ffi';
-import { NativeLibraryError, locateLibrary } from './library';
+import { locateLibrary } from './library';
+import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 /** The interface version this binding speaks; it must equal the library's `JSP_ABI_VERSION`. */
 export const ABI_VERSION = 1;
@@ -100,19 +101,24 @@ export class NativeNetwork {
         try {
             library = bindLibrary(path);
         } catch (error: unknown) {
-            throw new NativeLibraryError(
-                `The native networking library at ${path} does not load on ${process.platform}-${process.arch}: ${
-                    error instanceof Error ? error.message : String(error)
-                }`,
+            throw new NativeNetworkErrors.LibraryDoesNotLoad(
+                {
+                    path,
+                    platform: process.platform,
+                    arch: process.arch,
+                    value: error instanceof Error ? error.message : String(error)
+                },
                 { cause: error }
             );
         }
         const version = library.symbols.jsp_abi_version();
         if (version !== ABI_VERSION) {
             library.close();
-            throw new NativeLibraryError(
-                `The native networking library at ${path} speaks interface ${version}; this package needs ${ABI_VERSION}`
-            );
+            throw new NativeNetworkErrors.LibraryInterfaceMismatch({
+                path,
+                version,
+                abiVersion: ABI_VERSION
+            });
         }
 
         const socket = dgram.createSocket('udp4');
@@ -127,7 +133,7 @@ export class NativeNetwork {
         if (opened < 0) {
             socket.close();
             library.close();
-            throw new NativeLibraryError(`The native networking library could not open its event queue (${opened})`);
+            throw new NativeNetworkErrors.EventQueueNotOpened({ opened });
         }
         NativeNetwork.instance = new NativeNetwork(library, socket, opened);
         return NativeNetwork.instance;

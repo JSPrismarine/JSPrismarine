@@ -9,6 +9,7 @@ import type { Brain } from './brain.js';
 import type { MemoryModuleType } from './memory.js';
 import type { SensorTypeName } from './sensing/sensors.js';
 import type { BrainContext, BrainEntity } from './world.js';
+import { EntityBrainsErrors } from '@jsprismarine/errors/entity-brains';
 
 /** What a host knows about a body before its brain exists. */
 export interface BrainMobOptions {
@@ -85,7 +86,7 @@ export class BrainMobRegistry {
      */
     public register(definition: BrainMobDefinition): void {
         if (this.definitions.has(definition.id)) {
-            throw new Error(`Duplicate brain mob: ${definition.id}`);
+            throw new EntityBrainsErrors.DuplicateBrainMob({ id: definition.id });
         }
         this.definitions.set(definition.id, definition);
     }

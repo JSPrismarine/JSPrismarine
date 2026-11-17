@@ -1,3 +1,4 @@
+import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 /**
  * The subsystems that still have to supply part of the world adapter.
  *
@@ -22,7 +23,7 @@ export const CONTENT_AREAS = {
 export type ContentArea = (typeof CONTENT_AREAS)[keyof typeof CONTENT_AREAS];
 
 /** Thrown by a world adapter member whose owning subsystem has not supplied it yet. */
-export class NotWiredError extends Error {
+export class NotWiredError extends PrismarineContentErrors.NotWired {
     public override name = 'NotWiredError';
 
     /**
@@ -33,7 +34,7 @@ export class NotWiredError extends Error {
         public readonly member: string,
         public readonly area: ContentArea
     ) {
-        super(`${member} is not wired yet; the ${area} subsystem owns it`);
+        super({ member, area });
     }
 }
 

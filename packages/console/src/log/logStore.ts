@@ -2,6 +2,7 @@ import type { LogEntry } from '@jsprismarine/console-protocol';
 import { isAtLeastLevel } from '@jsprismarine/logger';
 import type { LogLevel } from '@jsprismarine/logger';
 import type { RawStream, StoredRecord } from './types';
+import { ConsoleErrors } from '@jsprismarine/errors/console';
 
 /** Options for {@link LogStore}. */
 export interface LogStoreOptions {
@@ -283,9 +284,9 @@ export class LogStore {
 
     private evictOldestHidden(): void {
         const id = this.hiddenRecordIds[this.hiddenRecordOffset];
-        if (id === undefined) throw new Error('hidden log record index is out of sync');
+        if (id === undefined) throw new ConsoleErrors.HiddenRecordIndexOutOfSync();
         const record = this.records.get(id);
-        if (record === undefined) throw new Error('hidden log record is missing');
+        if (record === undefined) throw new ConsoleErrors.HiddenRecordMissing();
         this.hiddenRecordOffset += 1;
         this.records.delete(id);
         this.adjustLevelCount(record, -1);
@@ -296,9 +297,9 @@ export class LogStore {
 
     private evictOldestVisible(): void {
         const first = this.records.entries().next().value;
-        if (first === undefined) throw new Error('log history is empty at capacity');
+        if (first === undefined) throw new ConsoleErrors.LogHistoryEmptyAtCapacity();
         const [id, record] = first;
-        if (!this.passes(record)) throw new Error('oldest log record is hidden without an index');
+        if (!this.passes(record)) throw new ConsoleErrors.HiddenRecordNotIndexed();
         this.records.delete(id);
         this.adjustLevelCount(record, -1);
         this.visibleCache.shift();

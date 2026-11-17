@@ -13,6 +13,7 @@ import type { RaidRecord } from './raid/RaidManager';
 import type { SavedWeather } from './Weather';
 import { savedWeatherOf } from './Weather';
 import { isRecord } from '../utils/isRecord';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** A non-player entity snapshot used by providers without actor storage. */
 export interface LegacyWorldEntity {
@@ -252,7 +253,7 @@ const worldGenSettingsOf = (value: unknown): WorldGenSettings | undefined => {
     const seed = typeof rawSeed === 'string' ? rawSeed : isFiniteNumber(rawSeed) ? String(rawSeed) : undefined;
     const rawDimensions = value['dimensions'];
     if (seed === undefined || !isRecord(rawDimensions)) {
-        throw new Error('worldGenSettings needs a seed string and a dimensions object');
+        throw new PrismarineWorldErrors.InvalidLegacyWorldGenSettings();
     }
 
     const dimensions: Record<string, LevelStem> = {};
@@ -265,19 +266,21 @@ const worldGenSettingsOf = (value: unknown): WorldGenSettings | undefined => {
 
 /** Validates legacy file data before migrating it and removing its source file. */
 export const legacyWorldPersistenceDataOf = (value: unknown): WorldPersistenceData => {
-    if (!isRecord(value)) throw new Error('Legacy world data must be an object');
+    if (!isRecord(value)) throw new PrismarineWorldErrors.LegacyWorldDataMustBeObject();
 
     const data = worldPersistenceDataOf(value);
-    if (value['spawn'] !== undefined && data.spawn === undefined) throw new Error('Legacy spawn position is invalid');
-    if (value['weather'] !== undefined && data.weather === undefined) throw new Error('Legacy weather is invalid');
+    if (value['spawn'] !== undefined && data.spawn === undefined)
+        throw new PrismarineWorldErrors.LegacySpawnPositionIsInvalid();
+    if (value['weather'] !== undefined && data.weather === undefined)
+        throw new PrismarineWorldErrors.LegacyWeatherIsInvalid();
     if (value['gameRules'] !== undefined && !Array.isArray(value['gameRules']))
-        throw new Error('Legacy game rules are invalid');
+        throw new PrismarineWorldErrors.LegacyGameRulesAreInvalid();
     if (Array.isArray(value['gameRules']) && (data.gameRules?.length ?? 0) !== value['gameRules'].length)
-        throw new Error('Legacy game rules contain invalid entries');
+        throw new PrismarineWorldErrors.LegacyGameRulesContainInvalidEntries();
     if (value['entities'] !== undefined && !Array.isArray(value['entities']))
-        throw new Error('Legacy entity snapshots are invalid');
+        throw new PrismarineWorldErrors.LegacyEntitySnapshotsAreInvalid();
     if (Array.isArray(value['entities']) && (data.entities?.length ?? 0) !== value['entities'].length)
-        throw new Error('Legacy entity snapshots contain invalid entries');
+        throw new PrismarineWorldErrors.LegacyEntitySnapshotsContainInvalidEntries();
 
     return data;
 };

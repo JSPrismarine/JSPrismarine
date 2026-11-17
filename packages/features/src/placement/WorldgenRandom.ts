@@ -1,6 +1,7 @@
 import type { PositionalRandomFactory, RandomSource } from '@jsprismarine/worldgen';
 import { LegacyRandomSource, MarsagliaPolarGaussian, XoroshiroRandomSource } from '@jsprismarine/worldgen';
 import type { LegacyRandomSourceState, XoroshiroRandomSourceState } from '@jsprismarine/worldgen';
+import { FeaturesErrors } from '@jsprismarine/errors/features';
 
 const asLong = (value: bigint): bigint => BigInt.asIntN(64, value);
 const f32 = Math.fround;
@@ -59,7 +60,7 @@ export class WorldgenRandom implements RandomSource {
     /** Captures the backing stream and Java's separately cached Gaussian value. */
     public saveState(): WorldgenRandomState {
         if (!(this.delegate instanceof LegacyRandomSource) && !(this.delegate instanceof XoroshiroRandomSource)) {
-            throw new TypeError('WorldgenRandom has an unsupported random source');
+            throw new FeaturesErrors.UnsupportedRandomSource();
         }
         return {
             version: 1,
@@ -81,7 +82,7 @@ export class WorldgenRandom implements RandomSource {
             state.version !== 1 ||
             state.algorithm !== this.algorithm
         ) {
-            throw new TypeError('Invalid WorldgenRandom state');
+            throw new FeaturesErrors.InvalidRandomState();
         }
 
         const delegate = this.create(0n);
@@ -90,7 +91,7 @@ export class WorldgenRandom implements RandomSource {
         } else if (state.algorithm === 'xoroshiro' && delegate instanceof XoroshiroRandomSource) {
             delegate.restoreState(state.delegate);
         } else {
-            throw new TypeError('WorldgenRandom state does not match its algorithm');
+            throw new FeaturesErrors.RandomStateAlgorithmMismatch();
         }
 
         const gaussian = new MarsagliaPolarGaussian(delegate);
@@ -150,7 +151,7 @@ export class WorldgenRandom implements RandomSource {
     public next(bits: number): number {
         if (this.delegate instanceof LegacyRandomSource) return this.delegate.next(bits);
         if (this.delegate instanceof XoroshiroRandomSource) return this.delegate.nextBits(bits);
-        throw new TypeError('WorldgenRandom has an unsupported random source');
+        throw new FeaturesErrors.UnsupportedRandomSource();
     }
 
     /** @inheritDoc */
@@ -160,7 +161,7 @@ export class WorldgenRandom implements RandomSource {
 
     /** @inheritDoc */
     public nextIntBounded(bound: number): number {
-        if (bound <= 0) throw new RangeError('Bound must be positive');
+        if (bound <= 0) throw new FeaturesErrors.BoundMustBePositive();
         if ((bound & (bound - 1)) === 0) {
             return this.next(31) >>> (31 - Math.log2(bound));
         }
@@ -247,7 +248,7 @@ export const normal = (random: RandomSource, mean: number, deviation: number): n
 /** Picks one element uniformly, as Java's `Util.getRandom(List, RandomSource)` does. */
 export const randomElement = <T>(items: readonly T[], random: RandomSource): T => {
     const picked = items[random.nextIntBounded(items.length)];
-    if (picked === undefined) throw new RangeError('Cannot pick from an empty list');
+    if (picked === undefined) throw new FeaturesErrors.CannotPickFromEmptyList();
     return picked;
 };
 
@@ -266,12 +267,12 @@ export interface Weighted<T> {
 export const randomWeighted = <T>(entries: readonly Weighted<T>[], random: RandomSource): T => {
     let total = 0;
     for (const entry of entries) total += entry.weight;
-    if (total <= 0) throw new RangeError('Weighted list has no elements');
+    if (total <= 0) throw new FeaturesErrors.WeightedListHasNoElements();
 
     let selection = random.nextIntBounded(total);
     for (const entry of entries) {
         selection -= entry.weight;
         if (selection < 0) return entry.value;
     }
-    throw new RangeError('Weighted list selection fell past the end');
+    throw new FeaturesErrors.WeightedSelectionPastEnd();
 };

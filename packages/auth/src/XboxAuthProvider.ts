@@ -7,6 +7,7 @@ import { textClaim } from './claims';
 import { isRecord } from './isRecord';
 import { KeyedAuthProvider } from './KeyedAuthProvider';
 import { AuthenticationType, FIRST_TOKEN_PROTOCOL, MOJANG_ROOT_KEY } from './protocol';
+import { AuthErrors } from '@jsprismarine/errors/auth';
 
 /** How long the client's own chain link claims to be valid for. */
 const OWN_LINK_LIFETIME_SECONDS = 6 * 60 * 60;
@@ -88,7 +89,7 @@ const prismarineAuth = (options: XboxAuthOptions): XboxTokenSource => {
         try {
             module = await import('prismarine-auth');
         } catch (error: unknown) {
-            throw new Error('XboxAuthProvider signs in through prismarine-auth; install it beside @jsprismarine/auth', {
+            throw new AuthErrors.PrismarineAuthNotInstalled({
                 cause: error
             });
         }
@@ -183,7 +184,7 @@ export default class XboxAuthProvider extends KeyedAuthProvider {
     private fetch(): Promise<SignedIn> {
         const pending = this.tokens.getMinecraftBedrockToken(this.key.publicKey).then(({ chain, token }) => {
             if (token === undefined || token === '') {
-                throw new Error('Minecraft services issued no multiplayer token for this account');
+                throw new AuthErrors.NoMultiplayerToken();
             }
             const login: XboxLogin = { chain, token };
             return { login, identity: identityOf(login), expiresAt: expiryOf(token) };
@@ -220,7 +221,7 @@ const identityOf = (login: XboxLogin): Identity => {
     const identity = textClaim(claims, 'identity');
     const displayName = textClaim(claims, 'displayName');
     if (xuid === undefined || identity === undefined || displayName === undefined) {
-        throw new Error('The chain Minecraft services issued names no account');
+        throw new AuthErrors.ChainNamesNoAccount();
     }
     const titleId = textClaim(claims, 'titleId');
     return titleId === undefined ? { xuid, identity, displayName } : { xuid, identity, displayName, titleId };

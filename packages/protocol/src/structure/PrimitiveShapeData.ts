@@ -3,6 +3,7 @@ import type { Dimension } from '@jsprismarine/minecraft';
 import NetworkStructure from '../NetworkStructure';
 import Vec2 from './Vec2';
 import Vec3 from './Vec3';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * A `ScriptModuleMinecraft::ScriptPrimitiveShapeType`, the `Shape Type` byte of a debug shape.
@@ -337,7 +338,7 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
                     segments: stream.readByte()
                 };
             default:
-                throw new Error(`Unknown primitive shape extra data alternative ${type}`);
+                throw new ProtocolCodecErrors.UnknownPrimitiveShapeExtraDataAlternative({ type });
         }
     }
 

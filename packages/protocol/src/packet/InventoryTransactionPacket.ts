@@ -11,6 +11,7 @@ import type {
     LegacyTransactionRequest,
     TransactionPayload
 } from '../wire/structures/InventoryTransaction';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /** The normalized data carried by an inventory transaction at every protocol version. */
 export interface InventoryTransaction {
@@ -64,7 +65,7 @@ export default class InventoryTransactionPacket extends NetworkPacket<InventoryT
     protected deserializePayload(stream: NetworkBinaryStream): InventoryTransaction {
         const decoded = layoutAt(inventoryTransactionPacket, this.codecProtocol).decode(stream);
         const transaction = decoded.transactionWithHand ?? decoded.transaction;
-        if (transaction === null) throw new Error('Inventory Transaction has no versioned transaction body');
+        if (transaction === null) throw new ProtocolCodecErrors.MissingTransactionBody();
 
         return { legacyRequest: decoded.legacyRequest, ...transaction };
     }

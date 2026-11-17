@@ -40,6 +40,7 @@ import {
     entityIntersectsBounds,
     inflatedEntityBounds
 } from './world.js';
+import { EntityBrainsErrors } from '@jsprismarine/errors/entity-brains';
 
 /** A generic one-block test entity, overridden for exact geometry cases. */
 const DEFAULT_TEST_DIMENSIONS: EntityDimensions = { width: 1, height: 1 };
@@ -208,7 +209,7 @@ export class TestMob extends TestEntity implements BrainMob {
 
     public get brain(): Brain {
         if (this.attached === undefined) {
-            throw new Error(`${this.type} has no brain attached; call attach() first`);
+            throw new EntityBrainsErrors.NoBrainAttached({ type: this.type });
         }
         return this.attached;
     }

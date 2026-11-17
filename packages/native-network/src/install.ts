@@ -5,6 +5,7 @@ import { bundledManifest, sha256 } from './manifest';
 import type { NativeManifest } from './manifest';
 import { hasNativeSources, nativeSourceHash } from './nativeHash';
 import { operatingSystemOf, platformKey, sharedLibraryName } from './platform';
+import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 /** Skips the download, for an install that brings its own library through `JSP_NATIVE_NETWORK_LIBRARY`. */
 export const SKIP_DOWNLOAD_ENV = 'JSP_NATIVE_NETWORK_SKIP_DOWNLOAD';
@@ -53,7 +54,7 @@ const readSource = async (
     if (!/^[a-z]+:\/\//i.test(base)) return readFileSync(join(base, file));
     const url = `${withoutTrailingSlashes(base)}/${encodeURIComponent(file)}`;
     const response = await fetchImpl(url);
-    if (!response.ok) throw new Error(`${url} answered ${response.status}`);
+    if (!response.ok) throw new NativeNetworkErrors.DownloadFailed({ url, status: response.status });
     return new Uint8Array(await response.arrayBuffer());
 };
 
@@ -86,9 +87,13 @@ export const installBuild = async (options: InstallOptions): Promise<InstallOutc
     const bytes = await readSource(env[BASE_URL_ENV] || manifest.baseUrl, entry.shared.file, options.fetch ?? fetch);
     const digest = sha256(bytes);
     if (digest !== entry.shared.sha256 || bytes.byteLength !== entry.shared.bytes) {
-        throw new Error(
-            `${entry.shared.file} has SHA-256 ${digest} and ${bytes.byteLength} bytes; the manifest expects ${entry.shared.sha256} and ${entry.shared.bytes}`
-        );
+        throw new NativeNetworkErrors.DownloadDigestMismatch({
+            file: entry.shared.file,
+            digest,
+            byteLength: bytes.byteLength,
+            sha256: entry.shared.sha256,
+            bytes: entry.shared.bytes
+        });
     }
     mkdirSync(dirname(path), { recursive: true });
     // Written beside the target and renamed, so a failed install never leaves half a library.

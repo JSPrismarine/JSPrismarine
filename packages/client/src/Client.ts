@@ -34,6 +34,7 @@ import type { IAuthProvider } from '@jsprismarine/auth';
 import type { ShowCreditsPayload, StartGame } from '@jsprismarine/protocol';
 import type { ITransport, TransportStats } from './net/ITransport';
 import type { PendingDimensionChange } from './DimensionChange';
+import { ClientErrors } from '@jsprismarine/errors/client';
 
 /**
  * The protocol version this client speaks unless it is told otherwise.
@@ -126,9 +127,10 @@ export default class Client extends EventEmitter {
         this.protocolVersion = options.protocolVersion ?? PROTOCOL_VERSION;
         const protocol = PROTOCOLS.get(this.protocolVersion);
         if (protocol === undefined) {
-            throw new Error(
-                `This client speaks protocol ${[...PROTOCOLS.keys()].join(' and ')}, not ${this.protocolVersion}`
-            );
+            throw new ClientErrors.UnsupportedProtocol({
+                protocols: [...PROTOCOLS.keys()].join(' and '),
+                protocolVersion: this.protocolVersion
+            });
         }
 
         this.registry = new ClientPacketRegistry(this.protocolVersion);
@@ -201,7 +203,7 @@ export default class Client extends EventEmitter {
      * can do between the two: every packet before the spawn belongs to the handshake.
      */
     public async connect(): Promise<StartGame> {
-        if (this.connected) throw new Error('Already connected');
+        if (this.connected) throw new ClientErrors.AlreadyConnected();
 
         await this.transport.connect();
         this.connected = true;

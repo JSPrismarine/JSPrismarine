@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { ComponentFactory } from './components';
 import { anyValue, ComponentRegistry } from './components';
 import type { Definition } from './definitions';
-import { ContentError } from './errors';
 import { Instance } from './instances';
 import { Registry } from './registry';
 import type { Type } from './types';
 import { resolveTypes } from './types';
+import { ContentError } from '@jsprismarine/errors/content';
 
 interface BlockHooks {
     onTick: (log: string[]) => void;

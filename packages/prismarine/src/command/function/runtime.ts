@@ -21,6 +21,8 @@ import type { ServerFunctions } from './load';
 import { FunctionSchedule } from './schedule';
 import type { ScheduleMode } from './schedule';
 import { readMacroArguments } from './snbt';
+import { asError } from '@jsprismarine/errors/common';
+import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
 /**
  * How deep a `/function` may nest when the nesting goes back through the
@@ -117,7 +119,7 @@ export class FunctionRuntime {
                         // Rethrown rather than swallowed: the executor records
                         // the failure against the function and line it came
                         // from, which is more than this frame knows.
-                        throw error instanceof Error ? error : new Error(String(error));
+                        throw asError(error);
                     } finally {
                         this.pendingReturn = undefined;
                     }
@@ -234,7 +236,7 @@ export class FunctionRuntime {
      *   the message the sender sees.
      */
     public requestReturn(value: number | undefined): number {
-        if (this.depth === 0) throw new Error('/return can only be used inside a function');
+        if (this.depth === 0) throw new PrismarineCommandErrors.ReturnOutsideFunction();
 
         this.pendingReturn = value === undefined ? {} : { value };
         return value ?? 0;

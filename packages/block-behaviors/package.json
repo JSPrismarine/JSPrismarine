@@ -65,6 +65,7 @@
     "dependencies": {
         "@jsprismarine/blocks": "workspace:*",
         "@jsprismarine/content": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/mapping": "workspace:*"
     },
     "devDependencies": {

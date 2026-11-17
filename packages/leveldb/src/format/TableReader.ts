@@ -3,11 +3,11 @@ import { decompress, isCompressionType } from '../compression/Compression';
 import { BlockReader } from './BlockReader';
 import { BlockCache } from './BlockCache';
 import { ByteReader } from '../util/ByteReader';
-import { CorruptionError } from '../Errors';
 import { BLOCK_TRAILER_LENGTH, FOOTER_LENGTH, decodeFooter, readBlockHandle } from './Footer';
 import { BLOOM_FILTER2_META_KEY, FilterBlockReader } from './FilterBlock';
 import type { BlockEntry } from './BlockReader';
 import type { BlockHandle } from './Footer';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /** How a table's bytes are fetched. A file-backed table reads 4 KiB at a time off a cached fd. */
 export interface TableSource {
@@ -18,7 +18,7 @@ export interface TableSource {
 export const bufferSource = (buffer: Buffer): TableSource => ({
     read: (offset, length) => {
         if (offset < 0 || offset + length > buffer.byteLength) {
-            throw new CorruptionError(`Read of ${length} bytes at ${offset} is outside the table`);
+            throw new LeveldbErrors.ReadOutsideTable({ length, offset });
         }
 
         return buffer.subarray(offset, offset + length);
@@ -61,7 +61,7 @@ export class TableReader {
         options: TableReaderOptions = {}
     ) {
         if (source.size < FOOTER_LENGTH) {
-            throw new CorruptionError(`Table is ${source.size} bytes, shorter than its own footer`);
+            throw new LeveldbErrors.TableShorterThanFooter({ sourceCount: source.size });
         }
 
         this.source = source;
@@ -95,13 +95,15 @@ export class TableReader {
 
         const actual = mask(crc32cUpdate(Buffer.from([type]), crc32cUpdate(payload)));
         if (actual !== expected) {
-            throw new CorruptionError(
-                `Block checksum mismatch at offset ${handle.offset}: stored ${expected}, computed ${actual}`
-            );
+            throw new LeveldbErrors.BlockChecksumMismatch({
+                offset: handle.offset,
+                expected,
+                actual
+            });
         }
 
         if (!isCompressionType(type)) {
-            throw new CorruptionError(`Block at offset ${handle.offset} has compression type ${type}`);
+            throw new LeveldbErrors.UnreadableBlockCompression({ offset: handle.offset, type });
         }
 
         return decompress(type, payload);

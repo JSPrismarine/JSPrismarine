@@ -1,6 +1,7 @@
 import type SettingsCommandPacket from '@jsprismarine/protocol/packet/SettingsCommandPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * A command issued from a settings screen.
@@ -18,7 +19,7 @@ export default class SettingsCommandHandler implements InputLaneHandler<Settings
     /** Dispatches the command line as the player who sent it. */
     public handle(packet: SettingsCommandPacket, { session, services, step }: InputContext): undefined {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a SettingsCommandPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.SettingsCommandNotDecoded();
         // The command runs in this input's unit; what it started is the step's to finish.
         step.output(services.commands.runCommand(session, session, data.command).settled);
     }

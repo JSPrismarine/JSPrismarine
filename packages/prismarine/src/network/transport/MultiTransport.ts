@@ -4,6 +4,7 @@ import { ConnectionIds } from './ConnectionId';
 import type { Listener } from './Subscription';
 import { Subscription } from './Subscription';
 import type { Transport, TransportConnection } from './Transport';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * Several transports presented as one, so the dispatcher above serves RakNet and NetherNet
@@ -51,6 +52,6 @@ export default class MultiTransport extends BaseTransport<TransportConnection> {
             }
         }
         if (errors.length === 1) throw errors[0];
-        if (errors.length > 1) throw new AggregateError(errors, 'Several transports failed to close');
+        if (errors.length > 1) throw new PrismarineNetworkErrors.SeveralTransportsFailedToClose({ cause: errors });
     }
 }

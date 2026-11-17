@@ -1,4 +1,4 @@
-import { ContentError } from './errors';
+import { ContentErrors } from '@jsprismarine/errors/content';
 
 /**
  * A stable reference to one registry entry by key.
@@ -52,7 +52,7 @@ class RegistryHolder<T> implements Holder<T> {
     public value(): T {
         const id = this.owner.idOf(this.key);
         if (id === undefined) {
-            throw new ContentError(`the ${this.owner.name} registry has no entry for ${this.key}`);
+            throw new ContentErrors.RegistryHasNoEntry({ name: this.owner.name, key: this.key });
         }
         return this.owner.at(id)!;
     }
@@ -103,7 +103,7 @@ export class Registry<T> implements Iterable<readonly [string, T]> {
 
         for (const [key, value] of entries) {
             if (ids.has(key)) {
-                throw new ContentError(`the ${this.name} registry got ${key} twice in one build`);
+                throw new ContentErrors.DuplicateRegistryKey({ name: this.name, key });
             }
             ids.set(key, keys.length);
             keys.push(key);

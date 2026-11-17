@@ -4,6 +4,8 @@ import NoiseAlignment from './NoiseAlignment';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 import type { EasingFunction } from './CameraInstruction';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * Which alternative an attribute value variant (`Attribute`, `FromAttribute` or `ToAttribute`)
@@ -134,7 +136,7 @@ type NumericEnum = Record<string, string | number>;
  */
 const nameOf = (members: NumericEnum, value: number, label: string): string => {
     const name = members[value];
-    if (typeof name !== 'string') throw new Error(`Unknown ${label} ${value}`);
+    if (typeof name !== 'string') throw new ProtocolCodecErrors.UnknownEnumValue({ label, value });
     return name;
 };
 
@@ -144,7 +146,7 @@ const nameOf = (members: NumericEnum, value: number, label: string): string => {
  */
 const valueOf = (members: NumericEnum, name: string, label: string): number => {
     const value = members[name];
-    if (typeof value !== 'number') throw new Error(`Unknown ${label} "${name}"`);
+    if (typeof value !== 'number') throw new ProtocolCodecErrors.UnknownEnumName({ label, name });
     return value;
 };
 
@@ -212,7 +214,7 @@ export function readAttributeValue(stream: NetworkBinaryStream): AttributeValue 
         }
 
         default:
-            throw new Error(`Unknown attribute value alternative ${type}`);
+            throw new ProtocolCodecErrors.UnknownAttributeValueAlternative({ type });
     }
 }
 
@@ -321,7 +323,7 @@ export default class EnvironmentAttributeData extends NetworkStructure implement
         this.currentTransitionTicks = stream.readUnsignedIntLE();
         this.totalTransitionTicks = stream.readUnsignedIntLE();
         const easing = stream.readString();
-        if (!isEasingFunction(easing)) throw new Error(`Unknown easing_function "${easing}"`);
+        if (!isEasingFunction(easing)) throw new ProtocolWireErrors.UnknownEasingFunction({ name: easing });
         this.easing = easing;
         this.localTransitionTicks = stream.readUnsignedIntLE();
         this.noiseTransition = stream.readBoolean();

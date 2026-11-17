@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { BinaryutilsErrors } from '@jsprismarine/errors/binaryutils';
 
 /**
  * A high-performance binary stream for reading and writing binary data.
@@ -628,7 +629,7 @@ export class BinaryStream {
             // out-of-bounds element load, which makes V8 discard the optimized code for this
             // function the first time a stream is read to its end.
             if (this.readIndex >= len) {
-                throw new Error('No bytes left in buffer');
+                throw new BinaryutilsErrors.EndOfBuffer();
             }
             const b = buf[this.readIndex++]!;
             value |= (b & 0x7f) << i;
@@ -638,7 +639,7 @@ export class BinaryStream {
                     // Bits above the 32nd used to be shifted off and discarded, so an
                     // over-long encoding such as `ff ff ff ff 7f` silently decoded to the
                     // same value as the canonical `ff ff ff ff 0f`.
-                    throw new Error('VarInt overflows 32 bits!');
+                    throw new BinaryutilsErrors.VarintOverflows32Bits();
                 }
                 // `>>> 0` because the accumulator above is int32: without it every value
                 // from 2^31 up came back negative, so writeUnsignedVarInt(0xffffffff)
@@ -647,7 +648,7 @@ export class BinaryStream {
             }
         }
 
-        throw new Error('VarInt did not terminate after 5 bytes!');
+        throw new BinaryutilsErrors.VarintUnterminated();
     }
 
     /**
@@ -702,7 +703,7 @@ export class BinaryStream {
     public readUnsignedVarLong(): bigint {
         const buf = this.readBuffer;
         if (buf === null) {
-            throw new Error('Buffer is write only!');
+            throw new BinaryutilsErrors.WriteOnlyStream();
         }
         const len = buf.byteLength;
         // The accumulator is kept in two int32 halves and materialised as a single BigInt at
@@ -712,7 +713,7 @@ export class BinaryStream {
         let hi = 0;
         for (let i = 0; i <= 63; i += 7) {
             if (this.readIndex >= len) {
-                throw new Error('No bytes left in buffer');
+                throw new BinaryutilsErrors.EndOfBuffer();
             }
             const b = buf[this.readIndex++]!;
             if (i < 28) {
@@ -726,13 +727,13 @@ export class BinaryStream {
 
             if ((b & 0x80) === 0) {
                 if (i === 63 && (b & 0x7e) !== 0) {
-                    throw new Error('VarLong overflows 64 bits!');
+                    throw new BinaryutilsErrors.VarlongOverflows64Bits();
                 }
                 return (BigInt(hi >>> 0) << 32n) | BigInt(lo >>> 0);
             }
         }
 
-        throw new Error('VarLong did not terminate after 10 bytes!');
+        throw new BinaryutilsErrors.VarlongUnterminated();
     }
 
     /**
@@ -874,7 +875,7 @@ export class BinaryStream {
      */
     public feof(): boolean {
         const buf = this.readBuffer;
-        if (buf === null) throw new Error('Buffer is write only!');
+        if (buf === null) throw new BinaryutilsErrors.WriteOnlyStream();
         // A numeric compare rather than `typeof buf[i] === 'undefined'`. The latter is an
         // out-of-bounds element load, and V8 bails out of the optimized code for this
         // function the first time it happens - which is every packet decoded to its end.
@@ -886,7 +887,7 @@ export class BinaryStream {
      * @returns {Buffer}
      */
     public readRemaining(): Buffer {
-        if (!this.readBuffer) throw new Error('Buffer is write only!');
+        if (!this.readBuffer) throw new BinaryutilsErrors.WriteOnlyStream();
         const buf = this.readBuffer!.subarray(this.readIndex);
         this.readIndex = this.readBuffer.byteLength;
         return buf;

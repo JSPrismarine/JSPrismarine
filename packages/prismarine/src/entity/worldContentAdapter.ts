@@ -19,6 +19,7 @@ import type { StoreActor } from './data/storeActors';
 import { applyBlockEntityRecord } from '../blockentity/contentRecord';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 import { PLAYER_IDENTIFIER } from './playerOverlay';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /** The live world whose entities this group reads, or undefined when none is loaded. */
 export type LiveWorld = () => World | undefined;
@@ -114,7 +115,7 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
 
     const live = (): World => {
         const loaded = world();
-        if (loaded === undefined) throw new Error('no world is loaded, so its entities cannot be read or changed');
+        if (loaded === undefined) throw new PrismarineEntityErrors.NoWorldForEntities();
         return loaded;
     };
 

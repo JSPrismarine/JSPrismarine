@@ -2,9 +2,9 @@ import type { BehaviorRegistry, BoundBehavior } from './behaviors';
 import type { BindContext, BoundComponent, ComponentFactory, ComponentRegistry } from './components';
 import type { Definition } from './definitions';
 import type { Diagnostic } from './diagnostics';
-import { ContentError } from './errors';
 import type { HookContribution, HookSignatures } from './hooks';
 import { HookTable } from './hooks';
+import { ContentErrors } from '@jsprismarine/errors/content';
 
 /** One component a definition declares, as the domain's reader found it. */
 export interface ComponentEntry {
@@ -135,13 +135,11 @@ export interface ResolveResult<H extends HookSignatures<H>, F extends string> {
 }
 
 /** Error thrown by a strict resolve; `diagnostics` holds the full report. */
-export class ContentLoadError extends ContentError {
+export class ContentLoadError extends ContentErrors.ContentDidNotResolveCleanly {
     public override name = 'ContentLoadError';
 
     public constructor(public readonly diagnostics: readonly Diagnostic[]) {
-        super(
-            `the content did not resolve cleanly: ${diagnostics.length} diagnostic(s), first: ${diagnostics[0]?.message}`
-        );
+        super({ count: diagnostics.length, first: diagnostics[0]?.message });
     }
 }
 

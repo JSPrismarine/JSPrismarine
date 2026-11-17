@@ -19,6 +19,7 @@ import { SINCE_2259, UNTIL_2259 } from '../wireGates';
 import type { DataStoreValue } from '../../structure/DataStoreUpdate';
 import type { PayloadOf } from '../define';
 import type { WireType } from '../fieldTypes';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The alternatives of an `Updates` entry, numbered by their position in the schema's
@@ -134,7 +135,7 @@ const dataStoreValue = t.custom<DataStoreValue>(
             case DataStoreValueType.STRING:
                 return { type, value: t.string.read(stream) };
             default:
-                throw new Error(`Data store update has an unknown data type ${type}`);
+                throw new ProtocolWireErrors.UnknownDataStoreUpdateType({ type });
         }
     }
 );
@@ -236,7 +237,7 @@ const propertyValue: WireType<DataStorePropertyValue> = t.custom(
             case DataStorePropertyType.MAP:
                 return { type, value: propertyMap.read(stream) };
             default:
-                throw new Error(`Data store property value has an unknown type ${type}`);
+                throw new ProtocolWireErrors.UnknownDataStorePropertyType({ type });
         }
     }
 );
@@ -286,7 +287,7 @@ const dataStoreEntry = t.custom<DataStoreEntry>(
             case DataStoreEntryType.REMOVAL:
                 return { type, removal: dataStoreRemoval.read(stream) };
             default:
-                throw new Error(`Data store entry has an unknown type ${type}`);
+                throw new ProtocolWireErrors.UnknownDataStoreEntryType({ type });
         }
     }
 );
@@ -373,7 +374,7 @@ const dataStoreVariableEntry = t.custom<DataStoreVariableEntry>(
             case DataStoreEntryType.REMOVAL:
                 return { type, removal: dataStoreVariableRemoval.read(stream) };
             default:
-                throw new Error(`Data store entry has an unknown type ${type}`);
+                throw new ProtocolWireErrors.UnknownDataStoreEntryType({ type });
         }
     }
 );

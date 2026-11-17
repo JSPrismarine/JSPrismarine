@@ -1,3 +1,5 @@
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
+
 /** The protocol version and Minecraft releases a server supports. */
 export interface ServerProtocolInfo {
     /** The newest protocol version the server accepts. */
@@ -72,7 +74,7 @@ export class ServerName {
         // version advertises. Advertising the oldest told a current client it had found an
         // older server.
         const newestVersion = protocol.minecraftVersions.at(-1);
-        if (newestVersion === undefined) throw new Error('A server name requires a supported Minecraft version!');
+        if (newestVersion === undefined) throw new RaknetErrors.ServerNameWithoutVersion();
         this.version = newestVersion;
     }
 

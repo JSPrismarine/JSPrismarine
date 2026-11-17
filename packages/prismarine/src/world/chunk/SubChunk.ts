@@ -4,6 +4,7 @@ import type { BlockState } from '../../block/state/BlockState';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import BlockStorage, { BlockWriteCounter } from './BlockStorage';
 import type { ReadonlyBlockStorage } from './BlockStorage';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * 1 is the original single-layer form, 8 adds a layer count, 9 adds the sub chunk's own index.
@@ -113,7 +114,7 @@ export default class SubChunk implements ReadonlySubChunk {
 
         // An absent layer is all air; allocating it on a read changes the serialized layer count.
         const air = BlockRuntimeIds.getState(BlockRuntimeIds.getByName('minecraft:air'));
-        if (!air) throw new Error('The air block state is not registered');
+        if (!air) throw new PrismarineWorldErrors.AirNotRegistered();
         return air;
     }
 
@@ -149,7 +150,7 @@ export default class SubChunk implements ReadonlySubChunk {
         // every deserialisation ran off the end of the stream.
         const version = stream.readByte();
         if (!isSubChunkVersion(version)) {
-            throw new Error(`Unsupported sub chunk version ${version}`);
+            throw new PrismarineWorldErrors.UnsupportedSubChunkVersion({ version });
         }
 
         subChunk.sourceVersion = version;

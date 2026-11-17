@@ -13,6 +13,7 @@
  * the unit it runs in can only undo writes to its own world.
  */
 import type { World } from './World';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** One change for a world, with the world it is for. */
 interface WorldMessage {
@@ -89,7 +90,10 @@ export class WorldMessages {
         for (let pass = 0; pass < DRAIN_PASSES && this.pending.length > 0; pass += 1) applied += this.admit();
         if (this.pending.length > 0) {
             this.report(
-                new Error(`${this.pending.length} world message(s) were still being filed after ${DRAIN_PASSES} passes`)
+                new PrismarineWorldErrors.WorldMessagesUnsettled({
+                    pendingCount: this.pending.length,
+                    drainPasses: DRAIN_PASSES
+                })
             );
         }
         return applied;

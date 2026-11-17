@@ -14,6 +14,7 @@ import type {
 } from './DensityFunction';
 import { densityInputsOf } from './DensityFunction';
 import type { SampleContext } from './SampleContext';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** A compiled density function: one closure that reads a position and the chunk context. */
 export type DensitySampler = (context: SampleContext, x: number, y: number, z: number) => number;
@@ -86,18 +87,17 @@ const sampleCountOf = (volume: DensityVolume): number => {
         volume.sizeY < 0 ||
         volume.sizeZ < 0
     ) {
-        throw new RangeError('Density volume origins and sizes must be safe integer block coordinates');
+        throw new WorldgenErrors.InvalidDensityVolume();
     }
 
     const count = volume.sizeX * volume.sizeY * volume.sizeZ;
-    if (!Number.isSafeInteger(count))
-        throw new RangeError('Density volume sample count exceeds the safe integer range');
+    if (!Number.isSafeInteger(count)) throw new WorldgenErrors.DensityVolumeTooLarge();
     if (
         (volume.sizeX > 0 && !Number.isSafeInteger(volume.minX + volume.sizeX - 1)) ||
         (volume.sizeY > 0 && !Number.isSafeInteger(volume.minY + volume.sizeY - 1)) ||
         (volume.sizeZ > 0 && !Number.isSafeInteger(volume.minZ + volume.sizeZ - 1))
     ) {
-        throw new RangeError('Density volume end coordinates exceed the safe integer range');
+        throw new WorldgenErrors.DensityVolumeTooFar();
     }
     return count;
 };
@@ -190,7 +190,7 @@ class CompiledDensityVolumeEvaluator implements DensityVolumeEvaluator {
     public sample(context: SampleContext, volume: DensityVolume, output: Float64Array): void {
         const count = sampleCountOf(volume);
         if (output.length < count) {
-            throw new RangeError(`Density volume output needs ${count} values, got ${output.length}`);
+            throw new WorldgenErrors.DensityVolumeOutputTooSmall({ count, outputCount: output.length });
         }
         if (count === 0) return;
         this.growWorkspace(count);
@@ -200,7 +200,7 @@ class CompiledDensityVolumeEvaluator implements DensityVolumeEvaluator {
             const instruction = this.plan.instructions[instructionIndex];
             const outputBuffer = this.buffers[instructionIndex];
             if (instruction === undefined || outputBuffer === undefined) {
-                throw new Error(`Missing density volume instruction ${instructionIndex}`);
+                throw new WorldgenErrors.MissingDensityVolumeInstruction({ instructionIndex });
             }
 
             switch (instruction.type) {
@@ -217,7 +217,8 @@ class CompiledDensityVolumeEvaluator implements DensityVolumeEvaluator {
                     break;
                 case 'unary': {
                     const input = this.buffers[instruction.input];
-                    if (input === undefined) throw new Error(`Missing density volume input ${instruction.input}`);
+                    if (input === undefined)
+                        throw new WorldgenErrors.MissingDensityVolumeInput({ input: instruction.input });
                     for (let index = 0; index < count; index++) {
                         outputBuffer[index] = applyUnaryDensity(instruction.operator, input[index] ?? 0);
                     }
@@ -227,7 +228,10 @@ class CompiledDensityVolumeEvaluator implements DensityVolumeEvaluator {
                     const left = this.buffers[instruction.left];
                     const right = this.buffers[instruction.right];
                     if (left === undefined || right === undefined) {
-                        throw new Error(`Missing density volume inputs ${instruction.left} and ${instruction.right}`);
+                        throw new WorldgenErrors.MissingDensityVolumeInputs({
+                            left: instruction.left,
+                            right: instruction.right
+                        });
                     }
                     for (let index = 0; index < count; index++) {
                         outputBuffer[index] = applyBinaryDensity(instruction, left[index] ?? 0, right[index] ?? 0);
@@ -236,7 +240,8 @@ class CompiledDensityVolumeEvaluator implements DensityVolumeEvaluator {
                 }
                 case 'clamp': {
                     const input = this.buffers[instruction.input];
-                    if (input === undefined) throw new Error(`Missing density volume input ${instruction.input}`);
+                    if (input === undefined)
+                        throw new WorldgenErrors.MissingDensityVolumeInput({ input: instruction.input });
                     for (let index = 0; index < count; index++) {
                         outputBuffer[index] = clamp(input[index] ?? 0, instruction.min, instruction.max);
                     }
@@ -246,7 +251,8 @@ class CompiledDensityVolumeEvaluator implements DensityVolumeEvaluator {
         }
 
         const result = this.buffers[this.plan.outputIndex];
-        if (result === undefined) throw new Error(`Missing density volume output ${this.plan.outputIndex}`);
+        if (result === undefined)
+            throw new WorldgenErrors.MissingDensityVolumeOutput({ outputIndex: this.plan.outputIndex });
         for (let index = 0; index < count; index++) output[index] = result[index] ?? 0;
     }
 
@@ -941,7 +947,7 @@ export class DensityFunctionCompiler {
                 const thresholds = Float32Array.from(node.thresholds);
                 const samplers = node.functions.map((entry) => this.compile(entry));
                 const lastSampler = samplers[samplers.length - 1];
-                if (!lastSampler) throw new RangeError('interval_select needs at least one function');
+                if (!lastSampler) throw new WorldgenErrors.EmptyIntervalSelect();
                 return (context, x, y, z) => {
                     const value = input(context, x, y, z);
                     for (let i = 0; i < thresholds.length; i++) {
@@ -1209,7 +1215,7 @@ export class DensityFunctionCompiler {
             }
         }
 
-        throw new TypeError(`Cannot compile density function node ${JSON.stringify(node)}`);
+        throw new WorldgenErrors.UncompilableDensityFunction({ node: JSON.stringify(node) });
     }
 
     private cacheId(node: DensityFunctionNode): number {
@@ -1381,7 +1387,7 @@ export class DensityFunctionCompiler {
             case 'sign':
                 return (context, x, y, z) => Math.sign(input(context, x, y, z));
             default:
-                throw new TypeError(`Unknown unary density function ${type}`);
+                throw new WorldgenErrors.UnknownUnaryDensityFunction({ type });
         }
     }
 
@@ -1471,7 +1477,7 @@ export class DensityFunctionCompiler {
 
     private buildGradient(node: DensityFunctionNode & { type: 'gradient' }): DensitySampler {
         const range = node.toCoordinate - node.fromCoordinate;
-        if (range === 0) throw new RangeError('gradient from_coordinate cannot equal to_coordinate');
+        if (range === 0) throw new WorldgenErrors.FlatGradient();
         const factor = f32(f32(f32(node.toValue) - f32(node.fromValue)) / range);
         const fromValue = f32(node.fromValue);
         const fromCoordinate = node.fromCoordinate;

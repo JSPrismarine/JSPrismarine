@@ -10,6 +10,7 @@ import { SyncWorldClocksDataType } from '../../packet/SyncWorldClocksPacket';
 
 import type { SyncWorldClocksData, TimeMarker, WorldClock, WorldClockState } from '../../packet/SyncWorldClocksPacket';
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 const optionalPeriod = t.optional(t.li32);
 
@@ -91,7 +92,7 @@ export const worldClocksData = t.custom<SyncWorldClocksData>(
             case SyncWorldClocksDataType.RemoveTimeMarker:
                 return { type, clockId: t.varuint64.read(s), timeMarkerIds: t.list(t.varuint64).read(s) };
             default:
-                throw new Error(`Unknown SyncWorldClocksPacket data type ${type}`);
+                throw new ProtocolWireErrors.UnknownWorldClockDataType({ type });
         }
     }
 );

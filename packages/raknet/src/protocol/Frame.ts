@@ -2,6 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import BitFlags from './BitFlags';
 import FrameReliability from './FrameReliability';
 import assert from 'assert';
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
 
 // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L133
 // It's the maximum number of bytes a frameset can take. (splitted reliable sequenced).
@@ -71,7 +72,7 @@ export default class Frame {
         const length = Math.ceil(stream.readUnsignedShort() / 8);
         // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L2761
         if (length <= 0) {
-            throw new Error(`Invalid Frame length=${length}`);
+            throw new RaknetErrors.InvalidFrameLength({ length });
         }
 
         // These are all unsigned 24 bit counters that wrap; reading them signed would
@@ -96,7 +97,10 @@ export default class Frame {
 
             // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L2764
             if (this.fragmentIndex >= this.fragmentSize) {
-                throw new Error(`Invalid Frame fragment index=${this.fragmentIndex}, count=${this.fragmentSize}`);
+                throw new RaknetErrors.InvalidFragmentIndex({
+                    fragmentIndex: this.fragmentIndex,
+                    fragmentSize: this.fragmentSize
+                });
             }
         }
 

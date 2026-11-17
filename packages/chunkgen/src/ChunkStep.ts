@@ -1,5 +1,6 @@
 import type { ChunkStatus } from './ChunkStatus';
 import { isOrAfter, isOrBefore, maxStatus, parentOfStatus } from './ChunkStatus';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /**
  * The status each neighbor is guaranteed to have reached, indexed by Chebyshev distance from the
@@ -43,36 +44,6 @@ export class ChunkDependencies {
             if (guaranteed !== undefined && isOrAfter(guaranteed, status)) return distance;
         }
         return -1;
-    }
-}
-
-/**
- * Raised when a status body asks for a chunk its step did not declare.
- *
- * Java builds a `CrashReport` titled "Exception generating new chunk" and throws
- * `ReportedException` in the same place, from `WorldGenRegion.getChunk`. An undeclared read is a
- * crash on the first chunk rather than a difference on the thousandth, which is the reason the
- * step table is enforced rather than documented.
- */
-export class ChunkReadOutOfWindowError extends Error {
-    public override name = 'ChunkReadOutOfWindowError';
-
-    public constructor(
-        /** The status whose body was running when the read happened. */
-        public readonly step: ChunkStatus,
-        /** Chebyshev distance from the chunk being worked on to the chunk that was asked for. */
-        public readonly distance: number,
-        /** The status the body asked for. */
-        public readonly requested: ChunkStatus,
-        /** The highest status that distance is guaranteed to hold, or undefined when out of range. */
-        public readonly allowed: ChunkStatus | undefined
-    ) {
-        super(
-            allowed === undefined
-                ? `The ${step} step read a chunk at distance ${distance}, which is outside its window.`
-                : `The ${step} step asked for ${requested} at distance ${distance}, ` +
-                      `where only ${allowed} is guaranteed.`
-        );
     }
 }
 
@@ -136,7 +107,10 @@ export class ChunkStep {
         const distance = Math.max(Math.abs(dx), Math.abs(dz));
         const allowed = this.directDependencies.at(distance);
         if (allowed === undefined || !isOrBefore(requested, allowed)) {
-            throw new ChunkReadOutOfWindowError(this.targetStatus, distance, requested, allowed);
+            const step = this.targetStatus;
+            throw allowed === undefined
+                ? new ChunkgenErrors.ChunkReadOutsideWindow({ step, distance })
+                : new ChunkgenErrors.ChunkReadPastGuarantee({ step, requested, distance, allowed });
         }
         return allowed;
     }

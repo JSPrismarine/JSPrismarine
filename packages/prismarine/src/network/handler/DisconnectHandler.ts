@@ -2,6 +2,7 @@ import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { DisconnectPacket } from '@jsprismarine/protocol';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * The client saying goodbye, and why.
@@ -29,7 +30,7 @@ export default class DisconnectHandler implements ConnectionLaneHandler<Disconne
      */
     public handle(packet: DisconnectPacket, { session, log }: SessionContext): void {
         const disconnect = packet.getPacketData();
-        if (disconnect === null) throw new Error('DisconnectPacket has no payload');
+        if (disconnect === null) throw new PrismarineNetworkErrors.DisconnectNotDecoded();
 
         const name = DisconnectReason[disconnect.reason];
         const reason = name === undefined ? `${disconnect.reason}` : `${disconnect.reason} (${name})`;

@@ -1,3 +1,4 @@
+import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 /**
  * The argument compound of `/function <name> <arguments>`, read as SNBT.
  *
@@ -18,19 +19,6 @@
  * `1` rather than as `1b`. `true` and `false` stay booleans, which Java also
  * substitutes as `true` and `false` rather than as `1b` and `0b`.
  */
-
-/** Why a compound did not read. The offset is into the text that was handed in. */
-export class SnbtSyntaxError extends Error {
-    public override name = 'SnbtSyntaxError';
-
-    public constructor(
-        message: string,
-        /** How far into the input the parse stopped. */
-        public readonly offset: number
-    ) {
-        super(message);
-    }
-}
 
 /** The suffixes a number may carry, which say its NBT type and nothing else here. */
 const NUMBER_SUFFIXES = 'bBsSlLfFdD';
@@ -58,12 +46,12 @@ class Reader {
 
     public expect(character: string): void {
         this.skipWhitespace();
-        if (this.peek() !== character) this.fail(`expected '${character}'`);
+        if (this.peek() !== character) this.fail(new PrismarineCommandErrors.SnbtExpectedCharacter({ character }));
         this.offset += 1;
     }
 
-    public fail(message: string): never {
-        throw new SnbtSyntaxError(message, this.offset);
+    public fail(error: Error): never {
+        throw error;
     }
 
     /** Reads a quoted string, honoring `\\` and the escape of its own quote. */
@@ -74,7 +62,7 @@ class Reader {
             const character = this.peek();
             this.offset += 1;
             if (character === '\\') {
-                if (this.atEnd) this.fail('the string ends in a backslash');
+                if (this.atEnd) this.fail(new PrismarineCommandErrors.SnbtStringEndsInBackslash());
                 value += this.peek();
                 this.offset += 1;
                 continue;
@@ -82,14 +70,14 @@ class Reader {
             if (character === quote) return value;
             value += character;
         }
-        this.fail('unterminated string');
+        this.fail(new PrismarineCommandErrors.SnbtUnterminatedString());
     }
 
     /** Reads an unquoted run of bare characters. */
     public readBare(): string {
         const start = this.offset;
         while (!this.atEnd && BARE_PATTERN.test(this.peek())) this.offset += 1;
-        if (this.offset === start) this.fail('expected a value');
+        if (this.offset === start) this.fail(new PrismarineCommandErrors.SnbtExpectedValue());
         return this.text.slice(start, this.offset);
     }
 }
@@ -185,7 +173,7 @@ export const parseSnbtCompound = (text: string): Record<string, unknown> => {
     const compound = readCompound(reader);
 
     reader.skipWhitespace();
-    if (!reader.atEnd) reader.fail('there is text after the compound');
+    if (!reader.atEnd) reader.fail(new PrismarineCommandErrors.SnbtTextAfterCompound());
     return compound;
 };
 

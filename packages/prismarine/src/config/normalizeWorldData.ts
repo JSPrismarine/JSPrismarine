@@ -1,5 +1,6 @@
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type { DimensionConfig, GeneratorDefinitionJson, WorldData } from './JsonConfigTypes';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** The `worldgen/world_preset` a world uses when its entry names none. */
 export const DEFAULT_WORLD_PRESET = 'minecraft:normal';
@@ -104,11 +105,12 @@ export const normalizeWorldData = (data: LegacyWorldData, knownKinds: readonly s
     if (generator !== undefined) {
         legacyPreset = LEGACY_GENERATOR_PRESETS[generator.toLowerCase()];
         if (legacyPreset === undefined) {
-            throw new Error(
-                `Invalid generator with id ${generator}. The \`generator\` key is deprecated: write ` +
-                    `\`preset\` as '${DEFAULT_WORLD_PRESET}' or '${FLAT_WORLD_PRESET}', or a ` +
-                    `\`dimensions\` entry whose generator type is one of: ${knownKinds.join(', ')}.`
-            );
+            throw new PrismarineServerErrors.UnsupportedGeneratorKey({
+                generator,
+                defaultWorldPreset: DEFAULT_WORLD_PRESET,
+                flatWorldPreset: FLAT_WORLD_PRESET,
+                knownKinds: knownKinds.join(', ')
+            });
         }
         deprecations.push(`\`generator: '${generator}'\` is deprecated; write \`preset: '${legacyPreset}'\`.`);
         preset ??= legacyPreset;

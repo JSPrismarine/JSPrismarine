@@ -9,6 +9,7 @@
 import { deserialize, serialize } from 'node:v8';
 
 import type { GenerationRegionPayload } from './GenerationRegion';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 const MAGIC = 0x4a53_5054;
 const VERSION = 1;
@@ -81,7 +82,7 @@ export class SharedTerrainTileStore {
                 Atomics.load(words, 2) < 1 ||
                 Atomics.load(words, 3) < 1
             ) {
-                throw new RangeError('Shared terrain tile store buffer has an unsupported header');
+                throw new PrismarineGenerationErrors.SharedCacheUnsupportedHeader();
             }
             this.words = words;
             this.slotCount = Atomics.load(words, 2);
@@ -89,7 +90,7 @@ export class SharedTerrainTileStore {
             this.metadataBytes = HEADER_BYTES + this.slotCount * SLOT_BYTES;
             const expectedBytes = this.metadataBytes + this.slotCount * this.slotBytes;
             if (optionsOrBuffer.byteLength !== expectedBytes) {
-                throw new RangeError('Shared terrain tile store buffer has an invalid size');
+                throw new PrismarineGenerationErrors.SharedCacheWrongSize();
             }
             this.sharedBuffer = optionsOrBuffer;
             this.bytes = new Uint8Array(optionsOrBuffer);
@@ -104,10 +105,10 @@ export class SharedTerrainTileStore {
             maxTileBytes < 1 ||
             maxTileBytes > 0x7fff_ffff
         ) {
-            throw new RangeError('Shared terrain tile store limits must be positive safe integers');
+            throw new PrismarineGenerationErrors.InvalidSharedCacheLimits();
         }
         const capacity = Math.floor((maxBytes - HEADER_BYTES) / (SLOT_BYTES + maxTileBytes));
-        if (capacity < 1) throw new RangeError('Shared terrain tile store maxBytes cannot hold one tile slot');
+        if (capacity < 1) throw new PrismarineGenerationErrors.SharedCacheTooSmall();
 
         this.slotCount = capacity;
         this.slotBytes = maxTileBytes;
@@ -148,7 +149,7 @@ export class SharedTerrainTileStore {
         ownerThreadId: number,
         build: () => Promise<GenerationRegionPayload>
     ): Promise<GenerationRegionPayload> {
-        if (!/^[a-f0-9]{64}$/.test(key)) throw new TypeError('Shared terrain tile keys must be SHA-256 hex digests');
+        if (!/^[a-f0-9]{64}$/.test(key)) throw new PrismarineGenerationErrors.InvalidSharedTileKey();
         validateOwnerThreadId(ownerThreadId);
 
         const pending = this.buildsInFlight.get(key);
@@ -293,8 +294,7 @@ export class SharedTerrainTileStore {
 
         let serialized: Buffer;
         try {
-            if (!isTerrainPayload(payload))
-                throw new TypeError('A shared terrain tile builder returned an invalid payload');
+            if (!isTerrainPayload(payload)) throw new PrismarineGenerationErrors.InvalidSharedTile();
             serialized = serialize(payload);
         } catch {
             this.releaseClaim(slot, owner);
@@ -431,7 +431,7 @@ const validateOwnerThreadId = (ownerThreadId: number): void => {
     // Slot states are Int32 values; reserving zero and the negative markers leaves this range
     // for owner tokens without allowing an ID to wrap into READY or a tombstone.
     if (!Number.isSafeInteger(ownerThreadId) || ownerThreadId < 0 || ownerThreadId > MAX_OWNER_THREAD_ID) {
-        throw new RangeError('Shared terrain tile owner thread IDs must fit a positive Int32 owner token');
+        throw new PrismarineGenerationErrors.InvalidSharedTileOwner();
     }
 };
 

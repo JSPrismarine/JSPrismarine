@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { textFiles, writeZip } from '../fixtures/writers';
-import { ZipError, createZipBudget, isZip, readZip } from './zip';
+import { createZipBudget, isZip, readZip } from './zip';
+import { ZipError } from '@jsprismarine/errors/packs';
 
 const decoder = new TextDecoder();
 

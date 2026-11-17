@@ -1,4 +1,5 @@
 import type { CommandEnum } from './CommandEnum';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** Restrictions applied to one value of a hard enum in `AvailableCommandsPacket`. */
 export default class CommandEnumConstraint {
@@ -14,7 +15,7 @@ export default class CommandEnumConstraint {
      */
     public constructor(_enum: CommandEnum, valueOffset: number, constraints: number[]) {
         if (!_enum.values[valueOffset]) {
-            throw new Error(`Invalid enum value offset ${valueOffset}`);
+            throw new ProtocolWireErrors.InvalidEnumValueOffset({ valueOffset });
         }
         this._enum = _enum;
         this.valueOffset = valueOffset;

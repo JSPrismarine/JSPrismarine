@@ -14,6 +14,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The two alternatives in a player location update. */
 export enum PlayerLocationPacketType {
@@ -54,8 +55,7 @@ const alternative = t.custom<PlayerLocationAlternative>(
     (stream) => {
         const selector = stream.readUnsignedVarInt();
         const packetType = stream.readVarInt();
-        if (selector !== packetType)
-            throw new Error(`Player location selector ${selector} does not match type ${packetType}`);
+        if (selector !== packetType) throw new ProtocolWireErrors.PlayerLocationTypeMismatch({ selector, packetType });
 
         switch (selector) {
             case PlayerLocationPacketType.PLAYER_LOCATION_COORDINATES: {
@@ -66,7 +66,7 @@ const alternative = t.custom<PlayerLocationAlternative>(
             case PlayerLocationPacketType.PLAYER_LOCATION_HIDE:
                 return { packetType, position: null };
             default:
-                throw new Error(`Unknown player location alternative ${selector}`);
+                throw new ProtocolWireErrors.UnknownPlayerLocationAlternative({ selector });
         }
     }
 );

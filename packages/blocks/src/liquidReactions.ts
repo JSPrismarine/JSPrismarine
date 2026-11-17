@@ -8,6 +8,7 @@
  * {@link liquidReactionsOf} over that table to write `src/tables/blockLiquidReactions.json`.
  */
 import type { LiquidReaction } from './geometry';
+import { BlocksErrors } from '@jsprismarine/errors/blocks';
 
 /** What the Script API answers about water for one block permutation. */
 export interface WaterAnswers {
@@ -67,14 +68,14 @@ export const liquidReactionOfWater = ({ blocking, destroyed, spawns }: WaterAnsw
 export const liquidReactionsOf = (rows: readonly BlockTypeWaterRow[]): Record<string, LiquidReaction> => {
     const reactions = new Map<string, LiquidReaction>();
     for (const row of rows) {
-        if (reactions.has(row.id)) throw new Error(`${row.id} appears twice in the Bedrock block capture`);
+        if (reactions.has(row.id)) throw new BlocksErrors.DuplicateCapturedBlock({ id: row.id });
         const reaction = liquidReactionOfWater(row.water);
         const differing = row.waterPermutations.filter(
             (permutation) => liquidReactionOfWater(permutation.water) !== reaction
         );
         if (differing.length > 0) {
             const states = differing.map((permutation) => JSON.stringify(permutation.states)).join(', ');
-            throw new Error(`${row.id} is ${reaction} by default but reacts differently in ${states}`);
+            throw new BlocksErrors.LiquidReactionVariesByState({ id: row.id, reaction, states });
         }
         reactions.set(row.id, reaction);
     }

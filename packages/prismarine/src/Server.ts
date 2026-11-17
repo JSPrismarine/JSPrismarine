@@ -69,6 +69,7 @@ import type { RemoteConsole } from './console/RemoteConsole';
 
 import type { Logger } from '@jsprismarine/logger';
 import { serverVersion, softwareLabel } from './version';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** The active random streams held by a server at one replay boundary. */
 export interface ServerReplayRandomState {
@@ -434,7 +435,7 @@ export default class Server {
             // preparing its start region answers, since what that generation spawns reads it.
             worldFor: (dimension, level) => this.worldManager.getContentWorldByDimension(dimension, level),
             content: () => {
-                if (!this.content) throw new Error('the content world was read before the content was built');
+                if (!this.content) throw new PrismarineServerErrors.ContentWorldReadBeforeContent();
                 return this.content;
             },
             seed,
@@ -459,7 +460,7 @@ export default class Server {
             });
         } catch (error: unknown) {
             this.logger.error(error);
-            throw new Error('Failed to build the content registries; the pack stack was not loaded', {
+            throw new PrismarineServerErrors.ContentBuildFailed({
                 cause: error
             });
         }
@@ -514,7 +515,7 @@ export default class Server {
 
     public getMetadata() {
         const serverName = this.networking.getServerName();
-        if (!serverName) throw new Error('Server is not started');
+        if (!serverName) throw new PrismarineServerErrors.ServerIsNotStarted();
         return serverName;
     }
 
@@ -845,7 +846,7 @@ export default class Server {
      * @throws When read before {@link Server.enable} has built it.
      */
     public getContent(): ServerContent {
-        if (!this.content) throw new Error('the content was read before the pack stack was built');
+        if (!this.content) throw new PrismarineServerErrors.ContentReadTooEarly();
         return this.content;
     }
 
@@ -865,7 +866,7 @@ export default class Server {
      * @throws When read before {@link Server.enable} has built it.
      */
     public getContentWorld(): ServerWorldHandle {
-        if (!this.contentWorld) throw new Error('the content world was read before the pack stack was built');
+        if (!this.contentWorld) throw new PrismarineServerErrors.ContentWorldReadTooEarly();
         return this.contentWorld;
     }
 
@@ -894,7 +895,7 @@ export default class Server {
         const world = this.getContentWorld();
         world.at(dimension, level);
         const runtime = world.entitiesAt(dimension, level);
-        if (!runtime) throw new Error(`no entity runtime was built for ${dimension}`);
+        if (!runtime) throw new PrismarineServerErrors.NoEntityRuntime({ dimension });
         return runtime;
     }
 
@@ -972,7 +973,7 @@ export default class Server {
     /** Captures every stateful random stream the server keeps between ticks. */
     public getReplayRandomState(): ServerReplayRandomState {
         if (!this.randomStateAvailable) {
-            throw new Error('The configured server random callback has no serializable state');
+            throw new PrismarineServerErrors.ConfiguredRandomNotSavable();
         }
         const content = this.getContent();
         const world = this.getContentWorld();
@@ -999,7 +1000,7 @@ export default class Server {
             !('commandSequences' in state) ||
             state.version !== 1
         ) {
-            throw new TypeError('Invalid server replay random state');
+            throw new PrismarineServerErrors.InvalidServerReplayRandomState();
         }
 
         const content = this.getContent();

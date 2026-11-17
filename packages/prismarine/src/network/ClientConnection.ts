@@ -11,6 +11,7 @@ import type { SessionPhase } from './SessionPhase';
 import { RakNetTransportConnection } from './transport/RakNetTransport';
 import type { ConnectionId } from './transport/ConnectionId';
 import type { TransportConnection } from './transport/Transport';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * Handles the connection before the player creation itself, very helpful as
@@ -149,7 +150,7 @@ export default class ClientConnection extends MinecraftSession {
      */
     public getRakNetSession(): RakNetSession {
         if (!(this.transportConnection instanceof RakNetTransportConnection)) {
-            throw new Error(`Connection ${this.transportConnection.id} did not connect over RakNet`);
+            throw new PrismarineNetworkErrors.NotRaknetConnection({ id: this.transportConnection.id });
         }
         return this.transportConnection.getRakNetSession();
     }

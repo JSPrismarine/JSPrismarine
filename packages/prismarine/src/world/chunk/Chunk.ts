@@ -22,6 +22,7 @@ import BlockStorage, { BlockWriteCounter } from './BlockStorage';
 import SubChunk from './SubChunk';
 import type { ReadonlySubChunk } from './SubChunk';
 import { sectionTakesRandomTicks } from '../randomTickSections';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * The vertical range the client gives a dimension id, which is the range a chunk payload has to
@@ -429,7 +430,7 @@ export default class Chunk {
     private serializeRequestSubChunk(y: number): { readonly bytes: Buffer; readonly terrainBytes: number } {
         const client = clientRangeOf(this.dimension);
         if (!Number.isInteger(y) || y < minSubChunk(client) || y > maxSubChunk(client)) {
-            throw new RangeError(`Invalid subchunk height: ${y}`);
+            throw new PrismarineWorldErrors.InvalidSubchunkHeight({ y });
         }
 
         const revision = this.getNetworkRevision();
@@ -460,7 +461,7 @@ export default class Chunk {
     public networkSubChunkHeightmaps(y: number): SubChunkHeightmapData {
         const client = clientRangeOf(this.dimension);
         if (!Number.isInteger(y) || y < minSubChunk(client) || y > maxSubChunk(client)) {
-            throw new RangeError(`Invalid subchunk height: ${y}`);
+            throw new PrismarineWorldErrors.InvalidSubchunkHeight({ y });
         }
 
         const baseY = y * 16;
@@ -798,7 +799,7 @@ export default class Chunk {
      */
     public getSubChunk(y: number): ReadonlySubChunk | null {
         if (y < minSubChunk(this.dimension) || y > maxSubChunk(this.dimension)) {
-            throw new Error(`Invalid subchunk height: ${y}`);
+            throw new PrismarineWorldErrors.SubChunkOutOfRange({ y });
         }
 
         return this.subChunkAtIndex(y);
@@ -854,7 +855,7 @@ export default class Chunk {
     private setSubChunk(index: number, subChunk: SubChunk): void {
         const offset = index - this.minSubChunkY;
         if (offset < 0 || offset >= this.subChunks.length) {
-            throw new Error(`Invalid subchunk height: ${index}`);
+            throw new PrismarineWorldErrors.SubChunkOutOfRange({ y: index });
         }
 
         if (this.subChunks[offset] === undefined) {
@@ -1197,7 +1198,7 @@ export default class Chunk {
         const name = block.getStateName();
         const runtimeId = BlockRuntimeIds.tryGetByState(name, block.states);
         if (runtimeId === null) {
-            throw new Error(`No block state registered for ${name} with ${JSON.stringify(block.states)}`);
+            throw new PrismarineWorldErrors.UnknownBlockState({ name, states: JSON.stringify(block.states) });
         }
 
         this.setBlockRuntimeId(x, y, z, runtimeId, layer);
@@ -1257,9 +1258,12 @@ export default class Chunk {
 
     private requireSubChunkIndex(y: number): number {
         if (y < this.dimension.minY || y > maxY(this.dimension)) {
-            throw new Error(
-                `Cannot place a block at y ${y}: ${this.dimension.name} spans ${this.dimension.minY} to ${maxY(this.dimension)}`
-            );
+            throw new PrismarineWorldErrors.BlockOutsideHeightRange({
+                y,
+                name: this.dimension.name,
+                minY: this.dimension.minY,
+                maxY: maxY(this.dimension)
+            });
         }
 
         return y >> 4;

@@ -1,7 +1,7 @@
 import { ByteReader } from '../util/ByteReader';
 import { ByteWriter } from '../util/ByteWriter';
-import { CorruptionError } from '../Errors';
 import { ValueType } from './InternalKey';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 export interface BatchOperation {
     type: ValueType;
@@ -104,7 +104,7 @@ export class WriteBatch {
 
     public static decode(encoded: Buffer): { sequence: bigint; batch: WriteBatch } {
         if (encoded.byteLength < 12) {
-            throw new CorruptionError(`Write batch is ${encoded.byteLength} bytes, the header alone is 12`);
+            throw new LeveldbErrors.WriteBatchTooShort({ byteLength: encoded.byteLength });
         }
 
         const reader = new ByteReader(encoded);
@@ -126,7 +126,7 @@ export class WriteBatch {
                     break;
 
                 default:
-                    throw new CorruptionError(`Write batch operation has type ${type}`);
+                    throw new LeveldbErrors.UnknownWriteBatchOperation({ type });
             }
         }
 

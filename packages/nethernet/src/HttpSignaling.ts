@@ -14,6 +14,7 @@ import { describeCandidates, tracePeerConnection } from './tracePeerConnection';
 import { hasPublicCandidate } from './udpPorts';
 import type { DialedAddress } from './udpPorts';
 import type { DriverPeer } from './WebRtcDriver';
+import { NethernetErrors, RefusedRequest } from '@jsprismarine/errors/nethernet';
 
 /** The largest SDP offer accepted. A real offer with every candidate is a few kilobytes. */
 const MAX_OFFER_BYTES = 64 * 1024;
@@ -87,16 +88,6 @@ type Negotiation =
     | { readonly error: string }
     | { readonly timedOut: true };
 
-/** Thrown while reading an offer, carrying the status the request is refused with. */
-class RefusedRequest extends Error {
-    public constructor(
-        public readonly status: number,
-        message: string
-    ) {
-        super(message);
-    }
-}
-
 /**
  * NetherNet's HTTP signaling, which a client joining by address uses: it probes `GET /v1/join`
  * on the game port's TCP side, then posts its complete SDP offer to `POST /v1/join/{networkId}`
@@ -163,7 +154,7 @@ export class HttpSignaling {
             text(response, 404, 'Not Found');
         } catch (error: unknown) {
             if (error instanceof RefusedRequest) {
-                text(response, error.status, error.message);
+                text(response, error instanceof NethernetErrors.SdpOfferTooLarge ? 413 : 400, error.message);
                 return;
             }
             this.options.logger.error(error);
@@ -312,7 +303,7 @@ const parseNetworkId = (segment: string): string => {
         // Not percent-encoding; the segment is the ID as it stands.
     }
     if (text === '' || text.length > MAX_NETWORK_ID_LENGTH) {
-        throw new RefusedRequest(400, 'Expected /v1/join/{networkId}');
+        throw new NethernetErrors.ExpectedJoinPath();
     }
     return /^[\x21-\x7e]+$/.test(text) ? text : JSON.stringify(text);
 };
@@ -327,10 +318,10 @@ const readOffer = async (request: IncomingMessage): Promise<string> => {
     for await (const chunk of request) {
         const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
         size += buffer.byteLength;
-        if (size > MAX_OFFER_BYTES) throw new RefusedRequest(413, 'SDP offer is too large');
+        if (size > MAX_OFFER_BYTES) throw new NethernetErrors.SdpOfferTooLarge();
         chunks.push(buffer);
     }
     const offer = Buffer.concat(chunks).toString('utf-8');
-    if (offer.trim() === '') throw new RefusedRequest(400, 'Missing SDP offer in request body');
+    if (offer.trim() === '') throw new NethernetErrors.MissingSdpOffer();
     return offer;
 };

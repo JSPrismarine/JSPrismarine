@@ -11,6 +11,7 @@ import {
     bedrockHasCollisionOf,
     bedrockStaticCollisionBoxesOf
 } from './geometry';
+import { BlocksErrors } from '@jsprismarine/errors/blocks';
 
 const BEDROCK_BLOCK_TAGS = new Map(Object.entries(vanillaBlockTags));
 const VANILLA_REDSTONE_CONDUCTIVITY = new Map(Object.entries(vanillaRedstoneConductivity));
@@ -203,7 +204,7 @@ const json = (value: unknown): string => `${render(value, 0, '')}\n`;
 /** The collision-box component for captured normalized cell boxes. */
 const collisionComponentFor = (boxes: readonly (readonly [number, number, number, number, number, number])[]) => {
     if (boxes.length === 0) return false;
-    if (boxes.length > 16) throw new Error(`Bedrock collision_box accepts at most 16 boxes, got ${boxes.length}`);
+    if (boxes.length > 16) throw new BlocksErrors.TooManyCollisionBoxes({ boxesCount: boxes.length });
 
     const components = boxes.map(([minX, minY, minZ, maxX, maxY, maxZ]) => ({
         origin: [minX * 16 - 8, minY * 16, minZ * 16 - 8],
@@ -291,7 +292,7 @@ export const generateVanillaOverlay = (
         const permutations: { condition: string; components: Record<string, unknown> }[] = [];
 
         const displayName = bedrockBlockDisplayNameOf(identifier);
-        if (displayName === undefined) throw new Error(`${identifier} has no captured Bedrock display name`);
+        if (displayName === undefined) throw new BlocksErrors.MissingDisplayName({ identifier });
         components['minecraft:display_name'] = displayName;
 
         const tags = BEDROCK_BLOCK_TAGS.get(identifier);
@@ -310,7 +311,7 @@ export const generateVanillaOverlay = (
         }
 
         const hasCollision = bedrockHasCollisionOf(identifier);
-        if (hasCollision === undefined) throw new Error(`${identifier} has no captured Bedrock collision geometry`);
+        if (hasCollision === undefined) throw new BlocksErrors.MissingCollisionGeometry({ identifier });
         if (!hasCollision) {
             components['minecraft:collision_box'] = false;
             nonCollidingBlocks.push(identifier);

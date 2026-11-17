@@ -8,6 +8,7 @@ import type { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { DEFAULT_CHUNK_COMPLETION_BUDGET_MS } from '../world/ChunkCompletionQueue';
 import { runInTick } from '../world/TickContext';
 import { tickerToken } from './tokens';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 type LateTickProfile = {
     elapsedMs: number;
@@ -565,8 +566,8 @@ export class ServerTicker implements Ticker, TickControl {
      * @throws {Error} While the loop runs, or when called from inside the tick it is running.
      */
     public advance(): void {
-        if (this.running) throw new Error('Cannot advance the ticker by hand while its loop runs');
-        if (this.advancing) throw new Error('Cannot advance the ticker while a manual tick is in flight');
+        if (this.running) throw new PrismarineServerErrors.ManualTickWhileLooping();
+        if (this.advancing) throw new PrismarineServerErrors.NestedManualTick();
         if (this.server.isStopping()) return;
 
         this.advancing = true;

@@ -7,6 +7,7 @@ import type { RandomSequencesState } from '../command/host/randomSequences';
 import type { ServerReplayRandomState } from '../Server';
 import type { SavedWeather } from '../world/Weather';
 import type Provider from '../world/providers/Provider';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 const MANIFEST_FORMAT = 'jsprismarine-replay-initial-state';
 const MANIFEST_VERSION = 3;
@@ -83,7 +84,7 @@ export const replayInputFingerprint = (value: unknown): string => {
 
 /** Serializes a manifest as UTF-8 JSON bytes. */
 export const serializeReplayInitialStateManifest = (manifest: ReplayInitialStateManifest): Buffer => {
-    if (!isManifest(manifest)) throw new TypeError('Invalid replay initial-state manifest');
+    if (!isManifest(manifest)) throw new PrismarineNetworkErrors.InvalidReplayManifest();
     return Buffer.from(JSON.stringify(manifest), 'utf8');
 };
 
@@ -93,10 +94,10 @@ export const deserializeReplayInitialStateManifest = (bytes: Uint8Array): Replay
     try {
         value = JSON.parse(Buffer.from(bytes).toString('utf8'));
     } catch {
-        throw new TypeError('Invalid replay initial-state manifest JSON');
+        throw new PrismarineNetworkErrors.ReplayManifestNotJson();
     }
 
-    if (!isManifest(value)) throw new TypeError('Unsupported or invalid replay initial-state manifest');
+    if (!isManifest(value)) throw new PrismarineNetworkErrors.UnsupportedReplayManifest();
     return value;
 };
 
@@ -112,14 +113,16 @@ export const restoreReplayInitialStateSnapshot = async (
     provider: Provider,
     manifest: ReplayInitialStateManifest
 ): Promise<void> => {
-    if (!isManifest(manifest)) throw new TypeError('Invalid replay initial-state manifest');
+    if (!isManifest(manifest)) throw new PrismarineNetworkErrors.InvalidReplayManifest();
     if (provider.constructor.name !== manifest.storageBoundary.provider) {
-        throw new Error('Replay snapshot provider does not match the manifest');
+        throw new PrismarineNetworkErrors.ReplayProviderMismatch();
     }
 
     const restore = provider.restoreReplaySnapshot;
     if (restore === undefined) {
-        throw new Error(`Provider '${manifest.storageBoundary.provider}' cannot restore replay snapshots`);
+        throw new PrismarineNetworkErrors.ProviderCannotRestoreReplay({
+            provider: manifest.storageBoundary.provider
+        });
     }
 
     const snapshot = Buffer.from(manifest.storageBoundary.snapshot, 'base64');

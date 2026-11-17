@@ -1,6 +1,7 @@
 import NetworkPacket from './NetworkPacket';
 import type NetworkBinaryStream from './NetworkBinaryStream';
 import type { ProtocolContext } from './ProtocolContext';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * A field-based packet that keeps its wire codec on the shared `NetworkPacket` contract.
@@ -55,7 +56,7 @@ export default class FieldNetworkPacket extends NetworkPacket<unknown> {
     public override decode(context?: ProtocolContext): void {
         if (context !== undefined) this.codecProtocol = context.protocolVersion;
         const buffer = this.getReadBuffer();
-        if (buffer === null) throw new Error(`Cannot decode ${this.getName()} without a read buffer`);
+        if (buffer === null) throw new ProtocolCodecErrors.NoReadBuffer({ name: this.getName() });
         this.setReadBuffer(buffer);
         this.decodeHeader();
         this.decodePayload(context);

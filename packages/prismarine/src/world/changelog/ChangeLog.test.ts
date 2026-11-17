@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import type { ChangeEntry, EntityId, FieldEntry, StateEntry } from './ChangeEntry';
 import { fieldKey, inverseOf } from './ChangeEntry';
 import type { Span } from './ChangeLog';
-import { ChangeLog, ChangeLogError } from './ChangeLog';
+import { ChangeLog } from './ChangeLog';
 import type { PlainData, PlainRecord } from './PlainData';
+import { ChangeLogError } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * A minimal store over the log, standing in for the entity store: its writes append entries,

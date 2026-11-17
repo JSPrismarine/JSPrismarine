@@ -2,6 +2,7 @@ import { Difficulty } from '@jsprismarine/minecraft';
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * A client asking to change the world difficulty from its settings menu.
@@ -20,7 +21,7 @@ export default class SetDifficultyHandler implements ConnectionLaneHandler<SetDi
     /** Logs the request and sends the configured difficulty back when the two differ. */
     public async handle(packet: SetDifficultyPacket, { session, log, config }: SessionContext): Promise<void> {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle SetDifficultyPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.SetDifficultyNotDecoded();
 
         const configured = config.getDifficulty();
         if (data.difficulty === configured) return;

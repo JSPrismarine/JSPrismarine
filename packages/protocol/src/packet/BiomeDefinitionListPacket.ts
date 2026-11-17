@@ -3,6 +3,7 @@ import { layoutAt } from '../wire/WireLayout';
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 import type { ProtocolContext } from '../ProtocolContext';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * Every biome the client can render, and the data each one carries.
@@ -34,9 +35,7 @@ export default class BiomeDefinitionListPacket extends FieldNetworkPacket {
     public encodePayload(context?: ProtocolContext): void {
         const definitions = this.definitions ?? context?.biomeDefinitions;
         if (definitions === undefined) {
-            throw new Error(
-                'BiomeDefinitionListPacket requires biome definition data in the packet or protocol context'
-            );
+            throw new ProtocolCodecErrors.MissingBiomeDefinitions();
         }
 
         layoutAt(biomeDefinitionListPacket, this.codecProtocol).encode(this, { definitions });

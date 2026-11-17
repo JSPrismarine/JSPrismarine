@@ -1,3 +1,5 @@
+import { KernelErrors } from '@jsprismarine/errors/kernel';
+
 declare const serviceType: unique symbol;
 
 /**
@@ -23,7 +25,7 @@ export interface ServiceToken<T> {
 export function createToken<T>(id: string): ServiceToken<T> {
     const separator = id.indexOf(':');
     if (separator <= 0 || separator === id.length - 1) {
-        throw new Error(`Service token id must be namespaced as "namespace:name", got "${id}"`);
+        throw new KernelErrors.TokenIdNotNamespaced({ id });
     }
     return { id };
 }

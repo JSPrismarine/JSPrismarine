@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import InetAddress from '../utils/InetAddress';
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
 
 /**
  * The `sin6_family` RakNet copies off a `sockaddr_in6` on the Windows build the Bedrock
@@ -17,7 +18,7 @@ const IPV6_BYTE_LENGTH = 16;
  * in its own field on the wire.
  */
 const parseIPv6 = (text: string): Buffer => {
-    const invalid = (): Error => new Error(`Invalid IPv6 address: ${text}`);
+    const invalid = (): Error => new RaknetErrors.InvalidIpv6Address({ text });
 
     let address = text.split('%', 1)[0]!;
 
@@ -194,7 +195,7 @@ export default class Packet extends BinaryStream {
 
         const octets = parseIPv4(address.getAddress());
         if (octets === null) {
-            throw new Error(`Invalid IPv4 address: ${address.getAddress()}`);
+            throw new RaknetErrors.InvalidIpv4Address({ address: address.getAddress() });
         }
 
         this.writeByte(4);

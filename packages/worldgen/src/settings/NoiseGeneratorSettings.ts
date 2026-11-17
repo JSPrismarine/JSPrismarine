@@ -5,6 +5,7 @@ import type { DensityFunctionNode } from '../density/DensityFunction';
 import type { DensityFunctionResolver } from '../density/parse';
 import { parseDensityFunction } from '../density/parse';
 import { asObject, boolean, integer } from '../json';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /**
  * The eight named slots of a 26.3 noise router.
@@ -103,18 +104,18 @@ const parseSpawnTargets = (
     path: string
 ): readonly SpawnTargetPoint[] => {
     if (value === undefined) return [];
-    if (!Array.isArray(value)) throw new TypeError(`${path}: expected an array`);
+    if (!Array.isArray(value)) throw new WorldgenErrors.ExpectedList({ path });
 
     return value.map((entry, targetIndex) => {
         const target = asObject(entry, `${path}[${targetIndex}]`);
         return Object.entries(target).map(([id, rawParameter]) => {
             const parameter = Array.isArray(rawParameter) ? rawParameter : undefined;
             if (parameter === undefined || parameter.length !== 2) {
-                throw new TypeError(`${path}[${targetIndex}].${id}: expected a [min, max] interval`);
+                throw new WorldgenErrors.ExpectedInterval({ path, targetIndex, id });
             }
             const [min, max] = parameter;
             if (typeof min !== 'number' || !Number.isFinite(min) || typeof max !== 'number' || !Number.isFinite(max)) {
-                throw new TypeError(`${path}[${targetIndex}].${id}: interval bounds must be finite numbers`);
+                throw new WorldgenErrors.InvalidIntervalBounds({ path, targetIndex, id });
             }
             const reference = normalizeIdentifier(id);
             return {
@@ -142,8 +143,8 @@ export const parseNoiseGeneratorSettings = (
     const noise = asObject(raw['noise'], `${path}.noise`);
     const minY = integer(noise['min_y'], `${path}.noise.min_y`);
     const height = integer(noise['height'], `${path}.noise.height`);
-    if (minY % 16 !== 0) throw new RangeError(`${path}.noise.min_y has to be a multiple of 16`);
-    if (height % 16 !== 0) throw new RangeError(`${path}.noise.height has to be a multiple of 16`);
+    if (minY % 16 !== 0) throw new WorldgenErrors.NoiseMinYNotMultipleOf16({ path });
+    if (height % 16 !== 0) throw new WorldgenErrors.NoiseHeightNotMultipleOf16({ path });
 
     const routerSource = asObject(raw['noise_router'], `${path}.noise_router`);
     const parseSlot = (name: string): DensityFunctionNode =>

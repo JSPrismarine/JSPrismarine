@@ -69,6 +69,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/blocks",
     "dependencies": {
         "@jsprismarine/content": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/mapping": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/molang": "workspace:*",

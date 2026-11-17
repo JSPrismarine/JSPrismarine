@@ -3,6 +3,7 @@ import { CHUNK_COLUMN_COUNT, CHUNK_SIZE, chunkOf, columnKeyOf, heightmapIndexOf 
 import { LightQueue } from './LightQueue';
 import type { LightNode } from './LightQueue';
 import { LightSection, MAX_LIGHT_LEVEL } from './LightSection';
+import { LightingErrors } from '@jsprismarine/errors/lighting';
 
 /** A world block position. */
 export interface BlockPosition {
@@ -270,7 +271,7 @@ export class LightEngine {
      */
     public flush(budget: number = Number.POSITIVE_INFINITY): LightFlushResult {
         if (Number.isNaN(budget) || budget < 0) {
-            throw new RangeError(`Light flush budget ${budget} is not a count of nodes`);
+            throw new LightingErrors.InvalidFlushBudget({ budget });
         }
 
         let processed = 0;
@@ -309,7 +310,7 @@ export class LightEngine {
      */
     public settleAround(chunkX: number, chunkZ: number, budget: number = Number.POSITIVE_INFINITY): LightFlushResult {
         if (Number.isNaN(budget) || budget < 0) {
-            throw new RangeError(`Light settle budget ${budget} is not a count of nodes`);
+            throw new LightingErrors.InvalidSettleBudget({ budget });
         }
 
         let processed = 0;

@@ -1,3 +1,5 @@
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
+
 const BLOOM_HASH_SEED = 0xbc9f1d34;
 const BLOOM_HASH_MULTIPLIER = 0xc6a4a793;
 const BLOOM_HASH_SHIFT = 24;
@@ -13,7 +15,7 @@ const DEFAULT_BITS_PER_KEY = 10;
  */
 export const createBloomFilter2 = (keys: readonly Buffer[], bitsPerKey = DEFAULT_BITS_PER_KEY): Buffer => {
     if (!Number.isSafeInteger(bitsPerKey) || bitsPerKey < 1) {
-        throw new RangeError(`Bloom filter bits per key must be a positive safe integer: ${bitsPerKey}`);
+        throw new LeveldbErrors.InvalidBloomFilterBitsPerKey({ bitsPerKey });
     }
 
     if (keys.length === 0) return Buffer.alloc(0);

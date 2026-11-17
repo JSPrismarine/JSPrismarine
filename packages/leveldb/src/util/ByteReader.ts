@@ -1,3 +1,5 @@
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
+
 /**
  * A cursor over a Buffer.
  *
@@ -23,7 +25,7 @@ export class ByteReader {
 
     public set position(value: number) {
         if (value < 0 || value > this.end) {
-            throw new RangeError(`Position ${value} is outside the readable range`);
+            throw new LeveldbErrors.SeekOutOfRange({ value });
         }
 
         this.offset = value;
@@ -39,7 +41,7 @@ export class ByteReader {
 
     private require(bytes: number): number {
         if (this.remaining < bytes) {
-            throw new RangeError(`Expected ${bytes} more bytes, ${this.remaining} left`);
+            throw new LeveldbErrors.RecordTruncated({ bytes, remaining: this.remaining });
         }
 
         const at = this.offset;
@@ -93,7 +95,7 @@ export class ByteReader {
             }
         }
 
-        throw new RangeError('Varint32 did not terminate within 5 bytes');
+        throw new LeveldbErrors.Varint32Unterminated();
     }
 
     /** The 64 bit varint, up to 10 bytes. Used for sequence numbers, which exceed 2^53. */
@@ -107,7 +109,7 @@ export class ByteReader {
             }
         }
 
-        throw new RangeError('Varint64 did not terminate within 10 bytes');
+        throw new LeveldbErrors.Varint64Unterminated();
     }
 
     /** A varint32 length followed by that many bytes. LevelDB calls this a length-prefixed slice. */

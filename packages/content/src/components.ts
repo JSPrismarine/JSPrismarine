@@ -1,6 +1,6 @@
 import type { Definition } from './definitions';
-import { ContentError } from './errors';
 import type { HookSignatures } from './hooks';
+import { ContentErrors } from '@jsprismarine/errors/content';
 
 /** What a {@link ComponentSchema} made of a JSON value. */
 export type ParseResult<P> =
@@ -95,7 +95,7 @@ export class ComponentRegistry<H extends HookSignatures<H>> {
      */
     public register<P>(factory: ComponentFactory<H, P>): void {
         if (this.factories.has(factory.name)) {
-            throw new ContentError(`the component ${factory.name} is already registered`);
+            throw new ContentErrors.ComponentIsAlreadyRegistered({ name: factory.name });
         }
 
         const hooks = new Set<string>(factory.hooks);
@@ -108,9 +108,7 @@ export class ComponentRegistry<H extends HookSignatures<H>> {
                 const handlers = factory.create(parsed.value, context);
                 for (const hook of Object.keys(handlers)) {
                     if (hooks.has(hook)) continue;
-                    throw new ContentError(
-                        `the component ${factory.name} returned a handler for ${hook}, which it does not declare`
-                    );
+                    throw new ContentErrors.ComponentUndeclaredHook({ name: factory.name, hook });
                 }
                 return accepted({ name: factory.name, params: parsed.value, handlers });
             }

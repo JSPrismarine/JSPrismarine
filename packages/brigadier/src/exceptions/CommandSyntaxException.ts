@@ -3,6 +3,7 @@ import LiteralMessage from '../LiteralMessage';
 import type Message from '../Message';
 import type BuiltInExceptionProvider from './BuiltInExceptionProvider';
 import type CommandExceptionType from './CommandExceptionType';
+import { BrigadierErrors } from '@jsprismarine/errors/brigadier';
 
 // CommandSyntaxException, the two exception-type classes and BuiltInExceptions
 // live in one module on purpose. Split across files they form an import cycle
@@ -195,7 +196,7 @@ export class BuiltInExceptions implements BuiltInExceptionProvider {
     }
 }
 
-export default class CommandSyntaxException extends Error {
+export default class CommandSyntaxException extends BrigadierErrors.CommandSyntax {
     public static CONTEXT_AMOUNT = 10;
     public static BUILT_IN_EXCEPTIONS: BuiltInExceptionProvider = new BuiltInExceptions();
 
@@ -214,7 +215,7 @@ export default class CommandSyntaxException extends Error {
         // Node exposes stack capture process-wide, so suppress it only while Error builds this instance.
         if (!captureStack) Error.stackTraceLimit = 0;
         try {
-            super(rawMessage);
+            super({ message: rawMessage });
         } finally {
             Error.stackTraceLimit = previousStackTraceLimit;
         }

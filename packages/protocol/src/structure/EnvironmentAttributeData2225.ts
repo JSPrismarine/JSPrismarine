@@ -10,6 +10,7 @@ import NoiseAlignment from './NoiseAlignment';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 import type { AttributeValue } from './EnvironmentAttributeData';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * Which alternative the `Payload` of an {@link EnvironmentAttributeData2225} carries. The value
@@ -89,7 +90,7 @@ const readTransitionSettings = (stream: NetworkBinaryStream): TransitionSettings
     const totalTransitionTicks = stream.readUnsignedVarInt();
     const currentTransitionTicks = stream.readUnsignedVarInt();
     const easing = stream.readVarInt();
-    if (typeof EasingType[easing] !== 'string') throw new Error(`Unknown easing_function ${easing}`);
+    if (typeof EasingType[easing] !== 'string') throw new ProtocolCodecErrors.UnknownEasingFunctionId({ easing });
     return { totalTransitionTicks, currentTransitionTicks, easing, clockName: stream.readString() };
 };
 
@@ -187,7 +188,7 @@ export default class EnvironmentAttributeData2225 extends NetworkStructure {
             }
 
             default:
-                throw new Error(`Unknown attribute payload alternative ${type}`);
+                throw new ProtocolCodecErrors.UnknownAttributePayloadAlternative({ type });
         }
     }
 }

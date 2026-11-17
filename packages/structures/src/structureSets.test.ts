@@ -14,7 +14,7 @@ import {
     potentialStructureChunk,
     structureSetCandidates
 } from './structureSets';
-import { StructureFormatError } from './types';
+import { StructureFormatError } from '@jsprismarine/errors/structures';
 
 /**
  * The expected chunk positions come from Java Edition 26.3 itself: a short

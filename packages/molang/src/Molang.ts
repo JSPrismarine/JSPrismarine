@@ -1,10 +1,10 @@
 import type { CompiledMolang } from './compiler';
 import { compileProgram } from './compiler';
-import { MolangSyntaxError } from './lexer';
 import { parse } from './parser';
 import { QueryRegistry } from './queries';
 import type { EngineVersion } from './version';
 import { LATEST_RULES, rulesForEngineVersion } from './version';
+import { MolangSyntaxError } from '@jsprismarine/errors/molang';
 
 /** Options for one compilation. */
 export interface CompileOptions {

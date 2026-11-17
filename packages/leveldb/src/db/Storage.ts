@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { legacyTableFileName, tableFileName } from '../util/FileNames';
 import type { TableSource } from '../format/TableReader';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /**
  * File operations with the durability ordering LevelDB depends on.
@@ -81,14 +82,14 @@ export const replaceFileAtomically = (file: string, data: Buffer): void => {
 const openAppendable = (file: string): number => {
     if (NO_FOLLOW === 0) {
         const entry = fs.lstatSync(file, { throwIfNoEntry: false });
-        if (entry?.isSymbolicLink()) throw new Error(`${file} is a symbolic link`);
+        if (entry?.isSymbolicLink()) throw new LeveldbErrors.FileIsSymbolicLink({ file });
     }
 
     const { O_WRONLY, O_APPEND, O_CREAT } = fs.constants;
     const descriptor = fs.openSync(file, O_WRONLY | O_APPEND | O_CREAT | NO_FOLLOW | NONBLOCK, 0o666);
     if (!fs.fstatSync(descriptor).isFile()) {
         fs.closeSync(descriptor);
-        throw new Error(`${file} is not a regular file`);
+        throw new LeveldbErrors.FileIsNotRegular({ file });
     }
     return descriptor;
 };
@@ -154,7 +155,7 @@ export class AppendFile {
      * @throws {Error} When an append on the thread pool is still running, which this would overtake.
      */
     public append(parts: readonly Buffer[]): void {
-        if (this.busy) throw new Error('An append is still running on this log');
+        if (this.busy) throw new LeveldbErrors.LogAppendInProgress();
         const length = totalLength(parts);
         if (length === 0) return;
 
@@ -202,7 +203,7 @@ export class AppendFile {
 
     private assertNoFailedAppend(): void {
         if (this.failure !== undefined) {
-            throw new Error('An earlier append to this log failed', { cause: this.failure });
+            throw new LeveldbErrors.LogFailed({ cause: this.failure });
         }
     }
 
@@ -235,7 +236,7 @@ export class AppendFile {
      *   would overtake.
      */
     public sync(): void {
-        if (this.busy) throw new Error('An append is still running on this log');
+        if (this.busy) throw new LeveldbErrors.LogAppendInProgress();
         fs.fsyncSync(this.descriptor);
     }
 
@@ -245,7 +246,7 @@ export class AppendFile {
      *   then write to a closed descriptor.
      */
     public close(): void {
-        if (this.busy) throw new Error('An append is still running on this log');
+        if (this.busy) throw new LeveldbErrors.LogAppendInProgress();
         fs.closeSync(this.descriptor);
     }
 }
@@ -307,7 +308,7 @@ export class TableFile implements TableSource {
         const read = fs.readSync(this.descriptor, buffer, 0, length, offset);
 
         if (read !== length) {
-            throw new Error(`Read ${read} of ${length} bytes at offset ${offset}`);
+            throw new LeveldbErrors.ShortRead({ read, length, offset });
         }
 
         return buffer;

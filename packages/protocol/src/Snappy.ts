@@ -5,6 +5,8 @@
  * algorithm and each batch carries its own one-byte algorithm prefix.
  */
 
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
+
 /** Writes the uncompressed length used at the start of a Snappy block. */
 const writeLength = (output: Buffer, cursor: number, length: number): number => {
     while (length > 0x7f) {
@@ -111,14 +113,14 @@ const readLength = (input: Buffer): { length: number; cursor: number } => {
 
     for (let index = 0; index < 5; index++) {
         const byte = input[index];
-        if (byte === undefined) throw new Error('Malformed Snappy block: truncated length prefix');
-        if (index === 4 && (byte & 0xf0) !== 0) throw new Error('Malformed Snappy block: length overflows 32 bits');
+        if (byte === undefined) throw new ProtocolCodecErrors.SnappyTruncatedLengthPrefix();
+        if (index === 4 && (byte & 0xf0) !== 0) throw new ProtocolCodecErrors.SnappyLengthOverflow();
         length |= (byte & 0x7f) << shift;
         if ((byte & 0x80) === 0) return { length: length >>> 0, cursor: index + 1 };
         shift += 7;
     }
 
-    throw new Error('Malformed Snappy block: unterminated length prefix');
+    throw new ProtocolCodecErrors.SnappyLengthPrefixUnterminated();
 };
 
 /**
@@ -129,8 +131,7 @@ const readLength = (input: Buffer): { length: number; cursor: number } => {
  */
 export const snappyDecompress = (input: Buffer, maxOutputLength: number): Buffer => {
     const { length, cursor: firstTag } = readLength(input);
-    if (length > maxOutputLength)
-        throw new Error(`Snappy block expands to ${length} bytes, limit is ${maxOutputLength}`);
+    if (length > maxOutputLength) throw new ProtocolCodecErrors.SnappyBlockTooLarge({ length, maxOutputLength });
 
     const output = Buffer.allocUnsafe(length);
     let inputCursor = firstTag;
@@ -148,7 +149,7 @@ export const snappyDecompress = (input: Buffer, maxOutputLength: number): Buffer
             } else {
                 const width = encodedLength - 59;
                 if (inputCursor + width > input.byteLength)
-                    throw new Error('Malformed Snappy block: truncated literal length');
+                    throw new ProtocolCodecErrors.SnappyTruncatedLiteralLength();
                 let value = 0;
                 for (let byte = 0; byte < width; byte++) value |= input[inputCursor + byte]! << (byte * 8);
                 inputCursor += width;
@@ -156,7 +157,7 @@ export const snappyDecompress = (input: Buffer, maxOutputLength: number): Buffer
             }
 
             if (inputCursor + literalLength > input.byteLength || outputCursor + literalLength > length) {
-                throw new Error('Malformed Snappy block: literal exceeds its input or output');
+                throw new ProtocolCodecErrors.SnappyLiteralOutOfRange();
             }
             input.copy(output, outputCursor, inputCursor, inputCursor + literalLength);
             inputCursor += literalLength;
@@ -167,29 +168,29 @@ export const snappyDecompress = (input: Buffer, maxOutputLength: number): Buffer
         let copyLength: number;
         let offset: number;
         if (type === 1) {
-            if (inputCursor >= input.byteLength) throw new Error('Malformed Snappy block: truncated 1-byte copy');
+            if (inputCursor >= input.byteLength) throw new ProtocolCodecErrors.SnappyTruncatedOneByteCopy();
             copyLength = 4 + ((tag >>> 2) & 0x07);
             offset = ((tag & 0xe0) << 3) | input[inputCursor++]!;
         } else if (type === 2) {
-            if (inputCursor + 2 > input.byteLength) throw new Error('Malformed Snappy block: truncated 2-byte copy');
+            if (inputCursor + 2 > input.byteLength) throw new ProtocolCodecErrors.SnappyTruncatedTwoByteCopy();
             copyLength = (tag >>> 2) + 1;
             offset = input.readUInt16LE(inputCursor);
             inputCursor += 2;
         } else {
-            if (inputCursor + 4 > input.byteLength) throw new Error('Malformed Snappy block: truncated 4-byte copy');
+            if (inputCursor + 4 > input.byteLength) throw new ProtocolCodecErrors.SnappyTruncatedFourByteCopy();
             copyLength = (tag >>> 2) + 1;
             offset = input.readUInt32LE(inputCursor);
             inputCursor += 4;
         }
 
         if (offset === 0 || offset > outputCursor || outputCursor + copyLength > length) {
-            throw new Error('Malformed Snappy block: copy exceeds its output');
+            throw new ProtocolCodecErrors.SnappyCopyOutOfRange();
         }
         for (let byte = 0; byte < copyLength; byte++)
             output[outputCursor + byte] = output[outputCursor + byte - offset]!;
         outputCursor += copyLength;
     }
 
-    if (outputCursor !== length) throw new Error(`Malformed Snappy block: decoded ${outputCursor} of ${length} bytes`);
+    if (outputCursor !== length) throw new ProtocolCodecErrors.SnappyLengthMismatch({ outputCursor, length });
     return output;
 };

@@ -12,6 +12,7 @@ import type { Diagnostic } from '@jsprismarine/content';
 import { createPackIdentifierResolver } from '@jsprismarine/mapping';
 import { reportIdentifiers } from '@jsprismarine/packs';
 import type { Definitions, IdentifierResolver, ReferencedIdentifier } from '@jsprismarine/packs';
+import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 
 /**
  * Thrown by a strict content build when the pack stack references a Java
@@ -21,7 +22,7 @@ import type { Definitions, IdentifierResolver, ReferencedIdentifier } from '@jsp
  * for one of them should say which ones, so the report and the exception
  * carry the same list.
  */
-export class UnmappedIdentifierError extends Error {
+export class UnmappedIdentifierError extends PrismarineContentErrors.UnmappedJavaIdentifiers {
     public override name = 'UnmappedIdentifierError';
 
     /**
@@ -29,10 +30,13 @@ export class UnmappedIdentifierError extends Error {
      */
     public constructor(public readonly unmapped: readonly ReferencedIdentifier[]) {
         const first = unmapped[0];
-        super(
-            `the pack stack references ${unmapped.length} Java identifier(s) with no Bedrock mapping and no reviewed loss entry` +
-                (first ? `, first: ${first.id} (${first.registry}) in pack "${first.pack}" at ${first.path}` : '')
-        );
+        super({
+            count: unmapped.length,
+            id: unmapped[0]?.id,
+            registry: unmapped[0]?.registry,
+            pack: unmapped[0]?.pack,
+            path: unmapped[0]?.path
+        });
     }
 }
 

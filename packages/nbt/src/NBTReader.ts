@@ -4,6 +4,7 @@ import type { ByteOrder } from './ByteOrder';
 import { NBTDefinitions } from './NBTDefinitions';
 import NBTStreamReader from './NBTStreamReader';
 import NBTTagCompound from './NBTTagCompound';
+import { NbtErrors } from '@jsprismarine/errors/nbt';
 
 export default class NBTReader extends NBTStreamReader {
     public constructor(input: BinaryStream, byteOrder: ByteOrder) {
@@ -11,9 +12,9 @@ export default class NBTReader extends NBTStreamReader {
     }
 
     public parseList<TagType>(): Set<TagType> {
-        this.expectInput(this.isUsingVarint() ? 2 : 3, 'Invalid NBT Data: Not enough data to read new tag', false);
+        this.expectInput(this.isUsingVarint() ? 2 : 3, NbtErrors.ExpectedTagHeader, false);
         if (this.readByteValue().getValue() !== NBTDefinitions.TAG_LIST) {
-            throw new Error('Invalid NBT Data: Not list tag found');
+            throw new NbtErrors.NotListTag();
         }
 
         this.readStringValue();
@@ -21,9 +22,9 @@ export default class NBTReader extends NBTStreamReader {
     }
 
     public parse(): NBTTagCompound {
-        this.expectInput(this.isUsingVarint() ? 2 : 3, 'Invalid NBT Data: Not enough data to read new tag', false);
+        this.expectInput(this.isUsingVarint() ? 2 : 3, NbtErrors.ExpectedTagHeader, false);
         if (this.readByteValue().getValue() !== NBTDefinitions.TAG_COMPOUND) {
-            throw new Error('Invalid NBT Data: No root tag found');
+            throw new NbtErrors.NoRootTag();
         }
 
         const name: string = this.readStringValue().getValue();
@@ -35,7 +36,7 @@ export default class NBTReader extends NBTStreamReader {
     private readTagCompoundValue(): NBTTagCompound {
         this.alterAllocationLimit(Allocation.COMPOUND);
         const compound: NBTTagCompound = new NBTTagCompound();
-        this.expectInput(1, 'Invalid NBT Data: Expected Tag ID in compound tag', false);
+        this.expectInput(1, NbtErrors.ExpectedCompoundTagId, false);
 
         let tagID = this.readByteValue().getValue();
         while (tagID !== NBTDefinitions.TAG_END) {
@@ -77,10 +78,10 @@ export default class NBTReader extends NBTStreamReader {
                     compound.addValue(this.readStringValue().getValue(), this.readIntArrayValue());
                     break;
                 default:
-                    throw new Error(`Invalid NBT Data: Unknown tag <${tagID}>`);
+                    throw new NbtErrors.UnknownTag({ tagID });
             }
 
-            this.expectInput(1, 'Invalid NBT Data: Expected tag ID in tag compound', false);
+            this.expectInput(1, NbtErrors.ExpectedNestedTagId, false);
             tagID = this.readByteValue().getValue();
         }
 
@@ -88,9 +89,9 @@ export default class NBTReader extends NBTStreamReader {
     }
 
     private readTagListValue(): Set<any> {
-        this.expectInput(this.isUsingVarint() ? 2 : 5, 'Invalid NBT Data: Expected TAGList header', false);
+        this.expectInput(this.isUsingVarint() ? 2 : 5, NbtErrors.ExpectedListHeader, false);
         const listType: number = this.readByteValue().getValue();
-        let listLength = this.readLength('Invalid NBT Data: Negative list length');
+        let listLength = this.readLength(NbtErrors.NegativeListLength);
 
         this.alterAllocationLimit(Allocation.ARRAY_LIST);
         this.alterAllocationLimit(Allocation.REFERENCE);
@@ -102,42 +103,42 @@ export default class NBTReader extends NBTStreamReader {
                 listLength = 0;
                 break;
             case NBTDefinitions.TAG_BYTE:
-                this.expectInput(listLength, 'Invalid NBT Data: Expected bytes for list');
+                this.expectInput(listLength, NbtErrors.ExpectedByteList);
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readByteValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_SHORT:
-                this.expectInput(2 * listLength, 'Invalid NBT Data: Expected shorts for list');
+                this.expectInput(2 * listLength, NbtErrors.ExpectedShortList);
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readShortValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_INT:
-                this.expectInput(4 * listLength, 'Invalid NBT Data: Expected ints for list');
+                this.expectInput(4 * listLength, NbtErrors.ExpectedIntList);
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readIntValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_LONG:
-                this.expectInput(8 * listLength, 'Invalid NBT Data: Expected longs for list');
+                this.expectInput(8 * listLength, NbtErrors.ExpectedLongList);
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readLongValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_FLOAT:
-                this.expectInput(4 * listLength, 'Invalid NBT Data: Expected floats for list');
+                this.expectInput(4 * listLength, NbtErrors.ExpectedFloatList);
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readFloatValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_DOUBLE:
-                this.expectInput(8 * listLength, 'Invalid NBT Data: Expected doubles for list');
+                this.expectInput(8 * listLength, NbtErrors.ExpectedDoubleList);
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readDoubleValue());
                 }
@@ -174,7 +175,7 @@ export default class NBTReader extends NBTStreamReader {
 
                 break;
             default:
-                throw new Error(`Invalid NBT Data: Unknown tag <${listType}>`);
+                throw new NbtErrors.UnknownTag({ tagID: listType });
         }
 
         return backingList;

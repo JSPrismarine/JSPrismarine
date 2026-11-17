@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { ConfigSyntaxError, parseConfigDocument } from './ConfigDocument';
+import { parseConfigDocument } from './ConfigDocument';
+import { ConfigSyntaxError } from '@jsprismarine/errors/prismarine/server';
 
 const JSON_SOURCE = [
     '{',

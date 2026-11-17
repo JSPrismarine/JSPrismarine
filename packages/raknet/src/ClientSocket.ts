@@ -29,6 +29,7 @@ import type Packet from './protocol/Packet';
 import type OpenConnectionReply1 from './protocol/connection/OpenConnectionReply1';
 import type OpenConnectionReply2 from './protocol/connection/OpenConnectionReply2';
 import type UnconnectedPong from './protocol/offline/UnconnectedPong';
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
 
 /**
  * The path MTUs an outgoing connection probes, largest first.
@@ -153,9 +154,9 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
      * @returns the connected session.
      */
     public async connect(address: string, port: number): Promise<RakNetSession> {
-        if (this.stopped) throw new Error('Cannot connect on a killed ClientSocket');
+        if (this.stopped) throw new RaknetErrors.ClientSocketClosed();
         if (this.attempt !== null || this.session !== null) {
-            throw new Error('Already connecting or connected; use a ClientSocket per connection');
+            throw new RaknetErrors.AlreadyConnected();
         }
 
         await this.ensureBound();
@@ -193,7 +194,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
      * @param timeoutMs - how long to wait for the pong.
      */
     public async ping(address: string, port: number, timeoutMs = 2_000): Promise<PingResult> {
-        if (this.stopped) throw new Error('Cannot ping on a killed ClientSocket');
+        if (this.stopped) throw new RaknetErrors.PingOnClosedSocket();
 
         await this.ensureBound();
 
@@ -272,8 +273,8 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
         this.stopped = true;
         clearTimeout(this.ticker);
 
-        this.failAttempt(new Error('ClientSocket was killed'));
-        this.failPendingPings(new Error('ClientSocket was killed'));
+        this.failAttempt(new RaknetErrors.ClientSocketKilled());
+        this.failPendingPings(new RaknetErrors.ClientSocketKilled());
 
         this.removeAllListeners();
 
@@ -313,7 +314,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
 
         // A session that dies during the connected handshake never emits `openConnection`,
         // so without this the promise would hang until the attempt deadline.
-        this.failAttempt(new Error(`Disconnected before the handshake completed: ${reason}`));
+        this.failAttempt(new RaknetErrors.DisconnectedBeforeHandshakeCompleted({ reason }));
     }
 
     // ---------------------------------------------------------------- offline callbacks
@@ -364,7 +365,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
 
     /** The server refused us, and said why. Terminal: retrying cannot change the answer. */
     public onOfflineFailure(reason: string): void {
-        this.failAttempt(new Error(`Connection refused: ${reason}`));
+        this.failAttempt(new RaknetErrors.ConnectionRefused({ reason }));
     }
 
     // ---------------------------------------------------------------- internals
@@ -438,7 +439,9 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
         const attempt = this.attempt;
         if (attempt && !attempt.settled) {
             if (now >= attempt.deadline) {
-                this.failAttempt(new Error(`Connection to ${attempt.rinfo.address}:${attempt.rinfo.port} timed out`));
+                this.failAttempt(
+                    new RaknetErrors.ConnectionTimedOut({ address: attempt.rinfo.address, port: attempt.rinfo.port })
+                );
             } else if (attempt.stage !== OfflineStage.ONLINE && now >= attempt.nextRetryAt) {
                 // An unanswered request may simply have been too large for the path, so
                 // each retry drops a rung before repeating.
@@ -539,7 +542,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
             if (pending.deadline > now) continue;
 
             this.pendingPings.splice(i, 1);
-            pending.reject(new Error(`Ping to ${pending.token} timed out`));
+            pending.reject(new RaknetErrors.PingTimedOut({ token: pending.token }));
         }
     }
 

@@ -1,6 +1,7 @@
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /** The optional parts of an item's user data. */
 export interface ItemInstanceUserDataConfig {
@@ -85,13 +86,20 @@ export default class ItemInstanceUserData extends NetworkStructure {
         if (marker === TAG_FOLLOWS) {
             const version = stream.readByte();
             if (version !== USER_DATA_VERSION) {
-                throw new Error(`Item user data version ${version} is not ${USER_DATA_VERSION}`);
+                throw new ProtocolCodecErrors.UnknownItemUserDataVersion({
+                    version,
+                    userDataVersion: USER_DATA_VERSION
+                });
             }
             this.userDataTag = NBTTagCompound.readFromStream(stream, ByteOrder.LITTLE_ENDIAN, false);
         } else if (marker === NO_TAG) {
             this.userDataTag = null;
         } else {
-            throw new Error(`Item user data marker ${marker} is neither ${NO_TAG} nor ${TAG_FOLLOWS}`);
+            throw new ProtocolCodecErrors.UnknownItemUserDataMarker({
+                marker,
+                noTag: NO_TAG,
+                tagFollows: TAG_FOLLOWS
+            });
         }
 
         this.canPlaceOnBlocks = ItemInstanceUserData.readBlockList(stream);

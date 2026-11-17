@@ -27,6 +27,7 @@ import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
 import type { FullContainerName } from '../structures/ItemStackRequest';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The range Durability Correction has to fit: the docs pin it to an int16 on top of its varint encoding. */
 const DURABILITY_CORRECTION_MIN = -32768;
@@ -101,9 +102,10 @@ const slotInfo = t.custom<ItemStackResponseSlotInfo>(
             slot.durabilityCorrection < DURABILITY_CORRECTION_MIN ||
             slot.durabilityCorrection > DURABILITY_CORRECTION_MAX
         ) {
-            throw new RangeError(
-                `Durability correction ${slot.durabilityCorrection} for slot ${slot.slot} does not fit an int16`
-            );
+            throw new ProtocolWireErrors.DurabilityCorrectionTooLarge({
+                durabilityCorrection: slot.durabilityCorrection,
+                slot: slot.slot
+            });
         }
         t.varint32.write(stream, slot.durabilityCorrection);
     },

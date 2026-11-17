@@ -1,4 +1,5 @@
 import type { ChunkStatus } from './ChunkStatus';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /**
  * All a holder needs of the thing it drives up the ladder.
@@ -27,13 +28,13 @@ export interface StagedChunk {
 }
 
 /** Raised when a chunk is asked to move to a status at or below the one it already holds. */
-export class ChunkStatusRegressionError extends Error {
+export class ChunkStatusRegressionError extends ChunkgenErrors.ChunkStatusRegression {
     public override name = 'ChunkStatusRegressionError';
 
     public constructor(
         public readonly from: ChunkStatus,
         public readonly to: ChunkStatus
     ) {
-        super(`A chunk at ${from} cannot advance to ${to}: a status body runs once and never runs backward.`);
+        super({ from, to });
     }
 }

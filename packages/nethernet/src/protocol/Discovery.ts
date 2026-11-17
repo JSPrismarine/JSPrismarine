@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac } from 'node:crypto';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /**
  * LAN discovery's packets on UDP 7551. Each datagram is an HMAC-SHA256 checksum of the plain
@@ -102,19 +103,19 @@ export const encodeDiscoveryPacket = (packet: DiscoveryPacket): Buffer => {
  * @throws {Error} When the datagram is short, its checksum does not match, or its type is unknown.
  */
 export const decodeDiscoveryPacket = (datagram: Buffer): DiscoveryPacket => {
-    if (datagram.byteLength < CHECKSUM_BYTES + 16) throw new Error('A discovery packet is too short');
+    if (datagram.byteLength < CHECKSUM_BYTES + 16) throw new NethernetErrors.DiscoveryPacketIsTooShort();
     const plain = decrypt(datagram.subarray(CHECKSUM_BYTES));
     if (!checksum(plain).equals(datagram.subarray(0, CHECKSUM_BYTES))) {
-        throw new Error('A discovery packet’s checksum does not match');
+        throw new NethernetErrors.DiscoveryPacketChecksumDoesNotMatch();
     }
-    if (plain.byteLength < HEADER_BYTES) throw new Error('A discovery packet is too short');
+    if (plain.byteLength < HEADER_BYTES) throw new NethernetErrors.DiscoveryPacketIsTooShort();
     const declared = plain.readUInt16LE(0);
     const type = plain.readUInt16LE(2);
     const senderId = plain.readBigUInt64LE(4);
     const readText = (at: number): { text: string; end: number } => {
         const length = plain.readUInt32LE(at);
         const end = at + 4 + length;
-        if (end > plain.byteLength) throw new Error('A discovery packet’s text runs past its end');
+        if (end > plain.byteLength) throw new NethernetErrors.DiscoveryPacketTextRunsPastEnd();
         return { text: plain.toString('utf8', at + 4, end), end };
     };
     switch (type) {
@@ -140,6 +141,6 @@ export const decodeDiscoveryPacket = (datagram: Buffer): DiscoveryPacket => {
             return { type, senderId, recipientId, data };
         }
         default:
-            throw new Error(`Unknown discovery packet type ${type}`);
+            throw new NethernetErrors.UnknownDiscoveryPacketType({ type });
     }
 };

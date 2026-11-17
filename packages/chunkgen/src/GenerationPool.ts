@@ -29,6 +29,8 @@ import type { ChunkStatus } from './ChunkStatus';
 import type { GenerationStatsSnapshot, WorkerTaskStats } from './GenerationStats';
 import { GenerationStatsRecorder } from './GenerationStats';
 import { unwrapReusable } from './reusableInput';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
+import { asError } from '@jsprismarine/errors/common';
 
 /**
  * Where a compiled Bun executable embedded this package's worker entry, defined at build time
@@ -254,20 +256,20 @@ export interface GenerationPoolOptions {
 }
 
 /** Raised when a pool is asked for work after it has been shut down. */
-export class GenerationPoolClosedError extends Error {
+export class GenerationPoolClosedError extends ChunkgenErrors.GenerationPoolClosed {
     public override name = 'GenerationPoolClosedError';
 
     public constructor(chunkX: number, chunkZ: number) {
-        super(`The generation pool is closed, so the chunk at ${chunkX}, ${chunkZ} was not built.`);
+        super({ chunkX, chunkZ });
     }
 }
 
 /** Raised when a task is dropped from the backlog before a worker ever saw it. */
-export class GenerationCanceledError extends Error {
+export class GenerationCanceledError extends ChunkgenErrors.GenerationCanceled {
     public override name = 'GenerationCanceledError';
 
     public constructor(chunkX: number, chunkZ: number) {
-        super(`The chunk at ${chunkX}, ${chunkZ} was no longer wanted, so it was dropped from the queue.`);
+        super({ chunkX, chunkZ });
     }
 }
 
@@ -421,7 +423,7 @@ class EmbeddedTaskRunner implements TaskRunner {
     }
 
     public run(task: GenerationTask): Promise<GenerationResult> {
-        if (this.closed) return Promise.reject(new Error('The embedded generation worker pool is closed'));
+        if (this.closed) return Promise.reject(new ChunkgenErrors.PoolIsClosed());
 
         return new Promise((resolve, reject) => {
             this.waiting.push({ id: this.nextId++, task, resolve, reject });
@@ -433,12 +435,12 @@ class EmbeddedTaskRunner implements TaskRunner {
         if (this.closed) return;
         this.closed = true;
 
-        for (const task of this.waiting) task.reject(new Error('The embedded generation worker pool was closed'));
+        for (const task of this.waiting) task.reject(new ChunkgenErrors.PoolWasClosed());
         this.waiting.length = 0;
 
         await Promise.all(
             this.slots.map(async ({ worker, busy }) => {
-                busy?.reject(new Error('The embedded generation worker pool was closed'));
+                busy?.reject(new ChunkgenErrors.PoolWasClosed());
                 await worker.terminate();
             })
         );
@@ -452,7 +454,7 @@ class EmbeddedTaskRunner implements TaskRunner {
                 try {
                     slot = this.startWorker();
                 } catch (error) {
-                    this.waiting.shift()!.reject(error instanceof Error ? error : new Error(String(error)));
+                    this.waiting.shift()!.reject(asError(error));
                     continue;
                 }
             }
@@ -463,7 +465,7 @@ class EmbeddedTaskRunner implements TaskRunner {
             try {
                 slot.worker.postMessage({ id: task.id, task: task.task });
             } catch (error) {
-                this.failWorker(slot, error instanceof Error ? error : new Error(String(error)));
+                this.failWorker(slot, asError(error));
             }
         }
     }
@@ -476,27 +478,26 @@ class EmbeddedTaskRunner implements TaskRunner {
         worker.on('message', (reply: EmbeddedReply) => {
             const busy = slot.busy;
             if (busy === undefined || reply.id !== busy.id) {
-                this.failWorker(slot, new Error('The embedded generation worker returned an unexpected task id'));
+                this.failWorker(slot, new ChunkgenErrors.WorkerReturnedUnexpectedTask());
                 return;
             }
 
             slot.busy = undefined;
             if (reply.ok && reply.result !== undefined) busy.resolve(reply.result);
             else {
-                const error = new Error(
-                    reply.error?.message ?? 'The embedded generation worker failed without an error'
-                );
+                const error =
+                    reply.error === undefined
+                        ? new ChunkgenErrors.EmbeddedWorkerFailedWithoutError()
+                        : new ChunkgenErrors.WorkerFailed({ message: reply.error.message });
                 error.name = reply.error?.name ?? 'Error';
                 if (reply.error?.stack !== undefined) error.stack = reply.error.stack;
                 busy.reject(error);
             }
             this.dispatch();
         });
-        worker.on('error', (error: unknown) =>
-            this.failWorker(slot, error instanceof Error ? error : new Error(String(error)))
-        );
+        worker.on('error', (error: unknown) => this.failWorker(slot, asError(error)));
         worker.on('exit', (code) => {
-            if (!this.closed) this.failWorker(slot, new Error(`Generation worker exited with code ${code}`));
+            if (!this.closed) this.failWorker(slot, new ChunkgenErrors.WorkerExited({ code }));
         });
 
         return slot;

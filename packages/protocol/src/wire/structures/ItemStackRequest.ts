@@ -3,6 +3,7 @@ import { ContainerUiId, ItemDescriptorType, ItemStackRequestActionType } from '@
 import { protocolVersion as protocolVersion2193 } from '../versions/v2193';
 import { protocolVersion as protocolVersion2225 } from '../versions/v2225';
 import { NetworkUtil } from '../networkUtil';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 // Both enums are generated from Mojang's protocol documentation and live in
 // `@jsprismarine/minecraft`. They are re-exported here so the handler and the tests can
@@ -155,7 +156,7 @@ const skipRequestDescriptor = (stream: BinaryStream): void => {
             NetworkUtil.readString(stream); // Item Tag.
             break;
         default:
-            throw new Error(`Unknown item descriptor kind ${kind} in an item stack request`);
+            throw new ProtocolWireErrors.UnknownItemDescriptorKind({ kind });
     }
 };
 
@@ -318,7 +319,7 @@ const readAction = (
         }
 
         default:
-            throw new Error(`Unknown item stack request action type ${type}`);
+            throw new ProtocolWireErrors.UnknownItemStackRequestActionType({ type });
     }
 };
 
@@ -341,9 +342,11 @@ export const readItemStackRequest = (stream: BinaryStream, protocolVersion = pro
 
     const actionCount = stream.readUnsignedVarInt();
     if (actionCount > MAX_REQUEST_ACTIONS) {
-        throw new RangeError(
-            `Item stack request ${requestId} names ${actionCount} actions; the docs allow at most ${MAX_REQUEST_ACTIONS}`
-        );
+        throw new ProtocolWireErrors.TooManyItemStackActions({
+            requestId,
+            actionCount,
+            maxRequestActions: MAX_REQUEST_ACTIONS
+        });
     }
 
     const actions: ItemStackRequestAction[] = [];
@@ -473,7 +476,7 @@ const writeAction = (stream: BinaryStream, action: ItemStackRequestAction, proto
             break;
 
         default:
-            throw new Error(`Unknown item stack request action type ${action.type}`);
+            throw new ProtocolWireErrors.UnknownItemStackRequestActionType({ type: action.type });
     }
 };
 

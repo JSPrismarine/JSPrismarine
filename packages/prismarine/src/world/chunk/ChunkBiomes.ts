@@ -4,6 +4,7 @@ import { minSubChunk, subChunkCount } from '../Dimension';
 import type { DimensionType } from '../DimensionType';
 import type { PackedBiomePalette } from './biomePalette';
 import { packBiomePalette } from './biomePalette';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * The biome of every block in one chunk column.
@@ -160,7 +161,10 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
         }
 
         if (ids.length !== BLOCKS_PER_SUBCHUNK) {
-            throw new RangeError(`A sub chunk holds ${BLOCKS_PER_SUBCHUNK} biomes, got ${ids.length}`);
+            throw new PrismarineWorldErrors.SubChunkBiomeCountMismatch({
+                blocksPerSubchunk: BLOCKS_PER_SUBCHUNK,
+                idsCount: ids.length
+            });
         }
 
         const first = ids[0]!;
@@ -277,13 +281,13 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
             const sectionIndex = firstSectionIndex + index - minSubChunk(dimension);
             const header = stream.readByte();
             if (header === 0xff) {
-                if (index === 0) throw new Error('The first biome section cannot inherit from below');
-                if (previous === undefined) throw new Error('A biome section inherited from a missing section');
+                if (index === 0) throw new PrismarineWorldErrors.LowestBiomeSectionInherits();
+                if (previous === undefined) throw new PrismarineWorldErrors.BiomeSectionInheritsMissing();
                 if (sectionIndex >= 0 && sectionIndex < biomes.sections.length)
                     biomes.sections[sectionIndex] = previous;
                 continue;
             }
-            if ((header & 1) === 0) throw new Error(`Expected a network biome palette header, got ${header}`);
+            if ((header & 1) === 0) throw new PrismarineWorldErrors.MissingBiomePaletteHeader({ header });
 
             const bitsPerBlock = header >>> 1;
             if (bitsPerBlock === 0) {
@@ -294,7 +298,7 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
                 continue;
             }
             if (!VALID_BITS_PER_BLOCK.includes(bitsPerBlock)) {
-                throw new Error(`Unsupported biome palette width ${bitsPerBlock}`);
+                throw new PrismarineWorldErrors.UnsupportedBiomePaletteWidth({ bitsPerBlock });
             }
 
             const perWord = Math.floor(32 / bitsPerBlock);
@@ -304,7 +308,7 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
 
             const paletteSize = stream.readVarInt();
             if (!Number.isInteger(paletteSize) || paletteSize <= 0 || paletteSize > MAX_BIOME_ID + 1) {
-                throw new Error(`Invalid biome palette size ${paletteSize}`);
+                throw new PrismarineWorldErrors.InvalidBiomePaletteSize({ paletteSize });
             }
             const palette = new Uint16Array(paletteSize);
             for (let paletteIndex = 0; paletteIndex < paletteSize; paletteIndex++) {
@@ -320,7 +324,7 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
                 const slot = block % perWord;
                 const paletteIndex = (word >>> (slot * bitsPerBlock)) & mask;
                 const biome = palette[paletteIndex];
-                if (biome === undefined) throw new Error(`Biome palette index ${paletteIndex} is out of range`);
+                if (biome === undefined) throw new PrismarineWorldErrors.BiomeIndexOutOfPalette({ paletteIndex });
                 ids[block] = biome;
             }
 
@@ -337,7 +341,7 @@ export class ChunkBiomes implements ReadonlyChunkBiomes {
 
     private requireBiomeId(biome: number): void {
         if (!Number.isInteger(biome) || biome < 0 || biome > MAX_BIOME_ID) {
-            throw new RangeError(`A biome id is an integer from 0 to ${MAX_BIOME_ID}, got ${biome}`);
+            throw new PrismarineWorldErrors.BiomeIdOutOfRange({ maxBiomeId: MAX_BIOME_ID, biome });
         }
     }
 }

@@ -20,6 +20,7 @@
 import { vanillaBlockPalette } from '@jsprismarine/blocks';
 
 import type { BlockPalette, BlockStateValue } from '@jsprismarine/blocks';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** One way the content registry's palette and the client's disagree. */
 export interface ContentPaletteDisagreement {
@@ -29,15 +30,12 @@ export interface ContentPaletteDisagreement {
 }
 
 /** Thrown when the server's block palette would desynchronize a client. */
-export class ContentPaletteError extends Error {
+export class ContentPaletteError extends PrismarineNetworkErrors.ContentPaletteMismatch {
     public override name = 'ContentPaletteError';
 
     /** @param disagreements - Every disagreement found, not only the first. */
     public constructor(public readonly disagreements: readonly ContentPaletteDisagreement[]) {
-        super(
-            `the content block palette disagrees with the client's in ${disagreements.length} place(s), ` +
-                `first: ${disagreements[0]?.block} ${disagreements[0]?.detail}`
-        );
+        super({ count: disagreements.length, block: disagreements[0]?.block, detail: disagreements[0]?.detail });
     }
 }
 

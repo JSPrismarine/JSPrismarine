@@ -2,6 +2,7 @@ import { UNKNOWN_BLOCK_NAME, UNKNOWN_RUNTIME_ID, fnv1a32, writeBlockStateNbt } f
 
 import type { BlockState, BlockStateValue } from './BlockState';
 import { BlockStateSchemas } from './BlockStateSchema';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * Turns a block state into the number that travels in chunk palettes.
@@ -38,7 +39,7 @@ export class BlockRuntimeIds {
     public static serialize(state: BlockState): Buffer {
         const schema = BlockStateSchemas.get(state.name);
         if (!schema) {
-            throw new Error(`No block state schema registered for ${state.name}`);
+            throw new PrismarineWorldErrors.UnknownBlock({ name: state.name });
         }
 
         return writeBlockStateNbt(state.toNBT(schema.getPropertyTypes()));
@@ -61,7 +62,7 @@ export class BlockRuntimeIds {
 
         const schema = BlockStateSchemas.get(name);
         if (!schema) {
-            throw new Error(`No block state schema registered for ${name}`);
+            throw new PrismarineWorldErrors.UnknownBlock({ name });
         }
 
         const runtimeId = this.get(schema.getDefaultState());

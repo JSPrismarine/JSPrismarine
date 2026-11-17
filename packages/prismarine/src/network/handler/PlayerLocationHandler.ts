@@ -2,6 +2,7 @@ import type PlayerLocationPacket from '@jsprismarine/protocol/packet/PlayerLocat
 import { PlayerLocationPacketType } from '@jsprismarine/protocol/packet/PlayerLocationPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * A player location update arriving from a client.
@@ -17,7 +18,7 @@ export default class PlayerLocationHandler implements ConnectionLaneHandler<Play
     /** Logs the target and whether it was a position or a hide. */
     public handle(packet: PlayerLocationPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a PlayerLocationPacket without a payload');
+        if (data === null) throw new PrismarineNetworkErrors.PlayerLocationNotDecoded();
         const location =
             data.packetType === PlayerLocationPacketType.PLAYER_LOCATION_HIDE
                 ? 'hidden'

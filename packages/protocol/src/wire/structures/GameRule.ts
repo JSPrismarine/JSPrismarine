@@ -1,6 +1,7 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 
 import { NetworkUtil } from '../networkUtil';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The alternatives of the `Rule Value` `oneOf`, as its varuint32 selector numbers them.
@@ -56,7 +57,7 @@ const readGameRuleValue = (stream: BinaryStream): GameRuleValue => {
         case GameRuleValueType.Float:
             return { type: GameRuleValueType.Float, value: stream.readFloatLE() };
         default:
-            throw new Error(`Unknown game rule value alternative ${selector}`);
+            throw new ProtocolWireErrors.UnknownGameRuleValueAlternative({ selector });
     }
 };
 

@@ -10,6 +10,7 @@ import type { Definition, Definitions, LoadResult } from './load';
 import type { PackStack } from './sources';
 import { REGISTRY_IDS } from './registries';
 import { isRecord } from './isRecord';
+import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /** Identifies the vanilla source prefix to cache while the rest of the stack stays live. */
 export interface PrefixCacheOptions {
@@ -40,7 +41,7 @@ const packageManifest: unknown = packsManifest;
 
 const packageVersion = (): string => {
     if (isRecord(packageManifest) && typeof packageManifest.version === 'string') return packageManifest.version;
-    throw new Error('packages/packs/package.json has no string version');
+    throw new PacksErrors.PackageVersionMissing();
 };
 
 const PACKS_VERSION = packageVersion();
@@ -105,7 +106,7 @@ export const prefixCacheKeyFor = (
         options.prefixLength < 1 ||
         options.prefixLength > stack.length
     ) {
-        throw new RangeError(`cache prefix length ${options.prefixLength} is outside the pack stack`);
+        throw new PacksErrors.CachePrefixOutOfRange({ prefixLength: options.prefixLength });
     }
 
     const sources = stack.slice(0, options.prefixLength).map((source) => ({ ...source, path: resolve(source.path) }));
@@ -128,7 +129,7 @@ export const readPrefixCache = (filePath: string, key: string): PrefixCacheRead 
 
     try {
         const decoded: unknown = deserialize(readFileSync(filePath));
-        if (!isPrefixCacheFile(decoded)) return { status: 'corrupt', error: new Error('invalid cache shape') };
+        if (!isPrefixCacheFile(decoded)) return { status: 'corrupt', error: new PacksErrors.InvalidPackCache() };
         if (decoded.formatVersion !== FORMAT_VERSION || decoded.key !== key) return { status: 'miss' };
         return { status: 'hit', result: decoded.result };
     } catch (error) {

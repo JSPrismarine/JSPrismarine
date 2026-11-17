@@ -2,13 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../.test/reportProgress';
 
-import {
-    DEFAULT_PROVIDER_CONTEXT,
-    evaluateNumberProvider,
-    FAST_COOKING_CONTEXT,
-    NumberProviderError
-} from './numberProvider';
+import { DEFAULT_PROVIDER_CONTEXT, evaluateNumberProvider, FAST_COOKING_CONTEXT } from './numberProvider';
 import { itemTypesTable } from './tables';
+import { NumberProviderError } from '@jsprismarine/errors/items';
 
 describe('the context number providers item components point at', () => {
     it('reports the providers available to item components', () => {

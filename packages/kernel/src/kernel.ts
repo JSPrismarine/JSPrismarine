@@ -4,6 +4,7 @@ import type { KernelLogger } from './logger';
 import { consoleLogger, scopedLogger } from './logger';
 import type { Module, ModuleContext } from './module';
 import type { ServiceToken } from './token';
+import { KernelErrors } from '@jsprismarine/errors/kernel';
 
 /**
  * A thrown value as a log line can carry it. A value whose `toString` or `stack` throws is named
@@ -16,14 +17,6 @@ const describeFailure = (error: unknown): string => {
         return Object.prototype.toString.call(error);
     }
 };
-
-/**
- * Error raised for kernel contract violations: missing providers, dependency
- * cycles, duplicate providers, out-of-phase calls, and undeclared `use()`.
- */
-export class KernelError extends Error {
-    public override readonly name = 'KernelError';
-}
 
 /**
  * Options for constructing a kernel.
@@ -97,10 +90,10 @@ export class Kernel<Events extends EventMap = EventMap> {
      */
     public register<Config>(module: Module<Config, Events>): void {
         if (this.phase !== 'created') {
-            throw new KernelError(`Cannot register module "${module.id}" after the kernel has run registerAll()`);
+            throw new KernelErrors.LateModuleRegistration({ id: module.id });
         }
         if (this.entries.some((entry) => entry.module.id === module.id)) {
-            throw new KernelError(`A module with id "${module.id}" is already registered`);
+            throw new KernelErrors.DuplicateModule({ id: module.id });
         }
         const dependencyIds = new Set((module.dependencies ?? []).map((token) => token.id));
         const entry: ModuleEntry<Events> = {
@@ -155,7 +148,7 @@ export class Kernel<Events extends EventMap = EventMap> {
      */
     public async start(): Promise<void> {
         if (this.phase === 'starting' || this.phase === 'started') {
-            throw new KernelError(`Kernel is already ${this.phase}; stop() it before starting again`);
+            throw new KernelErrors.AlreadyStarted({ phase: this.phase });
         }
         await this.registerAll();
         this.phase = 'starting';
@@ -173,7 +166,7 @@ export class Kernel<Events extends EventMap = EventMap> {
                 await this.stopLaunched();
                 throw error;
             }
-            if (this.run !== run) throw new KernelError('Kernel was stopped before start() finished');
+            if (this.run !== run) throw new KernelErrors.StoppedDuringStart();
         }
         this.phase = 'started';
     }
@@ -218,7 +211,7 @@ export class Kernel<Events extends EventMap = EventMap> {
      */
     public get<T>(token: ServiceToken<T>): T {
         if (!this.services.has(token.id)) {
-            throw new KernelError(`No provider for service "${token.id}"`);
+            throw new KernelErrors.NoProviderForService({ id: token.id });
         }
         // The registry stores services untyped; the token's phantom type is the
         // contract that the provider stored a matching value.
@@ -229,28 +222,20 @@ export class Kernel<Events extends EventMap = EventMap> {
         return {
             use: <T>(token: ServiceToken<T>): T => {
                 if (!dependencyIds.has(token.id)) {
-                    throw new KernelError(
-                        `Module "${moduleId}" used service "${token.id}" without declaring it as a dependency`
-                    );
+                    throw new KernelErrors.UndeclaredServiceUse({ moduleId, id: token.id });
                 }
                 if (!this.services.has(token.id)) {
-                    throw new KernelError(
-                        `Service "${token.id}" is not provided yet; resolve dependencies in start(), not register()`
-                    );
+                    throw new KernelErrors.ServiceNotProvidedYet({ id: token.id });
                 }
                 return this.get(token);
             },
             provide: <T>(token: ServiceToken<T>, service: T, options?: { override?: boolean }): void => {
                 if (this.registering !== moduleId) {
-                    throw new KernelError(
-                        `Module "${moduleId}" may only provide "${token.id}" during its register() phase`
-                    );
+                    throw new KernelErrors.ProvideOutsideRegister({ moduleId, id: token.id });
                 }
                 const existing = this.providerOf.get(token.id);
                 if (existing !== undefined && !options?.override) {
-                    throw new KernelError(
-                        `Service "${token.id}" is already provided by module "${existing}"; pass override: true to replace it`
-                    );
+                    throw new KernelErrors.DuplicateServiceProvider({ id: token.id, existing });
                 }
                 this.services.set(token.id, service);
                 this.providerOf.set(token.id, moduleId);
@@ -265,9 +250,7 @@ export class Kernel<Events extends EventMap = EventMap> {
         for (const entry of this.entries) {
             for (const tokenId of entry.dependencyIds) {
                 if (!this.providerOf.has(tokenId)) {
-                    throw new KernelError(
-                        `Module "${entry.module.id}" depends on service "${tokenId}" but no registered module provides it`
-                    );
+                    throw new KernelErrors.MissingServiceProvider({ id: entry.module.id, tokenId });
                 }
             }
         }
@@ -286,7 +269,7 @@ export class Kernel<Events extends EventMap = EventMap> {
             if (status === 'done') return;
             if (status === 'visiting') {
                 const cycle = [...path.slice(path.indexOf(entry.module.id)), entry.module.id];
-                throw new KernelError(`Dependency cycle between modules: ${cycle.join(' -> ')}`);
+                throw new KernelErrors.DependencyCycle({ cycle: cycle.join(' -> ') });
             }
             state.set(entry.module.id, 'visiting');
             path.push(entry.module.id);

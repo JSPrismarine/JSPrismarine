@@ -8,6 +8,7 @@ import {
     printParseErrorCode
 } from 'jsonc-parser';
 import type { Node as JsonNode, ParseError } from 'jsonc-parser';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** The keys from the root to one value: object keys as strings, list indices as numbers. */
 export type ConfigPath = readonly (string | number)[];
@@ -62,20 +63,6 @@ export interface ConfigDocument {
 
     /** The file content, ending in a newline. */
     toString(): string;
-}
-
-/**
- * Raised when a config file cannot be read as JSON.
- *
- * Thrown rather than swallowed on purpose. Treating a file with a typo in it as empty and then
- * writing the defaults back is how a server used to erase its own config; refusing to start
- * keeps the file for the person to fix.
- */
-export class ConfigSyntaxError extends Error {
-    public constructor(detail: string) {
-        super(`Not valid json: ${detail}`);
-        this.name = 'ConfigSyntaxError';
-    }
 }
 
 const endsWithNewline = (text: string): string => (text === '' || text.endsWith('\n') ? text : `${text}\n`);
@@ -146,10 +133,13 @@ class JsonConfigDocument implements ConfigDocument {
         const tree = text.trim() === '' ? undefined : parseTree(text, errors, { allowTrailingComma: true });
         const [error] = errors;
         if (error) {
-            throw new ConfigSyntaxError(`${printParseErrorCode(error.error)} at offset ${error.offset}`);
+            throw new PrismarineServerErrors.ConfigNotValidJson({
+                printParseErrorCode: printParseErrorCode(error.error),
+                offset: error.offset
+            });
         }
         if (tree !== undefined && tree.type !== 'object' && tree.type !== 'array') {
-            throw new ConfigSyntaxError('the document is a single value, not an object or an array');
+            throw new PrismarineServerErrors.ConfigIsSingleValue();
         }
 
         this.text = text;

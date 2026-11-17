@@ -1,6 +1,7 @@
 import NetworkStructure from '../NetworkStructure';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * The docs enum `HeightMapDataType`: what a sub chunk contributes to the client's heightmap.
@@ -63,11 +64,17 @@ export default class SubChunkHeightmapData extends NetworkStructure {
         if (heightMap === undefined) return;
 
         if (heightMap.length !== HEIGHT_MAP_SIDE) {
-            throw new Error(`A heightmap needs ${HEIGHT_MAP_SIDE} rows, got ${heightMap.length}`);
+            throw new ProtocolCodecErrors.HeightmapWrongRowCount({
+                heightMapSide: HEIGHT_MAP_SIDE,
+                heightMapCount: heightMap.length
+            });
         }
         for (const row of heightMap) {
             if (row.length !== HEIGHT_MAP_SIDE) {
-                throw new Error(`A heightmap row needs ${HEIGHT_MAP_SIDE} heights, got ${row.length}`);
+                throw new ProtocolCodecErrors.HeightmapRowWrongLength({
+                    heightMapSide: HEIGHT_MAP_SIDE,
+                    rowCount: row.length
+                });
             }
             stream.writeUnsignedVarInt(row.length);
             for (const height of row) stream.writeSignedByte(height);
@@ -81,7 +88,10 @@ export default class SubChunkHeightmapData extends NetworkStructure {
         for (let z = 0; z < HEIGHT_MAP_SIDE; z++) {
             const length = stream.readUnsignedVarInt();
             if (length !== HEIGHT_MAP_SIDE) {
-                throw new Error(`A heightmap row needs ${HEIGHT_MAP_SIDE} heights, got ${length}`);
+                throw new ProtocolCodecErrors.HeightmapRowWrongLength({
+                    heightMapSide: HEIGHT_MAP_SIDE,
+                    rowCount: length
+                });
             }
             const row: number[] = [];
             for (let x = 0; x < length; x++) row.push(stream.readSignedByte());

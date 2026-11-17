@@ -18,6 +18,7 @@ import type {
     AttributeLayerSyncData,
     AttributeLayerSyncData2225
 } from '../wire/definitions/clientboundAttributeLayerSync';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 export { AttributeLayerSyncDataType };
 export type { AttributeLayerSyncData, AttributeLayerSyncData2225 };
@@ -122,9 +123,10 @@ export default class ClientboundAttributeLayerSyncPacket extends NetworkPacket<C
             this.codecProtocol < protocol2259 &&
             attributeValuesOf(data).some((value) => value.type === AttributeDataType.String)
         ) {
-            throw new Error(
-                `A string attribute needs protocol ${protocol2259}; this packet is for ${this.codecProtocol}`
-            );
+            throw new ProtocolCodecErrors.StringAttributeUnsupported({
+                protocol2259,
+                codecProtocol: this.codecProtocol
+            });
         }
         // The layout writes whichever of the two gated fields the stamped version admits; the other one is ignored.
         layoutAt(clientboundAttributeLayerSyncPacket, this.codecProtocol).encode(stream, {
@@ -141,7 +143,7 @@ export default class ClientboundAttributeLayerSyncPacket extends NetworkPacket<C
 
         // The gated field the version leaves off the wire decodes as its `null` fallback.
         const data = dataUntil2225 ?? dataSince2225;
-        if (data === null) throw new Error('The layout read no Data variant');
+        if (data === null) throw new ProtocolCodecErrors.AttributeLayerDataNotDecoded();
         return { data };
     }
 }
