@@ -9,8 +9,8 @@ export const packageAreas = [
     {
         id: 'server',
         title: 'Server',
-        description: 'The server itself, its console and the kernel that wires its modules.',
-        packages: ['prismarine', 'server', 'console', 'console-protocol', 'kernel']
+        description: 'The server itself, its console, the kernel that wires its modules and the script engine.',
+        packages: ['prismarine', 'server', 'console', 'console-protocol', 'kernel', 'script-host']
     },
     {
         id: 'network',
