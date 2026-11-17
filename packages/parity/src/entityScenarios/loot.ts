@@ -28,7 +28,7 @@ import type { JavaClass } from '../javaClassFile.ts';
 import { loadVanillaDatapack, vanillaLootRegistry } from '../javaDatapack.ts';
 import type { VanillaDatapack } from '../javaDatapack.ts';
 import { javaEntityClasses } from '../javaEntityClasses.ts';
-import { buildRealStack, serverContent } from '../serverStack.ts';
+import { buildRealStack, seededDraws, serverContent } from '../serverStack.ts';
 import type { RealStack } from '../serverStack.ts';
 import { javaClassChain, javaEntityClassName, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
@@ -67,11 +67,7 @@ const JAVA_ROLLS_PER_KILL = 8;
 let lootStack: RealStack | undefined;
 const realStack = (): RealStack => {
     if (lootStack !== undefined) return lootStack;
-    let state = 0x2545f491;
-    const values = Array.from({ length: 65_521 }, () => {
-        state = (Math.imul(state, 1_103_515_245) + 12_345) >>> 0;
-        return state / 2 ** 32;
-    });
+    const values = seededDraws();
     lootStack = buildRealStack(new TestEntityWorld({ random: values }));
     return lootStack;
 };

@@ -61,6 +61,19 @@ export const buildRealStack = (world: TestEntityWorld): RealStack => {
     return { content, runtime, world, reports, reportContext };
 };
 
+/**
+ * A fixed run of random draws in [0, 1) from a linear congruential sequence, so a scenario whose
+ * rule rolls sees varied draws that are the same on every run.
+ * @param count - How many draws; the default is the sequence's 65521 before a world replays it.
+ */
+export const seededDraws = (count = 65_521): readonly number[] => {
+    let state = 0x2545f491;
+    return Array.from({ length: count }, () => {
+        state = (Math.imul(state, 1_103_515_245) + 12_345) >>> 0;
+        return state / 2 ** 32;
+    });
+};
+
 let varyingStack: RealStack | undefined;
 
 /**
@@ -70,11 +83,7 @@ let varyingStack: RealStack | undefined;
  */
 export const varyingRealStack = (): RealStack => {
     if (varyingStack !== undefined) return varyingStack;
-    let state = 0x2545f491;
-    const values = Array.from({ length: 65_521 }, () => {
-        state = (Math.imul(state, 1_103_515_245) + 12_345) >>> 0;
-        return state / 2 ** 32;
-    });
+    const values = seededDraws();
     varyingStack = buildRealStack(new TestEntityWorld({ random: values }));
     return varyingStack;
 };

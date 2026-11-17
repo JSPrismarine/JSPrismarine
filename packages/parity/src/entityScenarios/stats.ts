@@ -22,7 +22,7 @@ import { LegacyRandomSource } from '@jsprismarine/worldgen/random/LegacyRandomSo
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { chiSquaredTest } from '../chiSquared.ts';
 import { loadJavaEntityAttributes } from '../goldens.ts';
-import { realStack, serverContent } from '../serverStack.ts';
+import { realStack, seededDraws, serverContent } from '../serverStack.ts';
 import { withProbe } from './goalProbe.ts';
 import type { EntitySubject } from './subjects.ts';
 import { componentValues, entitiesDeclaring, field } from './subjects.ts';
@@ -1153,8 +1153,9 @@ const SERVER_RULES: readonly ServerRule[] = [
                 }
                 // Left to its own goals, Java's strider strolls about the pool: RandomStrollGoal starts
                 // on a 1 in reducedTickDelay(60) chance a goal update. The shared stack draws a fixed
-                // 0.5, so this runs in the goal probe's stack, whose draws vary, with a player 16
-                // blocks off to keep noActionTime at 0 as Java's Mob.checkDespawn does.
+                // 0.5, so this runs in the goal probe's stack on a long seeded run of draws, whose
+                // start no earlier scenario decides, with a player 16 blocks off to keep
+                // noActionTime at 0 as Java's Mob.checkDespawn does.
                 const adultGroups = [...typeOf(subject.bedrock).groups.keys()].filter(
                     (group) => /adult|unsaddled|pathing/.test(group) && !/jockey/.test(group)
                 );
@@ -1163,7 +1164,7 @@ const SERVER_RULES: readonly ServerRule[] = [
                     {
                         groups: adultGroups,
                         without: (group) => /baby|jockey/.test(group),
-                        random: [0.01, 0.82, 0.5, 0.13, 0.91, 0.5, 0.24, 0.68, 0.5]
+                        random: seededDraws(4_093)
                     },
                     (probe) => {
                         probe.fill([-12, -2, -12], [12, -2, 12], 'minecraft:stone');
