@@ -20,13 +20,15 @@ export interface NativeSymbols {
         stackSize: number
     ): NativePointer;
     jsh_engine_destroy(engine: NativePointer): void;
+    jsh_context_create(engine: NativePointer): number;
+    jsh_context_select(engine: NativePointer, context: number): number;
     jsh_engine_set_buffer(engine: NativePointer, buffer: NativePointer, capacity: number): void;
     jsh_engine_set_budget(engine: NativePointer, perCallback: number, perTick: number): void;
     jsh_engine_begin_tick(engine: NativePointer): void;
     jsh_engine_stat(engine: NativePointer, stat: number): number;
     jsh_eval_script(engine: NativePointer, name: string, source: Uint8Array, length: number): number;
     jsh_eval_module(engine: NativePointer, name: string, source: Uint8Array, length: number): number;
-    jsh_run_jobs(engine: NativePointer): number;
+    jsh_run_jobs(engine: NativePointer, context: number): number;
     jsh_call(engine: NativePointer, fn: number, thisValue: number, length: number): number;
     jsh_global(engine: NativePointer): number;
     jsh_get(engine: NativePointer, object: number, key: string): number;
@@ -71,13 +73,15 @@ const signatures: Record<keyof NativeSymbols, readonly [Kind, readonly Kind[]]> 
     jsh_abi_version: ['int32', []],
     jsh_engine_create: ['pointer', ['pointer', 'pointer', 'int32', 'float64', 'float64']],
     jsh_engine_destroy: ['void', ['pointer']],
+    jsh_context_create: ['int32', ['pointer']],
+    jsh_context_select: ['int32', ['pointer', 'int32']],
     jsh_engine_set_buffer: ['void', ['pointer', 'pointer', 'int32']],
     jsh_engine_set_budget: ['void', ['pointer', 'float64', 'float64']],
     jsh_engine_begin_tick: ['void', ['pointer']],
     jsh_engine_stat: ['float64', ['pointer', 'int32']],
     jsh_eval_script: ['int32', ['pointer', 'string', 'buffer', 'int32']],
     jsh_eval_module: ['int32', ['pointer', 'string', 'buffer', 'int32']],
-    jsh_run_jobs: ['int32', ['pointer']],
+    jsh_run_jobs: ['int32', ['pointer', 'int32']],
     jsh_call: ['int32', ['pointer', 'int32', 'int32', 'int32']],
     jsh_global: ['int32', ['pointer']],
     jsh_get: ['int32', ['pointer', 'int32', 'string']],

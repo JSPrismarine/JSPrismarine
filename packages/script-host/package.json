@@ -87,6 +87,21 @@
                 "import": "./dist/debugger/channel.js",
                 "module": "./dist/debugger/channel.js"
             },
+            "./host/WorldScripts": {
+                "types": "./dist/host/WorldScripts.d.ts",
+                "import": "./dist/host/WorldScripts.js",
+                "module": "./dist/host/WorldScripts.js"
+            },
+            "./host/world": {
+                "types": "./dist/host/world.d.ts",
+                "import": "./dist/host/world.js",
+                "module": "./dist/host/world.js"
+            },
+            "./host/pack": {
+                "types": "./dist/host/pack.d.ts",
+                "import": "./dist/host/pack.js",
+                "module": "./dist/host/pack.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -162,6 +177,18 @@
         "./debugger/channel": {
             "jsprismarine:dist": "./dist/debugger/channel.js",
             "default": "./src/debugger/channel.ts"
+        },
+        "./host/WorldScripts": {
+            "jsprismarine:dist": "./dist/host/WorldScripts.js",
+            "default": "./src/host/WorldScripts.ts"
+        },
+        "./host/world": {
+            "jsprismarine:dist": "./dist/host/world.js",
+            "default": "./src/host/world.ts"
+        },
+        "./host/pack": {
+            "jsprismarine:dist": "./dist/host/pack.js",
+            "default": "./src/host/pack.ts"
         },
         "./package.json": "./package.json"
     },

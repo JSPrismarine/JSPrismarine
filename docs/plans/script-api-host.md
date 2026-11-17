@@ -171,6 +171,28 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
    - a `scripting.engine` row that confirms the argument error messages slice 4 wrote in BDS's
      style without a capture: wrong type, wrong count, and a class with no constructor
    - Done when every item has a passing `scripting` row.
+   - Learned: `world.beforeEvents.chatSend` and `system.beforeEvents.watchdogTerminate` are beta
+     only in the pinned `@minecraft/server` 2.10.0, and a capture has no client to chat, so the
+     stable before-event is `weatherChange`, which `Dimension.setWeather` raises with no player.
+     `watchdogTerminate` waits for slice 9; until then `script-watchdog-enable-shutdown` alone
+     decides. `variables.json` and `secrets.json` are read, but only the beta
+     `@minecraft/server-admin` exposes them, so no stable row covers them.
+   - Learned: a script's `runCommand('reload')` succeeds 0 times on BDS, so the `reload`
+     scenario sends `/reload` on the console and stamps ticks relative to each run.
+   - Learned: a module's `config/<uuid>/permissions.json` replaces the default's list, and BDS
+     resolves an undeclared `import()` of any module, `@minecraft/server-gametest` included, with
+     the same `ReferenceError`.
+   - Learned: a `system.run` that a running task queues waits for the next tick, while a
+     `runTimeout` of 0 queued the same way runs in the same pass, and run ids count from 1 across
+     the whole runtime.
+   - Learned: a Bedrock world is a JSPrismarine level, so the runtime belongs to the default
+     level and flushes in its default world's tick, before that world's change log seals. The
+     version 2 packs' early execution runs once the worlds have loaded, just before the version 1
+     packs, since no script can observe the world in early execution.
+   - Left: `/reload` reloads scripts but not function files; `@minecraft/server`'s weather and
+     `world.sendMessage` are the only world members with behavior; the script host is an optional
+     dependency of `prismarine` while it is private and built for Linux x64 only
+     ([#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215)).
 7. [ ] [#3204](https://github.com/JSPrismarine/JSPrismarine/issues/3204) **The debugger.** The protocol the VS Code extension speaks, `/script debugger
    listen|connect|detach` and the `script-debugger-*` properties, over koush's debugger patch
    ported to the pinned QuickJS. Planned with the skeleton, and split into its own slice right

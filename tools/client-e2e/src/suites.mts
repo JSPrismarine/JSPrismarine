@@ -2,6 +2,7 @@
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
 import { commandSyntaxError } from './scenarios/command-syntax-error.mts';
+import { scriptWorldMessage } from './scenarios/script-world-message.mts';
 import { spectatorPickup } from './scenarios/spectator-pickup.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
 import { itemDropPickup } from './scenarios/item-drop-pickup.mts';
@@ -90,6 +91,7 @@ export const suites: ScenarioSuite[] = [
             movementRotation,
             chat,
             commandSyntaxError,
+            scriptWorldMessage,
             miningDrops,
             spectatorPickup,
             itemDropPickup,

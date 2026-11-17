@@ -6,6 +6,7 @@ import { ScriptApiError } from '../errors';
 import type { ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
 import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
 import type { ScriptApiLogger } from './binding';
+import type { Privilege } from './format';
 import { ScriptApiContext } from './binding';
 import { exportNames } from './history';
 import { ScriptApiImplementations, implementationCoverage } from './implementations';
@@ -147,7 +148,9 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
         expect(thrown(scripts, 'mc.world.getDimension(5)')).toBe(
             'TypeError: Native type conversion failed. Function argument [0] expected type: string'
         );
-        expect(thrown(scripts, 'new mc.ItemStack(5)')).toBe('TypeError: Native variant type conversion failed.');
+        expect(thrown(scripts, 'new mc.ItemStack(5)')).toBe(
+            'TypeError: Native variant type conversion failed. Function argument [0] expected type: string | ItemType'
+        );
         expect(thrown(scripts, "new mc.ItemStack('minecraft:apple', 300)")).toBe(
             'ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 300, Argument bounds: [1, 255]'
         );
@@ -157,6 +160,102 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
         expect(calls).toBe(0);
         expect(scripts.evaluate("mc.world.getDimension('overworld')")).toBe('a dimension');
         expect(calls).toBe(1);
+    });
+
+    // Each expected message is what BDS threw in the `argument-errors` scenario's golden.
+    it.each([
+        [
+            'mc.system.run(42)',
+            'TypeError: Native type conversion failed. Function argument [0] expected type: Closure: () => void'
+        ],
+        ['mc.system.run()', 'TypeError: Incorrect number of arguments to function. Expected 1, received 0'],
+        [
+            "mc.system.runTimeout(() => {}, '1')",
+            'TypeError: Native type conversion failed. Function argument [1] expected type: number | undefined'
+        ],
+        [
+            'mc.system.runTimeout(() => {}, -1)',
+            'ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: -1, Argument bounds: [0, 4294967295.00]'
+        ],
+        [
+            'mc.system.runTimeout(() => {}, 1, 2)',
+            'TypeError: Incorrect number of arguments to function. Expected 1-2, received 3'
+        ],
+        [
+            "mc.world.sendMessage(['a', 1])",
+            'TypeError: Native variant type conversion failed. Function argument [0] expected type: string | RawMessage | (string | RawMessage)[]'
+        ],
+        [
+            'mc.world.sendMessage(42)',
+            'TypeError: Native variant type conversion failed. Function argument [0] expected type: string | RawMessage | (string | RawMessage)[]'
+        ],
+        ['mc.World()', 'TypeError: must be called with new'],
+        ['mc.system.currentTick = 5', "TypeError: 'currentTick' is read-only"],
+        [
+            "mc.world.getDimension.call({}, 'overworld')",
+            'ReferenceError: Native function [World::getDimension] object bound to prototype does not exist.'
+        ]
+    ])('throws what BDS throws for %s', (source, message) => {
+        const scripts = engine();
+        bindServer(scripts, '2.0.0');
+
+        expect(thrown(scripts, source)).toBe(message);
+    });
+
+    it('refuses a member its metadata does not allow under the running privilege, with BDS’s message', () => {
+        const scripts = engine();
+        let privilege: Privilege = 'early_execution';
+        const implementations = new ScriptApiImplementations().implement(
+            '@minecraft/server',
+            'World',
+            'sendMessage',
+            () => undefined
+        );
+        const context = new ScriptApiContext(scripts, {
+            pack: 'pack - 1.0.0',
+            implementations,
+            logger: new RecordingLogger(),
+            privilege: () => privilege
+        });
+        const global = scripts.global();
+        scripts.set(global, 'mc', context.bind(serve('2.0.0')));
+        scripts.free(global);
+
+        // The messages are the ones the `privileges` and `weather-events` goldens hold.
+        expect(thrown(scripts, "mc.world.sendMessage('hi')")).toBe(
+            'ReferenceError: Native function [World::sendMessage] cannot be used in early execution.'
+        );
+        expect(thrown(scripts, 'mc.world.gameRules')).toBe(
+            'ReferenceError: Native property getter [World::gameRules] cannot be used in early execution.'
+        );
+        expect(thrown(scripts, 'mc.system.currentTick')).toContain('NotImplementedError');
+        privilege = 'restricted_execution';
+        expect(thrown(scripts, "mc.world.sendMessage('hi')")).toBe('returned');
+        expect(thrown(scripts, "mc.Dimension.prototype.setWeather.call(mc.world, 'Rain')")).toBe(
+            'ReferenceError: Native function [Dimension::setWeather] cannot be used in restricted execution.'
+        );
+        privilege = 'default';
+        expect(thrown(scripts, "mc.world.sendMessage('hi')")).toBe('returned');
+    });
+
+    it('gives an implementation the tag its instance was made with', () => {
+        const scripts = engine();
+        const tags: number[] = [];
+        const implementations = new ScriptApiImplementations().implement('@minecraft/server', 'Dimension', 'id', {
+            get: (call) => {
+                tags.push(call.tag);
+                return `dimension ${call.tag}`;
+            }
+        });
+        const { context } = bindServer(scripts, '2.0.0', implementations);
+        const dimension = context.create('@minecraft/server', 'Dimension', 7);
+        const global = scripts.global();
+        scripts.set(global, 'dimension', dimension);
+        scripts.free(global);
+        scripts.free(dimension);
+
+        expect(scripts.evaluate('dimension.id')).toBe('dimension 7');
+        expect(tags).toEqual([7]);
     });
 
     it('throws ArgumentOutOfBoundsError as an instance of the class from @minecraft/common, with its fields', () => {

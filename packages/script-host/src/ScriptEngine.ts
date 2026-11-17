@@ -8,7 +8,7 @@ import { ScriptHandle, TransferBuffer, ValueReader, ValueWriter } from './values
 import type { ScriptValue } from './values';
 
 /** The C interface version this binding speaks, `JSH_ABI_VERSION` in the header. */
-export const ABI_VERSION = 2;
+export const ABI_VERSION = 3;
 
 /** The `jsh_status` codes an entry returns instead of a handle or a count. */
 const Status = { Thrown: -1, Terminated: -2, OutOfMemory: -3, Invalid: -4 } as const;
@@ -49,8 +49,19 @@ export const DEFAULT_STACK_SIZE = 256 * 1024;
 /** A function scripts call to reach the host. It runs synchronously and must not return a promise. */
 export type HostFunction = (...args: ScriptValue[]) => ScriptValue;
 
-/** Returns a module's source for its normalized name, or undefined when there is none. */
-export type ModuleLoader = (name: string) => string | undefined;
+/**
+ * Returns a module for its normalized name: its source, or an object whose own enumerable
+ * properties become its exports. Undefined when there is none.
+ * @param name - The normalized module name.
+ * @param context - The id of the context that imports it.
+ */
+export type ModuleLoader = (name: string, context: ScriptContextId) => string | ScriptHandle | undefined;
+
+/** A context's id in its engine. The context an engine is created with is {@link DEFAULT_CONTEXT}. */
+export type ScriptContextId = number;
+
+/** The context an engine is created with. */
+export const DEFAULT_CONTEXT: ScriptContextId = 0;
 
 /** How {@link ScriptHostLibrary.createEngine} sets up an engine. */
 export interface ScriptEngineOptions {
@@ -194,12 +205,46 @@ export class ScriptEngine {
     }
 
     /**
-     * Runs pending promise jobs until none is left.
+     * Runs pending promise jobs until none is left, in the order they were queued.
+     * @param context - Runs only this context's jobs, leaving the others queued. Every context's when absent.
      * @returns How many jobs ran.
      * @throws {ScriptError} When a job throws; the jobs after it stay pending.
      */
-    public runJobs(): number {
-        return this.check(this.native.jsh_run_jobs(this.live()));
+    public runJobs(context?: ScriptContextId): number {
+        return this.check(this.native.jsh_run_jobs(this.live(), context ?? -1));
+    }
+
+    /**
+     * Creates another context in the engine: a global object of its own, with the same limits as
+     * the first. The current context stays as it was.
+     * @returns The new context's id.
+     * @throws {ScriptOutOfMemoryError} When the engine cannot make it.
+     */
+    public createContext(): ScriptContextId {
+        return this.check(this.native.jsh_context_create(this.live()));
+    }
+
+    /**
+     * Makes a context current, so evaluations, the global object and new host functions are its.
+     * While a script calls the host, the calling script's context is current.
+     * @returns The context that was current before.
+     * @throws {RangeError} When the engine has no such context.
+     */
+    public useContext(context: ScriptContextId): ScriptContextId {
+        return this.check(this.native.jsh_context_select(this.live(), context));
+    }
+
+    /**
+     * Runs a function with a context current, and makes the one before current again after it.
+     * @returns What the function returned.
+     */
+    public inContext<Result>(context: ScriptContextId, run: () => Result): Result {
+        const previous = this.useContext(context);
+        try {
+            return run();
+        } finally {
+            this.useContext(previous);
+        }
     }
 
     /**
@@ -376,7 +421,7 @@ export class ScriptEngine {
                 return 0;
             }
             if (op === Op.Call) return this.dispatch(id, length);
-            if (op === Op.LoadModule) return this.load(length);
+            if (op === Op.LoadModule) return this.load(id, length);
             if (op === Op.DebugPaused) return this.paused(id);
             if (op === Op.DebugPoll) {
                 this.debuggerListener?.poll();
@@ -405,14 +450,11 @@ export class ScriptEngine {
         return this.debuggerListener?.paused(reason) === 'terminate' ? -1 : 0;
     }
 
-    private load(length: number): number {
+    private load(context: ScriptContextId, length: number): number {
         const name = this.buffer.bytes.toString('utf8', 0, length);
-        const source = this.loadModule?.(name);
-        if (source === undefined) throw new ReferenceError(`Could not find module '${name}'`);
-        const size = Buffer.byteLength(source, 'utf8');
-        this.buffer.reserve(size);
-        this.buffer.bytes.write(source, 0, size, 'utf8');
-        return size;
+        const module = this.loadModule?.(name, context);
+        if (module === undefined) throw new ReferenceError(`Could not find module '${name}'`);
+        return new ValueWriter(this.buffer).value(module).length;
     }
 
     /** Writes an error's name and message for the engine to throw, and returns the status for it. */

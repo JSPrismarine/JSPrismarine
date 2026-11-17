@@ -56,9 +56,21 @@ typedef struct {
 	uint8_t used;
 } jsh_slot;
 
+/* A module whose exports the host gave as an object, waiting for QuickJS to initialize it. */
+typedef struct {
+	JSModuleDef *module;
+	JSValue exports;
+} jsh_host_module;
+
 struct jsh_engine {
 	JSRuntime *rt;
+	/* The current context: the one that entries from the host and the host's calls run in. */
 	JSContext *ctx;
+	/* Every context, by id. Context 0 is the one the engine was created with. */
+	JSContext **contexts;
+	int32_t context_count;
+	jsh_host_module *host_modules;
+	int32_t host_module_count;
 	jsh_host_fn host;
 	uint8_t *buffer;
 	int32_t capacity;
@@ -556,7 +568,7 @@ static void enter(jsh_engine *engine) {
 	/* The host may call from any depth of its own stack, so the stack limit starts here. */
 	JS_UpdateStackTop(engine->rt);
 	/* Each entry counts its steps from a full poll counter, so what ran before cannot move them. */
-	JS_ResetInterruptCounter(engine->ctx);
+	for (int32_t i = 0; i < engine->context_count; i++) JS_ResetInterruptCounter(engine->contexts[i]);
 	engine->callback_steps = 0;
 	engine->terminated = 0;
 	engine->out_of_memory = 0;
@@ -601,7 +613,11 @@ static JSValue host_call(JSContext *ctx, JSValueConst this_value, int argc, JSVa
 
 	engine->host_calls++;
 	engine->bytes_to_host += out.length;
+	/* What the host does during the call happens in the caller's context. */
+	JSContext *saved = engine->ctx;
+	engine->ctx = ctx;
 	int32_t length = engine->host(JSH_OP_CALL, id, out.length);
+	engine->ctx = saved;
 	if (engine->terminated) {
 		/* A script the host ran in the meantime used up the budget, so this one stops too. */
 		result = throw_terminated(ctx);
@@ -626,6 +642,68 @@ done:
 	return result;
 }
 
+static int32_t context_id(jsh_engine *engine, JSContext *ctx) {
+	for (int32_t i = 0; i < engine->context_count; i++) {
+		if (engine->contexts[i] == ctx) return i;
+	}
+	return -1;
+}
+
+/* Sets a host module's exports from the object the host gave, when QuickJS links the module. */
+static int init_host_module(JSContext *ctx, JSModuleDef *module) {
+	jsh_engine *engine = JS_GetContextOpaque(ctx);
+	for (int32_t i = 0; i < engine->host_module_count; i++) {
+		if (engine->host_modules[i].module != module) continue;
+		JSValueConst exports = engine->host_modules[i].exports;
+		JSPropertyEnum *names;
+		uint32_t count;
+		if (JS_GetOwnPropertyNames(ctx, &names, &count, exports, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) < 0) return -1;
+		int status = 0;
+		for (uint32_t j = 0; j < count && status == 0; j++) {
+			JSValue value = JS_GetProperty(ctx, exports, names[j].atom);
+			const char *name = JS_AtomToCString(ctx, names[j].atom);
+			if (JS_IsException(value) || !name) {
+				JS_FreeValue(ctx, value);
+				status = -1;
+			} else if (JS_SetModuleExport(ctx, module, name, value) < 0) {
+				status = -1;
+			}
+			JS_FreeCString(ctx, name);
+		}
+		JS_FreePropertyEnum(ctx, names, count);
+		return status;
+	}
+	JS_ThrowInternalError(ctx, "the host gave no exports for a module");
+	return -1;
+}
+
+/* Makes a module whose exports are the own enumerable properties of an object the host gave. */
+static JSModuleDef *host_module(jsh_engine *engine, JSContext *ctx, const char *name, JSValue exports) {
+	JSPropertyEnum *names;
+	uint32_t count;
+	if (JS_GetOwnPropertyNames(ctx, &names, &count, exports, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) < 0) {
+		JS_FreeValue(ctx, exports);
+		return NULL;
+	}
+	JSModuleDef *module = JS_NewCModule(ctx, name, init_host_module);
+	for (uint32_t i = 0; module && i < count; i++) {
+		const char *export_name = JS_AtomToCString(ctx, names[i].atom);
+		if (!export_name || JS_AddModuleExport(ctx, module, export_name) < 0) module = NULL;
+		JS_FreeCString(ctx, export_name);
+	}
+	JS_FreePropertyEnum(ctx, names, count);
+	jsh_host_module *grown =
+		module ? realloc(engine->host_modules, sizeof(jsh_host_module) * (size_t)(engine->host_module_count + 1)) : NULL;
+	if (!grown) {
+		JS_FreeValue(ctx, exports);
+		if (module) JS_ThrowOutOfMemory(ctx);
+		return NULL;
+	}
+	engine->host_modules = grown;
+	engine->host_modules[engine->host_module_count++] = (jsh_host_module){module, exports};
+	return module;
+}
+
 static JSModuleDef *load_module(JSContext *ctx, const char *name, void *opaque) {
 	jsh_engine *engine = opaque;
 	size_t name_length = strlen(name);
@@ -634,7 +712,11 @@ static JSModuleDef *load_module(JSContext *ctx, const char *name, void *opaque) 
 		return NULL;
 	}
 	memcpy(engine->buffer, name, name_length);
-	int32_t length = engine->host(JSH_OP_LOAD_MODULE, 0, (int32_t)name_length);
+	/* The host answers in the importing context, which it is told by id. */
+	JSContext *saved = engine->ctx;
+	engine->ctx = ctx;
+	int32_t length = engine->host(JSH_OP_LOAD_MODULE, context_id(engine, ctx), (int32_t)name_length);
+	engine->ctx = saved;
 	if (length == -1) {
 		throw_host_error(engine, -1);
 		return NULL;
@@ -645,15 +727,30 @@ static JSModuleDef *load_module(JSContext *ctx, const char *name, void *opaque) 
 	}
 	engine->bytes_from_host += length;
 
+	reader in = {engine->buffer, length, 0};
+	if (length > 0 && engine->buffer[0] == JSH_TAG_HANDLE) {
+		JSValue exports;
+		if (read_value(engine, &in, &exports) < 0 || in.position != length) {
+			JS_ThrowInternalError(ctx, "the host returned a malformed module '%s'", name);
+			return NULL;
+		}
+		return host_module(engine, ctx, name, exports);
+	}
+	const char *text;
+	uint32_t text_length;
+	if (read_string(&in, &text, &text_length) < 0 || in.position != length) {
+		JS_ThrowInternalError(ctx, "the host returned a malformed module '%s'", name);
+		return NULL;
+	}
 	/* QuickJS reads one byte past the source, and compiling may load modules into the buffer. */
-	char *source = malloc((size_t)length + 1);
+	char *source = malloc((size_t)text_length + 1);
 	if (!source) {
 		JS_ThrowOutOfMemory(ctx);
 		return NULL;
 	}
-	memcpy(source, engine->buffer, (size_t)length);
-	source[length] = 0;
-	JSValue compiled = JS_Eval(ctx, source, (size_t)length, name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+	memcpy(source, text, (size_t)text_length);
+	source[text_length] = 0;
+	JSValue compiled = JS_Eval(ctx, source, (size_t)text_length, name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
 	free(source);
 	if (JS_IsException(compiled)) return NULL;
 	JSModuleDef *module = JS_VALUE_GET_PTR(compiled);
@@ -868,6 +965,31 @@ int32_t jsh_abi_version(void) {
 	return JSH_ABI_VERSION;
 }
 
+/* Makes a context that lacks what the pinned BDS lacks, and adds it to the engine. Returns its id. */
+static int32_t add_context(jsh_engine *engine) {
+	JSContext **grown = realloc(engine->contexts, sizeof(JSContext *) * (size_t)(engine->context_count + 1));
+	if (!grown) return JSH_OUT_OF_MEMORY;
+	engine->contexts = grown;
+	/* The limit applies to scripts, not to the context's own objects. */
+	JS_SetMemoryLimit(engine->rt, (size_t)-1);
+	JSContext *ctx = JS_NewContext(engine->rt);
+	if (ctx) {
+		JS_SetContextOpaque(ctx, engine);
+		JS_DisableFunctionFromString(ctx);
+		JS_DisableNewRegExpSyntax(ctx);
+		if (JS_AddLegacyMembers(ctx) < 0) {
+			JS_FreeContext(ctx);
+			ctx = NULL;
+		} else {
+			remove_absent(ctx);
+		}
+	}
+	if (engine->memory_limit > 0) JS_SetMemoryLimit(engine->rt, engine->memory_limit);
+	if (!ctx) return JSH_OUT_OF_MEMORY;
+	engine->contexts[engine->context_count] = ctx;
+	return engine->context_count++;
+}
+
 jsh_engine *jsh_engine_create(jsh_host_fn host, uint8_t *buffer, int32_t capacity, double memory_limit,
 							  double stack_size) {
 	if (!host || !buffer || capacity < 64) return NULL;
@@ -891,24 +1013,13 @@ jsh_engine *jsh_engine_create(jsh_host_fn host, uint8_t *buffer, int32_t capacit
 	JS_SetInterruptHandler(engine->rt, interrupt, engine);
 	JS_SetModuleLoaderFunc(engine->rt, NULL, load_module, engine);
 
-	engine->ctx = JS_NewContext(engine->rt);
-	if (!engine->ctx) {
+	if (add_context(engine) < 0) {
 		JS_FreeRuntime(engine->rt);
+		free(engine->contexts);
 		free(engine);
 		return NULL;
 	}
-	JS_SetContextOpaque(engine->ctx, engine);
-	JS_DisableFunctionFromString(engine->ctx);
-	JS_DisableNewRegExpSyntax(engine->ctx);
-	if (JS_AddLegacyMembers(engine->ctx) < 0) {
-		JS_FreeContext(engine->ctx);
-		JS_FreeRuntime(engine->rt);
-		free(engine);
-		return NULL;
-	}
-	remove_absent(engine->ctx);
-	/* The limit applies to scripts, not to the context's own objects. */
-	if (engine->memory_limit > 0) JS_SetMemoryLimit(engine->rt, engine->memory_limit);
+	engine->ctx = engine->contexts[0];
 	return engine;
 }
 
@@ -919,9 +1030,24 @@ void jsh_engine_destroy(jsh_engine *engine) {
 		if (engine->slots[i].used) JS_FreeValue(engine->ctx, engine->slots[i].value);
 	}
 	free(engine->slots);
-	JS_FreeContext(engine->ctx);
+	for (int32_t i = 0; i < engine->host_module_count; i++) JS_FreeValue(engine->ctx, engine->host_modules[i].exports);
+	free(engine->host_modules);
+	for (int32_t i = 0; i < engine->context_count; i++) JS_FreeContext(engine->contexts[i]);
+	free(engine->contexts);
 	JS_FreeRuntime(engine->rt);
 	free(engine);
+}
+
+int32_t jsh_context_create(jsh_engine *engine) {
+	if (!engine) return JSH_INVALID;
+	return add_context(engine);
+}
+
+int32_t jsh_context_select(jsh_engine *engine, int32_t context) {
+	if (!engine || context < 0 || context >= engine->context_count) return JSH_INVALID;
+	int32_t previous = context_id(engine, engine->ctx);
+	engine->ctx = engine->contexts[context];
+	return previous;
 }
 
 void jsh_engine_set_buffer(jsh_engine *engine, uint8_t *buffer, int32_t capacity) {
@@ -1003,13 +1129,14 @@ int32_t jsh_eval_module(jsh_engine *engine, const char *name, const uint8_t *sou
 	return result;
 }
 
-int32_t jsh_run_jobs(jsh_engine *engine) {
-	if (!engine) return JSH_INVALID;
+int32_t jsh_run_jobs(jsh_engine *engine, int32_t context) {
+	if (!engine || context >= engine->context_count) return JSH_INVALID;
+	JSContext *only = context < 0 ? NULL : engine->contexts[context];
 	enter(engine);
 	int32_t count = 0;
 	for (;;) {
 		JSContext *job_context;
-		int ran = JS_ExecutePendingJob(engine->rt, &job_context);
+		int ran = only ? JS_ExecutePendingJobOf(engine->rt, only) : JS_ExecutePendingJob(engine->rt, &job_context);
 		if (ran == 0) break;
 		if (ran < 0) {
 			count = fail(engine);

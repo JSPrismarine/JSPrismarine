@@ -10,6 +10,8 @@ export interface ScriptCall {
     readonly pack: string;
     /** The call's `this`: the instance, the class for a static member, or undefined for a module function. */
     readonly self: ScriptValue;
+    /** The tag the host gave `self` when it made the instance, or 0. See `ScriptApiContext.create`. */
+    readonly tag: number;
     /**
      * The arguments after the metadata's checks, with each omitted argument's default filled in.
      * A setter's one argument is the value. Handles last until the implementation returns.
