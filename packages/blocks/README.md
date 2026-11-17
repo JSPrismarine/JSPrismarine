@@ -307,9 +307,19 @@ captured boxes, converted into Bedrock's component coordinates. For blocks whose
 by state, the geometry table holds each non-default shape with the `query.block_state` condition
 that selects it, and the overlay emits those as permutations. The report records both fixed shapes
 and state-varying permutations. The geometry table, `src/tables/blockGeometry.json`, is checked in
-and not regenerated: it was flattened from a CloudburstMC/Data dump of Bedrock Dedicated Server
+and not regenerated. It was flattened from a CloudburstMC/Data dump of Bedrock Dedicated Server
 1.26.51, and no source this repository can run reports per-state collision boxes.
+`Entity.tryTeleport` with `checkForBlocks` sees one bounding box per block, and only inside the
+block's own cell, so a stair reads as a full cube and a fence as one block tall. Raycasts hit a
+block's outline, which is not its collision shape. A block outside the table is a full cube.
 [ADR 0019](../../docs/adr/0019-bedrock-data-comes-from-bds.md) records the decision.
+
+What a liquid does to each block, which `bedrockLiquidReactionOf` and `isWashedAway` answer, is
+generated. The `dump` pass of `dump:bedrock` asks the pinned server's Script API about water for
+every permutation of every block type, and
+`pnpm --filter @jsprismarine/blocks run generate:liquid-reactions` writes the answers to
+`src/tables/blockLiquidReactions.json`. The table holds one reaction per block type, so the
+generator stops on a block whose reaction changes with its state.
 
 Four blocks have a Java friction Mojang's component cannot hold, so `minecraft:friction` is clamped
 to 0.9 and `jsprismarine:block_properties.friction` keeps the real value: blue ice 0.989, and ice,

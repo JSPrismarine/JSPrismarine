@@ -1,16 +1,21 @@
 /**
- * What Bedrock's own block table says about a block's shape and about what a
- * liquid does to it, per palette state.
+ * What Bedrock's own block table says about a block's shape per palette state,
+ * and what a liquid does to each block.
  *
  * Neither edition publishes shapes as data a pack can carry, and the Java jar
  * publishes Java's, which the Bedrock client does not draw: a cactus is
  * 0.9375 tall in Java and a full block in Bedrock, and the client is what
- * decides where a player may stand. So this table comes from a Bedrock
+ * decides where a player may stand. So the shape table comes from a Bedrock
  * Dedicated Server's own block table, as CloudburstMC/Data dumped it for
  * 1.26.51. Nothing this repository can run reproduces that dump: the Script
- * API reports no collision shapes. The table is therefore checked in and no
- * longer regenerated; `docs/adr/0019-bedrock-data-comes-from-bds.md` records
+ * API reports no collision shapes. The shape table is therefore checked in and
+ * no longer regenerated; `docs/adr/0019-bedrock-data-comes-from-bds.md` records
  * why. A block outside it is taken to be a full cube.
+ *
+ * The liquid reactions come from the pinned server's Script API instead, in
+ * `tables/blockLiquidReactions.json`, which
+ * `pnpm --filter @jsprismarine/blocks run generate:liquid-reactions` writes
+ * from the `dump` pass of `dump:bedrock`.
  *
  * It is the column `@jsprismarine/mapping` does not have. Physics and
  * pathfinding use this capture for every palette block, and the overlay uses
@@ -19,6 +24,7 @@
  */
 import { collisionBox } from './components';
 import table from './tables/blockGeometry';
+import liquidTable from './tables/blockLiquidReactions.json';
 import type { BlockState } from './types';
 
 /** What a liquid reaching a block does, as Bedrock's `liquidReactionOnTouch` names it. */
@@ -35,7 +41,6 @@ export type LiquidReaction =
 interface GeometryRow {
     /** The collision height most of the block's states share. */
     top: number;
-    liquid: string;
     /** Whether any captured state of this block has a collision box. */
     hasCollision: boolean;
     /** Exact boxes when every state shares one shape other than a full cube. */
@@ -61,6 +66,9 @@ export interface BedrockCollisionPermutation {
 
 // The generated table is parsed JSON; the generator guarantees this shape.
 const blocks = table.blocks as unknown as Record<string, GeometryRow>;
+
+/** Each captured block type's liquid reaction, keyed by identifier. */
+const liquidReactions: Readonly<Record<string, string>> = liquidTable.blocks;
 
 /** How many palette states the capture covers, which a test pins against the palette. */
 export const BEDROCK_GEOMETRY_STATE_COUNT = table.stateCount;
@@ -162,7 +170,7 @@ export const bedrockCollisionPermutationsOf = (identifier: string): readonly Bed
  * @returns {LiquidReaction | undefined} The reaction, or undefined for a block the capture has no row for.
  */
 export const bedrockLiquidReactionOf = (identifier: string): LiquidReaction | undefined => {
-    const liquid = blocks[identifier]?.liquid;
+    const liquid = liquidReactions[identifier];
     return liquid === 'blocking' || liquid === 'popped' || liquid === 'broken' || liquid === 'none'
         ? liquid
         : undefined;
