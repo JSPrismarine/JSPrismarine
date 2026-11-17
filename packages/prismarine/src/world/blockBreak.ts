@@ -201,12 +201,13 @@ const brokenWith = (content: ServerContent, item: Item | null): HookItem | undef
 };
 
 /** The breaking player as a block hook sees one, or undefined for a break nobody made. */
-const brokenBy = (player: Breaker | undefined): HookActor | undefined => {
+const brokenBy = (player: Breaker | undefined, sourceId: number | undefined): HookActor | undefined => {
     if (player === undefined) return undefined;
 
     const position = player.getPosition();
     return {
         identifier: 'minecraft:player',
+        ...(sourceId === undefined ? {} : { entityId: String(sourceId) }),
         position: { x: position.getX(), y: position.getY(), z: position.getZ() }
     };
 };
@@ -294,7 +295,7 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
             type.state(standing.states).content.hooks.dispatch('onBreak', {
                 block: broken,
                 brokenBlock: broken,
-                brokenBy: brokenBy(player),
+                brokenBy: brokenBy(player, sourceId),
                 itemStack: brokenWith(content, held),
                 correctTool
             });

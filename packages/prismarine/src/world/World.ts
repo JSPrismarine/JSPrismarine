@@ -570,6 +570,13 @@ export interface AudienceOptions {
     exclude?: Pick<ShownActor, 'getRuntimeId'> | readonly Pick<ShownActor, 'getRuntimeId'>[];
 }
 
+/** Told of one block write: where, what stood there, and what stands there now. */
+export type BlockWriteListener = (
+    at: { readonly x: number; readonly y: number; readonly z: number },
+    previous: SystemBlock,
+    next: SystemBlock
+) => void;
+
 export class World implements Service {
     private static nextBlockWriteVersion = 0;
 
@@ -588,6 +595,8 @@ export class World implements Service {
     private readonly players: Map<number, PlayerSession> = new Map();
     private readonly chunks: Map<number, Chunk> = new Map();
     private blockWriteVersion = World.nextBlockWriteVersion++;
+    /** What {@link World.onBlockWritten} registered, told of every block write after it lands. */
+    private blockWriteListeners: Set<BlockWriteListener> | undefined;
     private playerChunkRefCounts: PlayerChunkRefCounts | undefined;
     private loadedChunksRevision = 0;
     private portalRuntimeIds: Map<number, boolean> | undefined;
@@ -1145,6 +1154,18 @@ export class World implements Service {
      */
     public lastChangeTick(): SealedTick | undefined {
         return this.getEntityStore().lastSealed();
+    }
+
+    /**
+     * Hears every block write after it lands, with the block that stood there and the one that
+     * stands there now: a player's placement, a command, a script, or a block family's own write.
+     * A write that changed nothing is not one, and an undo is not told.
+     * @returns A function that removes the listener.
+     */
+    public onBlockWritten(listener: BlockWriteListener): () => void {
+        const listeners = (this.blockWriteListeners ??= new Set());
+        listeners.add(listener);
+        return () => listeners.delete(listener);
     }
 
     /**
@@ -2966,6 +2987,11 @@ export class World implements Service {
         }
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
         const next = this.blockChanged(chunk, x, y, z, previous, previousRuntimeId, runtimeId);
+        const listeners = this.blockWriteListeners;
+        if (listeners !== undefined && listeners.size > 0) {
+            const before: SystemBlock = { name: previous.name, states: previous.properties };
+            for (const listener of listeners) listener({ x, y, z }, before, next);
+        }
 
         this.blockUpdates.scheduleAround(x, y, z, now, delay);
 

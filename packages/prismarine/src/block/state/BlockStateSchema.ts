@@ -238,4 +238,16 @@ export class BlockStateSchemas {
     }
 }
 
+/**
+ * Registers a schema for every resolved block the catalog lacks, which is every block a world
+ * pack defines, so each of its states has a runtime id and the client is told of it.
+ * @param types - The resolved blocks, by identifier.
+ */
+export const registerContentBlockSchemas = (types: ReadonlyMap<string, { readonly model: BlockStateModel }>): void => {
+    for (const [identifier, type] of types) {
+        if (BlockStateSchemas.get(identifier) === null)
+            BlockStateSchemas.register(schemaFromModel(identifier, type.model));
+    }
+};
+
 export default BlockStateSchema;

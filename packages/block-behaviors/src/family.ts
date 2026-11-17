@@ -20,6 +20,7 @@ import type {
     BlockPlayerInteractEvent,
     BlockRedstoneUpdateEvent,
     BlockStateChangeEvent,
+    BlockPlayerPlaceBeforeEvent,
     BlockStepOnEvent,
     BlockTickEvent
 } from '@jsprismarine/blocks';
@@ -63,6 +64,11 @@ export interface FamilyHandlers {
     readonly onEntity?: (event: BlockEntityEvent, world: WorldActions, context: FamilyContext) => void;
     readonly onRedstoneUpdate?: (event: BlockRedstoneUpdateEvent, world: WorldActions, context: FamilyContext) => void;
     readonly onBlockStateChange?: (event: BlockStateChangeEvent, world: WorldActions, context: FamilyContext) => void;
+    readonly beforeOnPlayerPlace?: (
+        event: BlockPlayerPlaceBeforeEvent,
+        world: WorldActions,
+        context: FamilyContext
+    ) => boolean | undefined;
 }
 
 /** One behavior family: a name in this project's namespace and its handlers. */
@@ -143,7 +149,8 @@ const bindHandlers = (handlers: FamilyHandlers, context: FamilyContext): Partial
         onEntityFallOn,
         onEntity,
         onRedstoneUpdate,
-        onBlockStateChange
+        onBlockStateChange,
+        beforeOnPlayerPlace
     } = handlers;
 
     if (onPlace !== undefined) bound.onPlace = (event) => onPlace(event, actions(event), context);
@@ -164,6 +171,9 @@ const bindHandlers = (handlers: FamilyHandlers, context: FamilyContext): Partial
     }
     if (onBlockStateChange !== undefined) {
         bound.onBlockStateChange = (event) => onBlockStateChange(event, actions(event), context);
+    }
+    if (beforeOnPlayerPlace !== undefined) {
+        bound.beforeOnPlayerPlace = (event) => beforeOnPlayerPlace(event, actions(event), context);
     }
 
     return bound;

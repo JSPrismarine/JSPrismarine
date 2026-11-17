@@ -2238,14 +2238,18 @@ export default class PlayerSession {
 
         const commandManager = this.server.getCommandManager();
         for (const command of commandManager.getVanillaCommandList()) {
-            const permission = commandPermissionOf(command.name);
-            if (!this.server.getPermissionManager().can(this).execute(permission)) continue;
+            const own = this.isOp() ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY;
+            if (commandManager.isScriptCommand(command.name)) {
+                // A script's command has no permission node: its level alone decides, as on BDS.
+                if (command.permissionLevel > own) continue;
+            } else if (!this.server.getPermissionManager().can(this).execute(commandPermissionOf(command.name))) {
+                continue;
+            }
 
             // The level the command declares, capped at the player's own: a
             // client hides a command whose level is above its own even though
             // the server would run it, which is what a player granted one
             // operator command by name would otherwise see.
-            const own = this.isOp() ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY;
             pk.commandData.push(commandDataOf(command, Math.min(command.permissionLevel, own)));
         }
 

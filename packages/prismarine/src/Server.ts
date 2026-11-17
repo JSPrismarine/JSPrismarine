@@ -6,6 +6,7 @@ import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
 import Console from './Console';
 import { ConsoleSender } from './command/ConsoleSender';
+import { registerContentBlockSchemas } from './block/state/BlockStateSchema';
 import SessionManager from './SessionManager';
 import { ShutdownLifecycle } from './ShutdownLifecycle';
 import type BanManager from './ban/BanManager';
@@ -494,6 +495,9 @@ export default class Server {
                 cause: error
             });
         }
+
+        // A world pack's own blocks need a state schema, or none of their states has a runtime id.
+        registerContentBlockSchemas(this.content.blocks.types);
 
         const errors = this.content.diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length;
         this.logger.info(
