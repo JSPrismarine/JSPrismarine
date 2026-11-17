@@ -125,4 +125,28 @@ describe('LevelScriptWorld', () => {
         expect(world.players()).toEqual(['1', '2']);
         expect(received).toEqual(['1 hello', '2 hello']);
     });
+
+    it("sends a script's form to the player it names, and hands back the answers once", () => {
+        const sent: string[] = [];
+        const { world } = scriptWorld({
+            players: () => [
+                {
+                    id: '1',
+                    sendMessage: () => {},
+                    showForm: (formId, json) => sent.push(`1 form ${formId} ${json}`),
+                    closeForms: () => sent.push('1 closed')
+                },
+                { id: '2', sendMessage: () => {} }
+            ]
+        });
+
+        world.forms.show('1', 3, '{}\n');
+        world.forms.show('2', 4, '{}\n');
+        world.forms.closeAll('1');
+        world.answerForm({ player: '1', formId: 3, response: '0', cancelReason: null });
+
+        expect(sent).toEqual(['1 form 3 {}\n', '1 closed']);
+        expect(world.forms.takeResponses()).toEqual([{ player: '1', formId: 3, response: '0', cancelReason: null }]);
+        expect(world.forms.takeResponses()).toEqual([]);
+    });
 });

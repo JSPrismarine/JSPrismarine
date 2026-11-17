@@ -8,6 +8,7 @@
  * needs more names it here, so the list stays the one record of what handlers depend on.
  */
 import type { Logger } from '@jsprismarine/logger';
+import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
 import type { ChatManager } from '../../chat/ChatManager';
 import type { CommandManager } from '../../command/CommandManager';
 import type { ConsoleSender } from '../../command/ConsoleSender';
@@ -92,6 +93,17 @@ export interface HandlerServices {
      * at once, and the config file is written off the tick.
      */
     readonly defaults: Pick<Config, 'setGamemode'>;
+    /** Where a client's answer to a behavior pack script's form goes. */
+    readonly scriptForms: ScriptFormInbox;
+}
+
+/** The behavior pack scripts' side of a form a client answers. */
+export interface ScriptFormInbox {
+    /**
+     * Hands the scripts an answer, which their next flush settles the form with.
+     * @returns Whether any scripts run to take it.
+     */
+    answerForm(response: ScriptFormResponse): boolean;
 }
 
 /** The hooks of the input step that applies an input. */

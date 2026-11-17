@@ -1,38 +1,53 @@
 import { describe, expect, it } from 'vitest';
 
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { Logger } from '@jsprismarine/logger';
-import { sessionContext } from '../../testing/handlerContext.test.helper';
+import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
+import ModalFormResponsePacket, { ModalFormCancelReason } from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
+import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ModalFormResponsePacket, { ModalFormCancelReason } from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
-import ModalFormResponseHandler from './ModalFormResponseHandler';
+import ModalFormResponseHandler, { MALFORMED_FORM_RESPONSE } from './ModalFormResponseHandler';
 
-const fakeSession = () => {
+/** A session whose answers go to scripts that take them, or to none when `scripts` is false. */
+const fakeSession = (scripts = true) => {
     const debug: string[] = [];
-    const warn: string[] = [];
-    const log = stub<Logger>({
-        debug: (...message) => void debug.push(message[0] ?? ''),
-        warn: (...message) => void warn.push(message[0] ?? '')
+    const answers: ScriptFormResponse[] = [];
+    const kicks: string[] = [];
+    const log = stub<Logger>({ debug: (...message) => void debug.push(message[0] ?? '') });
+    const session = stub<PlayerSession>({
+        identity: STEVE,
+        getRuntimeId: () => 7n,
+        kick: async (reason = '', code) => void kicks.push(`${code} ${reason}`)
     });
-    const session = stub<PlayerSession>({ identity: STEVE });
-
-    return { debug, warn, context: sessionContext(session, { log }) };
+    const { context } = inputContext(session, {
+        log,
+        services: {
+            scriptForms: {
+                answerForm: (response) => {
+                    answers.push(response);
+                    return scripts;
+                }
+            }
+        }
+    });
+    return { debug, answers, kicks, context };
 };
 
 describe('ModalFormResponseHandler', () => {
-    it('logs the JSON of a submitted form', () => {
-        const { debug, warn, context } = fakeSession();
-        const packet = Object.assign(new ModalFormResponsePacket(), { formId: 4, jsonResponse: 'true' });
+    it("hands a submitted form's JSON to the scripts under the player's script id", () => {
+        const { answers, debug, context } = fakeSession();
+        const packet = Object.assign(new ModalFormResponsePacket(), { formId: 4, jsonResponse: '[true]' });
 
         new ModalFormResponseHandler().handle(packet, context);
 
-        expect(debug).toEqual(['Steve submitted true form 4, which the server never sent']);
-        expect(warn).toEqual([]);
+        expect(answers).toEqual([{ player: '7', formId: 4, response: '[true]', cancelReason: null }]);
+        expect(debug).toEqual([]);
     });
 
-    it('logs the reason of a dismissed form', () => {
-        const { debug, context } = fakeSession();
+    it('hands a dismissed form to the scripts with its reason', () => {
+        const { answers, context } = fakeSession();
         const packet = Object.assign(new ModalFormResponsePacket(), {
             formId: 4,
             formCancelReason: ModalFormCancelReason.UserBusy
@@ -40,35 +55,24 @@ describe('ModalFormResponseHandler', () => {
 
         new ModalFormResponseHandler().handle(packet, context);
 
-        expect(debug).toEqual(['Steve dismissed (UserBusy) form 4, which the server never sent']);
+        expect(answers).toEqual([{ player: '7', formId: 4, response: null, cancelReason: 1 }]);
     });
 
-    it('falls back to the raw number for a cancel reason it does not know', () => {
-        const { debug, context } = fakeSession();
+    it('logs an answer when no scripts run', () => {
+        const { debug, context } = fakeSession(false);
         const packet = Object.assign(new ModalFormResponsePacket(), { formId: 4, formCancelReason: 9 });
 
         new ModalFormResponseHandler().handle(packet, context);
 
-        expect(debug).toEqual(['Steve dismissed (9) form 4, which the server never sent']);
+        expect(debug).toEqual(['Steve dismissed (9) form 4, which no script sent']);
     });
 
-    it('warns and drops a response whose text is not JSON', () => {
-        const { debug, warn, context } = fakeSession();
-        const packet = Object.assign(new ModalFormResponsePacket(), { formId: 4, jsonResponse: '{not json' });
+    it('disconnects a client whose answer is not JSON, as BDS does, and hands the scripts nothing', () => {
+        const { answers, kicks, context } = fakeSession();
+        const packet = Object.assign(new ModalFormResponsePacket(), { formId: 4, jsonResponse: '[1' });
 
         expect(() => new ModalFormResponseHandler().handle(packet, context)).not.toThrow();
-        expect(warn).toEqual(['Steve answered form 4 with text that is not JSON, dropped']);
-        expect(debug).toEqual([]);
-    });
-
-    it('logs a response that carries neither JSON nor a reason', () => {
-        const { debug, context } = fakeSession();
-        const packet = Object.assign(new ModalFormResponsePacket(), { formId: 4 });
-
-        new ModalFormResponseHandler().handle(packet, context);
-
-        expect(debug).toEqual([
-            'Steve answered with neither a response nor a reason form 4, which the server never sent'
-        ]);
+        expect(kicks).toEqual([`${DisconnectReason.BAD_PACKET} ${MALFORMED_FORM_RESPONSE}`]);
+        expect(answers).toEqual([]);
     });
 });

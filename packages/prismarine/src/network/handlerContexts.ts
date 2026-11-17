@@ -30,6 +30,7 @@ export type ContextSource = Pick<
     | 'getWorldMessages'
     | 'getConsoleSender'
     | 'getKernel'
+    | 'getScripts'
 >;
 
 /**
@@ -81,6 +82,13 @@ const servicesOf = (server: ContextSource): HandlerServices => ({
     },
     get events() {
         return server.getKernel().events;
+    },
+    scriptForms: {
+        answerForm: (response) => {
+            const scripts = server.getScripts();
+            scripts?.answerForm(response);
+            return scripts !== undefined;
+        }
     },
     defaults: {
         setGamemode: (gamemode, commit) => server.getConfig().setGamemode(gamemode, commit)
