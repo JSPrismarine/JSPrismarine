@@ -1,0 +1,137 @@
+{
+    "$comment": [
+        "What the scripts of scenario `forms-v1` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.ui",
+    "scenario": "forms-v1",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "v1",
+            "seq": 1,
+            "tick": 0,
+            "event": "ready for the client"
+        },
+        {
+            "pack": "v1",
+            "seq": 2,
+            "tick": 0,
+            "event": "client joined"
+        },
+        {
+            "pack": "v1",
+            "seq": 3,
+            "tick": 0,
+            "event": "v1 modal",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "formValues": [
+                    "typed",
+                    0,
+                    6,
+                    1.5,
+                    false
+                ]
+            }
+        },
+        {
+            "pack": "v1",
+            "seq": 4,
+            "tick": 0,
+            "event": "v1 action",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "selection": 0
+            }
+        },
+        {
+            "pack": "v1",
+            "seq": 5,
+            "tick": 0,
+            "event": "v1 message",
+            "value": {
+                "kind": "MessageFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "selection": 0
+            }
+        },
+        {
+            "pack": "v1",
+            "seq": 6,
+            "tick": 0,
+            "event": "v1 message true",
+            "value": {
+                "kind": "MessageFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "selection": 1
+            }
+        },
+        {
+            "pack": "v1",
+            "seq": 7,
+            "tick": 0,
+            "event": "v1 modal defaults",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserBusy",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "v1",
+            "seq": 8,
+            "tick": 0,
+            "event": "v1 modal nulls",
+            "value": {
+                "error": "FormRejectError: Response from the client was malformed.",
+                "isFormRejectError": true,
+                "reason": "MalformedResponse"
+            }
+        }
+    ],
+    "client": [
+        {
+            "packet": "ModalFormRequest",
+            "formId": 1,
+            "json": "{\"content\":[{\"default\":\"Steve\",\"placeholder\":\"placeholder\",\"text\":\"Name\",\"type\":\"input\"},{\"default\":1,\"options\":[\"a\",{\"rawtext\":[{\"translate\":\"gui.ok\"}]}],\"text\":\"Pick\",\"type\":\"dropdown\"},{\"default\":4,\"max\":10.0,\"min\":0.0,\"step\":2.0,\"text\":\"Amount\",\"timeout\":100.0,\"type\":\"slider\"},{\"default\":1,\"max\":2.50,\"min\":0.50,\"step\":0.250,\"text\":\"Fractional\",\"timeout\":100.0,\"type\":\"slider\"},{\"default\":true,\"text\":\"On\",\"type\":\"toggle\"}],\"icon\":null,\"submit\":\"Send\",\"title\":\"Modal\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 2,
+            "json": "{\"content\":\"Body\",\"elements\":[{\"image\":{\"data\":\"textures/items/apple\",\"type\":\"path\"},\"text\":\"Icon\",\"type\":\"button\"},{\"image\":null,\"text\":\"Plain\",\"type\":\"button\"}],\"title\":\"Action\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 3,
+            "json": "{\"button1\":\"No\",\"button2\":\"Yes\",\"content\":\"Body\",\"title\":\"Message\",\"type\":\"modal\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 4,
+            "json": "{\"button1\":\"No\",\"button2\":\"Yes\",\"content\":\"\",\"title\":\"Message\",\"type\":\"modal\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 5,
+            "json": "{\"content\":[{\"placeholder\":\"p\",\"text\":\"l\",\"type\":\"input\"},{\"max\":1.0,\"min\":0.0,\"step\":0.1000000014901161,\"text\":\"s\",\"timeout\":100.0,\"type\":\"slider\"},{\"options\":[\"x\"],\"text\":\"d\",\"type\":\"dropdown\"},{\"text\":\"t\",\"type\":\"toggle\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 6,
+            "json": "{\"content\":[{\"text\":\"t\",\"type\":\"toggle\"},{\"placeholder\":\"p\",\"text\":\"l\",\"type\":\"input\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        }
+    ]
+}

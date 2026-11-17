@@ -141,6 +141,8 @@ export const FAMILIES = {
     scriptingEvents: 'scripting.events',
     /** The JavaScript engine a script sees: its globals, its language level and its error messages. */
     scriptingEngine: 'scripting.engine',
+    /** `@minecraft/server-ui` forms: the form JSON a client receives and the responses a script reads. */
+    scriptingUi: 'scripting.ui',
 
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',

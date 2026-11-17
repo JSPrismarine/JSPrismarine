@@ -49,6 +49,8 @@ import {
     scenarioPackDirectory
 } from '../src/scripting/scenarios.ts';
 import type { ScriptScenario } from '../src/scripting/scenarios.ts';
+import type { JoinedScenarioClient } from './scenarioClient.ts';
+import { joinScenarioClient } from './scenarioClient.ts';
 
 /** How long each stage may take on a native run. The launcher stretches them for emulation. */
 const NATIVE_TIMEOUTS = {
@@ -150,16 +152,25 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
     if (config !== undefined) await cp(config, join(staged.root, 'config'), { recursive: true });
 
     const server = startServer({
-        ...launcher.launch(staged.root),
+        // Only a scenario with a client needs the server's ports published.
+        ...launcher.launch(staged.root, { clientConnects: scenario.client !== undefined }),
         cwd: staged.root,
         onLine: (line) => console.log(`  ${line}`)
     });
+    let client: JoinedScenarioClient | undefined;
     try {
         await server.waitForLine(
             (line) => line.includes(READY_LINE),
             'the ready line',
             NATIVE_TIMEOUTS.boot * launcher.timeoutScale
         );
+        if (scenario.client !== undefined) {
+            client = await joinScenarioClient(scenario.client, {
+                port: Number(SCENARIO_PROPERTIES['server-port']),
+                network: staged.transport,
+                protocolVersion
+            });
+        }
         if (scenario.reloadAfter !== undefined) {
             await server.waitForLine(
                 (line) => line.includes(`"event":${JSON.stringify(scenario.reloadAfter)}`),
@@ -191,9 +202,11 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
                 from = server.lines.findIndex((line, index) => index >= from && line.includes(endLine)) + 1;
             }
         }
+        client?.leave();
         const status = await server.stop(NATIVE_TIMEOUTS.stop * launcher.timeoutScale);
         if (status !== 0) console.warn(`The server exited with status ${status}.`);
     } finally {
+        client?.leave();
         // A failed wait leaves the server running, and holding the ports the next capture needs.
         // stop() returns at once when the server has already exited.
         await server.stop(NATIVE_TIMEOUTS.stop * launcher.timeoutScale);
@@ -210,7 +223,8 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         );
     }
 
-    const record = readScenarioRecord(server.lines, loadedPacks(scenario), scenario.runs);
+    const read = readScenarioRecord(server.lines, loadedPacks(scenario), scenario.runs);
+    const record = client === undefined ? read : { ...read, client: client.observations() };
     checkReloadLanded(scenario, record);
     return {
         $comment: [

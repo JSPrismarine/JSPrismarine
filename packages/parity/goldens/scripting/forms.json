@@ -1,0 +1,316 @@
+{
+    "$comment": [
+        "What the scripts of scenario `forms` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.ui",
+    "scenario": "forms",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "ui",
+            "seq": 1,
+            "tick": 0,
+            "event": "ready for the client"
+        },
+        {
+            "pack": "ui",
+            "seq": 2,
+            "tick": 0,
+            "event": "client joined"
+        },
+        {
+            "pack": "ui",
+            "seq": 3,
+            "tick": 0,
+            "event": "action",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "selection": 2
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 4,
+            "tick": 0,
+            "event": "action closed",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 5,
+            "tick": 0,
+            "event": "modal",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "formValues": [
+                    "<undefined>",
+                    "<undefined>",
+                    "<undefined>",
+                    "typed",
+                    1,
+                    6,
+                    false
+                ]
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 6,
+            "tick": 0,
+            "event": "modal busy",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserBusy",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 7,
+            "tick": 0,
+            "event": "modal defaults",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "formValues": [
+                    "",
+                    0,
+                    1.5,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 8,
+            "tick": 0,
+            "event": "message yes",
+            "value": {
+                "kind": "MessageFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "selection": 0
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 9,
+            "tick": 0,
+            "event": "message no",
+            "value": {
+                "kind": "MessageFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "selection": 1
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 10,
+            "tick": 0,
+            "event": "message closed",
+            "value": {
+                "kind": "MessageFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 11,
+            "tick": 0,
+            "event": "action out of range",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "selection": 5
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 12,
+            "tick": 0,
+            "event": "modal not an array",
+            "value": {
+                "error": "FormRejectError: Response from the client was malformed.",
+                "isFormRejectError": true,
+                "reason": "MalformedResponse"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 13,
+            "tick": 0,
+            "event": "modal wrong types",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": false,
+                "cancelationReason": "<undefined>",
+                "formValues": [
+                    true,
+                    "x"
+                ]
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 14,
+            "tick": 0,
+            "event": "action empty",
+            "value": {
+                "error": "FormRejectError: Response from the client was malformed.",
+                "isFormRejectError": true,
+                "reason": "MalformedResponse"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 15,
+            "tick": 0,
+            "event": "uiManager.closeAllForms",
+            "value": "<undefined>"
+        },
+        {
+            "pack": "ui",
+            "seq": 16,
+            "tick": 0,
+            "event": "close all forms",
+            "value": "pending"
+        },
+        {
+            "pack": "ui",
+            "seq": 17,
+            "tick": 0,
+            "event": "player leaves",
+            "value": {
+                "error": "FormRejectError: Player quit before responding.",
+                "isFormRejectError": true,
+                "reason": "PlayerQuit"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 18,
+            "tick": 0,
+            "event": "close all forms settled late",
+            "value": {
+                "error": "FormRejectError: Player quit before responding.",
+                "isFormRejectError": true,
+                "reason": "PlayerQuit"
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 19,
+            "tick": 0,
+            "event": "show after leaving",
+            "value": {
+                "error": "InvalidEntityError: Failed to call function 'show' due to Entity being invalid (has the Entity been removed?).",
+                "isFormRejectError": false,
+                "reason": "<undefined>",
+                "thrown": true
+            }
+        },
+        {
+            "pack": "ui",
+            "seq": 20,
+            "tick": 0,
+            "event": "uiManager.closeAllForms after leaving",
+            "error": "Error: Invalid Player handle."
+        }
+    ],
+    "client": [
+        {
+            "packet": "ModalFormRequest",
+            "formId": 1,
+            "json": "{\"content\":\"Body with \\\"quotes\\\", a slash / and é ✓\\nand a newline\",\"elements\":[{\"image\":null,\"text\":\"Plain\",\"type\":\"button\"},{\"image\":{\"data\":\"textures/items/apple\",\"type\":\"path\"},\"text\":\"With icon\",\"type\":\"button\"},{\"text\":\"A header\",\"type\":\"header\"},{\"text\":\"A label\",\"type\":\"label\"},{\"text\":\"\",\"type\":\"divider\"},{\"image\":{\"data\":\"https://example.com/icon.png\",\"type\":\"path\"},\"text\":{\"rawtext\":[{\"translate\":\"gui.ok\"}]},\"type\":\"button\"}],\"title\":\"Action title\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 2,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":\"Only\",\"type\":\"button\"}],\"title\":{\"rawtext\":[{\"text\":\"Raw \"},{\"translate\":\"gui.cancel\",\"with\":{\"rawtext\":[{\"text\":\"x\"}]}}]},\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 3,
+            "json": "{\"content\":[{\"text\":\"A header\",\"type\":\"header\"},{\"text\":{\"rawtext\":[{\"translate\":\"gui.ok\"}]},\"type\":\"label\"},{\"text\":\"\",\"type\":\"divider\"},{\"default\":\"Steve\",\"placeholder\":\"placeholder\",\"text\":\"Name\",\"tooltip\":\"Your name\",\"type\":\"input\"},{\"default\":2,\"options\":[\"a\",{\"rawtext\":[{\"translate\":\"gui.ok\"}]},\"c\"],\"text\":\"Pick\",\"tooltip\":\"One of three\",\"type\":\"dropdown\"},{\"default\":4,\"max\":10.0,\"min\":0.0,\"step\":2.0,\"text\":\"Amount\",\"timeout\":100.0,\"tooltip\":\"Even only\",\"type\":\"slider\"},{\"default\":true,\"text\":\"On\",\"tooltip\":\"Flip it\",\"type\":\"toggle\"}],\"icon\":null,\"submit\":\"Send\",\"title\":\"Modal\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 4,
+            "json": "{\"content\":[{\"text\":\"x\",\"type\":\"toggle\"}],\"icon\":null,\"title\":\"Busy\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 5,
+            "json": "{\"content\":[{\"placeholder\":\"P\",\"text\":\"L\",\"type\":\"input\"},{\"options\":[\"x\"],\"text\":\"D\",\"type\":\"dropdown\"},{\"max\":3.250,\"min\":0.50,\"step\":1.0,\"text\":\"S\",\"timeout\":100.0,\"type\":\"slider\"},{\"text\":\"T\",\"type\":\"toggle\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 6,
+            "json": "{\"button1\":\"Yes\",\"button2\":\"No\",\"content\":\"Pick one\",\"title\":\"Message\",\"type\":\"modal\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 7,
+            "json": "{\"button1\":\"Yes\",\"button2\":\"No\",\"content\":\"Pick one\",\"title\":\"Message\",\"type\":\"modal\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 8,
+            "json": "{\"button1\":\"Yes\",\"button2\":\"No\",\"content\":\"\",\"title\":\"Message\",\"type\":\"modal\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 9,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":\"a\",\"type\":\"button\"},{\"image\":null,\"text\":\"b\",\"type\":\"button\"}],\"title\":\"Two\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 10,
+            "json": "{\"content\":[{\"text\":\"x\",\"type\":\"toggle\"}],\"icon\":null,\"title\":\"Bad\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 11,
+            "json": "{\"content\":[{\"placeholder\":\"p\",\"text\":\"t\",\"type\":\"input\"},{\"text\":\"x\",\"type\":\"toggle\"}],\"icon\":null,\"title\":\"Bad\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 12,
+            "json": "{\"content\":\"\",\"elements\":null,\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 13,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":\"x\",\"type\":\"button\"}],\"title\":\"Closed by the server\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ClientboundCloseForm"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 14,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":\"x\",\"type\":\"button\"}],\"title\":\"Goodbye\",\"type\":\"form\"}\n"
+        }
+    ]
+}
