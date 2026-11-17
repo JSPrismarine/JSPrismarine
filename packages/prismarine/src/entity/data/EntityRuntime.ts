@@ -120,7 +120,7 @@ import { dropOfRolledStack } from '../../item/lootStack';
 import { itemOfDrop } from '../../inventory/persistence';
 import { breedableOf, canBreed, offspringIdentifierOf, offspringOf, pregnancyOf, spendLove } from './breeding';
 import { assembleChickenJockey, CHICKEN, CHICKEN_JOCKEY_RIDERS, CHICKEN_SEARCH } from './chickenJockey';
-import { DataEntity, MobBody, SHOWN_CONDITIONS, distance } from './DataEntity';
+import { DataEntity, MobBody, SHOWN_CONDITIONS, distance, squaredDistance } from './DataEntity';
 import { EntityIndex } from './entityIndex';
 import { detonate } from './explosion';
 import { updateControlFlags } from './riderControl';
@@ -314,6 +314,9 @@ const FULL_SKY_LIGHT = 15;
 
 /** Java's block tag `NaturalSpawner.isValidEmptySpawnBlock` refuses a spawn inside. */
 const PREVENT_MOB_SPAWNING_INSIDE = 'minecraft:prevent_mob_spawning_inside';
+
+/** How far from a bell's center a living entity hears it ring, `BellBlockEntity`'s `closerToCenterThan(32)`. */
+const BELL_HEARING_RANGE = 32;
 import type { GameEventListener } from '../../world/GameEventListenerRegistry';
 import { VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from '../Environment';
 import { cushions } from '../playerFall';
@@ -1199,6 +1202,22 @@ export class EntityRuntime implements EntityScene {
      */
     public near(center: EntityPosition, radius: number, families?: readonly string[]): readonly DataEntity[] {
         return this.index.within(center, radius, families);
+    }
+
+    /**
+     * Java's `BellBlockEntity.updateEntities` for a bell that just rang: every living entity
+     * within 32 blocks of the bell's center hears it, which writes the game time into a brain's
+     * `HEARD_BELL_TIME` and sends a villager to hide.
+     * @param at - The bell's block position.
+     */
+    public ringBell(at: EntityPosition): void {
+        const center = { x: Math.floor(at.x) + 0.5, y: Math.floor(at.y) + 0.5, z: Math.floor(at.z) + 0.5 };
+        const time = this.world.level.gameTime();
+        for (const entity of this.near(center, BELL_HEARING_RANGE)) {
+            if (entity.removed !== undefined || squaredDistance(entity.position, center) >= BELL_HEARING_RANGE ** 2)
+                continue;
+            entity.brain?.setMemory(MemoryModuleTypes.HEARD_BELL_TIME, time);
+        }
     }
 
     /** Every live entity whose collision box intersects the given AABB, in ascending runtime id order. */

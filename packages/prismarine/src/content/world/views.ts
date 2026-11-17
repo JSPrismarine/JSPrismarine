@@ -238,6 +238,7 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
                 position: entity.position
             })),
         playSound: (position, sound) => adapter.effects.playSound(position, sound),
+        ringBell: (position) => adapter.entities.ringBell?.(position),
         spawnParticle: (position, particle) => adapter.effects.spawnParticle(position, particle),
         // The block hook carries no tick type, so the tick is scheduled for whatever stands
         // at the position now, which is what Java's `Block.scheduleTick` does too.

@@ -42,6 +42,8 @@ export interface WorldEntityAccessOptions {
      * refused this spawn.
      */
     readonly spawnDataDriven?: (identifier: string, at: ContentPosition, data?: BlockEntityData) => number | undefined;
+    /** Tells the live runtime's entities around a bell that it rang. */
+    readonly ringBell?: (at: ContentPosition) => void;
 }
 
 /**
@@ -208,6 +210,7 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
         countOfType: (identifier, at, radius) =>
             actorsWithin(live(), at.x, at.z, radius).filter(
                 (entity) => entity.getType() === identifier && distanceSquared(entity, at) <= radius * radius
-            ).length
+            ).length,
+        ringBell: (at) => options.ringBell?.(at)
     };
 };

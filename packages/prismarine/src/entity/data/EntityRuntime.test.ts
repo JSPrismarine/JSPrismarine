@@ -2279,6 +2279,20 @@ describe('EntityRuntime', () => {
             expect(villager.body.pitch).toBeLessThan(5);
         });
 
+        it('tells a villager within 32 blocks of a rung bell that it heard it, and not one farther off', () => {
+            const world = new TestEntityWorld({ gameTime: 500 });
+            const { runtime } = entityFixture(world);
+            const near = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 20.5 });
+            const far = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 40.5 });
+            if (near?.brain === undefined || far?.brain === undefined)
+                throw new Error('the fixture villager has no brain');
+
+            runtime.ringBell({ x: 0, y: GROUND.y, z: 0 });
+
+            expect(near.brain.getMemory(MemoryModuleTypes.HEARD_BELL_TIME)).toBe(500);
+            expect(far.brain.getMemory(MemoryModuleTypes.HEARD_BELL_TIME)).toBeUndefined();
+        });
+
         it('aims a launched projectile along its velocity from its own eye position', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

@@ -249,6 +249,8 @@ export interface WorldActions {
     moveEntity?(entity: number, by: BlockPosition): void;
     /** Plays a sound event, such as `block.door.open`. */
     playSound(position: BlockPosition, sound: string): void;
+    /** Tells the living entities around a bell that it rang, Java's `BellBlockEntity.onHit`. */
+    ringBell?(position: BlockPosition): void;
     /** Emits a particle effect, such as `minecraft:crop_growth_emitter`. */
     spawnParticle(position: BlockPosition, particle: string): void;
     /**

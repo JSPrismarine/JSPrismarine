@@ -487,7 +487,9 @@ const onRedstone = (event: { block: HookBlock; power: number }, world: WorldActi
             world.spawnEntity(block.position, 'minecraft:tnt', { fuse: TNT_FUSE_TICKS });
             return;
         case 'bell':
-            if (powered) world.playSound(block.position, 'block.bell.hit');
+            if (!powered) return;
+            world.playSound(block.position, 'block.bell.hit');
+            world.ringBell?.(block.position);
             return;
         case 'lightning_rod':
             if (stateBoolean(block, 'powered_bit') !== powered) setStates(world, block, { powered_bit: powered });
@@ -664,6 +666,11 @@ export const redstoneFamily = defineFamily(
         onPlayerInteract: (event, world) => {
             const block = event.block;
             switch (bareName(block.identifier)) {
+                // Java's `BellBlock.useWithoutItem` rings a bell a player strikes, as power does.
+                case 'bell':
+                    world.playSound(block.position, 'block.bell.hit');
+                    world.ringBell?.(block.position);
+                    return true;
                 case 'tnt': {
                     if (!isIgniter(event.itemStack)) return undefined;
                     world.setBlock(block.position, AIR);

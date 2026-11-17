@@ -159,7 +159,8 @@ const adapterFor = (
             if (live === undefined || !content().entities.registry.has(reference)) return undefined;
 
             return live.runtime.spawn(identifier, at, data === undefined ? {} : { data })?.id ?? 0;
-        }
+        },
+        ringBell: (at) => options.entityRuntimes?.at(dimension, levelName)?.runtime.ringBell(at)
     });
     const effects = worldEffectSink(world, dimension);
     const blocks = { ...worldBlocks, ...blockGroup };

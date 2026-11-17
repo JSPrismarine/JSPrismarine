@@ -88,7 +88,8 @@ const entityAccessOf = (runtime: EntityRuntime): ContentEntityAccess => ({
     remove: (id) => runtime.remove(id, 'removed'),
     move: (id, by) => runtime.carry(id, by),
     drop: (at, item) => runtime.host.drop(at, item),
-    countOfType: (identifier, at, radius) => runtime.countOfType(identifier, at, radius)
+    countOfType: (identifier, at, radius) => runtime.countOfType(identifier, at, radius),
+    ringBell: (at) => runtime.ringBell(at)
 });
 
 /** `ContentSpawnAccess`: the facts a spawn rule asks for that nothing else does. */

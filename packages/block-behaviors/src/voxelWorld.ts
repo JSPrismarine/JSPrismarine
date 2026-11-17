@@ -76,6 +76,8 @@ export class VoxelDimension implements WorldActions {
     public readonly drops: RecordedDrop[] = [];
     /** Every sound played, in order. */
     public readonly sounds: RecordedEffect[] = [];
+    /** Every bell rung, in order. */
+    public readonly bells: BlockPosition[] = [];
     /** Every particle emitted, in order. */
     public readonly particles: RecordedEffect[] = [];
     /** Every tick requested, in order. */
@@ -304,6 +306,12 @@ export class VoxelDimension implements WorldActions {
     }
 
     /** Records a sound. */
+    /** Records a bell that rang. */
+    public ringBell(position: BlockPosition): void {
+        this.bells.push(position);
+    }
+
+    /** Records a sound played at a position. */
     public playSound(position: BlockPosition, sound: string): void {
         this.sounds.push({ position, name: sound });
     }

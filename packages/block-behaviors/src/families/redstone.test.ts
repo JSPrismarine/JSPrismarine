@@ -41,6 +41,21 @@ describe('redstoneFamily: tnt', () => {
     });
 });
 
+describe('redstoneFamily: the bell', () => {
+    it('rings for the entities around it when a player strikes it and when power reaches it', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:bell');
+        harness.dimension.set(origin, 'minecraft:bell');
+
+        expect(harness.interact(origin)).toBe(true);
+        expect(harness.dimension.bells).toEqual([origin]);
+
+        harness.redstone(origin, 15);
+        expect(harness.dimension.bells).toEqual([origin, origin]);
+        harness.redstone(origin, 0);
+        expect(harness.dimension.bells).toHaveLength(2);
+    });
+});
+
 describe('redstoneFamily: pistons', () => {
     it('pushes the run in front and puts its head down', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:piston');

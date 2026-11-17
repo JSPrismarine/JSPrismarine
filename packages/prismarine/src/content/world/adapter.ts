@@ -206,6 +206,8 @@ export interface ContentEntityAccess {
     drop(at: ContentPosition, item: ContentItemDrop): void;
     /** How many entities of one type stand within a radius of a position. */
     countOfType(identifier: string, at: ContentPosition, radius: number): number;
+    /** Tells the entities around a bell that it rang, which sends villagers to hide. */
+    ringBell?(at: ContentPosition): void;
 }
 
 /** Plays the things a content package emits but never reads back. */
