@@ -31,6 +31,12 @@ export interface JspServer {
     stop: () => Promise<void>;
 }
 
+/**
+ * What the client e2e script pack says to every player when the weather changes, followed by the
+ * new weather's `WeatherType`, such as `Rain`.
+ */
+export const SCRIPT_WEATHER_MESSAGE = 'client-e2e script: the weather is now ';
+
 /** Ports reserved by servers this process is starting or running. */
 const reservedUdpPorts = new Set<number>();
 
@@ -408,6 +414,48 @@ export const startServer = async (
         );
     }
 
+    // A behavior pack script, for the scenarios that check what a script does reaches the client.
+    const scriptPack = path.join(dir, 'client-e2e-script-pack');
+    fs.mkdirSync(path.join(scriptPack, 'scripts'), { recursive: true });
+    fs.writeFileSync(
+        path.join(scriptPack, 'manifest.json'),
+        JSON.stringify(
+            {
+                format_version: 2,
+                header: {
+                    name: 'Client e2e scripts',
+                    description: 'Scripts used by client e2e scenarios',
+                    uuid: 'c3de07fa-bc74-4c08-bdd1-330b9fdc5200',
+                    version: [1, 0, 0],
+                    min_engine_version: [1, 21, 0]
+                },
+                modules: [
+                    {
+                        type: 'script',
+                        language: 'javascript',
+                        uuid: 'c3de07fa-bc74-4c08-bdd1-330b9fdc5201',
+                        version: [1, 0, 0],
+                        entry: 'scripts/main.js'
+                    }
+                ],
+                dependencies: [{ module_name: '@minecraft/server', version: '2.0.0' }]
+            },
+            null,
+            4
+        )
+    );
+    fs.writeFileSync(
+        path.join(scriptPack, 'scripts', 'main.js'),
+        [
+            "import { world } from '@minecraft/server';",
+            '',
+            'world.afterEvents.weatherChange.subscribe((event) => {',
+            `    world.sendMessage(\`${SCRIPT_WEATHER_MESSAGE}\${event.newWeather}\`);`,
+            '});',
+            ''
+        ].join('\n')
+    );
+
     const flatGenerator = (block: string) => ({
         type: 'minecraft:flat',
         settings: {
@@ -473,7 +521,7 @@ export const startServer = async (
             },
             ...(options.secondLevel === true ? { [SECOND_LEVEL]: { seed: '2', preset: 'minecraft:flat' } } : {})
         },
-        'content-world-packs': [behaviorPack],
+        'content-world-packs': [behaviorPack, scriptPack],
         'content-datapacks': [datapack],
         // `JSP_E2E_CHUNK_HOST=process` runs chunk generation in the generation host process.
         'chunk-host': process.env.JSP_E2E_CHUNK_HOST === 'process' ? 'process' : 'in-process',

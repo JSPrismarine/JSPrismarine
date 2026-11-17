@@ -1,14 +1,21 @@
 import type { RuntimeCall, RuntimeExport, RuntimeMember, RuntimePlan, RuntimeType } from './plan';
 
-/** The host function the runtime calls for every member: the member's id, `this`, and the checked arguments. */
-export type RuntimeHost = (id: number, self: unknown, ...args: unknown[]) => unknown;
+/**
+ * The host function the runtime calls for every member: the member's id, `this`, the tag the host
+ * gave `this` when it made the instance (0 when it gave none, or for a static member), and the
+ * checked arguments.
+ */
+export type RuntimeHost = (id: number, self: unknown, tag: number, ...args: unknown[]) => unknown;
 
 /** What {@link engineRuntime} returns inside the engine. */
 export interface EngineRuntime {
     /** Installs one module from its {@link RuntimePlan}, as JSON, and returns its namespace object. */
     bind(plan: string): object;
-    /** Makes an instance of a bound class without running its constructor, for the host to hand out. */
-    create(module: string, name: string): object;
+    /**
+     * Makes an instance of a bound class without running its constructor, for the host to hand
+     * out. Its members receive `tag`, which the host uses to find what the instance stands for.
+     */
+    create(module: string, name: string, tag: number): object;
     /**
      * Makes the host call that is running throw an instance of a bound error class when it returns.
      * @param fields - The error's property values as JSON, or an empty string.
@@ -21,52 +28,31 @@ export interface EngineRuntime {
  * evaluates {@link engineRuntimeSource} there and calls the function it gets once per context.
  * It must not refer to anything outside its own body.
  *
- * Every member it installs checks its arguments against the metadata before it calls the host.
- * The research note records two of BDS's messages, `Native variant type conversion failed.` and the
- * `ArgumentOutOfBoundsError` text for an argument outside its bounds. The others follow the same
- * wording and wait on a `scripting.engine` parity row to confirm them: the conversion failure
- * for one type, `Incorrect number of arguments to function.`, and `No constructor for native class`.
+ * Every member it installs checks its arguments against the metadata before it calls the host,
+ * and an instance member checks that `this` is an instance the host made. The messages are BDS's,
+ * as the `argument-errors` scenario of the parity suite's `scripting.engine` family records them.
  */
 export function engineRuntime(host: RuntimeHost): EngineRuntime {
-    // Scripts share this realm and can replace any built-in, so every check below calls copies of
-    // the built-ins taken now, before a pack's code runs, and never looks one up on a value.
-    const { apply } = Reflect;
-    const { create: createObject, defineProperty, getOwnPropertyDescriptor, setPrototypeOf } = Object;
-    const { isArray } = Array;
-    const { parse } = JSON;
-    const { Error, TypeError, ReferenceError, Map, Set, WeakMap } = globalThis;
-    const iterator = Symbol.iterator;
-    const uncurry =
-        <This, Args extends unknown[], Result>(fn: (this: This, ...args: Args) => Result) =>
-        (self: This, ...args: Args): Result =>
-            apply(fn, self, args);
-    const isPrototypeOf = uncurry(Object.prototype.isPrototypeOf);
-    const mapGet = uncurry(Map.prototype.get) as <V>(map: Map<string, V>, key: string) => V | undefined;
-    const mapSet = uncurry(Map.prototype.set);
-    const setHas = uncurry(Set.prototype.has);
-    const weakGet = uncurry(WeakMap.prototype.get) as <V>(map: WeakMap<object, V>, key: object) => V | undefined;
-    const weakSet = uncurry(WeakMap.prototype.set);
     const COMMON = '@minecraft/common';
-    /** Owners for members whose `this` is not an instance: module functions get none, statics keep theirs. */
-    const MODULE_LEVEL = {};
-    const STATIC_LEVEL = {};
     type NativeClass = { readonly prototype: object };
     type NativeError = new (...args: unknown[]) => Error;
     const classes = new Map<string, NativeClass>();
     const errors = new Map<string, NativeError>();
     const enums = new Map<string, ReadonlySet<unknown>>();
     const errorFields = new WeakMap<object, Readonly<Record<string, unknown>>>();
+    /** Every instance the host made or a constructor built, with the tag its members receive. */
+    const bound = new WeakMap<object, number>();
     /** Set while the runtime constructs an error itself, which scripts may not. */
     let internal = false;
     let pending: { readonly error: unknown } | undefined;
 
     const key = (module: string, name: string): string => `${module}\n${name}`;
     const define = (target: object, name: PropertyKey, descriptor: PropertyDescriptor): void => {
-        defineProperty(target, name, descriptor);
+        Object.defineProperty(target, name, descriptor);
     };
 
     const makeError = (module: string, name: string, message: string, fields?: Readonly<Record<string, unknown>>) => {
-        const ErrorClass = mapGet(errors, key(module, name));
+        const ErrorClass = errors.get(key(module, name));
         let error: Error;
         if (ErrorClass === undefined) {
             error = new Error(message);
@@ -79,29 +65,15 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 internal = false;
             }
         }
-        if (fields !== undefined) weakSet(errorFields, error, fields);
+        if (fields !== undefined) errorFields.set(error, fields);
         return error;
     };
 
-    /**
-     * Makes an own element. Assigning to an index instead would call a setter a script put on
-     * `Array.prototype`, which could swallow the value and hand back its own through a getter.
-     */
-    const put = (target: unknown[], index: number, value: unknown): void => {
-        defineProperty(target, index, { value, writable: true, enumerable: true, configurable: true });
-    };
-
-    /** Copies an array by index, which no replaced iterator or method can reach. */
-    const copy = (values: readonly unknown[]): unknown[] => {
-        const result: unknown[] = [];
-        for (let index = 0; index < values.length; index++) put(result, index, values[index]);
-        return result;
-    };
+    const tagOf = (self: unknown): number =>
+        (typeof self === 'object' || typeof self === 'function') && self !== null ? (bound.get(self) ?? 0) : 0;
 
     const invoke = (id: number, self: unknown, args: readonly unknown[]): unknown => {
-        const list: unknown[] = [id, self];
-        for (let index = 0; index < args.length; index++) put(list, index + 2, args[index]);
-        const result = apply(host, undefined, list);
+        const result = host(id, self, tagOf(self), ...args);
         if (pending !== undefined) {
             const { error } = pending;
             pending = undefined;
@@ -121,65 +93,59 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             case 'function':
                 return typeof value === type.kind;
             case 'object':
-                return typeof value === 'object' && value !== null;
+                // An interface such as RawMessage is a plain object; BDS refuses an array for one.
+                return typeof value === 'object' && value !== null && !Array.isArray(value);
             case 'instance': {
-                const Class =
-                    mapGet(classes, key(type.module, type.name)) ?? mapGet(errors, key(type.module, type.name));
+                const Class = classes.get(key(type.module, type.name)) ?? errors.get(key(type.module, type.name));
                 if (Class === undefined) return typeof value === 'object' && value !== null;
-                return typeof value === 'object' && value !== null && isPrototypeOf(Class.prototype, value);
+                return typeof value === 'object' && value !== null && Class.prototype.isPrototypeOf(value);
             }
             case 'enum': {
-                const values = mapGet(enums, key(type.module, type.name));
-                return values === undefined || setHas(values, value);
+                const values = enums.get(key(type.module, type.name));
+                return values === undefined || values.has(value);
             }
-            case 'array': {
-                if (!isArray(value)) return false;
-                for (let index = 0; index < value.length; index++) {
-                    if (!matches(type.element, value[index])) return false;
-                }
-                return true;
-            }
+            case 'array':
+                return Array.isArray(value) && value.every((element) => matches(type.element, element));
             case 'optional':
                 return value === undefined || matches(type.type, value);
             case 'variant':
-                for (let index = 0; index < type.types.length; index++) {
-                    const each = type.types[index];
-                    if (each !== undefined && matches(each, value)) return true;
-                }
-                return false;
+                return type.types.some((each) => matches(each, value));
         }
     };
 
+    /** A type as BDS's conversion errors write it. A variant lists its types last to first. */
     const describe = (type: RuntimeType): string => {
         switch (type.kind) {
             case 'instance':
             case 'enum':
             case 'object':
                 return type.name;
-            case 'array':
-                return 'Array';
-            case 'optional':
-                return describe(type.type);
-            case 'variant': {
-                let text = '';
-                for (let index = 0; index < type.types.length; index++) {
-                    const each = type.types[index];
-                    if (each !== undefined) text += `${text === '' ? '' : ' | '}${describe(each)}`;
-                }
-                return text;
+            case 'function':
+                return `Closure: ${type.signature}`;
+            case 'array': {
+                const element = describe(type.element);
+                return type.element.kind === 'variant' ? `(${element})[]` : `${element}[]`;
             }
+            case 'optional':
+                return `${describe(type.type)} | undefined`;
+            case 'variant':
+                return [...type.types].reverse().map(describe).join(' | ');
             default:
                 return type.kind;
         }
     };
 
+    /** A bound as BDS writes it: a whole number in the int32 range as it is, anything else with two decimals. */
+    const bound32 = (value: number): string =>
+        Number.isInteger(value) && value >= -2147483648 && value <= 2147483647 ? String(value) : value.toFixed(2);
+
     const outOfBounds = (index: number, value: number, min?: number, max?: number): Error => {
         const bounds =
             min !== undefined && max !== undefined
-                ? `Argument bounds: [${min}, ${max}]`
+                ? `Argument bounds: [${bound32(min)}, ${bound32(max)}]`
                 : min !== undefined
-                  ? `Argument min: ${min}`
-                  : `Argument max: ${max}`;
+                  ? `Argument min: ${bound32(min)}`
+                  : `Argument max: ${bound32(max ?? 0)}`;
         return makeError(
             COMMON,
             'ArgumentOutOfBoundsError',
@@ -190,7 +156,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
 
     /** Checks a call's arguments and fills in omitted defaults. */
     const check = (call: RuntimeCall, args: readonly unknown[]): unknown[] => {
-        if (args.length < call.required) {
+        if (args.length < call.required || args.length > call.arguments.length) {
             const expected =
                 call.required === call.arguments.length
                     ? `${call.required}`
@@ -199,21 +165,19 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 `Incorrect number of arguments to function. Expected ${expected}, received ${args.length}`
             );
         }
-        const checked = copy(args);
-        for (let index = 0; index < call.arguments.length; index++) {
-            const argument = call.arguments[index];
-            if (argument === undefined) continue;
-            // An omitted argument has no element, and reading one would reach a getter on the prototype.
-            const value = index < checked.length ? checked[index] : undefined;
+        const checked = [...args];
+        call.arguments.forEach((argument, index) => {
+            const value = checked[index];
             if (value === undefined && argument.optional) {
-                if (argument.default !== undefined) put(checked, index, argument.default);
-                continue;
+                if (argument.default !== undefined) checked[index] = argument.default;
+                return;
             }
             if (!matches(argument.type, value)) {
-                const type = argument.type.kind === 'optional' ? argument.type.type : argument.type;
-                if (type.kind === 'variant') throw new TypeError('Native variant type conversion failed.');
+                const inner = argument.type.kind === 'optional' ? argument.type.type : argument.type;
+                const conversion =
+                    inner.kind === 'variant' ? 'Native variant type conversion' : 'Native type conversion';
                 throw new TypeError(
-                    `Native type conversion failed. Function argument [${index}] expected type: ${describe(type)}`
+                    `${conversion} failed. Function argument [${index}] expected type: ${describe(argument.type)}`
                 );
             }
             if (typeof value === 'number') {
@@ -224,28 +188,27 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             if (typeof value === 'string' && argument.maxLength !== undefined && value.length > argument.maxLength) {
                 throw outOfBounds(index, value.length, undefined, argument.maxLength);
             }
-        }
+        });
         return checked;
     };
 
-    /**
-     * The `this` a member receives: none for a module function, and for an instance member only an
-     * instance of the class that declares it. The message is provisional until a parity row
-     * confirms it on BDS.
-     */
-    const receiver = (owner: object | undefined, self: unknown): unknown => {
-        if (owner === MODULE_LEVEL) return undefined;
-        if (owner === STATIC_LEVEL) return self;
-        if (typeof self !== 'object' || self === null || !isPrototypeOf(owner, self)) {
-            throw new TypeError('Native object bound to prototype does not exist.');
-        }
-        return self;
+    /** Throws BDS's error for an instance member called on something the host did not make. */
+    const checkReceiver = (self: unknown, label: string | undefined): void => {
+        if (label === undefined) return;
+        if ((typeof self === 'object' || typeof self === 'function') && self !== null && bound.has(self)) return;
+        throw new ReferenceError(`${label} object bound to prototype does not exist.`);
     };
 
-    const method = (name: string, call: RuntimeCall, owner: object): ((...args: unknown[]) => unknown) => {
+    /**
+     * @param receiver - How BDS names the member in a receiver error, such as `Native function
+     *   [World::getDimension]`; undefined for a static member or a module function.
+     */
+    const method = (name: string, call: RuntimeCall, receiver?: string): ((...args: unknown[]) => unknown) => {
         const holder = {
             [name](this: unknown, ...args: unknown[]): unknown {
-                return invoke(call.id, receiver(owner, this), check(call, args));
+                const checked = check(call, args);
+                checkReceiver(this, receiver);
+                return invoke(call.id, this, checked);
             }
         };
         const fn = holder[name];
@@ -253,29 +216,49 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         return fn;
     };
 
-    const accessors = (name: string, get: number, set: RuntimeCall | undefined, owner: object): PropertyDescriptor => {
+    /**
+     * A property's getter and setter. A read-only property's setter throws, as BDS's does.
+     * @param owner - The class, for receiver errors; undefined for a static property.
+     */
+    const accessors = (
+        name: string,
+        get: number,
+        set: RuntimeCall | undefined,
+        owner: string | undefined
+    ): PropertyDescriptor => {
         const holder = {
             get [name](): unknown {
-                return invoke(get, receiver(owner, this), []);
+                checkReceiver(this, owner === undefined ? undefined : `Native property getter [${owner}::${name}]`);
+                return invoke(get, this, []);
             },
             set [name](value: unknown) {
-                if (set !== undefined) invoke(set.id, receiver(owner, this), check(set, [value]));
+                if (set === undefined) throw new TypeError(`'${name}' is read-only`);
+                const checked = check(set, [value]);
+                checkReceiver(this, owner === undefined ? undefined : `Native property setter [${owner}::${name}]`);
+                invoke(set.id, this, checked);
             }
         };
-        const descriptor = getOwnPropertyDescriptor(holder, name) ?? {};
-        return { get: descriptor.get, ...(set === undefined ? {} : { set: descriptor.set }), configurable: true };
+        const descriptor = Object.getOwnPropertyDescriptor(holder, name) ?? {};
+        return { get: descriptor.get, set: descriptor.set, configurable: true };
     };
 
-    /** Installs a member on a class or its prototype; `owner` is what `this` must be. */
-    const installMember = (target: object, member: RuntimeMember, owner: object): void => {
+    const installMember = (target: object, member: RuntimeMember, owner: string): void => {
         if (member.kind === 'method') {
             define(target, member.name, {
-                value: method(member.name, member.call, owner),
+                value: method(
+                    member.name,
+                    member.call,
+                    member.static ? undefined : `Native function [${owner}::${member.name}]`
+                ),
                 writable: true,
                 configurable: true
             });
         } else if (member.kind === 'property') {
-            define(target, member.name, accessors(member.name, member.get, member.set, owner));
+            define(
+                target,
+                member.name,
+                accessors(member.name, member.get, member.set, member.static ? undefined : owner)
+            );
         } else {
             define(target, member.name, { value: member.value, enumerable: true });
         }
@@ -288,26 +271,24 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         const { name, construct } = entry;
         const holder = {
             [name]: function (this: object, ...args: unknown[]): void {
+                if (new.target === undefined) throw new TypeError('must be called with new');
                 if (construct === undefined) throw noConstructor(name);
-                if (new.target === undefined)
-                    throw new TypeError(`Class constructor ${name} cannot be invoked without 'new'`);
-                invoke(construct.id, this, check(construct, args));
+                const checked = check(construct, args);
+                bound.set(this, 0);
+                invoke(construct.id, this, checked);
             }
         };
         const Class = holder[name];
         if (Class === undefined) throw new ReferenceError(`The class ${name} was not made`);
         if (entry.base !== undefined) {
-            const Base = mapGet(classes, key(entry.base.module, entry.base.name));
+            const Base = classes.get(key(entry.base.module, entry.base.name));
             if (Base === undefined) throw new ReferenceError(`${name} extends ${entry.base.name}, which is not bound`);
-            setPrototypeOf(Class.prototype, Base.prototype);
-            setPrototypeOf(Class, Base);
+            Object.setPrototypeOf(Class.prototype, Base.prototype);
+            Object.setPrototypeOf(Class, Base);
         }
-        for (const member of entry.members) {
-            if (member.static) installMember(Class, member, STATIC_LEVEL);
-            else installMember(Class.prototype, member, Class.prototype);
-        }
+        for (const member of entry.members) installMember(member.static ? Class : Class.prototype, member, name);
         if (entry.iterable) {
-            define(Class.prototype, iterator, {
+            define(Class.prototype, Symbol.iterator, {
                 value: function (this: unknown) {
                     return this;
                 },
@@ -316,7 +297,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             });
         }
         define(Class, 'prototype', { writable: false });
-        mapSet(classes, key(module, name), Class);
+        classes.set(key(module, name), Class);
         return Class;
     };
 
@@ -342,19 +323,21 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         for (const property of entry.properties) {
             define(ErrorClass.prototype, property, {
                 get(this: object) {
-                    return weakGet(errorFields, this)?.[property];
+                    return errorFields.get(this)?.[property];
                 },
                 configurable: true
             });
         }
-        mapSet(errors, key(module, name), ErrorClass);
+        errors.set(key(module, name), ErrorClass);
         return ErrorClass;
     };
 
-    const create = (module: string, name: string): object => {
-        const Class = mapGet(classes, key(module, name));
+    const create = (module: string, name: string, tag: number): object => {
+        const Class = classes.get(key(module, name));
         if (Class === undefined) throw new ReferenceError(`${module} has no bound class ${name}`);
-        return createObject(Class.prototype);
+        const instance = Object.create(Class.prototype);
+        bound.set(instance, tag);
+        return instance;
     };
 
     const bindExport = (module: string, entry: RuntimeExport): unknown => {
@@ -366,32 +349,32 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             case 'enum': {
                 const values: Record<string, unknown> = {};
                 for (const [name, value] of entry.values) define(values, name, { value, enumerable: true });
-                mapSet(enums, key(module, entry.name), new Set(entry.values.map(([, value]) => value)));
+                enums.set(key(module, entry.name), new Set(entry.values.map(([, value]) => value)));
                 return values;
             }
             case 'constant':
                 return entry.value;
             case 'object':
-                return create(entry.module, entry.className);
+                return create(entry.module, entry.className, 0);
             case 'function':
-                return method(entry.name, entry.call, MODULE_LEVEL);
+                return method(entry.name, entry.call);
         }
     };
 
     return {
         bind(planJson: string): object {
-            const plan: RuntimePlan = parse(planJson);
+            const plan: RuntimePlan = JSON.parse(planJson);
             const values = new Map<string, unknown>();
             for (const entry of plan.exports) values.set(entry.name, bindExport(plan.module, entry));
             // A module namespace lists its names in code unit order and has no prototype.
-            const namespace = createObject(null);
+            const namespace = Object.create(null);
             for (const name of [...values.keys()].sort())
                 define(namespace, name, { value: values.get(name), enumerable: true });
             return namespace;
         },
         create,
         raise(module: string, name: string, message: string, fields: string): void {
-            pending = { error: makeError(module, name, message, fields === '' ? undefined : parse(fields)) };
+            pending = { error: makeError(module, name, message, fields === '' ? undefined : JSON.parse(fields)) };
         }
     };
 }

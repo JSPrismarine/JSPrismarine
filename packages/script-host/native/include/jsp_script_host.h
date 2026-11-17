@@ -2,9 +2,12 @@
  * The flat C interface of JSPrismarine's script host: Fabrice Bellard's QuickJS behind one engine
  * type, bound from TypeScript through an FFI that can pass integers, doubles and pointers only.
  *
- * An engine is one QuickJS runtime with one context. It keeps all of its state, so two engines
- * run on two threads at once. An engine belongs to the thread that created it: call it, and let
- * it call back, only on that thread.
+ * An engine is one QuickJS runtime with one or more contexts. Each context has a global object
+ * of its own, and the engine's handles, budget and memory limit cover all of them. One context is
+ * current at a time: entries from the host run in it, and while the engine calls the host, the
+ * context that made the call is current. The engine keeps all of its state, so two engines run on
+ * two threads at once. An engine belongs to the thread that created it: call it, and let it call
+ * back, only on that thread.
  *
  * JavaScript values stay in C. The host refers to them by handle, a positive integer that is valid
  * in its engine until jsh_free releases it. Values cross as bytes in the engine's transfer buffer,
@@ -38,7 +41,7 @@ extern "C" {
 #endif
 
 /* Changes whenever a function, a constant or the byte layout changes meaning. */
-#define JSH_ABI_VERSION 2
+#define JSH_ABI_VERSION 3
 
 /* The steps one jsh_debug_evaluate may take, apart from the budget of the script it stops in. */
 #define JSH_DEBUG_EVALUATE_STEPS 100
@@ -75,9 +78,10 @@ enum jsh_op {
 	 */
 	JSH_OP_CALL = 0,
 	/*
-	 * A script imported a module. The transfer buffer holds its normalized name, `length`
-	 * bytes of UTF-8. The host writes the module's source and returns its length, or writes an
-	 * error's name and message and returns -1.
+	 * A script in context `id` imported a module. The transfer buffer holds its normalized
+	 * name, `length` bytes of UTF-8. The host writes one value and returns its length: a string
+	 * holding the module's source, or a handle to an object whose own enumerable properties
+	 * become the module's exports. Or it writes an error's name and message and returns -1.
 	 */
 	JSH_OP_LOAD_MODULE = 1,
 	/*
@@ -170,6 +174,13 @@ JSH_EXPORT int32_t jsh_abi_version(void);
 JSH_EXPORT jsh_engine *jsh_engine_create(jsh_host_fn host, uint8_t *buffer, int32_t capacity, double memory_limit,
 										 double stack_size);
 JSH_EXPORT void jsh_engine_destroy(jsh_engine *engine);
+/*
+ * Creates another context, as limited as the first, and returns its id. The context the engine
+ * was created with is 0. The current context stays as it was.
+ */
+JSH_EXPORT int32_t jsh_context_create(jsh_engine *engine);
+/* Makes a context current. Returns the id of the context that was current before. */
+JSH_EXPORT int32_t jsh_context_select(jsh_engine *engine, int32_t context);
 /* Replaces the transfer buffer. The engine never frees it. */
 JSH_EXPORT void jsh_engine_set_buffer(jsh_engine *engine, uint8_t *buffer, int32_t capacity);
 /*
@@ -189,8 +200,12 @@ JSH_EXPORT int32_t jsh_eval_script(jsh_engine *engine, const char *name, const u
  * at its top level may still be running when this returns.
  */
 JSH_EXPORT int32_t jsh_eval_module(jsh_engine *engine, const char *name, const uint8_t *source, int32_t length);
-/* Runs pending promise jobs until none is left. Returns how many ran. */
-JSH_EXPORT int32_t jsh_run_jobs(jsh_engine *engine);
+/*
+ * Runs pending promise jobs until none is left, in the order they were queued. With a context id,
+ * runs only that context's jobs and leaves the others queued; with -1, runs every context's.
+ * Returns how many ran.
+ */
+JSH_EXPORT int32_t jsh_run_jobs(jsh_engine *engine, int32_t context);
 /* Calls a function with the list of `length` bytes in the transfer buffer as its arguments. */
 JSH_EXPORT int32_t jsh_call(jsh_engine *engine, int32_t function, int32_t this_value, int32_t length);
 

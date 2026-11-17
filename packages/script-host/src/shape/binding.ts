@@ -4,7 +4,7 @@ import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
 import { SCRIPT_MODULE_HISTORIES } from '../generated/scriptModules';
 import { engineRuntimeSource } from './engineRuntime';
-import type { ModuleHistory, ShapeArgument, ShapeType } from './format';
+import type { ModuleHistory, NumberType, Privilege, ShapeArgument, ShapeType } from './format';
 import { isNumberType } from './format';
 import type { ModuleShape } from './history';
 import { shapeAt } from './history';
@@ -25,7 +25,47 @@ export interface ScriptApiContextOptions {
     readonly logger: ScriptApiLogger;
     /** The histories a module's dependencies resolve against. The generated ones when absent. */
     readonly histories?: Readonly<Record<string, ModuleHistory>>;
+    /**
+     * The privilege the script running now has. A member whose metadata does not list it throws
+     * BDS's error before its implementation runs. `default` when absent.
+     */
+    readonly privilege?: () => Privilege;
 }
+
+/** The bounds of each integer type, which BDS checks an argument against when its metadata sets none. */
+const INTEGER_BOUNDS: Partial<Record<NumberType, readonly [number, number]>> = {
+    int8: [-128, 127],
+    uint8: [0, 255],
+    int16: [-32768, 32767],
+    uint16: [0, 65535],
+    int32: [-2147483648, 2147483647],
+    uint32: [0, 4294967295]
+};
+
+/** How BDS writes a privilege in its error. */
+const PRIVILEGE_NAMES: Readonly<Record<Privilege, string>> = {
+    default: 'default execution',
+    early_execution: 'early execution',
+    restricted_execution: 'restricted execution'
+};
+
+/** How BDS names a member in a privilege error, such as `Native function [World::getDimension]`. */
+const nativeName = (entry: MemberEntry): string => {
+    const name = entry.owner === '' ? entry.member : `${entry.owner}::${entry.member}`;
+    if (entry.access === 'get') return `Native property getter [${name}]`;
+    if (entry.access === 'set') return `Native property setter [${name}]`;
+    return `Native function [${name}]`;
+};
+
+/** The type a closure's errors print, such as `() => void`. */
+const closureSignature = (arguments_: readonly ShapeType[], returns: ShapeType): string => {
+    const named = (type: ShapeType): string => {
+        if (typeof type === 'string') return type === 'undefined' ? 'void' : type;
+        if (type.kind === 'external') return type.name;
+        return 'unknown';
+    };
+    return `(${arguments_.map((type, index) => `arg${index}: ${named(type)}`).join(', ')}) => ${named(returns)}`;
+};
 
 const handleOf = (value: ScriptValue, what: string): ScriptHandle => {
     if (value instanceof ScriptHandle) return value;
@@ -81,7 +121,7 @@ export class ScriptApiContext {
         this.options = options;
         this.histories = options.histories ?? SCRIPT_MODULE_HISTORIES;
         const factory = handleOf(engine.evaluate(engineRuntimeSource(), '<jsp script api>'), 'The runtime');
-        const host = engine.hostFunction('scriptApi', (id, self, ...args) => this.dispatch(id, self, args));
+        const host = engine.hostFunction('scriptApi', (id, self, tag, ...args) => this.dispatch(id, self, tag, args));
         try {
             this.runtime = handleOf(engine.call(factory, undefined, host), 'The runtime');
         } finally {
@@ -125,10 +165,12 @@ export class ScriptApiContext {
     /**
      * Makes an instance of a bound class without running its constructor, for an implementation to
      * return. The caller frees the handle.
+     * @param tag - What the instance stands for, which every call of its members receives as
+     *   {@link ScriptCall.tag}, such as an index into the host's own table.
      * @throws {ScriptError} When the module or the class is not bound.
      */
-    public create(module: string, className: string): ScriptHandle {
-        return handleOf(this.engine.call(this.createFunction, this.runtime, module, className), 'An instance');
+    public create(module: string, className: string, tag = 0): ScriptHandle {
+        return handleOf(this.engine.call(this.createFunction, this.runtime, module, className, tag), 'An instance');
     }
 
     /** Frees the context's handles. The engine keeps what scripts still refer to. */
@@ -154,9 +196,14 @@ export class ScriptApiContext {
         this.bind(shapeAt(history, served));
     }
 
-    private dispatch(id: ScriptValue, self: ScriptValue, args: ScriptValue[]): ScriptValue {
+    private dispatch(id: ScriptValue, self: ScriptValue, tagValue: ScriptValue, args: ScriptValue[]): ScriptValue {
         const entry = typeof id === 'number' ? this.entries[id] : undefined;
         if (entry === undefined) throw new RangeError(`No Script API member has id ${String(id)}`);
+        const tag = typeof tagValue === 'number' ? tagValue : 0;
+        const privilege = this.options.privilege?.() ?? 'default';
+        if (privilege !== 'default' && !entry.privilege.includes(privilege)) {
+            throw new ReferenceError(`${nativeName(entry)} cannot be used in ${PRIVILEGE_NAMES[privilege]}.`);
+        }
         const implementation = pick(
             this.options.implementations.find(entry.module, entry.owner, entry.member),
             entry.access
@@ -170,7 +217,7 @@ export class ScriptApiContext {
             throw error;
         }
         try {
-            return implementation({ engine: this.engine, pack: this.options.pack, self, args });
+            return implementation({ engine: this.engine, pack: this.options.pack, self, tag, args });
         } catch (error) {
             if (!(error instanceof ScriptApiError)) throw error;
             this.engine.call(
@@ -185,8 +232,15 @@ export class ScriptApiContext {
         }
     }
 
-    private entry(module: string, owner: string, member: string, access: MemberEntry['access']): number {
-        this.entries.push({ module, owner, member, access });
+    private entry(
+        module: string,
+        owner: string,
+        member: string,
+        access: MemberEntry['access'],
+        privilege: readonly Privilege[] | undefined
+    ): number {
+        // A getter or setter the metadata gives no privileges allows only the default one.
+        this.entries.push({ module, owner, member, access, privilege: privilege ?? [] });
         return this.entries.length - 1;
     }
 
@@ -217,7 +271,7 @@ export class ScriptApiContext {
             case 'map':
                 return { kind: 'object', name: 'Record' };
             case 'closure':
-                return { kind: 'function' };
+                return { kind: 'function', signature: closureSignature(type.arguments, type.returns) };
             case 'promise':
             case 'generator':
             case 'script':
@@ -234,10 +288,15 @@ export class ScriptApiContext {
 
     private argument(argument: ShapeArgument, shape: ModuleShape): RuntimeArgument {
         const type = this.runtimeType(argument.type, shape);
-        // A number type's own `valid_range`, when it differs from the default, bounds it like `details`.
-        const range = typeof argument.type === 'object' && argument.type.kind === 'number' ? argument.type : undefined;
-        const min = argument.min ?? range?.min;
-        const max = argument.max ?? range?.max;
+        // A number type's own `valid_range`, when it differs from the default, bounds it like
+        // `details`; an integer type without either is bounded by the type itself.
+        const declared =
+            typeof argument.type === 'object' && argument.type.kind === 'optional' ? argument.type.type : argument.type;
+        const range = typeof declared === 'object' && declared.kind === 'number' ? declared : undefined;
+        const intrinsic = typeof declared === 'string' && isNumberType(declared) ? INTEGER_BOUNDS[declared] : undefined;
+        const declaredBounds = argument.min !== undefined || argument.max !== undefined || range !== undefined;
+        const min = declaredBounds ? (argument.min ?? range?.min) : intrinsic?.[0];
+        const max = declaredBounds ? (argument.max ?? range?.max) : intrinsic?.[1];
         return {
             type,
             optional: 'default' in argument || type.kind === 'optional',
@@ -253,11 +312,12 @@ export class ScriptApiContext {
         owner: string,
         member: string,
         access: MemberEntry['access'],
-        args: readonly ShapeArgument[]
+        args: readonly ShapeArgument[],
+        privilege: readonly Privilege[] | undefined
     ): RuntimeCall {
         const checks = args.map((argument) => this.argument(argument, shape));
         const required = checks.reduce((count, check, index) => (check.optional ? count : index + 1), 0);
-        return { id: this.entry(shape.module, owner, member, access), arguments: checks, required };
+        return { id: this.entry(shape.module, owner, member, access, privilege), arguments: checks, required };
     }
 
     private exportsOf(shape: ModuleShape): RuntimeExport[] {
@@ -282,14 +342,16 @@ export class ScriptApiContext {
             for (const [memberName, member] of members) {
                 const isStatic = member.kind !== 'constructor' && member.static === true;
                 if (member.kind === 'constructor') {
-                    construct = this.call(shape, name, memberName, 'construct', member.arguments);
+                    construct = this.call(shape, name, memberName, 'construct', member.arguments, member.privilege);
                 } else if (member.kind === 'method') {
-                    const call = this.call(shape, name, memberName, 'call', member.arguments);
+                    const call = this.call(shape, name, memberName, 'call', member.arguments, member.privilege);
                     runtimeMembers.push({ kind: 'method', name: memberName, static: isStatic, call });
                 } else if (member.kind === 'property') {
-                    const get = this.entry(shape.module, name, memberName, 'get');
+                    const get = this.entry(shape.module, name, memberName, 'get', member.get);
                     const value = { name: 'value', type: member.type, min: member.min, max: member.max };
-                    const set = member.readOnly ? undefined : this.call(shape, name, memberName, 'set', [value]);
+                    const set = member.readOnly
+                        ? undefined
+                        : this.call(shape, name, memberName, 'set', [value], member.set);
                     runtimeMembers.push({
                         kind: 'property',
                         name: memberName,
@@ -303,7 +365,8 @@ export class ScriptApiContext {
             }
             const iterable = declaration.iterator !== undefined;
             if (iterable && !members.has('next')) {
-                const call = this.call(shape, name, 'next', 'call', []);
+                // The metadata gives an iterator's next no privileges; it is a read, so every one may call it.
+                const call = this.call(shape, name, 'next', 'call', [], ['early_execution', 'restricted_execution']);
                 runtimeMembers.push({ kind: 'method', name: 'next', static: false, call });
             }
             exports.push({
@@ -323,7 +386,14 @@ export class ScriptApiContext {
                     const constructor = members.get('constructor');
                     const construct =
                         constructor?.kind === 'constructor'
-                            ? this.call(shape, name, 'constructor', 'construct', constructor.arguments)
+                            ? this.call(
+                                  shape,
+                                  name,
+                                  'constructor',
+                                  'construct',
+                                  constructor.arguments,
+                                  constructor.privilege
+                              )
                             : undefined;
                     const properties = [...members]
                         .filter(([, member]) => member.kind === 'property')
@@ -350,7 +420,7 @@ export class ScriptApiContext {
                     exports.push({
                         kind: 'function',
                         name,
-                        call: this.call(shape, '', name, 'call', declaration.arguments)
+                        call: this.call(shape, '', name, 'call', declaration.arguments, declaration.privilege)
                     });
                     break;
                 case 'object': {

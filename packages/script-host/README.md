@@ -10,9 +10,10 @@ thread, as [ADR 0020](../../docs/adr/0020-scripts-run-in-quickjs-on-the-world-th
 The plan that builds the rest of the script host on top of this package is
 [script-api-host.md](../../docs/plans/script-api-host.md).
 
-This release has the engine, with evaluation, host calls, limits and the sandbox, and the shape of
-the Script API: every module, class and member of `@minecraft/server` and the other stable modules,
-generated from Mojang's metadata. It does not load packs yet, and no member has behavior yet.
+This release has the engine, with evaluation, host calls, limits and the sandbox; the shape of the
+Script API, every module, class and member of `@minecraft/server` and the other stable modules,
+generated from Mojang's metadata; and the runtime that loads a world's behavior packs and runs
+their scripts, with the first members that have behavior.
 
 ## Running a script
 
@@ -56,7 +57,17 @@ function may call back into the script it serves. The engine counts host calls a
 way, which `engine.stats()` reports.
 
 Module imports go through the same callback: `createEngine({ loadModule })` returns a module's
-source for its name.
+source for its name, or an object whose own enumerable properties become the module's exports.
+
+## Contexts
+
+An engine can hold several contexts, each with a global object and built-ins of its own, so packs
+in one world never share a `globalThis` while they share one runtime, one step budget and one
+memory limit. `engine.createContext()` makes one, and `engine.inContext(id, run)` runs host code
+with it current. While a script calls the host, the caller's context is current, and the module
+loader is told which context imports. `engine.runJobs(id)` runs one context's promise jobs and
+leaves the other contexts' jobs queued in their order, which the version 1 and version 2
+lifecycles need.
 
 ## Limits
 
@@ -153,11 +164,11 @@ try {
 `ScriptApiContext` installs a module into a namespace object with every class, enum, constant and
 error class the served version has. Every member is present, so `typeof world.sendMessage` and other
 feature tests see what they see on BDS. Before anything else runs, a member checks its arguments
-against the metadata and throws a `TypeError` or an `ArgumentOutOfBoundsError`. The research note
-confirms BDS's wording for a variant that fails to convert and for an argument out of bounds. The
-messages for a wrong type, a wrong argument count, a class with no constructor and a member called
-on something that is not an instance follow the same style and are provisional until a
-`scripting.engine` parity row checks them against BDS. Then it calls the implementation registered for its module, class and member. A member with none throws `NotImplementedError`, which names the module, the class
+against the metadata and throws a `TypeError` or an `ArgumentOutOfBoundsError` worded the way BDS
+words them, as the `argument-errors` scenario of the parity suite records them. An instance member
+called on an object the host did not make throws BDS's `object bound to prototype does not exist`
+error. With a `privilege` option, a member whose metadata does not list the privilege the running
+script has, such as early or restricted execution, throws BDS's `cannot be used in` error. Then it calls the implementation registered for its module, class and member. A member with none throws `NotImplementedError`, which names the module, the class
 and the member, and the context logs it the first time each pack uses it.
 
 `implement` takes the names the generated `ScriptApiMembers` lists, so a misspelled member does not
@@ -280,6 +291,62 @@ session.attach(engineFor(target));
 
 The host does not implement the extension's profiler, diagnostics or `debugger-request`
 messages yet. It answers a `debugger-request` as refused.
+## Running a world's scripts
+
+`WorldScripts` is the script runtime of one world: one engine, a context for each pack, and the
+lifecycle, system tasks, events and watchdog around them. It reaches the world only through
+`ScriptWorld` (`@jsprismarine/script-host/host/world`), a narrow interface the server implements
+with plain data: the dimensions, the players, `sendMessage`, the weather and its guard, the
+changes the world committed, and the clock the tick admitted. The host imports no world class.
+
+```ts
+import { readScriptConfig, readScriptPack } from '@jsprismarine/script-host/host/pack';
+import { WorldScripts, watchdogSettings } from '@jsprismarine/script-host/host/WorldScripts';
+
+const scripts = new WorldScripts({
+    library,
+    world, // a ScriptWorld
+    packs: directories.map(readScriptPack).filter((pack) => pack !== undefined),
+    config: readScriptConfig('config'), // BDS's config/ folder
+    log: console,
+    seed: worldSeed,
+    watchdog: watchdogSettings({ 'script-watchdog-hang-threshold': '10000' }),
+    onShutdown: (reason) => server.stop()
+});
+scripts.startEarly(); // version 2 packs: top level, promise jobs once, startup
+scripts.startWorld(); // version 1 packs, once the world has loaded: top level, worldInitialize
+// at the end of every tick, before its change log closes:
+scripts.flush();
+```
+
+The order of everything matches the pinned BDS, as the `scripting.*` families of the parity suite
+record it:
+
+- **Packs.** `readScriptPack` reads a pack's manifest. A pack gets each native module it declares
+  at the newest stable minor of the declared major version, when `config/default/permissions.json`
+  or `config/<script module uuid>/permissions.json` allows the module, and otherwise logs BDS's
+  message and does not load. A pack declaring `@minecraft/server` 1.x runs the version 1
+  lifecycle, any other the version 2 one. Each pack runs in a context of its own. An `import()`
+  of a module the manifest does not declare rejects as on BDS, except `@jsprismarine/server`,
+  which resolves, so a pack can detect JSPrismarine and fall back on BDS.
+- **The flush.** `flush` runs the version 1 promise jobs once, then until nothing is left: the
+  version 2 promise jobs, the system tasks due, each followed by version 2 promise jobs, and the
+  after-events, each type followed by version 2 promise jobs. A `system.run` that a running task
+  queues waits for the next tick, which stops a task that queues itself from running for ever.
+- **Privileges.** Top levels of version 2 packs, their first promise jobs and `startup` run in
+  early execution, before-events in restricted execution, and the rest with the default
+  privilege. A member whose metadata does not list the privilege throws BDS's error.
+- **Inputs.** `Math.random` in each context draws from a generator seeded from the world's seed
+  and the pack's place, and `Date` reads `ScriptWorld.clock()`, so a replay runs the same.
+- **The watchdog.** A callback that takes more than its step budget stops with an error no script
+  catches. `watchdogSettings` converts BDS's millisecond threshold at `STEPS_PER_MILLISECOND`. A
+  hang, a stack overflow, even a caught one, and an allocation past the memory limit are critical:
+  the runtime logs BDS's lines and, unless `script-watchdog-enable-shutdown` is `false`, stops and
+  calls `onShutdown`.
+- **Coverage.** When a pack loads, the runtime logs how many of the members its scripts name are
+  implemented, and which are not.
+- **Reload.** `reload` sends `system.beforeEvents.shutdown`, then runs every pack again from its
+  top level, as BDS's `/reload` does. `system.currentTick` carries on.
 
 ## Building it
 
@@ -312,6 +379,8 @@ calls one:
   modifier groups and a group name used twice, as releases before them did.
 - `JS_AddLegacyMembers`, which defines `Object.__getClass` and `String.prototype.__quote` as
   earlier releases defined them.
+- `JS_ExecutePendingJobOf`, which runs the first pending promise job of one context and leaves the
+  jobs of the others queued.
 
 `native/patches/quickjs-debugger.patch` ports the debugger hooks of koush's QuickJS fork
 (`koush/quickjs`, `quickjs-debugger.c` and its `quickjs.c` changes), which the VS Code extension's

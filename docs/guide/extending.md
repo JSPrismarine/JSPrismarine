@@ -137,6 +137,8 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/world/generators/datadriven/SharedTerrainTileStore
 @jsprismarine/prismarine/world/Level
 @jsprismarine/prismarine/world/World
+@jsprismarine/prismarine/scripting/LevelScripts
+@jsprismarine/prismarine/scripting/LevelScriptWorld
 ```
 <!-- /fact -->
 
