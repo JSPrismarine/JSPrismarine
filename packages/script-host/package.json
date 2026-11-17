@@ -1,0 +1,98 @@
+{
+    "name": "@jsprismarine/script-host",
+    "version": "0.21.0",
+    "private": true,
+    "description": "Runs Bedrock behavior pack scripts for JSPrismarine in an embedded QuickJS, bound through node:ffi",
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public",
+        "exports": {
+            ".": {
+                "types": "./dist/ScriptEngine.d.ts",
+                "import": "./dist/ScriptEngine.js",
+                "module": "./dist/ScriptEngine.js"
+            },
+            "./errors": {
+                "types": "./dist/errors.d.ts",
+                "import": "./dist/errors.js",
+                "module": "./dist/errors.js"
+            },
+            "./values": {
+                "types": "./dist/values.d.ts",
+                "import": "./dist/values.js",
+                "module": "./dist/values.js"
+            },
+            "./library": {
+                "types": "./dist/library.d.ts",
+                "import": "./dist/library.js",
+                "module": "./dist/library.js"
+            },
+            "./absentGlobals": {
+                "types": "./dist/absentGlobals.d.ts",
+                "import": "./dist/absentGlobals.js",
+                "module": "./dist/absentGlobals.js"
+            },
+            "./package.json": "./package.json"
+        }
+    },
+    "type": "module",
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "README.md"
+    ],
+    "module": "./dist/ScriptEngine.js",
+    "types": "./dist/ScriptEngine.d.ts",
+    "exports": {
+        ".": {
+            "jsprismarine:dist": "./dist/ScriptEngine.js",
+            "default": "./src/ScriptEngine.ts"
+        },
+        "./errors": {
+            "jsprismarine:dist": "./dist/errors.js",
+            "default": "./src/errors.ts"
+        },
+        "./values": {
+            "jsprismarine:dist": "./dist/values.js",
+            "default": "./src/values.ts"
+        },
+        "./library": {
+            "jsprismarine:dist": "./dist/library.js",
+            "default": "./src/library.ts"
+        },
+        "./absentGlobals": {
+            "jsprismarine:dist": "./dist/absentGlobals.js",
+            "default": "./src/absentGlobals.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
+        "build": "vite build && node ../../scripts/emit-dts.mts",
+        "build:watch": "vite build --watch",
+        "build:native": "node scripts/build-native.mts",
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "nodejs",
+        "minecraft",
+        "bedrock",
+        "scripting",
+        "quickjs"
+    ],
+    "author": "JSPrismarine",
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/script-host",
+    "devDependencies": {
+        "@types/node": "26.6.6",
+        "glob": "14.0.6",
+        "rimraf": "6.1.4",
+        "typescript": "7.0.2",
+        "vite": "8.3.8",
+        "vitest": "5.1.0"
+    }
+}

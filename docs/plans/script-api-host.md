@@ -130,7 +130,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
 2. [x] **Research note.** [bedrock-script-api.md](../research/bedrock-script-api.md): versions
    and their members, timing, configuration, storage, the debugger protocol, engine options, and
    corpus candidates.
-3. [ ] [#3200](https://github.com/JSPrismarine/JSPrismarine/issues/3200) **The engine on one platform.** Linux x64 first.
+3. [x] [#3200](https://github.com/JSPrismarine/JSPrismarine/issues/3200) **The engine on one platform.** Linux x64 first.
    - Create `packages/script-host` with its README.
    - Build Bellard's QuickJS at its latest release and the C layer: handles, host dispatch, the
      interrupt-driven step budget, the allocation and stack limits, state per engine.

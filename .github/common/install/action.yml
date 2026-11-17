@@ -102,6 +102,11 @@ runs:
           if: ${{ inputs.root-only != 'true' && inputs.native-network == 'true' }}
           uses: ./.github/common/native-network
 
+        # The script host builds on Linux x64 only so far; elsewhere its tests skip.
+        - name: 📜 Script host library
+          if: ${{ inputs.root-only != 'true' && runner.os == 'Linux' && runner.arch == 'X64' }}
+          uses: ./.github/common/script-host
+
         # A pull request never saves the store. Its entry is visible to that pull request alone,
         # and a copy per pull request pushed master's entries, the ones every pull request
         # restores, out of the cache. It downloads the few packages its lockfile adds instead.
