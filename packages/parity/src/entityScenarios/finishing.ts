@@ -14,6 +14,7 @@ import { isInDragonArena } from '@jsprismarine/prismarine/world/end/DragonFight'
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { javaOperations, pinnedJavaClass } from '../javaClassFile.ts';
 import { unpackVanillaDatapack } from '../javaDatapack.ts';
+import { loadJavaEntityAttributes } from '../goldens.ts';
 import { serverContent } from '../serverStack.ts';
 import { withProbe } from './goalProbe.ts';
 import { inSandbox, SANDBOX_ORIGIN } from './sandbox.ts';
@@ -572,10 +573,82 @@ const compareDrownedKnockback = (subject: EntitySubject): string | undefined => 
     return differences.length === 0 ? undefined : differences.join('; ');
 };
 
+/** The archetype a stone block gives a Java sulfur cube, which `#minecraft:sulfur_cube_archetype/slow_bouncy` names. */
+const STONE_ARCHETYPE = 'slow_bouncy';
+
+/** A Java sulfur cube archetype's `knockback_modifiers` and the knockback resistance its attribute modifiers add. */
+const javaArchetype = (
+    archetype: string
+): { readonly horizontal: number; readonly vertical: number; readonly resistance: number } | undefined => {
+    const path = join(unpackVanillaDatapack(), 'data', 'minecraft', 'sulfur_cube_archetype', `${archetype}.json`);
+    // Parsed JSON boundary: the datapack file is the archetype's registry entry.
+    const data: unknown = JSON.parse(readFileSync(path, 'utf-8'));
+    const horizontal = field(field(data, 'knockback_modifiers'), 'horizontal_power');
+    const vertical = field(field(data, 'knockback_modifiers'), 'vertical_power');
+    const modifiers = field(data, 'attribute_modifiers');
+    const added = (Array.isArray(modifiers) ? modifiers : [])
+        .filter(
+            (modifier) =>
+                field(modifier, 'attribute') === 'minecraft:knockback_resistance' &&
+                field(modifier, 'operation') === 'add_value'
+        )
+        .reduce((total: number, modifier) => {
+            const amount = field(modifier, 'amount');
+            return total + (typeof amount === 'number' ? amount : 0);
+        }, 0);
+    return typeof horizontal === 'number' && typeof vertical === 'number'
+        ? { horizontal, vertical, resistance: added }
+        : undefined;
+};
+
+/** Whether a datapack item tag lists an item by name. */
+const javaItemTagLists = (tag: string, item: string): boolean => {
+    const path = join(unpackVanillaDatapack(), 'data', 'minecraft', 'tags', 'item', `${tag}.json`);
+    // Parsed JSON boundary: a datapack tag file.
+    const values = field(JSON.parse(readFileSync(path, 'utf-8')), 'values');
+    return Array.isArray(values) && values.includes(item);
+};
+
 /**
- * A player's blow on a sulfur cube carrying a block against Java's `SulfurCube.knockback`, which
- * replaces the plain push with one its archetype's knockback modifiers size, aimed by where the
- * player looks; the pack writes those as the player's `minecraft:apply_knockback_rules`.
+ * The push Java's `SulfurCube.knockback` gives a cube struck by an attacker standing level with
+ * it, `distance` away, with its eyes `eyes` up and looking at the cube's center: no turn off the
+ * center and none for height, and `applyVerticalHitAnglePowerTransfer` moving power by how far up
+ * the cube the look falls, with the result held within the archetype's own powers. A blow of 1
+ * scales it by 1.
+ */
+const javaCubePush = (
+    archetype: { readonly horizontal: number; readonly vertical: number },
+    height: number,
+    eyes: number,
+    distance: number,
+    resistance: number
+): { readonly across: number; readonly up: number } => {
+    const towardY = (rise: number): number => rise / Math.hypot(distance, rise);
+    const look = towardY(height / 2 - eyes);
+    const top = towardY(height - eyes);
+    const bottom = towardY(-eyes);
+    const share = Math.min(1, Math.max(0, (look - top) / (bottom - top)));
+    const transfer = (-1 + 2 * share) * 0.5;
+    let across = archetype.horizontal * (1 - transfer);
+    let up = archetype.vertical * (1 + transfer);
+    const over = Math.max(across / archetype.horizontal, up / archetype.vertical);
+    if (over > 1) {
+        across /= over;
+        up /= over;
+    }
+    const kept = 1 - resistance;
+    return { across: across * kept * 0.4, up: up * kept * 1.2 };
+};
+
+/** Java's player eye height, `Player.STANDING_DIMENSIONS.eyeHeight`. */
+const PLAYER_EYES = 1.62;
+
+/**
+ * A player's blow on a sulfur cube carrying a stone block against Java's `SulfurCube.knockback`,
+ * which replaces the plain push with one its archetype's knockback modifiers size, aimed by where
+ * the player looks. The pack writes those as the player's `minecraft:apply_knockback_rules`. The
+ * cube's box is the server's on both sides, since the client owns hitboxes (category 5 of the
+ * parity claim).
  */
 const comparePlayerCubeKnockback = (): string | undefined => {
     const cube = pinnedJavaClass('net/minecraft/world/entity/monster/cubemob/SulfurCube').find(
@@ -583,31 +656,41 @@ const comparePlayerCubeKnockback = (): string | undefined => {
     );
     if (cube === undefined || !cube.calls.some((call) => call.endsWith('KnockbackModifiers.horizontalPower')))
         return "Java's sulfur cube no longer takes its archetype's knockback";
-    const pushes = withProbe('minecraft:zombie', { keep: [] }, (probe) => {
+    const constants = pushedNumbers(cube).map((value) => Math.fround(value));
+    if (![1.6, 0.5, 0.8, 0.4, 1.2].every((constant) => constants.includes(Math.fround(constant))))
+        return "Java's SulfurCube.knockback no longer scales its push by 1.6, 0.5, 0.8, 0.4 and 1.2";
+    if (!javaItemTagLists(`sulfur_cube_archetype/${STONE_ARCHETYPE}`, 'minecraft:stone'))
+        return `Java's stone no longer gives a sulfur cube the ${STONE_ARCHETYPE} archetype`;
+    const archetype = javaArchetype(STONE_ARCHETYPE);
+    const base = loadJavaEntityAttributes()['minecraft:sulfur_cube']?.attributes['minecraft:knockback_resistance'];
+    if (archetype === undefined || base === undefined) return `Java's ${STONE_ARCHETYPE} archetype has no knockback`;
+
+    const pushed = withProbe('minecraft:zombie', { keep: [] }, (probe) => {
         const player = probe.player(-1.5, 0, 0);
         const sulfur = probe.spawn('minecraft:sulfur_cube', 3, 0, 0);
-        sulfur.body.setEquipment({ ...sulfur.body.equipment, body: { identifier: 'minecraft:stone', count: 1 } });
-        const blow = (
-            target: { readonly id: number; readonly body: { velocity: EntityPosition } },
-            from: EntityPosition
-        ) => {
-            target.body.velocity = { x: 0, y: 0, z: 0 };
-            probe.runtime.damage({
-                target: target.id,
-                attacker: player,
-                cause: 'entity_attack',
-                amount: 1,
-                source: { route: 'melee', knockback: { origin: from, levels: 0 } }
-            });
-            return Math.hypot(target.body.velocity.x, target.body.velocity.z);
-        };
+        // Bedrock's cube holds what it swallowed in its main hand, and the pickup raises this event.
+        sulfur.body.setEquipment({ ...sulfur.body.equipment, mainhand: { identifier: 'minecraft:stone', count: 1 } });
+        sulfur.instance.raise('minecraft:on_block_absorbed', 'self', 'parity');
+        probe.tick(2);
+        const playerAt = probe.at(-1.5, 0, 0);
+        sulfur.body.velocity = { x: 0, y: 0, z: 0 };
+        probe.runtime.damage({
+            target: sulfur.id,
+            attacker: player,
+            cause: 'entity_attack',
+            amount: 1,
+            source: { route: 'melee', knockback: { origin: playerAt, levels: 0 } }
+        });
         return {
-            cube: blow(sulfur, probe.at(1.5, 0, 0)),
-            plain: blow(probe.entity, probe.at(-1.5, 0, 0))
+            velocity: sulfur.body.velocity,
+            height: sulfur.facts.box.height,
+            distance: Math.hypot(sulfur.position.x - playerAt.x, sulfur.position.z - playerAt.z)
         };
     });
-    return Math.abs(pushes.cube - pushes.plain) < 0.001
-        ? `a player's blow pushes a sulfur cube carrying a block ${pushes.cube.toFixed(3)}, the plain push any mob takes, where Java's SulfurCube.knockback sizes it by the cube's archetype and the player's aim`
+    const java = javaCubePush(archetype, pushed.height, PLAYER_EYES, pushed.distance, base + archetype.resistance);
+    const across = Math.hypot(pushed.velocity.x, pushed.velocity.z);
+    return Math.abs(across - java.across) > 0.005 || Math.abs(pushed.velocity.y - java.up) > 0.005
+        ? `a player's blow pushes a sulfur cube carrying stone ${across.toFixed(3)} across and ${pushed.velocity.y.toFixed(3)} up, where Java's SulfurCube.knockback pushes its ${STONE_ARCHETYPE} cube ${java.across.toFixed(3)} across and ${java.up.toFixed(3)} up`
         : undefined;
 };
 
@@ -848,36 +931,109 @@ const compareBellHiding = (subject: EntitySubject): string | undefined => {
 /** The runtime id of the store player a ravager strikes. */
 const SHIELD_HOLDER_ID = 9_800_001;
 
+/** What a ravager's blow on a player behind a raised shield did, with one draw of the world's random source. */
+interface BlockedRavager {
+    /** The health the player lost. */
+    readonly taken: number;
+    /** How many ticks the ravager stayed stunned, or undefined when it never was. */
+    readonly stunnedTicks: number | undefined;
+    /** The push the player was sent, or undefined when it was sent none. */
+    readonly impulse: EntityPosition | undefined;
+    /** How far the player stood from the ravager, horizontally. */
+    readonly distance: number;
+}
+
 /**
- * A ravager's blow on a player behind a raised shield against Java's: the shield blocks it
- * (`LivingEntity.applyItemBlocking`), and `Ravager.blockedByItem` either stuns the ravager for 40
- * ticks or throws the defender back.
+ * Strikes a player who faces the ravager with a shield raised in the off hand, sneaking for 10
+ * ticks, past the shield's quarter-second block delay, with `draw` as every random draw after.
  */
-const compareRavagerBlocked = (subject: EntitySubject): string | undefined => {
-    const blocked = javaMethodOf(javaEntityClassName(subject.javaId), 'blockedByItem');
-    const stun = blocked === undefined ? [] : pushedNumbers(blocked.method);
-    if (blocked?.owner !== 'Ravager' || !stun.includes(40)) return "Java's ravager is no longer stunned by a shield";
-    const taken = withProbe(subject.bedrock, { keep: [] }, (probe) => {
+const ravagerOnShield = (bedrock: string, draw: number): BlockedRavager | string =>
+    withProbe(bedrock, { keep: [] }, (probe) => {
         const player = probe.runtime.spawnPlayer(SHIELD_HOLDER_ID, probe.at(1.5, 0, 0));
         const target = probe.runtime.mobById(SHIELD_HOLDER_ID);
         if (player === undefined || target === undefined) return 'the probe could not put a player in front of it';
         try {
             player.body.setEquipment({ offhand: { identifier: 'minecraft:shield', count: 1 } });
+            // Facing -x, toward the ravager: Java's look is (-sin(yaw), cos(yaw)).
+            player.body.yaw = 90;
+            const impulses: EntityPosition[] = [];
+            const send = player.body.onImpulse;
+            player.body.onImpulse = (impulse) => {
+                impulses.push(impulse);
+                send?.(impulse);
+            };
             probe.runtime.playerSystems.setSneaking(player, true);
             probe.tick(10);
-            const before = player.instance.attributes.get('health')?.current ?? 0;
             const ravager = probe.runtime.bodyOf(probe.entity.instance);
             if (ravager === undefined) return 'the probe lost the ravager';
+            probe.reroll([draw]);
+            const before = player.instance.attributes.get('health')?.current ?? 0;
             probe.runtime.attack(ravager, target);
-            return before - (player.instance.attributes.get('health')?.current ?? 0);
+            const taken = before - (player.instance.attributes.get('health')?.current ?? 0);
+            const distance = Math.hypot(player.position.x - ravager.position.x, player.position.z - ravager.position.z);
+            probe.tick(1);
+            const { instance } = probe.entity;
+            const stunned = instance.hasComponent('minecraft:is_stunned');
+            const stunnedTicks = stunned
+                ? probe.until(() => !instance.hasComponent('minecraft:is_stunned'), 200)
+                : undefined;
+            return {
+                taken,
+                stunnedTicks: stunnedTicks === undefined ? undefined : stunnedTicks + 1,
+                impulse: impulses[0],
+                distance
+            };
         } finally {
             probe.runtime.remove(player.id, 'parity probe');
         }
     });
-    if (typeof taken === 'string') return taken;
-    return taken > 0
-        ? `a player crouching behind a raised shield takes ${taken} from its blow, so the server never blocks it and the ravager is never stunned or the defender thrown back, where Java's shield blocks it`
-        : undefined;
+
+/**
+ * A ravager's blow on a player behind a raised shield against Java's: the shield blocks it whole
+ * (`LivingEntity.applyItemBlocking`), and `Ravager.blockedByItem` either stuns the ravager for 40
+ * ticks, for a draw under 0.5, or throws the defender back by `strongKnockback`, 4 over the
+ * distance and 0.2 up.
+ */
+const compareRavagerBlocked = (subject: EntitySubject): string | undefined => {
+    const className = javaEntityClassName(subject.javaId);
+    const blocked = javaMethodOf(className, 'blockedByItem');
+    const stun = blocked === undefined ? [] : pushedNumbers(blocked.method);
+    const thrown = javaMethodOf(className, 'strongKnockback');
+    const throws = thrown === undefined ? [] : pushedNumbers(thrown.method);
+    if (blocked?.owner !== 'Ravager' || !stun.includes(40) || !stun.includes(0.5))
+        return "Java's ravager is no longer stunned by a shield half the time";
+    if (!throws.includes(4) || !throws.includes(0.2))
+        return "Java's ravager no longer throws a blocker 4 across and 0.2 up";
+    const differences: string[] = [];
+    for (const draw of [0.25, 0.75]) {
+        const outcome = ravagerOnShield(subject.bedrock, draw);
+        if (typeof outcome === 'string') return outcome;
+        if (outcome.taken > 0) {
+            differences.push(
+                `a player facing it behind a raised shield takes ${outcome.taken} from its blow, where Java's shield blocks it whole`
+            );
+            break;
+        }
+        if (draw < 0.5) {
+            if (outcome.stunnedTicks === undefined || Math.abs(outcome.stunnedTicks - 40) > 1)
+                differences.push(
+                    `with a draw of ${draw} it is stunned for ${outcome.stunnedTicks ?? 0} ticks, where Java's is stunned for 40`
+                );
+            continue;
+        }
+        const across = 4 / Math.max(outcome.distance, Math.sqrt(0.001));
+        const impulse = outcome.impulse;
+        if (
+            outcome.stunnedTicks !== undefined ||
+            impulse === undefined ||
+            Math.abs(Math.hypot(impulse.x, impulse.z) - across) > 0.01 ||
+            Math.abs(impulse.y - 0.2) > 0.01
+        )
+            differences.push(
+                `with a draw of ${draw} it throws the player ${impulse === undefined ? 'nowhere' : `${Math.hypot(impulse.x, impulse.z).toFixed(3)} across and ${impulse.y.toFixed(3)} up`}${outcome.stunnedTicks === undefined ? '' : ' and is stunned'}, where Java's throws it ${across.toFixed(3)} across and 0.2 up`
+            );
+    }
+    return differences.length === 0 ? undefined : differences.join('; ');
 };
 
 /** The scenarios of the finishing theme. */
@@ -982,7 +1138,7 @@ export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'player-blow-on-sulfur-cube',
         java: "A player's blow on a sulfur cube carrying a block pushes it by the cube's archetype knockback, as Java's SulfurCube.knockback replaces the plain push.",
         reference:
-            'Java SulfurCube.knockback (hasBodyItem, SulfurCubeArchetype$KnockbackModifiers horizontalPower and verticalPower, applyHorizontalHitAngleScale, applyVerticalHitAnglePowerTransfer, applyVerticalPositionAnglePowerRotation), read from the pinned jar',
+            'Java SulfurCube.knockback (hasBodyItem, SulfurCubeArchetype$KnockbackModifiers horizontalPower and verticalPower, applyHorizontalHitAngleScale, applyVerticalHitAnglePowerTransfer, applyVerticalPositionAnglePowerRotation, 0.4 and 1.2), read from the pinned jar, and data/minecraft/sulfur_cube_archetype/slow_bouncy.json with #minecraft:sulfur_cube_archetype/slow_bouncy',
         subjects: () =>
             entitiesDeclaring('minecraft:apply_knockback_rules').filter(
                 (subject) => subject.javaId === 'minecraft:player'
@@ -1044,7 +1200,7 @@ export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'ravager-blocked-by-shield',
         java: "A ravager whose blow a raised shield blocks is stunned for 40 ticks half the time and throws the defender back otherwise, as Java's Ravager.blockedByItem does.",
         reference:
-            'Java LivingEntity.applyItemBlocking and Ravager.blockedByItem (roarTick, nextDouble() < 0.5, stunnedTick 40, strongKnockback), read from the pinned jar; issues #3194 and #3222',
+            'Java LivingEntity.applyItemBlocking, Ravager.blockedByItem (roarTick, nextDouble() < 0.5, stunnedTick 40) and Ravager.strongKnockback (4 over the squared distance, 0.2 up), read from the pinned jar',
         subjects: () => entitiesDeclaring('minecraft:ravager_blocked'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:ravager_blocked'],
