@@ -252,11 +252,6 @@
         }
     },
     "entities.behavior": {
-        "boss-bar:minecraft:wither": {
-            "kind": "defect",
-            "reason": "The wither shows its boss bar to every player tracking it, with its health as the bar's progress. Observed: the server runs nothing for minecraft:boss, so no player sees its boss bar, where Java shows it.",
-            "reference": "Java WitherBoss (ServerBossEvent, startSeenByPlayer and customServerAiStep setProgress), read from the pinned jar; issue #3197. The ender dragon's bar is world/end/DragonFight.ts's, which its own tests compare with EnderDragonFight"
-        },
         "breeding-cycle:minecraft:ocelot": {
             "kind": "defect",
             "reason": "A fed adult falls in love for 600 ticks, a pair breeds a baby of Java's type, and both parents wait 6000 ticks before breeding again. Observed: feeding it minecraft:cod puts it in love for 0 ticks, where Java's lasts 600.",

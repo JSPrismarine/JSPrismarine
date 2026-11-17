@@ -2,11 +2,14 @@ import { bedrockBlockStateToJava, javaBlockStateToBedrock } from '@jsprismarine/
 import type { BlockStateValue } from '@jsprismarine/mapping';
 
 import type { ContentEntity } from '@jsprismarine/prismarine/content/world/adapter';
+import { EntityBossBars, ownBossBarOf } from '@jsprismarine/prismarine/entity/data/bossBars';
+import type { BossBarViewer } from '@jsprismarine/prismarine/entity/data/bossBars';
+import { isInDragonArena } from '@jsprismarine/prismarine/world/end/DragonFight';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { javaOperations, pinnedJavaClass } from '../javaClassFile.ts';
 import { withProbe } from './goalProbe.ts';
-import { javaAncestry, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
+import { javaAncestry, javaEntityClassName, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
 import { entitiesDeclaring } from './subjects.ts';
 
@@ -266,6 +269,104 @@ const compareInsomnia = (): string | undefined => {
     return differences.length === 0 ? undefined : differences.join('; ');
 };
 
+/** A player whose client tracks the entities in its set, as the boss bars ask of a session. */
+class TrackingViewer implements BossBarViewer {
+    public readonly tracked = new Set<bigint>();
+    public tracks(runtimeId: bigint): boolean {
+        return this.tracked.has(runtimeId);
+    }
+}
+
+/** Whether a Java entity class's code reaches a member, such as `ServerBossEvent.addPlayer`, in one of its methods. */
+const javaCalls = (className: string, method: string, member: string): boolean =>
+    javaMethodOf(className, method)?.method.calls.some((call) => call.endsWith(member)) === true;
+
+/**
+ * The wither's own bar against Java's `WitherBoss`: shown to the players tracking it and to nobody
+ * else, taken off a player who stops tracking it, and as full as its health.
+ */
+const compareWitherBar = (subject: EntitySubject): string | undefined => {
+    const className = javaEntityClassName(subject.javaId);
+    if (
+        !javaCalls(className, 'startSeenByPlayer', 'ServerBossEvent.addPlayer') ||
+        !javaCalls(className, 'stopSeenByPlayer', 'ServerBossEvent.removePlayer') ||
+        !javaCalls(className, 'customServerAiStep', 'ServerBossEvent.setProgress')
+    )
+        return "Java's wither no longer shows its bar to the players tracking it";
+    return withProbe(subject.bedrock, { keep: [] }, (probe) => {
+        const shown = new Map<TrackingViewer, boolean>();
+        let progress: number | undefined;
+        const bars = new EntityBossBars<TrackingViewer>((_entity, opened) => {
+            progress = opened.progress;
+            return {
+                show: (viewer) => shown.set(viewer, true),
+                hide: (viewer) => shown.set(viewer, false),
+                setProgress: (value) => {
+                    progress = value;
+                },
+                setName: () => {},
+                close: () => shown.clear()
+            };
+        });
+        const [tracking, distant] = [new TrackingViewer(), new TrackingViewer()];
+        const id = BigInt(probe.entity.id);
+        tracking.tracked.add(id);
+        const differences: string[] = [];
+        const health = probe.entity.instance.attributes.get('health');
+        if (health === undefined) return 'the wither has no health';
+        probe.entity.instance.attributes.set('health', health.max / 4);
+        bars.sync(probe.runtime.entities(), [tracking, distant]);
+        if (shown.get(tracking) !== true) differences.push('a player tracking it never sees its bar');
+        if (shown.get(distant) === true) differences.push('a player not tracking it sees its bar');
+        if (progress !== 0.25) differences.push(`at a quarter of its health its bar is ${String(progress)} full`);
+        tracking.tracked.delete(id);
+        bars.sync(probe.runtime.entities(), [tracking, distant]);
+        if (shown.get(tracking) === true) differences.push('a player who stops tracking it keeps its bar');
+        return differences.length === 0 ? undefined : differences.join('; ');
+    });
+};
+
+/**
+ * The ender dragon's bar against Java's: `EnderDragon` carries none of its own, and
+ * `EnderDragonFight` shows the fight's to the players within its `validPlayer` distance of the
+ * arena's center, read from the pinned jar.
+ */
+const compareDragonBar = (subject: EntitySubject): string | undefined => {
+    const fight = pinnedJavaClass('net/minecraft/world/level/dimension/end/EnderDragonFight').find(
+        (method) => method.name === 'init' && method.calls.some((call) => call.endsWith('.withinDistance'))
+    );
+    if (fight === undefined) return "Java's dragon fight no longer picks its players by distance";
+    const operations = javaOperations(fight);
+    const at = operations.findIndex(
+        (operation) => operation.kind === 'call' && operation.target.endsWith('.withinDistance')
+    );
+    const numbers = operations
+        .slice(0, at)
+        .flatMap((operation) => (operation.kind === 'number' ? [operation.value] : []));
+    const [centerY, radius] = numbers.slice(-2);
+    if (centerY === undefined || radius === undefined) return 'EnderDragonFight pushes no arena distance';
+    const javaIn = (x: number, y: number, z: number): boolean => x * x + (y - centerY) ** 2 + z * z <= radius * radius;
+    const differences: string[] = [];
+    for (const [x, y, z] of [
+        [0, 70, 0],
+        [0, centerY, radius - 1],
+        [0, centerY, radius + 1],
+        [radius * 0.75, centerY + radius * 0.75, 0],
+        [-radius, 0, 0]
+    ] as const) {
+        const java = javaIn(x, y, z);
+        if (isInDragonArena({ x, y, z }) !== java)
+            differences.push(
+                `a player at (${x}, ${y}, ${z}) ${java ? 'does not see' : 'sees'} the dragon's bar, where Java ${java ? 'shows' : 'hides'} it`
+            );
+    }
+    if (javaCalls(javaEntityClassName(subject.javaId), 'startSeenByPlayer', 'ServerBossEvent.addPlayer'))
+        return "Java's dragon now carries a bar of its own";
+    const own = withProbe(subject.bedrock, { keep: [] }, (probe) => ownBossBarOf(probe.entity));
+    if (own !== undefined) differences.push("the dragon shows a bar of its own beside the fight's");
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
 /** The scenarios of the finishing theme. */
 export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
@@ -288,5 +389,16 @@ export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:insomnia'],
         run: compareInsomnia
+    },
+    {
+        name: 'boss-bar',
+        java: "The wither shows its boss bar to every player tracking it, with its health as the bar's progress, and the ender dragon's bar is its fight's, shown to the players in the arena.",
+        reference:
+            'Java WitherBoss (ServerBossEvent, startSeenByPlayer addPlayer, stopSeenByPlayer removePlayer and customServerAiStep setProgress), EnderDragon, which has no bar of its own, and EnderDragonFight (validPlayer withinDistance(0, 128, 0, 192), updatePlayers, dragonEvent.setProgress), read from the pinned jar; issue #3197',
+        subjects: () => entitiesDeclaring('minecraft:boss'),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:boss'],
+        run: (subject) =>
+            subject.javaId === 'minecraft:ender_dragon' ? compareDragonBar(subject) : compareWitherBar(subject)
     }
 ];

@@ -6,7 +6,7 @@ import { SANDBOX_ORIGIN, inSandbox } from './sandbox.ts';
 import type { EntitySubject } from './subjects.ts';
 import { mappedEntity } from './subjects.ts';
 import { switchGroups } from './reactions.ts';
-import { realStack, serverContent } from '../serverStack.ts';
+import { realStack } from '../serverStack.ts';
 import { RaidManager } from '@jsprismarine/prismarine/world/raid/RaidManager';
 import { javaOperations } from '../javaClassFile.ts';
 
@@ -223,26 +223,6 @@ export const effectsAroundScenarios: readonly BehaviorScenario<EntitySubject>[] 
             if (outside === undefined || outside.kept !== 1 || outside.granted.length > 0)
                 differences.push('outside a village it spends its Bad Omen, where Java keeps it');
             return differences.length === 0 ? undefined : differences.join('; ');
-        }
-    },
-    {
-        name: 'boss-bar',
-        java: "The wither shows its boss bar to every player tracking it, with its health as the bar's progress.",
-        reference:
-            "Java WitherBoss (ServerBossEvent, startSeenByPlayer and customServerAiStep setProgress), read from the pinned jar; issue #3197. The ender dragon's bar is world/end/DragonFight.ts's, which its own tests compare with EnderDragonFight",
-        subjects: () => subjectsOf(['minecraft:wither']),
-        idOf: (subject) => subject.javaId,
-        aspects: () => ['minecraft:boss'],
-        run: (subject) => {
-            if (
-                javaMethodOf(javaEntityClassName(subject.javaId), 'startSeenByPlayer') === undefined &&
-                subject.javaId === 'minecraft:wither'
-            )
-                return "Java's wither no longer shows a boss bar";
-            // A component the registry holds as data only never runs, and nothing else sends a boss bar.
-            return serverContent().entities.components.hooksOf('minecraft:boss').size === 0
-                ? 'the server runs nothing for minecraft:boss, so no player sees its boss bar, where Java shows it'
-                : undefined;
         }
     }
 ];
