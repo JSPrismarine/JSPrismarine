@@ -4,6 +4,7 @@ import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormReque
 
 import type Server from '../Server';
 import { levelScriptAccess } from '../scripting/levelScriptAccess';
+import { levelSimulatedPlayers } from '../scripting/levelSimulatedPlayers';
 import { LevelScripts } from '../scripting/LevelScripts';
 import { withCwd } from '../utils/cwd';
 import { contentToken, worldsToken } from './tokens';
@@ -60,7 +61,7 @@ export const scriptsModule = (server: Server): Module => ({
                 weather: level.getWeather(),
                 chat: server.getChatManager(),
                 clock: () => server.getAdmittedClock(),
-                access: levelScriptAccess(server, level),
+                access: { ...levelScriptAccess(server, level), simulatedPlayers: levelSimulatedPlayers(server, level) },
                 onPlayerLeaving: (listener) =>
                     server
                         .getKernel()

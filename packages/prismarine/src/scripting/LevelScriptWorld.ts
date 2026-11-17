@@ -44,6 +44,9 @@ export type ScriptLevelAccess = Pick<
     | 'resolveBlock'
     | 'itemType'
     | 'runCommand'
+    | 'simulatedPlayers'
+    | 'placeStructure'
+    | 'setGameMode'
 >;
 
 /** A level the scripts reach nothing of: no entities, no loaded blocks, no types and no commands. */
@@ -89,8 +92,11 @@ export interface ScriptWorldSources {
     players(): readonly ScriptWorldPlayer[];
     /** The level's weather. */
     readonly weather: WorldWeather;
-    /** The server's chat, whose guard stage a player's line goes past. */
-    readonly chat: Pick<ChatManager, 'addGuard'>;
+    /**
+     * The server's chat, whose guard stage a player's line goes past, and which tells who
+     * listens of each line that went out.
+     */
+    readonly chat: Pick<ChatManager, 'addGuard'> & Partial<Pick<ChatManager, 'onSent'>>;
     /** The wall clock the input step admitted for the current tick, in milliseconds since the epoch. */
     clock(): number;
     /** The level's entities, blocks, items and commands. {@link NO_LEVEL_ACCESS} when absent. */
@@ -120,6 +126,15 @@ export class LevelScriptWorld implements ScriptWorld {
     private readonly stopListening: () => void;
     /** The players the scripts were last told about, by id, with their names. */
     private known = new Map<string, string>();
+    /** The players in the level when the running script flush began; undefined between flushes. */
+    private presentAtFlush: ReadonlySet<string> | undefined;
+
+    /** The level's GameTest simulated players, when the server gives the scripts any. */
+    public readonly simulatedPlayers: ScriptWorld['simulatedPlayers'];
+    /** Places a GameTest's structure, when the server can. */
+    public readonly placeStructure: ScriptWorld['placeStructure'];
+    /** Sets a player's game mode, when the server can. */
+    public readonly setGameMode: ScriptWorld['setGameMode'];
 
     /** The forms of the level's scripts, which travel to the level's players and back. */
     public readonly forms: ScriptFormChannel = {
@@ -132,7 +147,10 @@ export class LevelScriptWorld implements ScriptWorld {
     public constructor(sources: ScriptWorldSources) {
         this.sources = sources;
         this.access = sources.access ?? NO_LEVEL_ACCESS;
-        this.stopListening = sources.weather.onChange(({ previous, current }) =>
+        this.simulatedPlayers = this.access.simulatedPlayers;
+        this.placeStructure = this.access.placeStructure;
+        this.setGameMode = this.access.setGameMode;
+        const stopWeather = sources.weather.onChange(({ previous, current }) =>
             this.committed.push({
                 type: 'weatherChange',
                 dimension: WEATHER_DIMENSION,
@@ -140,6 +158,14 @@ export class LevelScriptWorld implements ScriptWorld {
                 newWeather: SCRIPT_WEATHER[current]
             })
         );
+        const stopChat = sources.chat.onSent?.(({ sender, message }) => {
+            const id = String(sender);
+            if (this.players().includes(id)) this.committed.push({ type: 'chatSend', sender: id, message });
+        });
+        this.stopListening = () => {
+            stopWeather();
+            stopChat?.();
+        };
     }
 
     /** The level's dimensions, as Bedrock names them. */
@@ -318,6 +344,20 @@ export class LevelScriptWorld implements ScriptWorld {
     }
 
     /**
+     * Marks the start of a script flush. A player who leaves while it runs, such as a simulated
+     * player a script removes, is told to the scripts as gone in the next flush, as on BDS, whose
+     * `players` scenario records the after-event a tick after the removal.
+     */
+    public beginFlush(): void {
+        this.presentAtFlush = new Set(this.players());
+    }
+
+    /** Marks the end of a script flush. */
+    public endFlush(): void {
+        this.presentAtFlush = undefined;
+    }
+
+    /**
      * The changes since the last call, in the order they took effect, after the players who
      * left and joined since then: a player is told to the scripts as they first appear in the
      * level, and as gone once they no longer are.
@@ -325,15 +365,18 @@ export class LevelScriptWorld implements ScriptWorld {
     public takeEvents(): readonly ScriptWorldEvent[] {
         const now = new Map(this.sources.players().map((player) => [player.id, player.name ?? ''] as const));
         const presence: ScriptWorldEvent[] = [];
+        const leaving = new Map<string, string>();
         for (const [playerId, playerName] of this.known) {
-            if (!now.has(playerId)) presence.push({ type: 'playerLeave', playerId, playerName });
+            if (now.has(playerId)) continue;
+            if (this.presentAtFlush?.has(playerId) === true) leaving.set(playerId, playerName);
+            else presence.push({ type: 'playerLeave', playerId, playerName });
         }
         for (const [playerId, playerName] of now) {
             if (this.known.has(playerId)) continue;
             presence.push({ type: 'playerJoin', playerId, playerName });
             presence.push({ type: 'playerSpawn', playerId, initialSpawn: true });
         }
-        this.known = now;
+        this.known = new Map([...now, ...leaving]);
         return [...presence, ...this.committed.splice(0)];
     }
 

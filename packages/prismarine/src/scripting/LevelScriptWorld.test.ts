@@ -51,6 +51,50 @@ describe('LevelScriptWorld', () => {
         expect(guards).toEqual([]);
     });
 
+    it("commits a chatSend for a line of the level's players that went out", () => {
+        const listeners: ((intent: { sender: bigint; message: string }) => void)[] = [];
+        const { world } = scriptWorld({
+            players: () => [{ id: '7', sendMessage: () => {} }],
+            chat: {
+                addGuard: () => () => {},
+                onSent: (listener) => {
+                    listeners.push(listener);
+                    return () => {};
+                }
+            }
+        });
+        world.takeEvents();
+        for (const listener of listeners) {
+            listener({ sender: 7n, message: 'mine' });
+            listener({ sender: 9n, message: 'elsewhere' });
+        }
+
+        expect(world.takeEvents()).toEqual([{ type: 'chatSend', sender: '7', message: 'mine' }]);
+    });
+
+    it('tells a player who leaves during a script flush as gone in the next flush, and one who left before it at once', () => {
+        let present = [
+            { id: '1', name: 'Early', sendMessage: () => {} },
+            { id: '2', name: 'During', sendMessage: () => {} }
+        ];
+        const { world } = scriptWorld({ players: () => present });
+        world.takeEvents();
+
+        present = present.filter((player) => player.id !== '1');
+        world.beginFlush();
+        const atStart = world.takeEvents();
+        present = [];
+        const during = world.takeEvents();
+        world.endFlush();
+        world.beginFlush();
+        const next = world.takeEvents();
+        world.endFlush();
+
+        expect(atStart).toEqual([{ type: 'playerLeave', playerId: '1', playerName: 'Early' }]);
+        expect(during).toEqual([]);
+        expect(next).toEqual([{ type: 'playerLeave', playerId: '2', playerName: 'During' }]);
+    });
+
     it('takes a chat guard that can only veto, as a script cannot change the line', () => {
         const guards: PlayerChatGuard[] = [];
         const { world } = scriptWorld({

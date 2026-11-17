@@ -171,6 +171,27 @@ describe('ChatManager', () => {
         expect(steve.lines.map((line) => line.message)).toEqual(['hello', 'cancel me']);
     });
 
+    it("tells who listens of a player's line that went out, and not of one a guard or a listener stopped", async () => {
+        const events = new KernelEventBus<ServerEvents>();
+        const chat = new ChatManager(events);
+        chat.addGuard((intent) => (intent.message === 'vetoed' ? { veto: true } : { veto: false, intent }));
+        events.on('chat', (event) => {
+            if (event.getChat().getMessage() === 'canceled') event.preventDefault();
+        });
+        const sent: PlayerChatIntent[] = [];
+        const stop = chat.onSent((intent) => sent.push(intent));
+        const player: CommandExecutor & { getRuntimeId(): bigint } = { ...sender('Alex'), getRuntimeId: () => 7n };
+
+        for (const message of ['hello', 'vetoed', 'canceled']) {
+            await chat.send(new Chat({ sender: player, message, type: ChatType.CHAT }));
+        }
+        await chat.send(say('from the console'));
+        stop();
+        await chat.send(new Chat({ sender: player, message: 'after', type: ChatType.CHAT }));
+
+        expect(sent).toEqual([{ sender: 7n, message: 'hello' }]);
+    });
+
     it('stops running a guard once it is removed', async () => {
         const chat = new ChatManager(new KernelEventBus<ServerEvents>());
         const remove = chat.addGuard(() => ({ veto: true }));

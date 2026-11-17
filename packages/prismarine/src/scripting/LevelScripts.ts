@@ -13,7 +13,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { ScriptPack } from '@jsprismarine/script-host/host/pack';
-import type { ScriptLog, WorldScripts } from '@jsprismarine/script-host/host/WorldScripts';
+import type { GameTestReply } from '@jsprismarine/script-host/host/gametest';
+import type { GameTestCommand, ScriptLog, WorldScripts } from '@jsprismarine/script-host/host/WorldScripts';
 import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
 
 import type { ScriptDebuggerConfig, ScriptWatchdogConfig } from '../config/Config';
@@ -215,12 +216,25 @@ export class LevelScripts {
         this.runtime.startEarly();
         this.runtime.startWorld();
         this.attached = world;
-        world.setScriptPhase(() => this.runtime.flush());
+        world.setScriptPhase(() => this.flush());
     }
 
     /** Runs the script flush, for a level ticked by hand rather than through its world. */
     public flush(): void {
-        this.runtime.flush();
+        this.world.beginFlush();
+        try {
+            this.runtime.flush();
+        } finally {
+            this.world.endFlush();
+        }
+    }
+
+    /**
+     * Runs a `/gametest` subcommand on the level's GameTests. The tests it queues start in the
+     * next script flush.
+     */
+    public gametest(command: GameTestCommand): GameTestReply {
+        return this.runtime.gametest(command);
     }
 
     /**
