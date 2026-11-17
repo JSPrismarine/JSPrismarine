@@ -123,10 +123,10 @@ Two gates apply, and both have to pass.
 The first is this server's named permissions, in `permissions.json`. A vanilla command's node is
 `minecraft.command.<name>`, so `/teleport` needs `minecraft.command.teleport`. `/tps`, `/version`
 and `/debug` keep their `jsprismarine.command.<name>` nodes. A fresh
-`permissions.json` grants every player `minecraft.command.help`, `minecraft.command.list` and
-`minecraft.command.me`, and grants every operator `*`. The command list each player receives is
-filtered by these nodes, so a player who was granted nothing sees three Minecraft commands in their
-client rather than all <!-- fact:commands.registered -->56<!-- /fact -->.
+`permissions.json` lets every player <!-- fact:commands.defaults -->run `/help`, `/list`, `/me`, `/tps` and `/version`<!-- /fact -->, and grants every
+operator `*`. The command list each player receives is filtered by these nodes, so a player who was
+granted nothing more sees only those commands in their client. The
+[command reference](../guide/commands.md) lists every command with its node and level.
 
 The second is the command's own permission level, which is Java's. The console runs at level 5, an
 operator at 4 and everyone else at 0. Most of the set is declared at level 1, which is Java's

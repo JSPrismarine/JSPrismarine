@@ -28,6 +28,16 @@ const isPlayerPermissions = (value: unknown): value is PlayerPermissions =>
 export type PermissionManagerServer = Pick<Server, 'getLogger' | 'getSessionManager' | 'getKernel'>;
 
 const PERMISSION_FILE_NAME = 'permissions.json';
+
+/** The permissions a fresh `permissions.json` grants every player. */
+export const DEFAULT_PLAYER_PERMISSIONS: readonly string[] = [
+    'minecraft.command.help',
+    'minecraft.command.list',
+    'minecraft.command.me',
+    'jsprismarine.command.plugins',
+    'jsprismarine.command.version',
+    'jsprismarine.command.tps'
+];
 const OPS_FILE_NAME = 'ops.json';
 
 /**
@@ -213,14 +223,7 @@ export class PermissionManager implements Service {
         const document = parseConfigDocument('{}');
         document.set(
             ['defaultPermissions'],
-            [
-                'minecraft.command.help',
-                'minecraft.command.list',
-                'minecraft.command.me',
-                'jsprismarine.command.plugins',
-                'jsprismarine.command.version',
-                'jsprismarine.command.tps'
-            ],
+            [...DEFAULT_PLAYER_PERMISSIONS],
             'Permissions every player has. A permission names a command, and `namespace.scope.*` grants a whole scope.'
         );
         document.set(

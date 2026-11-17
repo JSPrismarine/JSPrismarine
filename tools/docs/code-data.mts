@@ -21,6 +21,21 @@ export interface CommandData {
     usage: string[];
 }
 
+/** One command a running server answers, its own commands included, with what gates it. */
+export interface ServerCommandData {
+    name: string;
+    /** Other names that run the same command, such as `tp` for `teleport`. */
+    aliases: string[];
+    /** The one-line description the Bedrock client shows. */
+    description: string;
+    /** The Java permission level the command needs: 0 for anyone, 4 for an operator. */
+    level: number;
+    /** The `permissions.json` node that gates it. */
+    permission: string;
+    /** Whether a fresh `permissions.json` grants the node to every player. */
+    everyone: boolean;
+}
+
 /** One `config.json` setting, as a fresh server writes it. */
 export interface SettingData {
     key: string;
@@ -65,6 +80,35 @@ export async function loadCommands() {
         registered,
         unwired: Object.entries<string>(server.UNWIRED_COMMANDS)
     };
+}
+
+/**
+ * Every command the server answers, in the order it registers them: the vanilla set, then the
+ * server's own commands, each with its permission node and level.
+ */
+export async function loadServerCommands(): Promise<ServerCommandData[]> {
+    const { buildVanillaCommands } = await import('../../packages/prismarine/src/command/vanillaCommands.ts');
+    const { registerJsprismarineCommands } =
+        await import('../../packages/prismarine/src/command/jsprismarineCommands.ts');
+    const { commandPermissionOf } = await import('../../packages/prismarine/src/command/CommandManager.ts');
+    const { DEFAULT_PLAYER_PERMISSIONS } =
+        await import('../../packages/prismarine/src/permission/PermissionManager.ts');
+
+    const registry = buildVanillaCommands();
+    // Registering only builds the tree; the server is read when a command runs, which never happens here.
+    registerJsprismarineCommands(registry, {} as never);
+    return registry.getNames().map((name: string) => {
+        const metadata = registry.getMetadata(name);
+        const permission = commandPermissionOf(name);
+        return {
+            name,
+            aliases: [...(metadata?.aliases ?? [])],
+            description: metadata?.description ?? '',
+            level: metadata?.permissionLevel ?? 0,
+            permission,
+            everyone: DEFAULT_PLAYER_PERMISSIONS.includes(permission)
+        };
+    });
 }
 
 /**

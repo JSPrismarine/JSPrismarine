@@ -18,6 +18,7 @@ Start from what you are here to do.
   <!-- fact:demo.address -->`demo.jsprismarine.dev`<!-- /fact -->.
 - [Joining a server](joining.md): add a server in Minecraft, which versions connect, and what to try
   when you cannot.
+- [Command reference](commands.md): every command, what it does and the permission it needs.
 - [Commands and functions](../data-driven/commands.md): how commands work, and running `.mcfunction`
   files from a datapack.
 

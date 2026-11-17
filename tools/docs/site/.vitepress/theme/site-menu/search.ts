@@ -153,7 +153,7 @@ export class SearchEngine {
                     kind: 'command',
                     title: `/${command.name}`,
                     context: 'Commands',
-                    href: '/data-driven/commands',
+                    href: '/guide/commands',
                     description: command.description,
                     command
                 },

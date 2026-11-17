@@ -40,7 +40,7 @@ import {
 } from '../../packages/worldgen/src/blending/generationVersion.ts';
 import { brandPurposes } from './site/.vitepress/theme/brandCatalog.ts';
 import { palette } from './site/.vitepress/theme/tokens.ts';
-import { loadCommands, loadOptionalSettings, loadSettings } from './code-data.mts';
+import { loadCommands, loadOptionalSettings, loadServerCommands, loadSettings } from './code-data.mts';
 import { loadProject, repoRoot } from './project.mts';
 
 /** Pinned downloads in `packages/bedrock-data/sources.json`, as far as the docs quote them. */
@@ -98,6 +98,27 @@ async function commandFacts() {
             unwired.map(([name, reason]) => [`\`/${name}\``, reason])
         )}\n`,
         'commands.registered.list': wrap(registered.map(({ name }) => name))
+    };
+}
+
+/** The command reference: every command the server answers, with its permission and who has it. */
+async function commandReferenceFacts() {
+    const commands = (await loadServerCommands()).sort((a, b) => a.name.localeCompare(b.name));
+    const defaults = commands.filter(({ everyone, level }) => everyone && level === 0);
+    return {
+        'commands.server': String(commands.length),
+        // Led by a verb: a value that starts and ends in a backtick would read as one inline code span.
+        'commands.defaults': `run ${list(defaults.map(({ name }) => `\`/${name}\``))}`,
+        'commands.reference.table': `\n${table(
+            ['Command', 'Description', 'Permission', 'Level', 'Granted to'],
+            commands.map(({ name, aliases, description, permission, level, everyone }) => [
+                [name, ...aliases].map((alias) => `\`/${alias}\``).join(', '),
+                description,
+                `\`${permission}\``,
+                String(level),
+                everyone && level === 0 ? 'Everyone' : 'Operators'
+            ])
+        )}\n`
     };
 }
 
@@ -596,6 +617,7 @@ export async function loadFacts(): Promise<Facts> {
                 Object.entries(brandPurposes).map(([name, purpose]) => [`\`${name}\``, purpose])
             )}\n`,
             ...(await commandFacts()),
+            ...(await commandReferenceFacts()),
             ...(await configFacts()),
             ...eventFacts(),
             ...prismarineEntryFacts(),
