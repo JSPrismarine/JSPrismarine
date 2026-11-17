@@ -1,4 +1,6 @@
 import { Gametype } from '@jsprismarine/minecraft';
+import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
+import { IDLE_PEEK } from '@jsprismarine/entities/components/peek';
 import { describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../../../.test/reportProgress';
@@ -43,6 +45,13 @@ const EXTRA = {
         },
         component_groups: { grown: { 'minecraft:health': { value: 30, max: 30 }, 'minecraft:is_tamed': {} } },
         events: { grow: { add: { component_groups: ['grown'] } } }
+    },
+    'jsprismarine:shell': {
+        description: { identifier: 'jsprismarine:shell', is_spawnable: true, is_summonable: true },
+        components: {
+            'minecraft:collision_box': { width: 1, height: 1 },
+            'minecraft:peek': {}
+        }
     }
 };
 
@@ -150,6 +159,30 @@ describe('the entity replica', () => {
             id: expect.any(Number),
             value: 'Shown'
         });
+    });
+
+    it("folds how far a shell is open from its peek component's state", () => {
+        // Every draw is 0, so the shell wins its first peek roll and opens 30 for 20 ticks.
+        const { runtime, content } = entityFixture(new TestEntityWorld({ random: [0] }), {}, EXTRA);
+        const replica = new EntityReplica(() => content);
+        const spawned: DataEntity[] = [];
+        tickInto(runtime, replica, () => {
+            const entity = runtime.spawn('jsprismarine:shell', GROUND);
+            if (entity !== undefined) spawned.push(entity);
+        });
+        const [shell] = spawned;
+        if (shell === undefined) throw new Error('the fixture declares no jsprismarine:shell');
+
+        const peeks = new Set<unknown>();
+        for (let tick = 1; tick <= 30; tick++) {
+            tickInto(runtime, replica, () => runtime.tick(tick));
+            expect({ tick, divergences: divergences(runtime, replica) }).toEqual({ tick, divergences: [] });
+            const peek = replica
+                .view(BigInt(shell.id))
+                ?.metadata.properties.find((property) => property.id === ActorDataID.PEEK_ID);
+            peeks.add(peek?.value);
+        }
+        expect(peeks).toEqual(new Set([0, IDLE_PEEK]));
     });
 
     it('visits the entities a tick wrote, whatever number it holds', () => {

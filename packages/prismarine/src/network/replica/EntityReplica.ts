@@ -15,6 +15,7 @@
  */
 import type { EntityType, PropertyDefinition, PropertyValue } from '@jsprismarine/entities';
 import { javaEntityNavigation } from '@jsprismarine/entities';
+import { peekAmountOf } from '@jsprismarine/entities/components/peek';
 
 import type { ServerContent } from '../../content/ServerContent';
 import type { ComponentView } from '../../entity/data/actorMetadata';
@@ -286,7 +287,8 @@ export class EntityReplica {
                 beamY: beam === undefined ? undefined : Math.floor(beam.y),
                 beamZ: beam === undefined ? undefined : Math.floor(beam.z),
                 showBottom: bodyFieldValue('showBottom', value('showBottom')) !== false,
-                spawnBlock: held.spawnBlock
+                spawnBlock: held.spawnBlock,
+                peek: peekAmountOf(value('component:minecraft:peek'))
             }
         );
 
