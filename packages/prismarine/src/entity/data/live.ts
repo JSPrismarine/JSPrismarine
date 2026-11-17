@@ -352,7 +352,14 @@ const liveHost = (
     runtime: () => EntityRuntime,
     players: StorePlayers
 ): EntityHostFacts => ({
-    ...storePlayerHostFacts(players, (player) => finishMeal(options, player.id)),
+    ...storePlayerHostFacts(
+        players,
+        (player) => finishMeal(options, player.id),
+        (player, item) => {
+            const actor = actors.actorOf(player.id);
+            if (actor !== undefined) options.liveWorld()?.showItemBreak(actor, item);
+        }
+    ),
     damageMitigation: (target, intent) => {
         const world = options.liveWorld();
         if (world === undefined) return undefined;

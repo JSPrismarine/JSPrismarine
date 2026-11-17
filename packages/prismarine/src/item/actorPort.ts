@@ -493,6 +493,9 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (broke) inventory.removeItem(hand);
         else inventory.setItem(hand, new ContainerEntry({ item: worn, count: inventory.getEntry(hand)?.getCount() }));
 
+        const actor = broke ? entityOf(source) : null;
+        if (actor !== null) world()?.showItemBreak(actor, held.getName());
+
         // After the write, so what the trigger reports is the stack as it now
         // stands rather than as it stood before the hit.
         advancementDurabilityChanged(entity, worn, worn.durability, amount);

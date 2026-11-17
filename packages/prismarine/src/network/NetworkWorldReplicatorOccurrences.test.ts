@@ -309,6 +309,23 @@ describe('network', () => {
                 expect(elsewhere.frames).toHaveLength(0);
                 expect(elsewhere.sent).toHaveLength(0);
             });
+
+            it("sends an event's item as its runtime id in the viewer's protocol", async () => {
+                const own = viewer(1n);
+                const replicator = replicatorOver([own.session]);
+
+                sealOccurrences(replicator, {
+                    kind: 'occurrence',
+                    occurrence: 'actor-event',
+                    data: { entity: 1n, event: ActorEvent.FEED, data: 0, item: 'minecraft:iron_pickaxe' }
+                });
+                await replicator.flushOccurrences();
+
+                const packet = own.sent[0];
+                if (!(packet instanceof ActorEventPacket)) throw new Error('expected an actor event');
+                expect(packet.data).toBe(Codec2193.itemData.table['minecraft:iron_pickaxe']?.runtime_id);
+                expect(packet.data).not.toBe(0);
+            });
         });
 
         describe('animate', () => {

@@ -33,6 +33,8 @@ interface Recorded {
     /** Every actor sound the world was asked to play, by runtime id. */
     readonly actorSounds: { runtimeId: bigint; sound: number }[];
     readonly namedSounds: { sound: string; volume?: number; pitch?: number }[];
+    /** Every item the world was asked to show breaking. */
+    readonly broken: string[];
     /** Every structure search the world was asked for. */
     readonly searches: { name: string; origin: { x: number; z: number }; radius: number | undefined }[];
     /** Every eye of ender the store was asked to throw. */
@@ -47,6 +49,7 @@ const recording = (): Recorded => ({
     added: [],
     actorSounds: [],
     namedSounds: [],
+    broken: [],
     searches: [],
     eyes: [],
     moved: []
@@ -112,6 +115,7 @@ const worldDouble = (player: PlayerSession, recorded: Recorded, target?: StoreAc
         }),
         entityRelocated: () => {},
         broadcastMove: async () => {},
+        showItemBreak: (_entity: StoreActor, item: string) => void recorded.broken.push(item),
         sendActorSound: (entity: StoreActor, sound: number) =>
             void recorded.actorSounds.push({ runtimeId: entity.getRuntimeId(), sound }),
         playNamedSoundAt: (_position: Vector3, sound: string, options?: { volume?: number; pitch?: number }) =>
@@ -399,6 +403,27 @@ describe('the item actor port', () => {
         expect(inventory.getItemInHand().getDurability()).toBe(pickaxe.getMaxDurability() - 2);
         // The stack that was in the hand is not changed in place.
         expect(pickaxe.getDurability()).toBe(pickaxe.getMaxDurability());
+        expect(recorded.broken).toEqual([]);
+    });
+
+    it('empties the hand of a tool that wore through, and shows it breaking', () => {
+        const recorded = recording();
+        const inventory = new HumanInventory();
+        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:iron_pickaxe' }) }));
+        const player = sessionOnPrototype(
+            { getInventory: () => inventory, getServer: () => stub<Server>({ getContent: () => testContent() }) },
+            { runtimeId: 7n, actor: {} }
+        );
+        const port = createItemActorPort({
+            world: () => worldDouble(player, recorded),
+            entities: entityAccess(),
+            level: clock()
+        });
+
+        port.perform({ kind: 'consume-durability', source: SOURCE, amount: 1, broke: true });
+
+        expect(inventory.getItemInHand().getName()).toBe('minecraft:air');
+        expect(recorded.broken).toEqual(['minecraft:iron_pickaxe']);
     });
 
     it('asks the world for the eye of ender tag itself, a hundred chunks out', () => {

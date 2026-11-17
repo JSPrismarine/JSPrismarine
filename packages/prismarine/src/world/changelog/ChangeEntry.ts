@@ -136,7 +136,16 @@ export type OccurrenceShape<Data extends PlainRecord> = Data;
  */
 export interface OccurrenceKinds {
     /** An actor event on one entity, such as being hurt, dying or eating. */
-    'actor-event': OccurrenceShape<{ readonly entity: EntityId; readonly event: ActorEvent; readonly data: number }>;
+    'actor-event': OccurrenceShape<{
+        readonly entity: EntityId;
+        readonly event: ActorEvent;
+        readonly data: number;
+        /**
+         * An item identifier whose runtime id in each viewer's protocol goes out as the data, for
+         * the events that carry an item, such as `FEED`. Item ids differ between protocols.
+         */
+        readonly item?: string;
+    }>;
     /** An entity's animation, such as swinging an arm. */
     animate: OccurrenceShape<{
         readonly entity: EntityId;

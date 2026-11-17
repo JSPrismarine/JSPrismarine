@@ -24,11 +24,13 @@ import type { StorePlayers } from './storePlayers';
  * @param players - The server's store players, by entity id.
  * @param finish - Finishes a meal of `item` for a player whose hand still holds it: runs its
  *   `onConsume`, which feeds the player, and puts back what the meal leaves.
+ * @param broke - Shows a player's `item` wearing through, after it left the hand.
  * @returns The two facts; each answers nothing for an id that names no filed store player.
  */
 export const storePlayerHostFacts = (
     players: Pick<StorePlayers, 'of'>,
-    finish: (player: StorePlayer, item: string) => void
+    finish: (player: StorePlayer, item: string) => void,
+    broke: (player: StorePlayer, item: string) => void
 ): Required<Pick<EntityHostFacts, 'heldItemOf' | 'handsOf' | 'wearHeldItem' | 'finishMeal'>> => ({
     heldItemOf: (playerId) => nameOf(players.of(playerId)?.getInventory().getItemInHand()),
     handsOf: (playerId) => {
@@ -42,16 +44,20 @@ export const storePlayerHostFacts = (
         };
     },
     wearHeldItem: (playerId, hand, amount) => {
-        const inventory = players.of(playerId)?.getInventory();
-        if (inventory === undefined) return;
+        const player = players.of(playerId);
+        const inventory = player?.getInventory();
+        if (player === undefined || inventory === undefined) return;
         const { container, slot } = handSlotOf(inventory, hand);
         const entry = container.getEntry(slot);
         const held = entry?.getItem();
         if (entry === null || held === undefined || held.getMaxDurability() <= 0) return;
         const left = held.getDurability() - amount;
         // A copy written into the slot, so the change log hears it; worn through, it breaks.
-        if (left <= 0) container.removeItem(slot);
-        else container.setItem(slot, new ContainerEntry({ item: held.withDurability(left), count: entry.getCount() }));
+        if (left <= 0) {
+            container.removeItem(slot);
+            broke(player, held.getName());
+        } else
+            container.setItem(slot, new ContainerEntry({ item: held.withDurability(left), count: entry.getCount() }));
     },
     finishMeal: (playerId, item) => {
         const player = players.of(playerId);

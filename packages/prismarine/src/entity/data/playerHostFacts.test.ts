@@ -18,8 +18,13 @@ const holding = (item?: string) => {
         player.getInventory().setItem(0, new ContainerEntry({ item: new Item({ name: item }), count: 1 }));
     players.add(player);
     const finished: { player: StorePlayer; item: string }[] = [];
-    const facts = storePlayerHostFacts(players, (eater, eaten) => finished.push({ player: eater, item: eaten }));
-    return { player, facts, finished };
+    const broken: string[] = [];
+    const facts = storePlayerHostFacts(
+        players,
+        (eater, eaten) => finished.push({ player: eater, item: eaten }),
+        (_owner, item) => broken.push(item)
+    );
+    return { player, facts, finished, broken };
 };
 
 describe('the store player host facts', () => {
@@ -41,7 +46,7 @@ describe('the store player host facts', () => {
     });
 
     it('wear the stack in one hand, and break it once worn through', () => {
-        const { player, facts } = holding();
+        const { player, facts, broken } = holding();
         const offhand = player.getInventory().getOffhand();
         offhand.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:shield' }) }));
         const durability = offhand.getItem(0).getMaxDurability();
@@ -49,8 +54,10 @@ describe('the store player host facts', () => {
 
         facts.wearHeldItem(7, 'offhand', 5);
         expect(offhand.getItem(0).getDurability()).toBe(durability - 5);
+        expect(broken).toEqual([]);
         facts.wearHeldItem(7, 'offhand', durability);
         expect(facts.handsOf(7)).toEqual({});
+        expect(broken).toEqual(['minecraft:shield']);
     });
 
     it('finish a meal of the item still in hand, and no other', () => {

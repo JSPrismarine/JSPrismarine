@@ -7,8 +7,7 @@ import type { Hash } from 'node:crypto';
 import { Vector3 } from '@jsprismarine/math';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
-import type { ActorEvent } from '@jsprismarine/minecraft';
-import { Gametype, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { ActorEvent, Gametype, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 import { blockEntityChanges, blockEntityValueOf, withBlockEntityField } from '../blockentity/blockEntityLog';
 import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
@@ -2243,6 +2242,24 @@ export class World implements Service {
             kind: 'occurrence',
             occurrence: 'actor-event',
             data: { entity: entity.getRuntimeId(), event, data }
+        });
+    }
+
+    /**
+     * Shows an item in an entity's hand wearing through: the break sound and item particles.
+     *
+     * Java's `LivingEntity.breakItem` plays the item's break sound and spawns the same item
+     * particles eating does. Bedrock's `break` level sound plays `random.break` for any entity,
+     * and `FEED` with the item's id spawns those particles at the mouth without the eating sound.
+     * @param {ShownActor} entity - Whose item broke.
+     * @param {string} item - The identifier of the item that broke.
+     */
+    public showItemBreak(entity: ShownActor, item: string): void {
+        this.sendActorSound(entity, LevelSoundEvent.BREAK);
+        this.occurred({
+            kind: 'occurrence',
+            occurrence: 'actor-event',
+            data: { entity: entity.getRuntimeId(), event: ActorEvent.FEED, data: 0, item }
         });
     }
 

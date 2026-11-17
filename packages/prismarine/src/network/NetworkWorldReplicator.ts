@@ -809,17 +809,17 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** Something that happened to one entity, to the players tracking it and to its own client. */
-    private sendActorEvent({ entity, event, data }: OccurrenceKinds['actor-event']): Promise<void> {
-        const packetForViewer = (): ActorEventPacket => {
+    private sendActorEvent({ entity, event, data, item }: OccurrenceKinds['actor-event']): Promise<void> {
+        const packetForViewer = (codec: ProtocolCodec): ActorEventPacket => {
             const packet = new ActorEventPacket();
             packet.runtimeEntityId = entity;
             packet.event = event;
-            packet.data = data;
+            packet.data = item === undefined ? data : (codec.itemData.table[item]?.runtime_id ?? data);
             return packet;
         };
-        const sends = [this.sendToTrackedEntity(entity, () => [packetForViewer()])];
+        const sends = [this.sendToTrackedEntity(entity, (codec) => [packetForViewer(codec)])];
         const own = this.world.viewerOf(entity);
-        if (own !== undefined) sends.push(own.send(packetForViewer()));
+        if (own !== undefined) sends.push(own.send(packetForViewer(own.getConnection().codec)));
         return allSent(sends);
     }
 
