@@ -9,14 +9,21 @@
  * `LevelScripts`, the code a server runs them with, over a test level with the three vanilla
  * dimensions and its real weather, flushing once per tick until every pack has ended.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
+
+import { Logger } from '@jsprismarine/logger';
 
 import { ScriptHostLibrary } from '@jsprismarine/script-host';
 import type { ScriptEngine } from '@jsprismarine/script-host';
+import type { ScriptEntityState } from '@jsprismarine/script-host/host/world';
 import { ScriptHandle } from '@jsprismarine/script-host/values';
 import type { ScriptValue } from '@jsprismarine/script-host/values';
 
+import Server from '@jsprismarine/prismarine';
+import { Config } from '@jsprismarine/prismarine/config/Config';
+import { NO_LEVEL_ACCESS } from '@jsprismarine/prismarine/scripting/LevelScriptWorld';
 import { LevelScripts } from '@jsprismarine/prismarine/scripting/LevelScripts';
 import { fakeLevel } from '@jsprismarine/prismarine/testing/level';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
@@ -138,6 +145,23 @@ class ScenarioClientPlayer {
         ];
     }
 
+    /**
+     * The player's entity, while it is in the level, which `world.getAllPlayers` reads. It stands
+     * where BDS's client joins, and no scenario that shows forms reads where that is.
+     */
+    public entity(id: string): ScriptEntityState | undefined {
+        if (!this.present || id !== CLIENT_PLAYER) return undefined;
+        return {
+            id,
+            typeId: 'minecraft:player',
+            dimension: Dimensions.Overworld.bedrockName,
+            location: { x: 0.5, y: -60, z: 0.5 },
+            nameTag: 'client',
+            tags: [],
+            name: 'client'
+        };
+    }
+
     /** Sends the answers to the forms the last tick showed, as the next input step admits them. */
     public answer(scripts: LevelScripts): void {
         for (const { formId, answer } of this.queued.splice(0)) {
@@ -191,6 +215,14 @@ const runPacksInLevel = async (
             dimensions: () =>
                 [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].map((type) => type.bedrockName),
             players: () => client?.players() ?? [],
+            access: {
+                ...NO_LEVEL_ACCESS,
+                entity: (id) => client?.entity(id),
+                entities: (dimension) => {
+                    const player = client?.entity(CLIENT_PLAYER);
+                    return player?.dimension === dimension ? [player] : [];
+                }
+            },
             weather: level.getWeather(),
             // No scenario player chats on JSPrismarine yet: a BDS scenario's chat comes from a
             // GameTest simulated player, which needs @minecraft/server-gametest.
@@ -236,6 +268,78 @@ const runPacksInLevel = async (
     return lines;
 };
 
+/** Whether every loaded pack of a scenario has written its end line as often as it runs. */
+const packsEnded = (scenario: ScriptScenario, lines: readonly string[]): boolean =>
+    loadedPacks(scenario).every(
+        (pack) =>
+            lines.filter((line) => line.includes(`DUMP ${END_TABLE} {"pack":${JSON.stringify(pack)},`)).length >=
+            (scenario.runs ?? 1)
+    );
+
+/**
+ * Runs a server scenario's packs in a headless JSPrismarine server with a flat world, one tick at
+ * a time, and returns the lines they logged. Its `JSP_DIR` is a directory of its own, with the
+ * scenario's packs as the world's packs and its `config/` folder beside them.
+ * @throws Error when the server does not start.
+ */
+const runPacksOnServer = async (scenario: ScriptScenario): Promise<string[]> => {
+    const lines: string[] = [];
+    const root = mkdtempSync(join(tmpdir(), 'jsp-parity-scripting-'));
+    const previous = process.env.JSP_DIR;
+    process.env.JSP_DIR = root;
+    try {
+        const config = scenarioConfigDirectory(scenario);
+        if (config !== undefined) cpSync(config, join(root, 'config'), { recursive: true });
+        writeFileSync(
+            join(root, 'config.json'),
+            JSON.stringify({
+                'online-mode': false,
+                'preload-radius': 1,
+                'view-distance': 1,
+                'enable-ticking': false,
+                'chunk-workers': 0,
+                'enable-query': false,
+                'content-world-packs': scenario.packs.map((pack) => scenarioPackDirectory(scenario, pack)),
+                worlds: {
+                    world: {
+                        preset: 'minecraft:flat',
+                        provider: 'LevelDB',
+                        seed: '1',
+                        ...(scenario.experiments === undefined ? {} : { experiments: scenario.experiments })
+                    }
+                }
+            })
+        );
+        // The logger's message carries Minecraft's formatting codes and ends a line in a period,
+        // which a record line has neither of.
+        const logger = new Logger('info', [
+            { log: (record) => lines.push(record.message.replace(/§./g, '').replace(/\}\.$/, '}')) }
+        ]);
+        // A fixed clock: no scenario records a date, and a run must not depend on the host's.
+        const server = new Server({
+            logger,
+            config: new Config(),
+            headless: true,
+            wallClock: () => Date.UTC(2026, 10, 16)
+        });
+        await server.bootstrap('127.0.0.1', 0);
+        try {
+            for (let tick = 0; tick < SCENARIO_TICKS && !packsEnded(scenario, lines); tick++) {
+                server.advanceTick();
+                // Chunk loads and other work the tick started settle between ticks, as on a running server.
+                await new Promise((settled) => setImmediate(settled));
+            }
+        } finally {
+            await server.shutdown({ stayAlive: true });
+        }
+    } finally {
+        if (previous === undefined) delete process.env.JSP_DIR;
+        else process.env.JSP_DIR = previous;
+        rmSync(root, { recursive: true, force: true });
+    }
+    return lines;
+};
+
 /**
  * Runs a scenario's packs on JSPrismarine and returns their record.
  *
@@ -246,6 +350,9 @@ const runPacksInLevel = async (
  * @throws NativeLibraryError when the scenario finds no script host library.
  */
 export const runScenarioOnJsp = async (scenario: ScriptScenario): Promise<ScenarioRecord | undefined> => {
+    if (scenario.needs === 'server') {
+        return readScenarioRecord(await runPacksOnServer(scenario), loadedPacks(scenario), scenario.runs);
+    }
     if (scenario.needs === 'world') {
         const client = scenario.client === undefined ? undefined : new ScenarioClientPlayer(scenario);
         const record = readScenarioRecord(

@@ -30,7 +30,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `commands.*`    | <!-- fact:parity.families.commands -->tree, answers<!-- /fact --> | The published command tree against Mojang's Bedrock command metadata                                                  |
 | `gameplay.*`    | <!-- fact:parity.families.gameplay -->end-fight, brain-effects, combat-advancements, raids, datapack, mechanics, block-targets<!-- /fact --> | Sniffer digging loot, warden sonic-boom damage, and villager raid host effects against Java <!-- fact:java.version -->26.3<!-- /fact -->; the End crystal and dragon data used by the respawn fight; every entry of Java's vanilla datapack registries, by whether the server loads it; Java's game rules and villager professions, by whether the server runs them; a block position a packet names, refused out of reach or in an unloaded chunk in the order Java <!-- fact:java.version -->26.3<!-- /fact -->'s packet listener checks, without loading the chunk |
 | `protocol.*`    | <!-- fact:parity.families.protocol -->negotiation, wire-roundtrip, dimension-change<!-- /fact --> | Each registered protocol version negotiates its own codec from a real first packet; an unsupported version gets the right `PlayStatus` sidedness; declarative layouts re-encode a real server's bytes; the packet sequence a world change sends round-trips through every codec |
-| `scripting.*`   | <!-- fact:parity.families.scripting -->lifecycle, events, engine, ui<!-- /fact --> | What behavior pack scripts record on the pinned Bedrock Dedicated Server against what the same packs record on JSPrismarine |
+| `scripting.*`   | <!-- fact:parity.families.scripting -->lifecycle, events, engine, ui, world, entities, blocks, items<!-- /fact --> | What behavior pack scripts record on the pinned Bedrock Dedicated Server against what the same packs record on JSPrismarine |
 | `conformance.*` | <!-- fact:parity.families.conformance -->claim, classification, exclusions<!-- /fact --> | The claim, the table it counts, and the <!-- fact:parity.conformanceExclusions -->8<!-- /fact --> exclusions                                                              |
 
 ## Behavior scenarios
@@ -116,7 +116,11 @@ A scenario that `needs` only the `engine` imports no module and reports only thr
 entry loaded as a module and `console` and `print` writing the log lines. A scenario that `needs`
 a `world` runs its packs together through `@jsprismarine/prismarine`'s `LevelScripts`, the code a
 server runs them with, over a test level with the three vanilla dimensions and its real weather,
-flushing once per tick until every pack has written its end line. Every family's test skips where
+flushing once per tick until every pack has written its end line. A scenario that `needs` a
+`server` reads entities, blocks, items or commands, so it runs in a headless JSPrismarine server
+with a flat world, in a `JSP_DIR` of its own whose `content-world-packs` are the scenario's packs,
+ticked one tick at a time. Its BDS pack adds a ticking area and waits for the chunk at the origin,
+since BDS loads no chunk without a player, and counts ticks from then. Every family's test skips where
 the script host library is not built, unless `JSP_SCRIPT_HOST_REQUIRE=1` is set, as CI sets it on
 Linux x64.
 

@@ -35,9 +35,11 @@ export interface ScriptScenario {
     /**
      * What JSPrismarine needs to run the scenario. `engine` packs import no module and report
      * only through `console`, so a bare script engine runs them with no world. `world` packs run
-     * together in a level, through the script host that loads a level's packs.
+     * together in a level, through the script host that loads a level's packs. `server` packs
+     * read entities, blocks, items or commands, so they run in a headless server with a flat
+     * world, as a server runs them.
      */
-    readonly needs: 'engine' | 'world';
+    readonly needs: 'engine' | 'world' | 'server';
     /**
      * `server.properties` values the scenario's server runs with, under their BDS names. The
      * capture writes them for BDS, and JSPrismarine's runner reads the ones its script host
@@ -437,5 +439,61 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                 { response: '[null,null]' }
             ]
         }
+    },
+    {
+        id: 'world-basics',
+        family: 'scripting.world',
+        description:
+            'With no player, world.getAllPlayers and getPlayers are empty, getDimension takes a name with or without ' +
+            'its namespace and returns one object per dimension, and Dimension.runCommand returns a success count, ' +
+            'throws for a command that fails, and raises system.afterEvents.scriptEventReceive for /scriptevent.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['world'],
+        needs: 'server'
+    },
+    {
+        id: 'entities',
+        family: 'scripting.entities',
+        description:
+            'An entity a script spawns reports its type, location, dimension, name tag and tags, moves on teleport, ' +
+            'lists its inventory through getComponent, is found by getEntities, and once killed reports isValid false ' +
+            'and throws from its other members.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['entities'],
+        needs: 'server'
+    },
+    {
+        id: 'blocks',
+        family: 'scripting.blocks',
+        description:
+            'Dimension.getBlock returns a block with its type, location, dimension and permutation, undefined in an ' +
+            'unloaded chunk, and Block.setType, setPermutation and BlockPermutation.resolve change and describe ' +
+            'blocks, with fixed errors for an unknown type or state.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['blocks'],
+        needs: 'server'
+    },
+    {
+        id: 'items',
+        family: 'scripting.items',
+        description:
+            'new ItemStack makes a stack of a type and an amount, with a namespace added when left out and fixed ' +
+            'errors for an unknown type or an amount out of range, and its amount, name tag and lore read back what ' +
+            'a script wrote.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['items'],
+        needs: 'server'
+    },
+    {
+        id: 'players',
+        family: 'scripting.entities',
+        description:
+            'A player raises playerJoin, playerSpawn and both playerLeave events, and its name, tags, inventory, ' +
+            'teleport and runCommand behave as they do for any entity, while world.getPlayers finds it by name.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['players'],
+        experiments: ['gametest'],
+        gametestAfter: { event: 'ready for /gametest', test: 'jsp:players' },
+        needs: 'server'
     }
 ];

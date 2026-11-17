@@ -164,6 +164,8 @@ export const describeScriptingFamily = (family: ScriptingFamily, sourceFile: str
 
         it.skipIf(needsLibrary && !scriptHostAvailable())(
             "records what the pinned Bedrock Dedicated Server's scripts recorded",
+            // A server scenario boots a whole server, whose content build takes most of it.
+            { timeout: 300_000 },
             async () => {
                 const records = new Map<string, ScenarioOutcome>();
                 for (const scenario of scenarios) records.set(scenario.id, await runScenarioOutcome(scenario));

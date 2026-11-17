@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario world-basics world",
+        "description": "Records the world, system and dimension members a pack without a player uses, and scriptEventReceive from /scriptevent. Written for packages/parity.",
+        "uuid": "b5cf6798-6675-4d6d-b2d8-74498e7d3531",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "3e0e8a5e-053e-4de3-8102-e2692981c78d",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

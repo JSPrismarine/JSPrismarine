@@ -1469,6 +1469,9 @@ importers:
       '@jsprismarine/items':
         specifier: workspace:*
         version: link:../items
+      '@jsprismarine/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@jsprismarine/loot':
         specifier: workspace:*
         version: link:../loot

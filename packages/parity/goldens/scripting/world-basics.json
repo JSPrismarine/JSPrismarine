@@ -1,0 +1,148 @@
+{
+    "$comment": [
+        "What the scripts of scenario `world-basics` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.world",
+    "scenario": "world-basics",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "world",
+            "seq": 1,
+            "tick": 40,
+            "event": "world.getAllPlayers",
+            "value": 0
+        },
+        {
+            "pack": "world",
+            "seq": 2,
+            "tick": 40,
+            "event": "world.getPlayers",
+            "value": 0
+        },
+        {
+            "pack": "world",
+            "seq": 3,
+            "tick": 40,
+            "event": "world.getPlayers by name",
+            "value": 0
+        },
+        {
+            "pack": "world",
+            "seq": 4,
+            "tick": 40,
+            "event": "world.getDimension overworld",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "world",
+            "seq": 5,
+            "tick": 40,
+            "event": "world.getDimension minecraft:nether",
+            "value": "minecraft:nether"
+        },
+        {
+            "pack": "world",
+            "seq": 6,
+            "tick": 40,
+            "event": "world.getDimension the_end",
+            "value": "minecraft:the_end"
+        },
+        {
+            "pack": "world",
+            "seq": 7,
+            "tick": 40,
+            "event": "world.getDimension unknown",
+            "error": "Error: Dimension 'nowhere' is invalid."
+        },
+        {
+            "pack": "world",
+            "seq": 8,
+            "tick": 40,
+            "event": "the same Dimension object",
+            "value": true
+        },
+        {
+            "pack": "world",
+            "seq": 9,
+            "tick": 40,
+            "event": "a Dimension instance",
+            "value": true
+        },
+        {
+            "pack": "world",
+            "seq": 10,
+            "tick": 40,
+            "event": "system.currentTick is a number",
+            "value": "number"
+        },
+        {
+            "pack": "world",
+            "seq": 11,
+            "tick": 40,
+            "event": "Dimension.runCommand scriptevent",
+            "value": 1
+        },
+        {
+            "pack": "world",
+            "seq": 12,
+            "tick": 40,
+            "event": "Dimension.runCommand scriptevent without a namespace",
+            "value": 0
+        },
+        {
+            "pack": "world",
+            "seq": 13,
+            "tick": 40,
+            "event": "Dimension.runCommand say",
+            "value": 1
+        },
+        {
+            "pack": "world",
+            "seq": 14,
+            "tick": 40,
+            "event": "Dimension.runCommand an unknown command",
+            "error": "CommandError: Error occurred with parsing command params: Syntax error: Unexpected \"jspnosuchcommand\": at \">>jspnosuchcommand<<\"\n"
+        },
+        {
+            "pack": "world",
+            "seq": 15,
+            "tick": 40,
+            "event": "Dimension.runCommand a bad argument",
+            "error": "CommandError: Error occurred with parsing command params: Syntax error: Unexpected \"nonsense\": at \"time set >>nonsense<<\"\n"
+        },
+        {
+            "pack": "world",
+            "seq": 16,
+            "tick": 40,
+            "event": "Dimension.runCommand with a slash",
+            "value": 1
+        },
+        {
+            "pack": "world",
+            "seq": 17,
+            "tick": 40,
+            "event": "commands ran"
+        },
+        {
+            "pack": "world",
+            "seq": 18,
+            "tick": 40,
+            "event": "system.afterEvents.scriptEventReceive",
+            "value": {
+                "id": "jsp:hello",
+                "message": "hi there",
+                "sourceType": "Server",
+                "sourceEntity": null,
+                "sourceBlock": null,
+                "initiator": null
+            }
+        }
+    ]
+}
