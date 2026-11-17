@@ -911,7 +911,8 @@ const REFERENCES_NEEDED = [
 ] as const;
 
 describeFamily(FAMILIES.blocksBehavior, REFERENCES_NEEDED, () => {
-    it('prevents pushing and pulling bedrock using the shipped server definition', () => {
+    // The first read of the server content builds the whole pinned stack, overlays and all.
+    it('prevents pushing and pulling bedrock using the shipped server definition', { timeout: 180_000 }, () => {
         const world = createVoxelWorld().overworld;
         const properties = serverContent()
             .blocks.types.get('minecraft:bedrock')!

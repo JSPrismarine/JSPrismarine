@@ -1989,41 +1989,6 @@
             "reason": "Java dialogs are a Java client screen with no Bedrock packet.",
             "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
         },
-        "registry-entry-loaded:enchantment_provider/enderman_loot_drop": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/mob_spawn_equipment": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/pillager_spawn_crossbow": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/raid/pillager_post_wave_3": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/raid/pillager_post_wave_5": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/raid/vindicator": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
-        "registry-entry-loaded:enchantment_provider/raid/vindicator_post_wave_5": {
-            "kind": "deferred",
-            "reason": "The server has no loader for the enchantment_provider registry, so this Java entry does not shape gameplay.",
-            "reference": "Java 26.3 data/minecraft datapack registries; issue #2912"
-        },
         "registry-entry-loaded:frog_variant/cold": {
             "kind": "deferred",
             "reason": "The server has no loader for the frog_variant registry, so this Java entry does not shape gameplay.",
