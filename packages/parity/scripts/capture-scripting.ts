@@ -180,13 +180,13 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
             server.send('reload');
         }
         if (scenario.gametestAfter !== undefined) {
-            const { event, test } = scenario.gametestAfter;
+            const { event, commands } = scenario.gametestAfter;
             await server.waitForLine(
                 (line) => line.includes(`"event":${JSON.stringify(event)}`),
                 `the ${event} observation`,
                 NATIVE_TIMEOUTS.scenario * launcher.timeoutScale
             );
-            server.send(`gametest run ${test}`);
+            for (const command of commands) server.send(command);
         }
         for (const pack of loadedPacks(scenario)) {
             const endLine = `DUMP ${END_TABLE} {"pack":${JSON.stringify(pack)},`;
