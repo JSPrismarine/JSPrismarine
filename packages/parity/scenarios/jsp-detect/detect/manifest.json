@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario jsp-detect detect",
+        "description": "Detects JSPrismarine through an undeclared @jsprismarine/server and falls back without it. Written for packages/parity.",
+        "uuid": "1f556b20-1436-4aa9-832a-99bf9be6c71e",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "72885bc5-fdd1-4b94-9c7f-ed024acff32d",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

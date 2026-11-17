@@ -1,0 +1,37 @@
+{
+    "$comment": [
+        "What the scripts of scenario `jsp-detect` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.lifecycle",
+    "scenario": "jsp-detect",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "detect",
+            "seq": 1,
+            "tick": 0,
+            "event": "import @jsprismarine/server",
+            "error": "ReferenceError: Module [@jsprismarine/server] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?"
+        },
+        {
+            "pack": "detect",
+            "seq": 2,
+            "tick": 0,
+            "event": "server",
+            "value": "fallback"
+        },
+        {
+            "pack": "detect",
+            "seq": 3,
+            "tick": 0,
+            "event": "import ./static.js",
+            "error": "ReferenceError: Module [@jsprismarine/server] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?"
+        }
+    ]
+}
