@@ -10,8 +10,14 @@ import { Dimensions } from './DimensionType';
 import { Position } from './Position';
 import { ChunkAdmissions } from './ChunkAdmissions';
 import { World } from './World';
+import { LIGHT_CHUNKS_PER_TICK } from './WorldSystems';
+import type { Config } from '../config/Config';
+import type { Generator } from './Generator';
+import type { Logger } from '@jsprismarine/logger';
+import type Server from '../Server';
+import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
-import { fakeLevel } from '../testing/level';
+import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 import BaseProvider from './providers/BaseProvider';
 import type { ChunkSaveContext } from './providers/ChunkSaveContext';
 
@@ -102,34 +108,68 @@ describe('world player chunk counts', () => {
         expect(comparisons).toBeLessThan(PLAYER_COUNT * CHUNK_COUNT);
     });
 
-    it('lists the chunks whose light is due nearest a player first', () => {
-        // Loaded far side first, so the order they loaded in and their distance disagree.
-        const world = worldWith([
-            [5, 0],
-            [3, 0],
-            [0, 0],
-            [1, 0],
-            [-2, 0]
-        ]);
-        world['players'].set(1, playerAt(world, 0, 0));
+    describe('the light pass', () => {
+        /** A row of loaded chunks along x, loaded far side first, so load order and distance disagree. */
+        const ROW = Array.from({ length: 12 }, (_entry, index) => 11 - index);
 
-        expect(world['lightChunks']()).toEqual([
-            { x: 0, z: 0 },
-            { x: 1, z: 0 },
-            { x: -2, z: 0 },
-            { x: 3, z: 0 },
-            { x: 5, z: 0 }
-        ]);
+        /** A world built by its constructor, whose chunks load through its provider. */
+        const constructedWorld = async (): Promise<World> => {
+            const logger = stub<Logger>({
+                info: () => {},
+                warn: () => {},
+                error: () => {},
+                debug: () => {},
+                verbose: () => {}
+            });
+            const server = stub<Server>({
+                getLogger: () => logger,
+                getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
+                getContent: () => testContent(),
+                getEntityRuntime: () => inertEntityRuntime()
+            });
+            const world = new World({
+                name: 'light-order-test',
+                path: 'light-order-test',
+                server,
+                level: fakeLevel({
+                    server,
+                    provider: stubOf(BaseProvider, {
+                        readChunk: async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
+                    })
+                }),
+                stem: TEST_OVERWORLD_STEM,
+                generator: stub<Generator>({})
+            });
+            for (const x of ROW) await world.loadChunk(x, 0);
+            return world;
+        };
 
-        // A second player: each chunk counts from whichever player is nearer.
-        world['players'].set(2, playerAt(world, 5, 0));
-        expect(world['lightChunks']()).toEqual([
-            { x: 5, z: 0 },
-            { x: 0, z: 0 },
-            { x: 1, z: 0 },
-            { x: 3, z: 0 },
-            { x: -2, z: 0 }
-        ]);
+        /** The row's chunks the light model holds after one light pass, in ascending x. */
+        const takenInByOnePass = (world: World): number[] => {
+            const systems = world.getSystems();
+            systems.prepareLighting();
+            return ROW.filter((x) => systems.lighting.hasChunk(x, 0)).sort((a, b) => a - b);
+        };
+
+        /** The first pass's share of a nearest-first order, in ascending x. */
+        const firstShare = (nearestFirst: readonly number[]): number[] =>
+            nearestFirst.slice(0, LIGHT_CHUNKS_PER_TICK).sort((a, b) => a - b);
+
+        it('takes the chunks nearest a player into the light model first', async () => {
+            expect(ROW.length).toBeGreaterThan(LIGHT_CHUNKS_PER_TICK);
+            const world = await constructedWorld();
+            world['players'].set(1, playerAt(world, 0, 0));
+
+            expect(takenInByOnePass(world)).toEqual(firstShare([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]));
+        });
+
+        it('counts each chunk from whichever player is nearer', async () => {
+            const world = await constructedWorld();
+            world['players'].set(1, playerAt(world, 0, 0));
+            world['players'].set(2, playerAt(world, 11, 0));
+
+            expect(takenInByOnePass(world)).toEqual(firstShare([0, 11, 1, 10, 2, 9, 3, 8, 4, 7, 5, 6]));
+        });
     });
 
     it('keeps overlapping simulation coverage correct as players move and leave', () => {
