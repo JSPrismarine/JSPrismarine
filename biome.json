@@ -109,6 +109,16 @@
     "overrides": [
         {
             "includes": [
+                "packages/*/src/**",
+                "!packages/errors/**",
+                "!packages/parity/**",
+                "!**/*.test.*",
+                "!**/*.test-d.ts"
+            ],
+            "plugins": ["./.biome/no-raw-errors.grit"]
+        },
+        {
+            "includes": [
                 "packages/chunkgen/src/**",
                 "packages/features/src/**",
                 "packages/structures/src/**",

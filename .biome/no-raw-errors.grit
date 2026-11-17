@@ -1,0 +1,28 @@
+language js
+
+// Every error a package throws is defined in `@jsprismarine/errors`, so each one has a code and a
+// page in the error reference that its `docs` link points at. Add an entry to the package's
+// catalog there and throw it: `throw new LeveldbErrors.DatabaseLocked({ path })`. A class that
+// carries fields of its own extends the catalog entry rather than `Error`.
+or {
+    `new $error($...)` as $token where {
+        $error <: or {
+            `Error`,
+            `TypeError`,
+            `RangeError`,
+            `SyntaxError`,
+            `ReferenceError`,
+            `EvalError`,
+            `URIError`,
+            `AggregateError`
+        }
+    },
+    `class $_ extends $error { $... }` as $token where {
+        $error <: or { `Error`, `TypeError`, `RangeError`, `SyntaxError`, `AggregateError` }
+    }
+} where {
+    register_diagnostic(
+        span = $token,
+        message = "Define the error in @jsprismarine/errors and throw that: every error needs a catalog entry, so it gets a code and a link to the error reference."
+    )
+}
