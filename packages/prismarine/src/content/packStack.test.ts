@@ -67,7 +67,7 @@ describe('resolvePackStack', () => {
     it('reads a path with a manifest at its root as one composed pack', () => {
         // The overlay is a loose pack folder, which is also the shape
         // `bedrock-samples` publishes and the shape somebody unpacking a pack
-        // by hand points the override at.
+        // by hand points the override at. Nothing goes under a whole pack.
         vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, overlayPackPath());
 
         const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
@@ -86,6 +86,7 @@ describe('resolvePackStack', () => {
         it('composes the vanilla behavior pack alone', () => {
             const folder = layers();
             vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, folder);
+            vi.stubEnv(PACK_STACK_ENV.bedrockSamples, '/nowhere/samples');
 
             const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
 
@@ -96,6 +97,7 @@ describe('resolvePackStack', () => {
             const folder = layers();
             const chemistry = '6baf8b62-8948-4c99-bb1e-a0cb35dc4579';
             vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, folder);
+            vi.stubEnv(PACK_STACK_ENV.bedrockSamples, '/nowhere/samples');
 
             const { stack } = resolvePackStack({
                 overlay: false,
@@ -111,10 +113,29 @@ describe('resolvePackStack', () => {
         it("composes every pack in the folder for a caller that asks for 'all'", () => {
             const folder = layers();
             vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, folder);
+            vi.stubEnv(PACK_STACK_ENV.bedrockSamples, '/nowhere/samples');
 
             const { stack } = resolvePackStack({ overlay: false, javaVanilla: false, bedrockPacks: 'all' });
 
             expect(stack).toEqual([{ kind: 'brarchiveLayers', path: folder, uuids: undefined }]);
+        });
+
+        it('lays bedrock-samples under layers the override names', () => {
+            // BDS ships the butcher, cleric and stone mason trade tables as binary files, so the
+            // samples copy is the only readable one, whichever way the layers were found.
+            const folder = layers();
+            const unpacked = layers();
+            const pack = join(unpacked, 'bedrock-samples-checkout', 'behavior_pack');
+            mkdirSync(join(pack, 'entities'), { recursive: true });
+            vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, folder);
+            vi.stubEnv(PACK_STACK_ENV.bedrockSamples, unpacked);
+
+            const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
+
+            expect(stack).toEqual([
+                { kind: 'directory', path: pack },
+                { kind: 'brarchiveLayers', path: folder, uuids: [VANILLA_BEHAVIOR_PACK_UUID] }
+            ]);
         });
     });
 });

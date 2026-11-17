@@ -30,7 +30,9 @@ export const PACK_STACK_ENV = {
     /** A composed vanilla Bedrock behavior pack directory, or a folder of BDS vanilla layers. */
     vanillaBedrockPack: 'JSP_VANILLA_BEHAVIOR_PACK',
     /** A Java vanilla datapack directory, as the Java data generator writes one. */
-    vanillaDatapack: 'JSP_VANILLA_DATAPACK'
+    vanillaDatapack: 'JSP_VANILLA_DATAPACK',
+    /** An unpacked `bedrock-samples` archive, the folder holding its one checkout folder. */
+    bedrockSamples: 'JSP_BEDROCK_SAMPLES_PATH'
 } as const;
 
 /** What {@link resolvePackStack} was asked to assemble. */
@@ -163,16 +165,21 @@ const bdsBehaviorPacks = (root: string): string | undefined => {
     return undefined;
 };
 
-/** The `bedrock-samples` loose behavior pack, which is the same content unarchived. */
-const samplesBehaviorPack = (root: string): string | undefined => {
+/** The behavior pack inside an unpacked `bedrock-samples` archive, under its one checkout folder. */
+const samplesPackIn = (unpacked: string): string | undefined => {
+    for (const checkout of readdirSync(unpacked)) {
+        const pack = join(unpacked, checkout, 'behavior_pack');
+        if (existsSync(join(pack, 'entities'))) return pack;
+    }
+    return undefined;
+};
+
+/** The unpacked `bedrock-samples` archive in the cache, under its version folder. */
+const cachedSamples = (root: string): string | undefined => {
     if (!existsSync(root)) return undefined;
     for (const version of readdirSync(root)) {
         const unpacked = join(root, version, 'unpacked');
-        if (!existsSync(unpacked)) continue;
-        for (const checkout of readdirSync(unpacked)) {
-            const pack = join(unpacked, checkout, 'behavior_pack');
-            if (existsSync(join(pack, 'entities'))) return pack;
-        }
+        if (existsSync(unpacked) && samplesPackIn(unpacked) !== undefined) return unpacked;
     }
     return undefined;
 };
@@ -248,15 +255,21 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         const root = cacheRoot();
         const override = process.env[PACK_STACK_ENV.vanillaBedrockPack];
         const layers = sourcePath(override, () => bdsBehaviorPacks(join(root, 'bds')));
-        const samples = override ? undefined : samplesBehaviorPack(join(root, 'bedrock-samples'));
-        const loose = layers ? undefined : samples;
+        const samplesRoot = sourcePath(process.env[PACK_STACK_ENV.bedrockSamples], () =>
+            cachedSamples(join(root, 'bedrock-samples'))
+        );
+        const samples = samplesRoot === undefined ? undefined : samplesPackIn(samplesRoot);
+        // An override names the pack to run, so a missing one is reported rather than replaced.
+        const loose = layers || override ? undefined : samples;
 
         if (layers) {
-            // Under the server's own pack, which wins wherever it is readable: BDS ships some
+            const source = bedrockSource(layers, request.bedrockPacks ?? [VANILLA_BEHAVIOR_PACK_UUID]);
+            // Under the server's own layers, which win wherever they are readable: BDS ships some
             // definitions as binary files this loader cannot read, and leaves others out, so the
-            // villagers of three professions had no trades at all.
-            if (samples) stack.push({ kind: 'directory', path: samples });
-            stack.push(bedrockSource(layers, request.bedrockPacks ?? [VANILLA_BEHAVIOR_PACK_UUID]));
+            // villagers of three professions had no trades at all. That holds whether the layers
+            // came from the cache or from the override.
+            if (samples && source.kind === 'brarchiveLayers') stack.push({ kind: 'directory', path: samples });
+            stack.push(source);
             prefixLength = stack.length;
         } else if (loose) {
             stack.push({ kind: 'directory', path: loose });
