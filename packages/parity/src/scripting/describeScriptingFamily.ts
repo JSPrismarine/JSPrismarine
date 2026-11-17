@@ -19,6 +19,9 @@ export const NO_SCRIPT_HOST = 'JSPrismarine has no script host to run the scenar
 /** Where the missing script host is tracked, cited by every row that waits on it. */
 export const SCRIPT_HOST_ISSUE = 'issue #3203';
 
+/** What starts a row's difference when JSPrismarine differs from BDS only where it means to. */
+const INTENTIONAL = 'JSPrismarine differs from BDS on purpose at ';
+
 /** What running a scenario on JSPrismarine gave: a record, nothing yet, or the error it threw. */
 export type ScenarioOutcome = ScenarioRecord | undefined | { readonly failed: unknown };
 
@@ -62,21 +65,46 @@ export const scenarioRecordComparison = (
         const record = records.get(scenario.id);
         if (record === undefined) return NO_SCRIPT_HOST;
         if ('failed' in record) return `JSPrismarine threw while running the scenario: ${String(record.failed)}`;
-        return diffScenarioRecords(expectedOnJsp(golden, scenario), record);
+        const unexpected = diffScenarioRecords(expectedOnJsp(golden, scenario), record);
+        if (unexpected !== undefined) return unexpected;
+        const intended = intendedDifferences(golden, scenario);
+        return intended.length === 0 ? undefined : `${INTENTIONAL}${intended.map(([event]) => event).join(', ')}`;
     },
-    classify: (scenario, difference) =>
-        difference === NO_SCRIPT_HOST
-            ? {
-                  kind: 'deferred',
-                  reason: `JSPrismarine cannot run behavior pack scripts yet. On BDS: ${scenario.description}`,
-                  reference: SCRIPT_HOST_ISSUE
-              }
-            : {
-                  kind: 'defect',
-                  reason: `${scenario.description} Observed: ${difference}.`,
-                  reference: scenario.reference
-              }
+    classify: (scenario, difference) => {
+        if (difference === NO_SCRIPT_HOST) {
+            return {
+                kind: 'deferred',
+                reason: `JSPrismarine cannot run behavior pack scripts yet. On BDS: ${scenario.description}`,
+                reference: SCRIPT_HOST_ISSUE
+            };
+        }
+        const intended = difference.startsWith(INTENTIONAL) ? intendedDifferences(readGolden(scenario), scenario) : [];
+        if (intended.length > 0) {
+            return {
+                kind: 'intentional',
+                reason: intended.map(([event, { because }]) => `${event}: ${because}.`).join(' '),
+                reference: [...new Set(intended.map(([, { reference }]) => reference))].join(', ')
+            };
+        }
+        return {
+            kind: 'defect',
+            reason: `${scenario.description} Observed: ${difference}.`,
+            reference: scenario.reference
+        };
+    }
 });
+
+const readGolden = (scenario: ScriptScenario): ScenarioRecord =>
+    readScenarioGolden(scenario.id) ?? { observations: [] };
+
+/** The differences a scenario declares that its golden has an observation for, in the golden's order. */
+const intendedDifferences = (golden: ScenarioRecord, scenario: ScriptScenario) => {
+    const differs = scenario.jsprismarineDiffers ?? {};
+    return [...new Set(golden.observations.map((observation) => observation.event))].flatMap((event) => {
+        const declared = differs[event];
+        return declared === undefined ? [] : [[event, declared] as const];
+    });
+};
 
 /**
  * The record JSPrismarine should make: the golden, with each observation the scenario says
