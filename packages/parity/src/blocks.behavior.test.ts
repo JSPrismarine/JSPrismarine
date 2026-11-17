@@ -252,6 +252,31 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     },
     {
+        name: 'mushroom-needs-dark-or-mycelium',
+        java: 'A small mushroom stays on stone in light below 13, breaks on stone in brighter light, and stays on mycelium in any light.',
+        reference: 'Java MushroomBlock canSurvive and BushBlock updateShape',
+        subjects: () => named('minecraft:brown_mushroom', 'minecraft:red_mushroom'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.set(BELOW, 'minecraft:stone');
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.dimension.setLight(ORIGIN, 12);
+            harness.neighborChanged(ORIGIN, 'down');
+            if (harness.dimension.identifierAt(ORIGIN) !== subject.bedrock) return 'it broke on stone in the dark';
+
+            harness.dimension.set(BELOW, 'minecraft:mycelium');
+            harness.dimension.setLight(ORIGIN, 15);
+            harness.neighborChanged(ORIGIN, 'down');
+            if (harness.dimension.identifierAt(ORIGIN) !== subject.bedrock) return 'it broke on mycelium in daylight';
+
+            harness.dimension.set(BELOW, 'minecraft:stone');
+            harness.neighborChanged(ORIGIN, 'down');
+            if (harness.dimension.identifierAt(ORIGIN) !== 'minecraft:air') return 'it stayed on stone in daylight';
+            return undefined;
+        }
+    },
+    {
         name: 'door-needs-ground',
         java: 'A door breaks and drops when the block below its lower half is removed.',
         reference: 'Java DoorBlock updateShape and canSurvive',
