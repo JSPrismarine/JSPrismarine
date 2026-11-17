@@ -323,7 +323,8 @@ describe('flattening the /execute redirect cycle', () => {
                 ]
             },
             {
-                chaining: false,
+                // A real server marks `/execute run` chaining too: a chain continues into it.
+                chaining: true,
                 parameters: [
                     { kind: 'enum', name: 'OPTION_RUN', values: ['run'] },
                     { kind: 'basic', type: 'CODEBUILDERARGS' }

@@ -101,7 +101,7 @@ silent drop:
 
 | Shape                                                    | What the client gets                                                            | Note               |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------ |
-| A redirect back onto the current path, which is a cycle  | One trailing chained-subcommand parameter, and the overload marked `isChaining` | `redirect-cycle`   |
+| A redirect back onto the current path, which is a cycle  | One trailing chained-subcommand parameter, and every overload that starts with one of its keywords marked `isChaining` | `redirect-cycle`   |
 | A redirect to the dispatcher root                        | One `CODEBUILDERARGS` parameter, which the client will not autocomplete         | `redirect-to-root` |
 | An argument whose type Bedrock has no parameter type for | An `ID` string, unvalidated                                                     | `no-bedrock-type`  |
 | An argument type from outside this package               | An `ID` string                                                                  | `untyped-argument` |

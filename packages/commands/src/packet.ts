@@ -50,7 +50,10 @@ export interface AvailableCommandParameter {
 
 /** One overload of one command, as the packet writes it. */
 export interface AvailableCommandOverload {
-    /** The `isChaining` boolean, true when the overload ends in a chained subcommand. */
+    /**
+     * The `isChaining` boolean, true when a chain can continue into the
+     * overload: it starts with a chained keyword or ends in a chained subcommand.
+     */
     readonly isChaining: boolean;
     readonly parameters: readonly AvailableCommandParameter[];
 }

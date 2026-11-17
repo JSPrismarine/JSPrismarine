@@ -227,7 +227,8 @@ describe('the chained subcommand encoding', () => {
             optional: false,
             options: ParameterOption.EnumAsChainedCommand
         });
-        expect(run?.isChaining).toBe(false);
+        // A chain continues into `run`, so a real server marks it chaining too.
+        expect(run?.isChaining).toBe(true);
         // Mojang spells `/execute run <command: CODEBUILDERARGS>`, and a real server writes it as 90.
         expect(run?.parameters.at(-1)?.parseSymbol).toBe(ParameterTypeFlag.Valid | 90);
     });

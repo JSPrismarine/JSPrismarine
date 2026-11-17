@@ -8,10 +8,12 @@
  *
  * - A redirect back to a node already on the path is a cycle, which no finite
  *   overload list can hold. Bedrock's answer is the chained-subcommand table,
- *   so the cycle becomes one trailing chained parameter and the overload is
- *   marked `isChaining`. That is exactly how Mojang's own metadata spells
- *   `/execute`: every subcommand keyword is a one-value hard enum and the tail
- *   is `EXECUTECHAINEDOPTION_0`.
+ *   so the cycle becomes one trailing chained parameter. Every overload that
+ *   starts with one of the table's keywords is marked `isChaining`, because a
+ *   chain can continue into it. That is exactly how Mojang's own metadata
+ *   spells `/execute`: every subcommand keyword is a one-value hard enum, the
+ *   tail is `EXECUTECHAINEDOPTION_0`, and a real server marks every overload,
+ *   `run` included, as chaining.
  * - A redirect to the dispatcher root means "any command follows", which
  *   Bedrock spells as one `CODEBUILDERARGS` parameter. Mojang writes
  *   `/execute run <command: CODEBUILDERARGS>` for the same reason.
@@ -79,7 +81,10 @@ export interface FlattenedParameter {
 /** One flattened overload: the parameters a client types, in order. */
 export interface FlattenedOverload {
     readonly parameters: readonly FlattenedParameter[];
-    /** True when the overload ends in a chained subcommand parameter. */
+    /**
+     * True when a chain can continue into the overload: it starts with one of
+     * the command's chained keywords, or ends in a chained subcommand parameter.
+     */
     readonly chaining: boolean;
 }
 
@@ -185,8 +190,20 @@ class Flattener<S> {
         const kept = tails.slice(0, limit);
         if (tails.length > limit) this.cut(node.getName(), tails.length, limit);
 
+        // A chain can continue into any overload that starts with one of the
+        // command's chained keywords, so a real server marks those chaining
+        // too, `/execute run` among them.
+        const keywords = new Set([...this.chainedTables.values()].flatMap((table) => table.values));
+        const leadsWithKeyword = (tail: Tail): boolean => {
+            const shape = tail.parameters[0]?.shape;
+            return shape?.kind === 'enum' && shape.values.some((value) => keywords.has(value));
+        };
+
         return {
-            overloads: kept.map((tail) => ({ parameters: tail.parameters, chaining: tail.chaining })),
+            overloads: kept.map((tail) => ({
+                parameters: tail.parameters,
+                chaining: tail.chaining || leadsWithKeyword(tail)
+            })),
             chainedSubcommands: [...this.chainedTables.values()]
         };
     }

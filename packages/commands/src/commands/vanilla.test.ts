@@ -88,7 +88,8 @@ describe('the command set', () => {
         // `/gamerule` then took each rule's legacy and Bedrock names, which the packet lists too.
         // `/execute run <command>` then took the type id a real server writes, 90.
         // The chained subcommand pairs and parse symbols then took the form a real server sends.
-        expect(digest).toBe('f8215eaee3f1b6669b0e5ed6c770f5bd96b931d9');
+        // Every overload a chain continues into, `/execute run` among them, then became chaining.
+        expect(digest).toBe('afc675789eda8741c1e636bb8765ed4dd9de54e0');
     });
 });
 
