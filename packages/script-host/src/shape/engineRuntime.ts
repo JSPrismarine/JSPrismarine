@@ -1,3 +1,4 @@
+import { engineFunctionSource } from '../engineSource';
 import type { RuntimeCall, RuntimeExport, RuntimeMember, RuntimePlan, RuntimeType } from './plan';
 
 /**
@@ -39,7 +40,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     const { apply } = Reflect;
     const { create: createObject, defineProperty, getOwnPropertyDescriptor, setPrototypeOf } = Object;
     const { isArray } = Array;
-    const { isInteger } = Number;
+    const { isFinite, isInteger } = Number;
     const { parse } = JSON;
     const { Error, TypeError, ReferenceError, Map, Set, WeakMap, String } = globalThis;
     const iterator = Symbol.iterator;
@@ -240,6 +241,12 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 );
             }
             if (typeof value === 'number') {
+                // BDS refuses NaN and an infinity before it checks any bounds.
+                if (!isFinite(value)) {
+                    throw new TypeError(
+                        `${value} value is not supported. Function argument [${index}] expected type: ${describe(argument.type)}`
+                    );
+                }
                 const low = argument.min !== undefined && value < argument.min;
                 const high = argument.max !== undefined && value > argument.max;
                 if (low || high) throw outOfBounds(index, value, argument.min, argument.max);
@@ -451,4 +458,4 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
 }
 
 /** The source text that evaluates, inside an engine, to {@link engineRuntime}. */
-export const engineRuntimeSource = (): string => `(${engineRuntime.toString()})`;
+export const engineRuntimeSource = (): string => engineFunctionSource(engineRuntime.toString());

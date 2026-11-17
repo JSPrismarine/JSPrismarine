@@ -607,6 +607,12 @@ static JSValue host_call(JSContext *ctx, JSValueConst this_value, int argc, JSVa
 	jsh_engine *engine = JS_GetContextOpaque(ctx);
 	/* The host's answer would overwrite the error description being collected. */
 	if (engine->describing) return JS_ThrowInternalError(ctx, "the host cannot be called while an error is described");
+	/*
+	 * What the host does during the call, and the result or error made from its answer, belong
+	 * to the caller's context, which need not be the current one.
+	 */
+	JSContext *saved = engine->ctx;
+	engine->ctx = ctx;
 	writer out = {engine, 0, 0, NULL, 0, 0, 1};
 	write_u32(&out, (uint32_t)argc);
 	for (int i = 0; i < argc; i++) write_value(&out, argv[i], 0);
@@ -618,11 +624,7 @@ static JSValue host_call(JSContext *ctx, JSValueConst this_value, int argc, JSVa
 
 	engine->host_calls++;
 	engine->bytes_to_host += out.length;
-	/* What the host does during the call happens in the caller's context. */
-	JSContext *saved = engine->ctx;
-	engine->ctx = ctx;
 	int32_t length = engine->host(JSH_OP_CALL, id, out.length);
-	engine->ctx = saved;
 	if (engine->terminated) {
 		/* A script the host ran in the meantime used up the budget, so this one stops too. */
 		result = throw_terminated(ctx);
@@ -644,6 +646,7 @@ done:
 	/* The argument handles last for the call; a host that keeps one has duplicated it. */
 	for (int32_t i = 0; i < out.made_count; i++) release(engine, out.made[i]);
 	free(out.made);
+	engine->ctx = saved;
 	return result;
 }
 

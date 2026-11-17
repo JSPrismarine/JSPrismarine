@@ -26,6 +26,8 @@ import { resolveOptions } from '../../packages/leveldb/src/DatabaseOptions.ts';
 import { DEFAULT_BLOCK_SIZE } from '../../packages/leveldb/src/format/TableBuilder.ts';
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
 import { WORLD_EXPERIMENTS } from '../../packages/prismarine/src/world/WorldExperiments.ts';
+import { SCRIPT_MODULE_HISTORIES } from '../../packages/script-host/src/generated/scriptModules.ts';
+import { currentBeta } from '../../packages/script-host/src/shape/resolve.ts';
 import {
     HEIGHT_BLENDING_RANGE_CHUNKS,
     OLD_CHUNK_CARVING_DISTANCE
@@ -332,6 +334,12 @@ async function bstatsFacts() {
             ])
         )}\n`
     };
+/** The beta Script API versions a pack can declare, read from the generated script module histories. */
+function scriptingFacts() {
+    const history = SCRIPT_MODULE_HISTORIES['@minecraft/server'];
+    const beta = history === undefined ? undefined : currentBeta(history);
+    if (beta === undefined) throw new Error('The docs facts no longer find a beta of @minecraft/server.');
+    return { 'scripting.serverBeta': beta };
 }
 
 /** The events `Server.on` accepts, read from the `ServerEvents` map that types it. */
@@ -866,6 +874,7 @@ export async function loadFacts(): Promise<Facts> {
             ...(await bstatsFacts()),
             // The ids a `worlds.<name>` entry's `experiments` accepts.
             'world.experiments': WORLD_EXPERIMENTS.join(', '),
+            ...scriptingFacts(),
             ...eventFacts(),
             ...prismarineEntryFacts(),
             ...leveldbFacts(),

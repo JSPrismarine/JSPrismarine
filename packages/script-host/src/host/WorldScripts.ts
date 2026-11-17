@@ -41,7 +41,14 @@ import { serverImplementations } from './minecraftServer';
 import type { ScriptConfig, ScriptPack } from './pack';
 import { packLabel, packScripts, readPackFile } from './pack';
 import { TaskQueue } from './tasks';
-import type { ChatSendIntent, ScriptWeather, ScriptWorld, ScriptWorldEvent, WeatherChangeIntent } from './world';
+import type {
+    ChatSendIntent,
+    ScriptWeather,
+    ScriptWorld,
+    ScriptWorldEvent,
+    VetoVerdict,
+    WeatherChangeIntent
+} from './world';
 
 /** Where the runtime writes the content log: what scripts print, their errors and the watchdog's. */
 export interface ScriptLog {
@@ -176,7 +183,22 @@ export class WorldScripts {
     private tick = 0;
     private clock: number | undefined;
     private releaseGuards: (() => void)[] = [];
+    /** Set once scripts may no longer run: after a teardown, or a critical exception that shuts down. */
     private stopped = false;
+    /** Set once {@link WorldScripts.shutdown} has freed the engine and released the guards. */
+    private disposed = false;
+    /**
+     * The callbacks the current flush has entered. Each one costs a step of the tick's budget
+     * on top of the steps it takes, since the engine counts none for a callback too short to
+     * reach a poll, and a chain of those would otherwise never end a tick.
+     */
+    private tickEntries = 0;
+    /** Set while `watchdogTerminate` is delivered, so a handler that itself trips the watchdog shuts down. */
+    private deliveringWatchdogTerminate = false;
+    /** The number each player id the scripts have seen got, which picks its `Player` object. */
+    private readonly playerNumbers = new Map<string, number>();
+    /** The pack whose callback the runtime entered last, which a tick that runs over is blamed on. */
+    private lastEntered: LoadedPack | undefined;
 
     public constructor(options: WorldScriptsOptions) {
         this.options = options;
@@ -250,22 +272,38 @@ export class WorldScripts {
     public flush(): void {
         if (this.stopped) return;
         this.engine.beginTick();
+        this.tickEntries = 0;
         this.refreshClock();
         for (const loaded of this.loaded) if (loaded.lifecycle === 1) this.runJobs(loaded);
+        const withinBudget = (): boolean => this.tickEntries < this.tickBudget();
         for (;;) {
             let work = this.runV2Jobs();
-            work += this.tasks.runDue(this.tick, (task) => {
-                this.invoke(task.callback.loaded, task.callback.callback, 'default', []);
-                if (task.interval === undefined) this.engine.free(task.callback.callback);
-                this.runV2Jobs();
-            });
+            work += this.tasks.runDue(
+                this.tick,
+                (task) => {
+                    this.invoke(task.callback.loaded, task.callback.callback, 'default', []);
+                    if (task.interval === undefined) this.engine.free(task.callback.callback);
+                    this.runV2Jobs();
+                },
+                () => withinBudget() && !this.stopped
+            );
             const events = [...this.lifecycleEvents.splice(0), ...this.options.world.takeEvents()];
+            let dispatched = 0;
             for (const group of groupByType(events)) {
+                if (!withinBudget() || this.stopped) break;
                 for (const event of group) this.dispatchAfterEvent(event);
                 this.runV2Jobs();
-                work += group.length;
+                dispatched += group.length;
             }
-            if (work === 0 || this.stopped) break;
+            // What the budget left waits for the next tick, in the order it was in.
+            this.lifecycleEvents.unshift(...events.slice(dispatched));
+            work += dispatched;
+            if (this.stopped) break;
+            if (!withinBudget() && (this.tasks.hasDue(this.tick) || this.lifecycleEvents.length > 0)) {
+                this.tickOverrun();
+                break;
+            }
+            if (work === 0) break;
         }
         this.tick++;
     }
@@ -276,6 +314,7 @@ export class WorldScripts {
      * `system.currentTick` carries on.
      */
     public reload(): void {
+        if (this.disposed) return;
         this.teardown();
         this.stopped = false;
         this.engine = this.createEngine();
@@ -283,9 +322,13 @@ export class WorldScripts {
         this.startWorld();
     }
 
-    /** Sends `system.beforeEvents.shutdown` and frees the engine. Nothing runs after this. */
+    /**
+     * Sends `system.beforeEvents.shutdown`, frees the engine and takes the runtime's guards off the
+     * world. Nothing runs after this. A runtime the watchdog stopped is freed without the event.
+     */
     public shutdown(): void {
-        if (this.stopped) return;
+        if (this.disposed) return;
+        this.disposed = true;
         this.teardown();
         for (const release of this.releaseGuards.splice(0)) release();
     }
@@ -296,8 +339,24 @@ export class WorldScripts {
             ...(watchdog?.memoryLimit === undefined ? {} : { memoryLimit: watchdog.memoryLimit }),
             loadModule: (name, context) => this.loadModule(name, context)
         });
-        engine.setBudget({ perCallback: watchdog?.hangSteps ?? DEFAULT_HANG_THRESHOLD * STEPS_PER_MILLISECOND });
+        // BDS's hang threshold is for a single tick, and no one callback may take more than it either.
+        engine.setBudget({ perCallback: this.tickBudget(), perTick: this.tickBudget() });
         return engine;
+    }
+
+    /** The steps one tick's scripts may take together, each callback the flush enters counting one more. */
+    private tickBudget(): number {
+        return this.options.watchdog?.hangSteps ?? DEFAULT_HANG_THRESHOLD * STEPS_PER_MILLISECOND;
+    }
+
+    /**
+     * A flush whose callbacks reached the tick's budget with more still due: a hang, as BDS
+     * reports a tick that runs past its hang threshold. What is still due waits for the next tick.
+     */
+    private tickOverrun(): void {
+        const loaded = this.lastEntered ?? this.loaded[0];
+        if (loaded === undefined) return;
+        this.critical(loaded, 'Hang', `[Watchdog] Hang detected in '${loaded.pack.name}'`);
     }
 
     private teardown(): void {
@@ -389,6 +448,7 @@ export class WorldScripts {
             eventData: (tag) => this.events.get(tag),
             dimensions: () => this.options.world.dimensions(),
             players: () => this.options.world.players(),
+            playerNumber: (id) => this.playerNumber(id),
             sendMessage: (message) => this.options.world.sendMessage(message),
             setWeather: (dimension, weather, duration) => this.setWeather(dimension, weather, duration)
         } satisfies PackHost);
@@ -499,6 +559,14 @@ export class WorldScripts {
         return made;
     }
 
+    private playerNumber(id: string): number {
+        const known = this.playerNumbers.get(id);
+        if (known !== undefined) return known;
+        const number = this.playerNumbers.size;
+        this.playerNumbers.set(id, number);
+        return number;
+    }
+
     private create(loaded: LoadedPack, className: string, tag: number): ScriptHandle {
         return loaded.api.create(SERVER_MODULE, className, tag);
     }
@@ -517,10 +585,12 @@ export class WorldScripts {
 
     /**
      * Calls every callback subscribed to a signal, in the order they subscribed, each with an
-     * event object made in its own pack.
+     * event object made in its own pack. One that an earlier callback unsubscribed is skipped, as
+     * its handle is already freed.
      */
     private dispatch(signal: SignalName, privilege: Privilege, event: (loaded: LoadedPack) => ScriptHandle): void {
         for (const subscription of this.subscriptions.filter((each) => each.signal === signal)) {
+            if (!this.subscriptions.includes(subscription)) continue;
             const made = event(subscription.loaded);
             this.invoke(subscription.loaded, subscription.callback, privilege, [made]);
             this.engine.free(made);
@@ -575,14 +645,14 @@ export class WorldScripts {
     }
 
     /** The chat action's scripting guard: `world.beforeEvents.chatSend`. */
-    private chatGuard(intent: ChatSendIntent) {
-        const sender = this.options.world.players().indexOf(intent.sender);
+    private chatGuard(intent: ChatSendIntent): VetoVerdict {
+        const { sender } = intent;
         if (
             this.stopped ||
-            sender < 0 ||
+            !this.options.world.players().includes(sender) ||
             !this.subscriptions.some((each) => each.signal === 'ChatSendBeforeEventSignal')
         ) {
-            return { veto: false, intent } as const;
+            return { veto: false };
         }
         this.refreshClock();
         const data: EventData = { kind: 'chatBefore', cancel: false, message: intent.message, sender };
@@ -591,21 +661,28 @@ export class WorldScripts {
             this.create(loaded, 'ChatSendBeforeEvent', tag)
         );
         this.events.delete(tag);
-        return data.cancel ? ({ veto: true } as const) : ({ veto: false, intent } as const);
+        return { veto: data.cancel };
     }
 
     /**
-     * `system.beforeEvents.watchdogTerminate`, before a shutdown the watchdog is about to make.
+     * `system.beforeEvents.watchdogTerminate`, before a shutdown the watchdog is about to make. A
+     * critical exception in one of its handlers is not sent the event again: it shuts down.
      * @returns Whether a script canceled it.
      */
     private watchdogTerminate(terminateReason: WatchdogTerminateReason): boolean {
+        if (this.deliveringWatchdogTerminate) return false;
         if (!this.subscriptions.some((each) => each.signal === 'WatchdogTerminateBeforeEventSignal')) return false;
         const data: EventData = { kind: 'watchdogTerminate', cancel: false, terminateReason };
         const tag = this.addEvent(data);
-        this.dispatch('WatchdogTerminateBeforeEventSignal', 'restricted_execution', (loaded) =>
-            this.create(loaded, 'WatchdogTerminateBeforeEvent', tag)
-        );
-        this.events.delete(tag);
+        this.deliveringWatchdogTerminate = true;
+        try {
+            this.dispatch('WatchdogTerminateBeforeEventSignal', 'restricted_execution', (loaded) =>
+                this.create(loaded, 'WatchdogTerminateBeforeEvent', tag)
+            );
+        } finally {
+            this.deliveringWatchdogTerminate = false;
+            this.events.delete(tag);
+        }
         return data.cancel;
     }
 
@@ -621,6 +698,8 @@ export class WorldScripts {
 
     /** Calls one script callback under a privilege, logging what it throws. */
     private invoke(loaded: LoadedPack, callback: ScriptHandle, privilege: Privilege, args: ScriptValue[]): void {
+        this.tickEntries++;
+        this.lastEntered = loaded;
         this.withPrivilege(privilege, () =>
             this.guarded(loaded, () => {
                 const result = this.engine.call(callback, undefined, ...args);
@@ -676,6 +755,8 @@ export class WorldScripts {
         this.options.log.error(`[Scripting] ${detected}`);
         const shutsDown = kind === 'OutOfMemory' || this.options.watchdog?.shutdown !== false;
         if (shutsDown && kind !== 'OutOfMemory' && this.watchdogTerminate(kind)) return;
+        // A handler of the event above hit a critical exception of its own, which already shut down.
+        if (this.stopped) return;
         this.options.log.error(
             `[Scripting] [Watchdog] Unhandled critical exception of type '${kind}' in behavior pack '${loaded.pack.name}'`
         );

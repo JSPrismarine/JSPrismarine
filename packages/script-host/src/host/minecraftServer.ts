@@ -7,6 +7,7 @@
  * It reaches the runtime and the world only through {@link PackHost}, which `WorldScripts` gives
  * each pack.
  */
+import { engineFunctionSource } from '../engineSource';
 import { ScriptApiError } from '../errors';
 import type { ScriptEngine } from '../ScriptEngine';
 import { ScriptApiImplementations } from '../shape/implementations';
@@ -57,8 +58,8 @@ export interface ChatBeforeData {
     readonly kind: 'chatBefore';
     cancel: boolean;
     readonly message: string;
-    /** The sender's index among the world's players, which picks their `Player` object. */
-    readonly sender: number;
+    /** The sender's id, as the world's players list it, which picks their `Player` object. */
+    readonly sender: string;
 }
 
 /** Why the watchdog would shut the server down, as `WatchdogTerminateReason` names it. */
@@ -96,6 +97,11 @@ export interface PackHost {
     eventData(tag: number): EventData | undefined;
     dimensions(): readonly string[];
     players(): readonly string[];
+    /**
+     * A number for a player id, from 0: the same for one id every time, and never one another id
+     * had, so a player who takes a leaving player's place gets a `Player` object of their own.
+     */
+    playerNumber(id: string): number;
     sendMessage(message: string): void;
     setWeather(dimension: string, weather: ScriptWeather, duration: number): void;
 }
@@ -111,7 +117,7 @@ const TAG = {
     signal: 100,
     /** A dimension's tag is this plus its index in the world's dimensions. */
     dimension: 1000,
-    /** A player's tag is this plus their index in the world's players. */
+    /** A player's tag is this plus the number {@link PackHost.playerNumber} gives their id. */
     player: 100000
 } as const;
 
@@ -121,32 +127,35 @@ const shortName = (id: string): string => (id.startsWith('minecraft:') ? id.slic
 const isWeather = (value: ScriptValue): value is ScriptWeather =>
     value === 'Clear' || value === 'Rain' || value === 'Thunder';
 
-/** The text of a `sendMessage` argument: a string, a `RawMessage` or a list of either. */
-const messageText = (engine: ScriptEngine, value: ScriptValue): string => {
-    if (typeof value === 'string') return value;
-    if (!(value instanceof ScriptHandle)) return '';
-    const length = engine.get(value, 'length');
-    if (typeof length === 'number') {
-        let text = '';
-        for (let index = 0; index < length; index++) {
-            const element = engine.get(value, String(index));
-            text += messageText(engine, element);
-            if (element instanceof ScriptHandle) engine.free(element);
+/**
+ * The text of a `sendMessage` argument: a string, a `RawMessage` or a list of either. It runs
+ * inside the pack's engine, never in Node.js, so the watchdog counts each element it visits and a
+ * list whose `length` never ends stops at the step budget. It must not refer to anything outside
+ * its own body.
+ */
+function messageText(value: unknown): string {
+    // biome-ignore lint/suspicious/noRedundantUseStrict: the engine runs this source as a script, which is sloppy unless it says otherwise.
+    'use strict';
+    const text = (part: unknown): string => {
+        if (typeof part === 'string') return part;
+        if (typeof part !== 'object' || part === null) return '';
+        // Any object a script passed; the binding checked only that it is one.
+        const message = part as Readonly<Record<PropertyKey, unknown>>;
+        const { length } = message;
+        if (typeof length === 'number') {
+            let joined = '';
+            for (let index = 0; index < length; index++) joined += text(message[index]);
+            return joined;
         }
-        return text;
-    }
-    const plain = engine.get(value, 'text');
-    if (typeof plain === 'string') return plain;
-    const translate = engine.get(value, 'translate');
-    if (typeof translate === 'string') return translate;
-    const rawtext = engine.get(value, 'rawtext');
-    if (rawtext instanceof ScriptHandle) {
-        const text = messageText(engine, rawtext);
-        engine.free(rawtext);
-        return text;
-    }
-    return '';
-};
+        if (typeof message.text === 'string') return message.text;
+        if (typeof message.translate === 'string') return message.translate;
+        return text(message.rawtext);
+    };
+    return text(value);
+}
+
+/** The source text that evaluates, inside an engine, to {@link messageText}. */
+const messageTextSource = (): string => engineFunctionSource(messageText.toString());
 
 /**
  * The implementations of one pack's `@minecraft/server`.
@@ -225,14 +234,21 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         .implement(SERVER, 'World', 'getAllPlayers', (call) => {
             const array = call.engine.evaluate('[]');
             if (!(array instanceof ScriptHandle)) throw new TypeError('An array literal evaluated to a primitive');
-            host.players().forEach((_, index) => {
-                const player = host.instance('Player', TAG.player + index);
+            host.players().forEach((id, index) => {
+                const player = host.instance('Player', TAG.player + host.playerNumber(id));
                 call.engine.set(array, String(index), player);
             });
             return array;
         })
         .implement(SERVER, 'World', 'sendMessage', (call) => {
-            host.sendMessage(messageText(call.engine, call.args[0]));
+            const walk = call.engine.evaluate(messageTextSource(), '<jsp sendMessage>');
+            if (!(walk instanceof ScriptHandle)) throw new TypeError('The message walk is not a function');
+            try {
+                const text = call.engine.call(walk, undefined, call.args[0]);
+                host.sendMessage(typeof text === 'string' ? text : '');
+            } finally {
+                call.engine.free(walk);
+            }
             return undefined;
         })
         .implement(SERVER, 'Dimension', 'id', { get: (call) => dimensionAt(call) })
@@ -273,7 +289,7 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         })
         .implement(SERVER, 'ChatSendBeforeEvent', 'message', { get: (call) => data(call, 'chatBefore').message })
         .implement(SERVER, 'ChatSendBeforeEvent', 'sender', {
-            get: (call) => host.instance('Player', TAG.player + data(call, 'chatBefore').sender)
+            get: (call) => host.instance('Player', TAG.player + host.playerNumber(data(call, 'chatBefore').sender))
         })
         .implement(SERVER, 'WatchdogTerminateBeforeEvent', 'cancel', {
             get: (call) => data(call, 'watchdogTerminate').cancel,

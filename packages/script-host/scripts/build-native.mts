@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { absentGlobals, splitAbsentPath } from '../src/absentGlobals.ts';
-import { prebuildDir, sharedLibraryName } from '../src/platform.ts';
+import { NATIVE_BUILD_PLATFORMS, prebuildDir, sharedLibraryName } from '../src/platform.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const nativeDir = join(packageDir, 'native');
@@ -42,8 +42,10 @@ const { values } = parseArgs({
     }
 });
 
-if (process.platform !== 'linux') {
-    throw new Error(`build:native builds for Linux only for now, not ${process.platform}`);
+if (!NATIVE_BUILD_PLATFORMS.includes(process.platform)) {
+    throw new Error(
+        `build:native builds for ${NATIVE_BUILD_PLATFORMS.join(', ')} only for now, not ${process.platform}`
+    );
 }
 
 // Parsed JSON from our own manifest; its shape is the Source interface above.
