@@ -7,6 +7,7 @@ import { itemDropPickup } from './scenarios/item-drop-pickup.mts';
 import { itemRestShape } from './scenarios/item-rest-shape.mts';
 import { fallingBlockWater } from './scenarios/falling-block-water.mts';
 import { farmland } from './scenarios/farmland.mts';
+import { chest } from './scenarios/chest.mts';
 import { furnace } from './scenarios/furnace.mts';
 import { villagerTrade } from './scenarios/villager-trade.mts';
 import { glassBottleFilling, liquidContainers } from './scenarios/liquid-containers.mts';
@@ -93,6 +94,7 @@ export const suites: ScenarioSuite[] = [
             subChunkBlockChanges,
             teleport,
             furnace,
+            chest,
             litFurnace,
             villagerTrade,
             eating,
