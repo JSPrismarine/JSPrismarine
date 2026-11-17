@@ -735,6 +735,19 @@ describe('the server command host', () => {
         });
     });
 
+    describe('reload', () => {
+        it('reloads the behavior pack scripts, as Bedrock’s /reload does, and keeps the server running', () => {
+            const reloadScripts = vi.fn();
+            const reload = vi.fn();
+            const server = Object.assign(Object.create(fixture.server), { reloadScripts, reload });
+
+            serverCommandHost(server).server.reload();
+
+            expect(reloadScripts).toHaveBeenCalledOnce();
+            expect(reload).not.toHaveBeenCalled();
+        });
+    });
+
     describe('the weather', () => {
         it('sets what it is asked for and reads it back', () => {
             const host = serverCommandHost(fixture.server).world;

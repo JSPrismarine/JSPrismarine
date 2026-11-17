@@ -199,6 +199,12 @@ export interface ConfigFile {
     'crafting-recipe-limit'?: number;
     /** The services the server reports pseudonymous usage statistics to. */
     stats?: StatsConfig;
+    /** Whether a hang, a stack overflow or running out of memory in a script shuts the server down. */
+    'script-watchdog-enable-shutdown'?: boolean;
+    /** How long one script callback may run before it is stopped, in milliseconds, converted to steps. @asType integer @minimum 1 */
+    'script-watchdog-hang-threshold'?: number;
+    /** How many megabytes the scripts of one world may allocate together; 0 for no limit. @asType integer @minimum 0 */
+    'script-watchdog-memory-limit'?: number;
     /** Whether a pack that reports an error stops the server instead of loading short. */
     'content-strict'?: boolean;
     /** Extra behavior pack directories this world loads, after the vanilla ones. */
@@ -274,6 +280,9 @@ export const CONFIG_KEY_ORDER = [
     'log-excluded-packets',
     'crafting-recipe-limit',
     'stats',
+    'script-watchdog-enable-shutdown',
+    'script-watchdog-hang-threshold',
+    'script-watchdog-memory-limit',
     'content-strict',
     'content-world-packs',
     'content-datapacks',

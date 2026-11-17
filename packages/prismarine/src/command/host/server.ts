@@ -158,7 +158,8 @@ export const serverSideCommandHost = (
             onStopRequested(shutdown);
             return carryOut(shutdown, undefined);
         },
-        reload: () => carryOut(server.reload(), undefined),
+        // Bedrock's `/reload`: the behavior pack scripts start over, and the server keeps running.
+        reload: () => server.reloadScripts(),
 
         ticking: {
             rate: () => server.getTickControl().getTickRate(),

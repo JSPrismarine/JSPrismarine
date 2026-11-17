@@ -240,6 +240,16 @@
                 "import": "./dist/world/World.js",
                 "module": "./dist/world/World.js"
             },
+            "./scripting/LevelScripts": {
+                "types": "./dist/scripting/LevelScripts.d.ts",
+                "import": "./dist/scripting/LevelScripts.js",
+                "module": "./dist/scripting/LevelScripts.js"
+            },
+            "./scripting/LevelScriptWorld": {
+                "types": "./dist/scripting/LevelScriptWorld.d.ts",
+                "import": "./dist/scripting/LevelScriptWorld.js",
+                "module": "./dist/scripting/LevelScriptWorld.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -816,6 +826,14 @@
             "jsprismarine:dist": "./dist/world/World.js",
             "default": "./src/world/World.ts"
         },
+        "./scripting/LevelScripts": {
+            "jsprismarine:dist": "./dist/scripting/LevelScripts.js",
+            "default": "./src/scripting/LevelScripts.ts"
+        },
+        "./scripting/LevelScriptWorld": {
+            "jsprismarine:dist": "./dist/scripting/LevelScriptWorld.js",
+            "default": "./src/scripting/LevelScriptWorld.ts"
+        },
         "./package.json": "./package.json"
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/prismarine",
@@ -960,5 +978,8 @@
         "@jsprismarine/worldgen": "workspace:*",
         "jose": "6.2.18",
         "jsonc-parser": "3.3.1"
+    },
+    "optionalDependencies": {
+        "@jsprismarine/script-host": "workspace:*"
     }
 }

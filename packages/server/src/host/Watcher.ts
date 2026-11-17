@@ -25,6 +25,12 @@ export interface WatcherOptions {
     onEvent: (event: SupervisorEvent) => void;
     /** Called once per settled batch of changes with the first changed path, relative to the repository. */
     requestRestart: (reason: string) => void;
+    /**
+     * Called once per settled batch of behavior pack script changes, with the first changed
+     * path, so the server reloads its scripts as `/reload` does instead of restarting. Without
+     * it, a script change does nothing.
+     */
+    requestScriptReload?: (reason: string) => void;
     /** How long changes may settle before one restart is requested, in milliseconds; defaults to 150. */
     debounceMs?: number;
     /**
@@ -59,6 +65,8 @@ const SOURCE_FILE = /\.(ts|json)$/;
 /** What a package build writes that the server loads; declarations and source maps are not loaded. */
 const BUILT_FILE = /\.(m?js|json)$/;
 const PACK_DATA_FILE = /\.(json|mcfunction|mcmeta|brarchive)$/i;
+/** A behavior pack's script, which `/reload` picks up without a restart. */
+const PACK_SCRIPT_FILE = /\.m?js$/i;
 
 /** A file's content hash, or `undefined` when it cannot be read, such as after a delete. */
 const hashFile = (file: string): string | undefined => {
@@ -70,8 +78,9 @@ const hashFile = (file: string): string | undefined => {
 };
 
 /**
- * Restarts the server when a package source file or loaded pack data file changes, and
- * regenerates the bedrock-data JSON when the generator's inputs change.
+ * Restarts the server when a package source file or loaded pack data file changes, reloads its
+ * behavior pack scripts when a pack's script changes, and regenerates the bedrock-data JSON when
+ * the generator's inputs change.
  *
  * This is the watch half of the former `scripts/dev.mts`. It reports through
  * {@link WatcherOptions.onEvent} and asks for restarts through
@@ -90,6 +99,8 @@ export class Watcher {
     private generating = false;
     private generateQueued = false;
     private restartTimer: ReturnType<typeof setTimeout> | undefined;
+    private reloadTimer: ReturnType<typeof setTimeout> | undefined;
+    private pendingReload: string | undefined;
     private generateTimer: ReturnType<typeof setTimeout> | undefined;
     /** The changed paths of the batch waiting on the debounce, each with the built file to check, if any. */
     private readonly pending = new Map<string, string | undefined>();
@@ -152,8 +163,10 @@ export class Watcher {
     public close(): void {
         for (const watcher of this.watchers.splice(0)) watcher.close();
         this.timers.clearTimeout(this.restartTimer);
+        this.timers.clearTimeout(this.reloadTimer);
         this.timers.clearTimeout(this.generateTimer);
         this.pending.clear();
+        this.pendingReload = undefined;
     }
 
     private recordBuiltFiles(): void {
@@ -204,8 +217,10 @@ export class Watcher {
         const repositoryRoot = path.resolve(this.options.packagesDir, '..');
         if (directory) {
             this.watch(packPath, (filename) => {
-                if (!filename || !PACK_DATA_FILE.test(filename)) return;
-                this.requestRestart(path.relative(repositoryRoot, path.join(packPath, filename)));
+                if (!filename) return;
+                const changed = path.relative(repositoryRoot, path.join(packPath, filename));
+                if (PACK_SCRIPT_FILE.test(filename)) this.requestScriptReload(changed);
+                else if (PACK_DATA_FILE.test(filename)) this.requestRestart(changed);
             });
             return;
         }
@@ -232,6 +247,19 @@ export class Watcher {
             if (first === undefined || this.generating) return;
             this.options.onEvent({ type: 'supervisor.changed', path: first });
             this.options.requestRestart(first);
+        }, this.debounceMs);
+    }
+
+    private requestScriptReload(reason: string): void {
+        const reload = this.options.requestScriptReload;
+        if (reload === undefined) return;
+        this.pendingReload ??= reason;
+        this.timers.clearTimeout(this.reloadTimer);
+        this.reloadTimer = this.timers.setTimeout(() => {
+            const first = this.pendingReload ?? reason;
+            this.pendingReload = undefined;
+            this.options.onEvent({ type: 'supervisor.changed', path: first });
+            reload(first);
         }, this.debounceMs);
     }
 

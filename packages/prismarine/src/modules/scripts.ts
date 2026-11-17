@@ -1,0 +1,64 @@
+import { join } from 'node:path';
+
+import type { Module } from '@jsprismarine/kernel';
+
+import type Server from '../Server';
+import { LevelScripts } from '../scripting/LevelScripts';
+import { contentToken, worldsToken } from './tokens';
+
+/**
+ * Runs the behavior pack scripts of the default level: the world packs `content-world-packs`
+ * names that have a script module, with BDS's `config/` folder beside the server.
+ *
+ * It starts once the worlds have loaded, so the version 2 packs' early execution and the
+ * version 1 packs run back to back before the first tick that flushes them, in the order BDS
+ * runs them around a world load. Stopping it sends the scripts `system.beforeEvents.shutdown`.
+ *
+ * @param server - The server whose default level runs the scripts.
+ * @returns The module to register on the kernel.
+ */
+export const scriptsModule = (server: Server): Module => ({
+    id: 'prismarine:scripts',
+    dependencies: [contentToken, worldsToken],
+    register: () => {},
+    start: async () => {
+        const level = server.getWorldManager().getDefaultLevel();
+        const scripts = await LevelScripts.load({
+            packDirectories: server.getContentSettings().worldPacks,
+            configDirectory: join(process.cwd(), 'config'),
+            sources: {
+                dimensions: () =>
+                    [...level.getStems().keys()].map((dimension) => level.dimensionTypeOf(dimension).bedrockName),
+                players: () =>
+                    server
+                        .getSessionManager()
+                        .getSessions()
+                        .filter((session) => session.getWorld().getLevel() === level)
+                        .map((session) => ({
+                            id: String(session.getRuntimeId()),
+                            sendMessage: (message) =>
+                                void session
+                                    .sendMessage(message)
+                                    .catch((error: unknown) => server.getLogger().error(error))
+                        })),
+                weather: level.getWeather(),
+                clock: () => server.getAdmittedClock()
+            },
+            seed: server.getWorldManager().getDefaultWorld().getSeed(),
+            watchdog: server.getConfig().getScriptWatchdog(),
+            log: {
+                info: (message) => server.getLogger().info(message),
+                warn: (message) => server.getLogger().warn(message),
+                error: (message) => server.getLogger().error(message)
+            },
+            onShutdown: () => void server.shutdown()
+        });
+        if (scripts === undefined) return;
+        scripts.start(server.getWorldManager().getDefaultWorld());
+        server.setScripts(scripts);
+    },
+    stop: () => {
+        server.getScripts()?.close();
+        server.setScripts(undefined);
+    }
+});
