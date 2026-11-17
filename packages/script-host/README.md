@@ -10,8 +10,9 @@ thread, as [ADR 0020](../../docs/adr/0020-scripts-run-in-quickjs-on-the-world-th
 The plan that builds the rest of the script host on top of this package is
 [script-api-host.md](../../docs/plans/script-api-host.md).
 
-This release is the engine alone: evaluation, host calls, limits and the sandbox. It does not load
-packs or implement `@minecraft/server` yet.
+This release has the engine, with evaluation, host calls, limits and the sandbox, and the shape of
+the Script API: every module, class and member of `@minecraft/server` and the other stable modules,
+generated from Mojang's metadata. It does not load packs yet, and no member has behavior yet.
 
 ## Running a script
 
@@ -95,6 +96,63 @@ engine with that record.
   `TypeError: Function from string is not supported` instead of compiling a string.
 - A regular expression with the `v` flag, a modifier group such as `(?i:a)` or a group name used
   twice throws the `SyntaxError` BDS throws, in a literal or through `RegExp`.
+
+## The Script API's shape
+
+The modules a pack imports, such as `@minecraft/server`, are generated rather than written by hand
+([ADR 0022](../../docs/adr/0022-the-script-api-surface-is-generated.md)). `generate:shape` reads
+`metadata/script_modules` from the `bedrock-samples` checkout that
+`packages/bedrock-data/sources.json` pins, and writes one file per module to
+`src/generated/script-modules/`. Each file keeps every stable version of its module as history. A
+class or member is a list of segments, each with the first version it appears in and, once Mojang
+removes or changes it, the last. A regeneration after a version bump therefore shows each added,
+changed or removed member as its own line in the diff.
+
+```sh
+pnpm --filter @jsprismarine/script-host run generate:shape   # fetches the checkout if needed
+pnpm --filter @jsprismarine/script-host run check:shape      # fails when src/generated is stale
+```
+
+The metadata has gaps, such as the privilege `CustomCommandRegistry.registerCommand`'s callback
+runs under. `scripts/shape/overrides.mts` fills them, each with its evidence, and the generator fails
+once the metadata records a value of its own, so a stale override cannot linger.
+
+A pack gets the newest stable minor version of the major version it declares, as on Bedrock
+Dedicated Server, so a pack that declares 2.0.0 sees every 2.x member the pinned server ships.
+`resolveDependency` does that resolution, and returns BDS's own content log message when it refuses
+a module.
+
+```ts
+import { ScriptApiContext } from '@jsprismarine/script-host/shape/binding';
+import { ScriptApiImplementations } from '@jsprismarine/script-host/shape/implementations';
+import { resolveDependency } from '@jsprismarine/script-host/shape/resolve';
+
+const resolution = resolveDependency(
+    { module_name: '@minecraft/server', version: '2.0.0' },
+    { pack: 'my pack - 1.0.0', allowedModules: ['@minecraft/server'] }
+);
+
+const implementations = new ScriptApiImplementations().implement(
+    '@minecraft/server',
+    'World',
+    'getDimension',
+    (call) => `the ${call.args[0]} dimension`
+);
+const context = new ScriptApiContext(engine, { pack: 'my pack - 1.0.0', implementations, logger: console });
+if (resolution.ok) context.bind(resolution.shape); // the namespace a script's import sees
+```
+
+`ScriptApiContext` installs a module into a namespace object with every class, enum, constant and
+error class the served version has. Every member is present, so `typeof world.sendMessage` and other
+feature tests see what they see on BDS. Before anything else runs, a member checks its arguments
+against the metadata and throws a `TypeError` or an `ArgumentOutOfBoundsError` worded the way BDS
+words them. Then it calls the implementation registered for its module, class and member. A member with none throws `NotImplementedError`, which names the module, the class
+and the member, and the context logs it the first time each pack uses it.
+
+`implement` takes the names the generated `ScriptApiMembers` lists, so a misspelled member does not
+compile, and the form a member needs: a function for a method or constructor, `{ get }` for a
+read-only property and `{ get, set }` for a writable one. An implementation throws one of the API's
+own error classes, such as `LocationInUnloadedChunkError`, by throwing a `ScriptApiError`.
 
 ## Building it
 

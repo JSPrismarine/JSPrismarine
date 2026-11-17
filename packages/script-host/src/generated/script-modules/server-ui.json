@@ -1,0 +1,724 @@
+{
+    "module": "@minecraft/server-ui",
+    "uuid": "2BD50A27-AB5F-4F40-A596-3641627C635E",
+    "versions": [
+        {"version":"1.0.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v1-wrapper","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server":"1.2.0"}},
+        {"version":"1.1.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v1-wrapper","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server":"1.2.0"}},
+        {"version":"1.2.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v1-wrapper","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server":"1.2.0"}},
+        {"version":"1.3.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v1-wrapper","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server":"1.3.0"}},
+        {"version":"2.0.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v2-wrapper","dependencies":{"@minecraft/server":"2.0.0","@minecraft/common":"1.0.0"}},
+        {"version":"2.1.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v2-wrapper","dependencies":{"@minecraft/server":"2.0.0","@minecraft/common":"1.0.0"}},
+        {"version":"2.2.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v2-wrapper","dependencies":{"@minecraft/server":"2.0.0","@minecraft/common":"1.0.0"}}
+    ],
+    "resolves": {"1":"1.3.0","2":"2.2.0"},
+    "declarations": {
+        "ActionFormData": {
+            "segments": [
+                {"from":"1.0.0","kind":"class"}
+            ],
+            "members": {
+                "body": [
+                    {"from":"1.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"bodyText","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"ActionFormData"}
+                ],
+                "button": [
+                    {"from":"1.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"text","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"iconPath","type":{"kind":"optional","type":"string"},"default":null}],"returns":"ActionFormData"}
+                ],
+                "constructor": [
+                    {"from":"1.0.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[]}
+                ],
+                "divider": [
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"ActionFormData"}
+                ],
+                "header": [
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"text","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"ActionFormData"}
+                ],
+                "label": [
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"text","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"ActionFormData"}
+                ],
+                "show": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"},{"kind":"external","module":"@minecraft/server","name":"RawMessageError"}],"returns":{"kind":"promise","type":"ActionFormResponse"}}
+                ],
+                "title": [
+                    {"from":"1.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"titleText","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"ActionFormData"}
+                ]
+            }
+        },
+        "ActionFormResponse": {
+            "segments": [
+                {"from":"1.0.0","kind":"class","base":"FormResponse"}
+            ],
+            "members": {
+                "selection": [
+                    {"from":"1.0.0","kind":"property","type":{"kind":"optional","type":"uint32"},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "ButtonOptions": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "disabled": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ],
+                "tooltip": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                ],
+                "visible": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ]
+            }
+        },
+        "CustomForm": {
+            "segments": [
+                {"from":"2.1.0","kind":"class"}
+            ],
+            "members": {
+                "button": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"onClick","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"ButtonOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
+                ],
+                "close": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"FormVisibilityError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"undefined"}
+                ],
+                "closeButton": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
+                ],
+                "constructor": [
+                    {"from":"2.1.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"title","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}}],"throws":[{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}]}
+                ],
+                "divider": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"options","type":{"kind":"optional","type":"DividerOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
+                ],
+                "dropdown": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"value","type":"ObservableNumber"},{"name":"items","type":{"kind":"array","element":"DropdownItemData"}},{"name":"options","type":{"kind":"optional","type":"DropdownOptions"},"default":null}],"throws":["InvalidFormModificationError","InvalidObservableError"],"returns":"CustomForm"}
+                ],
+                "header": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"text","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"TextOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
+                ],
+                "image": [
+                    {"from":"2.2.0","kind":"method","privilege":["default"],"arguments":[{"name":"src","type":{"kind":"variant","types":["ObservableString","string"]}},{"name":"pack","type":{"kind":"variant","types":["ObservableString","string"]}},{"name":"options","type":{"kind":"optional","type":"ImageOptions"},"default":null}],"throws":["InvalidFormModificationError","InvalidObservableError"],"returns":"CustomForm"}
+                ],
+                "isShowing": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "label": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"text","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"TextOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
+                ],
+                "show": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"FormVisibilityError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":{"kind":"promise","type":"DataDrivenScreenClosedReason"}}
+                ],
+                "slider": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"value","type":"ObservableNumber"},{"name":"min","type":{"kind":"variant","types":["double","ObservableNumber"]}},{"name":"max","type":{"kind":"variant","types":["double","ObservableNumber"]}},{"name":"options","type":{"kind":"optional","type":"SliderOptions"},"default":null}],"throws":["InvalidFormModificationError","InvalidObservableError"],"returns":"CustomForm"}
+                ],
+                "spacer": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"options","type":{"kind":"optional","type":"SpacingOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
+                ],
+                "textField": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"text","type":"ObservableString"},{"name":"options","type":{"kind":"optional","type":"TextFieldOptions"},"default":null}],"throws":["InvalidFormModificationError","InvalidObservableError"],"returns":"CustomForm"}
+                ],
+                "toggle": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"toggled","type":"ObservableBoolean"},{"name":"options","type":{"kind":"optional","type":"ToggleOptions"},"default":null}],"throws":["InvalidFormModificationError","InvalidObservableError"],"returns":"CustomForm"}
+                ]
+            }
+        },
+        "DataDrivenScreenClosedReason": {
+            "segments": [
+                {"from":"2.1.0","kind":"enum"}
+            ],
+            "members": {
+                "ClientClosed": [
+                    {"from":"2.1.0","kind":"constant","static":true,"type":"string","value":"ClientClosed"}
+                ],
+                "ServerClosed": [
+                    {"from":"2.1.0","kind":"constant","static":true,"type":"string","value":"ServerClosed"}
+                ],
+                "UserBusy": [
+                    {"from":"2.1.0","kind":"constant","static":true,"type":"string","value":"UserBusy"}
+                ]
+            }
+        },
+        "DividerOptions": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "visible": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ]
+            }
+        },
+        "DropdownItemData": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "description": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                ],
+                "label": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]},"readOnly":false}
+                ],
+                "value": [
+                    {"from":"2.1.0","kind":"property","type":"double","readOnly":false}
+                ]
+            }
+        },
+        "DropdownOptions": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "description": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                ],
+                "disabled": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ],
+                "visible": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ]
+            }
+        },
+        "FormCancelationReason": {
+            "segments": [
+                {"from":"1.1.0","kind":"enum"}
+            ],
+            "members": {
+                "UserBusy": [
+                    {"from":"1.1.0","kind":"constant","static":true,"type":"string","value":"UserBusy"}
+                ],
+                "UserClosed": [
+                    {"from":"1.1.0","kind":"constant","static":true,"type":"string","value":"UserClosed"}
+                ]
+            }
+        },
+        "FormRejectError": {
+            "segments": [
+                {"from":"1.0.0","kind":"error"}
+            ],
+            "members": {
+                "reason": [
+                    {"from":"1.0.0","kind":"property","type":"FormRejectReason","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "FormRejectReason": {
+            "segments": [
+                {"from":"1.0.0","kind":"enum"}
+            ],
+            "members": {
+                "MalformedResponse": [
+                    {"from":"1.0.0","kind":"constant","static":true,"type":"string","value":"MalformedResponse"}
+                ],
+                "PlayerQuit": [
+                    {"from":"1.0.0","kind":"constant","static":true,"type":"string","value":"PlayerQuit"}
+                ],
+                "ServerShutdown": [
+                    {"from":"1.0.0","kind":"constant","static":true,"type":"string","value":"ServerShutdown"}
+                ]
+            }
+        },
+        "FormResponse": {
+            "segments": [
+                {"from":"1.0.0","kind":"class"}
+            ],
+            "members": {
+                "cancelationReason": [
+                    {"from":"1.1.0","kind":"property","type":{"kind":"optional","type":"FormCancelationReason"},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "canceled": [
+                    {"from":"1.1.0","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "FormVisibilityError": {
+            "segments": [
+                {"from":"2.1.0","kind":"error"}
+            ],
+            "members": {
+                "formId": [
+                    {"from":"2.1.0","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "reason": [
+                    {"from":"2.1.0","kind":"property","type":"FormVisibilityErrorReason","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "FormVisibilityErrorReason": {
+            "segments": [
+                {"from":"2.1.0","kind":"enum"}
+            ],
+            "members": {
+                "AlreadyShowing": [
+                    {"from":"2.1.0","kind":"constant","static":true,"type":"string","value":"AlreadyShowing"}
+                ],
+                "NotShowing": [
+                    {"from":"2.1.0","kind":"constant","static":true,"type":"string","value":"NotShowing"}
+                ]
+            }
+        },
+        "ImageOptions": {
+            "segments": [
+                {"from":"2.2.0","kind":"interface"}
+            ],
+            "members": {
+                "onClick": [
+                    {"from":"2.2.0","kind":"property","type":{"kind":"optional","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}},"readOnly":false}
+                ],
+                "tooltip": [
+                    {"from":"2.2.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                ],
+                "visible": [
+                    {"from":"2.2.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ],
+                "width": [
+                    {"from":"2.2.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["double","ObservableNumber"]}},"readOnly":false}
+                ]
+            }
+        },
+        "InvalidFormError": {
+            "segments": [
+                {"from":"2.1.0","kind":"error"}
+            ],
+            "members": {
+                "formId": [
+                    {"from":"2.1.0","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "InvalidFormModificationError": {
+            "segments": [
+                {"from":"2.1.0","kind":"error"}
+            ],
+            "members": {
+                "formId": [
+                    {"from":"2.1.0","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "InvalidObservableError": {
+            "segments": [
+                {"from":"2.1.0","kind":"error"}
+            ]
+        },
+        "MessageBox": {
+            "segments": [
+                {"from":"2.1.0","kind":"class"}
+            ],
+            "members": {
+                "body": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"body","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
+                ],
+                "button1": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"tooltip","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
+                ],
+                "button2": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"tooltip","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
+                ],
+                "close": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"FormVisibilityError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"undefined"}
+                ],
+                "constructor": [
+                    {"from":"2.1.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"title","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}}],"throws":[{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}]}
+                ],
+                "isShowing": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "show": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"FormVisibilityError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":{"kind":"promise","type":"MessageBoxResult"}}
+                ]
+            }
+        },
+        "MessageBoxResult": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "closeReason": [
+                    {"from":"2.1.0","kind":"property","type":"DataDrivenScreenClosedReason","readOnly":false}
+                ],
+                "selection": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":"uint32"},"readOnly":false}
+                ]
+            }
+        },
+        "MessageFormData": {
+            "segments": [
+                {"from":"1.0.0","kind":"class"}
+            ],
+            "members": {
+                "body": [
+                    {"from":"1.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"bodyText","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"MessageFormData"}
+                ],
+                "button1": [
+                    {"from":"1.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"text","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"MessageFormData"}
+                ],
+                "button2": [
+                    {"from":"1.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"text","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"MessageFormData"}
+                ],
+                "constructor": [
+                    {"from":"1.0.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[]}
+                ],
+                "show": [
+                    {"from":"1.0.0","to":"1.3.0","kind":"method","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"returns":{"kind":"promise","type":"MessageFormResponse"}},
+                    {"from":"2.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"},{"kind":"external","module":"@minecraft/server","name":"RawMessageError"}],"returns":{"kind":"promise","type":"MessageFormResponse"}}
+                ],
+                "title": [
+                    {"from":"1.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"titleText","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"MessageFormData"}
+                ]
+            }
+        },
+        "MessageFormResponse": {
+            "segments": [
+                {"from":"1.0.0","kind":"class","base":"FormResponse"}
+            ],
+            "members": {
+                "selection": [
+                    {"from":"1.0.0","kind":"property","type":{"kind":"optional","type":"uint8"},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "ModalFormData": {
+            "segments": [
+                {"from":"1.0.0","kind":"class"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[]}
+                ],
+                "divider": [
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"ModalFormData"}
+                ],
+                "dropdown": [
+                    {"from":"1.0.0","to":"1.3.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"label","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"options","type":{"kind":"array","element":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}},{"name":"defaultValueIndex","type":{"kind":"optional","type":"int32"},"default":null}],"returns":"ModalFormData"},
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"label","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"items","type":{"kind":"array","element":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}},{"name":"dropdownOptions","type":{"kind":"optional","type":"ModalFormDataDropdownOptions"},"default":null}],"returns":"ModalFormData"}
+                ],
+                "header": [
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"text","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"ModalFormData"}
+                ],
+                "label": [
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"text","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"ModalFormData"}
+                ],
+                "show": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"},{"kind":"external","module":"@minecraft/server","name":"RawMessageError"}],"returns":{"kind":"promise","type":"ModalFormResponse"}}
+                ],
+                "slider": [
+                    {"from":"1.0.0","to":"1.3.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"label","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"minimumValue","type":"float"},{"name":"maximumValue","type":"float"},{"name":"valueStep","type":"float"},{"name":"defaultValue","type":{"kind":"optional","type":"float"},"default":null}],"returns":"ModalFormData"},
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"label","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"minimumValue","type":"float"},{"name":"maximumValue","type":"float"},{"name":"sliderOptions","type":{"kind":"optional","type":"ModalFormDataSliderOptions"},"default":null}],"returns":"ModalFormData"}
+                ],
+                "submitButton": [
+                    {"from":"1.2.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"submitButtonText","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"ModalFormData"}
+                ],
+                "textField": [
+                    {"from":"1.0.0","to":"1.3.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"label","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"placeholderText","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"defaultValue","type":{"kind":"optional","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},"default":null}],"returns":"ModalFormData"},
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"label","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"placeholderText","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"textFieldOptions","type":{"kind":"optional","type":"ModalFormDataTextFieldOptions"},"default":null}],"returns":"ModalFormData"}
+                ],
+                "title": [
+                    {"from":"1.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"titleText","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"returns":"ModalFormData"}
+                ],
+                "toggle": [
+                    {"from":"1.0.0","to":"1.3.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"label","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"defaultValue","type":{"kind":"optional","type":"boolean"},"default":null}],"returns":"ModalFormData"},
+                    {"from":"2.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"label","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},{"name":"toggleOptions","type":{"kind":"optional","type":"ModalFormDataToggleOptions"},"default":null}],"returns":"ModalFormData"}
+                ]
+            }
+        },
+        "ModalFormDataDropdownOptions": {
+            "segments": [
+                {"from":"2.0.0","kind":"interface"}
+            ],
+            "members": {
+                "defaultValueIndex": [
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":"uint32"},"readOnly":false}
+                ],
+                "tooltip": [
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},"readOnly":false}
+                ]
+            }
+        },
+        "ModalFormDataSliderOptions": {
+            "segments": [
+                {"from":"2.0.0","kind":"interface"}
+            ],
+            "members": {
+                "defaultValue": [
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":false}
+                ],
+                "tooltip": [
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},"readOnly":false}
+                ],
+                "valueStep": [
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":false}
+                ]
+            }
+        },
+        "ModalFormDataTextFieldOptions": {
+            "segments": [
+                {"from":"2.0.0","kind":"interface"}
+            ],
+            "members": {
+                "defaultValue": [
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},"readOnly":false}
+                ],
+                "tooltip": [
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},"readOnly":false}
+                ]
+            }
+        },
+        "ModalFormDataToggleOptions": {
+            "segments": [
+                {"from":"2.0.0","kind":"interface"}
+            ],
+            "members": {
+                "defaultValue": [
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":"boolean"},"readOnly":false}
+                ],
+                "tooltip": [
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}},"readOnly":false}
+                ]
+            }
+        },
+        "ModalFormResponse": {
+            "segments": [
+                {"from":"1.0.0","kind":"class","base":"FormResponse"}
+            ],
+            "members": {
+                "formValues": [
+                    {"from":"1.0.0","to":"1.3.0","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":{"kind":"variant","types":["boolean","float","string"]}}},"readOnly":true,"get":["restricted_execution"]},
+                    {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":{"kind":"optional","type":{"kind":"variant","types":["boolean","float","string"]}}}},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "ObservableBoolean": {
+            "segments": [
+                {"from":"2.1.0","kind":"class"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"2.1.0","kind":"constructor","privilege":["early_execution"],"arguments":[{"name":"data","type":"boolean"},{"name":"options","type":{"kind":"optional","type":"ObservableOptions"},"default":null}]}
+                ],
+                "getData": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[],"returns":"boolean"}
+                ],
+                "setData": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"data","type":"boolean"}],"returns":"undefined"}
+                ],
+                "subscribe": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["boolean"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["boolean"],"returns":"undefined","privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["boolean"],"returns":"undefined","privilege":["default"]}}],"returns":"boolean"}
+                ]
+            }
+        },
+        "ObservableNumber": {
+            "segments": [
+                {"from":"2.1.0","kind":"class"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"2.1.0","kind":"constructor","privilege":["early_execution"],"arguments":[{"name":"data","type":"double"},{"name":"options","type":{"kind":"optional","type":"ObservableOptions"},"default":null}]}
+                ],
+                "getData": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[],"returns":"double"}
+                ],
+                "setData": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"data","type":"double"}],"returns":"undefined"}
+                ],
+                "subscribe": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["double"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["double"],"returns":"undefined","privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["double"],"returns":"undefined","privilege":["default"]}}],"returns":"boolean"}
+                ]
+            }
+        },
+        "ObservableOptions": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "clientWritable": [
+                    {"from":"2.1.0","kind":"property","type":"boolean","readOnly":false}
+                ]
+            }
+        },
+        "ObservableString": {
+            "segments": [
+                {"from":"2.1.0","kind":"class"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"2.1.0","kind":"constructor","privilege":["early_execution"],"arguments":[{"name":"data","type":"string","maxLength":5000},{"name":"options","type":{"kind":"optional","type":"ObservableOptions"},"default":null}]}
+                ],
+                "getData": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[],"returns":"string"}
+                ],
+                "getFilteredText": [
+                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":{"kind":"promise","type":{"kind":"variant","types":[{"kind":"array","element":"TextFilteringError"},"string"]}}}
+                ],
+                "setData": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"data","type":"string","maxLength":5000}],"returns":"undefined"}
+                ],
+                "subscribe": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["string"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["string"],"returns":"undefined","privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["string"],"returns":"undefined","privilege":["default"]}}],"returns":"boolean"}
+                ]
+            }
+        },
+        "ObservableUIRawMessage": {
+            "segments": [
+                {"from":"2.1.0","kind":"class"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"2.1.0","kind":"constructor","privilege":["early_execution"],"arguments":[{"name":"data","type":"UIRawMessage"},{"name":"options","type":{"kind":"optional","type":"ObservableOptions"},"default":null}]}
+                ],
+                "getData": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[],"returns":"UIRawMessage"}
+                ],
+                "setData": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"data","type":"UIRawMessage"}],"returns":"undefined"}
+                ],
+                "subscribe": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["UIRawMessage"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["UIRawMessage"],"returns":"undefined","privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"2.1.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["UIRawMessage"],"returns":"undefined","privilege":["default"]}}],"returns":"boolean"}
+                ]
+            }
+        },
+        "PlayerLeftError": {
+            "segments": [
+                {"from":"2.1.0","kind":"error"}
+            ],
+            "members": {
+                "formId": [
+                    {"from":"2.1.0","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "SliderOptions": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "description": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                ],
+                "disabled": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ],
+                "step": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["double","ObservableNumber"]}},"readOnly":false}
+                ],
+                "visible": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ]
+            }
+        },
+        "SpacingOptions": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "visible": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ]
+            }
+        },
+        "TextFieldOptions": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "description": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                ],
+                "disabled": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ],
+                "visible": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ]
+            }
+        },
+        "TextFilteringError": {
+            "segments": [
+                {"from":"2.1.0","kind":"enum"}
+            ],
+            "members": {
+                "DisabledByPlayer": [
+                    {"from":"2.1.0","kind":"constant","static":true,"type":"string","value":"DisabledByPlayer"}
+                ],
+                "TextProcessorServiceUnreachable": [
+                    {"from":"2.1.0","kind":"constant","static":true,"type":"string","value":"TextProcessorServiceUnreachable"}
+                ],
+                "Unknown": [
+                    {"from":"2.1.0","kind":"constant","static":true,"type":"string","value":"Unknown"}
+                ]
+            }
+        },
+        "TextOptions": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "visible": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ]
+            }
+        },
+        "ToggleOptions": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "description": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                ],
+                "disabled": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ],
+                "visible": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ]
+            }
+        },
+        "UIManager": {
+            "segments": [
+                {"from":"1.3.0","kind":"class"}
+            ],
+            "members": {
+                "closeAllForms": [
+                    {"from":"1.3.0","kind":"method","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"returns":"undefined"}
+                ]
+            }
+        },
+        "UIRawMessage": {
+            "segments": [
+                {"from":"2.1.0","kind":"interface"}
+            ],
+            "members": {
+                "rawtext": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"UIRawMessage"}},"readOnly":false}
+                ],
+                "text": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                ],
+                "translate": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                ],
+                "with": [
+                    {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":[{"kind":"array","element":"string"},"UIRawMessage"]}},"readOnly":false}
+                ]
+            }
+        },
+        "uiManager": {
+            "segments": [
+                {"from":"1.3.0","kind":"object","type":"UIManager"}
+            ]
+        }
+    }
+}
