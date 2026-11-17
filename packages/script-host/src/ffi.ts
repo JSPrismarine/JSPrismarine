@@ -4,7 +4,7 @@
  * engine, on the thread that created it, while a call into the engine is running.
  */
 
-import { NativeLibraryError } from './library';
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
 
 /** A native address, as `node:ffi` passes one. */
 export type NativePointer = bigint;
@@ -141,9 +141,7 @@ const loadNodeFfi = (): NodeFfi => {
     try {
         const ffi: unknown = process.getBuiltinModule('node:ffi');
         if (ffi === undefined) {
-            throw new NativeLibraryError(
-                `node:ffi is not available in Node.js ${process.version}. Run a Node.js build with FFI support, without --no-experimental-ffi.`
-            );
+            throw new ScriptHostErrors.FfiUnavailable({ version: process.version });
         }
         // `node:ffi` has no published types; NodeFfi above is the part this file calls.
         return ffi as NodeFfi;

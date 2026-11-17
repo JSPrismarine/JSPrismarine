@@ -1,13 +1,13 @@
 import { once } from 'node:events';
 import { createConnection, createServer } from 'node:net';
 import type { Server, Socket } from 'node:net';
+import { DebuggerTransportError } from '@jsprismarine/errors/script-host';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { PortDebuggerChannel } from './channel';
 import { FrameDecoder, encodeFrame } from './framing';
 import { DebuggerThread } from './thread';
 import type { DebuggerThreadConnection } from './thread';
-import { DebuggerTransportError } from './transport';
 
 /** The thread's events, as promises a test awaits in order, with no timer. */
 class Events {
@@ -104,9 +104,7 @@ describe('the debugger thread', { timeout: 120_000 }, () => {
         const { thread } = start();
 
         await expect(thread.listen({ port: 0, address: '0.0.0.0' })).rejects.toThrow(
-            new DebuggerTransportError(
-                'Refusing to start script debugger listener on non-loopback address [0.0.0.0] without a passcode.'
-            )
+            /^Refusing to start script debugger listener on non-loopback address \[0\.0\.0\.0\] without a passcode\.$/
         );
     });
 

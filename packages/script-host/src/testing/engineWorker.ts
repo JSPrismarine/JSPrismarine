@@ -4,8 +4,9 @@
  */
 import { parentPort, workerData } from 'node:worker_threads';
 
+import { ScriptTerminatedError } from '@jsprismarine/errors/script-host';
+
 import { ScriptHostLibrary } from '../ScriptEngine';
-import { ScriptTerminatedError } from '../errors';
 
 /** What the worker reports. */
 export interface EngineWorkerReport {

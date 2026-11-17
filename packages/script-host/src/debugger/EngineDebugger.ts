@@ -3,6 +3,8 @@
  * of a stopped script, over the `jsh_debug_` functions of the C layer.
  */
 
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import type { NativePointer, NativeSymbols } from '../ffi';
 import { ScriptHandle, ValueReader, ValueWriter } from '../values';
 import type { ScriptValue, TransferBuffer } from '../values';
@@ -243,7 +245,7 @@ export class EngineDebugger {
     }
 
     private live(): NativePointer {
-        if (!this.attached) throw new Error('The debugger has detached');
+        if (!this.attached) throw new ScriptHostErrors.DebuggerDetached();
         return this.host.pointer();
     }
 }

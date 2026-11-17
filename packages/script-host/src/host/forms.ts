@@ -8,6 +8,8 @@
  * The `forms`, `form-json`, `form-responses` and `forms-v1` scenarios of the parity suite's
  * `scripting.ui` family record each rule on the pinned BDS.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { ScriptApiError } from '../errors';
 import { isRecord } from '../isRecord';
 import type { BdsJson, BdsJsonObject } from './formJson';
@@ -31,10 +33,7 @@ export interface PlainObject {
 const isPlainObject = (value: PlainValue | undefined): value is PlainObject => isRecord(value) && !Array.isArray(value);
 
 /** The TypeError the binding throws for an argument that is neither a string nor a `RawMessage`. */
-const notTextError = (argument: number): TypeError =>
-    new TypeError(
-        `Native variant type conversion failed. Function argument [${argument}] expected type: string | RawMessage`
-    );
+const notTextError = (argument: number): TypeError => new ScriptHostErrors.TextConversionFailed({ argument });
 
 /**
  * One `RawMessage` as BDS turns it into JSON, or null when it holds nothing. A non-empty
@@ -273,7 +272,7 @@ export const formChange = (kind: FormKind, member: string, args: readonly PlainV
         if (member === 'button1') return { field: major === 1 ? 'button2' : 'button1', json: text(0) };
         if (member === 'button2') return { field: major === 1 ? 'button1' : 'button2', json: text(0) };
     }
-    throw new RangeError(`${member} is not a member of a ${kind} form builder`);
+    throw new ScriptHostErrors.NotAFormBuilderMember({ member, kind });
 };
 
 /** A form as the host keeps it: each field and each element as a written fragment of form JSON. */

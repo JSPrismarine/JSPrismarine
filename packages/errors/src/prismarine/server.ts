@@ -220,5 +220,10 @@ export const PrismarineServerErrors = defineErrors('prismarine', {
      */
     RaknetIpv6PortNotBound: 'RakNet cannot listen for IPv6 clients on UDP port {port}: {reason}',
     /** One or more network listeners could not start. The message joins each listener's own reason with `; `, and the first failure is the cause. */
-    ListenersFailedToStart: '{reasons}'
+    ListenersFailedToStart: '{reasons}',
+    /**
+     * Code read the content settings, such as the world pack directories, before the server built
+     * its content, which reads them. This is a bug in the server; report it with the stack trace.
+     */
+    ContentSettingsReadBeforeBuild: 'The content settings are read with the content build'
 });

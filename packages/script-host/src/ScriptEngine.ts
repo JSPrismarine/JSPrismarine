@@ -1,9 +1,11 @@
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { EngineDebugger, PauseReason } from './debugger/EngineDebugger';
 import type { DebuggerListener } from './debugger/EngineDebugger';
-import { ScriptError, ScriptOutOfMemoryError, ScriptTerminatedError } from './errors';
+import { scriptErrorParams } from './errors';
 import { bindLibrary } from './ffi';
 import type { BoundLibrary, NativePointer, NativeSymbols } from './ffi';
-import { NativeLibraryError, locateLibrary } from './library';
+import { locateLibrary } from './library';
 import { ScriptHandle, TransferBuffer, ValueReader, ValueWriter } from './values';
 import type { ScriptValue } from './values';
 
@@ -119,9 +121,7 @@ export class ScriptHostLibrary {
         const version = bound.symbols.jsh_abi_version();
         if (version !== ABI_VERSION) {
             bound.close();
-            throw new NativeLibraryError(
-                `${path} has interface version ${version}, and this binding speaks ${ABI_VERSION}`
-            );
+            throw new ScriptHostErrors.LibraryInterfaceMismatch({ path, version, abiVersion: ABI_VERSION });
         }
         return new ScriptHostLibrary(bound);
     }
@@ -183,7 +183,7 @@ export class ScriptEngine {
         );
         if (engine === 0n) {
             bound.unregisterHostCallback(this.callback);
-            throw new Error('The script engine could not be created');
+            throw new ScriptHostErrors.EngineNotCreated();
         }
         this.pointer = engine;
     }
@@ -385,7 +385,7 @@ export class ScriptEngine {
      * @throws {RangeError} When the engine has no such context.
      */
     public attachDebugger(listener: DebuggerListener, options: DebuggerOptions = {}): EngineDebugger {
-        if (this.debuggerListener !== undefined) throw new Error('A debugger is already attached to this engine');
+        if (this.debuggerListener !== undefined) throw new ScriptHostErrors.DebuggerAlreadyAttached();
         this.check(
             this.native.jsh_debug_attach(
                 this.live(),
@@ -430,7 +430,7 @@ export class ScriptEngine {
      */
     public destroy(): void {
         if (this.destroyed) return;
-        if (this.active > 0) throw new Error('A script engine cannot be destroyed while it calls the host');
+        if (this.active > 0) throw new ScriptHostErrors.EngineDestroyedDuringHostCall();
         this.destroyed = true;
         this.native.jsh_engine_destroy(this.pointer);
         this.bound.unregisterHostCallback(this.callback);
@@ -439,19 +439,23 @@ export class ScriptEngine {
     }
 
     private live(): NativePointer {
-        if (this.destroyed) throw new Error('The script engine has been destroyed');
+        if (this.destroyed) throw new ScriptHostErrors.EngineDestroyed();
         return this.pointer;
     }
 
     /** Turns a negative status into the error the engine described. */
     private check(result: number): number {
         if (result >= 0) return result;
-        if (result === Status.Invalid) throw new RangeError('The engine rejected a handle or a value');
+        if (result === Status.Invalid) throw new ScriptHostErrors.EngineRejectedValue();
         const reader = new ValueReader(this.buffer.bytes, this.buffer.capacity);
-        const details = { scriptName: reader.string(), scriptMessage: reader.string(), scriptStack: reader.string() };
-        if (result === Status.Terminated) throw new ScriptTerminatedError(details);
-        if (result === Status.OutOfMemory) throw new ScriptOutOfMemoryError(details);
-        throw new ScriptError(details);
+        const params = scriptErrorParams({
+            scriptName: reader.string(),
+            scriptMessage: reader.string(),
+            scriptStack: reader.string()
+        });
+        if (result === Status.Terminated) throw new ScriptHostErrors.ScriptTerminated(params);
+        if (result === Status.OutOfMemory) throw new ScriptHostErrors.ScriptOutOfMemory(params);
+        throw new ScriptHostErrors.ScriptThrew(params);
     }
 
     /** Reads a result handle's value, freeing the handle unless the value is an object. */
@@ -484,7 +488,7 @@ export class ScriptEngine {
                 this.debuggerListener?.poll();
                 return 0;
             }
-            throw new RangeError(`The engine sent an unknown request ${op}`);
+            throw new ScriptHostErrors.UnknownEngineRequest({ op });
         } catch (error) {
             return this.describe(error);
         } finally {
@@ -496,21 +500,21 @@ export class ScriptEngine {
         // The arguments leave the buffer first: the function may run script, which reuses it.
         const args = new ValueReader(this.buffer.bytes, length).list();
         const fn = this.functions.get(id);
-        if (fn === undefined) throw new ReferenceError(`No host function has id ${id}`);
+        if (fn === undefined) throw new ScriptHostErrors.UnknownHostFunction({ id });
         const result = fn(...args);
         return new ValueWriter(this.buffer).value(result).length;
     }
 
     private paused(code: number): number {
         const reason = PauseReason[code];
-        if (reason === undefined) throw new RangeError(`The engine stopped for an unknown reason ${code}`);
+        if (reason === undefined) throw new ScriptHostErrors.UnknownPauseReason({ code });
         return this.debuggerListener?.paused(reason) === 'terminate' ? -1 : 0;
     }
 
     private load(context: ScriptContextId, length: number): number {
         const name = this.buffer.bytes.toString('utf8', 0, length);
         const module = this.loadModule?.(name, context);
-        if (module === undefined) throw new ReferenceError(`Could not find module '${name}'`);
+        if (module === undefined) throw new ScriptHostErrors.ModuleNotFound({ name });
         return new ValueWriter(this.buffer).value(module).length;
     }
 

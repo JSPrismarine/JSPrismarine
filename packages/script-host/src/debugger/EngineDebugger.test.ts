@@ -1,7 +1,7 @@
+import { ScriptError, ScriptTerminatedError } from '@jsprismarine/errors/script-host';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
-import { ScriptError, ScriptTerminatedError } from '../errors';
 import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
 import { ScriptHandle } from '../values';
 import type { ScriptValue } from '../values';

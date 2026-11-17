@@ -90,6 +90,10 @@ every replay ([ADR 0021](../../docs/adr/0021-the-script-watchdog-counts-steps.md
   The engine counts every overflow, including one a script catches, because BDS treats a caught
   overflow as critical too.
 
+The errors the host throws, such as `ScriptError`, `ScriptTerminatedError` and
+`NativeLibraryError`, come from `@jsprismarine/errors/script-host`. Its
+[error reference](../../docs/errors/script-host.md) lists each one's code and cause.
+
 ## The sandbox
 
 A script sees only what the host gives it: no Node.js API, no filesystem and no network. Each new

@@ -4,6 +4,8 @@
  * shapes follow the extension's `src/protocol-events.ts` and `src/session.ts` at v1.61.0.
  */
 
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { isRecord } from '../isRecord';
 
 /**
@@ -14,16 +16,6 @@ export const DEBUGGER_PROTOCOL_VERSION = 11;
 
 /** The port the extension and Bedrock Dedicated Server use when none is given. */
 export const DEFAULT_DEBUGGER_PORT = 19144;
-
-/** The messages Bedrock Dedicated Server prints when a connection fails, which the host reuses. */
-export const DebuggerMessages = {
-    versionMismatch: 'Debugger connection failed, protocol version mismatch.',
-    passcodeMismatch: 'Debugger connection failed, passcode mismatch.',
-    noPlugin: (uuid: string) =>
-        `Debugger connection failed, no plugin found with targetModuleUUID [${uuid}] (see launch.json).`,
-    nonLoopbackWithoutPasscode: (address: string) =>
-        `Refusing to start script debugger listener on non-loopback address [${address}] without a passcode.`
-} as const;
 
 /** The level of a printed or notified message, as the extension's `LogLevel` numbers them. */
 export const LogLevel = { verbose: 0, log: 1, warn: 2, error: 3 } as const;
@@ -108,7 +100,7 @@ const breakpointLines = (value: unknown): number[] =>
  */
 export const parseExtensionMessage = (message: unknown): ExtensionMessage => {
     if (!isRecord(message) || typeof message.type !== 'string') {
-        throw new TypeError('A debugger message is an object with a type');
+        throw new ScriptHostErrors.InvalidDebuggerMessage();
     }
     switch (message.type) {
         case 'protocol':

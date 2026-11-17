@@ -4,6 +4,8 @@
  * value, and a `uint32` count before a list.
  */
 
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 /** The tag bytes of the value encoding. */
 export const ValueTag = {
     Undefined: 0,
@@ -122,7 +124,7 @@ export class ValueWriter {
             this.length += 4;
             return this;
         }
-        throw new TypeError(`A ${typeof value} cannot cross into a script`);
+        throw new ScriptHostErrors.ValueCannotCrossIntoScript({ type: typeof value });
     }
 
     /** Writes one string value. */
@@ -201,14 +203,14 @@ export class ValueReader {
             case ValueTag.Handle:
                 return new ScriptHandle(this.u32());
             default:
-                throw new RangeError(`Unknown value tag ${tag}`);
+                throw new ScriptHostErrors.UnknownValueTag({ tag });
         }
     }
 
     /** Reads one string value. */
     public string(): string {
         const value = this.value();
-        if (typeof value !== 'string') throw new RangeError('Expected a string value');
+        if (typeof value !== 'string') throw new ScriptHostErrors.ExpectedStringValue();
         return value;
     }
 
@@ -227,6 +229,6 @@ export class ValueReader {
     }
 
     private need(size: number): void {
-        if (this.length - this.position < size) throw new RangeError('The value runs past its bytes');
+        if (this.length - this.position < size) throw new ScriptHostErrors.ValueRunsPastBytes();
     }
 }

@@ -6,13 +6,15 @@
 import { parentPort } from 'node:worker_threads';
 import type { MessagePort } from 'node:worker_threads';
 
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { DebuggerChannelBridge } from './channel';
 import type { DebuggerThreadMessage, DebuggerThreadRequest } from './thread';
 import { connectToDebugger, listenForDebugger } from './transport';
 import type { DebuggerListener, DebuggerSocket } from './transport';
 
 const port = parentPort;
-if (port === null) throw new Error('The debugger connection worker runs on a worker thread');
+if (port === null) throw new ScriptHostErrors.ConnectionWorkerOnMainThread();
 
 const post = (message: DebuggerThreadMessage, transfer: MessagePort[] = []): void =>
     port.postMessage(message, transfer);

@@ -2,6 +2,8 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { prebuildDir, sharedLibraryName } from './platform';
 
 /** The environment variable that names a library file to load in place of the local build. */
@@ -12,11 +14,6 @@ export const PACKAGE_NAME = '@jsprismarine/script-host';
 
 /** The package's root: one level above this file in both `src/` and `dist/`. */
 export const packageRoot = (): string => resolve(dirname(fileURLToPath(import.meta.url)), '..');
-
-/** Why the library cannot be loaded, with what to do about it in the message. */
-export class NativeLibraryError extends Error {
-    public override readonly name = 'NativeLibraryError';
-}
 
 /**
  * Where the library for this machine is: the file `JSP_SCRIPT_HOST_LIBRARY` names, or the one
@@ -30,14 +27,16 @@ export const locateLibrary = (env: NodeJS.ProcessEnv = process.env, packageDir: 
     const override = env[LIBRARY_ENV];
     if (override !== undefined && override !== '') {
         if (!existsSync(override)) {
-            throw new NativeLibraryError(`${LIBRARY_ENV} names ${override}, which does not exist`);
+            throw new ScriptHostErrors.LibraryOverrideMissing({ libraryEnv: LIBRARY_ENV, override });
         }
         return resolve(override);
     }
     const built = join(prebuildDir(packageDir), sharedLibraryName());
     if (existsSync(built)) return built;
-    throw new NativeLibraryError(
-        `${PACKAGE_NAME} has no build for ${process.platform}-${process.arch} at ${built}. ` +
-            `\`pnpm --filter ${PACKAGE_NAME} run build:native\` builds it, or set ${LIBRARY_ENV} to a build of the library.`
-    );
+    throw new ScriptHostErrors.LibraryNotBuilt({
+        packageName: PACKAGE_NAME,
+        platform: `${process.platform}-${process.arch}`,
+        built,
+        libraryEnv: LIBRARY_ENV
+    });
 };

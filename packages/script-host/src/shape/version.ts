@@ -1,3 +1,5 @@
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 /** A script module version: `major.minor.patch` and an optional prerelease tag such as `beta`. */
 export interface ModuleVersionNumber {
     readonly major: number;
@@ -27,7 +29,7 @@ export const parseVersion = (version: string): ModuleVersionNumber | undefined =
 export const compareVersions = (left: string, right: string): number => {
     const a = parseVersion(left);
     const b = parseVersion(right);
-    if (a === undefined || b === undefined) throw new RangeError(`Cannot compare ${left} with ${right}`);
+    if (a === undefined || b === undefined) throw new ScriptHostErrors.VersionsNotComparable({ left, right });
     const difference = a.major - b.major || a.minor - b.minor || a.patch - b.patch;
     if (difference !== 0) return difference;
     if (a.tag === b.tag) return 0;

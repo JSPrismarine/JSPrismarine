@@ -1,8 +1,9 @@
+import { DebuggerConnectionError } from '@jsprismarine/errors/script-host';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
 import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
-import { DebuggerConnectionError, ScriptDebugSession } from './DebugSession';
+import { ScriptDebugSession } from './DebugSession';
 import type { DebuggerChannel, DebugSessionOptions } from './DebugSession';
 import { DEBUGGER_PROTOCOL_VERSION } from './protocol';
 import type { DebuggerEvent, HostMessage } from './protocol';
@@ -146,9 +147,7 @@ describe('the debugger protocol handshake', () => {
         expect(right.extension.events()[0]).toMatchObject({ require_passcode: true });
 
         const wrong = handshake([accept({ passcode: 'guess' })], { passcode: 'hunter2' });
-        expect(() => wrong.session.handshake()).toThrow(
-            new DebuggerConnectionError('Debugger connection failed, passcode mismatch.')
-        );
+        expect(() => wrong.session.handshake()).toThrow(/^Debugger connection failed, passcode mismatch\.$/);
     });
 
     it('refuses another protocol version and a target that is not a plugin, with BDS’s messages', () => {

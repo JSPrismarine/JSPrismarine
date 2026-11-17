@@ -7,6 +7,8 @@
  *
  * The runner itself, the batches, the ticks and the cleanup, is {@link GameTests}.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { ScriptApiError } from '../errors';
 import type { ScriptEngine } from '../ScriptEngine';
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
@@ -80,7 +82,7 @@ export const gametestImplementations = <Owner>(
     const runOf = (call: ScriptCall, member: string, afterEnd = false): GameTestRun<Owner> => {
         const run = tests.run(Number(call.state));
         if (run === undefined || run.state === 'cleaned') {
-            throw new ReferenceError(`Native function [Test::${member}] object bound to prototype does not exist.`);
+            throw new ScriptHostErrors.TestNoLongerBound({ member });
         }
         if (!afterEnd && run.state !== 'running') {
             throw new ScriptApiError(
@@ -95,7 +97,7 @@ export const gametestImplementations = <Owner>(
     const callbackArgument = (call: ScriptCall, index: number): ScriptHandle => {
         const callback = call.args[index];
         // The binding checked the argument against its closure type.
-        if (!(callback instanceof ScriptHandle)) throw new TypeError('The callback is not a function');
+        if (!(callback instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'The callback' });
         return call.engine.duplicate(callback);
     };
     const vector = (value: ScriptVector3): string => JSON.stringify(value);

@@ -7,6 +7,8 @@
  * object carries the event the world raised as its state, so its members read what the world saw
  * and the block or entity as it is when they run.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
 import { isRecord } from '../isRecord';
 import type { ScriptValue } from '../values';
@@ -78,7 +80,8 @@ const commandOf = (call: ScriptCall): ScriptCustomCommand => {
 /** The event a hook's object carries. The host wrote every state, so a bad one is a host bug. */
 export const hookEventOf = (state: string): HookEventState => {
     const parsed: unknown = JSON.parse(state);
-    if (!isRecord(parsed) || typeof parsed.hook !== 'string') throw new TypeError('The object carries no hook event');
+    if (!isRecord(parsed) || typeof parsed.hook !== 'string')
+        throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'hook event' });
     // Written by the runtime from a ScriptBlockHookEvent or ScriptItemHookEvent.
     return parsed as unknown as HookEventState;
 };
@@ -86,7 +89,8 @@ export const hookEventOf = (state: string): HookEventState => {
 /** The origin a command's object carries. */
 const originOf = (state: string): ScriptCommandOrigin => {
     const parsed: unknown = JSON.parse(state);
-    if (!isRecord(parsed) || typeof parsed.sourceType !== 'string') throw new TypeError('The object carries no origin');
+    if (!isRecord(parsed) || typeof parsed.sourceType !== 'string')
+        throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'origin' });
     // Written by the runtime from a ScriptCommandOrigin.
     return parsed as unknown as ScriptCommandOrigin;
 };
@@ -127,7 +131,7 @@ export const implementCustom = (implementations: ScriptApiImplementations, host:
         const [name, component] = call.args;
         // The binding checked the name is a string and the component an object.
         if (typeof name !== 'string' || !(component instanceof ScriptHandle)) {
-            throw new TypeError('The component is not an object');
+            throw new ScriptHostErrors.NotAnObject({ what: 'The component' });
         }
         host.custom.registerComponent(kind, name, component);
         return undefined;
@@ -178,7 +182,7 @@ export const implementCustom = (implementations: ScriptApiImplementations, host:
         .implement(SERVER, 'CustomCommandRegistry', 'registerCommand', (call) => {
             const callback = call.args[1];
             // The binding checked the argument against its closure type.
-            if (!(callback instanceof ScriptHandle)) throw new TypeError('The callback is not a function');
+            if (!(callback instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'The callback' });
             host.custom.registerCommand(commandOf(call), callback);
             return undefined;
         })
@@ -282,7 +286,7 @@ export const implementCustom = (implementations: ScriptApiImplementations, host:
  */
 const parseInEngine = (call: ScriptCall, json: string): ScriptValue => {
     const parse = call.engine.evaluate('JSON.parse');
-    if (!(parse instanceof ScriptHandle)) throw new TypeError('JSON.parse is not a function');
+    if (!(parse instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'JSON.parse' });
     try {
         const parsed = call.engine.call(parse, undefined, json);
         return parsed instanceof ScriptHandle ? call.engine.release(parsed) : parsed;
