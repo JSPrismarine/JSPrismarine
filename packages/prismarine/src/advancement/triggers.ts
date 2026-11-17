@@ -49,7 +49,7 @@ import type { Item } from '../item/Item';
 import { entityPredicateView, vec3Of } from '../entity/predicateView';
 import { lootDamageSource } from '../entity/mobLoot';
 import { raiseAdvancement } from './raise';
-import type { RaisingPlayer } from './raise';
+import type { AdvancementRaiser, RaisingPlayer } from './raise';
 import { advancementSubject } from './subject';
 import type { AdvancementSubjectPlayer } from './subject';
 
@@ -143,13 +143,20 @@ export const advancementItemCrafted = (
  * `player_killed_entity` and the victim's `entity_killed_player` are two
  * different triggers over the same event, and a player killed by a player
  * raises both.
+ *
+ * @param raise - What raises each trigger. The events are built in this call, so a caller that
+ *   holds the raises back still raises what the two entities were at the kill.
  */
-export const advancementKill = (victim: StoreActor, source: DamageSource): void => {
+export const advancementKill = (
+    victim: StoreActor,
+    source: DamageSource,
+    raise: AdvancementRaiser = raiseAdvancement
+): void => {
     const killer = source.attacker;
     const killingPlayer = killer && listeningPlayer(killer, 'player_killed_entity');
 
     if (killingPlayer) {
-        raiseAdvancement(killingPlayer, 'player_killed_entity', {
+        raise(killingPlayer, 'player_killed_entity', {
             player: advancementSubject(killingPlayer),
             entity: viewOf(victim),
             damageSource: damageSourceView(victim, source)
@@ -160,7 +167,7 @@ export const advancementKill = (victim: StoreActor, source: DamageSource): void 
     // names the entity that did it, and falling into a hole names nobody.
     const killedPlayer = killer && listeningPlayer(victim, 'entity_killed_player');
     if (killedPlayer) {
-        raiseAdvancement(killedPlayer, 'entity_killed_player', {
+        raise(killedPlayer, 'entity_killed_player', {
             player: advancementSubject(killedPlayer),
             entity: viewOf(killer),
             damageSource: damageSourceView(victim, source)
@@ -174,19 +181,22 @@ export const advancementKill = (victim: StoreActor, source: DamageSource): void 
  * `dealt` is before armor and `taken` after, which is the pair Java's
  * `DamagePredicate` compares - the two are different numbers and a criterion
  * may name either.
+ *
+ * @param raise - What raises each trigger, as {@link advancementKill} takes it.
  */
 export const advancementDamage = (
     victim: StoreActor,
     source: DamageSource,
     dealt: number,
     taken: number,
-    blocked: boolean
+    blocked: boolean,
+    raise: AdvancementRaiser = raiseAdvancement
 ): void => {
     const attacker = source.attacker;
     const hurtingPlayer = attacker && listeningPlayer(attacker, 'player_hurt_entity');
 
     if (hurtingPlayer) {
-        raiseAdvancement(hurtingPlayer, 'player_hurt_entity', {
+        raise(hurtingPlayer, 'player_hurt_entity', {
             player: advancementSubject(hurtingPlayer),
             entity: viewOf(victim),
             damageSource: damageSourceView(victim, source),
@@ -198,7 +208,7 @@ export const advancementDamage = (
 
     const hurtPlayer = listeningPlayer(victim, 'entity_hurt_player');
     if (hurtPlayer) {
-        raiseAdvancement(hurtPlayer, 'entity_hurt_player', {
+        raise(hurtPlayer, 'entity_hurt_player', {
             player: advancementSubject(hurtPlayer),
             damageSource: damageSourceView(victim, source),
             dealt,

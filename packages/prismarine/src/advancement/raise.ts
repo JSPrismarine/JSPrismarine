@@ -64,6 +64,12 @@ export const raiseAdvancement = <K extends TriggerName>(
 };
 
 /**
+ * Something that raises one trigger for one player: {@link raiseAdvancement}, or a caller's
+ * stand-in that holds the raise until its outcome is known.
+ */
+export type AdvancementRaiser = typeof raiseAdvancement;
+
+/**
  * Tells the world that somebody earned something.
  *
  * `chat.type.achievement` is the nearest Bedrock key - "%s has just earned the
