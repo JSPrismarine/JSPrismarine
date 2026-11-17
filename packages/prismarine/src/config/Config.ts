@@ -46,6 +46,21 @@ const DEFAULT_PACKET_COMPRESSION_ALGORITHM = 'zlib';
 const DEFAULT_PACKET_COMPRESSION_THRESHOLD = 256;
 
 /**
+ * The port the script debugger listens on when `force-inbound-debug-port` is unset, which is the
+ * default of Bedrock Dedicated Server and of the VS Code extension.
+ */
+const DEFAULT_SCRIPT_DEBUGGER_PORT = 19144;
+
+/** The address the script debugger listens on unless `script-debugger-listen-address` names another. */
+const DEFAULT_SCRIPT_DEBUGGER_LISTEN_ADDRESS = '127.0.0.1';
+
+/** When the script debugger attaches by itself, as `script-debugger-auto-attach` names the modes. */
+export const SCRIPT_DEBUGGER_AUTO_ATTACH_MODES = ['disabled', 'connect', 'listen'] as const;
+
+/** One of {@link SCRIPT_DEBUGGER_AUTO_ATTACH_MODES}. */
+export type ScriptDebuggerAutoAttach = (typeof SCRIPT_DEBUGGER_AUTO_ATTACH_MODES)[number];
+
+/**
  * What each key means, written above it the first time the server adds it to the file.
  *
  * Kept beside the keys rather than in a separate document so a key cannot gain a meaning
@@ -111,7 +126,21 @@ const COMMENTS = {
     'script-watchdog-hang-threshold':
         'How long the behavior pack scripts of one tick may run before they are stopped, in milliseconds, as the Bedrock Dedicated Server setting of the same name. JSPrismarine counts work rather than time, so the same script stops at the same point on every machine.',
     'script-watchdog-memory-limit':
-        'How many megabytes the behavior pack scripts of one world may allocate together. Going over saves and shuts the server down. 0 sets no limit.'
+        'How many megabytes the behavior pack scripts of one world may allocate together. Going over saves and shuts the server down. 0 sets no limit.',
+    'allow-inbound-script-debugging':
+        "Whether /script debugger listen and script-debugger-auto-attach's listen mode may open a port for the VS Code script debugger to connect to, as Bedrock Dedicated Server's setting of the same name. Off by default.",
+    'allow-outbound-script-debugging':
+        "Whether /script debugger connect and script-debugger-auto-attach's connect mode may connect to a VS Code script debugger that listens, as Bedrock Dedicated Server's setting of the same name. Off by default.",
+    'force-inbound-debug-port': `The one port the script debugger listens on. Once it is set, /script debugger listen takes no port. Unset, auto-attach's listen mode uses ${DEFAULT_SCRIPT_DEBUGGER_PORT}.`,
+    'script-debugger-listen-address': `The address the script debugger listens on, ${DEFAULT_SCRIPT_DEBUGGER_LISTEN_ADDRESS} when unset. An address other than loopback lets other machines debug the scripts, so it needs script-debugger-passcode.`,
+    'script-debugger-auto-attach':
+        "Whether the script debugger attaches when the default level's scripts load, before they start: disabled, connect (to the debugger at script-debugger-auto-attach-connect-address) or listen (on force-inbound-debug-port). Each mode needs its allow-*-script-debugging setting.",
+    'script-debugger-auto-attach-connect-address':
+        "Where auto-attach's connect mode finds the debugger, as host:port, such as localhost:19144.",
+    'script-debugger-auto-attach-timeout':
+        'How many seconds the server waits for an auto-attached debugger before the scripts start. 0 does not wait.',
+    'script-debugger-passcode':
+        'The passcode the script debugger must send. VS Code asks the person attaching for it. Empty asks for none.'
 } as const satisfies Record<Exclude<keyof ConfigFile, ContentConfigKey>, string>;
 
 /** The script watchdog's settings, as `config.json`'s `script-watchdog-*` keys set them. */
@@ -124,6 +153,28 @@ export interface ScriptWatchdogConfig {
     readonly memoryLimit: number;
 }
 
+/** The script debugger's settings, as `config.json`'s keys under Bedrock Dedicated Server's names set them. */
+export interface ScriptDebuggerConfig {
+    /** `allow-inbound-script-debugging`: whether the server may listen for the debugger. */
+    readonly allowInbound: boolean;
+    /** `allow-outbound-script-debugging`: whether the server may connect to a debugger that listens. */
+    readonly allowOutbound: boolean;
+    /** The port a listener uses when the command names none: `force-inbound-debug-port`, or the default. */
+    readonly listenPort: number;
+    /** Whether `force-inbound-debug-port` is set, which takes the port out of `/script debugger listen`. */
+    readonly portForced: boolean;
+    /** `script-debugger-listen-address`. */
+    readonly listenAddress: string;
+    /** `script-debugger-auto-attach`. */
+    readonly autoAttach: ScriptDebuggerAutoAttach;
+    /** `script-debugger-auto-attach-connect-address`, as `host:port`; empty when unset. */
+    readonly autoAttachConnectAddress: string;
+    /** `script-debugger-auto-attach-timeout`, in seconds. */
+    readonly autoAttachTimeout: number;
+    /** `script-debugger-passcode`; empty for none. */
+    readonly passcode: string;
+}
+
 /**
  * Settings a fresh config leaves out. Each is read when the file has it, and reading one writes
  * nothing, so an unset one keeps following the setting it defaults to, such as `server-port`.
@@ -134,7 +185,15 @@ export const OPTIONAL_SETTINGS = [
     'query-port',
     'script-watchdog-enable-shutdown',
     'script-watchdog-hang-threshold',
-    'script-watchdog-memory-limit'
+    'script-watchdog-memory-limit',
+    'allow-inbound-script-debugging',
+    'allow-outbound-script-debugging',
+    'force-inbound-debug-port',
+    'script-debugger-listen-address',
+    'script-debugger-auto-attach',
+    'script-debugger-auto-attach-connect-address',
+    'script-debugger-auto-attach-timeout',
+    'script-debugger-passcode'
 ] as const satisfies readonly (keyof typeof COMMENTS)[];
 
 /** A setting a fresh config leaves out; see {@link OPTIONAL_SETTINGS}. */
@@ -209,7 +268,16 @@ const DEFAULTS = {
     // Bedrock Dedicated Server's defaults for the same keys.
     'script-watchdog-enable-shutdown': true,
     'script-watchdog-hang-threshold': 10_000,
-    'script-watchdog-memory-limit': 250
+    'script-watchdog-memory-limit': 250,
+    'allow-inbound-script-debugging': false,
+    'allow-outbound-script-debugging': false,
+    // Unset, the port is not forced; this is the port auto-attach then listens on.
+    'force-inbound-debug-port': DEFAULT_SCRIPT_DEBUGGER_PORT,
+    'script-debugger-listen-address': DEFAULT_SCRIPT_DEBUGGER_LISTEN_ADDRESS,
+    'script-debugger-auto-attach': 'disabled',
+    'script-debugger-auto-attach-connect-address': '',
+    'script-debugger-auto-attach-timeout': 0,
+    'script-debugger-passcode': ''
 } as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'>;
 
 /**
@@ -316,6 +384,19 @@ export class Config {
         enableShutdown: DEFAULTS['script-watchdog-enable-shutdown'],
         hangThreshold: DEFAULTS['script-watchdog-hang-threshold'],
         memoryLimit: DEFAULTS['script-watchdog-memory-limit']
+    };
+
+    /** The `script-debugger-*` and `*-script-debugging` settings, under Bedrock Dedicated Server's names and meanings. */
+    private scriptDebugger: ScriptDebuggerConfig = {
+        allowInbound: DEFAULTS['allow-inbound-script-debugging'],
+        allowOutbound: DEFAULTS['allow-outbound-script-debugging'],
+        listenPort: DEFAULTS['force-inbound-debug-port'],
+        portForced: false,
+        listenAddress: DEFAULTS['script-debugger-listen-address'],
+        autoAttach: DEFAULTS['script-debugger-auto-attach'],
+        autoAttachConnectAddress: DEFAULTS['script-debugger-auto-attach-connect-address'],
+        autoAttachTimeout: DEFAULTS['script-debugger-auto-attach-timeout'],
+        passcode: DEFAULTS['script-debugger-passcode']
     };
 
     /** The UDP port the query protocol answers on; equal to {@link port} to share RakNet's socket. */
@@ -464,6 +545,34 @@ export class Config {
             ),
             hangThreshold: readUnwritten('script-watchdog-hang-threshold', DEFAULTS['script-watchdog-hang-threshold']),
             memoryLimit: readUnwritten('script-watchdog-memory-limit', DEFAULTS['script-watchdog-memory-limit'])
+        };
+        const forcedPort = readUnwritten<number | undefined>('force-inbound-debug-port', undefined, 'number');
+        const autoAttach = readUnwritten<string>(
+            'script-debugger-auto-attach',
+            DEFAULTS['script-debugger-auto-attach']
+        );
+        this.scriptDebugger = {
+            allowInbound: readUnwritten('allow-inbound-script-debugging', DEFAULTS['allow-inbound-script-debugging']),
+            allowOutbound: readUnwritten(
+                'allow-outbound-script-debugging',
+                DEFAULTS['allow-outbound-script-debugging']
+            ),
+            listenPort: forcedPort ?? DEFAULTS['force-inbound-debug-port'],
+            portForced: forcedPort !== undefined,
+            listenAddress: readUnwritten<string>(
+                'script-debugger-listen-address',
+                DEFAULTS['script-debugger-listen-address']
+            ),
+            autoAttach: SCRIPT_DEBUGGER_AUTO_ATTACH_MODES.find((mode) => mode === autoAttach) ?? 'disabled',
+            autoAttachConnectAddress: readUnwritten<string>(
+                'script-debugger-auto-attach-connect-address',
+                DEFAULTS['script-debugger-auto-attach-connect-address']
+            ),
+            autoAttachTimeout: readUnwritten<number>(
+                'script-debugger-auto-attach-timeout',
+                DEFAULTS['script-debugger-auto-attach-timeout']
+            ),
+            passcode: readUnwritten<string>('script-debugger-passcode', DEFAULTS['script-debugger-passcode'])
         };
     }
 
@@ -906,6 +1015,11 @@ export class Config {
     /** The script watchdog's settings; see `script-watchdog-*` in the config file. */
     public getScriptWatchdog(): ScriptWatchdogConfig {
         return this.scriptWatchdog;
+    }
+
+    /** The script debugger's settings; see `script-debugger-*` and `*-script-debugging` in the config file. */
+    public getScriptDebugger(): ScriptDebuggerConfig {
+        return this.scriptDebugger;
     }
 
     public getEnableProcessTitle() {

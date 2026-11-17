@@ -236,6 +236,9 @@ export default class Server {
      */
     private readonly headless: boolean;
 
+    /** Whether this server replays a recorded session; see {@link Server.isReplay}. */
+    private readonly replay: boolean;
+
     /**
      * Creates a new server instance.
      * @param {object} options - The options.
@@ -258,6 +261,8 @@ export default class Server {
      *   `performance.now` by default. Nothing a tick simulates reads it.
      * @param [options.wallClock] - The wall clock each input step admits once for behavior pack
      *   scripts, `Date.now` by default. A replay harness gives one that returns the recorded values.
+     * @param [options.replay] - Whether the server replays a recorded session. A replay never opens
+     *   the script debugger's socket, whatever the config says.
      * @returns {Server} The server instance.
      */
     public constructor({
@@ -271,7 +276,8 @@ export default class Server {
         chunkAdmissionBudget,
         onStopCommandComplete,
         tickClock,
-        wallClock = Date.now
+        wallClock = Date.now,
+        replay = false
     }: {
         logger: Logger;
         config: Config;
@@ -284,6 +290,7 @@ export default class Server {
         onStopCommandComplete?: (stopped: boolean) => void;
         tickClock?: () => number;
         wallClock?: () => number;
+        replay?: boolean;
     }) {
         this.kernel = new Kernel<ServerEvents>({ logger });
         this.wallClock = wallClock;
@@ -295,6 +302,7 @@ export default class Server {
         });
 
         this.headless = headless;
+        this.replay = replay;
         this.networking = new ServerNetworking(this, inboundPacketRecorder, outboundPacketRecorder, transport);
 
         const protocols = describeSupportedProtocols();
@@ -856,6 +864,15 @@ export default class Server {
     public getContentSettings(): ContentSettings {
         if (this.contentSettings === undefined) throw new Error('The content settings are read with the content build');
         return this.contentSettings;
+    }
+
+    /**
+     * Whether this server replays a recorded session. Debugger traffic is not an input a replay
+     * can repeat, so a replay never attaches the script debugger
+     * ([ADR 0021](../../../docs/adr/0021-the-script-watchdog-counts-steps.md)).
+     */
+    public isReplay(): boolean {
+        return this.replay;
     }
 
     /** The default level's behavior pack scripts, while they run. */

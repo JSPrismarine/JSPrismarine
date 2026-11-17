@@ -20,7 +20,9 @@ export const scriptConfigDirectory = (): string => withCwd('config');
  *
  * It starts once the worlds have loaded, so the version 2 packs' early execution and the
  * version 1 packs run back to back before the first tick that flushes them, in the order BDS
- * runs them around a world load. Stopping it sends the scripts `system.beforeEvents.shutdown`.
+ * runs them around a world load. `script-debugger-auto-attach` attaches the VS Code debugger
+ * just before that, unless the server replays a session. Stopping it sends the scripts
+ * `system.beforeEvents.shutdown`.
  *
  * @param server - The server whose default level runs the scripts.
  * @returns The module to register on the kernel.
@@ -72,9 +74,13 @@ export const scriptsModule = (server: Server): Module => ({
                 warn: (message) => server.getLogger().warn(message),
                 error: (message) => server.getLogger().error(message)
             },
-            onShutdown: () => void server.shutdown()
+            onShutdown: () => void server.shutdown(),
+            debugger: { settings: server.getConfig().getScriptDebugger(), replay: server.isReplay() }
         });
         if (scripts === undefined) return;
+        // BDS attaches the debugger at level load, before any script runs, so a breakpoint on a
+        // pack's first line stops it.
+        await scripts.debugger.autoAttach();
         scripts.start(server.getWorldManager().getDefaultWorld());
         server.setScripts(scripts);
     },

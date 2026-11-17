@@ -5,9 +5,12 @@
  * every few ticks, and the weather is in each tick's replay digest. Run twice on the same seed
  * and the same admitted wall clock, the server reaches the same digest at every tick, however
  * differently the host's clock reads. Run on another seed, it does not, so the script's draws
- * do reach the digest.
+ * do reach the digest. Every run has the script debugger set to listen when the scripts load,
+ * and a replay never opens its port.
  */
+import { once } from 'node:events';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createConnection, createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -64,14 +67,41 @@ afterEach(() => {
 interface SessionTicks {
     readonly digests: readonly string[];
     readonly weather: readonly string[];
+    /** Whether the script debugger's port took a connection once the server had started. */
+    readonly debuggerListened: boolean;
 }
+
+/** A port nothing listens on now, which the operating system picked. */
+const freePort = async (): Promise<number> => {
+    const server = createServer();
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    server.close();
+    await once(server, 'close');
+    if (address === null || typeof address === 'string') throw new Error('no TCP address');
+    return address.port;
+};
+
+/** Whether something accepts a connection on a loopback port. */
+const accepts = (port: number): Promise<boolean> =>
+    new Promise((resolve) => {
+        const socket = createConnection({ host: '127.0.0.1', port });
+        socket.once('connect', () => {
+            socket.destroy();
+            resolve(true);
+        });
+        socket.once('error', () => resolve(false));
+    });
 
 /**
  * Runs a scripted server for {@link TICKS} ticks and returns each tick's world digest and weather.
  * @param seed - The world's seed, which the script's `Math.random` is seeded from.
  * @param wallClock - What each input step admits as the wall clock.
+ * @param replay - Whether the server replays the session.
  */
-const runSession = async (seed: string, wallClock: () => number): Promise<SessionTicks> => {
+const runSession = async (seed: string, wallClock: () => number, replay: boolean): Promise<SessionTicks> => {
+    const debuggerPort = await freePort();
     const root = mkdtempSync(path.join(tmpdir(), 'jsprismarine-scripted-replay-'));
     roots.push(root);
     const pack = path.join(root, 'pack');
@@ -104,16 +134,20 @@ const runSession = async (seed: string, wallClock: () => number): Promise<Sessio
             'chunk-workers': 0,
             'enable-query': false,
             'content-world-packs': [pack],
+            'allow-inbound-script-debugging': true,
+            'force-inbound-debug-port': debuggerPort,
+            'script-debugger-auto-attach': 'listen',
             worlds: { world: { preset: 'minecraft:flat', provider: 'LevelDB', seed } }
         })
     );
 
-    const server = new Server({ logger: new Logger('error'), config: new Config(), headless: true, wallClock });
+    const server = new Server({ logger: new Logger('error'), config: new Config(), headless: true, wallClock, replay });
     // The server's own draws come from a seeded source, as the replay contract asks of a session.
     server.setRandom(seededRandom(Number(seed)));
     await server.bootstrap('127.0.0.1', 0);
     try {
         expect(server.getScripts()).toBeDefined();
+        const debuggerListened = await accepts(debuggerPort);
         const world = server.getWorldManager().getDefaultWorld();
         const digests: string[] = [];
         const weather: string[] = [];
@@ -122,7 +156,7 @@ const runSession = async (seed: string, wallClock: () => number): Promise<Sessio
             digests.push(world.replayStateDigest());
             weather.push(world.getWeather());
         }
-        return { digests, weather };
+        return { digests, weather, debuggerListened };
     } finally {
         await server.shutdown({ stayAlive: true });
     }
@@ -136,23 +170,29 @@ describe.skipIf(!scriptHostAvailable())('a scripted session', () => {
             // The capture reads a clock that moves on every read; the replay hands back the same readings.
             const admitted: number[] = [];
             let reads = 0;
-            const captured = await runSession('1', () => {
-                const now = 1_800_000_000_000 + reads++ * 37;
-                admitted.push(now);
-                return now;
-            });
+            const captured = await runSession(
+                '1',
+                () => {
+                    const now = 1_800_000_000_000 + reads++ * 37;
+                    admitted.push(now);
+                    return now;
+                },
+                false
+            );
             const replaying = () => {
                 let read = 0;
                 return () => admitted[read++] ?? Number.NaN;
             };
-            const replay = await runSession('1', replaying());
-            const reseeded = await runSession('2', replaying());
+            const replay = await runSession('1', replaying(), true);
+            const reseeded = await runSession('2', replaying(), true);
 
             // The script changed the weather, so the digests compare its work, not an idle world.
             expect(new Set(captured.weather).size).toBeGreaterThan(1);
             expect(replay.weather).toEqual(captured.weather);
             expect(replay.digests).toEqual(captured.digests);
             expect(reseeded.weather).not.toEqual(captured.weather);
+            // The captured session listened for the debugger, as its config asked; the replays did not.
+            expect([captured, replay, reseeded].map((run) => run.debuggerListened)).toEqual([true, false, false]);
         }
     );
 });

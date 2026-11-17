@@ -186,6 +186,22 @@ export interface ConfigFile {
     'script-watchdog-hang-threshold'?: number;
     /** How many megabytes the scripts of one world may allocate together; 0 for no limit. @asType integer @minimum 0 */
     'script-watchdog-memory-limit'?: number;
+    /** Whether `/script debugger listen` and auto-attach's listen mode may open a port for the script debugger. */
+    'allow-inbound-script-debugging'?: boolean;
+    /** Whether `/script debugger connect` and auto-attach's connect mode may connect to a script debugger. */
+    'allow-outbound-script-debugging'?: boolean;
+    /** The one port the script debugger listens on; `/script debugger listen` then takes none. @asType integer @minimum 1 @maximum 65535 */
+    'force-inbound-debug-port'?: number;
+    /** The address the script debugger listens on; one other than loopback needs a passcode. */
+    'script-debugger-listen-address'?: string;
+    /** Whether the script debugger attaches when the scripts load: `disabled`, `connect` or `listen`. */
+    'script-debugger-auto-attach'?: 'disabled' | 'connect' | 'listen';
+    /** Where auto-attach's connect mode finds the debugger, as `host:port`. */
+    'script-debugger-auto-attach-connect-address'?: string;
+    /** How many seconds the server waits for an auto-attached debugger. @asType integer @minimum 0 */
+    'script-debugger-auto-attach-timeout'?: number;
+    /** The passcode the script debugger must send; empty for none. */
+    'script-debugger-passcode'?: string;
     /** Whether a pack that reports an error stops the server instead of loading short. */
     'content-strict'?: boolean;
     /** Extra behavior pack directories this world loads, after the vanilla ones. */
@@ -250,6 +266,14 @@ export const CONFIG_KEY_ORDER = [
     'script-watchdog-enable-shutdown',
     'script-watchdog-hang-threshold',
     'script-watchdog-memory-limit',
+    'allow-inbound-script-debugging',
+    'allow-outbound-script-debugging',
+    'force-inbound-debug-port',
+    'script-debugger-listen-address',
+    'script-debugger-auto-attach',
+    'script-debugger-auto-attach-connect-address',
+    'script-debugger-auto-attach-timeout',
+    'script-debugger-passcode',
     'content-strict',
     'content-world-packs',
     'content-datapacks'
