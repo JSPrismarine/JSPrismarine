@@ -1,0 +1,613 @@
+{
+    "$comment": [
+        "What the scripts of scenario `custom-commands` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.commands",
+    "scenario": "custom-commands",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "commands",
+            "seq": 1,
+            "tick": 0,
+            "event": "registerEnum",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 2,
+            "tick": 0,
+            "event": "registerEnum again",
+            "error": "CustomCommandError: Custom Command Enum 'jsp:color' was already registered."
+        },
+        {
+            "pack": "commands",
+            "seq": 3,
+            "tick": 0,
+            "event": "registerEnum without a namespace",
+            "error": "NamespaceNameError: There was an error with name 'shade': string must be prefixed with a namespace (eg. namespace:value)."
+        },
+        {
+            "pack": "commands",
+            "seq": 4,
+            "tick": 0,
+            "event": "registerEnum in the minecraft namespace",
+            "error": "NamespaceNameError: There was an error with name 'minecraft:shade': string has invalid namespace (minecraft)."
+        },
+        {
+            "pack": "commands",
+            "seq": 5,
+            "tick": 0,
+            "event": "registerCommand hello",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 6,
+            "tick": 0,
+            "event": "registerCommand fail",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 7,
+            "tick": 0,
+            "event": "registerCommand quiet",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 8,
+            "tick": 0,
+            "event": "registerCommand success without a message",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 9,
+            "tick": 0,
+            "event": "registerCommand types",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 10,
+            "tick": 0,
+            "event": "registerCommand kinds",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 11,
+            "tick": 0,
+            "event": "registerCommand targets",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 12,
+            "tick": 0,
+            "event": "registerCommand admin",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 13,
+            "tick": 0,
+            "event": "registerCommand throws",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 14,
+            "tick": 0,
+            "event": "registerCommand restricted",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 15,
+            "tick": 0,
+            "event": "registerCommand again",
+            "error": "CustomCommandError: Custom Command 'jsp:hello' was already registered."
+        },
+        {
+            "pack": "commands",
+            "seq": 16,
+            "tick": 0,
+            "event": "registerCommand without a namespace",
+            "error": "NamespaceNameError: There was an error with name 'bare': string must be prefixed with a namespace (eg. namespace:value)."
+        },
+        {
+            "pack": "commands",
+            "seq": 17,
+            "tick": 0,
+            "event": "registerCommand in the minecraft namespace",
+            "error": "NamespaceNameError: There was an error with name 'minecraft:mine': string has invalid namespace (minecraft)."
+        },
+        {
+            "pack": "commands",
+            "seq": 18,
+            "tick": 0,
+            "event": "registerCommand with a missing enum",
+            "error": "CustomCommandError: Custom Command depends on one or more unknown enums [jsp:nothing]."
+        },
+        {
+            "pack": "commands",
+            "seq": 19,
+            "tick": 0,
+            "event": "registerCommand with an upper-case name",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 20,
+            "tick": 0,
+            "event": "startup done"
+        },
+        {
+            "pack": "commands",
+            "seq": 21,
+            "tick": 0,
+            "event": "registerCommand after startup",
+            "error": "CustomCommandError: Custom Command registration failed outside of the ModuleStartup event."
+        },
+        {
+            "pack": "commands",
+            "seq": 22,
+            "tick": 0,
+            "event": "jsp:hello callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": []
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 23,
+            "tick": 0,
+            "event": "runCommand jsp:hello",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 24,
+            "tick": 0,
+            "event": "jsp:hello callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": []
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 25,
+            "tick": 0,
+            "event": "runCommand hello",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 26,
+            "tick": 0,
+            "event": "jsp:fail callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": []
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 27,
+            "tick": 0,
+            "event": "runCommand jsp:fail",
+            "value": 0
+        },
+        {
+            "pack": "commands",
+            "seq": 28,
+            "tick": 0,
+            "event": "jsp:quiet callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": []
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 29,
+            "tick": 0,
+            "event": "runCommand jsp:quiet",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 30,
+            "tick": 0,
+            "event": "jsp:plain callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": []
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 31,
+            "tick": 0,
+            "event": "runCommand jsp:plain",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 32,
+            "tick": 0,
+            "event": "jsp:types callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": [
+                    "word",
+                    7,
+                    2.5,
+                    true,
+                    {
+                        "x": 1.5,
+                        "y": 2,
+                        "z": 3.5
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 33,
+            "tick": 0,
+            "event": "runCommand jsp:types word 7 2.5 true 1 2 3",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 34,
+            "tick": 0,
+            "event": "jsp:types callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": [
+                    "two words",
+                    -3,
+                    1,
+                    false,
+                    {
+                        "x": 1,
+                        "y": 0,
+                        "z": -1
+                    },
+                    "green"
+                ]
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 35,
+            "tick": 0,
+            "event": "runCommand jsp:types \"two words\" -3 1 false ~1 ~ ~-1 green",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 36,
+            "tick": 0,
+            "event": "jsp:types callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": [
+                    "word",
+                    7,
+                    2.5,
+                    true,
+                    {
+                        "x": 1.5,
+                        "y": 2,
+                        "z": 3.5
+                    },
+                    "purple"
+                ]
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 37,
+            "tick": 0,
+            "event": "runCommand jsp:types word 7 2.5 true 1 2 3 purple",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 38,
+            "tick": 0,
+            "event": "jsp:kinds callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": [
+                    {
+                        "id": "minecraft:pig"
+                    },
+                    {
+                        "id": "minecraft:apple"
+                    },
+                    {
+                        "id": "minecraft:stone"
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 39,
+            "tick": 0,
+            "event": "runCommand jsp:kinds pig apple stone",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 40,
+            "tick": 0,
+            "event": "jsp:kinds callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": [
+                    {
+                        "id": "minecraft:cow"
+                    },
+                    {
+                        "id": "minecraft:stick"
+                    },
+                    {
+                        "id": "minecraft:dirt"
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 41,
+            "tick": 0,
+            "event": "runCommand jsp:kinds minecraft:cow minecraft:stick minecraft:dirt",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 42,
+            "tick": 0,
+            "event": "jsp:targets callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": [
+                    []
+                ]
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 43,
+            "tick": 0,
+            "event": "runCommand jsp:targets @e",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 44,
+            "tick": 0,
+            "event": "jsp:targets callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": [
+                    [],
+                    []
+                ]
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 45,
+            "tick": 0,
+            "event": "runCommand jsp:targets @a @a",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 46,
+            "tick": 0,
+            "event": "runCommand jsp:admin",
+            "value": 0
+        },
+        {
+            "pack": "commands",
+            "seq": 47,
+            "tick": 0,
+            "event": "jsp:throws callback"
+        },
+        {
+            "pack": "commands",
+            "seq": 48,
+            "tick": 0,
+            "event": "runCommand jsp:throws",
+            "value": 0
+        },
+        {
+            "pack": "commands",
+            "seq": 49,
+            "tick": 0,
+            "event": "jsp:restricted sendMessage",
+            "value": null
+        },
+        {
+            "pack": "commands",
+            "seq": 50,
+            "tick": 0,
+            "event": "jsp:restricted setWeather",
+            "error": "ReferenceError: Native function [Dimension::setWeather] cannot be used in restricted execution."
+        },
+        {
+            "pack": "commands",
+            "seq": 51,
+            "tick": 0,
+            "event": "runCommand jsp:restricted",
+            "value": 1
+        },
+        {
+            "pack": "commands",
+            "seq": 52,
+            "tick": 0,
+            "event": "ready for the console"
+        },
+        {
+            "pack": "commands",
+            "seq": 53,
+            "tick": 0,
+            "event": "jsp:restricted system.run"
+        },
+        {
+            "pack": "commands",
+            "seq": 54,
+            "tick": 0,
+            "event": "jsp:hello callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": []
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 55,
+            "tick": 0,
+            "event": "jsp:fail callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": []
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 56,
+            "tick": 0,
+            "event": "jsp:types callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": [
+                    "word",
+                    7,
+                    2.5,
+                    true,
+                    {
+                        "x": 1.5,
+                        "y": 2,
+                        "z": 3.5
+                    },
+                    "red"
+                ]
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 57,
+            "tick": 0,
+            "event": "jsp:hello callback",
+            "value": {
+                "origin": {
+                    "sourceType": "Server",
+                    "sourceEntity": null,
+                    "initiator": null,
+                    "sourceBlock": null
+                },
+                "args": []
+            }
+        },
+        {
+            "pack": "commands",
+            "seq": 58,
+            "tick": 0,
+            "event": "jsp:throws callback"
+        }
+    ]
+}

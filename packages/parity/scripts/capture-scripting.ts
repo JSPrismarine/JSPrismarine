@@ -81,9 +81,24 @@ const { values } = parseArgs({
         /** A scenario id to capture; repeat it for several. Defaults to every scenario. */
         scenario: { type: 'string', multiple: true },
         /** Copy the server archive again even when the run directory already holds one. */
-        force: { type: 'boolean', default: false }
+        force: { type: 'boolean', default: false },
+        /**
+         * The IPv4 port the server listens on, the next one up for IPv6. A capture on another port
+         * stages its server in a run directory of its own, so captures can run side by side.
+         */
+        port: { type: 'string' }
     }
 });
+
+const port = values.port === undefined ? undefined : Number(values.port);
+if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65_534)) {
+    throw new Error(`--port takes a port from 1 to 65534, not ${values.port}`);
+}
+/** The scenario properties with the ports `--port` asks for. */
+const properties: Readonly<Record<string, string>> =
+    port === undefined
+        ? SCENARIO_PROPERTIES
+        : { ...SCENARIO_PROPERTIES, 'server-port': String(port), 'server-portv6': String(port + 1) };
 
 const selected: readonly ScriptScenario[] =
     values.scenario === undefined
@@ -124,10 +139,10 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
     const staged = await stageServer({
         unpacked,
         // A run directory of its own, so a capture never shares packs or worlds with `dump:bedrock`.
-        root: join(cacheRoot, 'bds-run', `v${protocolVersion}-scripting`),
+        root: join(cacheRoot, 'bds-run', `v${protocolVersion}-scripting${port === undefined ? '' : `-${port}`}`),
         force: values.force,
         levelName: `jsp-${scenario.id}`,
-        properties: { ...SCENARIO_PROPERTIES, ...scenario.properties }
+        properties: { ...properties, ...scenario.properties }
     });
     // `server.properties` has no key for an experiment, so the world starts from a `level.dat`
     // that has them on. It says flat, as `level-type` does.
@@ -166,7 +181,7 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         );
         if (scenario.client !== undefined) {
             client = await joinScenarioClient(scenario.client, {
-                port: Number(SCENARIO_PROPERTIES['server-port']),
+                port: Number(properties['server-port']),
                 network: staged.transport,
                 protocolVersion
             });
@@ -181,6 +196,15 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         }
         if (scenario.gametestAfter !== undefined) {
             const { event, commands } = scenario.gametestAfter;
+            await server.waitForLine(
+                (line) => line.includes(`"event":${JSON.stringify(event)}`),
+                `the ${event} observation`,
+                NATIVE_TIMEOUTS.scenario * launcher.timeoutScale
+            );
+            for (const command of commands) server.send(command);
+        }
+        if (scenario.consoleAfter !== undefined) {
+            const { event, commands } = scenario.consoleAfter;
             await server.waitForLine(
                 (line) => line.includes(`"event":${JSON.stringify(event)}`),
                 `the ${event} observation`,

@@ -1,0 +1,477 @@
+{
+    "$comment": [
+        "What the scripts of scenario `custom-components` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.components",
+    "scenario": "custom-components",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "components",
+            "seq": 1,
+            "tick": 0,
+            "event": "register jsp:recorder",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 2,
+            "tick": 0,
+            "event": "register jsp:legacy",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 3,
+            "tick": 0,
+            "event": "register jsp:recorder again",
+            "error": "BlockCustomComponentAlreadyRegisteredError: Block custom component 'jsp:recorder' was already registered."
+        },
+        {
+            "pack": "components",
+            "seq": 4,
+            "tick": 0,
+            "event": "register without a namespace",
+            "error": "NamespaceNameError: There was an error with name 'recorder': string must be prefixed with a namespace (eg. namespace:value)."
+        },
+        {
+            "pack": "components",
+            "seq": 5,
+            "tick": 0,
+            "event": "register in the minecraft namespace",
+            "error": "NamespaceNameError: There was an error with name 'minecraft:recorder': string has invalid namespace (minecraft)."
+        },
+        {
+            "pack": "components",
+            "seq": 6,
+            "tick": 0,
+            "event": "register a hook that is not a function",
+            "error": "TypeError: Native type conversion failed. Interface property ['onPlace'] expected type: Closure: (BlockComponentOnPlaceEvent, CustomComponentParameters) => void | undefined (failed parsing interface to Function argument [1])."
+        },
+        {
+            "pack": "components",
+            "seq": 7,
+            "tick": 0,
+            "event": "register an item component",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 8,
+            "tick": 0,
+            "event": "register an item component again",
+            "error": "ItemCustomComponentAlreadyRegisteredError: Item custom component 'jsp:item_recorder' was already registered."
+        },
+        {
+            "pack": "components",
+            "seq": 9,
+            "tick": 0,
+            "event": "register an item component without a namespace",
+            "error": "NamespaceNameError: There was an error with name 'wand': string must be prefixed with a namespace (eg. namespace:value)."
+        },
+        {
+            "pack": "components",
+            "seq": 10,
+            "tick": 0,
+            "event": "startup done"
+        },
+        {
+            "pack": "components",
+            "seq": 11,
+            "tick": 0,
+            "event": "register after startup",
+            "error": "CustomComponentInvalidRegistryError: Cannot register custom component outside of the ModuleStartup event."
+        },
+        {
+            "pack": "components",
+            "seq": 12,
+            "tick": 0,
+            "event": "register an item component after startup",
+            "error": "CustomComponentInvalidRegistryError: Cannot register custom component outside of the ModuleStartup event."
+        },
+        {
+            "pack": "components",
+            "seq": 13,
+            "tick": 0,
+            "event": "setType jsp:ticker",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 14,
+            "tick": 0,
+            "event": "setblock jsp:ticker",
+            "value": 1
+        },
+        {
+            "pack": "components",
+            "seq": 15,
+            "tick": 0,
+            "event": "setblock jsp:legacy",
+            "value": 1
+        },
+        {
+            "pack": "components",
+            "seq": 16,
+            "tick": 0,
+            "event": "setblock jsp:legacy again",
+            "value": 1
+        },
+        {
+            "pack": "components",
+            "seq": 17,
+            "tick": 0,
+            "event": "setblock a third jsp:ticker",
+            "value": 1
+        },
+        {
+            "pack": "components",
+            "seq": 18,
+            "tick": 0,
+            "event": "setblock over a jsp:ticker",
+            "value": 0
+        },
+        {
+            "pack": "components",
+            "seq": 19,
+            "tick": 0,
+            "event": "an ItemStack of jsp:wand",
+            "value": "jsp:wand"
+        },
+        {
+            "pack": "components",
+            "seq": 20,
+            "tick": 0,
+            "event": "jsp:recorder onPlace",
+            "value": {
+                "class": "BlockComponentOnPlaceEvent",
+                "block": {
+                    "typeId": "jsp:ticker",
+                    "x": 0,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "previousBlock": "minecraft:air",
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 21,
+            "tick": 0,
+            "event": "jsp:recorder onPlace",
+            "value": {
+                "class": "BlockComponentOnPlaceEvent",
+                "block": {
+                    "typeId": "jsp:ticker",
+                    "x": 2,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "previousBlock": "minecraft:air",
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 22,
+            "tick": 0,
+            "event": "jsp:legacy onPlace",
+            "value": {
+                "class": "BlockComponentOnPlaceEvent",
+                "block": {
+                    "typeId": "jsp:legacy",
+                    "x": 4,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "previousBlock": "minecraft:air",
+                "params": null
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 23,
+            "tick": 0,
+            "event": "jsp:legacy onPlace",
+            "value": {
+                "class": "BlockComponentOnPlaceEvent",
+                "block": {
+                    "typeId": "jsp:legacy",
+                    "x": 6,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "previousBlock": "minecraft:air",
+                "params": null
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 24,
+            "tick": 0,
+            "event": "jsp:recorder onPlace",
+            "value": {
+                "class": "BlockComponentOnPlaceEvent",
+                "block": {
+                    "typeId": "jsp:ticker",
+                    "x": 8,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "previousBlock": "minecraft:air",
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 25,
+            "tick": 10,
+            "event": "jsp:recorder onTick",
+            "value": {
+                "class": "BlockComponentTickEvent",
+                "block": {
+                    "typeId": "jsp:ticker",
+                    "x": 0,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 26,
+            "tick": 10,
+            "event": "jsp:recorder onTick",
+            "value": {
+                "class": "BlockComponentTickEvent",
+                "block": {
+                    "typeId": "jsp:ticker",
+                    "x": 2,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 27,
+            "tick": 10,
+            "event": "jsp:recorder onTick",
+            "value": {
+                "class": "BlockComponentTickEvent",
+                "block": {
+                    "typeId": "jsp:ticker",
+                    "x": 8,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 28,
+            "tick": 20,
+            "event": "jsp:recorder onTick",
+            "value": {
+                "class": "BlockComponentTickEvent",
+                "block": {
+                    "typeId": "jsp:ticker",
+                    "x": 0,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 29,
+            "tick": 20,
+            "event": "jsp:recorder onTick",
+            "value": {
+                "class": "BlockComponentTickEvent",
+                "block": {
+                    "typeId": "jsp:ticker",
+                    "x": 2,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 30,
+            "tick": 20,
+            "event": "jsp:recorder onTick",
+            "value": {
+                "class": "BlockComponentTickEvent",
+                "block": {
+                    "typeId": "jsp:ticker",
+                    "x": 8,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 31,
+            "tick": 25,
+            "event": "setType air",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 32,
+            "tick": 25,
+            "event": "setblock air",
+            "value": 1
+        },
+        {
+            "pack": "components",
+            "seq": 33,
+            "tick": 25,
+            "event": "setblock air over jsp:legacy",
+            "value": 1
+        },
+        {
+            "pack": "components",
+            "seq": 34,
+            "tick": 25,
+            "event": "setblock air destroy over jsp:legacy",
+            "value": 1
+        },
+        {
+            "pack": "components",
+            "seq": 35,
+            "tick": 25,
+            "event": "setblock air destroy over jsp:ticker",
+            "value": 1
+        },
+        {
+            "pack": "components",
+            "seq": 36,
+            "tick": 25,
+            "event": "blocks removed"
+        },
+        {
+            "pack": "components",
+            "seq": 37,
+            "tick": 25,
+            "event": "jsp:recorder onBreak",
+            "value": {
+                "class": "BlockComponentBlockBreakEvent",
+                "block": {
+                    "typeId": "minecraft:air",
+                    "x": 0,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "brokenBlockPermutation": "jsp:ticker",
+                "entitySource": null,
+                "blockDestructionSource": null,
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 38,
+            "tick": 25,
+            "event": "jsp:recorder onBreak",
+            "value": {
+                "class": "BlockComponentBlockBreakEvent",
+                "block": {
+                    "typeId": "minecraft:air",
+                    "x": 2,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "brokenBlockPermutation": "jsp:ticker",
+                "entitySource": null,
+                "blockDestructionSource": null,
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 39,
+            "tick": 25,
+            "event": "jsp:recorder onBreak",
+            "value": {
+                "class": "BlockComponentBlockBreakEvent",
+                "block": {
+                    "typeId": "minecraft:air",
+                    "x": 8,
+                    "y": -60,
+                    "z": 0
+                },
+                "dimension": "minecraft:overworld",
+                "brokenBlockPermutation": "jsp:ticker",
+                "entitySource": null,
+                "blockDestructionSource": null,
+                "params": {
+                    "label": "ticker",
+                    "power": 3
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario custom-commands commands",
+        "description": "Registers custom commands and enums at startup and records what their callbacks receive and what their senders get back. Written for packages/parity.",
+        "uuid": "d849610f-f603-4478-942b-67b7bd439c45",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "b88554d3-c39d-4962-9768-63fb456244e1",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

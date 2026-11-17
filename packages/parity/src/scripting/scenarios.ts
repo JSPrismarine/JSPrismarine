@@ -78,6 +78,11 @@ export interface ScriptScenario {
      */
     readonly gametestAfter?: { readonly event: string; readonly commands: readonly string[] };
     /**
+     * Commands the runner types on the server's console, in order, once a pack records the event:
+     * on BDS's console in the capture, and through JSPrismarine's console sender in its runner.
+     */
+    readonly consoleAfter?: { readonly event: string; readonly commands: readonly string[] };
+    /**
      * A client that joins the scenario's server and answers the forms its scripts show. The BDS
      * capture connects a headless client once the server is ready, and JSPrismarine's runner
      * gives the level a player that answers at the world seam. Both record the form packets the
@@ -519,6 +524,42 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
             'share one set of objectives, scores and display slots.',
         reference: 'docs/plans/script-api-host.md slice 12',
         packs: ['persistence'],
+        needs: 'server'
+    },
+    {
+        id: 'custom-commands',
+        family: 'scripting.commands',
+        description:
+            'customCommandRegistry.registerCommand and registerEnum in startup add namespaced commands that a script and ' +
+            'the console run, with fixed errors for a name or enum BDS refuses; a callback receives each parameter as ' +
+            'its type and the origin of the run, runs in restricted execution, and its result reaches the sender.',
+        reference: 'docs/plans/script-api-host.md slice 11',
+        packs: ['commands'],
+        consoleAfter: {
+            event: 'ready for the console',
+            commands: ['jsp:hello', 'jsp:fail', 'jsp:types word 7 2.5 true 1 2 3 red', 'hello', 'jsp:throws']
+        },
+        needs: 'server'
+    },
+    {
+        id: 'custom-command-errors',
+        family: 'scripting.commands',
+        description:
+            "A script's runCommand throws a fixed syntax error for a custom command whose argument does not parse, " +
+            'for a name BDS dropped because it has an upper-case letter, and for one registered after startup.',
+        reference: 'docs/plans/script-api-host.md slice 11',
+        packs: ['errors'],
+        needs: 'server'
+    },
+    {
+        id: 'custom-components',
+        family: 'scripting.components',
+        description:
+            'blockComponentRegistry and itemComponentRegistry register namespaced components in startup, with fixed ' +
+            "errors for a name BDS refuses, and a pack's block runs the hooks of the components it names, with their " +
+            'parameters, when a script or a command places it, its tick comes round and it is removed.',
+        reference: 'docs/plans/script-api-host.md slice 11',
+        packs: ['components'],
         needs: 'server'
     }
 ];
