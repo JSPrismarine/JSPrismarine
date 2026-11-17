@@ -1904,8 +1904,8 @@ importers:
   tools/docs:
     devDependencies:
       focus-trap:
-        specifier: 8.2.4
-        version: 8.2.4
+        specifier: 8.2.5
+        version: 8.2.5
       minisearch:
         specifier: 7.2.0
         version: 7.2.0
@@ -4068,8 +4068,8 @@ packages:
     resolution: {integrity: sha512-78/PXT1wlLLDgTzDs7sjq9hzz0vXD+zn+7wypEe4fXQxCmdmqfGsEPQxmiCSQI3ajFV91bVSsvNtrJRiW6nGng==}
     engines: {node: '>=10'}
 
-  focus-trap@8.2.4:
-    resolution: {integrity: sha512-oy6dj7WZYgMbbpoOA29K5W++473F1zEzdI1oJgPb6x7yWT36YaWedUe6i6YPWEt5quSh0pRMohVyHLWXUxtdxg==}
+  focus-trap@8.2.5:
+    resolution: {integrity: sha512-VrqfyRXaHZ0EkhXlfyalszmhnSN9yjdYXwlwLSRoJrDJ0/eswY5J5Avj/Hcd/PrOHCMnsMhwx7+7+s1kmv9Asg==}
 
   follow-redirects@1.16.3:
     resolution: {integrity: sha512-toOSoqN6d51Wjf1aOFJYcoVv1aND9rj/CwjLU0Vz40oDuSpWDayCeKe4JpL5NL0WdFvoOOCI3BRo69HahjbR1A==}
@@ -4837,8 +4837,8 @@ packages:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
 
-  tabbable@6.5.1:
-    resolution: {integrity: sha512-dMCuwDUY6Noz3zVKLefBC4wq+aJV20yc7vWmM7uTNGwtQSFF5kX7OUIUsxuVajz/bdt5Xqdah3/0NLjth+cM5A==}
+  tabbable@6.5.2:
+    resolution: {integrity: sha512-XgdnB1nGU6KU4VgMnZPaZCx7M1hBrLyEiZYau2G2gq9UT0d7d4FUBlNX7vvPlm/B1vk1PjrzJBx9Lbv4fsqS9g==}
 
   tar-stream@3.1.7:
     resolution: {integrity: sha512-qJj60CXt7IU1Ffyc3NJMjh6EkuCFej46zUqJ4J7pqYlThyd9bO0XBTmcOIhSzZJVWfsLks0+nle/j538YAW9RQ==}
@@ -6707,13 +6707,13 @@ snapshots:
       '@vueuse/shared': 15.0.0(vue@3.5.45(typescript@6.0.3))
       vue: 3.5.45(typescript@6.0.3)
 
-  '@vueuse/integrations@15.0.0(focus-trap@8.2.4)(vue@3.5.45(typescript@6.0.3))':
+  '@vueuse/integrations@15.0.0(focus-trap@8.2.5)(vue@3.5.45(typescript@6.0.3))':
     dependencies:
       '@vueuse/core': 15.0.0(vue@3.5.45(typescript@6.0.3))
       '@vueuse/shared': 15.0.0(vue@3.5.45(typescript@6.0.3))
       vue: 3.5.45(typescript@6.0.3)
     optionalDependencies:
-      focus-trap: 8.2.4
+      focus-trap: 8.2.5
 
   '@vueuse/metadata@15.0.0': {}
 
@@ -7196,9 +7196,9 @@ snapshots:
       locate-path: 6.0.0
       path-exists: 4.0.0
 
-  focus-trap@8.2.4:
+  focus-trap@8.2.5:
     dependencies:
-      tabbable: 6.5.1
+      tabbable: 6.5.2
 
   follow-redirects@1.16.3(debug@4.4.3(supports-color@10.2.2)):
     optionalDependencies:
@@ -7964,7 +7964,7 @@ snapshots:
     dependencies:
       has-flag: 4.0.0
 
-  tabbable@6.5.1: {}
+  tabbable@6.5.2: {}
 
   tar-stream@3.1.7:
     dependencies:
@@ -8225,8 +8225,8 @@ snapshots:
       '@vue/devtools-api': 8.2.1
       '@vue/shared': 3.5.45
       '@vueuse/core': 15.0.0(vue@3.5.45(typescript@6.0.3))
-      '@vueuse/integrations': 15.0.0(focus-trap@8.2.4)(vue@3.5.45(typescript@6.0.3))
-      focus-trap: 8.2.4
+      '@vueuse/integrations': 15.0.0(focus-trap@8.2.5)(vue@3.5.45(typescript@6.0.3))
+      focus-trap: 8.2.5
       mark.js: 8.11.1
       minisearch: 7.2.0
       shiki: 4.6.0
