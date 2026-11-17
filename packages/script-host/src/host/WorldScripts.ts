@@ -114,6 +114,11 @@ export interface WorldScriptsOptions {
     readonly watchdog?: WatchdogSettings;
     /** Asked to shut the server down after a critical exception, when the watchdog says to. */
     readonly onShutdown?: (reason: CriticalException) => void;
+    /**
+     * Called when a pack's context is ready and before any of its scripts run, with the UUID of
+     * its script module, so a debugger that attaches here stops at the pack's first line.
+     */
+    readonly onPackLoaded?: (moduleUuid: string, target: ScriptDebugTarget) => void;
 }
 
 /** Where a debugger attaches to debug one pack: the world's engine and the pack's context in it. */
@@ -514,6 +519,7 @@ export class WorldScripts {
         this.loaded.push(entry);
         this.byContext.set(context, entry);
         this.reportCoverage(entry);
+        this.options.onPackLoaded?.(pack.moduleUuid, { engine, context });
         return entry;
     }
 

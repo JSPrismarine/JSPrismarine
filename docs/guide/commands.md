@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->61<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->62<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -76,6 +76,7 @@ does the same thing.
 | `/say`                | Sends a message to everyone.                                                                              | `minecraft.command.say`           | 1     | Operators  |
 | `/schedule`           | Queues a function for later.                                                                              | `minecraft.command.schedule`      | 1     | Operators  |
 | `/scoreboard`         | Tracks and displays scores.                                                                               | `minecraft.command.scoreboard`    | 1     | Operators  |
+| `/script`             | Script debugger commands.                                                                                 | `minecraft.command.script`        | 2     | Operators  |
 | `/setblock`           | Places one block.                                                                                         | `minecraft.command.setblock`      | 1     | Operators  |
 | `/setworldspawn`      | Moves the world spawn.                                                                                    | `minecraft.command.setworldspawn` | 1     | Operators  |
 | `/spawnpoint`         | Moves a player spawn point.                                                                               | `minecraft.command.spawnpoint`    | 1     | Operators  |
