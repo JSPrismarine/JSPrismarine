@@ -38,6 +38,15 @@ export interface JspServer {
  */
 export const SCRIPT_WEATHER_MESSAGE = 'client-e2e script: the weather is now ';
 
+/** The title of the form the client e2e script pack shows every player when a thunderstorm starts. */
+export const SCRIPT_FORM_TITLE = 'client-e2e form';
+
+/**
+ * What the client e2e script pack says once a player answers its form, followed by the button the
+ * player picked, from 0, or `canceled`.
+ */
+export const SCRIPT_FORM_MESSAGE = 'client-e2e script: the form answer is ';
+
 /** Ports reserved by servers this process is starting or running. */
 const reservedUdpPorts = new Set<number>();
 
@@ -470,7 +479,10 @@ export const startServer = async (
                         entry: 'scripts/main.js'
                     }
                 ],
-                dependencies: [{ module_name: '@minecraft/server', version: '2.0.0' }]
+                dependencies: [
+                    { module_name: '@minecraft/server', version: '2.0.0' },
+                    { module_name: '@minecraft/server-ui', version: '2.0.0' }
+                ]
             },
             null,
             4
@@ -480,9 +492,18 @@ export const startServer = async (
         path.join(scriptPack, 'scripts', 'main.js'),
         [
             "import { world } from '@minecraft/server';",
+            "import { ActionFormData } from '@minecraft/server-ui';",
             '',
             'world.afterEvents.weatherChange.subscribe((event) => {',
             `    world.sendMessage(\`${SCRIPT_WEATHER_MESSAGE}\${event.newWeather}\`);`,
+            "    if (event.newWeather !== 'Thunder') return;",
+            '    for (const player of world.getAllPlayers()) {',
+            `        new ActionFormData().title('${SCRIPT_FORM_TITLE}').body('Pick one').button('First').button('Second')`,
+            '            .show(player)',
+            '            .then((response) =>',
+            `                world.sendMessage(\`${SCRIPT_FORM_MESSAGE}\${response.canceled ? 'canceled' : response.selection}\`)`,
+            '            );',
+            '    }',
             '});',
             ''
         ].join('\n')

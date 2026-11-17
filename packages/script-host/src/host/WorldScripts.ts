@@ -37,9 +37,13 @@ import { ScriptHandle } from '../values';
 import { scanCoverage } from './coverage';
 import { installInputsSource, randomState } from './inputs';
 import type { EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
-import { serverImplementations } from './minecraftServer';
+import { playerTag, serverImplementations } from './minecraftServer';
+import type { FormPlayer } from './minecraftServerUi';
+import { serverUiImplementations } from './minecraftServerUi';
 import type { ScriptConfig, ScriptPack } from './pack';
 import { packLabel, packScripts, readPackFile } from './pack';
+import { PackForms, SERVER_UI } from './PackForms';
+import { ScriptForms } from './ScriptForms';
 import { TaskQueue } from './tasks';
 import type {
     ChatSendIntent,
@@ -144,6 +148,8 @@ interface LoadedPack {
     /** Sets the clock its `Date` reads. */
     setNow?: ScriptHandle;
     jsp?: ScriptHandle;
+    /** Its `@minecraft/server-ui` forms, when it declares the module. */
+    forms?: PackForms;
 }
 
 /** A callback a pack subscribed to a signal. */
@@ -199,6 +205,8 @@ export class WorldScripts {
     private readonly playerNumbers = new Map<string, number>();
     /** The pack whose callback the runtime entered last, which a tick that runs over is blamed on. */
     private lastEntered: LoadedPack | undefined;
+    /** The `@minecraft/server-ui` forms the world's players have open. */
+    private readonly forms = new ScriptForms<LoadedPack>(() => this.engine);
 
     public constructor(options: WorldScriptsOptions) {
         this.options = options;
@@ -274,6 +282,7 @@ export class WorldScripts {
         this.engine.beginTick();
         this.tickEntries = 0;
         this.refreshClock();
+        this.settleForms();
         for (const loaded of this.loaded) if (loaded.lifecycle === 1) this.runJobs(loaded);
         const withinBudget = (): boolean => this.tickEntries < this.tickBudget();
         for (;;) {
@@ -370,7 +379,10 @@ export class WorldScripts {
         this.tasks = new TaskQueue();
         for (const subscription of this.subscriptions) this.engine.free(subscription.callback);
         this.subscriptions = [];
+        // A reload or shutdown settles no open form: the contexts that would see it go with it.
+        this.forms.clear();
         for (const loaded of this.loaded) {
+            loaded.forms?.destroy();
             for (const handle of loaded.instances.values()) this.engine.free(handle);
             if (loaded.setNow !== undefined) this.engine.free(loaded.setNow);
             if (loaded.jsp !== undefined) this.engine.free(loaded.jsp);
@@ -476,6 +488,17 @@ export class WorldScripts {
         };
         const self = (): LoadedPack => entry;
 
+        const ui = shapes.find((shape) => shape.module === SERVER_UI);
+        if (ui !== undefined) {
+            const forms = new PackForms(engine, context, api, parseVersion(ui.version.version)?.major ?? 2);
+            entry.forms = forms;
+            serverUiImplementations(implementations, {
+                forms,
+                player: (value) => this.formPlayer(entry, value),
+                show: (player, form) => this.forms.show(this.options.world.forms, entry, forms, player, form),
+                closeAll: (player) => this.options.world.forms?.closeAll(player)
+            });
+        }
         engine.inContext(context, () => {
             for (const shape of shapes) entry.modules.set(shape.module, api.bind(shape));
             this.installConsole();
@@ -557,6 +580,30 @@ export class WorldScripts {
         const made = this.create(loaded, className, tag);
         loaded.instances.set(key, made);
         return made;
+    }
+
+    /** The player a `Player` argument of a pack's call stands for, by the tag the host made it with. */
+    private formPlayer(loaded: LoadedPack, value: ScriptValue): FormPlayer | undefined {
+        const tag = loaded.api.tagOf(value);
+        if (tag === undefined) return undefined;
+        const players = this.options.world.players();
+        const present = players.find((id) => playerTag(this.playerNumber(id)) === tag);
+        if (present !== undefined) return { id: present, present: true };
+        for (const [id, number] of this.playerNumbers) if (playerTag(number) === tag) return { id, present: false };
+        return undefined;
+    }
+
+    /**
+     * Settles the forms the input step answered and those of players who left, each in its pack's
+     * context, before any of this flush's promise jobs run, and frees what the forms' calls
+     * returned before this flush.
+     */
+    private settleForms(): void {
+        for (const loaded of this.loaded) loaded.forms?.releaseReturned();
+        const responses = this.options.world.forms?.takeResponses() ?? [];
+        this.forms.update(responses, this.options.world.players(), (loaded, settle) =>
+            this.engine.inContext(loaded.context, () => this.guarded(loaded, settle))
+        );
     }
 
     private playerNumber(id: string): number {
