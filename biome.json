@@ -24,6 +24,7 @@
             "!packages/bedrock-data/src/generated",
             "!packages/bedrock-data/src/jsp",
             "!packages/minecraft/src/generated",
+            "!packages/script-host/src/generated",
             "!**/*.json",
             "!**/*.lock",
             "!**/*.log",

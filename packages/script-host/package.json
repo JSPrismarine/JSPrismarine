@@ -32,6 +32,31 @@
                 "import": "./dist/absentGlobals.js",
                 "module": "./dist/absentGlobals.js"
             },
+            "./shape/binding": {
+                "types": "./dist/shape/binding.d.ts",
+                "import": "./dist/shape/binding.js",
+                "module": "./dist/shape/binding.js"
+            },
+            "./shape/implementations": {
+                "types": "./dist/shape/implementations.d.ts",
+                "import": "./dist/shape/implementations.js",
+                "module": "./dist/shape/implementations.js"
+            },
+            "./shape/resolve": {
+                "types": "./dist/shape/resolve.d.ts",
+                "import": "./dist/shape/resolve.js",
+                "module": "./dist/shape/resolve.js"
+            },
+            "./shape/history": {
+                "types": "./dist/shape/history.d.ts",
+                "import": "./dist/shape/history.js",
+                "module": "./dist/shape/history.js"
+            },
+            "./shape/format": {
+                "types": "./dist/shape/format.d.ts",
+                "import": "./dist/shape/format.js",
+                "module": "./dist/shape/format.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -64,6 +89,26 @@
             "jsprismarine:dist": "./dist/absentGlobals.js",
             "default": "./src/absentGlobals.ts"
         },
+        "./shape/binding": {
+            "jsprismarine:dist": "./dist/shape/binding.js",
+            "default": "./src/shape/binding.ts"
+        },
+        "./shape/implementations": {
+            "jsprismarine:dist": "./dist/shape/implementations.js",
+            "default": "./src/shape/implementations.ts"
+        },
+        "./shape/resolve": {
+            "jsprismarine:dist": "./dist/shape/resolve.js",
+            "default": "./src/shape/resolve.ts"
+        },
+        "./shape/history": {
+            "jsprismarine:dist": "./dist/shape/history.js",
+            "default": "./src/shape/history.ts"
+        },
+        "./shape/format": {
+            "jsprismarine:dist": "./dist/shape/format.js",
+            "default": "./src/shape/format.ts"
+        },
         "./package.json": "./package.json"
     },
     "scripts": {
@@ -71,6 +116,8 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "build:native": "node scripts/build-native.mts",
+        "generate:shape": "node scripts/generate-shape.mts",
+        "check:shape": "node scripts/generate-shape.mts --check",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {

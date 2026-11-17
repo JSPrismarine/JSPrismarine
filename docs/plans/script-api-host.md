@@ -139,11 +139,16 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
    - Bind it with `node:ffi`, as the native networking package does.
    - Tests: evaluation, a host call from inside a script, a `while (true)` stopped at the same
      step on every run, an allocation limit, two engines on two threads.
-4. [ ] [#3201](https://github.com/JSPrismarine/JSPrismarine/issues/3201) **The generated shape.** The generator over `metadata/script_modules`, the semver
+4. [x] [#3201](https://github.com/JSPrismarine/JSPrismarine/issues/3201) **The generated shape.** The generator over `metadata/script_modules`, the semver
    resolution, and `NotImplementedError` stubs for every member.
    - The overrides list for metadata gaps, starting with `registerCommand`'s privilege.
    - Tests: a pack declaring 1.3.0 gets the newest 1.x, argument validation errors match the
      metadata, an unimplemented call names its member.
+   - Learned: the research note records only two of BDS's argument errors, the variant
+     conversion failure and `ArgumentOutOfBoundsError`'s text. The wrong-type, argument count and
+     no-constructor messages follow BDS's wording unconfirmed, and want a `scripting.engine` row
+     that calls members with bad arguments on BDS. Every `valid_range` in the pinned metadata is
+     the int32 range, whatever the type, so only `details` bounds an argument.
 5. [x] [#3202](https://github.com/JSPrismarine/JSPrismarine/issues/3202) **The parity families.** Declare the `scripting.*` families, write the BDS runner and the
    golden format, and land one scenario that runs on BDS, with JSP's row recorded as a gap.
 6. [ ] [#3203](https://github.com/JSPrismarine/JSPrismarine/issues/3203) **The skeleton.** The milestone that proves every mechanism once:
@@ -159,6 +164,12 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
    - `/reload`, and `pnpm run dev` calling it when a script changes
    - seeded `Math.random`, `Date` as an input, and a replay of a scripted session reaching the
      same digest
+   - one QuickJS context per pack in the world's runtime, since BDS creates a context for each
+     pack ("failed to create context" names one pack), so packs never share a `globalThis`
+   - privileges enforced from the generated shape: early execution and restricted execution
+     throw with BDS's messages, and the load-time scan prints each pack's coverage
+   - a `scripting.engine` row that confirms the argument error messages slice 4 wrote in BDS's
+     style without a capture: wrong type, wrong count, and a class with no constructor
    - Done when every item has a passing `scripting` row.
 7. [ ] [#3204](https://github.com/JSPrismarine/JSPrismarine/issues/3204) **The debugger.** The protocol the VS Code extension speaks, `/script debugger
    listen|connect|detach` and the `script-debugger-*` properties, over koush's debugger patch

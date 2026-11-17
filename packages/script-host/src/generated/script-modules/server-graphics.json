@@ -1,0 +1,390 @@
+{
+    "module": "@minecraft/server-graphics",
+    "uuid": "3c7acfd1-b8e2-48a3-98af-cfeb489d1457",
+    "versions": [
+        {"version":"1.0.0","stability":"stable","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server":"2.3.0"}}
+    ],
+    "resolves": {"1":"1.0.0"},
+    "declarations": {
+        "BiomeAtmospherics": {
+            "segments": [
+                {"from":"1.0.0","kind":"class"}
+            ],
+            "members": {
+                "resetHorizonBlendMax": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetHorizonBlendMieStart": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetHorizonBlendMin": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetHorizonBlendStart": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetMoonMieStrength": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetRayleighStrength": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetSkyHorizonColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetSkyZenithColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetSunGlareShape": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetSunMieStrength": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "setHorizonBlendMax": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"blendMax","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setHorizonBlendMieStart": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"blendMieStart","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setHorizonBlendMin": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"blendMin","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setHorizonBlendStart": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"blendStart","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setMoonMieStrength": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"moonMieStrength","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setRayleighStrength": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"rayleighStrength","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setSkyHorizonColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"color","type":{"kind":"variant","types":[{"kind":"map","key":"float","value":{"kind":"external","module":"@minecraft/server","name":"RGB"}},{"kind":"external","module":"@minecraft/server","name":"RGB"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setSkyZenithColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"color","type":{"kind":"variant","types":[{"kind":"map","key":"float","value":{"kind":"external","module":"@minecraft/server","name":"RGB"}},{"kind":"external","module":"@minecraft/server","name":"RGB"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setSunGlareShape": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"sunGlareShape","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setSunMieStrength": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"sunMieStrength","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ]
+            }
+        },
+        "BiomeColorGrading": {
+            "segments": [
+                {"from":"1.0.0","kind":"class"}
+            ],
+            "members": {
+                "resetHighlightsContrast": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetHighlightsGain": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetHighlightsGamma": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetHighlightsMin": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetHighlightsOffset": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetHighlightsSaturation": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetMidtonesContrast": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetMidtonesGain": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetMidtonesGamma": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetMidtonesOffset": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetMidtonesSaturation": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetShadowsContrast": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetShadowsGain": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetShadowsGamma": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetShadowsMax": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetShadowsOffset": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetShadowsSaturation": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetTemperature": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "setHighlightsContrast": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"highlightsContrast","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setHighlightsGain": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"highlightsGain","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setHighlightsGamma": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"highlightsGamma","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setHighlightsMin": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"highlightsMin","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setHighlightsOffset": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"highlightsOffset","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setHighlightsSaturation": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"highlightsSaturation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setMidtonesContrast": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"midtonesContrast","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setMidtonesGain": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"midtonesGain","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setMidtonesGamma": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"midtonesGamma","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setMidtonesOffset": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"midtonesOffset","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setMidtonesSaturation": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"midtonesSaturation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setShadowsContrast": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"shadowsContrast","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setShadowsGain": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"shadowsGain","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setShadowsGamma": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"shadowsGamma","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setShadowsMax": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"shadowsMax","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setShadowsOffset": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"shadowsOffset","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setShadowsSaturation": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"shadowsSaturation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setTemperature": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"temperature","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ]
+            }
+        },
+        "BiomeLighting": {
+            "segments": [
+                {"from":"1.0.0","kind":"class"}
+            ],
+            "members": {
+                "resetAmbientColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetAmbientIlluminance": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetEmissiveDesaturation": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetFlashColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetFlashIlluminance": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetMoonColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetMoonIlluminance": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetOrbitalOffsetDegrees": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetSkyIntensity": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetSunColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetSunIlluminance": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "setAmbientColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"color","type":{"kind":"variant","types":[{"kind":"map","key":"float","value":{"kind":"external","module":"@minecraft/server","name":"RGB"}},{"kind":"external","module":"@minecraft/server","name":"RGB"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setAmbientIlluminance": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"illuminance","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setEmissiveDesaturation": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"value","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setFlashColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"color","type":{"kind":"variant","types":[{"kind":"map","key":"float","value":{"kind":"external","module":"@minecraft/server","name":"RGB"}},{"kind":"external","module":"@minecraft/server","name":"RGB"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setFlashIlluminance": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"illuminance","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setMoonColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"color","type":{"kind":"variant","types":[{"kind":"map","key":"float","value":{"kind":"external","module":"@minecraft/server","name":"RGB"}},{"kind":"external","module":"@minecraft/server","name":"RGB"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setMoonIlluminance": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"illuminance","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setOrbitalOffsetDegrees": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"degrees","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setSkyIntensity": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"intensity","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setSunColor": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"color","type":{"kind":"variant","types":[{"kind":"map","key":"float","value":{"kind":"external","module":"@minecraft/server","name":"RGB"}},{"kind":"external","module":"@minecraft/server","name":"RGB"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setSunIlluminance": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"illuminance","type":{"kind":"variant","types":["float",{"kind":"map","key":"float","value":"float"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ]
+            }
+        },
+        "BiomeWater": {
+            "segments": [
+                {"from":"1.0.0","kind":"class"}
+            ],
+            "members": {
+                "resetCDOM": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetChlorophyll": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetSuspendedSediment": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesDepth": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesDirectionIncrement": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesFrequency": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesFrequencyScaling": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesMix": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesOctaves": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesPull": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesShape": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesSpeed": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "resetWavesSpeedScaling": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "setCDOM": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"cdom","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setChlorophyll": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"chlorophyll","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setSuspendedSediment": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"suspendedSediment","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesDepth": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesDepth","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesDirectionIncrement": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesDirectionIncrement","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesFrequency": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesFrequency","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesFrequencyScaling": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesFrequencyScaling","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesMix": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesMix","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesOctaves": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesOctaves","type":"int32"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesPull": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesPull","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesShape": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesShape","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesSpeed": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesSpeed","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ],
+                "setWavesSpeedScaling": [
+                    {"from":"1.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"wavesSpeedScaling","type":"float"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+                ]
+            }
+        },
+        "getBiomeAtmospherics": {
+            "segments": [
+                {"from":"1.0.0","kind":"function","privilege":["default"],"arguments":[{"name":"biome","type":{"kind":"external","module":"@minecraft/server","name":"BiomeType"}}],"returns":"BiomeAtmospherics"}
+            ]
+        },
+        "getBiomeColorGrading": {
+            "segments": [
+                {"from":"1.0.0","kind":"function","privilege":["default"],"arguments":[{"name":"biome","type":{"kind":"external","module":"@minecraft/server","name":"BiomeType"}}],"returns":"BiomeColorGrading"}
+            ]
+        },
+        "getBiomeLighting": {
+            "segments": [
+                {"from":"1.0.0","kind":"function","privilege":["default"],"arguments":[{"name":"biome","type":{"kind":"external","module":"@minecraft/server","name":"BiomeType"}}],"returns":"BiomeLighting"}
+            ]
+        },
+        "getBiomeWater": {
+            "segments": [
+                {"from":"1.0.0","kind":"function","privilege":["default"],"arguments":[{"name":"biome","type":{"kind":"external","module":"@minecraft/server","name":"BiomeType"}}],"returns":"BiomeWater"}
+            ]
+        },
+        "getPlayerAtmospherics": {
+            "segments": [
+                {"from":"1.0.0","kind":"function","privilege":["default"],"arguments":[{"name":"biome","type":{"kind":"external","module":"@minecraft/server","name":"BiomeType"}},{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"returns":"BiomeAtmospherics"}
+            ]
+        },
+        "getPlayerColorGrading": {
+            "segments": [
+                {"from":"1.0.0","kind":"function","privilege":["default"],"arguments":[{"name":"biome","type":{"kind":"external","module":"@minecraft/server","name":"BiomeType"}},{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"returns":"BiomeColorGrading"}
+            ]
+        },
+        "getPlayerLighting": {
+            "segments": [
+                {"from":"1.0.0","kind":"function","privilege":["default"],"arguments":[{"name":"biome","type":{"kind":"external","module":"@minecraft/server","name":"BiomeType"}},{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"returns":"BiomeLighting"}
+            ]
+        },
+        "getPlayerWater": {
+            "segments": [
+                {"from":"1.0.0","kind":"function","privilege":["default"],"arguments":[{"name":"biome","type":{"kind":"external","module":"@minecraft/server","name":"BiomeType"}},{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"returns":"BiomeWater"}
+            ]
+        }
+    }
+}
