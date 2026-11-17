@@ -121,6 +121,12 @@ const TAG = {
     player: 100000
 } as const;
 
+/**
+ * The tag of the `Player` object a pack gets for a player, from the number
+ * {@link PackHost.playerNumber} gives the player's id.
+ */
+export const playerTag = (playerNumber: number): number => TAG.player + playerNumber;
+
 /** What `Dimension.id` accepts besides the full id: the name without `minecraft:`. */
 const shortName = (id: string): string => (id.startsWith('minecraft:') ? id.slice('minecraft:'.length) : id);
 

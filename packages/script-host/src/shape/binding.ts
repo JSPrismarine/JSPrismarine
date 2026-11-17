@@ -107,6 +107,8 @@ export class ScriptApiContext {
     private readonly bindFunction: ScriptHandle;
     private readonly createFunction: ScriptHandle;
     private readonly raiseFunction: ScriptHandle;
+    private readonly errorFunction: ScriptHandle;
+    private readonly tagFunction: ScriptHandle;
     private readonly entries: MemberEntry[] = [];
     private readonly bound = new Map<string, { readonly shape: ModuleShape; readonly namespace: ScriptHandle }>();
     private destroyed = false;
@@ -131,6 +133,8 @@ export class ScriptApiContext {
         this.bindFunction = handleOf(engine.get(this.runtime, 'bind'), 'bind');
         this.createFunction = handleOf(engine.get(this.runtime, 'create'), 'create');
         this.raiseFunction = handleOf(engine.get(this.runtime, 'raise'), 'raise');
+        this.errorFunction = handleOf(engine.get(this.runtime, 'error'), 'error');
+        this.tagFunction = handleOf(engine.get(this.runtime, 'tag'), 'tag');
     }
 
     /**
@@ -173,6 +177,36 @@ export class ScriptApiContext {
         return handleOf(this.engine.call(this.createFunction, this.runtime, module, className, tag), 'An instance');
     }
 
+    /**
+     * The tag the host gave an instance when it made it, such as a `Player` passed to a member.
+     * @returns The tag, or undefined for a value the host did not make, which a script made with
+     *   `Object.create` or a constructor the host did not run.
+     */
+    public tagOf(value: ScriptValue): number | undefined {
+        if (!(value instanceof ScriptHandle)) return undefined;
+        const tag = this.engine.call(this.tagFunction, this.runtime, value);
+        return typeof tag === 'number' && tag >= 0 ? tag : undefined;
+    }
+
+    /**
+     * Makes an instance of one of the API's error classes without throwing it, such as the error
+     * a promise rejects with. The caller frees the handle.
+     * @throws {ScriptError} When the engine cannot make it.
+     */
+    public makeError(error: ScriptApiError): ScriptHandle {
+        return handleOf(
+            this.engine.call(
+                this.errorFunction,
+                this.runtime,
+                error.errorModule,
+                error.errorClass,
+                error.message,
+                JSON.stringify(error.fields)
+            ),
+            'An error'
+        );
+    }
+
     /** Frees the context's handles. The engine keeps what scripts still refer to. */
     public destroy(): void {
         // A second destroy would free slots the engine may have handed to live values since.
@@ -180,7 +214,14 @@ export class ScriptApiContext {
         this.destroyed = true;
         for (const { namespace } of this.bound.values()) this.engine.free(namespace);
         this.bound.clear();
-        for (const handle of [this.bindFunction, this.createFunction, this.raiseFunction, this.runtime]) {
+        for (const handle of [
+            this.bindFunction,
+            this.createFunction,
+            this.raiseFunction,
+            this.errorFunction,
+            this.tagFunction,
+            this.runtime
+        ]) {
             this.engine.free(handle);
         }
     }

@@ -5,6 +5,7 @@ import { SCRIPT_MODULE_HISTORIES } from '../generated/scriptModules';
 import { ScriptApiError } from '../errors';
 import type { ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
 import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
+import { ScriptHandle } from '../values';
 import type { ScriptApiLogger } from './binding';
 import type { Privilege } from './format';
 import { ScriptApiContext } from './binding';
@@ -265,6 +266,34 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
 
         expect(scripts.evaluate('dimension.id')).toBe('dimension 7');
         expect(tags).toEqual([7]);
+    });
+
+    it('reads the tag of an instance the host made, and none of one a script made', () => {
+        const scripts = engine();
+        const { context } = bindServer(scripts, '2.0.0');
+        const dimension = context.create('@minecraft/server', 'Dimension', 7);
+        const forged = scripts.evaluate('Object.create(mc.Dimension.prototype)');
+
+        expect(context.tagOf(dimension)).toBe(7);
+        expect(context.tagOf(forged)).toBeUndefined();
+        expect(context.tagOf('a string')).toBeUndefined();
+        scripts.free(dimension);
+        if (forged instanceof ScriptHandle) scripts.free(forged);
+    });
+
+    it('makes an error of the API without throwing it, with its fields', () => {
+        const scripts = engine();
+        const { context } = bindServer(scripts, '2.0.0');
+        const error = context.makeError(
+            new ScriptApiError('@minecraft/common', 'ArgumentOutOfBoundsError', 'out', { index: 2 })
+        );
+        const global = scripts.global();
+        scripts.set(global, 'made', error);
+        scripts.free(global);
+        scripts.free(error);
+
+        expect(scripts.evaluate('made instanceof Error && made.constructor.name')).toBe('ArgumentOutOfBoundsError');
+        expect(scripts.evaluate('String(made) + " " + made.index')).toBe('ArgumentOutOfBoundsError: out 2');
     });
 
     it('throws ArgumentOutOfBoundsError as an instance of the class from @minecraft/common, with its fields', () => {
