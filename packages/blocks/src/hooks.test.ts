@@ -35,6 +35,7 @@ describe('the block hook map', () => {
         expectTypeOf<BlockHookName>().toEqualTypeOf<keyof BlockHooks>();
         expect([...BLOCK_HOOK_NAMES].sort()).toEqual(
             [
+                'beforeOnPlayerPlace',
                 'onBlockStateChange',
                 'onBreak',
                 'onEntity',

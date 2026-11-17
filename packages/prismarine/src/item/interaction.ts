@@ -318,20 +318,30 @@ const placeBlock = (
     const states = placementStatesOf(content, identifier, rotation, face);
     if (placementOverlapsPlayer(content, player, target, identifier, states)) return undefined;
 
+    const playerPosition = player.getPosition();
+    const placedBy = {
+        identifier: 'minecraft:player',
+        entityId: String(player.getRuntimeId()),
+        position: { x: playerPosition.getX(), y: playerPosition.getY(), z: playerPosition.getZ() },
+        pitch: rotation.pitch,
+        yaw: rotation.yaw
+    };
+    // The placement's guard stage: a handler, such as a script's custom component, may refuse it
+    // before anything is written.
+    const refused = content.blocks.types
+        .get(identifier)
+        ?.state(states)
+        .content.hooks.dispatchFirst('beforeOnPlayerPlace', {
+            block: { identifier, position: target, dimension: world.getDimension().name, states },
+            player: placedBy,
+            face
+        });
+    if (refused === true) return undefined;
+
     // Through the adapter rather than through the world, so the write raises `onPlace` and the
     // neighbors are told. That hook is what gives a chest its block entity record.
-    const playerPosition = player.getPosition();
     blocks.setBlock(target, identifier, states, true, {
-        placedBy: {
-            identifier: 'minecraft:player',
-            position: {
-                x: playerPosition.getX(),
-                y: playerPosition.getY(),
-                z: playerPosition.getZ()
-            },
-            pitch: rotation.pitch,
-            yaw: rotation.yaw
-        },
+        placedBy,
         itemStack: contentStackOf(content, placed),
         face,
         faceLocation: interaction.faceLocation
@@ -534,6 +544,7 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
                 block,
                 player: {
                     identifier: 'minecraft:player',
+                    entityId: String(player.getRuntimeId()),
                     position: { x: position.getX(), y: position.getY(), z: position.getZ() }
                 },
                 sneaking: player.isSneaking(),

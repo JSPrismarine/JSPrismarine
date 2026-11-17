@@ -2,7 +2,10 @@ import type { Module } from '@jsprismarine/kernel';
 import ClientboundCloseFormPacket from '@jsprismarine/protocol/packet/ClientboundCloseFormPacket';
 import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormRequestPacket';
 
+import type { ScriptComponentSink } from '@jsprismarine/script-host/host/world';
+
 import type Server from '../Server';
+import type { Level } from '../world/Level';
 import { levelScriptAccess } from '../scripting/levelScriptAccess';
 import { levelSimulatedPlayers } from '../scripting/levelSimulatedPlayers';
 import { LevelScripts } from '../scripting/LevelScripts';
@@ -65,7 +68,12 @@ export const scriptsModule = (server: Server): Module => ({
                 onPlayerLeaving: (listener) =>
                     server
                         .getKernel()
-                        .events.on('playerDespawn', (event) => listener(String(event.getSession().runtimeId)))
+                        .events.on('playerDespawn', (event) => listener(String(event.getSession().runtimeId))),
+                commands: (commands) => {
+                    server.getCommandManager().setScriptCommands(commands);
+                    return () => server.getCommandManager().setScriptCommands(undefined);
+                },
+                components: (sink) => bindScriptComponents(server, level, sink)
             },
             seed: server.getWorldManager().getDefaultWorld().getSeed(),
             watchdog: server.getConfig().getScriptWatchdog(),
@@ -90,3 +98,27 @@ export const scriptsModule = (server: Server): Module => ({
         server.setScripts(undefined);
     }
 });
+
+/**
+ * Sends the custom component hooks of a level's blocks and items to the scripts' sink: the ones
+ * the content's adapter behavior raises, and `onPlace` and `onBreak` from every block write of
+ * the level's worlds. A block with `minecraft:tick` ticks through the server's scheduled ticks.
+ * @returns A function that stops it.
+ */
+const bindScriptComponents = (server: Server, level: Level, sink: ScriptComponentSink): (() => void) => {
+    const content = server.getContent();
+    const bridge = content.scriptComponents;
+    if (bridge === undefined) return () => {};
+    bridge.setScheduler((block, min, max) => {
+        const actions = content.world.blockWorld.at(block.dimension, level.name);
+        const spread = max > min ? (actions.randomInt?.(max - min + 1) ?? 0) : 0;
+        actions.scheduleTick(block, min + spread);
+    });
+    const stops = [
+        bridge.bind(sink),
+        ...[...level.worlds()].map((world) => world.onBlockWritten(bridge.blockWrites(world.getDimension().name)))
+    ];
+    return () => {
+        for (const stop of stops) stop();
+    };
+};

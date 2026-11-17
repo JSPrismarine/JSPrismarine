@@ -11,7 +11,9 @@ import type {
     ChatSendIntent,
     Guard,
     ScriptCommandResult,
+    ScriptCommandSet,
     ScriptCommandSource,
+    ScriptComponentSink,
     ScriptFormChannel,
     ScriptFormResponse,
     ScriptWeather,
@@ -124,6 +126,16 @@ export interface ScriptWorldSources {
      * @returns A function that stops it.
      */
     onPlayerLeaving?(listener: (player: string) => void): () => void;
+    /**
+     * Puts the scripts' custom commands into the server's command tree.
+     * @returns A function that takes them out.
+     */
+    commands?(commands: ScriptCommandSet): () => void;
+    /**
+     * Sends the custom component hooks of the level's blocks and items to `sink`.
+     * @returns A function that stops it.
+     */
+    components?(sink: ScriptComponentSink): () => void;
 }
 
 /** The dimension Bedrock renders weather in, and reports weather events for. */
@@ -423,6 +435,16 @@ export class LevelScriptWorld implements ScriptWorld {
     /** The wall clock the input step admitted for this tick. */
     public clock(): number {
         return this.sources.clock();
+    }
+
+    /** Puts the scripts' custom commands into the server's command tree, when the server has one. */
+    public registerCommands(commands: ScriptCommandSet): () => void {
+        return this.sources.commands?.(commands) ?? (() => {});
+    }
+
+    /** Sends the level's custom component hooks to the scripts, when the server raises them. */
+    public bindComponents(sink: ScriptComponentSink): () => void {
+        return this.sources.components?.(sink) ?? (() => {});
     }
 
     private player(id: string): ScriptWorldPlayer | undefined {

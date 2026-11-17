@@ -64,6 +64,8 @@ export interface HookBlock {
 export interface HookActor {
     /** The namespaced entity identifier, such as `minecraft:player`. */
     readonly identifier: string;
+    /** The entity's runtime id, as a decimal string, when the host knows it. */
+    readonly entityId?: string;
     readonly position: BlockPosition;
     /** The actor's pitch when the host knows it. */
     readonly pitch?: number;
@@ -150,6 +152,18 @@ export interface BlockBreakEvent extends BlockEvent {
     readonly itemStack: HookItem | undefined;
     /** Whether the held item satisfies this block's `requires_correct_tool` rule, when known. */
     readonly correctTool?: boolean;
+}
+
+/**
+ * A player is about to place the block, which a handler can refuse. It runs in the placement's
+ * guard stage ([ADR 0013](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/adr/0013-vetoable-actions-are-staged.md)),
+ * before anything is written, so `block` is the block that would stand there.
+ */
+export interface BlockPlayerPlaceBeforeEvent extends BlockEvent {
+    /** Who is placing it. */
+    readonly player: HookActor;
+    /** The face of the block the new one goes against. */
+    readonly face: BlockFace;
 }
 
 /** A block next to this one changed. */
@@ -269,6 +283,13 @@ export interface BlockHooks {
     onRedstoneUpdate: (event: BlockRedstoneUpdateEvent) => void;
     /** Runs when one of the block's own state values changes in place. */
     onBlockStateChange: (event: BlockStateChangeEvent) => void;
+    /**
+     * Runs before a player places the block.
+     *
+     * @returns True to refuse the placement, which stops later handlers;
+     *   undefined to let it go on.
+     */
+    beforeOnPlayerPlace: (event: BlockPlayerPlaceBeforeEvent) => boolean | undefined;
 }
 
 /**
@@ -287,7 +308,8 @@ export const BLOCK_HOOK_NAMES = [
     'onEntityFallOn',
     'onEntity',
     'onRedstoneUpdate',
-    'onBlockStateChange'
+    'onBlockStateChange',
+    'beforeOnPlayerPlace'
 ] as const satisfies readonly (keyof BlockHooks)[];
 
 /** One of {@link BLOCK_HOOK_NAMES}. */
