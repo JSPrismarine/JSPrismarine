@@ -66,6 +66,16 @@ export interface PinManifest {
 /** The name a build's cache directory goes by: its commit's first 12 characters. */
 export const buildName = (commit: string): string => commit.slice(0, 12);
 
+/**
+ * What a finished build holds, as its stamp records it. Raise it whenever {@link ensureBuilt}
+ * starts requiring something an earlier build lacks: CI keys its saved builds by it, so a build
+ * saved under the old rules is replaced instead of being restored and compiled again on every run.
+ */
+export const BUILD_FORMAT = 'commit-cache-v2';
+
+/** The CI cache key suffix of one commit's build, after the runner's OS: `cinnabar-build-<format>-<commit>`. */
+export const buildCacheKey = (commit: string): string => `cinnabar-build-${BUILD_FORMAT}-${commit}`;
+
 /** The name of one protocol and transport's run, for job labels and artifacts: `v2225-nethernet`. */
 export const runName = ({ protocol, transport }: PinTarget): string =>
     transport === 'raknet' ? `v${protocol}` : `v${protocol}-${transport}`;
@@ -145,6 +155,8 @@ export interface MatrixEntry extends PinTarget {
     name: string;
     /** The build's cache directory, from {@link buildName}, shared by every run of the commit. */
     build: string;
+    /** The build's CI cache key without the runner's OS, from {@link buildCacheKey}. */
+    cacheKey: string;
 }
 
 /**
@@ -166,7 +178,8 @@ export const pinMatrix = (latestOnly = false, manifest = readManifest()): Matrix
             transport,
             commit: version.commit,
             name: runName({ protocol, transport }),
-            build: buildName(version.commit)
+            build: buildName(version.commit),
+            cacheKey: buildCacheKey(version.commit)
         }));
     });
 };
@@ -457,7 +470,7 @@ export const ensureBuilt = (checkout: string, commit: string): void => {
     const targetDir = targetDirectory(commit);
     const built = binaries(targetDir);
     const expected = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: checkout, encoding: 'utf8' }).trim();
-    const expectedStamp = `${expected}\ncommit-cache-v1`;
+    const expectedStamp = `${expected}\n${BUILD_FORMAT}`;
     if (
         readStamp(cache) === expectedStamp &&
         Object.values(built).every((binary) => fs.existsSync(binary)) &&
@@ -505,7 +518,7 @@ export const ensureBuilt = (checkout: string, commit: string): void => {
 
     ensureDevelopmentLinks(checkout, built);
     recordCompiledAssets(checkout, cache);
-    fs.writeFileSync(stampFile(cache), `${expected}\ncommit-cache-v1\n`);
+    fs.writeFileSync(stampFile(cache), `${expectedStamp}\n`);
 };
 
 const readStamp = (cache: string): string | undefined => {

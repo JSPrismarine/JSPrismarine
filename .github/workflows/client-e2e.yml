@@ -62,6 +62,8 @@ jobs:
             # The pins whose client has to be built first.
             build: ${{ steps.builds.outputs.build }}
             latest: ${{ steps.matrix.outputs.latest }}
+            # The build cache keys of every pinned commit, which pruning keeps.
+            pinned-keys: ${{ steps.matrix.outputs.pinned-keys }}
             # Empty runs every scenario.
             scenarios: ${{ steps.matrix.outputs.scenarios }}
             reused: ${{ contains(fromJSON(steps.reuse.outputs.passed || '[]'), '🎮 Client E2E') }}
@@ -134,8 +136,10 @@ jobs:
             # second runner before the first build or scenario could start.
             #
             # One entry per declared transport of a served protocol:
-            # { protocol, transport, commit, name, build }, where `name` labels the run (v2225,
-            # v2225-nethernet) and `build` is the commit's cache directory, shared by its runs.
+            # { protocol, transport, commit, name, build, cacheKey }, where `name` labels the run
+            # (v2225, v2225-nethernet), `build` is the commit's cache directory, shared by its runs,
+            # and `cacheKey` names its saved build after `runner.os`. The key carries the build
+            # format, so a harness that needs more from a build replaces the entries saved before it.
             - name: Set matrix from the cinnabar pins
               id: matrix
               if: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none') }}
@@ -147,6 +151,7 @@ jobs:
                   if [ "$LATEST_ONLY" = true ]; then latest=(--latest-only); fi
                   pins="$(node tools/client-e2e/src/pin-matrix.mts "${latest[@]}")"
                   echo "pins=$pins" >> "$GITHUB_OUTPUT"
+                  echo "pinned-keys=$(node tools/client-e2e/src/pin-matrix.mts --pinned-keys)" >> "$GITHUB_OUTPUT"
                   # The build that keeps cinnabar's compiled dependencies: the newest protocol's.
                   echo "latest=$(jq -r 'max_by(.protocol).build' <<< "$pins")" >> "$GITHUB_OUTPUT"
                   echo "scenarios=$SCENARIOS" >> "$GITHUB_OUTPUT"
@@ -161,8 +166,8 @@ jobs:
                   PINS: ${{ steps.matrix.outputs.pins }}
               run: |
                   missing=()
-                  while read -r name commit; do
-                      key="Linux-cinnabar-build-${commit}"
+                  while read -r name cache_key; do
+                      key="Linux-${cache_key}"
                       found=false
                       for ref in "$GITHUB_REF" refs/heads/master; do
                           if gh api "repos/$GITHUB_REPOSITORY/actions/caches?ref=$ref&key=$key" |
@@ -173,7 +178,7 @@ jobs:
                       done
                       echo "$name ($key): cached=$found"
                       if [ "$found" = false ]; then missing+=("$name"); fi
-                  done < <(jq -r 'unique_by(.build)[] | "\(.build) \(.commit)"' <<< "$PINS")
+                  done < <(jq -r 'unique_by(.build)[] | "\(.build) \(.cacheKey)"' <<< "$PINS")
                   # One entry per build: the first run that uses it, which `ensure` builds for.
                   echo "build=$(jq -c --args '$ARGS.positional as $missing | unique_by(.build) | map(select(.build | IN($missing[])))' "${missing[@]}" <<< "$PINS")" >> "$GITHUB_OUTPUT"
 
@@ -205,8 +210,9 @@ jobs:
               env:
                   PROTOCOL: ${{ matrix.pin.protocol }}
                   COMMIT: ${{ matrix.pin.commit }}
+                  CACHE_KEY: ${{ matrix.pin.cacheKey }}
               run: |
-                  echo "key=${RUNNER_OS}-cinnabar-build-${COMMIT}" >> "$GITHUB_OUTPUT"
+                  echo "key=${RUNNER_OS}-${CACHE_KEY}" >> "$GITHUB_OUTPUT"
                   echo "deps-key=${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-${COMMIT}" >> "$GITHUB_OUTPUT"
 
             # Only look the entry up: a hit means the build is done, and the e2e job downloads it.
@@ -342,7 +348,7 @@ jobs:
             # used least recently. Only master prunes: a pull request that dropped them would take
             # away what other pull requests fall back to. A build stays while any protocol pins its
             # commit, read from cinnabar.json rather than this run's matrix, which a latest-only run
-            # narrows.
+            # narrows, and while its key carries the current build format.
             - name: Delete the builds of replaced pins
               if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
               env:
@@ -350,14 +356,13 @@ jobs:
                   PROTOCOL: ${{ matrix.pin.protocol }}
                   # Only the latest protocol's build keeps compiled dependencies, so another deletes its own.
                   DEPS_KEY: ${{ matrix.pin.build == needs.changes.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
+                  PINNED_KEYS: ${{ needs.changes.outputs.pinned-keys }}
               run: |
-                  pinned="$(jq -c '[.versions[].commit]' tools/client-e2e/cinnabar.json)"
                   delete() { while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done; }
                   prefix="${RUNNER_OS}-cinnabar-build-"
                   gh cache list --repo "$GITHUB_REPOSITORY" --key "$prefix" --limit 100 --json id,key |
-                      jq -r --arg prefix "$prefix" --argjson pinned "$pinned" \
-                          '.[] | (.key | ltrimstr($prefix)) as $commit
-                              | select(($commit | test("^[0-9a-f]{40}$")) and ($pinned | index($commit) | not)) | .id' |
+                      jq -r --arg os "$RUNNER_OS-" --argjson pinned "$PINNED_KEYS" \
+                          '.[] | select($pinned | index(.key | ltrimstr($os)) | not) | .id' |
                       delete
                   # Only a key that is the prefix and a commit belongs to this protocol.
                   prefix="${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-"
@@ -446,7 +451,7 @@ jobs:
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}
-                  key: ${{ runner.os }}-cinnabar-build-${{ matrix.pin.commit }}
+                  key: ${{ runner.os }}-${{ matrix.pin.cacheKey }}
                   fail-on-cache-miss: true
 
             # A suite is one server and one client, and with no GPU the client renders on the CPU, so

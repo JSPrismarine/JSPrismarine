@@ -5,6 +5,8 @@ import path from 'node:path';
 import { describe, expect, it, onTestFinished } from 'vitest';
 
 import {
+    BUILD_FORMAT,
+    buildCacheKey,
     buildName,
     compiledAssetsPresent,
     parseManifest,
@@ -37,6 +39,10 @@ describe('cinnabar pins', () => {
         expect(runName({ protocol: 2225, transport: 'raknet' })).toBe('v2225');
         expect(runName({ protocol: 2225, transport: 'nethernet' })).toBe('v2225-nethernet');
         expect(buildName(newer)).toBe('ae1c2073fc3b');
+    });
+
+    it('keys a saved build by the build format and the commit', () => {
+        expect(buildCacheKey(newer)).toBe(`cinnabar-build-${BUILD_FORMAT}-${newer}`);
     });
 
     it('refuses an unknown transport', () => {
@@ -79,7 +85,10 @@ describe('cinnabar pins', () => {
             );
         }
         expect(new Set(matrix.map((entry) => entry.name)).size).toBe(matrix.length);
-        for (const entry of matrix) expect(entry.build).toBe(buildName(entry.commit));
+        for (const entry of matrix) {
+            expect(entry.build).toBe(buildName(entry.commit));
+            expect(entry.cacheKey).toBe(buildCacheKey(entry.commit));
+        }
     });
 
     it('leaves preview protocols out of the cinnabar runs', () => {
