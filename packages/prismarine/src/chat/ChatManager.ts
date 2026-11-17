@@ -126,6 +126,7 @@ const reaches = (channel: string, recipient: ChatRecipient): boolean =>
 export class ChatManager {
     private readonly events: ChatBus;
     private readonly guards: PlayerChatGuard[] = [];
+    private readonly sentListeners: ((intent: PlayerChatIntent) => void)[] = [];
     /** Each joined player, by `keyOfPlayer`, in the order they joined. */
     private readonly recipients = new Map<string, ChatRecipient>();
 
@@ -144,13 +145,16 @@ export class ChatManager {
      */
     public send(chat: Chat): Promise<void> {
         const sender = chat.getSender();
+        let intent: PlayerChatIntent | undefined;
         if (chat.getType() === ChatType.CHAT && hasRuntimeId(sender)) {
-            const intent: PlayerChatIntent = { sender: sender.getRuntimeId(), message: chat.getMessage() };
-            if (this.guards.some((guard) => guard(intent).veto)) return Promise.resolve();
+            intent = { sender: sender.getRuntimeId(), message: chat.getMessage() };
+            const guarded = intent;
+            if (this.guards.some((guard) => guard(guarded).veto)) return Promise.resolve();
         }
         const event = new ChatEvent(chat);
         this.events.post('chat', event);
         if (event.isCanceled()) return Promise.resolve();
+        if (intent !== undefined) for (const listener of [...this.sentListeners]) listener(intent);
         return Promise.all([...this.recipients.values()].map((recipient) => this.deliver(chat, recipient))).then(
             () => {}
         );
@@ -165,6 +169,19 @@ export class ChatManager {
         return () => {
             const index = this.guards.indexOf(guard);
             if (index >= 0) this.guards.splice(index, 1);
+        };
+    }
+
+    /**
+     * Calls `listener` with each line a player typed that went past the guards and the `chat`
+     * event, as it goes out to the players, for a script's `world.afterEvents.chatSend`.
+     * @returns A function that stops it.
+     */
+    public onSent(listener: (intent: PlayerChatIntent) => void): () => void {
+        this.sentListeners.push(listener);
+        return () => {
+            const index = this.sentListeners.indexOf(listener);
+            if (index >= 0) this.sentListeners.splice(index, 1);
         };
     }
 

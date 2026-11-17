@@ -1,7 +1,8 @@
 /**
  * The commands this server adds to the vanilla set: `/tps`, `/version`, `/debug`, `/ban`,
- * `/pardon`, and Bedrock Dedicated Server's `/script debugger`, which the shared command set leaves
- * out because only a server that runs behavior pack scripts has a debugger to attach.
+ * `/pardon`, and Bedrock Dedicated Server's `/script debugger` and `/gametest`, which the shared
+ * command set leaves out because only a server that runs behavior pack scripts has a debugger to
+ * attach and GameTests to run.
  *
  * They register into the same `CommandRegistry` as the vanilla commands, so one dispatcher
  * parses them, one flattener advertises them and `/help` lists them. Their bodies reach the
@@ -32,6 +33,7 @@ import type { ScriptDebugger, ScriptDebuggerReply } from '../scripting/ScriptDeb
 import { ScriptDebuggerMessages } from '../scripting/ScriptDebugger';
 import { softwareLabel } from '../version';
 import { deferCommandWork } from './deferred';
+import { registerGametestCommand } from './gametestCommand';
 import { resolvePlayer } from './host/support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
@@ -356,4 +358,6 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
         ),
         { description: 'Pardon a player.', permissionLevel: CommandPermissionLevel.ADMIN }
     );
+
+    registerGametestCommand(registry, server);
 };

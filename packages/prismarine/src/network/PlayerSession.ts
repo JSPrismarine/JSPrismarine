@@ -372,6 +372,8 @@ export default class PlayerSession {
 
     /** Whether the player finished joining and has not left; see {@link PlayerSession.isConnected}. */
     private joined = false;
+    /** Set for a GameTest simulated player, which has no client and no saved record. */
+    private simulated = false;
 
     /**
      * Whether everyone was told this player joined. The login marks a player joined before the
@@ -717,6 +719,30 @@ export default class PlayerSession {
     }
 
     /**
+     * Joins a GameTest simulated player: a player with no client, which reads no saved record and
+     * leaves none. It stands where the test put it, in the game mode the test asked for, and joins
+     * the chat as any player does. Unlike {@link PlayerSession.join} it waits for nothing, so the
+     * script that spawned it sees it among the players at once, as on BDS.
+     * @param feet - Where the player's feet go, in the session's world.
+     * @param gamemode - The game mode, as `/gamemode` names it.
+     * @group Lifecycle
+     */
+    public joinSimulated(feet: { readonly x: number; readonly y: number; readonly z: number }, gamemode: string): void {
+        const player = this.getPlayer();
+        this.simulated = true;
+        applyPlayerRecord(player, { gamemode }, gamemode, this.server.getContent());
+        player.standAt(feet);
+        this.joinSpawn = null;
+        this.server.getChatManager().join(this.chatRecipient);
+        this.joined = true;
+    }
+
+    /** Whether the player is a GameTest simulated player, with no client. */
+    public isSimulated(): boolean {
+        return this.simulated;
+    }
+
+    /**
      * The player's half of {@link PlayerSession.leave}: everything {@link PlayerSession.join}
      * claimed is released here and nothing else is. A player that never finished joining has
      * nothing to take down: it was never added to a world or the player list, and announcing its
@@ -742,12 +768,15 @@ export default class PlayerSession {
         // Whether or not they have an XUID: `keyOfPlayer` falls back to the name for an offline
         // player, and this server accepts offline players. The record is built here and written
         // off the tick.
-        release(
-            () =>
-                void this.world
-                    .savePlayerData(this.getPlayer())
-                    .catch((error: unknown) => this.server.getLogger().error(error))
-        );
+        // A simulated player leaves no record, as on BDS.
+        if (!this.simulated) {
+            release(
+                () =>
+                    void this.world
+                        .savePlayerData(this.getPlayer())
+                        .catch((error: unknown) => this.server.getLogger().error(error))
+            );
+        }
         // Tells everyone who could see this player to take them away, world-scoped and only the
         // clients that actually had them.
         // Posted while the player's entity is still in the world, for a listener that reads it

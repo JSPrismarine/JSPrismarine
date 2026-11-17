@@ -16,6 +16,9 @@ import type {
     ScriptItem
 } from '@jsprismarine/script-host/host/world';
 
+import { getGametypeId } from '@jsprismarine/minecraft';
+import { readMcStructure } from '@jsprismarine/structures/bedrockTemplate';
+
 import type { StoreActor } from '../entity/data/storeActors';
 import ContainerEntry from '../inventory/ContainerEntry';
 import type { Item } from '../item/Item';
@@ -184,6 +187,28 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             server.getContent().items.types.has(typeId)
                 ? { typeId, maxStackSize: maxStackSizeOf(typeId, server.getContent()) }
                 : undefined,
+        placeStructure: (dimension, location, structure) => {
+            const world = worldOf(dimension);
+            if (world === undefined) return;
+            let template: ReturnType<typeof readMcStructure>;
+            try {
+                template = readMcStructure(structure);
+            } catch (error: unknown) {
+                server.getLogger().warn(`A GameTest structure could not be read: ${String(error)}`);
+                return;
+            }
+            for (const { pos, state } of template.blocks) {
+                const block = template.palette[state];
+                if (block === undefined) continue;
+                const [x, y, z] = [location.x + pos[0], location.y + pos[1], location.z + pos[2]];
+                if (world.getLoadedChunk(x >> 4, z >> 4) === null) continue;
+                world.setLoadedBlockState(x, y, z, { name: block.name, states: block.states }, true);
+            }
+        },
+        setGameMode: (id, gameMode) => {
+            const session = sessionOf(id);
+            if (session !== undefined) session.released(session.setGamemode(getGametypeId(gameMode.toLowerCase())));
+        },
         runCommand: (command: string, source: ScriptCommandSource): ScriptCommandResult => {
             const manager = server.getCommandManager();
             if ('dimension' in source)
