@@ -1,0 +1,29 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario players players",
+        "description": "Records the player events and the Player members of a GameTest simulated player. Written for packages/parity.",
+        "uuid": "c974e9f8-4bfd-4daf-a4f2-e3c548ac6504",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "638e7cad-3012-4430-8200-b49b6e954c53",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.11.0-beta"
+        },
+        {
+            "module_name": "@minecraft/server-gametest",
+            "version": "1.0.0-beta"
+        }
+    ]
+}

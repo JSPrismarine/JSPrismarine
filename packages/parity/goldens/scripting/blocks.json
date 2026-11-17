@@ -1,0 +1,283 @@
+{
+    "$comment": [
+        "What the scripts of scenario `blocks` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "blocks",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "blocks",
+            "seq": 1,
+            "tick": 0,
+            "event": "a Block instance",
+            "value": true
+        },
+        {
+            "pack": "blocks",
+            "seq": 2,
+            "tick": 0,
+            "event": "typeId",
+            "value": "minecraft:grass_block"
+        },
+        {
+            "pack": "blocks",
+            "seq": 3,
+            "tick": 0,
+            "event": "location",
+            "value": {
+                "x": 0,
+                "y": -61,
+                "z": 0
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 4,
+            "tick": 0,
+            "event": "location of a fractional position",
+            "value": {
+                "x": 1,
+                "y": -62,
+                "z": -1
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 5,
+            "tick": 0,
+            "event": "dimension",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "blocks",
+            "seq": 6,
+            "tick": 0,
+            "event": "dimension is the same object",
+            "value": true
+        },
+        {
+            "pack": "blocks",
+            "seq": 7,
+            "tick": 0,
+            "event": "permutation",
+            "value": {
+                "type": "minecraft:grass_block",
+                "states": {}
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 8,
+            "tick": 0,
+            "event": "permutation is a BlockPermutation",
+            "value": true
+        },
+        {
+            "pack": "blocks",
+            "seq": 9,
+            "tick": 0,
+            "event": "air above",
+            "value": "minecraft:air"
+        },
+        {
+            "pack": "blocks",
+            "seq": 10,
+            "tick": 0,
+            "event": "bedrock below",
+            "value": "minecraft:bedrock"
+        },
+        {
+            "pack": "blocks",
+            "seq": 11,
+            "tick": 0,
+            "event": "the same Block object",
+            "value": false
+        },
+        {
+            "pack": "blocks",
+            "seq": 12,
+            "tick": 0,
+            "event": "getBlock in an unloaded chunk",
+            "value": true
+        },
+        {
+            "pack": "blocks",
+            "seq": 13,
+            "tick": 0,
+            "event": "getBlock above the world",
+            "value": "minecraft:air"
+        },
+        {
+            "pack": "blocks",
+            "seq": 14,
+            "tick": 0,
+            "event": "getBlock below the world",
+            "error": "LocationOutOfWorldBoundariesError: Trying to access location (0.0, -65.0, 0.0) which is outside of the world boundaries."
+        },
+        {
+            "pack": "blocks",
+            "seq": 15,
+            "tick": 0,
+            "event": "setType"
+        },
+        {
+            "pack": "blocks",
+            "seq": 16,
+            "tick": 0,
+            "event": "typeId after setType",
+            "value": "minecraft:stone"
+        },
+        {
+            "pack": "blocks",
+            "seq": 17,
+            "tick": 0,
+            "event": "getBlock after setType",
+            "value": "minecraft:stone"
+        },
+        {
+            "pack": "blocks",
+            "seq": 18,
+            "tick": 0,
+            "event": "setType without a namespace",
+            "value": "minecraft:dirt"
+        },
+        {
+            "pack": "blocks",
+            "seq": 19,
+            "tick": 0,
+            "event": "setType an unknown type",
+            "error": "Error: Block type minecraft:jsp_no_such_block not found."
+        },
+        {
+            "pack": "blocks",
+            "seq": 20,
+            "tick": 0,
+            "event": "BlockPermutation.resolve",
+            "value": {
+                "type": "minecraft:oak_log",
+                "states": {
+                    "old_log_type": "oak",
+                    "pillar_axis": "y"
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 21,
+            "tick": 0,
+            "event": "BlockPermutation.resolve with states",
+            "value": {
+                "type": "minecraft:oak_log",
+                "states": {
+                    "old_log_type": "oak",
+                    "pillar_axis": "x"
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 22,
+            "tick": 0,
+            "event": "BlockPermutation.resolve without a namespace",
+            "value": {
+                "type": "minecraft:stone",
+                "states": {
+                    "stone_type": "stone"
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 23,
+            "tick": 0,
+            "event": "BlockPermutation.resolve an unknown type",
+            "error": "Error: Failed to resolve block \"minecraft:jsp_no_such_block\"."
+        },
+        {
+            "pack": "blocks",
+            "seq": 24,
+            "tick": 0,
+            "event": "BlockPermutation.resolve an unknown state",
+            "error": "Error: Failed to resolve block \"minecraft:oak_log\" with properties: {\"jsp_no_such_state\":1}\n"
+        },
+        {
+            "pack": "blocks",
+            "seq": 25,
+            "tick": 0,
+            "event": "BlockPermutation.resolve a bad state value",
+            "value": {
+                "type": "minecraft:oak_log",
+                "states": {
+                    "old_log_type": "oak",
+                    "pillar_axis": "y"
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 26,
+            "tick": 0,
+            "event": "getState",
+            "value": "z"
+        },
+        {
+            "pack": "blocks",
+            "seq": 27,
+            "tick": 0,
+            "event": "getState of a state it lacks",
+            "value": true
+        },
+        {
+            "pack": "blocks",
+            "seq": 28,
+            "tick": 0,
+            "event": "setPermutation"
+        },
+        {
+            "pack": "blocks",
+            "seq": 29,
+            "tick": 0,
+            "event": "permutation after setPermutation",
+            "value": {
+                "type": "minecraft:oak_log",
+                "states": {
+                    "old_log_type": "oak",
+                    "pillar_axis": "x"
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 30,
+            "tick": 0,
+            "event": "getBlock after setPermutation",
+            "value": {
+                "type": "minecraft:oak_log",
+                "states": {
+                    "old_log_type": "oak",
+                    "pillar_axis": "x"
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 31,
+            "tick": 0,
+            "event": "setPermutation air",
+            "value": "minecraft:air"
+        },
+        {
+            "pack": "blocks",
+            "seq": 32,
+            "tick": 0,
+            "event": "blocks set"
+        }
+    ]
+}

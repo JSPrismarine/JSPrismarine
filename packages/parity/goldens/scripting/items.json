@@ -1,0 +1,169 @@
+{
+    "$comment": [
+        "What the scripts of scenario `items` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.items",
+    "scenario": "items",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "items",
+            "seq": 1,
+            "tick": 0,
+            "event": "an ItemStack instance",
+            "value": true
+        },
+        {
+            "pack": "items",
+            "seq": 2,
+            "tick": 0,
+            "event": "typeId",
+            "value": "minecraft:apple"
+        },
+        {
+            "pack": "items",
+            "seq": 3,
+            "tick": 0,
+            "event": "amount",
+            "value": 1
+        },
+        {
+            "pack": "items",
+            "seq": 4,
+            "tick": 0,
+            "event": "typeId without a namespace",
+            "value": "minecraft:apple"
+        },
+        {
+            "pack": "items",
+            "seq": 5,
+            "tick": 0,
+            "event": "amount given",
+            "value": 16
+        },
+        {
+            "pack": "items",
+            "seq": 6,
+            "tick": 0,
+            "event": "amount over the stack size",
+            "value": 65
+        },
+        {
+            "pack": "items",
+            "seq": 7,
+            "tick": 0,
+            "event": "amount 0",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 0, Argument bounds: [1, 255]"
+        },
+        {
+            "pack": "items",
+            "seq": 8,
+            "tick": 0,
+            "event": "amount 255",
+            "value": 255
+        },
+        {
+            "pack": "items",
+            "seq": 9,
+            "tick": 0,
+            "event": "an unknown type",
+            "error": "Error: Invalid item identifier 'minecraft:jsp_no_such_item'."
+        },
+        {
+            "pack": "items",
+            "seq": 10,
+            "tick": 0,
+            "event": "a block item",
+            "value": "minecraft:stone"
+        },
+        {
+            "pack": "items",
+            "seq": 11,
+            "tick": 0,
+            "event": "nameTag",
+            "value": true
+        },
+        {
+            "pack": "items",
+            "seq": 12,
+            "tick": 0,
+            "event": "set nameTag",
+            "value": "Named"
+        },
+        {
+            "pack": "items",
+            "seq": 13,
+            "tick": 0,
+            "event": "set nameTag undefined",
+            "value": true
+        },
+        {
+            "pack": "items",
+            "seq": 14,
+            "tick": 0,
+            "event": "getLore",
+            "value": []
+        },
+        {
+            "pack": "items",
+            "seq": 15,
+            "tick": 0,
+            "event": "setLore"
+        },
+        {
+            "pack": "items",
+            "seq": 16,
+            "tick": 0,
+            "event": "getLore after setLore",
+            "value": [
+                "first",
+                "second"
+            ]
+        },
+        {
+            "pack": "items",
+            "seq": 17,
+            "tick": 0,
+            "event": "setLore with nothing",
+            "value": []
+        },
+        {
+            "pack": "items",
+            "seq": 18,
+            "tick": 0,
+            "event": "set amount",
+            "value": 7
+        },
+        {
+            "pack": "items",
+            "seq": 19,
+            "tick": 0,
+            "event": "set amount 0",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: amount, Value: 0, Property bounds: [1, 255]"
+        },
+        {
+            "pack": "items",
+            "seq": 20,
+            "tick": 0,
+            "event": "set amount over the stack size",
+            "value": 64
+        },
+        {
+            "pack": "items",
+            "seq": 21,
+            "tick": 0,
+            "event": "two stacks are separate",
+            "value": [
+                5,
+                2,
+                false
+            ]
+        }
+    ]
+}

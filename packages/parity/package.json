@@ -41,6 +41,7 @@
         "@jsprismarine/features": "workspace:*",
         "@jsprismarine/item-behaviors": "workspace:*",
         "@jsprismarine/items": "workspace:*",
+        "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/loot": "workspace:*",
         "@jsprismarine/mapping": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
