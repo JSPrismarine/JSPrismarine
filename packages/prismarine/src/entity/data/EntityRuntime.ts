@@ -7422,15 +7422,17 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * Java's `Enderman.teleport(x, y, z)` and the `LivingEntity.randomTeleport` it calls: the
-     * destination drops to the first block under it that blocks motion, and when that is no water
-     * the entity lands on it if its box fits there clear of liquid. A teleport that lands sends
-     * the `teleport` game event from where the entity stood.
+     * Java's `Enderman.teleport(x, y, z)` and the `LivingEntity.randomTeleport` it calls. An
+     * enderman riding something stays where it is. Otherwise the destination drops to the first
+     * block under it that blocks motion, and when that is no water the entity lands on it if its
+     * box fits there clear of liquid. A teleport that lands sends the `teleport` game event from
+     * where the entity stood.
      * @returns Whether the entity moved.
      */
     private endermanTeleport(id: number, destination: EntityPosition): boolean {
         const entity = this.store.get(id);
-        if (entity === undefined) return false;
+        // `Enderman.teleport(x, y, z)` refuses at once for a passenger, so a riding enderman stays put.
+        if (entity === undefined || this.vehicleOf(entity.body) !== undefined) return false;
         const navigation = this.navigation();
         const minY = this.world.level.minY;
         const column = blockPositionOf(destination);

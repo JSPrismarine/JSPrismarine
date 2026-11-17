@@ -14,6 +14,12 @@ const DEFINITIONS = {
             }
         }
     },
+    'jsprismarine:seat': {
+        components: {
+            'minecraft:collision_box': { width: 0.98, height: 0.7 },
+            'minecraft:rideable': { seat_count: 1, seats: { position: [0, 0.5, 0] } }
+        }
+    },
     'jsprismarine:arrow': {
         components: {
             'minecraft:collision_box': { width: 0.25, height: 0.25 },
@@ -24,10 +30,17 @@ const DEFINITIONS = {
 };
 
 /** Shoots an enderman standing on the floor, in a world whose random draws `random`. */
-const shoot = (random: readonly number[]) => {
+const shoot = (random: readonly number[], riding = false) => {
     const world = new TestEntityWorld({ random });
     const { runtime } = entityFixture(world, {}, DEFINITIONS);
     const enderman = runtime.spawn('minecraft:enderman', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+    if (riding && enderman !== undefined) {
+        const seat = runtime.spawn('jsprismarine:seat', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+        const vehicle = seat === undefined ? undefined : runtime.mobById(seat.id);
+        if (vehicle === undefined) throw new Error('the fixture spawned no seat');
+        runtime.mount(enderman.body, vehicle);
+        if (runtime.vehicleOf(enderman.body) === undefined) throw new Error('the enderman did not take the seat');
+    }
     const arrow = runtime.spawn('jsprismarine:arrow', { x: -2.5, y: FLOOR_Y + 2.5, z: 0.5 });
     if (enderman === undefined || arrow === undefined) throw new Error('the fixture spawned no enderman or arrow');
     arrow.body.velocity = { x: 1.5, y: 0, z: 0 };
@@ -46,5 +59,12 @@ describe("an enderman's projectile dodge", () => {
         expect(
             world.gameEvents.some((event) => event.event === 'minecraft:teleport' && event.sourceId === enderman.id)
         ).toBe(true);
+    });
+
+    it("stays in its seat, as Java's Enderman.teleport refuses a passenger", () => {
+        const { world, enderman } = shoot([0.75], true);
+        expect(enderman.position.x).toBeLessThan(2);
+        expect(enderman.instance.attributes.value('health')).toBe(40);
+        expect(world.gameEvents.some((event) => event.event === 'minecraft:teleport')).toBe(false);
     });
 });
