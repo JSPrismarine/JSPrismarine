@@ -11,8 +11,17 @@ import type {
     ScriptCommandSource,
     ScriptEntityState,
     ScriptItem,
+    ScriptDisplay,
+    ScriptDisplaySlot,
     ScriptItemType,
     ScriptSimulatedPlayers,
+    ScriptObjective,
+    ScriptParticipant,
+    ScriptParticipantRef,
+    ScriptProperties,
+    ScriptPropertyOwner,
+    ScriptPropertyValue,
+    ScriptScoreboard,
     ScriptVector3,
     ScriptWeather,
     ScriptWorld,
@@ -31,7 +40,11 @@ const BLOCK_TYPES: Readonly<Record<string, Readonly<Record<string, readonly (str
     'minecraft:oak_log': { pillar_axis: ['y', 'x', 'z'] }
 };
 
-const ITEM_TYPES: Readonly<Record<string, number>> = { 'minecraft:apple': 64, 'minecraft:stone': 64 };
+const ITEM_TYPES: Readonly<Record<string, number>> = {
+    'minecraft:apple': 64,
+    'minecraft:stone': 64,
+    'minecraft:diamond_sword': 1
+};
 
 /** The entity types the world can spawn, with their inventory size. */
 const ENTITY_TYPES: Readonly<Record<string, number | undefined>> = {
@@ -57,8 +70,91 @@ interface MemoryEntity {
 /** What the host read of the world, by method. */
 export type WorldReads = Record<'entity' | 'entities' | 'block' | 'inventory', number>;
 
+/** A scoreboard in memory, with fake players and entities as participants. */
+export class MemoryScoreboard implements ScriptScoreboard {
+    private readonly objectiveList = new Map<string, ScriptObjective>();
+    /** Objective id to participant id to score. */
+    private readonly scoreTable = new Map<string, Map<number, number>>();
+    private readonly made: ScriptParticipant[] = [];
+    private readonly slots = new Map<ScriptDisplaySlot, ScriptDisplay>();
+
+    public constructor(private readonly world: MemoryWorld) {}
+
+    public objectives(): readonly ScriptObjective[] {
+        return [...this.objectiveList.values()];
+    }
+    public objective(id: string): ScriptObjective | undefined {
+        return this.objectiveList.get(id);
+    }
+    public addObjective(id: string, displayName: string): boolean {
+        if (this.objectiveList.has(id)) return false;
+        this.objectiveList.set(id, { id, displayName });
+        this.scoreTable.set(id, new Map());
+        return true;
+    }
+    public removeObjective(id: string): boolean {
+        if (!this.objectiveList.delete(id)) return false;
+        this.scoreTable.delete(id);
+        for (const [slot, display] of this.slots) if (display.objective === id) this.slots.delete(slot);
+        return true;
+    }
+    public participants(): readonly ScriptParticipant[] {
+        return this.made.filter(({ id }) => [...this.scoreTable.values()].some((scores) => scores.has(id)));
+    }
+    public participant(ref: ScriptParticipantRef): ScriptParticipant | undefined {
+        return this.participants().find((each) => this.matches(each, ref));
+    }
+    public scores(objective: string): readonly { readonly participant: ScriptParticipant; readonly score: number }[] {
+        const scores = this.scoreTable.get(objective);
+        return this.made.flatMap((participant) => {
+            const score = scores?.get(participant.id);
+            return score === undefined ? [] : [{ participant, score }];
+        });
+    }
+    public score(objective: string, participant: number): number | undefined {
+        return this.scoreTable.get(objective)?.get(participant);
+    }
+    public setScore(objective: string, ref: ScriptParticipantRef, score: number): ScriptParticipant {
+        let participant = this.made.find((each) => this.matches(each, ref));
+        if (participant === undefined) {
+            const entity = 'entity' in ref ? this.world.entity(ref.entity) : undefined;
+            participant =
+                entity === undefined
+                    ? { id: this.made.length + 1, type: 'FakePlayer', displayName: 'name' in ref ? ref.name : '' }
+                    : {
+                          id: this.made.length + 1,
+                          type: entity.typeId === 'minecraft:player' ? 'Player' : 'Entity',
+                          displayName: entity.name ?? entity.id,
+                          entity: entity.id
+                      };
+            this.made.push(participant);
+        }
+        this.scoreTable.get(objective)?.set(participant.id, score);
+        return participant;
+    }
+    public removeScore(objective: string, participant: number): boolean {
+        return this.scoreTable.get(objective)?.delete(participant) ?? false;
+    }
+    public display(slot: ScriptDisplaySlot): ScriptDisplay | undefined {
+        return this.slots.get(slot);
+    }
+    public setDisplay(slot: ScriptDisplaySlot, display: ScriptDisplay | undefined): void {
+        if (display === undefined) this.slots.delete(slot);
+        else this.slots.set(slot, display);
+    }
+
+    private matches(participant: ScriptParticipant, ref: ScriptParticipantRef): boolean {
+        if ('participant' in ref) return participant.id === ref.participant;
+        if ('entity' in ref) return participant.entity === ref.entity;
+        return participant.type === 'FakePlayer' && participant.displayName === ref.name;
+    }
+}
+
 /** A flat world in memory. */
 export class MemoryWorld implements ScriptWorld {
+    /** The dynamic properties, by owner and pack. */
+    public readonly properties = new Map<string, Map<string, ScriptPropertyValue>>();
+    public readonly scoreboard: MemoryScoreboard = new MemoryScoreboard(this);
     public now = 1_800_000_000_000;
     /** The lines `sendMessage` put on screens, with the player's id after a `>` when it went to one. */
     public readonly messages: string[] = [];
@@ -145,6 +241,30 @@ export class MemoryWorld implements ScriptWorld {
     /** How many guards the runtime still has on the world's actions. */
     public guardCount(): number {
         return this.guards.length + this.chatGuards.length;
+    }
+
+    public dynamicProperties(owner: ScriptPropertyOwner, pack: string): ScriptProperties | undefined {
+        if (owner !== 'world' && !this.live.has(owner.entity)) return undefined;
+        return this.properties.get(this.propertyKey(owner, pack)) ?? new Map();
+    }
+    public setDynamicProperties(
+        owner: ScriptPropertyOwner,
+        pack: string,
+        values: ReadonlyMap<string, ScriptPropertyValue | undefined>
+    ): void {
+        const key = this.propertyKey(owner, pack);
+        const properties = this.properties.get(key) ?? new Map<string, ScriptPropertyValue>();
+        for (const [id, value] of values) {
+            if (value === undefined) properties.delete(id);
+            else properties.set(id, value);
+        }
+        this.properties.set(key, properties);
+    }
+    public clearDynamicProperties(owner: ScriptPropertyOwner, pack: string): void {
+        this.properties.delete(this.propertyKey(owner, pack));
+    }
+    private propertyKey(owner: ScriptPropertyOwner, pack: string): string {
+        return `${owner === 'world' ? 'world' : owner.entity}\n${pack}`;
     }
 
     public dimensions(): readonly string[] {

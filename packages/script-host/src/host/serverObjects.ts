@@ -13,7 +13,14 @@ import type { ScriptEngine } from '../ScriptEngine';
 import type { ScriptCall } from '../shape/implementations';
 import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
-import type { ScriptBlockPermutation, ScriptGameMode, ScriptItem, ScriptVector3 } from './world';
+import type {
+    ScriptBlockPermutation,
+    ScriptGameMode,
+    ScriptItem,
+    ScriptProperties,
+    ScriptPropertyValue,
+    ScriptVector3
+} from './world';
 import { isRecord } from '../isRecord';
 
 /** The module every implementation here belongs to. */
@@ -50,6 +57,14 @@ export const TAG = {
     itemStack: 13,
     /** A command's result; its state is the success count. */
     commandResult: 14,
+    /** The world's scoreboard. */
+    scoreboard: 15,
+    /** A scoreboard objective; its state is the objective's id. */
+    objective: 16,
+    /** A scoreboard identity; its state names the participant's id. */
+    identity: 17,
+    /** A score as `getScores` read it; its state names the participant and the score. */
+    scoreInfo: 18,
     /** A signal's tag is this plus its index in the signal list. */
     signal: 100
 } as const;
@@ -100,15 +115,63 @@ export const permutationOf = (state: string): ScriptBlockPermutation => {
     return { typeId, states: values };
 };
 
+/**
+ * A number as an item state's JSON holds it: as it is, or as text for the ones JSON has no form
+ * for, negative zero and the infinities a vector part can hold.
+ */
+const stateNumber = (value: number): number | string =>
+    Object.is(value, -0) ? '-0' : Number.isFinite(value) ? value : String(value);
+
+const numberOfState = (value: unknown): number | undefined =>
+    typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : undefined;
+
+/** One dynamic property as an item state holds it: its id, a kind letter and the value. */
+type StateProperty = readonly [string, 'n' | 'b' | 's' | 'v', unknown];
+
+const stateProperty = (id: string, value: ScriptPropertyValue): StateProperty => {
+    if (typeof value === 'number') return [id, 'n', stateNumber(value)];
+    if (typeof value === 'boolean') return [id, 'b', value];
+    if (typeof value === 'string') return [id, 's', value];
+    return [id, 'v', [value.x, value.y, value.z].map(stateNumber)];
+};
+
+const propertyOfState = (entry: unknown): readonly [string, ScriptPropertyValue] | undefined => {
+    if (!Array.isArray(entry)) return undefined;
+    const [id, kind, value] = entry;
+    if (typeof id !== 'string') return undefined;
+    if (kind === 'n') {
+        const number = numberOfState(value);
+        return number === undefined ? undefined : [id, number];
+    }
+    if (kind === 'b' && typeof value === 'boolean') return [id, value];
+    if (kind === 's' && typeof value === 'string') return [id, value];
+    if (kind === 'v' && Array.isArray(value)) {
+        const [x, y, z] = value.map(numberOfState);
+        return x === undefined || y === undefined || z === undefined ? undefined : [id, { x, y, z }];
+    }
+    return undefined;
+};
+
 /** The item stack an object stands for. */
 export const itemOf = (state: string): ScriptItem => {
-    const { typeId, amount, nameTag, lore } = parseState(state, 'item stack');
+    const { typeId, amount, nameTag, lore, properties } = parseState(state, 'item stack');
     if (typeof typeId !== 'string' || typeof amount !== 'number') throw new TypeError('The object carries no item');
+    const dynamicProperties = new Map<string, ScriptProperties>();
+    for (const pack of Array.isArray(properties) ? properties : []) {
+        if (!Array.isArray(pack) || typeof pack[0] !== 'string' || !Array.isArray(pack[1])) continue;
+        const values = new Map<string, ScriptPropertyValue>();
+        for (const entry of pack[1]) {
+            const read = propertyOfState(entry);
+            if (read !== undefined) values.set(read[0], read[1]);
+        }
+        if (values.size > 0) dynamicProperties.set(pack[0], values);
+    }
     return {
         typeId,
         amount,
         ...(typeof nameTag === 'string' ? { nameTag } : {}),
-        ...(Array.isArray(lore) ? { lore: lore.filter((line) => typeof line === 'string') } : {})
+        ...(Array.isArray(lore) ? { lore: lore.filter((line) => typeof line === 'string') } : {}),
+        ...(dynamicProperties.size > 0 ? { dynamicProperties } : {})
     };
 };
 
@@ -127,6 +190,19 @@ export const gameModeOf = (value: ScriptValue): ScriptGameMode => {
     // Bedrock's numbering: 0 survival, 1 creative, 2 adventure, 6 spectator.
     return value === 1 ? 'Creative' : value === 2 ? 'Adventure' : value === 6 ? 'Spectator' : 'Survival';
 };
+/** The state an item stack object carries, which {@link itemOf} reads. */
+export const itemState = ({ dynamicProperties, ...item }: ScriptItem): string =>
+    JSON.stringify(
+        dynamicProperties === undefined || dynamicProperties.size === 0
+            ? item
+            : {
+                  ...item,
+                  properties: [...dynamicProperties].map(([pack, values]) => [
+                      pack,
+                      [...values].map(([id, value]) => stateProperty(id, value))
+                  ])
+              }
+    );
 
 /** Adds `minecraft:` to an id given without a namespace, as BDS reads one. */
 export const withNamespace = (id: string): string => (id.includes(':') ? id : `minecraft:${id}`);
