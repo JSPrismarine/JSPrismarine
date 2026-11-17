@@ -303,6 +303,19 @@ const javaGroundDrag = (friction: number, frictionModifier: number, airDragModif
     return modified(friction, frictionModifier) * modified(0.91, airDragModifier);
 };
 
+/**
+ * The vertical velocity Java leaves a living body with on the tick it bounces off the floor, after
+ * falling at `speed` from `height` above it: `Entity.restituteMovementAfterCollisions` hands the
+ * share of the move made before the floor back that share of the tick's gravity and drag and
+ * reverses it by the bounciness, then `LivingEntity.travelInAir` applies the tick's gravity and
+ * drag.
+ */
+const javaBounce = (height: number, speed: number, gravity: number, airDrag: number, bounciness: number): number => {
+    const share = height / speed;
+    const restituted = (share * gravity + speed) * (1 + share * (airDrag - 1)) * bounciness;
+    return (restituted - gravity) * airDrag;
+};
+
 /** The scenarios for how bodies move. */
 export const physicsScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
@@ -761,9 +774,9 @@ export const physicsScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'sulfur-cube-archetype',
-        java: "A sulfur cube that absorbs a block takes that archetype's bounciness, friction and air drag, floats when the archetype is buoyant, and drags uniformly while it holds the block.",
+        java: "A sulfur cube that absorbs a block takes that archetype's bounciness, friction and air drag, floats when the archetype is buoyant, drags uniformly while it holds the block, and bounces off the floor by Java's restitution.",
         reference:
-            'Java data/minecraft/sulfur_cube_archetype/*.json attribute modifiers and buoyant flag, AttributeInstance.calculateValue, and SulfurCube.omnidirectionalAirMover (hasBodyItem)',
+            'Java data/minecraft/sulfur_cube_archetype/*.json attribute modifiers and buoyant flag, AttributeInstance.calculateValue, SulfurCube.omnidirectionalAirMover (hasBodyItem), Entity.restituteMovementAfterCollisions and LivingEntity.travelInAir',
         subjects: () =>
             sulfurArchetypes().flatMap((archetype) => mappedEntity('minecraft:sulfur_cube', archetype.name) ?? []),
         idOf: (subject) => `${subject.javaId}/${subject.tag}`,
@@ -816,6 +829,22 @@ export const physicsScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 const java = javaGroundDrag(0.6, archetype.friction, archetype.airDrag);
                 if (Math.abs(kept - java) > 1e-4)
                     differences.push(`on stone it kept ${format(kept)} of its slide where Java keeps ${format(java)}`);
+
+                // Half a block up and falling a block a tick, it meets the floor halfway through the move.
+                if (archetype.bounciness > 0) {
+                    entity.body.stopMoving();
+                    entity.body.position = { ...entity.body.position, y: GROUND + 0.5 };
+                    entity.body.velocity = { x: 0, y: -1, z: 0 };
+                    tick();
+                    const gravity = javaAttribute('minecraft:sulfur_cube', 'minecraft:gravity') ?? LIVING_GRAVITY;
+                    // Holding its block, the cube is an omnidirectional air mover, so its drag is 0.91.
+                    const airDrag = 1 - (1 - 0.91) * archetype.airDrag;
+                    const bounce = javaBounce(0.5, 1, gravity, airDrag, archetype.bounciness);
+                    if (Math.abs(entity.body.velocity.y - bounce) > 1e-4)
+                        differences.push(
+                            `it bounced off the floor at ${format(entity.body.velocity.y)} where Java bounces it at ${format(bounce)}`
+                        );
+                }
                 return differences.length === 0 ? undefined : differences.join('; ');
             });
         }
