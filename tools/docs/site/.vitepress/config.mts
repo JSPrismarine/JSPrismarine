@@ -2,10 +2,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from 'vitepress';
 import manifest from '../../../../package.json' with { type: 'json' };
-import mcfunction from './mcfunction.tmLanguage.json';
-import molang from './molang.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
 import { footerHtml } from './footer.mts';
+import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
 import { isStagedPage, pageSource, sourceUpdatedAt } from '../../sections.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
@@ -116,9 +115,7 @@ export default defineConfig({
         }
     ],
     markdown: {
-        // Shiki ships no grammar for mcfunction or Molang, so their fences fall
-        // back to plain text; register the local ones.
-        languages: [mcfunction, molang],
+        languages,
         // Code sits on the terminal's ink surface in both color modes.
         theme: { light: codeTheme, dark: codeTheme },
         codeTransformers: [colorSwatchTransformer],

@@ -12,6 +12,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createMarkdownRenderer } from 'vitepress';
 
+import { languages } from './site/.vitepress/languages.ts';
 import { loadCommands, loadSettings, type CommandData, type SettingData } from './code-data.mts';
 import { loadProject } from './project.mts';
 import { sections } from './sections.mts';
@@ -130,7 +131,7 @@ function readPage(html: string, frontmatter: Record<string, unknown>) {
 export async function writeSearchIndex(siteDir: string) {
     // The menu reads the staged guide overview as it loads, so it can only load once staging is done.
     const { megaMenus: menus } = await import('./site/.vitepress/menus.mts');
-    const md = await createMarkdownRenderer(siteDir);
+    const md = await createMarkdownRenderer(siteDir, { languages });
     const pages: PageEntry[] = [];
     for (const file of sitePages(siteDir)) {
         const env: { frontmatter?: Record<string, unknown>; relativePath: string } = { relativePath: file };
