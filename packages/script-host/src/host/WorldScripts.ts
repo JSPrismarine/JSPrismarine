@@ -35,19 +35,30 @@ import { parseVersion } from '../shape/version';
 import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
 import { scanCoverage } from './coverage';
+import type { GameTestCall, GameTestReply } from './gametest';
+import { GAMETEST, GameTests } from './gametest';
 import { installInputsSource, randomState } from './inputs';
 import type { EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
 import { serverUiImplementations } from './minecraftServerUi';
+import type { ScriptDeferred } from './serverGametest';
+import { GAMETEST_TAG, gametestImplementations } from './serverGametest';
 import type { EntityKey } from './serverObjects';
 import { entityKeyOf, PLAYER, TAG } from './serverObjects';
 import type { ScriptConfig, ScriptPack } from './pack';
-import { packLabel, packScripts, readPackFile } from './pack';
+import { packLabel, packScripts, readPackBytes, readPackFile } from './pack';
 import { PackForms, SERVER_UI } from './PackForms';
 import { ScriptForms } from './ScriptForms';
 import { TaskQueue } from './tasks';
 import type { ChatSendIntent, ScriptWorld, ScriptWorldEvent, VetoVerdict, WeatherChangeIntent } from './world';
+
+/** A `/gametest` subcommand, as BDS's command takes them. */
+export type GameTestCommand =
+    | { readonly kind: 'run'; readonly name: string }
+    | { readonly kind: 'runset'; readonly tag?: string }
+    | { readonly kind: 'stopall' }
+    | { readonly kind: 'clearall' };
 
 /** Where the runtime writes the content log: what scripts print, their errors and the watchdog's. */
 export interface ScriptLog {
@@ -212,10 +223,40 @@ export class WorldScripts {
     private lastEntered: LoadedPack | undefined;
     /** The `@minecraft/server-ui` forms the world's players have open. */
     private readonly forms = new ScriptForms<LoadedPack>(() => this.engine);
+    /** The world's GameTests, which a reload clears. */
+    private readonly gametests: GameTests<LoadedPack>;
+    /** The ids of the simulated players GameTests spawned, whose objects are `SimulatedPlayer`s. */
+    private readonly simulated = new Set<string>();
 
     public constructor(options: WorldScriptsOptions) {
         this.options = options;
         this.engine = this.createEngine();
+        this.gametests = new GameTests<LoadedPack>({
+            world: options.world,
+            log: options.log,
+            call: (loaded, callback, args) => this.callForTest(loaded, callback, args),
+            createTest: (loaded, run) => loaded.api.create(GAMETEST, 'Test', GAMETEST_TAG.test, String(run)),
+            onRejected: (loaded, promise, rejected) => this.onRejected(loaded, promise, rejected),
+            structure: (loaded, path) =>
+                readPackBytes(loaded.pack, path) ??
+                this.loaded.map((each) => readPackBytes(each.pack, path)).find((bytes) => bytes !== undefined),
+            free: (handle) => this.engine.free(handle)
+        });
+    }
+
+    /**
+     * Runs a `/gametest` subcommand. The tests it queues start in the next flush.
+     * @returns The command's feedback, or its error.
+     */
+    public gametest(command: GameTestCommand): GameTestReply {
+        switch (command.kind) {
+            case 'run':
+                return this.gametests.runTest(command.name);
+            case 'runset':
+                return this.gametests.runSet(command.tag);
+            default:
+                return this.gametests.stopAll();
+        }
     }
 
     /** `system.currentTick`: the ticks this runtime has flushed, which a reload keeps. */
@@ -290,6 +331,10 @@ export class WorldScripts {
         this.refreshClock();
         this.settleForms();
         for (const loaded of this.loaded) if (loaded.lifecycle === 1) this.runJobs(loaded);
+        // The GameTest runner and its simulated players go first, as BDS ticks them before the
+        // scripts' tasks: a test's function and its delays run ahead of every system task.
+        this.gametests.step(this.tick);
+        this.options.world.simulatedPlayers?.tick();
         const withinBudget = (): boolean => this.tickEntries < this.tickBudget();
         for (;;) {
             let work = this.runV2Jobs();
@@ -385,6 +430,8 @@ export class WorldScripts {
         this.tasks = new TaskQueue();
         for (const subscription of this.subscriptions) this.engine.free(subscription.callback);
         this.subscriptions = [];
+        // Tests belong to the packs that registered them; a reload registers them again.
+        this.gametests.clear();
         // A reload or shutdown settles no open form: the contexts that would see it go with it.
         this.forms.clear();
         for (const loaded of this.loaded) {
@@ -504,8 +551,26 @@ export class WorldScripts {
                 closeAll: (player) => this.options.world.forms?.closeAll(player)
             });
         }
+        if (shapes.some((shape) => shape.module === GAMETEST)) {
+            gametestImplementations(implementations, {
+                engine,
+                world: this.options.world,
+                tests: this.gametests,
+                owner: entry,
+                create: (className, tag, state) => api.create(GAMETEST, className, tag, state),
+                entity: (key) => this.entityObject(entry, key),
+                dimension: (id) => this.instance(entry, 'Dimension', TAG.dimension, id),
+                deferred: () => this.deferred(entry),
+                simulated: (id) => this.simulated.add(id)
+            });
+        }
+        // `@minecraft/server` first, since a class of another module, such as `SimulatedPlayer`,
+        // extends one of its classes.
+        const bindOrder = [...shapes].sort(
+            (a, b) => Number(b.module === SERVER_MODULE) - Number(a.module === SERVER_MODULE)
+        );
         engine.inContext(context, () => {
-            for (const shape of shapes) entry.modules.set(shape.module, api.bind(shape));
+            for (const shape of bindOrder) entry.modules.set(shape.module, api.bind(shape));
             this.installConsole();
             const installer = engine.evaluate(installInputsSource(), '<jsp inputs>');
             if (!(installer instanceof ScriptHandle)) throw new TypeError('The inputs installer is not a function');
@@ -629,8 +694,11 @@ export class WorldScripts {
             }
             this.entityPruneAt = Math.max(ENTITY_PRUNE_START, loaded.entities.size * 2);
         }
-        const className = key.typeId === PLAYER ? 'Player' : 'Entity';
-        const made = this.create(loaded, className, TAG.entity, JSON.stringify({ id: key.id, typeId: key.typeId }));
+        const state = JSON.stringify({ id: key.id, typeId: key.typeId });
+        const made =
+            this.simulated.has(key.id) && loaded.modules.has(GAMETEST)
+                ? loaded.api.create(GAMETEST, 'SimulatedPlayer', TAG.entity, state)
+                : this.create(loaded, key.typeId === PLAYER ? 'Player' : 'Entity', TAG.entity, state);
         loaded.entities.set(key.id, made);
         return made;
     }
@@ -686,6 +754,12 @@ export class WorldScripts {
                 kind: 'playerSpawn',
                 player: { id: event.playerId, typeId: PLAYER },
                 initialSpawn: event.initialSpawn
+            });
+        } else if (event.type === 'chatSend') {
+            this.dispatchWith('ChatSendAfterEventSignal', 'ChatSendAfterEvent', {
+                kind: 'chatAfter',
+                message: event.message,
+                sender: event.sender
             });
         } else if (event.type === 'scriptEvent') {
             const source = event.sourceEntity === undefined ? undefined : this.options.world.entity(event.sourceEntity);
@@ -799,6 +873,90 @@ export class WorldScripts {
         const tag = this.nextEventTag++;
         this.events.set(tag, data);
         return tag;
+    }
+
+    /**
+     * Calls a GameTest's callback with the default privilege, as a system task is called, and
+     * tells the runner what it threw. A `GameTestError`, such as a failed assert, fails the test
+     * without reaching the content log; anything else is logged as any script error is.
+     */
+    private callForTest(loaded: LoadedPack, callback: ScriptHandle, args: readonly ScriptValue[]): GameTestCall {
+        this.tickEntries++;
+        this.lastEntered = loaded;
+        let outcome: GameTestCall = { ok: false, message: 'The script stopped' };
+        this.withPrivilege('default', () =>
+            this.guarded(loaded, () => {
+                try {
+                    // In the pack's context: a promise's resolve function queues its jobs in the
+                    // context it is called from, and the flush runs each pack's jobs alone.
+                    const value = this.engine.inContext(loaded.context, () =>
+                        this.engine.call(callback, undefined, ...args)
+                    );
+                    outcome = { ok: true, value };
+                } catch (error) {
+                    if (
+                        !(error instanceof ScriptError) ||
+                        error instanceof ScriptTerminatedError ||
+                        error instanceof ScriptOutOfMemoryError
+                    ) {
+                        throw error;
+                    }
+                    const stack = error.scriptStack.trim();
+                    const text = `${error.message}${stack === '' ? '' : `    ${stack}`}`;
+                    if (error.scriptName === 'GameTestError') {
+                        outcome = { ok: false, message: error.scriptMessage };
+                        return;
+                    }
+                    this.options.log.error(`[Scripting] [${loaded.pack.name}] ${text}`);
+                    outcome = { ok: false, message: text };
+                }
+            })
+        );
+        return outcome;
+    }
+
+    /** Calls `rejected` with the text of what a pack's promise rejects with, when it does. */
+    private onRejected(loaded: LoadedPack, promise: ScriptHandle, rejected: (message: string) => void): void {
+        const engine = this.engine;
+        engine.inContext(loaded.context, () => {
+            const watch = engine.evaluate(
+                '(promise, rejected) => { Promise.resolve(promise).then(undefined, (error) => rejected(String(error))); }',
+                '<jsp gametest>'
+            );
+            if (!(watch instanceof ScriptHandle)) return;
+            const report = engine.hostFunction('rejected', (message) => {
+                rejected(String(message));
+                return undefined;
+            });
+            try {
+                engine.call(watch, undefined, promise, report);
+            } finally {
+                engine.free(report);
+                engine.free(watch);
+            }
+        });
+    }
+
+    /** Makes a promise in a pack's realm, and the functions that settle it. */
+    private deferred(loaded: LoadedPack): ScriptDeferred {
+        const engine = this.engine;
+        return engine.inContext(loaded.context, () => {
+            const list = engine.evaluate(
+                '(() => { let resolve; let reject; const promise = new Promise((ok, no) => { resolve = ok; reject = no; }); return [promise, resolve, reject]; })()',
+                '<jsp gametest>'
+            );
+            if (!(list instanceof ScriptHandle)) throw new TypeError('The deferred promise is not a list');
+            try {
+                const part = (index: string): ScriptHandle => {
+                    const value = engine.get(list, index);
+                    if (!(value instanceof ScriptHandle)) throw new TypeError('The deferred promise is incomplete');
+                    return value;
+                };
+                return { promise: part('0'), resolve: part('1'), reject: part('2') };
+            } finally {
+                engine.free(list);
+            }
+        });
     }
 
     /** Calls one script callback under a privilege, logging what it throws. */

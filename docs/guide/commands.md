@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->62<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->63<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -55,6 +55,7 @@ does the same thing.
 | `/function`           | Runs an mcfunction or a function tag.                                                                     | `minecraft.command.function`      | 1     | Operators  |
 | `/gamemode`           | Changes a player's game mode.                                                                             | `minecraft.command.gamemode`      | 1     | Operators  |
 | `/gamerule`           | Reads and writes gamerules.                                                                               | `minecraft.command.gamerule`      | 1     | Operators  |
+| `/gametest`           | Interacts with gametest.                                                                                  | `minecraft.command.gametest`      | 2     | Operators  |
 | `/give`               | Gives an item to players.                                                                                 | `minecraft.command.give`          | 1     | Operators  |
 | `/help`, `/?`         | Shows paged command listings and command syntax.                                                          | `minecraft.command.help`          | 0     | Everyone   |
 | `/kick`               | Removes a player from the server.                                                                         | `minecraft.command.kick`          | 2     | Operators  |

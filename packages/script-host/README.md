@@ -457,6 +457,40 @@ scenarios compare the form JSON a client receives byte for byte.
   throws `Error: Invalid Player handle.`. `closeAllForms` closes a player's forms and settles
   none of them.
 
+### GameTests
+
+A pack that declares `@minecraft/server-gametest` gets `register`, `registerAsync`,
+`RegistrationBuilder`, a running test's `Test`, `spawnSimulatedPlayer` and `SimulatedPlayer`.
+`WorldScripts.gametest` takes BDS's `/gametest` subcommands: `run <name>`, `runset [tag]`,
+`stopall` and `clearall`. BDS has no `runall`; `runset` with no tag runs `suite:default`, which
+a test is in only when it says so, and a tag also matches every test of the class it names.
+
+The `gametest` scenario of the parity suite's `scripting.gametest` family records the runner on
+the pinned BDS, and `src/host/gametest.ts` follows it:
+
+- **Batches.** The tests that name a batch run first, a batch per name, then the rest as one
+  batch. Each batch starts in a script flush, and the next one four ticks after the last test of
+  the one before ends.
+- **A test.** Starting a batch places each test's structure through
+  `ScriptWorld.placeStructure` and calls each test function in registration order. A test whose
+  `structures/<namespace>/<name>.mcstructure` no pack has fails without running.
+- **Ticks.** In each later flush, before any system task, a running test's due `runAfterDelay`
+  callbacks and `idle` promises run, then its `succeedWhen` callbacks, the first of which also
+  runs when `succeedWhen` is called. A `succeedWhen` callback that returns without throwing passes
+  the test.
+- **The end.** `succeed` and `fail` end a test at once, an uncaught error fails it, and a test
+  still running `maxTicks` ticks after it started fails with BDS's `Didn't succeed or fail within`
+  message. A failed `assert` throws `GameTestError`, which a script may catch. Once a test has
+  ended, every `Test` member but `isCompleted` throws `GameTestCompletedError`.
+- **Cleanup.** The next flush takes an ended test's simulated players out of the world, and its
+  `Test` object stops working. A test that runs out of ticks is cleaned up as it fails.
+
+A simulated player is a player of the world with no client, which the world adds through
+`ScriptWorld.simulatedPlayers`. Every `Player` and `Entity` member works on it, and a pack that
+declares the module gets a `SimulatedPlayer` object for it. Its `chat`, moves, jumps, looks,
+attacks and item uses reach the world as `SimulatedPlayerAction`s, and `simulatedPlayers.tick`
+moves it once per flush.
+
 ## Building it
 
 The package is private, and not published to npm, until each platform has a prebuilt library that

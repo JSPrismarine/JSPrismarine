@@ -33,6 +33,7 @@ export const SIGNALS = [
     'WeatherChangeBeforeEventSignal',
     'WeatherChangeAfterEventSignal',
     'ChatSendBeforeEventSignal',
+    'ChatSendAfterEventSignal',
     'WatchdogTerminateBeforeEventSignal',
     'PlayerJoinAfterEventSignal',
     'PlayerSpawnAfterEventSignal',
@@ -68,6 +69,14 @@ export interface ChatBeforeData {
     cancel: boolean;
     readonly message: string;
     /** The sender's id, as the world's players list it, which picks their `Player` object. */
+    readonly sender: string;
+}
+
+/** A player's chat line that went out, as its after-event's members read it. */
+export interface ChatAfterData {
+    readonly kind: 'chatAfter';
+    readonly message: string;
+    /** The sender's id, as the world's players list it. */
     readonly sender: string;
 }
 
@@ -116,6 +125,7 @@ export type EventData =
     | WeatherBeforeData
     | WeatherAfterData
     | ChatBeforeData
+    | ChatAfterData
     | WatchdogTerminateData
     | PlayerPresenceData
     | PlayerSpawnData
@@ -309,6 +319,14 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         .implement(SERVER, 'ChatSendBeforeEvent', 'sender', {
             get: (call) => host.entity({ id: data(call, 'chatBefore').sender, typeId: PLAYER })
         })
+        // A line typed in chat goes to everyone; only a line a script sends has targets.
+        .implement(SERVER, 'ChatSendBeforeEvent', 'targets', { get: () => undefined })
+        .implement(SERVER, 'WorldAfterEvents', 'chatSend', signal('ChatSendAfterEventSignal'))
+        .implement(SERVER, 'ChatSendAfterEvent', 'message', { get: (call) => data(call, 'chatAfter').message })
+        .implement(SERVER, 'ChatSendAfterEvent', 'sender', {
+            get: (call) => host.entity({ id: data(call, 'chatAfter').sender, typeId: PLAYER })
+        })
+        .implement(SERVER, 'ChatSendAfterEvent', 'targets', { get: () => undefined })
         .implement(SERVER, 'WatchdogTerminateBeforeEvent', 'cancel', {
             get: (call) => data(call, 'watchdogTerminate').cancel,
             set: (call) => {

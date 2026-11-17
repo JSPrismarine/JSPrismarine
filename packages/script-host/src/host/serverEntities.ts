@@ -17,6 +17,7 @@ import type { EntityAccess, EntityKey } from './serverObjects';
 import {
     COMMON,
     entityKeyOf,
+    gameModeOf,
     invalidEntity,
     itemOf,
     plainError,
@@ -256,6 +257,13 @@ export const implementEntities = (implementations: ScriptApiImplementations, hos
                 if (player === undefined) throw plainError("Failed to get property 'name'.");
                 return player.name ?? player.nameTag;
             }
+        })
+        .implement(SERVER, 'Player', 'setGameMode', (call) => {
+            const player = live(call, 'call', 'setGameMode');
+            const [mode] = call.args;
+            // No game mode is the world's default, which a new player gets.
+            if (mode !== undefined) world.setGameMode?.(player.id, gameModeOf(mode));
+            return undefined;
         })
         .implement(SERVER, 'Player', 'sendMessage', (call) => {
             const player = live(call, 'call', 'sendMessage');

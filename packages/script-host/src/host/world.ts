@@ -118,6 +118,8 @@ export type ScriptWorldEvent =
     | { readonly type: 'playerSpawn'; readonly playerId: string; readonly initialSpawn: boolean }
     /** A player left; their entity is already gone. */
     | { readonly type: 'playerLeave'; readonly playerId: string; readonly playerName: string }
+    /** A player's chat line went past the guards, and the players it reaches got it. */
+    | { readonly type: 'chatSend'; readonly sender: string; readonly message: string }
     /** A `/scriptevent` ran. */
     | {
           readonly type: 'scriptEvent';
@@ -148,6 +150,61 @@ export interface ScriptFormChannel {
     closeAll(player: string): void;
     /** The answers the input step admitted since the last call, in the order they arrived. */
     takeResponses(): readonly ScriptFormResponse[];
+}
+
+/** A game mode as the Script API's `GameMode` names it. */
+export type ScriptGameMode = 'Adventure' | 'Creative' | 'Spectator' | 'Survival';
+
+/**
+ * What a script tells a GameTest simulated player to do. Each is what a client's input would do
+ * for a real player, and a move or a look lasts until another replaces it.
+ */
+export type SimulatedPlayerAction =
+    /** Types a line of chat, which goes past the chat guards as a client's line does. */
+    | { readonly kind: 'chat'; readonly message: string }
+    /** Jumps, when the player stands on the ground. */
+    | { readonly kind: 'jump' }
+    /**
+     * Walks in a direction until told to stop: `x` toward the east and `z` toward the south, or,
+     * when `relative`, `x` to the player's left and `z` forward from where they face.
+     */
+    | {
+          readonly kind: 'move';
+          readonly x: number;
+          readonly z: number;
+          readonly speed: number;
+          readonly relative: boolean;
+      }
+    | { readonly kind: 'stopMoving' }
+    /** Turns the player's head and body to face a location. */
+    | { readonly kind: 'lookAt'; readonly location: ScriptVector3 }
+    /** Swings at the entity the player faces within reach. */
+    | { readonly kind: 'attack' }
+    /** Swings at one entity, when it is within reach. */
+    | { readonly kind: 'attackEntity'; readonly entity: string }
+    /** Uses an item in the air, as a client's right click does. */
+    | { readonly kind: 'useItem'; readonly item: ScriptItem };
+
+/**
+ * The GameTest simulated players of a world: players with no client, which every script,
+ * command and other player sees as a player ([ADR 0009](../../../../docs/adr/0009-external-inputs-enter-once-per-tick.md)).
+ */
+export interface ScriptSimulatedPlayers {
+    /**
+     * Adds a player with no client to the world, in the tick the call is made.
+     * @returns The new player's id, as {@link ScriptWorld.players} lists it, or undefined when
+     *   the world cannot place a player there.
+     */
+    spawn(name: string, dimension: string, location: ScriptVector3, gameMode: ScriptGameMode): string | undefined;
+    /** Takes a simulated player out of the world, as a client's disconnect does. */
+    remove(id: string): void;
+    /**
+     * Makes a simulated player act.
+     * @returns Whether the action happened, such as a jump from the ground or a swing that hit.
+     */
+    act(id: string, action: SimulatedPlayerAction): boolean;
+    /** Moves the simulated players one tick on: their walks and jumps. */
+    tick(): void;
 }
 
 /** What the script host reads and writes of one world. */
@@ -263,4 +320,14 @@ export interface ScriptWorld {
     clock(): number;
     /** The channel `@minecraft/server-ui` forms travel over. A world without one sends no form. */
     readonly forms?: ScriptFormChannel;
+    /** The world's GameTest simulated players. A world without them refuses to spawn one. */
+    readonly simulatedPlayers?: ScriptSimulatedPlayers;
+    /**
+     * Places a GameTest's `.mcstructure` with its lowest corner at a location. A world that cannot
+     * read the format leaves the blocks there as they are.
+     * @param structure - The file's bytes.
+     */
+    placeStructure?(dimension: string, location: ScriptVector3, structure: Uint8Array): void;
+    /** Sets a player's game mode, as `/gamemode` does. */
+    setGameMode?(id: string, gameMode: ScriptGameMode): void;
 }

@@ -13,7 +13,7 @@ import type { ScriptEngine } from '../ScriptEngine';
 import type { ScriptCall } from '../shape/implementations';
 import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
-import type { ScriptBlockPermutation, ScriptItem, ScriptVector3 } from './world';
+import type { ScriptBlockPermutation, ScriptGameMode, ScriptItem, ScriptVector3 } from './world';
 import { isRecord } from '../isRecord';
 
 /** The module every implementation here belongs to. */
@@ -110,6 +110,22 @@ export const itemOf = (state: string): ScriptItem => {
         ...(typeof nameTag === 'string' ? { nameTag } : {}),
         ...(Array.isArray(lore) ? { lore: lore.filter((line) => typeof line === 'string') } : {})
     };
+};
+
+/**
+ * A `GameMode` argument as version 2 names it: a name in any case, as version 1 writes it in
+ * lower case, or Bedrock's number, which `spawnSimulatedPlayer`'s metadata defaults to.
+ */
+export const gameModeOf = (value: ScriptValue): ScriptGameMode => {
+    if (typeof value === 'string') {
+        const lower = value.toLowerCase();
+        if (lower === 'creative') return 'Creative';
+        if (lower === 'adventure') return 'Adventure';
+        if (lower === 'spectator') return 'Spectator';
+        return 'Survival';
+    }
+    // Bedrock's numbering: 0 survival, 1 creative, 2 adventure, 6 spectator.
+    return value === 1 ? 'Creative' : value === 2 ? 'Adventure' : value === 6 ? 'Spectator' : 'Survival';
 };
 
 /** Adds `minecraft:` to an id given without a namespace, as BDS reads one. */
