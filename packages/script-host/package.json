@@ -57,6 +57,36 @@
                 "import": "./dist/shape/format.js",
                 "module": "./dist/shape/format.js"
             },
+            "./debugger/EngineDebugger": {
+                "types": "./dist/debugger/EngineDebugger.d.ts",
+                "import": "./dist/debugger/EngineDebugger.js",
+                "module": "./dist/debugger/EngineDebugger.js"
+            },
+            "./debugger/DebugSession": {
+                "types": "./dist/debugger/DebugSession.d.ts",
+                "import": "./dist/debugger/DebugSession.js",
+                "module": "./dist/debugger/DebugSession.js"
+            },
+            "./debugger/protocol": {
+                "types": "./dist/debugger/protocol.d.ts",
+                "import": "./dist/debugger/protocol.js",
+                "module": "./dist/debugger/protocol.js"
+            },
+            "./debugger/framing": {
+                "types": "./dist/debugger/framing.d.ts",
+                "import": "./dist/debugger/framing.js",
+                "module": "./dist/debugger/framing.js"
+            },
+            "./debugger/transport": {
+                "types": "./dist/debugger/transport.d.ts",
+                "import": "./dist/debugger/transport.js",
+                "module": "./dist/debugger/transport.js"
+            },
+            "./debugger/channel": {
+                "types": "./dist/debugger/channel.d.ts",
+                "import": "./dist/debugger/channel.js",
+                "module": "./dist/debugger/channel.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -108,6 +138,30 @@
         "./shape/format": {
             "jsprismarine:dist": "./dist/shape/format.js",
             "default": "./src/shape/format.ts"
+        },
+        "./debugger/EngineDebugger": {
+            "jsprismarine:dist": "./dist/debugger/EngineDebugger.js",
+            "default": "./src/debugger/EngineDebugger.ts"
+        },
+        "./debugger/DebugSession": {
+            "jsprismarine:dist": "./dist/debugger/DebugSession.js",
+            "default": "./src/debugger/DebugSession.ts"
+        },
+        "./debugger/protocol": {
+            "jsprismarine:dist": "./dist/debugger/protocol.js",
+            "default": "./src/debugger/protocol.ts"
+        },
+        "./debugger/framing": {
+            "jsprismarine:dist": "./dist/debugger/framing.js",
+            "default": "./src/debugger/framing.ts"
+        },
+        "./debugger/transport": {
+            "jsprismarine:dist": "./dist/debugger/transport.js",
+            "default": "./src/debugger/transport.ts"
+        },
+        "./debugger/channel": {
+            "jsprismarine:dist": "./dist/debugger/channel.js",
+            "default": "./src/debugger/channel.ts"
         },
         "./package.json": "./package.json"
     },

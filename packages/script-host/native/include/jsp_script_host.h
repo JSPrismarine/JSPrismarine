@@ -38,7 +38,10 @@ extern "C" {
 #endif
 
 /* Changes whenever a function, a constant or the byte layout changes meaning. */
-#define JSH_ABI_VERSION 1
+#define JSH_ABI_VERSION 2
+
+/* The steps one jsh_debug_evaluate may take, apart from the budget of the script it stops in. */
+#define JSH_DEBUG_EVALUATE_STEPS 100
 
 enum jsh_tag {
 	JSH_TAG_UNDEFINED = 0,
@@ -82,7 +85,50 @@ enum jsh_op {
 	 * jsh_engine_set_buffer with a larger one before it returns, and returns 0, or returns -1
 	 * when it cannot.
 	 */
-	JSH_OP_GROW = 2
+	JSH_OP_GROW = 2,
+	/*
+	 * A script stopped under the debugger, for the jsh_debug_reason `id`. The host answers the
+	 * debugger's requests, reads the stopped script through the jsh_debug_ queries, and returns 0
+	 * to let the script go on, after jsh_debug_resume says how. Returning -1 terminates the script.
+	 * The engine call that ran the script stays blocked the whole time.
+	 */
+	JSH_OP_DEBUG_PAUSED = 3,
+	/*
+	 * A running script has passed the number of lines jsh_debug_attach named since the last poll.
+	 * The host reads what the debugger has sent without waiting, such as a pause request or new
+	 * breakpoints, and returns 0.
+	 */
+	JSH_OP_DEBUG_POLL = 4
+};
+
+/* Why a script stopped under the debugger. */
+enum jsh_debug_reason {
+	JSH_DEBUG_BREAKPOINT = 0,
+	JSH_DEBUG_STEP = 1,
+	JSH_DEBUG_EXCEPTION = 2,
+	JSH_DEBUG_PAUSE = 3
+};
+
+/* How a stopped script goes on. */
+enum jsh_debug_resume {
+	/* Runs until a breakpoint, a pause request or, when asked for, an exception. */
+	JSH_DEBUG_CONTINUE = 0,
+	/* Stops at the next line of the same function or a function that called it. */
+	JSH_DEBUG_STEP_OVER = 1,
+	/* Stops at the next line anywhere, including inside a function the line calls. */
+	JSH_DEBUG_STEP_IN = 2,
+	/* Stops at the next line of a function that called this one. */
+	JSH_DEBUG_STEP_OUT = 3
+};
+
+/* The variables of a frame that jsh_debug_scope returns. */
+enum jsh_debug_scope {
+	/* Its arguments and local variables. */
+	JSH_SCOPE_LOCAL = 0,
+	/* The variables of enclosing functions that it uses. */
+	JSH_SCOPE_CLOSURE = 1,
+	/* The global object. */
+	JSH_SCOPE_GLOBAL = 2
 };
 
 /* The counters jsh_engine_stat reads. Steps are interrupt handler calls. */
@@ -160,6 +206,63 @@ JSH_EXPORT int32_t jsh_decode(jsh_engine *engine, int32_t length);
 JSH_EXPORT int32_t jsh_encode(jsh_engine *engine, int32_t handle);
 JSH_EXPORT int32_t jsh_dup(jsh_engine *engine, int32_t handle);
 JSH_EXPORT void jsh_free(jsh_engine *engine, int32_t handle);
+
+/*
+ * The debugger. While none is attached the interpreter runs as it does without one. Once one is,
+ * every function the engine enters reports each new line to the engine, which stops the script
+ * at a breakpoint, after a step, on a pause request or on a thrown value, and sends
+ * JSH_OP_DEBUG_PAUSED. Nothing here reads a clock: a script stops at the same line every run.
+ * Stopping does not count steps against the budget.
+ */
+
+/*
+ * Attaches the debugger. A running script sends JSH_OP_DEBUG_POLL once every `poll_lines` lines;
+ * 0 or less never polls. Functions already running when it attaches do not report lines.
+ */
+JSH_EXPORT int32_t jsh_debug_attach(jsh_engine *engine, double poll_lines);
+/* Detaches the debugger and forgets its breakpoints. A stopped script goes on when the host returns. */
+JSH_EXPORT void jsh_debug_detach(jsh_engine *engine);
+/*
+ * Replaces the breakpoints of the file named `path`, as a script's stack traces name it, with the
+ * lines listed as numbers in the `length` bytes of the transfer buffer. Returns how many it set.
+ */
+JSH_EXPORT int32_t jsh_debug_set_breakpoints(jsh_engine *engine, const char *path, int32_t length);
+/* Stops a script on every value it throws, caught or not, while `stop` is nonzero. */
+JSH_EXPORT void jsh_debug_set_stop_on_exception(jsh_engine *engine, int32_t stop);
+/* Stops the running script at its next line. */
+JSH_EXPORT void jsh_debug_pause(jsh_engine *engine);
+/* Says how the stopped script goes on, a jsh_debug_resume. Returns 0, or JSH_INVALID when none is stopped. */
+JSH_EXPORT int32_t jsh_debug_resume(jsh_engine *engine, int32_t mode);
+/*
+ * Writes the stopped script's stack, innermost first, as a list with four values a frame: the
+ * function's name, its file name, its line and its column. A native frame has an empty file name
+ * and line 0. Returns the list's length.
+ */
+JSH_EXPORT int32_t jsh_debug_frames(jsh_engine *engine);
+/* Returns a handle to an object holding the variables of `frame` that `scope` names. */
+JSH_EXPORT int32_t jsh_debug_scope(jsh_engine *engine, int32_t frame, int32_t scope);
+/* Returns a handle to the value the script stopped on with JSH_DEBUG_EXCEPTION, or to undefined. */
+JSH_EXPORT int32_t jsh_debug_exception(jsh_engine *engine);
+/*
+ * Runs `source[length]`, which must be followed by a 0 byte, as if the function in `frame` ran it,
+ * with that function's variables in scope; a frame of -1 runs it as a global script. The engine
+ * keeps the stopped script's step counts as they were, and gives the evaluation a budget of its
+ * own, JSH_DEBUG_EVALUATE_STEPS. Returns a handle to the result, or a status.
+ */
+JSH_EXPORT int32_t jsh_debug_evaluate(jsh_engine *engine, int32_t frame, const uint8_t *source, int32_t length);
+/*
+ * Describes a value without running script: writes its kind ("object", "array", "function",
+ * "error" or "proxy"), its class or function name, and a detail, the length of an array or the
+ * message of an error and undefined otherwise. Returns the length written.
+ */
+JSH_EXPORT int32_t jsh_debug_describe(jsh_engine *engine, int32_t handle);
+/*
+ * Writes an object's own properties without running a getter: the number of them, then for each
+ * of `count` from `start`, in the engine's key order, its name, a number, 1 for an accessor and 0
+ * for a value, and its value, undefined for an accessor. Array indices come first. Handles in the
+ * values belong to the host. A proxy has no properties here. Returns the length written.
+ */
+JSH_EXPORT int32_t jsh_debug_properties(jsh_engine *engine, int32_t handle, int32_t start, int32_t count);
 
 #ifdef __cplusplus
 }

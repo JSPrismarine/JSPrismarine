@@ -210,6 +210,26 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
         ).toMatch(/^TypeError: Native type conversion failed/);
     });
 
+    it('forwards the validated arguments past accessors a script put on Array.prototype', () => {
+        const scripts = engine();
+        const seen: unknown[][] = [];
+        const implementations = new ScriptApiImplementations().implement(
+            '@minecraft/server',
+            'ItemStack',
+            'constructor',
+            (call) => {
+                seen.push([...call.args]);
+                return undefined;
+            }
+        );
+        bindServer(scripts, '2.0.0', implementations);
+
+        scripts.evaluate(
+            "Object.defineProperty(Array.prototype, 1, { get() { return 123; }, set() {}, configurable: true }); new mc.ItemStack('minecraft:apple'); delete Array.prototype[1];"
+        );
+        expect(seen).toEqual([['minecraft:apple', 1]]);
+    });
+
     it('refuses an instance member called on something that is not an instance', () => {
         const scripts = engine();
         bindServer(scripts, '2.0.0');

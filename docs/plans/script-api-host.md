@@ -176,6 +176,16 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
    ported to the pinned QuickJS. Planned with the skeleton, and split into its own slice right
    after it if the port is large.
    - Done when VS Code attaches and stops at a breakpoint in a scenario pack.
+   - Learned: the port is a second patch, `quickjs-debugger.patch`, which adds 437 lines to
+     `quickjs.c` and `quickjs.h` and changes 5; koush's diff added 465. His 743-line
+     `quickjs-debugger.c` became `jsh_debug_*` in the C layer, about 420 lines, and the protocol
+     moved to TypeScript in `src/debugger/`. The existing step tests keep their counts. The pinned
+     QuickJS gives a frame slot only to variables a closure captures, so an evaluation borrows the
+     slot of any other variable and leaves a closure it makes with a copy.
+   - Left for the world host: the `script-debugger-*` and `*-script-debugging` properties,
+     `/script debugger listen|connect|detach` and auto-attach, the socket's thread and the bridge
+     to the world thread, attaching the engine of the pack `targetModuleUUID` picks, a `poll` between ticks,
+     never attaching during a replay, and the VS Code check against a scenario pack.
 8. [x] [#3205](https://github.com/JSPrismarine/JSPrismarine/issues/3205) **The corpus.** The manifest, the fetch script and the usage counter, starting from the
    candidates in the research note. Count beta packs too. Order slices 9 onward by the counts.
    - Learned (2026-11-17): the corpus is 19 packs from 13 repositories, 11 of them stable on

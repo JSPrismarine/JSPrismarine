@@ -1,9 +1,10 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { sourceCachePath } from '../../../bedrock-data/utils/fetch/fetch.ts';
 import { corpusDescriptor, fetchCorpusRepository, isCorpusCached } from './fetch.mts';
 import type { CorpusRepository } from './manifest.mts';
 
@@ -61,6 +62,11 @@ describe('fetching the corpus', () => {
         await expect(
             fetchCorpusRepository(repository, { cacheRoot, fetchImpl: serve(new Response('not the pinned zip')) })
         ).rejects.toThrow(/Cannot fetch corpus pack first, second .*sha256 mismatch/);
-        expect(isCorpusCached({ repositories: [repository], excluded: [] }, cacheRoot)).toBe(false);
+        await expect(isCorpusCached({ repositories: [repository], excluded: [] }, cacheRoot)).resolves.toBe(false);
+    });
+
+    it('does not count a repository an interrupted fetch left unpacked without its marker', async () => {
+        mkdirSync(sourceCachePath(corpusDescriptor(repository), cacheRoot), { recursive: true });
+        await expect(isCorpusCached({ repositories: [repository], excluded: [] }, cacheRoot)).resolves.toBe(false);
     });
 });
