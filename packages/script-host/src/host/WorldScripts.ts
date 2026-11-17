@@ -23,7 +23,13 @@
  *
  * Every limit counts steps, not time ([ADR 0021](../../../../docs/adr/0021-the-script-watchdog-counts-steps.md)).
  */
-import { ScriptError, ScriptOutOfMemoryError, ScriptTerminatedError } from '../errors';
+import {
+    ScriptError,
+    ScriptHostErrors,
+    ScriptOutOfMemoryError,
+    ScriptTerminatedError
+} from '@jsprismarine/errors/script-host';
+
 import type { ScriptContextId, ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
 import { ScriptApiContext } from '../shape/binding';
 import type { Privilege } from '../shape/format';
@@ -217,10 +223,7 @@ const LEGACY_SKIPPED_HOOKS: ReadonlySet<string> = new Set(['onBreak']);
 const BEFORE_HOOKS: ReadonlySet<string> = new Set<ScriptBlockHook>(['beforeOnPlayerPlace']);
 
 /** What a script's `import()` of a native module the manifest does not declare rejects with on BDS. */
-const unrecognized = (name: string): ReferenceError =>
-    new ReferenceError(
-        `Module [${name}] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?`
-    );
+const unrecognized = (name: string): ReferenceError => new ScriptHostErrors.UnrecognizedModule({ name });
 
 /** The script runtime of one world. */
 export class WorldScripts {
@@ -634,7 +637,8 @@ export class WorldScripts {
             for (const shape of bindOrder) entry.modules.set(shape.module, api.bind(shape));
             this.installConsole();
             const installer = engine.evaluate(installInputsSource(), '<jsp inputs>');
-            if (!(installer instanceof ScriptHandle)) throw new TypeError('The inputs installer is not a function');
+            if (!(installer instanceof ScriptHandle))
+                throw new ScriptHostErrors.NotAFunction({ what: 'The inputs installer' });
             const words = randomState(this.options.seed, this.loaded.length);
             const setNow = engine.call(installer, undefined, ...words);
             engine.free(installer);
@@ -655,7 +659,7 @@ export class WorldScripts {
         const line = (args: readonly ScriptValue[]): string =>
             args.map((arg) => (arg instanceof ScriptHandle ? describeObject(engine, arg) : String(arg))).join(' ');
         const target = engine.evaluate('globalThis.console = {}');
-        if (!(target instanceof ScriptHandle)) throw new TypeError('console is not an object');
+        if (!(target instanceof ScriptHandle)) throw new ScriptHostErrors.NotAnObject({ what: 'console' });
         const methods: Array<[string, (message: string) => void]> = [
             ['log', (message) => this.options.log.info(message)],
             ['info', (message) => this.options.log.info(message)],
@@ -1010,11 +1014,11 @@ export class WorldScripts {
                 '(() => { let resolve; let reject; const promise = new Promise((ok, no) => { resolve = ok; reject = no; }); return [promise, resolve, reject]; })()',
                 '<jsp gametest>'
             );
-            if (!(list instanceof ScriptHandle)) throw new TypeError('The deferred promise is not a list');
+            if (!(list instanceof ScriptHandle)) throw new ScriptHostErrors.DeferredPromiseNotAList();
             try {
                 const part = (index: string): ScriptHandle => {
                     const value = engine.get(list, index);
-                    if (!(value instanceof ScriptHandle)) throw new TypeError('The deferred promise is incomplete');
+                    if (!(value instanceof ScriptHandle)) throw new ScriptHostErrors.DeferredPromiseIncomplete();
                     return value;
                 };
                 return { promise: part('0'), resolve: part('1'), reject: part('2') };

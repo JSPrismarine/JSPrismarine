@@ -7,6 +7,8 @@
  * stack's contents. A member reads the world through the state each time it runs, so an object
  * never holds a copy of the world that goes stale.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { engineFunctionSource } from '../engineSource';
 import { ScriptApiError } from '../errors';
 import type { ScriptEngine } from '../ScriptEngine';
@@ -100,14 +102,15 @@ export interface BlockKey extends ScriptVector3 {
 const parseState = (state: string, what: string): Record<string, unknown> => {
     // The host wrote the string with JSON.stringify.
     const parsed: unknown = state === '' ? undefined : JSON.parse(state);
-    if (!isRecord(parsed)) throw new TypeError(`The object carries no ${what}`);
+    if (!isRecord(parsed)) throw new ScriptHostErrors.ObjectCarriesNoState({ what });
     return parsed;
 };
 
 /** The entity an object stands for. */
 export const entityKeyOf = (state: string): EntityKey => {
     const { id, typeId } = parseState(state, 'entity');
-    if (typeof id !== 'string' || typeof typeId !== 'string') throw new TypeError('The object carries no entity');
+    if (typeof id !== 'string' || typeof typeId !== 'string')
+        throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'entity' });
     return { id, typeId };
 };
 
@@ -115,7 +118,7 @@ export const entityKeyOf = (state: string): EntityKey => {
 export const blockKeyOf = (state: string): BlockKey => {
     const { dimension, x, y, z } = parseState(state, 'block');
     if (typeof dimension !== 'string' || typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
-        throw new TypeError('The object carries no block');
+        throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'block' });
     }
     return { dimension, x, y, z };
 };
@@ -123,7 +126,8 @@ export const blockKeyOf = (state: string): BlockKey => {
 /** The permutation an object stands for. */
 export const permutationOf = (state: string): ScriptBlockPermutation => {
     const { typeId, states } = parseState(state, 'block permutation');
-    if (typeof typeId !== 'string' || !isRecord(states)) throw new TypeError('The object carries no permutation');
+    if (typeof typeId !== 'string' || !isRecord(states))
+        throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'permutation' });
     const values: Record<string, string | number | boolean> = {};
     for (const [name, value] of Object.entries(states)) {
         if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') values[name] = value;
@@ -171,7 +175,8 @@ const propertyOfState = (entry: unknown): readonly [string, ScriptPropertyValue]
 /** The item stack an object stands for. */
 export const itemOf = (state: string): ScriptItem => {
     const { typeId, amount, nameTag, lore, properties } = parseState(state, 'item stack');
-    if (typeof typeId !== 'string' || typeof amount !== 'number') throw new TypeError('The object carries no item');
+    if (typeof typeId !== 'string' || typeof amount !== 'number')
+        throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'item' });
     const dynamicProperties = new Map<string, ScriptProperties>();
     for (const pack of Array.isArray(properties) ? properties : []) {
         if (!Array.isArray(pack) || typeof pack[0] !== 'string' || !Array.isArray(pack[1])) continue;
@@ -286,7 +291,7 @@ export const vectorArgument = (call: ScriptCall, index: number): ScriptVector3 =
     const read = (key: string): number => {
         const value = isRecord(parsed) ? parsed[key] : undefined;
         if (typeof value !== 'number' || !Number.isFinite(value)) {
-            throw new TypeError(`Native type conversion failed. Function argument [${index}] expected type: Vector3`);
+            throw new ScriptHostErrors.ArgumentConversionFailed({ index, expected: 'Vector3' });
         }
         return value;
     };
@@ -323,7 +328,7 @@ function messageText(value: unknown): string {
 /** Reads a `sendMessage` argument's text inside the engine, with {@link messageText}. */
 export const readMessage = (engine: ScriptEngine, value: ScriptValue): string => {
     const walk = engine.evaluate(engineFunctionSource(messageText.toString()), '<jsp sendMessage>');
-    if (!(walk instanceof ScriptHandle)) throw new TypeError('The message walk is not a function');
+    if (!(walk instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'The message walk' });
     try {
         const text = engine.call(walk, undefined, value);
         return typeof text === 'string' ? text : '';

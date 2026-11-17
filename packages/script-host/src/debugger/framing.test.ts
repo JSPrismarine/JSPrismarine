@@ -1,6 +1,7 @@
+import { DebuggerFramingError } from '@jsprismarine/errors/script-host';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { DebuggerFramingError, FrameDecoder, MAX_RECEIVED_FRAME_LENGTH, encodeFrame } from './framing';
+import { FrameDecoder, MAX_RECEIVED_FRAME_LENGTH, encodeFrame } from './framing';
 
 /**
  * Frames as the extension writes them. `Session.sendDebuggeeMessage` in `src/session.ts` of

@@ -503,5 +503,14 @@ export const PrismarineWorldErrors = defineErrors('prismarine', {
      * The chunk was not generated because the generator stopped, which happens while the server
      * shuts down.
      */
-    GenerationStopped: 'Chunk {cx},{cz} was not generated: the generator has stopped'
+    GenerationStopped: 'Chunk {cx},{cz} was not generated: the generator has stopped',
+    /**
+     * Code asked the scoreboard for a participant by an id the scoreboard never gave out, or one it
+     * has since removed. Look a participant up by its entity or fake player name instead, or check
+     * that the id came from this world's scoreboard.
+     */
+    UnknownScoreboardParticipant: {
+        message: 'No scoreboard participant has the id {participant}',
+        base: RangeError
+    }
 });

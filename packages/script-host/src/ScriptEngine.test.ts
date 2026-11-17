@@ -1,7 +1,7 @@
+import { ScriptError, ScriptOutOfMemoryError, ScriptTerminatedError } from '@jsprismarine/errors/script-host';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptEngine, ScriptEngineOptions, ScriptHostLibrary } from './ScriptEngine';
-import { ScriptError, ScriptOutOfMemoryError, ScriptTerminatedError } from './errors';
 import { loadLibrary, scriptHostAvailable } from './testing/library.test.helper';
 import { ScriptHandle } from './values';
 

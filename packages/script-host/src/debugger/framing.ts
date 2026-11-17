@@ -5,6 +5,8 @@
  * `quickjs-debugger.c` writes the same bytes ("length prefix is 8 hex followed by newline").
  */
 
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 /** The bytes of a frame's length header: 8 hexadecimal digits and a newline. */
 export const FRAME_HEADER_BYTES = 9;
 
@@ -21,11 +23,6 @@ export const MAX_FRAME_LENGTH = 0xffffffff;
  */
 export const MAX_RECEIVED_FRAME_LENGTH = 1024 * 1024;
 
-/** Why bytes from a debugger connection are not a frame. */
-export class DebuggerFramingError extends Error {
-    public override readonly name = 'DebuggerFramingError';
-}
-
 /**
  * Frames one message.
  * @param message - The message, which JSON can encode.
@@ -34,7 +31,7 @@ export class DebuggerFramingError extends Error {
 export const encodeFrame = (message: unknown): Buffer => {
     const json = Buffer.from(JSON.stringify(message), 'utf8');
     const length = json.byteLength + 1;
-    if (length > MAX_FRAME_LENGTH) throw new DebuggerFramingError(`A ${length}-byte message does not fit a frame`);
+    if (length > MAX_FRAME_LENGTH) throw new ScriptHostErrors.FrameTooLong({ length });
     return Buffer.concat([Buffer.from(`${length.toString(16).padStart(8, '0')}\n`, 'ascii'), json, Buffer.from('\n')]);
 };
 
@@ -66,15 +63,11 @@ export class FrameDecoder {
                 if (this.buffered < FRAME_HEADER_BYTES) break;
                 const header = this.take(FRAME_HEADER_BYTES).toString('ascii');
                 if (!/^[0-9a-fA-F]{8}\n$/.test(header)) {
-                    throw new DebuggerFramingError(
-                        `A frame header is 8 hexadecimal digits and a newline, not ${JSON.stringify(header)}`
-                    );
+                    throw new ScriptHostErrors.InvalidFrameHeader({ header: JSON.stringify(header) });
                 }
                 const length = Number.parseInt(header.slice(0, 8), 16);
                 if (length > MAX_RECEIVED_FRAME_LENGTH) {
-                    throw new DebuggerFramingError(
-                        `A ${length}-byte frame is over the ${MAX_RECEIVED_FRAME_LENGTH}-byte limit`
-                    );
+                    throw new ScriptHostErrors.ReceivedFrameTooLong({ length, limit: MAX_RECEIVED_FRAME_LENGTH });
                 }
                 this.bodyLength = length;
             }
@@ -84,8 +77,9 @@ export class FrameDecoder {
             try {
                 messages.push(JSON.parse(body));
             } catch (error) {
-                throw new DebuggerFramingError(
-                    `A frame's body is not JSON: ${error instanceof Error ? error.message : error}`
+                throw new ScriptHostErrors.FrameBodyNotJson(
+                    { reason: error instanceof Error ? error.message : error },
+                    { cause: error }
                 );
             }
         }

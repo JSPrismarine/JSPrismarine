@@ -8,6 +8,8 @@
  * id and reads the scoreboard each time, so it stops answering once the objective is removed, as
  * on BDS. Every message follows the pinned BDS, as the `persistence` scenario recorded.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { isRecord } from '../isRecord';
 import type { ScriptEngine } from '../ScriptEngine';
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
@@ -36,13 +38,13 @@ const scoreInfoState = (participant: number, score: number): string => JSON.stri
 const parsed = (state: string): Record<string, unknown> => {
     // The host wrote the string with JSON.stringify.
     const value: unknown = state === '' ? undefined : JSON.parse(state);
-    if (!isRecord(value)) throw new TypeError('The object carries no participant');
+    if (!isRecord(value)) throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'participant' });
     return value;
 };
 
 const participantOfState = (state: string): number => {
     const { participant } = parsed(state);
-    if (typeof participant !== 'number') throw new TypeError('The object carries no participant');
+    if (typeof participant !== 'number') throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'participant' });
     return participant;
 };
 
@@ -62,7 +64,7 @@ export const implementScoreboard = (implementations: ScriptApiImplementations, h
         host.instance('ScoreboardIdentity', TAG.identity, identityState(participant.id));
     const array = (handles: readonly ScriptHandle[]): ScriptHandle => {
         const list = engine().evaluate('[]');
-        if (!(list instanceof ScriptHandle)) throw new TypeError('An array literal evaluated to a primitive');
+        if (!(list instanceof ScriptHandle)) throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'array' });
         handles.forEach((handle, index) => engine().set(list, String(index), handle));
         return engine().release(list);
     };
@@ -93,7 +95,8 @@ export const implementScoreboard = (implementations: ScriptApiImplementations, h
 
     const displayObject = (display: ScriptDisplay): ScriptHandle => {
         const object = engine().evaluate('({})');
-        if (!(object instanceof ScriptHandle)) throw new TypeError('An object literal evaluated to a primitive');
+        if (!(object instanceof ScriptHandle))
+            throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'object' });
         engine().set(object, 'objective', objectiveObject(display.objective));
         engine().set(object, 'sortOrder', display.sortOrder);
         return engine().release(object);
@@ -101,7 +104,8 @@ export const implementScoreboard = (implementations: ScriptApiImplementations, h
     const slotOf = (call: ScriptCall): ScriptDisplaySlot => {
         const [slot] = call.args;
         // The binding checked it against `DisplaySlotId`.
-        if (!isDisplaySlot(slot)) throw new TypeError('The slot is not a DisplaySlotId');
+        if (!isDisplaySlot(slot))
+            throw new ScriptHostErrors.ArgumentNotOfType({ argument: 'slot', type: 'DisplaySlotId' });
         return slot;
     };
     const shownIn = (slot: ScriptDisplaySlot): ScriptHandle | undefined => {
@@ -143,7 +147,7 @@ export const implementScoreboard = (implementations: ScriptApiImplementations, h
             const slot = slotOf(call);
             const options = call.args[1];
             // The binding checked it is an object.
-            if (!(options instanceof ScriptHandle)) throw new TypeError('The display options are not an object');
+            if (!(options instanceof ScriptHandle)) throw new ScriptHostErrors.DisplayOptionsNotAnObject();
             const objective = engine().get(options, 'objective');
             const sortOrder = engine().get(options, 'sortOrder');
             const id = call.stateOf(objective);

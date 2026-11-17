@@ -9,6 +9,8 @@
  * `RawMessage` afterwards does not change the form. `show()` writes the form, sends it and returns
  * a promise that the client's answer settles in a later script flush ({@link ScriptForms}).
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
 import type { ScriptValue } from '../values';
 import type { BuiltForm, FormKind } from './forms';
@@ -97,7 +99,7 @@ export const serverUiImplementations = (
         .implement(SERVER_UI, 'UIManager', 'closeAllForms', (call) => {
             const player = host.player(call.args[0]);
             // BDS's own words for a player who left, from a plain Error rather than one of the API's.
-            if (player?.present !== true) throw new Error('Invalid Player handle.');
+            if (player?.present !== true) throw new ScriptHostErrors.InvalidPlayerHandle();
             host.closeAll(player.id);
             return undefined;
         });

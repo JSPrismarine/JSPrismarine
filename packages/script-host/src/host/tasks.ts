@@ -19,6 +19,8 @@
  * tested on its own.
  */
 
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 /** One queued task. */
 export interface ScriptTask<Callback> {
     readonly id: number;
@@ -47,7 +49,7 @@ export class TaskQueue<Callback> {
      * refuses those first, as BDS does, so this only stops a caller that skips it.
      */
     public schedule(kind: TaskKind, callback: Callback, tick: number, delay = 0): number {
-        if (!Number.isFinite(delay)) throw new RangeError(`A task delay must be a finite number, not ${delay}`);
+        if (!Number.isFinite(delay)) throw new ScriptHostErrors.TaskDelayNotFinite({ delay });
         const id = this.nextId++;
         const wait = Math.max(0, Math.floor(delay));
         const due = kind === 'run' ? tick + (this.running ? 1 : 0) : tick + wait;

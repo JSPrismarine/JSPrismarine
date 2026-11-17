@@ -8,6 +8,8 @@
  * entity is gone, `isValid` is false, `id` and `typeId` still answer, and every other member
  * throws BDS's `InvalidEntityError`, as the `entities` scenario recorded.
  */
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import { ScriptApiError } from '../errors';
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
 import type { ScriptValue } from '../values';
@@ -142,7 +144,7 @@ const runCommand = (host: PackHost, command: ScriptValue, source: ScriptCommandS
 /** Builds a script array of entity objects, which the caller returns. */
 const entityArray = (host: PackHost, entities: readonly ScriptEntityState[]): ScriptHandle => {
     const array = host.engine.evaluate('[]');
-    if (!(array instanceof ScriptHandle)) throw new TypeError('An array literal evaluated to a primitive');
+    if (!(array instanceof ScriptHandle)) throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'array' });
     entities.forEach((entity, index) => host.engine.set(array, String(index), host.entity(entity)));
     return host.engine.release(array);
 };
@@ -187,7 +189,8 @@ export const implementEntities = (implementations: ScriptApiImplementations, hos
         )
         .implement(SERVER, 'Dimension', 'spawnEntity', (call) => {
             const [identifier] = call.args;
-            if (typeof identifier !== 'string') throw new TypeError('The entity type is not a string');
+            if (typeof identifier !== 'string')
+                throw new ScriptHostErrors.ArgumentNotOfType({ argument: 'entity type', type: 'string' });
             const typeId = withNamespace(identifier);
             const location = vectorArgument(call, 1);
             const spawned = world.spawnEntity(call.state, typeId, location);

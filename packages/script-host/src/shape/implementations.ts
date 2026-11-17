@@ -1,3 +1,5 @@
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import type { ScriptApiMembers } from '../generated/scriptApi';
 import type { ScriptEngine } from '../ScriptEngine';
 import type { ScriptValue } from '../values';
@@ -116,7 +118,7 @@ export class ScriptApiImplementations {
         options: ImplementationOptions = {}
     ): this {
         const key = keyOf(module, owner, member);
-        if (this.entries.has(key)) throw new Error(`${owner}.${member} from ${module} is implemented twice`);
+        if (this.entries.has(key)) throw new ScriptHostErrors.ImplementedTwice({ owner, member, module });
         this.entries.set(key, implementation);
         if (options.converts !== undefined) this.converted.set(key, options.converts);
         return this;

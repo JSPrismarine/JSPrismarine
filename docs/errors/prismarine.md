@@ -2097,6 +2097,15 @@ Thrown as `PrismarineServerErrors.ContentReadTooEarly`, which extends `Error`.
 Code read the server's content before its packs were loaded, such as a plugin that runs too
 early in startup.
 
+### `PRISMARINE_CONTENT_SETTINGS_READ_BEFORE_BUILD`
+
+`The content settings are read with the content build`
+
+Thrown as `PrismarineServerErrors.ContentSettingsReadBeforeBuild`, which extends `Error`.
+
+Code read the content settings, such as the world pack directories, before the server built
+its content, which reads them. This is a bug in the server; report it with the stack trace.
+
 ### `PRISMARINE_CONTENT_WORLD_READ_BEFORE_CONTENT`
 
 `the content world was read before the content was built`
@@ -3241,6 +3250,16 @@ Thrown as `PrismarineWorldErrors.UnknownSavedBlock`, which extends `Error`.
 
 The world holds a block the server's content does not define, usually one a plugin or pack
 added that is no longer loaded. Load it again, or remove the block.
+
+### `PRISMARINE_UNKNOWN_SCOREBOARD_PARTICIPANT`
+
+`No scoreboard participant has the id {participant}`
+
+Thrown as `PrismarineWorldErrors.UnknownScoreboardParticipant`, which extends `RangeError`.
+
+Code asked the scoreboard for a participant by an id the scoreboard never gave out, or one it
+has since removed. Look a participant up by its entity or fake player name instead, or check
+that the id came from this world's scoreboard.
 
 ### `PRISMARINE_UNKNOWN_WORLD_PRESET`
 

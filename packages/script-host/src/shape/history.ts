@@ -1,3 +1,5 @@
+import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+
 import type { ModuleHistory, ModuleVersion, Segment, ShapeDeclaration, ShapeMember } from './format.ts';
 
 /** One declaration as a single version has it. */
@@ -26,8 +28,7 @@ const covering = <Value>(
 ): Value | undefined => {
     const at = (version: string): number => {
         const index = order.get(version);
-        if (index === undefined)
-            throw new RangeError(`A segment names the version ${version}, which the history lacks`);
+        if (index === undefined) throw new ScriptHostErrors.SegmentVersionMissing({ version });
         return index;
     };
     for (const segment of segments) {
@@ -53,7 +54,7 @@ const withoutRange = <Value>(segment: Segment<Value>): Value => {
 export const shapeAt = (history: ModuleHistory, version: string): ModuleShape => {
     const position = history.versions.findIndex((entry) => entry.version === version);
     const entry = history.versions[position];
-    if (entry === undefined) throw new RangeError(`${history.module} has no version ${version}`);
+    if (entry === undefined) throw new ScriptHostErrors.ModuleVersionMissing({ module: history.module, version });
     const order = new Map(history.versions.map((each, index) => [each.version, index]));
     const newest = history.versions.length - 1;
 
