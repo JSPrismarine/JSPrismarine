@@ -107,6 +107,11 @@
                 "import": "./dist/host/pack.js",
                 "module": "./dist/host/pack.js"
             },
+            "./host/gametest": {
+                "types": "./dist/host/gametest.d.ts",
+                "import": "./dist/host/gametest.js",
+                "module": "./dist/host/gametest.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -198,6 +203,10 @@
         "./host/pack": {
             "jsprismarine:dist": "./dist/host/pack.js",
             "default": "./src/host/pack.ts"
+        },
+        "./host/gametest": {
+            "jsprismarine:dist": "./dist/host/gametest.js",
+            "default": "./src/host/gametest.ts"
         },
         "./package.json": "./package.json"
     },

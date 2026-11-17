@@ -12,6 +12,7 @@ import type {
     ScriptEntityState,
     ScriptItem,
     ScriptItemType,
+    ScriptSimulatedPlayers,
     ScriptVector3,
     ScriptWeather,
     ScriptWorld,
@@ -106,6 +107,39 @@ export class MemoryWorld implements ScriptWorld {
     public chat(sender: string, message: string): void {
         for (const guard of this.chatGuards) if (guard({ sender, message }).veto) return;
         this.chats.push(`${sender}: ${message}`);
+        this.committed.push({ type: 'chatSend', sender, message });
+    }
+
+    /** What the simulated players were told to do, as `<id> <action kind>`, and the ticks they moved. */
+    public readonly acted: string[] = [];
+    public simulatedTicks = 0;
+    /** The structures placed, as `<dimension> <x> <y> <z> <bytes>`. */
+    public readonly structures: string[] = [];
+
+    /** The world's simulated players: players who join and leave as any other, with no client. */
+    public readonly simulatedPlayers: ScriptSimulatedPlayers = {
+        spawn: (name, dimension, location) => {
+            const id = this.join(name);
+            const player = this.live.get(id);
+            if (player !== undefined) {
+                player.dimension = dimension;
+                player.location = { ...location };
+            }
+            return id;
+        },
+        remove: (id) => this.leave(id),
+        act: (id, action) => {
+            this.acted.push(`${id} ${action.kind}`);
+            if (action.kind === 'chat') this.chat(id, action.message);
+            return action.kind === 'jump';
+        },
+        tick: () => {
+            this.simulatedTicks++;
+        }
+    };
+
+    public placeStructure(dimension: string, { x, y, z }: ScriptVector3, structure: Uint8Array): void {
+        this.structures.push(`${dimension} ${x} ${y} ${z} ${structure.length}`);
     }
 
     /** How many guards the runtime still has on the world's actions. */
