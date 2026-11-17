@@ -90,6 +90,8 @@ export interface ProbeOptions {
     readonly keep?: readonly string[];
     /** The world's random draws while the probe runs, replayed in a loop. */
     readonly random?: readonly number[];
+    /** The tags the world's biome carries while the probe runs, such as Bedrock's `overworld`. */
+    readonly biomeTags?: readonly string[];
     /** Entity-specific spawn data, such as where a dragon's fight is centered; given the patch origin. */
     readonly data?: (origin: EntityPosition) => Readonly<Record<string, unknown>>;
 }
@@ -156,6 +158,8 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
         return { x: Math.floor(where.x), y: Math.floor(where.y), z: Math.floor(where.z) };
     };
     draws.replay(options.random ?? [0.5]);
+    const biomeTags = world.biomeTags;
+    if (options.biomeTags !== undefined) world.biomeTags = options.biomeTags;
 
     const spawned: DataEntity[] = [];
     const players: ContentEntity[] = [];
@@ -234,6 +238,7 @@ export const withProbe = <T>(bedrock: string, options: ProbeOptions, body: (prob
     } finally {
         for (const other of spawned) if (other.removed === undefined) runtime.remove(other.id, 'parity probe');
         world.players = world.players.filter((player) => !players.includes(player));
+        world.biomeTags = biomeTags;
         draws.replay([0.5]);
     }
 };

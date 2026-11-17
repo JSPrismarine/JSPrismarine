@@ -252,11 +252,6 @@
         }
     },
     "entities.behavior": {
-        "breeding-cycle:minecraft:ocelot": {
-            "kind": "defect",
-            "reason": "A fed adult falls in love for 600 ticks, a pair breeds a baby of Java's type, and both parents wait 6000 ticks before breeding again. Observed: feeding it minecraft:cod puts it in love for 0 ticks, where Java's lasts 600.",
-            "reference": "Java Animal.setInLove (600), Animal.finalizeSpawnChildFromBreeding (setAge(6000) on both parents), AbstractHorse and Llama handleEating, and getBreedOffspring of each animal; issue #2911 (bee and wolf food)"
-        },
         "breeze-ground-sound:minecraft:breeze": {
             "kind": "intentional",
             "reason": "The sensor only picks the idle ground sound, which is sound selection: rendered presentation, category 1 of docs/data-driven/parity.md.",
@@ -266,11 +261,6 @@
             "kind": "intentional",
             "reason": "The player's client moves its own body in both editions and the server accepts the result (exclusion 3 of the parity claim: client-predicted simulation).",
             "reference": "Java LivingEntity.onClimbable (block tag minecraft:climbable) and handleOnClimbable (fall clamped to -0.15)"
-        },
-        "conversions:minecraft:skeleton": {
-            "kind": "defect",
-            "reason": "A mob converts into Java's type on each cause Java converts it on, after as many ticks as Java takes, and a mob Java never converts stays what it is. Observed: got_in_powder_snow converts it after 741 to 741 ticks, where the Skeleton freezing ConversionTracker (140 ticks in powder snow, then 300) takes 441 to 441.",
-            "reference": "Java ConversionTracker (Zombie, Husk, Skeleton), AbstractPiglin and Hoglin CONVERSION_TIME, Pig.thunderHit, Villager.thunderHit, Zombie.killedEntity, ZombieVillager.startConverting, MushroomCow.shear and Tadpole.ageUp; issue #3157"
         },
         "despawn-distance:minecraft:armadillo": {
             "kind": "intentional",
@@ -442,10 +432,10 @@
             "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
             "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
-        "goal-avoid-mob-type:minecraft:phantom": {
+        "drowned-blow-knockback:minecraft:drowned": {
             "kind": "defect",
-            "reason": "A mob flees from the classes its AvoidEntityGoals name once one is within maxDist, walking at walkSpeedModifier and sprinting at sprintSpeedModifier when the threat is within 7 blocks. Observed: Java's minecraft:phantom registers no AvoidEntityGoal, but the server runs minecraft:behavior.avoid_mob_type. Tracked in #3130.",
-            "reference": "Java AvoidEntityGoal.canUse and tick, and each mob's avoid classes, distances and speeds read from the pinned jar"
+            "reason": "A drowned's blow pushes a target in water as any blow of its size does, since Java's Drowned keeps LivingEntity.knockback. Observed: its blow pushes a zombie in water 0.000 sideways, where Java pushes it 0.400.",
+            "reference": "Java Drowned, Zombie and Mob.doHurtTarget, LivingEntity.dealDefaultKnockback (knockback(0.4F)) and LivingEntity.knockback, read from the pinned jar; issue #3221"
         },
         "goal-controlled_by_player:minecraft:pig": {
             "kind": "intentional",
@@ -456,71 +446,6 @@
             "kind": "intentional",
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
             "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
-        },
-        "goal-find_cover:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox in daylight looks for shade: it walks under a roof when it stands in the sun. Observed: it stayed in the sun beside a roof.",
-            "reference": "Java Fox.SeekShelterGoal (FleeSunGoal subclass: in sunlight, walk to a spot that cannot see the sky); issue #3131 if it differs"
-        },
-        "goal-melee-box-attack:minecraft:blaze": {
-            "kind": "defect",
-            "reason": "A mob chases its target at its MeleeAttackGoal speed and swings once every adjustedTickDelay(20) ticks while in reach. Observed: Java's minecraft:blaze registers no MeleeAttackGoal, but the server runs minecraft:behavior.melee_box_attack. Tracked in #3130.",
-            "reference": "Java MeleeAttackGoal.start, checkAndPerformAttack and resetAttackCooldown, and each mob's speed read from the pinned jar"
-        },
-        "goal-mount-pathing:minecraft:camel_husk": {
-            "kind": "defect",
-            "reason": "A mob riding another mob steers it, as Java's Mob.getControllingPassenger has it. Observed: its walk does not move the chicken it rides, which Java's rider steers. Tracked in #3130.",
-            "reference": "Java Mob.getControllingPassenger, Mob.getNavigation and Mob.updateControlFlags, read from the pinned jar, which registers no mount_pathing goal in any class"
-        },
-        "goal-nearest-attackable-target:minecraft:phantom": {
-            "kind": "defect",
-            "reason": "A mob targets the nearest entity of each class its NearestAttackableTargetGoals name, within its follow range, scanning on one selector tick in reducedTickDelay(randomInterval). Observed: Java's minecraft:phantom registers no NearestAttackableTargetGoal, but the server runs minecraft:behavior.nearest_attackable_target. Tracked in #3130.",
-            "reference": "Java NearestAttackableTargetGoal and TargetGoal.getFollowDistance, each mob's registerGoals target classes read from the pinned jar, and the follow_range attribute from the Java attribute dump"
-        },
-        "goal-random-swim:minecraft:elder_guardian": {
-            "kind": "defect",
-            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:elder_guardian registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
-            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
-        },
-        "goal-random-swim:minecraft:guardian": {
-            "kind": "defect",
-            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:guardian registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
-            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
-        },
-        "goal-random-swim:minecraft:turtle": {
-            "kind": "defect",
-            "reason": "A swimming mob starts a swim on one selector tick in reducedTickDelay(interval) and swims at its goal speed. Observed: Java's minecraft:turtle registers no RandomSwimmingGoal, but the server runs minecraft:behavior.random_swim. Tracked in #3130.",
-            "reference": "Java RandomSwimmingGoal, which extends RandomStrollGoal, and each mob's interval and speed read from the pinned jar"
-        },
-        "goal-ranged-attack:minecraft:blaze": {
-            "kind": "defect",
-            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:blaze registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
-            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
-        },
-        "goal-ranged-attack:minecraft:ghast": {
-            "kind": "defect",
-            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:ghast registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
-            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
-        },
-        "goal-ranged-attack:minecraft:shulker": {
-            "kind": "defect",
-            "reason": "A ranged mob walks toward its target at its goal speed until the target is within its attack radius, then holds its ground and shoots. Observed: Java's minecraft:shulker registers no RangedAttackGoal or RangedBowAttackGoal or RangedCrossbowAttackGoal, but the server runs minecraft:behavior.ranged_attack. Tracked in #3130.",
-            "reference": "Java RangedAttackGoal, RangedBowAttackGoal and RangedCrossbowAttackGoal tick, and each mob's radius and speed read from the pinned jar"
-        },
-        "goal-skeleton_horse_trap:minecraft:skeleton_horse": {
-            "kind": "deferred",
-            "reason": "Java's trap enchants each skeleton's bow and helmet through the mob_spawn_equipment enchantment provider, a registry the server does not load yet (#2912); everything else about the trap matches Java.",
-            "reference": "Java SkeletonTrapGoal.canUse (hasNearbyAlivePlayer within 10) and tick (setVisualOnly bolt, createSkeleton with an iron helmet when its head slot is empty and its main hand and head enchanted by VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, riding the trap horse and three more from createHorse, setTrap(false)); issue #2912 if it differs"
-        },
-        "goal-stalk_and_pounce_on_target:minecraft:fox": {
-            "kind": "defect",
-            "reason": "A fox stalks its prey and pounces on it, hurting it. Observed: it never pounced on its prey within 300 ticks.",
-            "reference": "Java Fox.StalkPreyGoal and Fox.FoxPounceGoal (leap at the target, then doHurtTarget on landing); issue #3131 if it differs"
-        },
-        "home-range:minecraft:bee": {
-            "kind": "defect",
-            "reason": "A mob Java gives a home keeps it from where Java takes it, and its random wandering stays within the radius Java's setHomeTo gives it, or within none. Observed: the server holds its wandering within 22 blocks of home, where Java holds it to no radius.",
-            "reference": "Java Turtle.finalizeSpawn, PiglinBruteAi.initMemories, every Mob.setHomeTo call (HappyGhast and AbstractNautilus checkRestriction, ElderGuardian.customServerAiStep, WanderingTraderSpawner.spawn), GoalUtils.mobRestricted and isRestricted, and Bee$BeeWanderGoal.getWanderThreshold; issues #3159 and #3170 (the bee)"
         },
         "java-rule-lava_movement:minecraft:strider": {
             "kind": "defect",
@@ -601,6 +526,11 @@
             "kind": "intentional",
             "reason": "Input handling (category 2 of docs/data-driven/parity.md): which entity a crosshair inside a box picks follows the player's device, not the server. Java decides it only in the client: Entity.canBePickedFromInside is read by ProjectileUtil.getEntityHitResult(Entity, Vec3, Vec3, AABB, Predicate, double), which no class of the pinned 26.3 server jar calls (the client's GameRenderer.pick does), and the server takes a blow from a player standing inside the box at reach 0 either way.",
             "reference": "Java Entity.canBePickedFromInside and SulfurCube.canBePickedFromInside (!hasBodyItem), read only by ProjectileUtil.getEntityHitResult(..., double), whose caller is the client GameRenderer.pick; ServerGamePacketListenerImpl.handleInteract measures reach to the bounding box"
+        },
+        "player-blow-on-sulfur-cube:minecraft:player": {
+            "kind": "defect",
+            "reason": "A player's blow on a sulfur cube carrying a block pushes it by the cube's archetype knockback, as Java's SulfurCube.knockback replaces the plain push. Observed: a player's blow pushes a sulfur cube carrying a block 0.400, the plain push any mob takes, where Java's SulfurCube.knockback sizes it by the cube's archetype and the player's aim.",
+            "reference": "Java SulfurCube.knockback (hasBodyItem, SulfurCubeArchetype$KnockbackModifiers horizontalPower and verticalPower, applyHorizontalHitAngleScale, applyVerticalHitAnglePowerTransfer, applyVerticalPositionAnglePowerRotation), read from the pinned jar"
         },
         "schedules:minecraft:fox": {
             "kind": "intentional",
@@ -891,21 +821,6 @@
             "kind": "intentional",
             "reason": "Bedrock spawns an ocelot with two kittens one time in seven, where Java's ocelot spawns alone. The litter is part of how Bedrock composes a natural spawn, and docs/data-driven/parity.md category 7 keeps Bedrock's spawn model.",
             "reference": "Java Chicken.aiStep and gameplay/chicken_lay, Armadillo.pickNextScuteDropTime and gameplay/armadillo_shed, CopperGolem.shear, Drowned.finalizeSpawn, Sniffer.spawnChildFromBreeding and WanderingTraderSpawner.spawn"
-        },
-        "target-range:minecraft:creeper": {
-            "kind": "defect",
-            "reason": "A mob that acts on its target's distance starts and stops at Java's distances. Observed: minecraft:start_exploding fires at 3 blocks as the target closes in, where SwellGoal: swells once distanceToSqr < 9 and stops past distanceToSqr > 49 acts at 2.75.",
-            "reference": "Java SwellGoal (creeper), Blaze$BlazeAttackGoal.tick, Guardian$GuardianAttackGoal.canContinueToUse and the Drowned goal setup (DrownedTridentAttackGoal before DrownedAttackGoal); issues #3129 (creeper) and #3158"
-        },
-        "timer-durations:minecraft:skeleton": {
-            "kind": "defect",
-            "reason": "Each Bedrock timer stands in for a Java countdown and runs as long as Java's, from its shortest draw to its longest. Observed: the become_stray_event timer runs 440 to 440 ticks, where Skeleton's freezing ConversionTracker (FreezingTime 140) gives 140 to 140.",
-            "reference": "Java AbstractBoat.BUBBLE_TIME, AllayAi.ITEM_PICKUP_COOLDOWN_DURATION, Armadillo.SCARE_CHECK_INTERVAL, the Bee and BeehiveBlockEntity constants, CopperGolem.WEATHERING_TICK_FROM and _TO, Guardian$GuardianAttackGoal, AbstractPiglin and Hoglin CONVERSION_TIME, the Zombie and Skeleton ConversionTrackers, Pufferfish.tick, Ravager.STUN_DURATION, SulfurCube.PICKUP_TIMER_DURATION, Evoker$EvokerSummonSpellGoal and WanderingTraderSpawner.spawn; issue #3157"
-        },
-        "trader-upkeep:minecraft:villager": {
-            "kind": "defect",
-            "reason": "A villager restocks at most twice a day and never within 2400 ticks of its last restock, and a wandering trader leaves 48000 ticks after it arrives. Observed: the villager has no trades to restock.",
-            "reference": "Java Villager.allowedToRestock (numberOfRestocksToday < 2, gameTime > lastRestockGameTime + 2400) and WanderingTrader.maybeDespawn with WanderingTraderSpawner.setDespawnDelay(48000); issue #3157"
         },
         "unrun-components:minecraft:ravager": {
             "kind": "defect",

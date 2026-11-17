@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import type { EntityPosition } from '@jsprismarine/entities';
 import { bedrockBlockStateToJava, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import type { BlockStateValue } from '@jsprismarine/mapping';
 
@@ -8,10 +12,12 @@ import { isInDragonArena } from '@jsprismarine/prismarine/world/end/DragonFight'
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { javaOperations, pinnedJavaClass } from '../javaClassFile.ts';
+import { unpackVanillaDatapack } from '../javaDatapack.ts';
 import { withProbe } from './goalProbe.ts';
-import { javaAncestry, javaEntityClassName, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
+import { inSandbox, SANDBOX_ORIGIN } from './sandbox.ts';
+import { javaAncestry, javaEntityClassName, javaMethodOf, numberNear, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
-import { entitiesDeclaring } from './subjects.ts';
+import { entitiesDeclaring, field } from './subjects.ts';
 
 /**
  * The last entity rows of the parity tracker: behavior no earlier theme measured, each compared
@@ -510,6 +516,292 @@ const compareCamelHuskLead = (subject: EntitySubject): string | undefined => {
     return differences.length === 0 ? undefined : differences.join('; ');
 };
 
+/** The push `LivingEntity.dealDefaultKnockback` gives a blow with an attacker, `knockback(0.4F, ...)`, read from the pinned jar. */
+const javaBlowKnockback = (): number | undefined => {
+    const method = pinnedJavaClass('net/minecraft/world/entity/LivingEntity').find(
+        (candidate) => candidate.name === 'dealDefaultKnockback'
+    );
+    const push = method === undefined ? undefined : numberNear(method, '.knockback', 'before');
+    return push === undefined ? undefined : Math.fround(push);
+};
+
+/**
+ * A drowned's blow on a mob in water against Java's: neither `Drowned` nor `Zombie` overrides
+ * the knockback a blow gives, so what it hits is pushed by `LivingEntity.hurtServer`'s 0.4, as
+ * by any other blow, and never pulled under.
+ */
+const compareDrownedKnockback = (subject: EntitySubject): string | undefined => {
+    const className = javaEntityClassName(subject.javaId);
+    const knockback = javaMethodOf(className, 'knockback');
+    if (knockback === undefined || knockback.owner !== 'LivingEntity')
+        return `Java's drowned now pushes what it hits by ${knockback?.owner ?? 'nothing'}.knockback`;
+    const java = javaBlowKnockback();
+    if (java === undefined) return "Java's LivingEntity.dealDefaultKnockback pushes no blow back";
+    const pushed = inSandbox(subject.bedrock, 'minecraft:water', (sandbox) => {
+        const { runtime } = sandbox.stack;
+        const drowned = runtime.bodyOf(sandbox.entity.instance);
+        const target = runtime.spawn('minecraft:zombie', { ...SANDBOX_ORIGIN, x: SANDBOX_ORIGIN.x + 1.5 });
+        const mob = target === undefined ? undefined : runtime.mobById(target.id);
+        if (drowned === undefined || target === undefined || mob === undefined)
+            return 'the sandbox could not put a zombie in the water beside it';
+        target.body.velocity = { x: 0, y: 0, z: 0 };
+        runtime.attack(drowned, mob);
+        return {
+            velocity: target.body.velocity,
+            resistance: target.facts.knockbackResistance,
+            landed:
+                (target.instance.attributes.get('health')?.current ?? 0) <
+                (target.instance.attributes.get('health')?.max ?? 0)
+        };
+    });
+    if (typeof pushed === 'string') return pushed;
+    if (!pushed.landed) return 'its blow never landed on the zombie beside it';
+    const expected = java * (1 - pushed.resistance);
+    const sideways = Math.hypot(pushed.velocity.x, pushed.velocity.z);
+    const differences: string[] = [];
+    if (Math.abs(sideways - expected) > 0.02)
+        differences.push(
+            `its blow pushes a zombie in water ${sideways.toFixed(3)} sideways, where Java pushes it ${expected.toFixed(3)}`
+        );
+    if (pushed.velocity.y < -0.001)
+        differences.push(
+            `its blow pulls a zombie in water down by ${(-pushed.velocity.y).toFixed(3)}, where Java never does`
+        );
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
+/**
+ * A player's blow on a sulfur cube carrying a block against Java's `SulfurCube.knockback`, which
+ * replaces the plain push with one its archetype's knockback modifiers size, aimed by where the
+ * player looks; the pack writes those as the player's `minecraft:apply_knockback_rules`.
+ */
+const comparePlayerCubeKnockback = (): string | undefined => {
+    const cube = pinnedJavaClass('net/minecraft/world/entity/monster/cubemob/SulfurCube').find(
+        (method) => method.name === 'knockback'
+    );
+    if (cube === undefined || !cube.calls.some((call) => call.endsWith('KnockbackModifiers.horizontalPower')))
+        return "Java's sulfur cube no longer takes its archetype's knockback";
+    const pushes = withProbe('minecraft:zombie', { keep: [] }, (probe) => {
+        const player = probe.player(-1.5, 0, 0);
+        const sulfur = probe.spawn('minecraft:sulfur_cube', 3, 0, 0);
+        sulfur.body.setEquipment({ ...sulfur.body.equipment, body: { identifier: 'minecraft:stone', count: 1 } });
+        const blow = (
+            target: { readonly id: number; readonly body: { velocity: EntityPosition } },
+            from: EntityPosition
+        ) => {
+            target.body.velocity = { x: 0, y: 0, z: 0 };
+            probe.runtime.damage({
+                target: target.id,
+                attacker: player,
+                cause: 'entity_attack',
+                amount: 1,
+                source: { route: 'melee', knockback: { origin: from, levels: 0 } }
+            });
+            return Math.hypot(target.body.velocity.x, target.body.velocity.z);
+        };
+        return {
+            cube: blow(sulfur, probe.at(1.5, 0, 0)),
+            plain: blow(probe.entity, probe.at(-1.5, 0, 0))
+        };
+    });
+    return Math.abs(pushes.cube - pushes.plain) < 0.001
+        ? `a player's blow pushes a sulfur cube carrying a block ${pushes.cube.toFixed(3)}, the plain push any mob takes, where Java's SulfurCube.knockback sizes it by the cube's archetype and the player's aim`
+        : undefined;
+};
+
+/** The contact damage of a Java sulfur cube archetype, as `data/minecraft/sulfur_cube_archetype` writes it. */
+const javaContactDamage = (archetype: string): number | undefined => {
+    const path = join(unpackVanillaDatapack(), 'data', 'minecraft', 'sulfur_cube_archetype', `${archetype}.json`);
+    // Parsed JSON boundary: the datapack file is the archetype's registry entry.
+    const data: unknown = JSON.parse(readFileSync(path, 'utf-8'));
+    const amount = field(field(data, 'contact_damage'), 'amount');
+    return typeof amount === 'number' ? amount : undefined;
+};
+
+/**
+ * A hot sulfur cube's touch against Java's: `SulfurCube.doPush` hurts what it pushes by its
+ * archetype's contact damage, the `hot` archetype's 1.
+ */
+const compareHotCubeTouch = (subject: EntitySubject): string | undefined => {
+    const java = javaContactDamage('hot');
+    if (java === undefined) return "Java's hot sulfur cube no longer hurts what it touches";
+    const pushes = pinnedJavaClass('net/minecraft/world/entity/monster/cubemob/SulfurCube').find(
+        (method) => method.name === 'doPush'
+    );
+    if (pushes === undefined || !pushes.calls.some((call) => call.endsWith('.applyContactDamage')))
+        return "Java's sulfur cube no longer hurts what it pushes";
+    const taken = inSandbox(subject.bedrock, 'air', (sandbox) => {
+        const { instance } = sandbox.entity;
+        const group = 'minecraft:sulfur_cube_hot';
+        if (!instance.type.groups.has(group)) return `the server type has no ${group}`;
+        instance.restoreComponentGroups([...instance.activeComponentGroups(), group]);
+        const victim = sandbox.stack.runtime.spawn('minecraft:zombie', SANDBOX_ORIGIN);
+        if (victim === undefined) return 'the sandbox could not put a zombie against it';
+        let hurt = 0;
+        const before = sandbox.stack.world.commits.length;
+        sandbox.tick(5);
+        for (const commit of sandbox.stack.world.commits.slice(before))
+            if (commit.target.id === victim.id) hurt = Math.max(hurt, commit.taken);
+        return hurt;
+    });
+    if (typeof taken === 'string') return taken;
+    return Math.abs(taken - java) < 1e-6
+        ? undefined
+        : `touching a zombie it takes ${taken} off it, where Java's hot cube takes ${java}`;
+};
+
+/** Whether an explosive sulfur cube standing on a block, a redstone block or stone, primes within a few ticks. */
+const explosiveCubePrimes = (bedrock: string, ground: string): boolean | string =>
+    withProbe(bedrock, { keep: [] }, (probe) => {
+        probe.block(0, -1, 0, ground);
+        const { instance } = probe.entity;
+        instance.raise('minecraft:on_block_absorbed', 'self', 'parity');
+        instance.raise('minecraft:become_explosive', 'self', 'parity');
+        probe.tick(2);
+        if (instance.properties.get('minecraft:sulfur_cube_archetype') !== 'explosive')
+            return 'the probe cannot make it an explosive cube';
+        probe.tick(5);
+        return instance.hasComponent('minecraft:explode');
+    });
+
+/**
+ * An explosive sulfur cube against Java's `SulfurCube.primeWhenOnPoweredPosition`: it primes
+ * itself on a block that redstone powers, `getBestOwnOrNeighbourSignal` above 0, and not elsewhere.
+ */
+const compareCubePriming = (subject: EntitySubject): string | undefined => {
+    const primes = pinnedJavaClass('net/minecraft/world/entity/monster/cubemob/SulfurCube').find(
+        (method) => method.name === 'primeWhenOnPoweredPosition'
+    );
+    if (primes === undefined || !primes.calls.some((call) => /\.getBestOwnOrNeighbou?rSignal$/.test(call)))
+        return "Java's sulfur cube no longer primes on a powered block";
+    const differences: string[] = [];
+    for (const [ground, java] of [
+        ['minecraft:redstone_block', true],
+        ['minecraft:stone', false]
+    ] as const) {
+        const server = explosiveCubePrimes(subject.bedrock, ground);
+        if (typeof server === 'string') return server;
+        if (server !== java)
+            differences.push(
+                `on ${ground} it ${server ? 'primes' : 'never primes'}, where Java's ${java ? 'primes' : 'stays unprimed'}`
+            );
+    }
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
+/** One keyframed track of `data/minecraft/timeline/day.json`, as the pinned datapack writes it. */
+const dayTrack = (attribute: string): readonly { readonly ticks: number; readonly value: unknown }[] => {
+    const path = join(unpackVanillaDatapack(), 'data', 'minecraft', 'timeline', 'day.json');
+    // Parsed JSON boundary: the datapack file is the day timeline's registry entry.
+    const data: unknown = JSON.parse(readFileSync(path, 'utf-8'));
+    const keyframes = field(field(field(data, 'tracks'), attribute), 'keyframes');
+    if (!Array.isArray(keyframes)) return [];
+    return keyframes.flatMap((frame) => {
+        const ticks = field(frame, 'ticks');
+        return typeof ticks === 'number' ? [{ ticks, value: field(frame, 'value') }] : [];
+    });
+};
+
+/** A boolean timeline track's value at a day time: the last keyframe at or before it, wrapping at midnight. */
+const trackOn = (frames: readonly { readonly ticks: number; readonly value: unknown }[], time: number): boolean => {
+    const before = frames.filter((frame) => frame.ticks <= time);
+    return (before.at(-1) ?? frames.at(-1))?.value === true;
+};
+
+/**
+ * Java's `Level.isBrightOutside` in clear weather: `getSkyDarken() < 4`, the darkness 15 less the
+ * day timeline's `sky_light_level` multiplier of 15, interpolated between keyframes.
+ */
+const javaBrightOutside = (time: number): boolean => {
+    const frames = dayTrack('minecraft:gameplay/sky_light_level').map((frame) => ({
+        ticks: frame.ticks,
+        value: typeof frame.value === 'number' ? frame.value : 1
+    }));
+    const extended = [...frames, ...frames.map((frame) => ({ ticks: frame.ticks + 24_000, value: frame.value }))];
+    const at = time < (frames[0]?.ticks ?? 0) ? time + 24_000 : time;
+    const index = extended.findIndex(
+        (frame, position) => frame.ticks <= at && (extended[position + 1]?.ticks ?? Infinity) > at
+    );
+    const from = extended[index];
+    const to = extended[index + 1] ?? from;
+    if (from === undefined || to === undefined) return true;
+    const multiplier =
+        to.ticks === from.ticks
+            ? from.value
+            : from.value + ((to.value - from.value) * (at - from.ticks)) / (to.ticks - from.ticks);
+    return Math.trunc(Math.fround(15 - Math.fround(15 * Math.fround(multiplier)))) < 4;
+};
+
+/** The day times the night-window sensors are tried at: each side of every Java and Bedrock edge. */
+const NIGHT_PROBE_TIMES = [6_000, 12_100, 12_560, 12_600, 12_700, 18_000, 23_420, 23_470, 23_700] as const;
+
+/** What one entity's night sensor makes of the time of day, and Java's rule for it. */
+interface NightSensor {
+    /** Java's answer at a day time. */
+    readonly java: (time: number) => boolean;
+    /** What the answer means, for the difference. */
+    readonly meaning: string;
+    /** The groups the probe adds, and whether the entity's state now says yes. */
+    readonly groups: readonly string[];
+    /** The biome tags the probe world carries, when the sensor reads one. */
+    readonly biomeTags?: readonly string[];
+    readonly server: (instance: EntitySubjectInstance) => boolean;
+}
+
+type EntitySubjectInstance = Parameters<NonNullable<Parameters<typeof withProbe>[2]>>[0]['entity']['instance'];
+
+const NIGHT_SENSORS: Readonly<Record<string, NightSensor>> = {
+    'minecraft:bee': {
+        java: (time) => trackOn(dayTrack('minecraft:gameplay/bees_stay_in_hive'), time),
+        meaning: 'heads for its hive',
+        groups: [],
+        // The pack's bee shelters only in a biome Bedrock tags `overworld`, which the plains are.
+        biomeTags: ['minecraft:plains', 'plains', 'overworld'],
+        server: (instance) => instance.activeComponentGroups().includes('return_to_home')
+    },
+    'minecraft:fox': {
+        java: (time) => javaBrightOutside(time),
+        meaning: 'keeps its daytime nap',
+        groups: [],
+        server: (instance) => instance.activeComponentGroups().includes('minecraft:fox_day')
+    },
+    'minecraft:creaking': {
+        java: (time) => !trackOn(dayTrack('minecraft:gameplay/creaking_active'), time),
+        meaning: 'crumbles away from its heart',
+        groups: ['minecraft:spawned_by_creaking_heart'],
+        server: (instance) => instance.properties.get('minecraft:creaking_state') === 'crumbling'
+    }
+};
+
+/**
+ * A night sensor against Java's timeline: at each probe time the entity's state follows Java's
+ * `bees_stay_in_hive`, `isBrightOutside` or `creaking_active` stretch of the day.
+ */
+const compareNightSensor = (subject: EntitySubject): string | undefined => {
+    const sensor = NIGHT_SENSORS[subject.javaId];
+    if (sensor === undefined) return `no Java night rule is recorded for ${subject.javaId}`;
+    const differences: string[] = [];
+    for (const time of NIGHT_PROBE_TIMES) {
+        const java = sensor.java(time);
+        const options = {
+            keep: [],
+            groups: sensor.groups,
+            ...(sensor.biomeTags === undefined ? {} : { biomeTags: sensor.biomeTags })
+        };
+        const server = withProbe(subject.bedrock, options, (probe) => {
+            const now = probe.world.world.level.dayTime();
+            probe.world.advance((time - now + 24_000) % 24_000);
+            probe.tick(3);
+            return sensor.server(probe.entity.instance);
+        });
+        if (server !== java)
+            differences.push(
+                `at day time ${time} it ${server ? '' : 'never '}${sensor.meaning}, where Java's ${java ? 'does' : 'does not'}`
+            );
+    }
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
 /** The scenarios of the finishing theme. */
 export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
@@ -594,5 +886,66 @@ export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:environment_sensor'],
         run: compareCamelHuskLead
+    },
+    {
+        name: 'drowned-blow-knockback',
+        java: "A drowned's blow pushes a target in water as any blow of its size does, since Java's Drowned keeps LivingEntity.knockback.",
+        reference:
+            'Java Drowned, Zombie and Mob.doHurtTarget, LivingEntity.dealDefaultKnockback (knockback(0.4F)) and LivingEntity.knockback, read from the pinned jar; issue #3221',
+        subjects: () =>
+            entitiesDeclaring('minecraft:apply_knockback_rules').filter(
+                (subject) => subject.javaId === 'minecraft:drowned'
+            ),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:apply_knockback_rules'],
+        run: compareDrownedKnockback
+    },
+    {
+        name: 'player-blow-on-sulfur-cube',
+        java: "A player's blow on a sulfur cube carrying a block pushes it by the cube's archetype knockback, as Java's SulfurCube.knockback replaces the plain push.",
+        reference:
+            'Java SulfurCube.knockback (hasBodyItem, SulfurCubeArchetype$KnockbackModifiers horizontalPower and verticalPower, applyHorizontalHitAngleScale, applyVerticalHitAnglePowerTransfer, applyVerticalPositionAnglePowerRotation), read from the pinned jar',
+        subjects: () =>
+            entitiesDeclaring('minecraft:apply_knockback_rules').filter(
+                (subject) => subject.javaId === 'minecraft:player'
+            ),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:apply_knockback_rules'],
+        run: comparePlayerCubeKnockback
+    },
+    {
+        name: 'hot-sulfur-cube-touch',
+        java: "A hot sulfur cube hurts a mob it pushes by its archetype's contact damage, 1, as Java's SulfurCube.doPush does.",
+        reference:
+            'Java SulfurCube.doPush and applyContactDamage (SulfurCubeArchetype$ContactDamage amount and damage type), and data/minecraft/sulfur_cube_archetype/hot.json, read from the pinned jar',
+        subjects: () =>
+            entitiesDeclaring('minecraft:area_attack').filter((subject) => subject.javaId === 'minecraft:sulfur_cube'),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:area_attack'],
+        run: compareHotCubeTouch
+    },
+    {
+        name: 'explosive-cube-primes-on-power',
+        java: "An explosive sulfur cube primes itself on a block redstone powers, as Java's SulfurCube.primeWhenOnPoweredPosition does every tick.",
+        reference:
+            'Java SulfurCube.tick, primeWhenOnPoweredPosition (canExplode, the best own or neighbor signal SignalGetter reads) and primeTime (TNT_EXPLODES), read from the pinned jar',
+        subjects: () =>
+            entitiesDeclaring('minecraft:environment_sensor').filter(
+                (subject) => subject.javaId === 'minecraft:sulfur_cube'
+            ),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:environment_sensor'],
+        run: compareCubePriming
+    },
+    {
+        name: 'night-window-sensors',
+        java: "A bee heads home through Java's bees_stay_in_hive stretch of the night, a fox naps while Java's level is bright outside, and a heart's creaking crumbles outside Java's creaking_active night.",
+        reference:
+            'Java Bee.wantsToEnterHive (BEES_STAY_IN_HIVE), Fox.canSleep (Level.isBrightOutside: getSkyDarken() < 4) and CreakingHeartBlock.isNaturalNight (CREAKING_ACTIVE), with the tracks of data/minecraft/timeline/day.json, read from the pinned jar',
+        subjects: () =>
+            entitiesDeclaring('minecraft:environment_sensor').filter((subject) => subject.javaId in NIGHT_SENSORS),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:environment_sensor'],
+        run: compareNightSensor
     }
 ];
