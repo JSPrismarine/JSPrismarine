@@ -1,0 +1,127 @@
+{
+    "module": "@minecraft/common",
+    "uuid": "77ec12b4-1b2b-4c98-8d34-d1cd63f849d5",
+    "versions": [
+        {"version":"1.0.0","stability":"stable","dependencies":{}},
+        {"version":"1.1.0","stability":"stable","dependencies":{}},
+        {"version":"1.2.0","stability":"stable","dependencies":{}},
+        {"version":"1.3.0","stability":"stable","dependencies":{}}
+    ],
+    "resolves": {"1":"1.3.0"},
+    "declarations": {
+        "ArgumentOutOfBoundsError": {
+            "segments": [
+                {"from":"1.0.0","kind":"error"}
+            ],
+            "members": {
+                "index": [
+                    {"from":"1.0.0","kind":"property","type":"int32","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "maxValue": [
+                    {"from":"1.0.0","kind":"property","type":{"kind":"optional","type":"double"},"readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "minValue": [
+                    {"from":"1.0.0","kind":"property","type":{"kind":"optional","type":"double"},"readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "value": [
+                    {"from":"1.0.0","kind":"property","type":{"kind":"optional","type":"double"},"readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "ContainerSizeOutOfBoundsError": {
+            "segments": [
+                {"from":"1.0.0","kind":"error"}
+            ],
+            "members": {
+                "maxValue": [
+                    {"from":"1.0.0","kind":"property","type":"uint32","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "EngineError": {
+            "segments": [
+                {"from":"1.1.0","kind":"error"}
+            ]
+        },
+        "InvalidArgumentError": {
+            "segments": [
+                {"from":"1.0.0","kind":"error"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.3.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"funcName","type":"string"},{"name":"argTypeName","type":"string"},{"name":"errorType","type":"InvalidArgumentErrorType"},{"name":"argIndex","type":{"kind":"optional","type":"int32"},"default":null}]}
+                ],
+                "index": [
+                    {"from":"1.0.0","kind":"property","type":"int32","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "type": [
+                    {"from":"1.2.0","kind":"property","type":"InvalidArgumentErrorType","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "InvalidArgumentErrorType": {
+            "segments": [
+                {"from":"1.2.0","kind":"enum"}
+            ],
+            "members": {
+                "Duplicate": [
+                    {"from":"1.2.0","kind":"constant","static":true,"type":"string","value":"Duplicate"}
+                ],
+                "Empty": [
+                    {"from":"1.2.0","kind":"constant","static":true,"type":"string","value":"Empty"}
+                ],
+                "InvalidType": [
+                    {"from":"1.3.0","kind":"constant","static":true,"type":"string","value":"InvalidType"}
+                ],
+                "Unknown": [
+                    {"from":"1.2.0","kind":"constant","static":true,"type":"string","value":"Unknown"}
+                ],
+                "Unspecified": [
+                    {"from":"1.2.0","kind":"constant","static":true,"type":"string","value":"Unspecified"}
+                ],
+                "UnsupportedValue": [
+                    {"from":"1.3.0","kind":"constant","static":true,"type":"string","value":"UnsupportedValue"}
+                ]
+            }
+        },
+        "NumberRange": {
+            "segments": [
+                {"from":"1.1.0","kind":"interface"}
+            ],
+            "members": {
+                "max": [
+                    {"from":"1.1.0","kind":"property","type":"float","readOnly":false}
+                ],
+                "min": [
+                    {"from":"1.1.0","kind":"property","type":"float","readOnly":false}
+                ]
+            }
+        },
+        "PropertyOutOfBoundsError": {
+            "segments": [
+                {"from":"1.2.0","kind":"error"}
+            ],
+            "members": {
+                "maxValue": [
+                    {"from":"1.2.0","kind":"property","type":{"kind":"optional","type":"double"},"readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "minValue": [
+                    {"from":"1.2.0","kind":"property","type":{"kind":"optional","type":"double"},"readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "value": [
+                    {"from":"1.2.0","kind":"property","type":"double","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "RuntimeConditionError": {
+            "segments": [
+                {"from":"1.2.0","kind":"error"}
+            ]
+        },
+        "UnsupportedFunctionalityError": {
+            "segments": [
+                {"from":"1.2.0","kind":"error"}
+            ]
+        }
+    }
+}
