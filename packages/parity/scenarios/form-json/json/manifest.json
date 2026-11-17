@@ -1,0 +1,29 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario form-json json",
+        "description": "Shows forms whose text, numbers and raw messages test how BDS writes form JSON. Written for packages/parity.",
+        "uuid": "f659d6f2-620c-43c2-86cf-2a81550d36f7",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "26c58d81-7217-413d-9614-e29d000c8a30",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        },
+        {
+            "module_name": "@minecraft/server-ui",
+            "version": "2.0.0"
+        }
+    ]
+}

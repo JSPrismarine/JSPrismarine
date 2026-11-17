@@ -30,7 +30,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `commands.*`    | <!-- fact:parity.families.commands -->tree, answers<!-- /fact --> | The published command tree against Mojang's Bedrock command metadata                                                  |
 | `gameplay.*`    | <!-- fact:parity.families.gameplay -->end-fight, brain-effects, combat-advancements, raids, datapack, mechanics, block-targets<!-- /fact --> | Sniffer digging loot, warden sonic-boom damage, and villager raid host effects against Java <!-- fact:java.version -->26.3<!-- /fact -->; the End crystal and dragon data used by the respawn fight; every entry of Java's vanilla datapack registries, by whether the server loads it; Java's game rules and villager professions, by whether the server runs them; a block position a packet names, refused out of reach or in an unloaded chunk in the order Java <!-- fact:java.version -->26.3<!-- /fact -->'s packet listener checks, without loading the chunk |
 | `protocol.*`    | <!-- fact:parity.families.protocol -->negotiation, wire-roundtrip, dimension-change<!-- /fact --> | Each registered protocol version negotiates its own codec from a real first packet; an unsupported version gets the right `PlayStatus` sidedness; declarative layouts re-encode a real server's bytes; the packet sequence a world change sends round-trips through every codec |
-| `scripting.*`   | <!-- fact:parity.families.scripting -->lifecycle, events, engine<!-- /fact --> | What behavior pack scripts record on the pinned Bedrock Dedicated Server against what the same packs record on JSPrismarine |
+| `scripting.*`   | <!-- fact:parity.families.scripting -->lifecycle, events, engine, ui<!-- /fact --> | What behavior pack scripts record on the pinned Bedrock Dedicated Server against what the same packs record on JSPrismarine |
 | `conformance.*` | <!-- fact:parity.families.conformance -->claim, classification, exclusions<!-- /fact --> | The claim, the table it counts, and the <!-- fact:parity.conformanceExclusions -->8<!-- /fact --> exclusions                                                              |
 
 ## Behavior scenarios
@@ -97,6 +97,13 @@ two records.
   packs record the event, because a GameTest can spawn a simulated player and the capture has no
   client. `chat-send` raises its chat that way. JSPrismarine has no GameTest runner yet, so such a
   scenario's row is a deferred gap.
+- A scenario with a `client` has a client join its world and answer the forms its scripts show,
+  one answer per form in the order the forms arrive: JSON text, a cancel reason, both, neither,
+  no answer, or leaving. The BDS capture joins a headless `@jsprismarine/client` once the server
+  is ready, and JSPrismarine's runner gives the level a player that answers at the world seam a
+  tick later. Both record the form packets the client received. The `scripting.ui` scenarios use
+  it, and stamp every observation with tick 0, since when an answer arrives depends on the
+  network.
 - `scenarios/<scenario>/config/` holds a scenario's module folders in BDS's `config/` layout. The
   capture copies them beside the server's shipped `config/default` for the run, and JSPrismarine's
   runner reads the same folder.
@@ -152,8 +159,11 @@ The golden holds the observations in log order across every pack of the scenario
 (`protocolVersion` and `serverVersion`). A refused pack runs no line, so the golden also keeps,
 under `refusals`, the first line of each plugin error the content log holds, from `Plugin [` on,
 such as `Plugin [my pack - 1.0.0] - failed to create context.`. A golden with no refused pack has
-no `refusals`. Two records match when they hold the same observations and the same refusals, each
-in the same order. [`src/scripting/record.ts`](src/scripting/record.ts) reads both sides.
+no `refusals`. A scenario with a client keeps, under `client`, each form packet the client
+received: a `ModalFormRequest` with its `formId` and its `json` exactly as it arrived, or a
+`ClientboundCloseForm`. Two records match when they hold the same observations, the same refusals
+and the same client packets, each in the same order. Form ids match when the same forms share an
+id, since no script sees them. [`src/scripting/record.ts`](src/scripting/record.ts) reads both sides.
 
 ### Capturing a golden
 
