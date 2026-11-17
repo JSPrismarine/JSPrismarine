@@ -345,6 +345,10 @@
             "jsprismarine:dist": "./dist/entity/identifierMapping.js",
             "default": "./src/entity/identifierMapping.ts"
         },
+        "./entity/playerAbilities": {
+            "jsprismarine:dist": "./dist/entity/playerAbilities.js",
+            "default": "./src/entity/playerAbilities.ts"
+        },
         "./entity/playerBreath": {
             "jsprismarine:dist": "./dist/entity/playerBreath.js",
             "default": "./src/entity/playerBreath.ts"
