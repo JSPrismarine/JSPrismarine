@@ -17,6 +17,14 @@ export interface ScriptApiLogger {
     warn(message: string): void;
 }
 
+/** What the host gave an instance it made, which every call of the instance's members receives. */
+export interface HostInstance {
+    /** The instance's {@link ScriptCall.tag}. */
+    readonly tag: number;
+    /** The instance's {@link ScriptCall.state}, or an empty string when it has none. */
+    readonly state: string;
+}
+
 /** How a {@link ScriptApiContext} binds. */
 export interface ScriptApiContextOptions {
     /** The pack whose scripts the context serves, as BDS's log names it, such as `my pack - 1.0.0`. */
@@ -109,6 +117,10 @@ export class ScriptApiContext {
     private readonly raiseFunction: ScriptHandle;
     private readonly errorFunction: ScriptHandle;
     private readonly tagFunction: ScriptHandle;
+    private readonly stateFunction: ScriptHandle;
+    private readonly setStateFunction: ScriptHandle;
+    private readonly stateOfFunction: ScriptHandle;
+    private readonly stringifyFunction: ScriptHandle;
     private readonly entries: MemberEntry[] = [];
     private readonly bound = new Map<string, { readonly shape: ModuleShape; readonly namespace: ScriptHandle }>();
     private destroyed = false;
@@ -123,7 +135,9 @@ export class ScriptApiContext {
         this.options = options;
         this.histories = options.histories ?? SCRIPT_MODULE_HISTORIES;
         const factory = handleOf(engine.evaluate(engineRuntimeSource(), '<jsp script api>'), 'The runtime');
-        const host = engine.hostFunction('scriptApi', (id, self, tag, ...args) => this.dispatch(id, self, tag, args));
+        const host = engine.hostFunction('scriptApi', (id, self, tag, state, ...args) =>
+            this.dispatch(id, self, tag, state, args)
+        );
         try {
             this.runtime = handleOf(engine.call(factory, undefined, host), 'The runtime');
         } finally {
@@ -135,6 +149,10 @@ export class ScriptApiContext {
         this.raiseFunction = handleOf(engine.get(this.runtime, 'raise'), 'raise');
         this.errorFunction = handleOf(engine.get(this.runtime, 'error'), 'error');
         this.tagFunction = handleOf(engine.get(this.runtime, 'tag'), 'tag');
+        this.stateFunction = handleOf(engine.get(this.runtime, 'state'), 'state');
+        this.setStateFunction = handleOf(engine.get(this.runtime, 'setState'), 'setState');
+        this.stateOfFunction = handleOf(engine.get(this.runtime, 'stateOf'), 'stateOf');
+        this.stringifyFunction = handleOf(engine.get(this.runtime, 'stringify'), 'stringify');
     }
 
     /**
@@ -171,21 +189,29 @@ export class ScriptApiContext {
      * return. The caller frees the handle.
      * @param tag - What the instance stands for, which every call of its members receives as
      *   {@link ScriptCall.tag}, such as an index into the host's own table.
+     * @param state - What the instance holds, which every call of its members receives as
+     *   {@link ScriptCall.state}, such as an entity's id. It lives as long as the instance does.
      * @throws {ScriptError} When the module or the class is not bound.
      */
-    public create(module: string, className: string, tag = 0): ScriptHandle {
-        return handleOf(this.engine.call(this.createFunction, this.runtime, module, className, tag), 'An instance');
+    public create(module: string, className: string, tag = 0, state = ''): ScriptHandle {
+        return handleOf(
+            this.engine.call(this.createFunction, this.runtime, module, className, tag, state),
+            'An instance'
+        );
     }
 
     /**
-     * The tag the host gave an instance when it made it, such as a `Player` passed to a member.
-     * @returns The tag, or undefined for a value the host did not make, which a script made with
+     * The tag and the state the host gave an instance when it made it, such as the entity a
+     * `Player` passed to a member carries.
+     * @returns Undefined for a value the host did not make, which a script made with
      *   `Object.create` or a constructor the host did not run.
      */
-    public tagOf(value: ScriptValue): number | undefined {
+    public identify(value: ScriptValue): HostInstance | undefined {
         if (!(value instanceof ScriptHandle)) return undefined;
         const tag = this.engine.call(this.tagFunction, this.runtime, value);
-        return typeof tag === 'number' && tag >= 0 ? tag : undefined;
+        if (typeof tag !== 'number' || tag < 0) return undefined;
+        const state = this.engine.call(this.stateFunction, this.runtime, value);
+        return { tag, state: typeof state === 'string' ? state : '' };
     }
 
     /**
@@ -220,6 +246,10 @@ export class ScriptApiContext {
             this.raiseFunction,
             this.errorFunction,
             this.tagFunction,
+            this.stateFunction,
+            this.setStateFunction,
+            this.stateOfFunction,
+            this.stringifyFunction,
             this.runtime
         ]) {
             this.engine.free(handle);
@@ -237,7 +267,13 @@ export class ScriptApiContext {
         this.bind(shapeAt(history, served));
     }
 
-    private dispatch(id: ScriptValue, self: ScriptValue, tagValue: ScriptValue, args: ScriptValue[]): ScriptValue {
+    private dispatch(
+        id: ScriptValue,
+        self: ScriptValue,
+        tagValue: ScriptValue,
+        stateValue: ScriptValue,
+        args: ScriptValue[]
+    ): ScriptValue {
         const entry = typeof id === 'number' ? this.entries[id] : undefined;
         if (entry === undefined) throw new RangeError(`No Script API member has id ${String(id)}`);
         const tag = typeof tagValue === 'number' ? tagValue : 0;
@@ -257,8 +293,31 @@ export class ScriptApiContext {
             }
             throw error;
         }
+        const state = typeof stateValue === 'string' ? stateValue : '';
+        const setState = (next: string): void => {
+            if (self instanceof ScriptHandle) this.engine.call(this.setStateFunction, this.runtime, self, next);
+        };
+        const stateOf = (value: ScriptValue): string => {
+            if (!(value instanceof ScriptHandle)) return '';
+            const found = this.engine.call(this.stateOfFunction, this.runtime, value);
+            return typeof found === 'string' ? found : '';
+        };
+        const stringify = (value: ScriptValue): string | undefined => {
+            const json = this.engine.call(this.stringifyFunction, this.runtime, value);
+            return typeof json === 'string' ? json : undefined;
+        };
         try {
-            return implementation({ engine: this.engine, pack: this.options.pack, self, tag, args });
+            return implementation({
+                engine: this.engine,
+                pack: this.options.pack,
+                self,
+                tag,
+                state,
+                setState,
+                stateOf,
+                stringify,
+                args
+            });
         } catch (error) {
             if (!(error instanceof ScriptApiError)) throw error;
             this.engine.call(
@@ -354,11 +413,41 @@ export class ScriptApiContext {
         member: string,
         access: MemberEntry['access'],
         args: readonly ShapeArgument[],
-        privilege: readonly Privilege[] | undefined
+        privilege: readonly Privilege[] | undefined,
+        returns?: ShapeType
     ): RuntimeCall {
         const checks = args.map((argument) => this.argument(argument, shape));
         const required = checks.reduce((count, check, index) => (check.optional ? count : index + 1), 0);
-        return { id: this.entry(shape.module, owner, member, access, privilege), arguments: checks, required };
+        return {
+            id: this.entry(shape.module, owner, member, access, privilege),
+            arguments: checks,
+            required,
+            ...(returns !== undefined && this.isPlainResult(returns, shape) ? { json: true } : {})
+        };
+    }
+
+    /** Whether a member returns plain data, which its implementation passes as JSON. */
+    private isPlainResult(type: ShapeType, shape: ModuleShape): boolean {
+        const plain = (checked: RuntimeType): boolean => {
+            switch (checked.kind) {
+                case 'boolean':
+                case 'string':
+                case 'number':
+                case 'enum':
+                case 'object':
+                    return true;
+                case 'array':
+                case 'optional':
+                    return plain(checked.kind === 'array' ? checked.element : checked.type);
+                case 'variant':
+                    return checked.types.every(plain);
+                default:
+                    return false;
+            }
+        };
+        const result = this.runtimeType(type, shape);
+        const inner = result.kind === 'optional' ? result.type : result;
+        return (inner.kind === 'object' || inner.kind === 'array') && plain(inner);
     }
 
     private exportsOf(shape: ModuleShape): RuntimeExport[] {
@@ -385,7 +474,15 @@ export class ScriptApiContext {
                 if (member.kind === 'constructor') {
                     construct = this.call(shape, name, memberName, 'construct', member.arguments, member.privilege);
                 } else if (member.kind === 'method') {
-                    const call = this.call(shape, name, memberName, 'call', member.arguments, member.privilege);
+                    const call = this.call(
+                        shape,
+                        name,
+                        memberName,
+                        'call',
+                        member.arguments,
+                        member.privilege,
+                        member.returns
+                    );
                     runtimeMembers.push({ kind: 'method', name: memberName, static: isStatic, call });
                 } else if (member.kind === 'property') {
                     const get = this.entry(shape.module, name, memberName, 'get', member.get);
@@ -398,6 +495,7 @@ export class ScriptApiContext {
                         name: memberName,
                         static: isStatic,
                         get,
+                        ...(this.isPlainResult(member.type, shape) ? { json: true } : {}),
                         ...(set === undefined ? {} : { set })
                     });
                 } else {
@@ -461,7 +559,15 @@ export class ScriptApiContext {
                     exports.push({
                         kind: 'function',
                         name,
-                        call: this.call(shape, '', name, 'call', declaration.arguments, declaration.privilege)
+                        call: this.call(
+                            shape,
+                            '',
+                            name,
+                            'call',
+                            declaration.arguments,
+                            declaration.privilege,
+                            declaration.returns
+                        )
                     });
                     break;
                 case 'object': {

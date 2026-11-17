@@ -1,23 +1,27 @@
 /**
- * The behavior of the `@minecraft/server` members the skeleton implements, for one pack: the
- * system tasks, the lifecycle, weather and chat events, the watchdog's terminate event, `world.getDimension`, `world.sendMessage`,
- * `world.getAllPlayers`, `Dimension.setWeather` and the members those return. Every other member
- * is present and throws `NotImplementedError` ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
+ * The behavior of the `@minecraft/server` members JSPrismarine implements, for one pack: the
+ * system tasks, the lifecycle, the world, player, weather, chat and script events, the watchdog's
+ * terminate event, dimensions, and through the modules it registers, entities and players
+ * (`serverEntities.ts`), blocks (`serverBlocks.ts`) and item stacks (`serverItems.ts`). Every
+ * other member is present and throws `NotImplementedError`
+ * ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
  *
  * It reaches the runtime and the world only through {@link PackHost}, which `WorldScripts` gives
  * each pack.
  */
-import { engineFunctionSource } from '../engineSource';
 import { ScriptApiError } from '../errors';
 import type { ScriptEngine } from '../ScriptEngine';
 import { ScriptApiImplementations } from '../shape/implementations';
 import type { ScriptCall } from '../shape/implementations';
 import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
+import { implementBlocks } from './serverBlocks';
+import { implementEntities } from './serverEntities';
+import { implementItems } from './serverItems';
+import type { EntityKey } from './serverObjects';
+import { PLAYER, readMessage, SERVER, shortName, TAG } from './serverObjects';
 import type { TaskKind } from './tasks';
-import type { ScriptWeather } from './world';
-
-const SERVER = '@minecraft/server';
+import type { ScriptEventSourceType, ScriptWeather, ScriptWorld } from './world';
 
 /** The event signals a pack can subscribe to, by the class the Script API gives each. */
 export const SIGNALS = [
@@ -29,7 +33,12 @@ export const SIGNALS = [
     'WeatherChangeBeforeEventSignal',
     'WeatherChangeAfterEventSignal',
     'ChatSendBeforeEventSignal',
-    'WatchdogTerminateBeforeEventSignal'
+    'WatchdogTerminateBeforeEventSignal',
+    'PlayerJoinAfterEventSignal',
+    'PlayerSpawnAfterEventSignal',
+    'PlayerLeaveAfterEventSignal',
+    'PlayerLeaveBeforeEventSignal',
+    'ScriptEventCommandMessageAfterEventSignal'
 ] as const;
 
 /** One of {@link SIGNALS}. */
@@ -72,12 +81,52 @@ export interface WatchdogTerminateData {
     readonly terminateReason: WatchdogTerminateReason;
 }
 
+/** A player who joined or left, as `PlayerJoinAfterEvent` and `PlayerLeaveAfterEvent` read them. */
+export interface PlayerPresenceData {
+    readonly kind: 'playerPresence';
+    readonly playerId: string;
+    readonly playerName: string;
+}
+
+/** A player who appeared in the world, as `PlayerSpawnAfterEvent` reads it. */
+export interface PlayerSpawnData {
+    readonly kind: 'playerSpawn';
+    /** The player's entity, which picks their `Player` object. */
+    readonly player: EntityKey;
+    readonly initialSpawn: boolean;
+}
+
+/** A player about to leave, as `PlayerLeaveBeforeEvent` reads it. */
+export interface PlayerLeavingData {
+    readonly kind: 'playerLeaving';
+    readonly player: EntityKey;
+}
+
+/** A `/scriptevent`, as `ScriptEventCommandMessageAfterEvent` reads it. */
+export interface ScriptEventData {
+    readonly kind: 'scriptEvent';
+    readonly id: string;
+    readonly message: string;
+    readonly sourceType: ScriptEventSourceType;
+    readonly sourceEntity?: EntityKey;
+}
+
 /** What an event object's members read, by the tag the object was made with. */
-export type EventData = WeatherBeforeData | WeatherAfterData | ChatBeforeData | WatchdogTerminateData;
+export type EventData =
+    | WeatherBeforeData
+    | WeatherAfterData
+    | ChatBeforeData
+    | WatchdogTerminateData
+    | PlayerPresenceData
+    | PlayerSpawnData
+    | PlayerLeavingData
+    | ScriptEventData;
 
 /** What the members of one pack's `@minecraft/server` reach of the runtime and the world. */
 export interface PackHost {
     readonly engine: ScriptEngine;
+    /** The world, which the members read and write directly. */
+    readonly world: ScriptWorld;
     /** `system.currentTick`. */
     currentTick(): number;
     /** Queues a system task and returns its id. */
@@ -87,81 +136,23 @@ export interface PackHost {
     subscribe(signal: SignalName, callback: ScriptHandle): void;
     unsubscribe(signal: SignalName, callback: ScriptHandle): void;
     /**
-     * The one instance of a class this pack gets for a tag, made the first time and the same
-     * object after, such as `world.afterEvents` or a dimension. The host owns the handle.
+     * The one instance of a class this pack gets for a tag and a state, made the first time and
+     * the same object after, such as `world.afterEvents` or a dimension. The host owns the handle.
      */
-    instance(className: string, tag: number): ScriptHandle;
-    /** Makes a new instance for the caller, who frees it. */
-    create(className: string, tag: number): ScriptHandle;
+    instance(className: string, tag: number, state?: string): ScriptHandle;
+    /**
+     * The one `Entity` or `Player` object this pack gets for an entity, the same object every
+     * time, so a script can compare two with `===`. The host owns the handle.
+     */
+    entity(key: EntityKey): ScriptHandle;
+    /** Makes a new instance for the caller, who frees or releases it. */
+    create(className: string, tag: number, state?: string): ScriptHandle;
     /** The data behind an event object. */
     eventData(tag: number): EventData | undefined;
-    dimensions(): readonly string[];
-    players(): readonly string[];
-    /**
-     * A number for a player id, from 0: the same for one id every time, and never one another id
-     * had, so a player who takes a leaving player's place gets a `Player` object of their own.
-     */
-    playerNumber(id: string): number;
-    sendMessage(message: string): void;
-    setWeather(dimension: string, weather: ScriptWeather, duration: number): void;
 }
-
-/** The tags of the singleton objects a pack's members return. */
-const TAG = {
-    worldAfterEvents: 1,
-    worldBeforeEvents: 2,
-    systemAfterEvents: 3,
-    systemBeforeEvents: 4,
-    gameRules: 5,
-    /** A signal's tag is this plus its index in {@link SIGNALS}. */
-    signal: 100,
-    /** A dimension's tag is this plus its index in the world's dimensions. */
-    dimension: 1000,
-    /** A player's tag is this plus the number {@link PackHost.playerNumber} gives their id. */
-    player: 100000
-} as const;
-
-/**
- * The tag of the `Player` object a pack gets for a player, from the number
- * {@link PackHost.playerNumber} gives the player's id.
- */
-export const playerTag = (playerNumber: number): number => TAG.player + playerNumber;
-
-/** What `Dimension.id` accepts besides the full id: the name without `minecraft:`. */
-const shortName = (id: string): string => (id.startsWith('minecraft:') ? id.slice('minecraft:'.length) : id);
 
 const isWeather = (value: ScriptValue): value is ScriptWeather =>
     value === 'Clear' || value === 'Rain' || value === 'Thunder';
-
-/**
- * The text of a `sendMessage` argument: a string, a `RawMessage` or a list of either. It runs
- * inside the pack's engine, never in Node.js, so the watchdog counts each element it visits and a
- * list whose `length` never ends stops at the step budget. It must not refer to anything outside
- * its own body.
- */
-function messageText(value: unknown): string {
-    // biome-ignore lint/suspicious/noRedundantUseStrict: the engine runs this source as a script, which is sloppy unless it says otherwise.
-    'use strict';
-    const text = (part: unknown): string => {
-        if (typeof part === 'string') return part;
-        if (typeof part !== 'object' || part === null) return '';
-        // Any object a script passed; the binding checked only that it is one.
-        const message = part as Readonly<Record<PropertyKey, unknown>>;
-        const { length } = message;
-        if (typeof length === 'number') {
-            let joined = '';
-            for (let index = 0; index < length; index++) joined += text(message[index]);
-            return joined;
-        }
-        if (typeof message.text === 'string') return message.text;
-        if (typeof message.translate === 'string') return message.translate;
-        return text(message.rawtext);
-    };
-    return text(value);
-}
-
-/** The source text that evaluates, inside an engine, to {@link messageText}. */
-const messageTextSource = (): string => engineFunctionSource(messageText.toString());
 
 /**
  * The implementations of one pack's `@minecraft/server`.
@@ -177,11 +168,6 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     const delayOf = (call: ScriptCall): number => {
         const delay = call.args[1];
         return typeof delay === 'number' ? delay : 0;
-    };
-    const dimensionAt = (call: ScriptCall): string => {
-        const dimension = host.dimensions()[call.tag - TAG.dimension];
-        if (dimension === undefined) throw new ReferenceError('The dimension no longer exists');
-        return dimension;
     };
     const data = <Kind extends EventData['kind']>(call: ScriptCall, kind: Kind): Extract<EventData, { kind: Kind }> => {
         const found = host.eventData(call.tag);
@@ -227,43 +213,69 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         .implement(SERVER, 'World', 'gameRules', { get: () => host.instance('GameRules', TAG.gameRules) })
         .implement(SERVER, 'World', 'getDimension', (call) => {
             const [requested] = call.args;
-            const index = host.dimensions().findIndex((id) => id === requested || shortName(id) === requested);
-            if (index < 0) {
-                throw new ScriptApiError(
-                    '@minecraft/common',
-                    'InvalidArgumentError',
-                    `Dimension '${String(requested)}' is invalid`
-                );
-            }
-            return host.instance('Dimension', TAG.dimension + index);
-        })
-        .implement(SERVER, 'World', 'getAllPlayers', (call) => {
-            const array = call.engine.evaluate('[]');
-            if (!(array instanceof ScriptHandle)) throw new TypeError('An array literal evaluated to a primitive');
-            host.players().forEach((id, index) => {
-                const player = host.instance('Player', TAG.player + host.playerNumber(id));
-                call.engine.set(array, String(index), player);
-            });
-            return array;
+            const found = host.world.dimensions().find((id) => id === requested || shortName(id) === requested);
+            // BDS throws a plain Error here, as the `world-basics` scenario recorded.
+            if (found === undefined)
+                throw new ScriptApiError(SERVER, 'Error', `Dimension '${String(requested)}' is invalid.`);
+            return host.instance('Dimension', TAG.dimension, found);
         })
         .implement(SERVER, 'World', 'sendMessage', (call) => {
-            const walk = call.engine.evaluate(messageTextSource(), '<jsp sendMessage>');
-            if (!(walk instanceof ScriptHandle)) throw new TypeError('The message walk is not a function');
-            try {
-                const text = call.engine.call(walk, undefined, call.args[0]);
-                host.sendMessage(typeof text === 'string' ? text : '');
-            } finally {
-                call.engine.free(walk);
-            }
+            host.world.sendMessage(readMessage(call.engine, call.args[0]));
             return undefined;
         })
-        .implement(SERVER, 'Dimension', 'id', { get: (call) => dimensionAt(call) })
+        .implement(SERVER, 'Dimension', 'id', { get: (call) => call.state })
         .implement(SERVER, 'Dimension', 'setWeather', (call) => {
             const [weather, duration] = call.args;
             if (!isWeather(weather)) throw new TypeError('The weather is not a WeatherType');
-            host.setWeather(dimensionAt(call), weather, typeof duration === 'number' ? Math.floor(duration) : 6000);
+            host.world.setWeather(call.state, weather, typeof duration === 'number' ? Math.floor(duration) : 6000);
             return undefined;
         })
+        .implement(SERVER, 'CommandResult', 'successCount', { get: (call) => Number(call.state) })
+        .implement(
+            SERVER,
+            'SystemAfterEvents',
+            'scriptEventReceive',
+            signal('ScriptEventCommandMessageAfterEventSignal')
+        )
+        .implement(SERVER, 'WorldAfterEvents', 'playerJoin', signal('PlayerJoinAfterEventSignal'))
+        .implement(SERVER, 'WorldAfterEvents', 'playerSpawn', signal('PlayerSpawnAfterEventSignal'))
+        .implement(SERVER, 'WorldAfterEvents', 'playerLeave', signal('PlayerLeaveAfterEventSignal'))
+        .implement(SERVER, 'WorldBeforeEvents', 'playerLeave', signal('PlayerLeaveBeforeEventSignal'))
+        .implement(SERVER, 'PlayerJoinAfterEvent', 'playerId', { get: (call) => data(call, 'playerPresence').playerId })
+        .implement(SERVER, 'PlayerJoinAfterEvent', 'playerName', {
+            get: (call) => data(call, 'playerPresence').playerName
+        })
+        .implement(SERVER, 'PlayerLeaveAfterEvent', 'playerId', {
+            get: (call) => data(call, 'playerPresence').playerId
+        })
+        .implement(SERVER, 'PlayerLeaveAfterEvent', 'playerName', {
+            get: (call) => data(call, 'playerPresence').playerName
+        })
+        .implement(SERVER, 'PlayerSpawnAfterEvent', 'initialSpawn', {
+            get: (call) => data(call, 'playerSpawn').initialSpawn
+        })
+        .implement(SERVER, 'PlayerSpawnAfterEvent', 'player', {
+            get: (call) => host.entity(data(call, 'playerSpawn').player)
+        })
+        .implement(SERVER, 'PlayerLeaveBeforeEvent', 'player', {
+            get: (call) => host.entity(data(call, 'playerLeaving').player)
+        })
+        .implement(SERVER, 'ScriptEventCommandMessageAfterEvent', 'id', { get: (call) => data(call, 'scriptEvent').id })
+        .implement(SERVER, 'ScriptEventCommandMessageAfterEvent', 'message', {
+            get: (call) => data(call, 'scriptEvent').message
+        })
+        .implement(SERVER, 'ScriptEventCommandMessageAfterEvent', 'sourceType', {
+            get: (call) => data(call, 'scriptEvent').sourceType
+        })
+        .implement(SERVER, 'ScriptEventCommandMessageAfterEvent', 'sourceEntity', {
+            get: (call) => {
+                const source = data(call, 'scriptEvent').sourceEntity;
+                return source === undefined ? undefined : host.entity(source);
+            }
+        })
+        // No block or NPC sends a /scriptevent on JSPrismarine yet, and the initiator is an NPC's talker.
+        .implement(SERVER, 'ScriptEventCommandMessageAfterEvent', 'sourceBlock', { get: () => undefined })
+        .implement(SERVER, 'ScriptEventCommandMessageAfterEvent', 'initiator', { get: () => undefined })
         .implement(SERVER, 'WeatherChangeBeforeEvent', 'cancel', {
             get: (call) => data(call, 'weatherBefore').cancel,
             set: (call) => {
@@ -295,7 +307,7 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         })
         .implement(SERVER, 'ChatSendBeforeEvent', 'message', { get: (call) => data(call, 'chatBefore').message })
         .implement(SERVER, 'ChatSendBeforeEvent', 'sender', {
-            get: (call) => host.instance('Player', TAG.player + host.playerNumber(data(call, 'chatBefore').sender))
+            get: (call) => host.entity({ id: data(call, 'chatBefore').sender, typeId: PLAYER })
         })
         .implement(SERVER, 'WatchdogTerminateBeforeEvent', 'cancel', {
             get: (call) => data(call, 'watchdogTerminate').cancel,
@@ -316,6 +328,9 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
             get: (call) => data(call, 'weatherAfter').previousWeather
         });
 
+    implementEntities(implementations, host);
+    implementBlocks(implementations, host);
+    implementItems(implementations, host);
     for (const name of SIGNALS) {
         implementations
             .implement(SERVER, name, 'subscribe', (call) => {

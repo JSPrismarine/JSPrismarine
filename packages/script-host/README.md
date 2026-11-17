@@ -40,7 +40,9 @@ on different threads share nothing, so two worlds on two worker threads each run
 Primitive values cross between TypeScript and a script as copies. Objects and functions stay in
 the engine, and the host holds a `ScriptHandle` to each one it receives. A handle that a call
 returns belongs to the caller, who frees it with `engine.free`. A handle passed to a host function
-lasts until that function returns; `engine.duplicate` makes one that outlives it.
+lasts until that function returns; `engine.duplicate` makes one that outlives it. A host function
+that makes an object to return passes it through `engine.release`, which frees the handle once the
+script has the object.
 
 ## How it is called
 
@@ -180,6 +182,14 @@ compile, and the form a member needs: a function for a method or constructor, `{
 read-only property and `{ get, set }` for a writable one. An implementation throws one of the API's
 own error classes, such as `LocationInUnloadedChunkError`, by throwing a `ScriptApiError`.
 
+An object the host makes with `context.create(module, className, tag, state)` carries a number and
+a string, which every call of its members receives as `call.tag` and `call.state`: an entity's id,
+or an item stack's contents. The state lives in the engine for as long as the object does, so the
+host keeps no table that a script's garbage would grow. `call.setState` replaces it, and a
+constructor's implementation returns the new object's state. A member whose metadata returns plain
+data, an interface such as `Vector3` or an array such as `string[]`, returns it as one JSON string,
+and the binding parses it inside the engine, so `entity.location` costs one host call.
+
 ## The add-on corpus
 
 The order in which members get behavior comes from what real add-ons use. `corpus/packs.json` pins
@@ -314,9 +324,17 @@ messages yet. It answers a `debugger-request` as refused.
 `WorldScripts` is the script runtime of one world: one engine, a context for each pack, and the
 lifecycle, system tasks, events and watchdog around them. It reaches the world only through
 `ScriptWorld` (`@jsprismarine/script-host/host/world`), a narrow interface the server implements
-with plain data: the dimensions, the players, `sendMessage`, the weather and its guard, the guard
-on the players' chat, the changes the world committed, and the clock the tick admitted. The host
-imports no world class.
+with plain data: the dimensions, the players and entities by id, each read in one call, the blocks
+and their permutations, the item types, commands, `sendMessage`, the weather and its guard, the
+guard on the players' chat, the changes the world committed, and the clock the tick admitted. The
+host imports no world class.
+
+A script's `Entity` or `Block` is a handle: an object whose state names the entity's id or the
+block's position, and whose members read the world each time they run. Once an entity is gone,
+`isValid` is false, `id` and `typeId` still answer, and its other members throw BDS's
+`InvalidEntityError`. A pack gets one object per entity, so `===` compares two. An item stack is a
+value the script owns, held in its object's state. `src/testing/memoryWorld.test.helper.ts` is a `ScriptWorld`
+in memory, which counts what the host reads, for tests that bound the world calls a member makes.
 
 ```ts
 import { readScriptConfig, readScriptPack } from '@jsprismarine/script-host/host/pack';

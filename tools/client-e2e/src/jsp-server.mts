@@ -46,6 +46,9 @@ export const SCRIPT_FORM_TITLE = 'client-e2e form';
  */
 export const SCRIPT_FORM_MESSAGE = 'client-e2e script: the form answer is ';
 
+/** How far east, in blocks, the client e2e script pack teleports every player when it thunders. */
+export const SCRIPT_TELEPORT_DISTANCE = 12;
+
 /** Ports reserved by servers this process is starting or running. */
 const reservedUdpPorts = new Set<number>();
 
@@ -466,6 +469,8 @@ export const startServer = async (
             `    world.sendMessage(\`${SCRIPT_WEATHER_MESSAGE}\${event.newWeather}\`);`,
             "    if (event.newWeather !== 'Thunder') return;",
             '    for (const player of world.getAllPlayers()) {',
+            '        const { x, y, z } = player.location;',
+            `        player.teleport({ x: x + ${SCRIPT_TELEPORT_DISTANCE}, y, z });`,
             `        new ActionFormData().title('${SCRIPT_FORM_TITLE}').body('Pick one').button('First').button('Second')`,
             '            .show(player)',
             '            .then((response) =>',

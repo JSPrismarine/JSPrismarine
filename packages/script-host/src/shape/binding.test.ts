@@ -268,15 +268,15 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
         expect(tags).toEqual([7]);
     });
 
-    it('reads the tag of an instance the host made, and none of one a script made', () => {
+    it('reads the tag and the state of an instance the host made, and nothing of one a script made', () => {
         const scripts = engine();
         const { context } = bindServer(scripts, '2.0.0');
-        const dimension = context.create('@minecraft/server', 'Dimension', 7);
+        const dimension = context.create('@minecraft/server', 'Dimension', 7, 'minecraft:nether');
         const forged = scripts.evaluate('Object.create(mc.Dimension.prototype)');
 
-        expect(context.tagOf(dimension)).toBe(7);
-        expect(context.tagOf(forged)).toBeUndefined();
-        expect(context.tagOf('a string')).toBeUndefined();
+        expect(context.identify(dimension)).toEqual({ tag: 7, state: 'minecraft:nether' });
+        expect(context.identify(forged)).toBeUndefined();
+        expect(context.identify('a string')).toBeUndefined();
         scripts.free(dimension);
         if (forged instanceof ScriptHandle) scripts.free(forged);
     });
@@ -437,6 +437,59 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
                 "(() => { try { mc.world.getDimension('overworld'); } catch (e) { return e instanceof mc.LocationInUnloadedChunkError; } })()"
             )
         ).toBe(true);
+    });
+
+    it("gives an instance's members the state the host made it with, and lets a member replace it", () => {
+        const scripts = engine();
+        const implementations = new ScriptApiImplementations()
+            .implement('@minecraft/server', 'Entity', 'id', { get: (call) => call.state })
+            .implement('@minecraft/server', 'Entity', 'nameTag', {
+                get: (call) => call.state,
+                set: (call) => call.setState(String(call.args[0]))
+            });
+        const { context } = bindServer(scripts, '2.0.0', implementations);
+        const made = context.create('@minecraft/server', 'Entity', 0, 'the state');
+        const global = scripts.global();
+        scripts.set(global, 'made', made);
+        scripts.free(global);
+        scripts.free(made);
+
+        expect(scripts.evaluate('made.id')).toBe('the state');
+        expect(scripts.evaluate("made.nameTag = 'replaced'; made.id")).toBe('replaced');
+    });
+
+    it("makes a constructor's string result the new object's state", () => {
+        const scripts = engine();
+        const implementations = new ScriptApiImplementations()
+            .implement('@minecraft/server', 'ItemStack', 'constructor', (call) => `${call.args[0]} x${call.args[1]}`)
+            .implement('@minecraft/server', 'ItemStack', 'typeId', { get: (call) => call.state });
+        bindServer(scripts, '2.0.0', implementations);
+
+        expect(scripts.evaluate("new mc.ItemStack('minecraft:apple', 3).typeId")).toBe('minecraft:apple x3');
+    });
+
+    it('parses the JSON a member returns when its metadata returns plain data, in one host call', () => {
+        const scripts = engine();
+        const implementations = new ScriptApiImplementations()
+            .implement('@minecraft/server', 'World', 'getDefaultSpawnLocation', () =>
+                JSON.stringify({ x: 1, y: 2, z: 3 })
+            )
+            .implement('@minecraft/server', 'Entity', 'getTags', () => JSON.stringify(['a', 'b']))
+            .implement('@minecraft/server', 'Entity', 'location', { get: () => '{"x":0,"y":64,"z":0}' })
+            .implement('@minecraft/server', 'Entity', 'typeId', { get: () => '["not","parsed"]' });
+        const { context } = bindServer(scripts, '2.0.0', implementations);
+        const made = context.create('@minecraft/server', 'Entity', 0, 'id');
+        const global = scripts.global();
+        scripts.set(global, 'made', made);
+        scripts.free(global);
+        scripts.free(made);
+
+        const before = scripts.stats().hostCalls;
+        expect(scripts.evaluate('JSON.stringify(mc.world.getDefaultSpawnLocation())')).toBe('{"x":1,"y":2,"z":3}');
+        expect(scripts.stats().hostCalls - before).toBe(1);
+        expect(scripts.evaluate('made.getTags().join()')).toBe('a,b');
+        expect(scripts.evaluate('made.location.y')).toBe(64);
+        expect(scripts.evaluate('made.typeId')).toBe('["not","parsed"]');
     });
 
     it('reports how much of each served version is implemented', () => {

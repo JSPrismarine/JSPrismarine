@@ -9,17 +9,17 @@
  * `RawMessage` afterwards does not change the form. `show()` writes the form, sends it and returns
  * a promise that the client's answer settles in a later script flush ({@link ScriptForms}).
  */
-import { ScriptApiError } from '../errors';
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
 import type { ScriptValue } from '../values';
 import type { BuiltForm, FormKind } from './forms';
 import { buildForm, formChange } from './forms';
 import type { PackForms } from './PackForms';
 import { SERVER_UI } from './PackForms';
+import { invalidEntity, PLAYER } from './serverObjects';
 
 /** A `Player` argument, as the world knows the player it stands for. */
 export interface FormPlayer {
-    /** The player's id, as the world's players list it. */
+    /** The player's entity id, as the world's players list it. */
     readonly id: string;
     /** Whether the player is still in the world. */
     readonly present: boolean;
@@ -28,7 +28,10 @@ export interface FormPlayer {
 /** What one pack's `@minecraft/server-ui` reaches of the runtime and the world. */
 export interface FormHost {
     readonly forms: PackForms;
-    /** The player a `Player` argument stands for, or undefined for an object the host did not make. */
+    /**
+     * The player a `Player` argument stands for, by the entity its object carries, or undefined
+     * for an object the host did not make.
+     */
     player(value: ScriptValue): FormPlayer | undefined;
     /** Sends a form and returns the promise `show()` returns. */
     show(player: string, form: BuiltForm): ScriptValue;
@@ -58,12 +61,7 @@ export const serverUiImplementations = (
     const playerOf = (call: ScriptCall, member: string): FormPlayer => {
         const player = host.player(call.args[0]);
         if (player?.present === true) return player;
-        throw new ScriptApiError(
-            '@minecraft/server',
-            'InvalidEntityError',
-            `Failed to call function '${member}' due to Entity being invalid (has the Entity been removed?).`,
-            { id: player?.id ?? '', type: 'minecraft:player' }
-        );
+        throw invalidEntity('call', member, { id: player?.id ?? '', typeId: PLAYER });
     };
 
     for (const [className, { kind, members }] of Object.entries(BUILDERS)) {

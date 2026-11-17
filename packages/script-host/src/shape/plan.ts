@@ -35,6 +35,11 @@ export interface RuntimeCall {
     readonly arguments: readonly RuntimeArgument[];
     /** How many arguments a call must pass. */
     readonly required: number;
+    /**
+     * Set when the member returns plain data, an interface or an array of plain values, which the
+     * host passes as one JSON string and the runtime parses.
+     */
+    readonly json?: true;
 }
 
 /** A member of a class. */
@@ -45,6 +50,8 @@ export type RuntimeMember =
           readonly name: string;
           readonly static: boolean;
           readonly get: number;
+          /** Set when the getter returns plain data as JSON, as {@link RuntimeCall.json} is. */
+          readonly json?: true;
           /** Absent for a read-only property. Its one argument is the value. */
           readonly set?: RuntimeCall;
       }
