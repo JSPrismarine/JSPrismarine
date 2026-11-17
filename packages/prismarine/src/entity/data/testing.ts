@@ -455,6 +455,8 @@ export class TestEntityWorld {
 
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
+    /** The tags of the one biome the world is, which a test changes between ticks; the plains' name alone by default. */
+    public biomeTags: readonly string[] = ['minecraft:plains'];
     /** The world difficulty, which a test changes between ticks. */
     public difficulty: Difficulty;
     /** Game rules a test set after building the world, read before {@link TestWorldOptions.gameRules}. */
@@ -560,7 +562,7 @@ export class TestEntityWorld {
                 isLoaded: () => true,
                 surfaceY: () => FLOOR_Y + 1,
                 biome: () => 'minecraft:plains',
-                biomeTags: () => ['minecraft:plains']
+                biomeTags: () => this.biomeTags
             },
             effects: {
                 playSound: (_at, sound) => this.sounds.push(sound),

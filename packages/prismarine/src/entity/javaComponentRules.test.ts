@@ -108,6 +108,116 @@ describe('withJavaComponentRules', () => {
         });
     });
 
+    it("sends a bee home through Java's bees_stay_in_hive stretch of the night, not Bedrock's is_daytime", () => {
+        const sensor = {
+            triggers: [
+                {
+                    event: 'seek_shelter',
+                    filters: {
+                        any_of: [
+                            { test: 'is_daytime', value: false },
+                            { test: 'weather', value: 'precipitation' }
+                        ]
+                    }
+                }
+            ]
+        };
+        const data = withJavaComponentRules(
+            entityFile('minecraft:bee', { shelter_detection: { 'minecraft:environment_sensor': sensor } })
+        );
+
+        expect(data).toMatchObject({
+            'minecraft:entity': {
+                component_groups: {
+                    shelter_detection: {
+                        'minecraft:environment_sensor': {
+                            triggers: [
+                                {
+                                    filters: {
+                                        any_of: [
+                                            {
+                                                all_of: [
+                                                    { test: 'hourly_clock_time', operator: '>=', value: 12_542 },
+                                                    { test: 'hourly_clock_time', operator: '<', value: 23_460 }
+                                                ]
+                                            },
+                                            { test: 'weather', value: 'precipitation' }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    it('naps a fox while Java calls it bright outside, and crumbles a creaking outside its active night', () => {
+        const fox = withJavaComponentRules(
+            entityFile(
+                'minecraft:fox',
+                {},
+                {
+                    'minecraft:environment_sensor': {
+                        triggers: [{ event: 'day', filters: { test: 'is_daytime', value: true } }]
+                    }
+                }
+            )
+        );
+        expect(fox).toMatchObject({
+            'minecraft:entity': {
+                components: {
+                    'minecraft:environment_sensor': {
+                        triggers: [
+                            {
+                                filters: {
+                                    any_of: [
+                                        { test: 'hourly_clock_time', operator: '<', value: 12_523 },
+                                        { test: 'hourly_clock_time', operator: '>=', value: 23_478 }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        });
+
+        const crumble = {
+            event: 'minecraft:crumble_and_notify_creaking_heart',
+            filters: {
+                any_of: [
+                    { test: 'hourly_clock_time', operator: '>', value: 23_400 },
+                    { test: 'hourly_clock_time', operator: '<=', value: 12_600 }
+                ]
+            }
+        };
+        const creaking = withJavaComponentRules(
+            entityFile('minecraft:creaking', { heart: { 'minecraft:environment_sensor': { triggers: [crumble] } } })
+        );
+        expect(creaking).toMatchObject({
+            'minecraft:entity': {
+                component_groups: {
+                    heart: {
+                        'minecraft:environment_sensor': {
+                            triggers: [
+                                {
+                                    filters: {
+                                        any_of: [
+                                            { test: 'hourly_clock_time', operator: '>=', value: 23_401 },
+                                            { test: 'hourly_clock_time', operator: '<', value: 12_600 }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        });
+    });
+
     it("takes the creaking's freezing immunity out, which Java's creaking does not have", () => {
         const data = withJavaComponentRules(
             entityFile('minecraft:creaking', {}, { 'minecraft:freezing_immune': {}, 'minecraft:health': { value: 1 } })

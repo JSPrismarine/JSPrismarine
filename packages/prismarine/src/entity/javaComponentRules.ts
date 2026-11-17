@@ -8,6 +8,7 @@
  * same numbers out of the pinned Java jar and fails when one drifts.
  */
 import { isRecord } from '../utils/isRecord';
+import { overworldSkyDarken } from '../world/skyDarken';
 import { entityFileIdentifier, withComponentRewritten } from './definitionOverlay';
 
 /** One component of one entity file that Java's class decides. */
@@ -67,6 +68,91 @@ const withoutWaterWeaponSwap = (body: Record<string, unknown>): Record<string, u
 const BOAT_SINKS_BY_JAVA_COUNT: JavaComponentRule = {
     component: 'minecraft:timer',
     rewrite: (body, group) => (group === 'minecraft:above_bubble_column_down' ? undefined : body)
+};
+
+/** Day times `[from, until)` of the overworld's day, inside one day: the stretch a timeline condition holds. */
+interface DayWindow {
+    readonly from: number;
+    readonly until: number;
+}
+
+/**
+ * `minecraft:gameplay/bees_stay_in_hive` of `data/minecraft/timeline/day.json`: on from 12542,
+ * off from 23460, which `Bee.wantsToEnterHive` reads beside the rain.
+ */
+const BEES_STAY_IN_HIVE: DayWindow = { from: 12_542, until: 23_460 };
+
+/**
+ * `minecraft:gameplay/creaking_active` of the same timeline: on from 12600, off from 23401. A
+ * creaking a heart made crumbles outside it.
+ */
+const CREAKING_ACTIVE: DayWindow = { from: 12_600, until: 23_401 };
+
+/** Ticks in a day. */
+const DAY_TICKS = 24_000;
+
+/**
+ * The stretch of the day Java's `Level.isBrightOutside` is false in the overworld's clear weather,
+ * `getSkyDarken() >= 4`, which a fox sleeps outside of.
+ */
+const darkOutside = (): DayWindow => {
+    const bright = (time: number): boolean => overworldSkyDarken(time % DAY_TICKS, 'clear') < 4;
+    let from = DAY_TICKS / 4;
+    while (bright(from)) from += 1;
+    let until = from;
+    while (!bright(until)) until += 1;
+    return { from, until };
+};
+
+/** A filter that holds inside a window of the day. */
+const withinWindow = (window: DayWindow): Record<string, unknown> => ({
+    all_of: [
+        { test: 'hourly_clock_time', operator: '>=', value: window.from },
+        { test: 'hourly_clock_time', operator: '<', value: window.until }
+    ]
+});
+
+/** A filter that holds outside a window of the day. */
+const outsideWindow = (window: DayWindow): Record<string, unknown> => ({
+    any_of: [
+        { test: 'hourly_clock_time', operator: '<', value: window.from },
+        { test: 'hourly_clock_time', operator: '>=', value: window.until }
+    ]
+});
+
+/**
+ * A filter tree with every `is_daytime` test turned into Java's window: a test for night holds
+ * inside `night`, a test for day outside it.
+ */
+const withJavaNight = (filter: unknown, night: DayWindow): unknown => {
+    if (Array.isArray(filter)) return filter.map((entry) => withJavaNight(entry, night));
+    if (!isRecord(filter)) return filter;
+    if (filter.test === 'is_daytime') {
+        const negated = filter.operator === '!=' || filter.operator === 'not' || filter.operator === '<>';
+        const day = (filter.value ?? true) === true;
+        return day !== negated ? outsideWindow(night) : withinWindow(night);
+    }
+    return Object.fromEntries(Object.entries(filter).map(([key, value]) => [key, withJavaNight(value, night)]));
+};
+
+/** An environment sensor whose `is_daytime` tests read Java's window for the night. */
+const sensorWithJavaNight = (night: () => DayWindow): JavaComponentRule => ({
+    component: 'minecraft:environment_sensor',
+    rewrite: (body) => ({ ...body, triggers: withJavaNight(body.triggers, night()) })
+});
+
+/**
+ * The creaking's crumble trigger, whose `hourly_clock_time` tests write Bedrock's active window
+ * as `> 23400` and `<= 12600`: Java's is `[12600, 23401)`.
+ */
+const withJavaCreakingWindow = (filter: unknown): unknown => {
+    if (Array.isArray(filter)) return filter.map(withJavaCreakingWindow);
+    if (!isRecord(filter)) return filter;
+    if (filter.test === 'hourly_clock_time' && filter.operator === '>')
+        return { ...filter, operator: '>=', value: CREAKING_ACTIVE.until };
+    if (filter.test === 'hourly_clock_time' && filter.operator === '<=')
+        return { ...filter, operator: '<', value: CREAKING_ACTIVE.from };
+    return Object.fromEntries(Object.entries(filter).map(([key, value]) => [key, withJavaCreakingWindow(value)]));
 };
 
 /** An environment sensor without the triggers that raise one event. */
@@ -131,9 +217,6 @@ export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponen
         { component: 'minecraft:explode', rewrite: (body) => ({ ...body, power: 4 }) },
         { component: 'minecraft:interact', rewrite: () => undefined }
     ],
-    // Java's creaking is not in `freeze_immune_entity_types` and `Creaking` keeps `Entity.canFreeze`,
-    // so powder snow freezes it.
-    'minecraft:creaking': [{ component: 'minecraft:freezing_immune', rewrite: () => undefined }],
     // `Ghast.hurtServer` lets every blow land, so a mob may hurt a ghast as a player may.
     'minecraft:ghast': [{ component: 'minecraft:cannot_be_attacked', rewrite: () => undefined }],
     // `PolarBear.PERSISTENT_ANGER_TIME` is `TimeUtil.rangeOfSeconds(20, 39)`, where the pack keeps
@@ -179,6 +262,22 @@ export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponen
         {
             component: 'minecraft:environment_sensor',
             rewrite: (body) => withTriggerFilter(body, 'minecraft:hostile_mounted', WILD_HORSE_MOB_RIDDEN)
+        }
+    ],
+    // `Bee.wantsToEnterHive` sends a bee home in the rain and through Java's `bees_stay_in_hive`
+    // stretch of the night, where the pack's sensor reads Bedrock's `is_daytime`, which ends at 12000.
+    'minecraft:bee': [sensorWithJavaNight(() => BEES_STAY_IN_HIVE)],
+    // `Fox.canSleep` naps while `Level.isBrightOutside`, from the sky's darkness rather than the
+    // clock Bedrock's `is_daytime` reads.
+    'minecraft:fox': [sensorWithJavaNight(darkOutside)],
+    // Java's creaking is not in `freeze_immune_entity_types` and `Creaking` keeps `Entity.canFreeze`,
+    // so powder snow freezes it. A creaking a heart made crumbles outside Java's `creaking_active`
+    // stretch of the night, `CreakingHeartBlock.isNaturalNight`.
+    'minecraft:creaking': [
+        { component: 'minecraft:freezing_immune', rewrite: () => undefined },
+        {
+            component: 'minecraft:environment_sensor',
+            rewrite: (body) => ({ ...body, triggers: withJavaCreakingWindow(body.triggers) })
         }
     ],
     'minecraft:skeleton': [WEAPON_BY_WEAPON_ALONE],
