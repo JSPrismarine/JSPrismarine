@@ -30,6 +30,12 @@ export interface ScriptScenario {
     readonly reference: string;
     /** The pack directory names, in the order the world lists them. */
     readonly packs: readonly string[];
+    /**
+     * What JSPrismarine needs to run the scenario. `engine` packs import no module and report
+     * only through `console`, so a bare script engine runs them with no world. `world` packs need
+     * the script host that loads packs into a world, issue #3203.
+     */
+    readonly needs: 'engine' | 'world';
 }
 
 /** The directory the scenario packs live in. */
@@ -72,6 +78,18 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
             'version 1 pack starts; system tasks, worldInitialize and worldLoad then follow in a fixed order in tick 0, ' +
             'and a version 1 promise job queued in worldInitialize waits for tick 1.',
         reference: 'docs/research/bedrock-script-api.md section 5',
-        packs: ['v2', 'v1']
+        packs: ['v2', 'v1'],
+        needs: 'world'
+    },
+    {
+        id: 'globals',
+        family: 'scripting.engine',
+        description:
+            "A script's global object holds the names BDS's QuickJS defines plus the host's console and print, each " +
+            'built-in has only the members that QuickJS release has, and eval, Function from a string, the regular ' +
+            'expression v flag and unbounded recursion fail with fixed errors.',
+        reference: 'docs/research/bedrock-script-api.md section 1',
+        packs: ['engine'],
+        needs: 'engine'
     }
 ];

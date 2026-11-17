@@ -1754,6 +1754,7 @@
         }
     },
     "items.behavior": {},
+    "scripting.engine": {},
     "scripting.lifecycle": {
         "bds-record:startup-order": {
             "kind": "deferred",
