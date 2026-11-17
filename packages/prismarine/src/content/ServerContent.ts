@@ -59,6 +59,7 @@ import { bedrockEntityTypeTagsFor } from './entityTypeTags';
 import { javaBlockTagsForBedrock, javaItemTagsForBedrock } from './javaTags';
 import { checkIdentifiers } from './unmappedIdentifiers';
 import { RegionalDifficultyView } from '../entity/regionalDifficulty';
+import { registerScriptComponentBehaviors, ScriptComponentBridge } from '../scripting/scriptComponents';
 import { advancementRewards } from '../advancement/rewards';
 import { unwiredWorldSource } from './world/unwired';
 import { contentWorldViews } from './world/views';
@@ -181,6 +182,12 @@ export interface ServerContent {
     readonly spawnRules: readonly SpawnRule[];
     /** Java's `block_transformer` registry: what an axe strips, a shovel paths and a hoe tills. */
     readonly blockTransformers: BlockTransformerRegistry;
+    /**
+     * Where the custom components the content's blocks and items name send their hooks, which
+     * behavior pack scripts bind once they have registered the components. Absent in content
+     * built without it, which raises no such hook.
+     */
+    readonly scriptComponents?: ScriptComponentBridge;
     /** Bedrock's trade tables, keyed by the pack-relative path a villager names. */
     readonly tradeTables: ReadonlyMap<string, TradeTable>;
     /** Bedrock's biome definitions, unparsed, keyed by identifier. */
@@ -392,6 +399,9 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
 
     const blockBehaviors = new BehaviorRegistry<BlockHooks>();
     registerVanillaBlockBehaviors(blockBehaviors, world.blockWorld);
+    const itemBehaviors = new BehaviorRegistry<ItemHooks>();
+    const scriptComponents = new ScriptComponentBridge();
+    registerScriptComponentBehaviors({ blocks: blockBehaviors, items: itemBehaviors }, scriptComponents);
     const blocks = resolveBlocks(definitions.blocks.values(), {
         behaviors: blockBehaviors,
         statePalette: blockPalette,
@@ -400,7 +410,6 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     });
     diagnostics.push(...blocks.diagnostics);
 
-    const itemBehaviors = new BehaviorRegistry<ItemHooks>();
     const itemFactory = deferredItemFactory();
     registerVanillaItemBehaviors(itemBehaviors, { world: world.itemActions, items: itemFactory });
     const items = loadItemTypes({
@@ -626,7 +635,8 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         features: registryOf('features', definitions.features),
         featureRules: registryOf('feature_rules', definitions.featureRules),
         structures: registryOf('structures', new Map()),
-        tags
+        tags,
+        scriptComponents
     };
 
     built = content;

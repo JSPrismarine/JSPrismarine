@@ -22,7 +22,10 @@ import type { ReferencedEntity } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
 import { RandomSequences } from './host/randomSequences';
 import type { RandomSequencesState } from './host/randomSequences';
+import type { ScriptCommandSet } from '@jsprismarine/script-host/host/world';
+
 import { JSPRISMARINE_COMMAND_PERMISSIONS, registerJsprismarineCommands } from './jsprismarineCommands';
+import { registerScriptCommands, SCRIPT_COMMAND_FAILED } from './scriptCommands';
 import { buildVanillaCommands, contentRegistryIds, UNWIRED_COMMANDS } from './vanillaCommands';
 
 /**
@@ -76,12 +79,17 @@ export const commandPermissionOf = (name: string): string =>
     JSPRISMARINE_COMMAND_PERMISSIONS[name] ?? `minecraft.command.${name}`;
 
 /**
- * Builds the one registry this server dispatches: the vanilla set plus this
- * server's own commands.
+ * Builds the one registry this server dispatches: the vanilla set, this
+ * server's own commands, and the custom commands behavior pack scripts registered.
  */
-const buildCommands = (server: Server, content?: Parameters<typeof buildVanillaCommands>[0]) => {
+const buildCommands = (
+    server: Server,
+    content?: Parameters<typeof buildVanillaCommands>[0],
+    scripts?: ScriptCommandSet
+) => {
     const registry = buildVanillaCommands(content);
     registerJsprismarineCommands(registry, server);
+    if (scripts !== undefined) registerScriptCommands(registry, scripts);
     return registry;
 };
 
@@ -120,6 +128,12 @@ export class CommandManager implements Service {
 
     /** A function source other than the server's content; see {@link CommandManager.setFunctionContent}. */
     private functionContent: FunctionContent | undefined;
+
+    /** The registry ids the tree validates against, from the content build. */
+    private contentIds: Parameters<typeof buildVanillaCommands>[0];
+
+    /** The custom commands behavior pack scripts registered, which the tree holds as well. */
+    private scriptCommands: ScriptCommandSet | undefined;
 
     public constructor(server: Server, onStopCommandComplete?: (stopped: boolean) => void) {
         this.server = server;
@@ -297,7 +311,8 @@ export class CommandManager implements Service {
         // build runs between the two and the registry arguments validate
         // against what it loaded, so a pack's own entity, block, item or
         // enchantment is spellable.
-        this.vanilla = buildCommands(this.server, contentRegistryIds(this.server.getContent()));
+        this.contentIds = contentRegistryIds(this.server.getContent());
+        this.vanilla = buildCommands(this.server, this.contentIds, this.scriptCommands);
         this.flattenedVanillaCommands = undefined;
         this.functionParseCache.clear();
 
@@ -314,6 +329,29 @@ export class CommandManager implements Service {
      * @group Lifecycle
      */
     public async disable(): Promise<void> {}
+
+    /**
+     * Puts the custom commands behavior pack scripts registered in `startup` into the tree, or
+     * takes them out, and sends every player the commands they may run again.
+     * @param commands - The commands, or undefined to take the last ones out.
+     */
+    public setScriptCommands(commands: ScriptCommandSet | undefined): void {
+        this.scriptCommands = commands;
+        this.vanilla = buildCommands(this.server, this.contentIds, commands);
+        this.flattenedVanillaCommands = undefined;
+        this.functionParseCache.clear();
+        for (const session of this.server.getSessionManager().getSessions()) {
+            void session.sendAvailableCommands().catch((error: unknown) => this.server.getLogger().error(error));
+        }
+    }
+
+    /**
+     * Whether a command is one a behavior pack script registered. A custom command is gated by its
+     * permission level alone, as on BDS, and has no permission node.
+     */
+    public isScriptCommand(name: string): boolean {
+        return this.scriptCommands?.commands.some((command) => command.name === name) === true;
+    }
 
     /** The vanilla command set, for the session that has to advertise it. */
     public getVanillaCommands(): CommandRegistry<CommandSource> {
@@ -617,7 +655,7 @@ export class CommandManager implements Service {
         const vanilla = this.vanillaRegistry();
         const metadata = vanilla.getMetadata(name)!;
 
-        if (isPlayerSender(sender)) {
+        if (isPlayerSender(sender) && !this.isScriptCommand(name)) {
             if (!this.server.getPermissionManager().can(sender).execute(commandPermissionOf(name))) {
                 started.push(
                     Promise.resolve(
@@ -709,6 +747,8 @@ export class CommandManager implements Service {
             // Each context the command ran in and returned from is a success, whatever number it
             // returned: `/time query` succeeds once with the time. A command that fails throws.
             const total = Array.isArray(results) ? results.filter((value) => typeof value === 'number').length : 0;
+            // A custom command whose callback failed succeeds 0 times on BDS, without an error.
+            if (Array.isArray(results) && results.includes(SCRIPT_COMMAND_FAILED)) return { successCount: total };
             const [error] = errors;
             return total === 0 && error !== undefined ? { error } : { successCount: total };
         } catch (error: unknown) {
