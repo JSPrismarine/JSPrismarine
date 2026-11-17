@@ -2,9 +2,12 @@ import { fallsUnderGravity } from '@jsprismarine/prismarine/entity/data/gravity'
 import { breathe } from '@jsprismarine/prismarine/entity/playerBreath';
 import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponents';
 import { land, trackFall } from '@jsprismarine/prismarine/entity/playerFall';
+import { playerAbilityNames } from '@jsprismarine/prismarine/entity/playerAbilities';
 import { EXHAUSTION } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
 import type { EntityPosition } from '@jsprismarine/entities';
+import type { FilterEntityView } from '@jsprismarine/entities/filterContext';
+import { Gametype } from '@jsprismarine/minecraft';
 import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
 import { FLOOR_Y } from '@jsprismarine/prismarine/entity/data/testing';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
@@ -69,6 +72,39 @@ const BREEDING_FOOD: ReadonlyMap<string, string | readonly string[]> = new Map<s
 const bedrockItem = (javaItem: string): string | undefined => {
     const mapped = javaItemToBedrock(javaItem);
     return mapped.kind === 'unknown' ? undefined : mapped.bedrock.identifier;
+};
+
+/**
+ * A player as the server's filters read it: the shipped player's own view, which answers its
+ * families, with the abilities the server gives a player in that game mode.
+ */
+const playerView = (gamemode: Gametype): FilterEntityView => {
+    const own = serverContent().entities.types.spawn('minecraft:player').filterContext().self;
+    return {
+        ...own,
+        names: (name) => (name === 'has_ability' ? playerAbilityNames(gamemode) : own.names?.(name))
+    };
+};
+
+/**
+ * Brings a shipped pufferfish to its full puff by the event `/summon` uses, ticks it once with a
+ * player in reach, or with nobody when `player` is undefined, and returns the status effects it
+ * applied, or why it could not run.
+ */
+const touchPoisons = (bedrock: string, player: FilterEntityView | undefined): readonly string[] | string => {
+    const applied: string[] = [];
+    const pufferfish = serverContent().entities.types.spawn(bedrock, {
+        environment: {
+            entitySensorCandidates: () => (player === undefined ? [] : [{ view: player }]),
+            effects: { applyStatusEffect: (_entity, _target, effect) => applied.push(effect.id) > 0 }
+        }
+    });
+    pufferfish.fire('minecraft:to_full_puff');
+    pufferfish.applyQueuedEvents();
+    if (!pufferfish.activeComponentGroups().includes('minecraft:full_puff'))
+        return `minecraft:to_full_puff leaves ${bedrock} without minecraft:full_puff`;
+    pufferfish.tick(false);
+    return applied;
 };
 
 /** The Bedrock items Java breeds one animal with. */
@@ -531,21 +567,28 @@ export const coreScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     },
     {
         name: 'touch-poison',
-        java: 'A puffed-up pufferfish poisons a player that touches it.',
-        reference: 'Java Pufferfish.touch, which adds MobEffects.POISON to the player',
+        java: 'A puffed-up pufferfish poisons a survival player that touches it, and nobody else when no player is in reach.',
+        reference:
+            'Java Pufferfish.playerTouch, which adds MobEffects.POISON to a player its hurtServer damaged, so never to a creative one',
         subjects: () => ['minecraft:pufferfish'].flatMap((javaId) => mappedEntity(javaId) ?? []),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:mob_effect'],
         run: (subject) => {
-            const effects = componentValues(subject.bedrock, 'minecraft:mob_effect').map((value) =>
-                field(value, 'mob_effect')
-            );
-            if (!effects.includes('poison')) return `${subject.bedrock} declares no minecraft:mob_effect of poison`;
-            // A component the registry holds as data only is kept for its values and never runs.
-            const hooks = serverContent().entities.components.hooksOf('minecraft:mob_effect');
-            return hooks.has('onTick')
-                ? undefined
-                : 'the server never runs minecraft:mob_effect, so nothing is poisoned';
+            const cases: readonly { readonly who: string; readonly player?: Gametype; readonly java: string }[] = [
+                { who: 'a survival player', player: Gametype.SURVIVAL, java: 'poison' },
+                { who: 'a creative player', player: Gametype.CREATIVE, java: '' },
+                { who: 'nobody', java: '' }
+            ];
+            const differences: string[] = [];
+            for (const { who, player, java } of cases) {
+                const applied = touchPoisons(subject.bedrock, player === undefined ? undefined : playerView(player));
+                if (typeof applied === 'string') return applied;
+                if (applied.join(', ') !== java)
+                    differences.push(
+                        `puffed up with ${who} in reach it applies ${applied.join(', ') || 'nothing'}, where Java applies ${java || 'nothing'}`
+                    );
+            }
+            return differences.length === 0 ? undefined : differences.join('; ');
         }
     },
     {
