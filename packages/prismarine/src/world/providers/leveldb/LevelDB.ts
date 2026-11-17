@@ -58,8 +58,8 @@ import {
     encodeChunkInhabitedTimeKey
 } from './ChunkInhabitedTimeRecord';
 import type { ChunkGeneration } from '../../chunk/ChunkGeneration';
-import { CURRENT_GENERATION } from '../../chunk/ChunkGeneration';
-import { applyBelowZeroRetrogen, belowZeroRetrogenOf } from '../../chunk/belowZeroRetrogen';
+import { CURRENT_GENERATION, isOldGeneration } from '../../chunk/ChunkGeneration';
+import { applyBelowZeroRetrogen, belowZeroRetrogenOf, markBorderTicks } from '../../chunk/belowZeroRetrogen';
 import { Dimensions } from '../../DimensionType';
 import { maxSubChunk, minSubChunk } from '../../Dimension';
 import BaseProvider from '../BaseProvider';
@@ -750,6 +750,10 @@ export default class LevelDB extends BaseProvider {
             generator.useStoredChunks?.(this.storedChunks(dimension));
             const generated = await generator.generateChunk(cx, cz, seed, config, options);
             applyBelowZeroRetrogen(chunk, generated, missingBedrock);
+            markBorderTicks(chunk, (x, z) => {
+                const neighbor = this.generationOf(dimension, x, z);
+                return neighbor !== undefined && isOldGeneration(neighbor);
+            });
             chunk.markChanged();
         }
         return chunk;

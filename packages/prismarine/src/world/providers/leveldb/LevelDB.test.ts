@@ -1642,6 +1642,8 @@ describe('world', () => {
                     old.fillColumn(x, z, 1, 60, id('minecraft:stone'));
                 }
             }
+            // Water on the east edge, which faces a chunk that was never stored and so is new.
+            old.setBlockRuntimeId(15, 30, 5, id('minecraft:water'));
             await first.provider.writeChunk(old);
             await first.provider.disable();
 
@@ -1667,6 +1669,8 @@ describe('world', () => {
                     for (let x = 0; x < 16; x++) {
                         for (let z = 0; z < 16; z++) generated.fillColumn(x, z, -64, -1, id('minecraft:tuff'));
                     }
+                    // Water just under the old floor, on the seam Java's border ticks mark.
+                    generated.setBlockRuntimeId(2, -1, 2, id('minecraft:water'));
                     return generated;
                 }
             });
@@ -1676,6 +1680,11 @@ describe('world', () => {
             expect(chunk.getBiome(4, 30, 8)).toBe(DESERT);
             expect(chunk.getBiome(5, -30, 9)).toBe(DESERT);
             expect(chunk.getBiome(4, 30, 4)).toBe(5);
+            // Java's `Blender.generateBorderTicks` marks both for post-processing.
+            expect(chunk.getPendingShapeUpdates()).toEqual([
+                { x: 2, y: -1, z: 2 },
+                { x: 15, y: 30, z: 5 }
+            ]);
             expect(chunk.getHasChanged()).toBe(true);
             await second.provider.writeChunk(chunk);
             await second.provider.disable();

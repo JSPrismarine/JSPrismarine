@@ -7,10 +7,13 @@
  * that chunk's blocks under y = 0, decides the biomes there, and turns the old bedrock floor into
  * deepslate.
  *
- * Java's `generateBorderTicks` marks the fluids along the upgraded floor for an update; the world
- * already ticks every fluid that borders air when a chunk enters it, which covers the same water.
+ * The upgraded chunk keeps the post-processing marks generation left under y = 0, and
+ * {@link markBorderTicks} adds the ones Java's `Blender.generateBorderTicks` makes along the edges
+ * of its old generation.
  */
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';
+import { forEachBorderTick } from '@jsprismarine/worldgen/blending/Blender';
+import { BlendingData } from '@jsprismarine/worldgen/blending/BlendingData';
 import type { FloorBlock } from '@jsprismarine/worldgen/blending/belowZeroRetrogen';
 import {
     RETAINED_RETROGEN_BIOMES,
@@ -22,6 +25,7 @@ import {
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type Chunk from './Chunk';
+import { fluidNameAt } from './fluidAt';
 
 const floorOf =
     (chunk: Chunk) =>
@@ -66,6 +70,13 @@ export const applyBelowZeroRetrogen = (stored: Chunk, generated: Chunk, missingB
         }
     }
 
+    // The ticks and marks generation left in the new floor, which Java's upgraded proto chunk
+    // keeps. A column that stays open holds nothing for them to act on.
+    const kept = (at: { readonly x: number; readonly y: number; readonly z: number }): boolean =>
+        at.y < RETROGEN_END_Y && !missingBedrock.has((at.z & 0xf) * 16 + (at.x & 0xf));
+    stored.getPendingFluidTicks().push(...generated.getPendingFluidTicks().filter(kept));
+    stored.getPendingShapeUpdates().push(...generated.getPendingShapeUpdates().filter(kept));
+
     for (const blockEntity of generated.getBlockEntities()) {
         const position = blockEntity.getPosition();
         const localX = position.getX() & 0xf;
@@ -91,4 +102,45 @@ export const applyBelowZeroRetrogen = (stored: Chunk, generated: Chunk, missingB
             }
         }
     }
+};
+
+/**
+ * Marks the fluids along the edges of a stored chunk's old generation for post-processing, Java's
+ * `Blender.generateBorderTicks` for the chunk as it is upgraded: the layers under, at the bottom
+ * of, at the top of and over the old generation, and the edge columns that face a new chunk. Each
+ * fluid there is ticked when the chunk enters a world, so water at the seam flows across it.
+ *
+ * Java marks leaves there too, so that each recomputes its `distance` state. Bedrock leaves carry
+ * no distance, and this server finds the nearest log afresh on every random tick, so a leaf has
+ * nothing to recompute and is not marked.
+ *
+ * @param chunk - The stored chunk; does nothing unless it is old generation.
+ * @param isOld - Whether the stored chunk at a chunk position is old generation. A chunk that was
+ *   never stored is new, as Java generates it with the current generator.
+ */
+export const markBorderTicks = (chunk: Chunk, isOld: (chunkX: number, chunkZ: number) => boolean): void => {
+    const blending = chunk.getGeneration().blending;
+    if (blending === undefined) return;
+
+    const ticks = chunk.getPendingFluidTicks();
+    const shapes = chunk.getPendingShapeUpdates();
+    // A seam layer can cross an edge column, and generation can have marked the same fluid.
+    const marked = new Set(shapes.map(({ x, y, z }) => `${x},${y},${z}`));
+    const originX = chunk.getX() * 16;
+    const originZ = chunk.getZ() * 16;
+    forEachBorderTick(
+        BlendingData.unpack(blending),
+        (stepX, stepZ) => !isOld(chunk.getX() + stepX, chunk.getZ() + stepZ),
+        (localX, y, localZ) => {
+            if (y < chunk.getMinY() || y > chunk.getMaxY()) return;
+            if (fluidNameAt(chunk, localX, y, localZ) === undefined) return;
+
+            const at = { x: originX + localX, y, z: originZ + localZ };
+            const key = `${at.x},${at.y},${at.z}`;
+            if (marked.has(key)) return;
+            marked.add(key);
+            ticks.push({ ...at, delay: 0 });
+            shapes.push(at);
+        }
+    );
 };

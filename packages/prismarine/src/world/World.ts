@@ -47,6 +47,7 @@ import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './bl
 import type { Breaker } from './blockBreak';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { notifyContentNeighbors, updateContentShape } from './neighborContent';
+import { fluidNameAt } from './chunk/fluidAt';
 import CoordinateUtils from './CoordinateUtils';
 import type { ShownActor, ShownEntity } from './ShownActor';
 import { byRuntimeId } from './runtimeIdOrder';
@@ -1749,9 +1750,8 @@ export class World implements Service {
         const fluidTicks = this.systems.ticks.list('fluid');
         const now = this.getTicks();
         for (const tick of pending) {
-            let name = chunk.getBlock(tick.x & 0xf, tick.y, tick.z & 0xf).name;
-            if (liquidOf(name) === null) name = chunk.getBlock(tick.x & 0xf, tick.y, tick.z & 0xf, 1).name;
-            if (liquidOf(name) === null) continue;
+            const name = fluidNameAt(chunk, tick.x & 0xf, tick.y, tick.z & 0xf);
+            if (name === undefined) continue;
             fluidTicks.schedule({ x: tick.x, y: tick.y, z: tick.z }, name, now + tick.delay);
         }
     }

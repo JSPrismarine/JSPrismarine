@@ -39,7 +39,7 @@ Branch `feat/java-chunk-blending`, 2026-11-14.
 | 1. Blender in `@jsprismarine/worldgen` | Done. Matches Java exactly on `vectors/blending.json`. |
 | 2. Which stored chunks are old | Done. LevelDB record, Java's load rule, Bedrock 0x40. |
 | 3. Blending in the generator | Done. Terrain, biomes, surface, features, carvers; caches and the whole-chunk worker path step aside. |
-| 4. Border ticks | Folded into slice 5. Java's `generateBorderTicks` only acts on old chunks, which means upgrading ones; the world's exposed-fluid ticks cover the fluids, and leaf updates wait on [#3078](https://github.com/JSPrismarine/JSPrismarine/issues/3078). |
+| 4. Border ticks | Done in slice 5 by [#3078](https://github.com/JSPrismarine/JSPrismarine/issues/3078). Java's `generateBorderTicks` only acts on old chunks, which means upgrading ones; the upgrade marks the fluids on the old generation's seams for post-processing. Leaves are not marked: Bedrock leaves carry no `distance` to recompute. |
 | 5. Below-zero retrogen | Done, with `Data2D` biomes. |
 | 6. Verification and documentation | Parity row `worldgen.blending` and the dimensions guide done. No client e2e scenario: the suite has no way to seed a save with old chunks yet. |
 
