@@ -109,6 +109,7 @@ export class ScriptDebugSession {
     private engine: ScriptEngine | undefined;
     private debug: EngineDebugger | undefined;
     private closedValue = false;
+    private offered = false;
     /** The reason the script is stopped for, while it is. */
     private stopped: PauseReason | undefined;
     /** Set while a script runs and polls, when no request may run script. */
@@ -130,19 +131,31 @@ export class ScriptDebugSession {
     }
 
     /**
-     * Offers the protocol and the plugins, and checks the extension's answer as Bedrock Dedicated
-     * Server does: the same version, the passcode when one is set, and a target among the plugins.
+     * Sends the protocol event, with the plugins and whether a passcode is needed, without waiting
+     * for the answer. A host that must not block until the extension answers offers first and
+     * calls {@link handshake} once a message has arrived. Only the first call sends anything.
+     */
+    public offer(): void {
+        if (this.offered) return;
+        this.offered = true;
+        this.event({
+            type: 'ProtocolEvent',
+            version: DEBUGGER_PROTOCOL_VERSION,
+            plugins: this.options.plugins,
+            ...((this.options.passcode ?? '') === '' ? {} : { require_passcode: true })
+        });
+    }
+
+    /**
+     * Offers the protocol and the plugins, unless {@link offer} already did, and checks the
+     * extension's answer as Bedrock Dedicated Server does: the same version, the passcode when one
+     * is set, and a target among the plugins.
      * @returns The script module UUID the extension picked, lowercase, or undefined when it picked none.
      * @throws {DebuggerConnectionError} With Bedrock Dedicated Server's message when the answer is refused or never comes.
      */
     public handshake(): string | undefined {
         const passcode = this.options.passcode ?? '';
-        this.event({
-            type: 'ProtocolEvent',
-            version: DEBUGGER_PROTOCOL_VERSION,
-            plugins: this.options.plugins,
-            ...(passcode === '' ? {} : { require_passcode: true })
-        });
+        this.offer();
         for (;;) {
             const message = this.next(this.channel.receive());
             if (message === undefined) {

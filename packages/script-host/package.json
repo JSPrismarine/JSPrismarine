@@ -87,6 +87,11 @@
                 "import": "./dist/debugger/channel.js",
                 "module": "./dist/debugger/channel.js"
             },
+            "./debugger/thread": {
+                "types": "./dist/debugger/thread.d.ts",
+                "import": "./dist/debugger/thread.js",
+                "module": "./dist/debugger/thread.js"
+            },
             "./host/WorldScripts": {
                 "types": "./dist/host/WorldScripts.d.ts",
                 "import": "./dist/host/WorldScripts.js",
@@ -177,6 +182,10 @@
         "./debugger/channel": {
             "jsprismarine:dist": "./dist/debugger/channel.js",
             "default": "./src/debugger/channel.ts"
+        },
+        "./debugger/thread": {
+            "jsprismarine:dist": "./dist/debugger/thread.js",
+            "default": "./src/debugger/thread.ts"
         },
         "./host/WorldScripts": {
             "jsprismarine:dist": "./dist/host/WorldScripts.js",

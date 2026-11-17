@@ -77,6 +77,11 @@ export class DebuggerSocket {
         return this.closedValue;
     }
 
+    /** The extension's end of the connection: its IP address and port. */
+    public get peer(): { readonly address: string; readonly port: number } {
+        return { address: this.socket.remoteAddress ?? '', port: this.socket.remotePort ?? 0 };
+    }
+
     /** Calls `listener` with each message the extension sends, in order. */
     public onMessage(listener: (message: unknown) => void): void {
         this.messageListeners.push(listener);
