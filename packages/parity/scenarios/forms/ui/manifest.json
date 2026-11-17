@@ -1,0 +1,29 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario forms ui",
+        "description": "Shows @minecraft/server-ui forms to the scenario's client and records the responses. Written for packages/parity.",
+        "uuid": "a45d782e-295f-424a-b6cf-76fa63cb50ec",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "bfa32cbd-13dd-47f1-b087-79d83851c4fc",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        },
+        {
+            "module_name": "@minecraft/server-ui",
+            "version": "2.0.0"
+        }
+    ]
+}

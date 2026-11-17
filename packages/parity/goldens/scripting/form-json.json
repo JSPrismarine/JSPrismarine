@@ -1,0 +1,491 @@
+{
+    "$comment": [
+        "What the scripts of scenario `form-json` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.ui",
+    "scenario": "form-json",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "json",
+            "seq": 1,
+            "tick": 0,
+            "event": "ready for the client"
+        },
+        {
+            "pack": "json",
+            "seq": 2,
+            "tick": 0,
+            "event": "client joined"
+        },
+        {
+            "pack": "json",
+            "seq": 3,
+            "tick": 0,
+            "event": "escapes",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 4,
+            "tick": 0,
+            "event": "numbers",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 5,
+            "tick": 0,
+            "event": "icons",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 6,
+            "tick": 0,
+            "event": "raw elements",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 7,
+            "tick": 0,
+            "event": "called twice",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 8,
+            "tick": 0,
+            "event": "message twice",
+            "value": {
+                "kind": "MessageFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 9,
+            "tick": 0,
+            "event": "empty modal",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 10,
+            "tick": 0,
+            "event": "empty message",
+            "value": {
+                "kind": "MessageFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 11,
+            "tick": 0,
+            "event": "text default raw",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 12,
+            "tick": 0,
+            "event": "dropdown default out of range",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 13,
+            "tick": 0,
+            "event": "dropdown empty",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 14,
+            "tick": 0,
+            "event": "slider min above max",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 15,
+            "tick": 0,
+            "event": "slider step 0",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 16,
+            "tick": 0,
+            "event": "slider step negative",
+            "value": {
+                "kind": "ModalFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "formValues": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 17,
+            "tick": 0,
+            "event": "lone surrogate",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 18,
+            "tick": 0,
+            "event": "raw message: empty rawtext",
+            "value": {
+                "error": "RawMessageError: Failed to resolve raw message from json: \n{\"rawtext\":[null]}\n.",
+                "isFormRejectError": false,
+                "reason": "<undefined>",
+                "thrown": true
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 19,
+            "tick": 0,
+            "event": "raw message: text and translate",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 20,
+            "tick": 0,
+            "event": "raw message: text and rawtext",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 21,
+            "tick": 0,
+            "event": "raw message: nested rawtext",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 22,
+            "tick": 0,
+            "event": "raw message: with a raw message",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 23,
+            "tick": 0,
+            "event": "raw message: with an empty list",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 24,
+            "tick": 0,
+            "event": "raw message: with two strings",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 25,
+            "tick": 0,
+            "event": "raw message: score",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 26,
+            "tick": 0,
+            "event": "raw message: empty object",
+            "value": {
+                "error": "RawMessageError: Failed to resolve raw message from json: \n{\"rawtext\":[null]}\n.",
+                "isFormRejectError": false,
+                "reason": "<undefined>",
+                "thrown": true
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 27,
+            "tick": 0,
+            "event": "raw message: empty text",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 28,
+            "tick": 0,
+            "event": "raw message: unknown key",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 29,
+            "tick": 0,
+            "event": "raw message: rawtext of strings",
+            "value": {
+                "error": "TypeError: Native variant type conversion failed. Function argument [0] expected type: string | RawMessage",
+                "isFormRejectError": false,
+                "reason": "<undefined>",
+                "thrown": true
+            }
+        },
+        {
+            "pack": "json",
+            "seq": 30,
+            "tick": 0,
+            "event": "raw message: rawtext holding an empty object",
+            "value": {
+                "kind": "ActionFormResponse",
+                "canceled": true,
+                "cancelationReason": "UserClosed",
+                "selection": "<undefined>"
+            }
+        }
+    ],
+    "client": [
+        {
+            "packet": "ModalFormRequest",
+            "formId": 1,
+            "json": "{\"content\":\"<script> & 'single' </end>\",\"elements\":[{\"image\":null,\"text\":\"x\",\"type\":\"button\"}],\"title\":\"tab\\t cr\\r bs\\b ff\\f one\\u0001 us\\u001F del backslash\\\\ emoji 😀 ls  nbsp \",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 2,
+            "json": "{\"content\":[{\"max\":0.2000000029802322,\"min\":0.1000000014901161,\"step\":1.0,\"text\":\"a\",\"timeout\":100.0,\"type\":\"slider\"},{\"max\":1.000000011686097e-07,\"min\":-2.50,\"step\":1.0,\"text\":\"b\",\"timeout\":100.0,\"type\":\"slider\"},{\"max\":0.6666666865348816,\"min\":0.3333333432674408,\"step\":1.0,\"text\":\"c\",\"timeout\":100.0,\"type\":\"slider\"},{\"max\":1.000000020040877e+21,\"min\":123456792.0,\"step\":1.0,\"text\":\"d\",\"timeout\":100.0,\"type\":\"slider\"},{\"max\":16777216.0,\"min\":-0.0,\"step\":1.0,\"text\":\"e\",\"timeout\":100.0,\"type\":\"slider\"},{\"max\":0.3000000119209290,\"min\":1.401298464324817e-45,\"step\":1.0,\"text\":\"f\",\"timeout\":100.0,\"type\":\"slider\"},{\"default\":-7,\"max\":3.402823466385289e+38,\"min\":100.50,\"step\":3.0,\"text\":\"g\",\"timeout\":100.0,\"type\":\"slider\"},{\"default\":2147483647,\"max\":1.0,\"min\":0.0,\"step\":1.0,\"text\":\"h\",\"timeout\":100.0,\"type\":\"slider\"},{\"max\":1000000.0,\"min\":12.750,\"step\":25.0,\"text\":\"i\",\"timeout\":100.0,\"type\":\"slider\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 3,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":{\"data\":\"\",\"type\":\"path\"},\"text\":\"empty\",\"type\":\"button\"},{\"image\":{\"data\":\"textures/ui/icon\",\"type\":\"path\"},\"text\":\"path\",\"type\":\"button\"},{\"image\":{\"data\":\"textures/my icon é\",\"type\":\"path\"},\"text\":\"spaces\",\"type\":\"button\"},{\"image\":null,\"text\":\"undefined\",\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 4,
+            "json": "{\"content\":[{\"default\":\"d\",\"placeholder\":{\"rawtext\":[{\"translate\":\"placeholder\"}]},\"text\":{\"rawtext\":[{\"translate\":\"label\"}]},\"tooltip\":{\"rawtext\":[{\"translate\":\"tip\"}]},\"type\":\"input\"},{\"options\":[\"a\"],\"text\":\"d\",\"tooltip\":{\"rawtext\":[{\"text\":\"tip\"}]},\"type\":\"dropdown\"},{\"max\":1.0,\"min\":0.0,\"step\":1.0,\"text\":{\"rawtext\":[{\"text\":\"s\"}]},\"timeout\":100.0,\"tooltip\":\"\",\"type\":\"slider\"},{\"default\":false,\"text\":\"t\",\"tooltip\":\"tip\",\"type\":\"toggle\"}],\"icon\":null,\"submit\":{\"rawtext\":[{\"translate\":\"gui.ok\"}]},\"title\":{\"rawtext\":[{\"translate\":\"title\"}]},\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 5,
+            "json": "{\"content\":[{\"text\":\"t\",\"type\":\"toggle\"}],\"icon\":null,\"submit\":\"second\",\"title\":\"second\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 6,
+            "json": "{\"button1\":\"uno\",\"button2\":{\"rawtext\":[{\"translate\":\"two\"}]},\"content\":\"second\",\"title\":\"a\",\"type\":\"modal\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 7,
+            "json": "{\"content\":null,\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 8,
+            "json": "{\"button1\":\"\",\"button2\":\"\",\"content\":\"\",\"title\":\"\",\"type\":\"modal\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 9,
+            "json": "{\"content\":[{\"default\":{\"rawtext\":[{\"translate\":\"d\"}]},\"placeholder\":\"p\",\"text\":\"l\",\"type\":\"input\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 10,
+            "json": "{\"content\":[{\"default\":5,\"options\":[\"a\"],\"text\":\"d\",\"type\":\"dropdown\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 11,
+            "json": "{\"content\":[{\"options\":null,\"text\":\"d\",\"type\":\"dropdown\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 12,
+            "json": "{\"content\":[{\"max\":1.0,\"min\":5.0,\"step\":1.0,\"text\":\"s\",\"timeout\":100.0,\"type\":\"slider\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 13,
+            "json": "{\"content\":[{\"max\":1.0,\"min\":0.0,\"step\":0.0,\"text\":\"s\",\"timeout\":100.0,\"type\":\"slider\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 14,
+            "json": "{\"content\":[{\"max\":1.0,\"min\":0.0,\"step\":-1.0,\"text\":\"s\",\"timeout\":100.0,\"type\":\"slider\"}],\"icon\":null,\"title\":\"\",\"type\":\"custom_form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 15,
+            "json": "{\"content\":\"\",\"elements\":null,\"title\":\"lone ��� end\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 16,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":[{\"translate\":\"b\"}]},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 17,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":[{\"text\":\"b\"}]},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 18,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":[{\"rawtext\":[{\"text\":\"nested\"}]}]},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 19,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":[{\"translate\":\"t\",\"with\":{\"rawtext\":[{\"text\":\"y\"}]}}]},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 20,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":[{\"translate\":\"t\"}]},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 21,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":[{\"translate\":\"t\",\"with\":{\"rawtext\":[{\"text\":\"a\"},{\"text\":\"b\"}]}}]},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 22,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":[{\"score\":{\"name\":\"*\",\"objective\":\"obj\"}}]},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 23,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":[{\"text\":\"\"}]},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 24,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":[{\"text\":\"x\"}]},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        },
+        {
+            "packet": "ModalFormRequest",
+            "formId": 25,
+            "json": "{\"content\":\"\",\"elements\":[{\"image\":null,\"text\":{\"rawtext\":null},\"type\":\"button\"}],\"title\":\"\",\"type\":\"form\"}\n"
+        }
+    ]
+}

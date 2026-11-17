@@ -32,6 +32,8 @@ import { parseDumpLine } from '../../../bedrock-data/utils/bedrock-dump/protocol
 import { isFamily } from '../families.ts';
 import type { Family } from '../families.ts';
 import { isRecord } from '../isRecord.ts';
+import type { ClientObservation } from './formClient.ts';
+import { isClientObservation, normalizeFormIds } from './formClient.ts';
 
 /** A JSON value a script can report as what a call returned. */
 export type ObservedValue = string | number | boolean | null | readonly ObservedValue[] | ObservedObject;
@@ -65,6 +67,11 @@ export interface ScenarioRecord {
      * on. Absent when no pack was refused.
      */
     readonly refusals?: readonly string[];
+    /**
+     * The form packets the scenario's client received, in order, for a scenario with a client.
+     * Absent for one without.
+     */
+    readonly client?: readonly ClientObservation[];
 }
 
 /** What starts a plugin error on the content log, after its time and level. */
@@ -234,6 +241,10 @@ export const readScenarioGolden = (scenario: string): ScenarioGolden | undefined
     if (refusals !== undefined && (!Array.isArray(refusals) || !refusals.every((line) => typeof line === 'string'))) {
         throw refuse('its refusals are not a list of lines');
     }
+    const { client } = parsed;
+    if (client !== undefined && (!Array.isArray(client) || !client.every(isClientObservation))) {
+        throw refuse('its client record is not a list of form packets');
+    }
     return {
         $comment,
         format: SCENARIO_GOLDEN_FORMAT,
@@ -241,7 +252,8 @@ export const readScenarioGolden = (scenario: string): ScenarioGolden | undefined
         scenario,
         server: { protocolVersion: Number(server.protocolVersion), serverVersion: server.serverVersion },
         observations,
-        ...(refusals === undefined ? {} : { refusals })
+        ...(refusals === undefined ? {} : { refusals }),
+        ...(client === undefined ? {} : { client })
     };
 };
 
@@ -254,12 +266,34 @@ const describeObservation = (observation: Observation | undefined): string =>
 /**
  * Compares a record with the golden's.
  *
- * @returns Undefined when the two hold the same observations and refusals in the same order,
- *   otherwise one sentence naming the first observation, or else the first refusal, that differs
- *   and the counts on each side.
+ * @returns Undefined when the two hold the same observations, refusals and client packets in the
+ *   same order, otherwise one sentence naming the first observation, else the first refusal, else
+ *   the first client packet that differs, and the counts on each side. Form ids are compared by
+ *   the order they first appear in, since no script sees them.
  */
 export const diffScenarioRecords = (expected: ScenarioRecord, actual: ScenarioRecord): string | undefined =>
-    diffObservations(expected, actual) ?? diffRefusals(expected.refusals ?? [], actual.refusals ?? []);
+    diffObservations(expected, actual) ??
+    diffRefusals(expected.refusals ?? [], actual.refusals ?? []) ??
+    diffClient(expected.client ?? [], actual.client ?? []);
+
+const diffClient = (
+    expected: readonly ClientObservation[],
+    actual: readonly ClientObservation[]
+): string | undefined => {
+    const want = normalizeFormIds(expected);
+    const got = normalizeFormIds(actual);
+    const length = Math.max(want.length, got.length);
+    for (let index = 0; index < length; index++) {
+        if (isDeepStrictEqual(want[index], got[index])) continue;
+        const describe = (packet: ClientObservation | undefined): string =>
+            packet === undefined ? 'nothing' : JSON.stringify(packet);
+        return (
+            `client packet ${index + 1} differs: the client got ${describe(want[index])} from BDS and ` +
+            `${describe(got[index])} from JSPrismarine (${want.length} packets from BDS, ${got.length} from JSPrismarine)`
+        );
+    }
+    return undefined;
+};
 
 const diffRefusals = (expected: readonly string[], actual: readonly string[]): string | undefined => {
     const length = Math.max(expected.length, actual.length);

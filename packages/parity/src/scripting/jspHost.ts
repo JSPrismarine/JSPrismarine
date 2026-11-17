@@ -22,6 +22,8 @@ import { fakeLevel } from '@jsprismarine/prismarine/testing/level';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 
 import { isRecord } from '../isRecord.ts';
+import type { FormAnswer } from './formClient.ts';
+import { cancelByte, FormClientScript } from './formClient.ts';
 import type { ScenarioRecord } from './record.ts';
 import { END_TABLE, readScenarioRecord } from './record.ts';
 import type { ScriptScenario } from './scenarios.ts';
@@ -98,8 +100,71 @@ const runPackInEngine = (library: ScriptHostLibrary, directory: string): string[
     return lines;
 };
 
-/** The most ticks a world scenario may take before every pack has ended. BDS's packs end at tick 20. */
-const SCENARIO_TICKS = 200;
+/**
+ * The most ticks a world scenario may take before every pack has ended. BDS's packs end at tick
+ * 20; a scenario with a client waits up to 60 ticks for a form that never settles.
+ */
+const SCENARIO_TICKS = 400;
+
+/** The script id of a scenario client's player. */
+const CLIENT_PLAYER = '1';
+
+/**
+ * A scenario's client at the world seam: a player that receives the scripts' forms and answers
+ * each as the scenario says, one tick later, as a client's answer arrives in a later tick's input
+ * step. An answer that is not JSON makes the player leave, as the server disconnects a client
+ * that sends one (`ModalFormResponseHandler`).
+ */
+class ScenarioClientPlayer {
+    public readonly script: FormClientScript;
+    public present = true;
+    private queued: { readonly formId: number; readonly answer: FormAnswer }[] = [];
+
+    public constructor(scenario: ScriptScenario) {
+        this.script = new FormClientScript(scenario.client ?? { answers: [] });
+    }
+
+    /** The player as the level's script world reaches it, while it is in the level. */
+    public players() {
+        if (!this.present) return [];
+        return [
+            {
+                id: CLIENT_PLAYER,
+                sendMessage: () => {},
+                showForm: (formId: number, json: string) =>
+                    this.queued.push({ formId, answer: this.script.formRequested(formId, json) }),
+                closeForms: () => this.script.formsClosed()
+            }
+        ];
+    }
+
+    /** Sends the answers to the forms the last tick showed, as the next input step admits them. */
+    public answer(scripts: LevelScripts): void {
+        for (const { formId, answer } of this.queued.splice(0)) {
+            if (!this.present || 'ignore' in answer) continue;
+            const response = 'leave' in answer ? undefined : answer.response;
+            if ('leave' in answer || (response !== undefined && !isJson(response))) {
+                this.present = false;
+                continue;
+            }
+            scripts.answerForm({
+                player: CLIENT_PLAYER,
+                formId,
+                response: response ?? null,
+                cancelReason: answer.cancel === undefined ? null : cancelByte(answer.cancel)
+            });
+        }
+    }
+}
+
+const isJson = (text: string): boolean => {
+    try {
+        JSON.parse(text);
+        return true;
+    } catch {
+        return false;
+    }
+};
 
 /** The `script-watchdog-*` defaults BDS ships, under the scenario's own properties. */
 const watchdogOf = (properties: Readonly<Record<string, string>> = {}) => ({
@@ -113,7 +178,10 @@ const watchdogOf = (properties: Readonly<Record<string, string>> = {}) => ({
  * returns the lines they logged.
  * @throws Error when the script host cannot load the packs, or a pack never ends.
  */
-const runPacksInLevel = async (scenario: ScriptScenario): Promise<string[]> => {
+const runPacksInLevel = async (
+    scenario: ScriptScenario,
+    client: ScenarioClientPlayer | undefined
+): Promise<string[]> => {
     const lines: string[] = [];
     const level = fakeLevel();
     const scripts = await LevelScripts.load({
@@ -122,7 +190,7 @@ const runPacksInLevel = async (scenario: ScriptScenario): Promise<string[]> => {
         sources: {
             dimensions: () =>
                 [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].map((type) => type.bedrockName),
-            players: () => [],
+            players: () => client?.players() ?? [],
             weather: level.getWeather(),
             // No scenario player chats on JSPrismarine yet: a BDS scenario's chat comes from a
             // GameTest simulated player, which needs @minecraft/server-gametest.
@@ -149,6 +217,7 @@ const runPacksInLevel = async (scenario: ScriptScenario): Promise<string[]> => {
             );
         let reloaded = false;
         for (let tick = 0; tick < SCENARIO_TICKS && !ended(); tick++) {
+            client?.answer(scripts);
             scripts.flush();
             // Between ticks, as a console command arrives.
             const reloadAfter = scenario.reloadAfter;
@@ -178,7 +247,13 @@ const runPacksInLevel = async (scenario: ScriptScenario): Promise<string[]> => {
  */
 export const runScenarioOnJsp = async (scenario: ScriptScenario): Promise<ScenarioRecord | undefined> => {
     if (scenario.needs === 'world') {
-        return readScenarioRecord(await runPacksInLevel(scenario), loadedPacks(scenario), scenario.runs);
+        const client = scenario.client === undefined ? undefined : new ScenarioClientPlayer(scenario);
+        const record = readScenarioRecord(
+            await runPacksInLevel(scenario, client),
+            loadedPacks(scenario),
+            scenario.runs
+        );
+        return client === undefined ? record : { ...record, client: client.script.observations };
     }
     const library = ScriptHostLibrary.load();
     try {

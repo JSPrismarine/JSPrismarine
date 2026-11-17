@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { Family } from '../families.ts';
+import type { ScenarioClient } from './formClient.ts';
 import type { Observation, ScenarioRecord } from './record.ts';
 import { isRecord } from '../isRecord.ts';
 
@@ -73,6 +74,13 @@ export interface ScriptScenario {
      * capture has no client. JSPrismarine's runner has no GameTest runner yet.
      */
     readonly gametestAfter?: { readonly event: string; readonly test: string };
+    /**
+     * A client that joins the scenario's server and answers the forms its scripts show. The BDS
+     * capture connects a headless client once the server is ready, and JSPrismarine's runner
+     * gives the level a player that answers at the world seam. Both record the form packets the
+     * client received.
+     */
+    readonly client?: ScenarioClient;
     /**
      * Observations JSPrismarine makes differently from BDS on purpose, by event: what JSPrismarine
      * records instead of the golden's value or error, why, and the decision record that says so.
@@ -329,5 +337,105 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         experiments: ['gametest'],
         gametestAfter: { event: 'ready for /gametest', test: 'jsp:chat' },
         needs: 'world'
+    },
+    {
+        id: 'forms',
+        family: 'scripting.ui',
+        description:
+            'ActionFormData, ModalFormData and MessageFormData each send the client one form whose JSON is fixed by the ' +
+            'builder calls, and show() settles with the response the client sends, a cancel with its reason, or a ' +
+            'rejection when the answer does not fit the form or the player leaves.',
+        reference: 'docs/plans/script-api-host.md slice 13',
+        packs: ['ui'],
+        needs: 'world',
+        client: {
+            answers: [
+                { response: '2' },
+                { cancel: 'UserClosed' },
+                { response: '[null,null,null,"typed",1,6,false]' },
+                { cancel: 'UserBusy' },
+                { response: '["",0,1.5,true]' },
+                { response: 'true' },
+                { response: 'false' },
+                { cancel: 'UserClosed' },
+                { response: '5' },
+                { response: '"oops"' },
+                { response: '[true,"x"]' },
+                { response: 'null' },
+                { ignore: true },
+                { leave: true }
+            ]
+        }
+    },
+    {
+        id: 'form-json',
+        family: 'scripting.ui',
+        description:
+            'A form is JSON with its keys in order and a newline at the end, its strings escaped only where JSON needs it, ' +
+            'its slider numbers written in a fixed float format, and a RawMessage title, label or button written as a ' +
+            'rawtext list, whose with list becomes a rawtext of its own.',
+        reference: 'docs/plans/script-api-host.md slice 13',
+        packs: ['json'],
+        needs: 'world',
+        client: {
+            answers: Array.from({ length: 29 }, () => ({ cancel: 'UserClosed' }) as const)
+        }
+    },
+    {
+        id: 'form-responses',
+        family: 'scripting.ui',
+        description:
+            'show() settles with whatever JSON value the client sends when its type fits the form, rejects with ' +
+            'MalformedResponse when it does not, and reads a response with no JSON as canceled, whatever its reason byte.',
+        reference: 'docs/plans/script-api-host.md slice 13',
+        packs: ['responses'],
+        needs: 'world',
+        client: {
+            answers: [
+                { response: '"1"' },
+                { response: '1.7' },
+                { response: '1.0' },
+                { response: '-1' },
+                { response: 'true' },
+                { response: '[0]' },
+                { response: '4294967296' },
+                { response: ' 1\n' },
+                { response: '[]' },
+                { response: '[true,"a",3]' },
+                { response: '{}' },
+                { response: '[null,null]' },
+                { response: '[[1],{"a":1}]' },
+                { response: '7' },
+                { response: '1' },
+                { response: '"true"' },
+                { response: 'null' },
+                { response: '0' },
+                { cancel: 2 },
+                {},
+                { response: '0', cancel: 'UserBusy' },
+                { response: '' },
+                { response: '[1' }
+            ]
+        }
+    },
+    {
+        id: 'forms-v1',
+        family: 'scripting.ui',
+        description:
+            'The version 1 signatures of ModalFormData take a default and a slider step as plain arguments and write the ' +
+            'same form JSON as the version 2 options objects, and a version 1 ModalFormResponse reads null as undefined.',
+        reference: 'docs/plans/script-api-host.md slice 13',
+        packs: ['v1'],
+        needs: 'world',
+        client: {
+            answers: [
+                { response: '["typed",0,6,1.5,false]' },
+                { response: '0' },
+                { response: 'false' },
+                { response: 'true' },
+                { cancel: 'UserBusy' },
+                { response: '[null,null]' }
+            ]
+        }
     }
 ];

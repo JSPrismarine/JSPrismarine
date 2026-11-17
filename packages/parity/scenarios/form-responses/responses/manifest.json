@@ -1,0 +1,29 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario form-responses responses",
+        "description": "Shows forms the scenario client answers with responses of every shape, and records what show() settles with. Written for packages/parity.",
+        "uuid": "1dc45497-639d-4f9f-9953-af785f90eaf2",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "1d357f9e-d97f-4e59-b991-8b11b878733f",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        },
+        {
+            "module_name": "@minecraft/server-ui",
+            "version": "2.0.0"
+        }
+    ]
+}
