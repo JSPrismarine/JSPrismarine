@@ -8,11 +8,13 @@ import { diffCensus, diffChunks, diffStructures } from './generation/diff.ts';
 import type { GenerationCorpusGolden } from './generation/golden.ts';
 import { CORPUS_CHUNKS, STRUCTURE_SCAN_CHUNKS, WHOLE_CHUNKS } from './generation/plan.ts';
 import { loadGenerationCorpus } from './goldens.ts';
+import { javaOperations, pinnedJavaClass } from './javaClassFile.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 import { parityCase, reportParityCases } from './trackerCases.ts';
 import { chunkWorkerCount } from '@jsprismarine/prismarine/world/generators/chunkConcurrency';
+import { SHAPE_CHECK_BLOCKS } from '@jsprismarine/prismarine/world/generators/datadriven/javaStructureRegion';
 
 /**
  * The generation corpus: three rows that regenerate the committed corpus and diff it.
@@ -225,6 +227,30 @@ describeFamily(
             ]);
 
             expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
+        });
+
+        it("marks for post-processing the blocks Java's StructurePiece.placeBlock marks", () => {
+            // `SHAPE_CHECK_BLOCKS` is built in the static initializer from `Blocks` fields, read
+            // after the `CAVE_AIR` constant is stored and before the set is.
+            const initializer = pinnedJavaClass('net/minecraft/world/level/levelgen/structure/StructurePiece').find(
+                (method) => method.name === '<clinit>'
+            );
+            if (initializer === undefined) throw new Error('StructurePiece has no static initializer');
+            const operations = javaOperations(initializer);
+            const stored = (field: string): number =>
+                operations.findIndex(
+                    (operation) => operation.kind === 'field' && operation.write && operation.target === field
+                );
+            const java = operations
+                .slice(stored('StructurePiece.CAVE_AIR') + 1, stored('StructurePiece.SHAPE_CHECK_BLOCKS'))
+                .flatMap((operation) =>
+                    operation.kind === 'field' && !operation.write && operation.target.startsWith('Blocks.')
+                        ? [`minecraft:${operation.target.slice('Blocks.'.length).toLowerCase()}`]
+                        : []
+                );
+
+            expect(java.length).toBeGreaterThan(0);
+            expect([...SHAPE_CHECK_BLOCKS].sort()).toEqual([...java].sort());
         });
 
         it('carries no stale allow-list entry', () => {

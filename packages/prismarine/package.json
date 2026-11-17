@@ -613,6 +613,10 @@
             "jsprismarine:dist": "./dist/world/GameEventListenerRegistry.js",
             "default": "./src/world/GameEventListenerRegistry.ts"
         },
+        "./world/chunk/belowZeroRetrogen": {
+            "jsprismarine:dist": "./dist/world/chunk/belowZeroRetrogen.js",
+            "default": "./src/world/chunk/belowZeroRetrogen.ts"
+        },
         "./world/chunk/Chunk": {
             "jsprismarine:dist": "./dist/world/chunk/Chunk.js",
             "default": "./src/world/chunk/Chunk.ts"
@@ -620,6 +624,10 @@
         "./world/chunk/ChunkGeneration": {
             "jsprismarine:dist": "./dist/world/chunk/ChunkGeneration.js",
             "default": "./src/world/chunk/ChunkGeneration.ts"
+        },
+        "./world/chunk/fluidAt": {
+            "jsprismarine:dist": "./dist/world/chunk/fluidAt.js",
+            "default": "./src/world/chunk/fluidAt.ts"
         },
         "./world/ChunkAdmissions": {
             "jsprismarine:dist": "./dist/world/ChunkAdmissions.js",
@@ -660,6 +668,10 @@
         "./world/generators/datadriven/DataDrivenGenerator": {
             "jsprismarine:dist": "./dist/world/generators/datadriven/DataDrivenGenerator.js",
             "default": "./src/world/generators/datadriven/DataDrivenGenerator.ts"
+        },
+        "./world/generators/datadriven/javaStructureRegion": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/javaStructureRegion.js",
+            "default": "./src/world/generators/datadriven/javaStructureRegion.ts"
         },
         "./world/generators/datadriven/javaStructureTemplates": {
             "jsprismarine:dist": "./dist/world/generators/datadriven/javaStructureTemplates.js",

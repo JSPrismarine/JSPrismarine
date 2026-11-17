@@ -3,6 +3,12 @@ import { CURRENT_GENERATION } from '@jsprismarine/prismarine/world/chunk/ChunkGe
 import type { ChunkGeneration } from '@jsprismarine/prismarine/world/chunk/ChunkGeneration';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
+import {
+    applyBelowZeroRetrogen,
+    belowZeroRetrogenOf,
+    markBorderTicks
+} from '@jsprismarine/prismarine/world/chunk/belowZeroRetrogen';
+import { fluidNameAt } from '@jsprismarine/prismarine/world/chunk/fluidAt';
 import { DataDrivenGenerator } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
 import type { StoredChunkReader } from '@jsprismarine/prismarine/world/providers/Provider';
 import { beforeAll, expect, it } from 'vitest';
@@ -27,6 +33,12 @@ import { REFERENCES } from './references.ts';
  *
  * Gap ids: `seam:<old height>/<side>` when the touching column misses the plateau by more than
  * {@link SEAM_TOLERANCE} blocks, and `far:<x>,<z>` when a chunk out of the blender's reach changes.
+ *
+ * A second row upgrades a pre-1.18 chunk below y = 0 and checks the post-processing marks it comes
+ * out with: Java's `Blender.generateBorderTicks` marks every fluid on the layers around the old
+ * generation and on the edge columns facing a new chunk, and the upgraded proto chunk keeps the
+ * marks the new floor's generation made. Gap ids: `border-tick:<layer|edge>` for a seam fluid left
+ * unmarked, and `floor-mark` for a generation mark the upgrade dropped.
  */
 
 const SEED = 1234n;
@@ -84,13 +96,18 @@ const topSolid = (chunk: Chunk, x: number, z: number): number => {
 
 describeFamily(FAMILIES.worldgenBlending, [REFERENCES.javaWorldgenData], () => {
     const gaps: string[] = [];
-    const counts = { seams: 0, farColumns: 0 };
+    const counts = { seams: 0, farColumns: 0, borderTicks: 0, floorMarks: 0 };
 
-    const generate = async (chunkX: number, chunkZ: number, stored?: StoredChunkReader): Promise<Chunk> => {
+    const generate = async (
+        chunkX: number,
+        chunkZ: number,
+        stored?: StoredChunkReader,
+        carve = false
+    ): Promise<Chunk> => {
         const generator = new DataDrivenGenerator({
             registries: environment!.registries,
             decorate: false,
-            carve: false
+            carve
         });
         if (stored !== undefined) generator.useStoredChunks(stored);
         try {
@@ -122,6 +139,68 @@ describeFamily(FAMILIES.worldgenBlending, [REFERENCES.javaWorldgenData], () => {
             }
         }
     }, TIMEOUT);
+
+    it(
+        'marks the fluids on the seams of an upgraded pre-1.18 chunk, as Java does',
+        async () => {
+            const marks: string[] = [];
+            const water = BlockRuntimeIds.getByName('minecraft:water');
+            const old = new Chunk(0, 1, new Map(), Dimensions.Overworld);
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) {
+                    old.fillColumn(x, z, 0, 0, BlockRuntimeIds.getByName('minecraft:bedrock'));
+                    old.fillColumn(x, z, 1, 60, BlockRuntimeIds.getByName('minecraft:stone'));
+                }
+            }
+            // A pool along the east edge, a lake at the top of the old generation and one over it.
+            for (let z = 0; z < 16; z++) old.setBlockRuntimeId(15, 61, z, water);
+            old.setBlockRuntimeId(3, 255, 3, water);
+            old.setBlockRuntimeId(7, 256, 7, water);
+            const oldGeneration: ChunkGeneration = { dataVersion: 0, blending: { minSection: 0, maxSection: 16 } };
+            old.setGeneration(oldGeneration);
+            // The chunk west of it is old too; the other three were never generated, so they are new.
+            const isOld = (x: number, z: number): boolean => (x === 0 || x === -1) && z === 1;
+            const stored: StoredChunkReader = {
+                generationAt: (x, z) => (isOld(x, z) ? oldGeneration : undefined),
+                terrainAt: (x, z) => (x === 0 && z === 1 ? old : undefined)
+            };
+
+            // With caves, so the aquifer water they open under the old floor brings marks of its own.
+            const generated = await generate(0, 1, stored, true);
+            const missing = belowZeroRetrogenOf(old);
+            if (missing === undefined) throw new Error('the old chunk does not qualify for the upgrade');
+            applyBelowZeroRetrogen(old, generated, missing);
+            markBorderTicks(old, isOld);
+
+            const marked = new Set(old.getPendingShapeUpdates().map(({ x, y, z }) => `${x},${y},${z}`));
+            const check = (kind: string, x: number, y: number, z: number): void => {
+                if (fluidNameAt(old, x, y, z) === undefined) return;
+                counts.borderTicks++;
+                if (!marked.has(`${old.getX() * 16 + x},${y},${old.getZ() * 16 + z}`))
+                    marks.push(`border-tick:${kind}`);
+            };
+            // Java's rule, read off `generateBorderTicks`: four layers in every column, then each edge
+            // column facing a new chunk from y 0 to 255.
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) for (const y of [-1, 0, 255, 256]) check('layer', x, y, z);
+            }
+            for (let z = 0; z < 16; z++) for (let y = 0; y <= 255; y++) check('edge', 15, y, z);
+            for (let x = 0; x < 16; x++) {
+                for (let y = 0; y <= 255; y++) {
+                    check('edge', x, y, 0);
+                    check('edge', x, y, 15);
+                }
+            }
+            for (const { x, y, z } of generated.getPendingShapeUpdates()) {
+                if (y >= 0 || missing.has((z & 15) * 16 + (x & 15))) continue;
+                counts.floorMarks++;
+                if (!marked.has(`${x},${y},${z}`)) marks.push('floor-mark');
+            }
+
+            gaps.push(...new Set(marks));
+        },
+        TIMEOUT
+    );
 
     it('meets every old edge at the old surface and leaves chunks out of reach alone', () => {
         const verdict = checkAllowList(FAMILIES.worldgenBlending, gaps);
