@@ -2440,10 +2440,15 @@ describe('EntityRuntime', () => {
             const entity = runtime.spawn('jsprismarine:bouncy', { ...GROUND, y: GROUND.y + 2 });
             if (entity === undefined) throw new Error('the fixture declares no bouncy entity');
 
-            for (let tick = 1; tick <= 20; tick += 1) runtime.tick(tick);
+            // It only ever moves up after the ground has turned its fall around, so the highest
+            // point while rising is the rebound.
+            let rebound = GROUND.y;
+            for (let tick = 1; tick <= 20; tick += 1) {
+                runtime.tick(tick);
+                if (entity.body.velocity.y > 0) rebound = Math.max(rebound, entity.position.y);
+            }
 
-            expect(entity.position.y).toBeGreaterThan(GROUND.y);
-            expect(entity.body.velocity.y).toBeGreaterThan(0);
+            expect(rebound).toBeGreaterThan(GROUND.y + 1);
         });
 
         it('applies active bounciness when a buoyant body hits the ground', () => {

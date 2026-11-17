@@ -467,6 +467,27 @@ const TNT_DRAG = 0.98;
 /** Scales the amount of velocity removed by one tick of drag. */
 const dragWithModifier = (drag: number, modifier: number): number => 1 - (1 - drag) * modifier;
 
+/**
+ * The vertical velocity a bouncy body leaves a floor or a ceiling with, Java's
+ * `Entity.restituteMovementAfterCollisions`. The share of the move made before the hit gets back
+ * that share of a tick's gravity, and its drag is scaled toward none by the same share, before the
+ * bounciness reverses the velocity.
+ *
+ * @param attempted - The vertical velocity the body moved by.
+ * @param moved - How far it got before the collision stopped it.
+ * @param airDrag - Java's `getAirDrag`, the 0.98 vertical drag with the air drag modifier applied.
+ */
+const restitutedY = (
+    attempted: number,
+    moved: number,
+    gravity: number,
+    airDrag: number,
+    bounciness: number
+): number => {
+    const share = attempted === 0 ? 0 : moved / attempted;
+    return (share * gravity - attempted) * (1 + share * (airDrag - 1)) * bounciness;
+};
+
 /** Java's `LivingEntity.computeModifiedFriction`: a friction with its loss scaled, kept within 0 and 1. */
 const modifiedFriction = (friction: number, modifier: number): number =>
     Math.min(1, Math.max(0, 1 - (1 - friction) * modifier));
@@ -6870,6 +6891,18 @@ export class EntityRuntime implements EntityScene {
             x: hitHorizontalX ? (bounciness > 0 ? -velocity.x * bounciness : 0) : velocity.x * horizontalDrag,
             z: hitHorizontalZ ? (bounciness > 0 ? -velocity.z * bounciness : 0) : velocity.z * horizontalDrag
         };
+        // Java bounces a body off a floor only when it falls faster than one tick of gravity, and a
+        // living body then takes the tick's gravity and drag after the bounce, as after any move.
+        const bounced = (stoppedAt: number): number => {
+            const restituted = restitutedY(
+                travelY,
+                stoppedAt - position.y,
+                gravity,
+                dragWithModifier(verticalAirDrag, componentFacts.airDragModifier),
+                bounciness
+            );
+            return componentFacts.movesBeforeGravity ? (restituted - gravity) * verticalDrag : restituted;
+        };
 
         if (hitVerticalCollision) {
             if (travelY <= 0) {
@@ -6884,8 +6917,8 @@ export class EntityRuntime implements EntityScene {
                     )
                 };
                 body.position = landed;
-                if (bounciness > 0) {
-                    body.velocity = { ...horizontalVelocity, y: -travelY * bounciness };
+                if (bounciness > 0 && -travelY > gravity) {
+                    body.velocity = { ...horizontalVelocity, y: bounced(landed.y) };
                     body.conditions.delete('jumping');
                     body.conditions.delete('on_ground');
                 } else {
@@ -6895,7 +6928,7 @@ export class EntityRuntime implements EntityScene {
             }
 
             next = nextVertical;
-            body.velocity = { ...horizontalVelocity, y: bounciness > 0 ? -travelY * bounciness : 0 };
+            body.velocity = { ...horizontalVelocity, y: bounciness > 0 ? bounced(nextVertical.y) : 0 };
         } else {
             next = nextVertical;
             const fell = fallingY * verticalDrag;

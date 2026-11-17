@@ -56,9 +56,14 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             expect(cube.instance.componentParams('minecraft:air_drag_modifier')).toBe(0.01);
             expect(cube.position.y).toBe(64);
             expect(cube.body.velocity.x).toBeCloseTo(0.999);
-            // Out of water its `apply_gravity: false` buoyancy steps aside, so the mob's 0.08
-            // gravity adds to the downward push before the bounce reverses it.
-            expect(cube.body.velocity.y).toBeCloseTo(1.08 * 0.9);
+            // Out of water its `apply_gravity: false` buoyancy steps aside. Java's
+            // `restituteMovementAfterCollisions` hands the half of the move made before the floor
+            // back half a tick's 0.08 gravity and half its drag, the bounciness of 0.9 reverses that,
+            // and `travelInAir` then takes the tick's gravity and the 0.98 drag the bouncy air drag
+            // modifier of 0.01 leaves at 0.9998.
+            const airDrag = 1 - 0.02 * 0.01;
+            const restituted = (0.5 * 0.08 + 1) * (1 + 0.5 * (airDrag - 1)) * 0.9;
+            expect(cube.body.velocity.y).toBeCloseTo((restituted - 0.08) * airDrag);
             runtime.remove(cube.id, 'vanilla physics coverage');
         });
 
