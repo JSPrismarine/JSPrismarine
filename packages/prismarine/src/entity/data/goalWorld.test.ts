@@ -818,6 +818,17 @@ describe('the goal world over the entity runtime', () => {
             expect(open.instance.filterContext().self.flag?.('is_underground')).toBe(false);
         });
 
+        it('measures the redstone power reaching the block the entity is in', () => {
+            const world = new TestEntityWorld();
+            const fixture = fixtureOf(world);
+            const powered = spawned(fixture, 'jsprismarine:lounger', groundAt(0, 0));
+            const unpowered = spawned(fixture, 'jsprismarine:lounger', groundAt(6, 0));
+            world.setBlock({ x: 0, y: FLOOR_Y, z: 0 }, 'minecraft:redstone_block');
+
+            expect(powered.instance.filterContext().self.measure?.('redstone_strength_at_position')).toBe(15);
+            expect(unpowered.instance.filterContext().self.measure?.('redstone_strength_at_position')).toBe(0);
+        });
+
         it('names the weather at the entity, clear when none falls there', () => {
             const fixture = fixtureOf();
             const lounger = spawned(fixture, 'jsprismarine:lounger', groundAt(0, 0));

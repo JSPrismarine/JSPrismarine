@@ -23,6 +23,7 @@ import type {
     SlotFill
 } from '@jsprismarine/entities';
 
+import { bestNeighborSignal, isSignalSource, ownSignalOf } from '@jsprismarine/engine-systems';
 import { trustedBy } from '@jsprismarine/entities/components/trust';
 import type { MobBody } from './DataEntity';
 import { distance } from './DataEntity';
@@ -250,6 +251,15 @@ const measureOf = (body: MobBody, scene: EntityScene, name: EntityMeasure): numb
     switch (name) {
         case 'rider_count':
             return scene.ridersOf(body).length;
+        case 'redstone_strength_at_position': {
+            // Java's `SignalGetter.getBestOwnOrNeighbourSignal`: the strongest power reaching the
+            // block the entity is in, or that block's own when it is a source, such as a wire.
+            const world = scene.content().world.engineWorld;
+            const at = blockPositionOf(body.position);
+            const block = world.getBlock(at);
+            const own = block !== undefined && isSignalSource(block) ? ownSignalOf(world, at, block) : 0;
+            return Math.max(bestNeighborSignal(world, at), own);
+        }
         case 'home_distance':
             return body.home === undefined ? undefined : distance(body.position, body.home);
         case 'owner_distance':
