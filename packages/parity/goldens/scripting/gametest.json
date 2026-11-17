@@ -1,0 +1,348 @@
+{
+    "$comment": [
+        "What the scripts of scenario `gametest` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.gametest",
+    "scenario": "gametest",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "lifecycle",
+            "seq": 1,
+            "tick": 0,
+            "event": "ready for /gametest",
+            "value": "suite:disabled"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 2,
+            "tick": 0,
+            "event": "register after startup",
+            "value": {}
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 3,
+            "tick": 0,
+            "event": "batched: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 4,
+            "tick": 0,
+            "event": "batched: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 5,
+            "tick": 4,
+            "event": "succeeds: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 6,
+            "tick": 4,
+            "event": "succeeds: succeed"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 7,
+            "tick": 4,
+            "event": "succeeds: isCompleted",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 8,
+            "tick": 4,
+            "event": "succeeds: succeed again",
+            "error": "GameTestCompletedError: GameTest jsp:succeeds has already completed and can no longer access method: succeed",
+            "value": {
+                "gameTestError": false,
+                "completedError": true,
+                "type": null,
+                "reason": "Done"
+            }
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 9,
+            "tick": 4,
+            "event": "succeeds: worldLocation after succeed",
+            "error": "GameTestCompletedError: GameTest jsp:succeeds has already completed and can no longer access method: worldLocation",
+            "value": {
+                "gameTestError": false,
+                "completedError": true,
+                "type": null,
+                "reason": "Done"
+            }
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 10,
+            "tick": 4,
+            "event": "fails: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 11,
+            "tick": 4,
+            "event": "fails: fail"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 12,
+            "tick": 4,
+            "event": "fails: isCompleted",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 13,
+            "tick": 4,
+            "event": "asserts: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 14,
+            "tick": 4,
+            "event": "asserts: assert true"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 15,
+            "tick": 4,
+            "event": "asserts: assert false",
+            "error": "GameTestError: nope",
+            "value": {
+                "gameTestError": true,
+                "completedError": false,
+                "type": "Assert",
+                "reason": null
+            }
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 16,
+            "tick": 4,
+            "event": "asserts: isCompleted after a caught assert",
+            "value": false
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 17,
+            "tick": 4,
+            "event": "asserts: succeed"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 18,
+            "tick": 4,
+            "event": "throws: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 19,
+            "tick": 4,
+            "event": "times_out: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 20,
+            "tick": 4,
+            "event": "succeeds_when: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 21,
+            "tick": 4,
+            "event": "succeeds_when: check",
+            "value": 1
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 22,
+            "tick": 4,
+            "event": "idles: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 23,
+            "tick": 4,
+            "event": "locations: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 24,
+            "tick": 4,
+            "event": "locations: worldLocation",
+            "value": {
+                "x": 1,
+                "y": -58,
+                "z": 1
+            }
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 25,
+            "tick": 4,
+            "event": "locations: worldBlockLocation",
+            "value": {
+                "x": 1,
+                "y": -58,
+                "z": 1
+            }
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 26,
+            "tick": 4,
+            "event": "cleanup: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 27,
+            "tick": 4,
+            "event": "cleanup: players",
+            "value": [
+                "Cleaner"
+            ]
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 28,
+            "tick": 4,
+            "event": "disabled: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 29,
+            "tick": 4,
+            "event": "optional: started"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 30,
+            "tick": 4,
+            "event": "succeeds: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 31,
+            "tick": 4,
+            "event": "fails: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 32,
+            "tick": 4,
+            "event": "asserts: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 33,
+            "tick": 4,
+            "event": "throws: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 34,
+            "tick": 4,
+            "event": "locations: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 35,
+            "tick": 4,
+            "event": "cleanup: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 36,
+            "tick": 4,
+            "event": "disabled: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 37,
+            "tick": 4,
+            "event": "optional: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 38,
+            "tick": 5,
+            "event": "succeeds_when: check",
+            "value": 2
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 39,
+            "tick": 6,
+            "event": "times_out: runAfterDelay 2"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 40,
+            "tick": 6,
+            "event": "succeeds_when: check",
+            "value": 3
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 41,
+            "tick": 6,
+            "event": "succeeds_when: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 42,
+            "tick": 7,
+            "event": "idles: resolved"
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 43,
+            "tick": 7,
+            "event": "idles: completed",
+            "value": true
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 44,
+            "tick": 7,
+            "event": "cleanup: players later",
+            "value": []
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 45,
+            "tick": 7,
+            "event": "cleanup: isValid later",
+            "value": false
+        },
+        {
+            "pack": "lifecycle",
+            "seq": 46,
+            "tick": 9,
+            "event": "times_out: completed",
+            "value": "ReferenceError: Native function [Test::isCompleted] object bound to prototype does not exist."
+        }
+    ]
+}

@@ -151,6 +151,8 @@ export const FAMILIES = {
     scriptingBlocks: 'scripting.blocks',
     /** The item stacks a script makes, and what it reads and writes on them. */
     scriptingItems: 'scripting.items',
+    /** `@minecraft/server-gametest`: when a GameTest runs, how it ends, and what its simulated players do. */
+    scriptingGametest: 'scripting.gametest',
 
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',

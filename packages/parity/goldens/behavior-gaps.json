@@ -1767,20 +1767,10 @@
             "kind": "defect",
             "reason": "No entity but a player has an inventory a script can reach on JSPrismarine, so a chest minecart's getComponent('minecraft:inventory') is undefined and the pack throws before it ends. The armor stand's members, queries, teleport and tags before that match BDS.",
             "reference": "docs/plans/script-api-host.md slice 10"
-        },
-        "bds-record:players": {
-            "kind": "deferred",
-            "reason": "The scenario's player is a GameTest simulated player, which needs @minecraft/server-gametest, so the pack's register call throws NotImplementedError on JSPrismarine and it never ends. On BDS: a player raises playerJoin, playerSpawn and both playerLeave events, and its name, tags, inventory, teleport and runCommand behave as they do for any entity.",
-            "reference": "issue #3211"
         }
     },
-    "scripting.events": {
-        "bds-record:chat-send": {
-            "kind": "deferred",
-            "reason": "The scenario's chat comes from a GameTest simulated player, which needs @minecraft/server-gametest, so the pack's register call throws NotImplementedError on JSPrismarine and it never ends. On BDS: a player's chat raises world.beforeEvents.chatSend while the line is sent, with its message and its sender, and a cancel there stops the line.",
-            "reference": "issue #3211"
-        }
-    },
+    "scripting.events": {},
+    "scripting.gametest": {},
     "scripting.items": {},
     "scripting.lifecycle": {
         "bds-record:module-resolution": {

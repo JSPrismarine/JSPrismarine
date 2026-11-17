@@ -224,8 +224,8 @@ const runPacksInLevel = async (
                 }
             },
             weather: level.getWeather(),
-            // No scenario player chats on JSPrismarine yet: a BDS scenario's chat comes from a
-            // GameTest simulated player, which needs @minecraft/server-gametest.
+            // No player of a world scenario chats: a scenario's chat comes from a GameTest
+            // simulated player, which runs in a server scenario.
             chat: { addGuard: () => () => {} },
             // A fixed clock: no scenario records a date, and a run must not depend on the host's.
             clock: () => Date.UTC(2026, 10, 16)
@@ -324,7 +324,29 @@ const runPacksOnServer = async (scenario: ScriptScenario): Promise<string[]> => 
         });
         await server.bootstrap('127.0.0.1', 0);
         try {
+            let gametestSent = false;
             for (let tick = 0; tick < SCENARIO_TICKS && !packsEnded(scenario, lines); tick++) {
+                // Between ticks, as a console command arrives: after the first tick at the
+                // earliest, since BDS takes the command once the server runs, after its first ticks.
+                const gametest = scenario.gametestAfter;
+                if (
+                    !gametestSent &&
+                    tick > 0 &&
+                    gametest !== undefined &&
+                    lines.some((line) => line.includes(`"event":${JSON.stringify(gametest.event)}`))
+                ) {
+                    gametestSent = true;
+                    const sender = server.getConsoleSender();
+                    // Not awaited: the command is an input of the next tick, which it waits for.
+                    for (const command of gametest.commands) {
+                        void server
+                            .getCommandManager()
+                            .dispatchCommand(sender, sender, command)
+                            .then((ran) => {
+                                if (!ran) lines.push(`The console command ${command} did not run`);
+                            });
+                    }
+                }
                 server.advanceTick();
                 // Chunk loads and other work the tick started settle between ticks, as on a running server.
                 await new Promise((settled) => setImmediate(settled));

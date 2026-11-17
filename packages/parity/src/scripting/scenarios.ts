@@ -71,11 +71,12 @@ export interface ScriptScenario {
      */
     readonly reloadDrops?: string;
     /**
-     * A GameTest the capture runs on BDS's console with `/gametest run` once a pack records the
-     * event, for a scenario that needs a player: a test can spawn a simulated player, and the
-     * capture has no client. JSPrismarine's runner has no GameTest runner yet.
+     * The `/gametest` commands the runner sends on the console once a pack records the event,
+     * such as `gametest run jsp:chat`, for a scenario about GameTests or one that needs a
+     * player: a test can spawn a simulated player, and the capture has no client. JSPrismarine's
+     * runner sends them to a server scenario's console between two ticks.
      */
-    readonly gametestAfter?: { readonly event: string; readonly test: string };
+    readonly gametestAfter?: { readonly event: string; readonly commands: readonly string[] };
     /**
      * A client that joins the scenario's server and answers the forms its scripts show. The BDS
      * capture connects a headless client once the server is ready, and JSPrismarine's runner
@@ -337,8 +338,8 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         reference: 'docs/plans/script-api-host.md slice 9',
         packs: ['chat'],
         experiments: ['gametest'],
-        gametestAfter: { event: 'ready for /gametest', test: 'jsp:chat' },
-        needs: 'world'
+        gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:chat'] },
+        needs: 'server'
     },
     {
         id: 'forms',
@@ -493,7 +494,20 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         reference: 'docs/plans/script-api-host.md slice 10',
         packs: ['players'],
         experiments: ['gametest'],
-        gametestAfter: { event: 'ready for /gametest', test: 'jsp:players' },
+        gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:players'] },
+        needs: 'server'
+    },
+    {
+        id: 'gametest',
+        family: 'scripting.gametest',
+        description:
+            "GameTests registered at a pack's top level run with /gametest runset: each test function runs once, " +
+            'succeed, fail, a failed assert, a throw and maxTicks end a test, and runAfterDelay, succeedWhen and idle ' +
+            'run on the ticks the runner counts from the start of the test.',
+        reference: 'docs/plans/script-api-host.md slice 14',
+        packs: ['lifecycle'],
+        experiments: ['gametest'],
+        gametestAfter: { event: 'ready for /gametest', commands: ['gametest runset jsp'] },
         needs: 'server'
     }
 ];
