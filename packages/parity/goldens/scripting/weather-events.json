@@ -1,0 +1,257 @@
+{
+    "$comment": [
+        "What the scripts of scenario `weather-events` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.events",
+    "scenario": "weather-events",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "weather",
+            "seq": 1,
+            "tick": 2,
+            "event": "beforeEvents.weatherChange",
+            "value": {
+                "previousWeather": "Clear",
+                "newWeather": "Rain",
+                "duration": 6000
+            }
+        },
+        {
+            "pack": "weather",
+            "seq": 2,
+            "tick": 2,
+            "event": "before-event setWeather",
+            "error": "ReferenceError: Native function [Dimension::setWeather] cannot be used in restricted execution."
+        },
+        {
+            "pack": "weather",
+            "seq": 3,
+            "tick": 2,
+            "event": "before-event world.sendMessage"
+        },
+        {
+            "pack": "weather",
+            "seq": 4,
+            "tick": 2,
+            "event": "before-event getDimension",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "weather",
+            "seq": 5,
+            "tick": 2,
+            "event": "before-event queue system.run"
+        },
+        {
+            "pack": "weather",
+            "seq": 6,
+            "tick": 2,
+            "event": "setWeather Rain"
+        },
+        {
+            "pack": "weather",
+            "seq": 7,
+            "tick": 2,
+            "event": "after setWeather Rain"
+        },
+        {
+            "pack": "weather",
+            "seq": 8,
+            "tick": 2,
+            "event": "beforeEvents.weatherChange",
+            "value": {
+                "previousWeather": "Rain",
+                "newWeather": "Thunder",
+                "duration": 6000
+            }
+        },
+        {
+            "pack": "weather",
+            "seq": 9,
+            "tick": 2,
+            "event": "before-event setWeather",
+            "error": "ReferenceError: Native function [Dimension::setWeather] cannot be used in restricted execution."
+        },
+        {
+            "pack": "weather",
+            "seq": 10,
+            "tick": 2,
+            "event": "before-event world.sendMessage"
+        },
+        {
+            "pack": "weather",
+            "seq": 11,
+            "tick": 2,
+            "event": "before-event getDimension",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "weather",
+            "seq": 12,
+            "tick": 2,
+            "event": "before-event queue system.run"
+        },
+        {
+            "pack": "weather",
+            "seq": 13,
+            "tick": 2,
+            "event": "setWeather Thunder, which the before-event cancels"
+        },
+        {
+            "pack": "weather",
+            "seq": 14,
+            "tick": 2,
+            "event": "after setWeather Thunder"
+        },
+        {
+            "pack": "weather",
+            "seq": 15,
+            "tick": 2,
+            "event": "promise job queued in the before-event"
+        },
+        {
+            "pack": "weather",
+            "seq": 16,
+            "tick": 2,
+            "event": "promise job queued in the before-event"
+        },
+        {
+            "pack": "weather",
+            "seq": 17,
+            "tick": 2,
+            "event": "afterEvents.weatherChange",
+            "value": {
+                "dimension": "overworld",
+                "previousWeather": "Clear",
+                "newWeather": "Rain"
+            }
+        },
+        {
+            "pack": "weather",
+            "seq": 18,
+            "tick": 2,
+            "event": "after-event world.sendMessage"
+        },
+        {
+            "pack": "weather",
+            "seq": 19,
+            "tick": 2,
+            "event": "promise job queued in the after-event"
+        },
+        {
+            "pack": "weather",
+            "seq": 20,
+            "tick": 2,
+            "event": "system.run queued in the after-event"
+        },
+        {
+            "pack": "weather",
+            "seq": 21,
+            "tick": 3,
+            "event": "system.run queued in the before-event"
+        },
+        {
+            "pack": "weather",
+            "seq": 22,
+            "tick": 3,
+            "event": "system.run queued in the before-event"
+        },
+        {
+            "pack": "weather",
+            "seq": 23,
+            "tick": 5,
+            "event": "setWeather Rain again"
+        },
+        {
+            "pack": "weather",
+            "seq": 24,
+            "tick": 5,
+            "event": "beforeEvents.weatherChange",
+            "value": {
+                "previousWeather": "Rain",
+                "newWeather": "Clear",
+                "duration": 6000
+            }
+        },
+        {
+            "pack": "weather",
+            "seq": 25,
+            "tick": 5,
+            "event": "before-event setWeather",
+            "error": "ReferenceError: Native function [Dimension::setWeather] cannot be used in restricted execution."
+        },
+        {
+            "pack": "weather",
+            "seq": 26,
+            "tick": 5,
+            "event": "before-event world.sendMessage"
+        },
+        {
+            "pack": "weather",
+            "seq": 27,
+            "tick": 5,
+            "event": "before-event getDimension",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "weather",
+            "seq": 28,
+            "tick": 5,
+            "event": "before-event queue system.run"
+        },
+        {
+            "pack": "weather",
+            "seq": 29,
+            "tick": 5,
+            "event": "setWeather Clear"
+        },
+        {
+            "pack": "weather",
+            "seq": 30,
+            "tick": 5,
+            "event": "promise job queued in the before-event"
+        },
+        {
+            "pack": "weather",
+            "seq": 31,
+            "tick": 5,
+            "event": "afterEvents.weatherChange",
+            "value": {
+                "dimension": "overworld",
+                "previousWeather": "Rain",
+                "newWeather": "Clear"
+            }
+        },
+        {
+            "pack": "weather",
+            "seq": 32,
+            "tick": 5,
+            "event": "after-event world.sendMessage"
+        },
+        {
+            "pack": "weather",
+            "seq": 33,
+            "tick": 5,
+            "event": "promise job queued in the after-event"
+        },
+        {
+            "pack": "weather",
+            "seq": 34,
+            "tick": 5,
+            "event": "system.run queued in the after-event"
+        },
+        {
+            "pack": "weather",
+            "seq": 35,
+            "tick": 6,
+            "event": "system.run queued in the before-event"
+        }
+    ]
+}

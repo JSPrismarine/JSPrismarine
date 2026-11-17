@@ -1,0 +1,141 @@
+{
+    "$comment": [
+        "What the scripts of scenario `module-resolution` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.lifecycle",
+    "scenario": "module-resolution",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "v2",
+            "seq": 1,
+            "tick": 0,
+            "event": "typeof world.getPackSettings",
+            "value": "function"
+        },
+        {
+            "pack": "v2",
+            "seq": 2,
+            "tick": 0,
+            "event": "typeof world.afterEvents.worldInitialize",
+            "value": "undefined"
+        },
+        {
+            "pack": "v2",
+            "seq": 3,
+            "tick": 0,
+            "event": "typeof system.beforeEvents.startup",
+            "value": "object"
+        },
+        {
+            "pack": "v2",
+            "seq": 4,
+            "tick": 0,
+            "event": "@minecraft/server-ui exports",
+            "value": [
+                "ActionFormData",
+                "ActionFormResponse",
+                "CustomForm",
+                "DataDrivenScreenClosedReason",
+                "FormCancelationReason",
+                "FormRejectError",
+                "FormRejectReason",
+                "FormResponse",
+                "FormVisibilityError",
+                "FormVisibilityErrorReason",
+                "InvalidFormError",
+                "InvalidFormModificationError",
+                "InvalidObservableError",
+                "MessageBox",
+                "MessageFormData",
+                "MessageFormResponse",
+                "ModalFormData",
+                "ModalFormResponse",
+                "ObservableBoolean",
+                "ObservableNumber",
+                "ObservableString",
+                "ObservableUIRawMessage",
+                "PlayerLeftError",
+                "TextFilteringError",
+                "UIManager",
+                "uiManager"
+            ]
+        },
+        {
+            "pack": "v2",
+            "seq": 5,
+            "tick": 0,
+            "event": "relative import",
+            "value": "from helper.js"
+        },
+        {
+            "pack": "v1",
+            "seq": 1,
+            "tick": 0,
+            "event": "typeof world.afterEvents.worldInitialize",
+            "value": "object"
+        },
+        {
+            "pack": "v1",
+            "seq": 2,
+            "tick": 0,
+            "event": "typeof world.beforeEvents",
+            "value": "object"
+        },
+        {
+            "pack": "v1",
+            "seq": 3,
+            "tick": 0,
+            "event": "typeof world.getPackSettings",
+            "value": "undefined"
+        },
+        {
+            "pack": "v1",
+            "seq": 4,
+            "tick": 0,
+            "event": "typeof system.beforeEvents",
+            "value": "undefined"
+        },
+        {
+            "pack": "v2",
+            "seq": 6,
+            "tick": 0,
+            "event": "import @minecraft/server",
+            "value": "resolved"
+        },
+        {
+            "pack": "v2",
+            "seq": 7,
+            "tick": 0,
+            "event": "import @minecraft/server-net",
+            "error": "ReferenceError: Module [@minecraft/server-net] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?"
+        },
+        {
+            "pack": "v2",
+            "seq": 8,
+            "tick": 0,
+            "event": "import @minecraft/server-gametest",
+            "error": "ReferenceError: Module [@minecraft/server-gametest] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?"
+        },
+        {
+            "pack": "v2",
+            "seq": 9,
+            "tick": 0,
+            "event": "import @jsprismarine/server",
+            "error": "ReferenceError: Module [@jsprismarine/server] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?"
+        },
+        {
+            "pack": "v2",
+            "seq": 10,
+            "tick": 0,
+            "event": "import ./helper.js",
+            "value": "resolved"
+        }
+    ]
+}

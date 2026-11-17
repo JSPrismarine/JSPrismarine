@@ -16,8 +16,8 @@
  * Run it when a scenario is added or changed, or when the BDS pin moves, and commit the goldens
  * it writes. CI never runs it: the comparison reads the checked-in goldens.
  */
-import { existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { existsSync, readdirSync } from 'node:fs';
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -39,7 +39,13 @@ import {
     scenarioGoldenPath
 } from '../src/scripting/record.ts';
 import type { ScenarioGolden } from '../src/scripting/record.ts';
-import { readScenarioPackIdentity, SCRIPT_SCENARIOS, scenarioPackDirectory } from '../src/scripting/scenarios.ts';
+import {
+    loadedPacks,
+    readScenarioPackIdentity,
+    SCRIPT_SCENARIOS,
+    scenarioConfigDirectory,
+    scenarioPackDirectory
+} from '../src/scripting/scenarios.ts';
 import type { ScriptScenario } from '../src/scripting/scenarios.ts';
 
 /** How long each stage may take on a native run. The launcher stretches them for emulation. */
@@ -114,7 +120,7 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         root: join(cacheRoot, 'bds-run', `v${protocolVersion}-scripting`),
         force: values.force,
         levelName: `jsp-${scenario.id}`,
-        properties: SCENARIO_PROPERTIES
+        properties: { ...SCENARIO_PROPERTIES, ...scenario.properties }
     });
     await stageBehaviorPacks(
         staged.root,
@@ -124,6 +130,11 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
             return { ...readScenarioPackIdentity(source), source, directory: `jsp-${scenario.id}-${pack}` };
         })
     );
+
+    // The scenario's module folders go beside the shipped `config/default`, and leave with the run.
+    const config = scenarioConfigDirectory(scenario);
+    const copied = config === undefined ? [] : readdirSync(config).map((folder) => join(staged.root, 'config', folder));
+    if (config !== undefined) await cp(config, join(staged.root, 'config'), { recursive: true });
 
     const server = startServer({
         ...launcher.launch(staged.root),
@@ -136,12 +147,27 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
             'the ready line',
             NATIVE_TIMEOUTS.boot * launcher.timeoutScale
         );
-        for (const pack of scenario.packs) {
+        if (scenario.reloadAfter !== undefined) {
             await server.waitForLine(
-                (line) => line.includes(`DUMP ${END_TABLE} {"pack":${JSON.stringify(pack)},`),
-                `the end line of pack ${pack}`,
+                (line) => line.includes(`"event":${JSON.stringify(scenario.reloadAfter)}`),
+                `the ${scenario.reloadAfter} observation`,
                 NATIVE_TIMEOUTS.scenario * launcher.timeoutScale
             );
+            server.send('reload');
+        }
+        for (const pack of loadedPacks(scenario)) {
+            const endLine = `DUMP ${END_TABLE} {"pack":${JSON.stringify(pack)},`;
+            // A scenario that reloads has each pack end once per run.
+            let from = 0;
+            for (let run = 0; run < (scenario.runs ?? 1); run++) {
+                await server.waitForLine(
+                    (line) => line.includes(endLine),
+                    `end line ${run + 1} of pack ${pack}`,
+                    NATIVE_TIMEOUTS.scenario * launcher.timeoutScale,
+                    from
+                );
+                from = server.lines.findIndex((line, index) => index >= from && line.includes(endLine)) + 1;
+            }
         }
         const status = await server.stop(NATIVE_TIMEOUTS.stop * launcher.timeoutScale);
         if (status !== 0) console.warn(`The server exited with status ${status}.`);
@@ -151,6 +177,7 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         await server.stop(NATIVE_TIMEOUTS.stop * launcher.timeoutScale);
         // A stop that timed out kills the CLI rather than the container it started.
         launcher.cleanup();
+        for (const folder of copied) await rm(folder, { recursive: true, force: true });
     }
 
     // A server path override can point at another BDS, and the golden names the pinned version.
@@ -171,7 +198,7 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         family: scenario.family,
         scenario: scenario.id,
         server: { protocolVersion, serverVersion: pinnedServer.serverVersion },
-        ...readScenarioRecord(server.lines, scenario.packs)
+        ...readScenarioRecord(server.lines, loadedPacks(scenario), scenario.runs)
     };
 };
 

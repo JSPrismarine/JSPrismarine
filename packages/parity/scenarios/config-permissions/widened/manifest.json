@@ -1,0 +1,29 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario config-permissions widened",
+        "description": "Declares @minecraft/server-graphics, which its config folder allows and the default does not. Written for packages/parity.",
+        "uuid": "8bd94f57-7b6b-4021-adc4-17a2ce5cce84",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "cd4c9eb7-53bd-4de0-9c7c-06520d9cc8ee",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        },
+        {
+            "module_name": "@minecraft/server-graphics",
+            "version": "1.0.0"
+        }
+    ]
+}

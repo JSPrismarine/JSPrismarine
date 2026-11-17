@@ -1,0 +1,29 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario config-permissions unconfigured",
+        "description": "Declares @minecraft/server-graphics with no config folder of its own. Written for packages/parity.",
+        "uuid": "861526a4-f966-4d44-afe9-f9f29ec808f1",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "203eec6b-5ea3-427a-9531-67c17cf46822",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        },
+        {
+            "module_name": "@minecraft/server-graphics",
+            "version": "1.0.0"
+        }
+    ]
+}

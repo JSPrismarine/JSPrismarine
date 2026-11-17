@@ -11,7 +11,8 @@
  *   observation was made. A `value` field holds what a call returned and an `error` field what
  *   it threw, as `String(error)`.
  * - `DUMP end {"pack":"v2","records":12}` says the pack is done and how many observations it
- *   made, so a lost line fails the capture instead of shortening the golden.
+ *   made, so a lost line fails the capture instead of shortening the golden. A scenario that
+ *   reloads its packs has each pack end once per run, and the next run counts from 1 again.
  *
  * An observation never holds a wall-clock time. Everything in it is decided by the engine's own
  * order and tick count, so a record taken on any machine is the same record.
@@ -127,13 +128,24 @@ export const readServerVersion = (lines: Iterable<string>): string | undefined =
  *
  * @param lines - Every line the server printed, in order.
  * @param packs - The scenario's pack names. Each has to end, and no other pack may report.
+ * @param runs - How many times each pack ends: once, or once per run for a scenario that reloads.
  * @returns The observations in the order the server printed them.
- * @throws Error when a record line is malformed, a pack never ended, or a pack's `seq` values
- *   are not 1 to the count its end line gives.
+ * @throws Error when a record line is malformed, a pack did not end `runs` times, or a run's
+ *   `seq` values are not 1 to the count its end line gives.
  */
-export const readScenarioRecord = (lines: Iterable<string>, packs: readonly string[]): ScenarioRecord => {
+export const readScenarioRecord = (lines: Iterable<string>, packs: readonly string[], runs = 1): ScenarioRecord => {
     const observations: Observation[] = [];
+    /** Each pack's ended runs, and the seq values of the run it is in. */
     const ended = new Map<string, number>();
+    const running = new Map<string, number[]>();
+    const checkRun = (pack: string, count: number): void => {
+        const seqs = running.get(pack) ?? [];
+        const expected = Array.from({ length: count }, (_, index) => index + 1);
+        if (seqs.join(',') !== expected.join(',')) {
+            throw new Error(`Pack ${pack} reported ${count} observations but the log holds seq [${seqs.join(', ')}].`);
+        }
+        running.set(pack, []);
+    };
 
     for (const line of lines) {
         const row = parseDumpLine(line);
@@ -147,6 +159,7 @@ export const readScenarioRecord = (lines: Iterable<string>, packs: readonly stri
             if (!isObservation(row.value)) throw new Error(`A record line is not an observation: ${line}`);
             if (!packs.includes(row.value.pack)) throw new Error(`Pack ${row.value.pack} is not in the scenario.`);
             observations.push(row.value);
+            running.set(row.value.pack, [...(running.get(row.value.pack) ?? []), row.value.seq]);
         } else if (row.table === END_TABLE) {
             const end = row.value;
             // A negative count would read as zero observations and pass the sequence check below.
@@ -158,18 +171,16 @@ export const readScenarioRecord = (lines: Iterable<string>, packs: readonly stri
             ) {
                 throw new Error(`An end line is malformed: ${line}`);
             }
-            ended.set(end.pack, Number(end.records));
+            checkRun(end.pack, Number(end.records));
+            ended.set(end.pack, (ended.get(end.pack) ?? 0) + 1);
         }
     }
 
     for (const pack of packs) {
-        const count = ended.get(pack);
-        if (count === undefined) throw new Error(`Pack ${pack} never wrote its end line.`);
-        const seqs = observations.filter((observation) => observation.pack === pack).map(({ seq }) => seq);
-        const expected = Array.from({ length: count }, (_, index) => index + 1);
-        if (seqs.join(',') !== expected.join(',')) {
-            throw new Error(`Pack ${pack} reported ${count} observations but the log holds seq [${seqs.join(', ')}].`);
-        }
+        const count = ended.get(pack) ?? 0;
+        if (count === 0) throw new Error(`Pack ${pack} never wrote its end line.`);
+        if ((running.get(pack) ?? []).length > 0) checkRun(pack, 0);
+        if (count !== runs) throw new Error(`Pack ${pack} ended ${count} times, not ${runs}.`);
     }
     return { observations };
 };

@@ -1,13 +1,13 @@
 /**
  * The JSPrismarine side of a scripting scenario.
  *
- * This is the seam the script host plugs into. It takes a scenario, runs its packs the way BDS
- * would, and returns what the scripts recorded, in the same format the BDS capture reads off the
- * content log.
+ * It takes a scenario, runs its packs the way BDS would, and returns what the scripts recorded,
+ * in the same format the BDS capture reads off the content log.
  *
- * A scenario that needs only the engine runs here already, each pack in a bare
- * `@jsprismarine/script-host` engine. A scenario that needs a world waits for the script host
- * that loads packs into one, issue #3203.
+ * A scenario that needs only the engine runs each pack in a bare `@jsprismarine/script-host`
+ * engine. A scenario that needs a world runs its packs through `@jsprismarine/prismarine`'s
+ * `LevelScripts`, the code a server runs them with, over a test level with the three vanilla
+ * dimensions and its real weather, flushing once per tick until every pack has ended.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
@@ -17,11 +17,15 @@ import type { ScriptEngine } from '@jsprismarine/script-host';
 import { ScriptHandle } from '@jsprismarine/script-host/values';
 import type { ScriptValue } from '@jsprismarine/script-host/values';
 
+import { LevelScripts } from '@jsprismarine/prismarine/scripting/LevelScripts';
+import { fakeLevel } from '@jsprismarine/prismarine/testing/level';
+import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
+
 import { isRecord } from '../isRecord.ts';
 import type { ScenarioRecord } from './record.ts';
-import { readScenarioRecord } from './record.ts';
+import { END_TABLE, readScenarioRecord } from './record.ts';
 import type { ScriptScenario } from './scenarios.ts';
-import { scenarioPackDirectory } from './scenarios.ts';
+import { loadedPacks, scenarioConfigDirectory, scenarioPackDirectory } from './scenarios.ts';
 
 /**
  * Reads the entry file of a pack's script module from its manifest.
@@ -94,18 +98,84 @@ const runPackInEngine = (library: ScriptHostLibrary, directory: string): string[
     return lines;
 };
 
+/** The most ticks a world scenario may take before every pack has ended. BDS's packs end at tick 20. */
+const SCENARIO_TICKS = 200;
+
+/** The `script-watchdog-*` defaults BDS ships, under the scenario's own properties. */
+const watchdogOf = (properties: Readonly<Record<string, string>> = {}) => ({
+    enableShutdown: properties['script-watchdog-enable-shutdown'] !== 'false',
+    hangThreshold: Number(properties['script-watchdog-hang-threshold'] ?? 10_000),
+    memoryLimit: Number(properties['script-watchdog-memory-limit'] ?? 250)
+});
+
+/**
+ * Runs a world scenario's packs in a test level through `LevelScripts`, one flush per tick, and
+ * returns the lines they logged.
+ * @throws Error when the script host cannot load the packs, or a pack never ends.
+ */
+const runPacksInLevel = async (scenario: ScriptScenario): Promise<string[]> => {
+    const lines: string[] = [];
+    const level = fakeLevel();
+    const scripts = await LevelScripts.load({
+        packDirectories: scenario.packs.map((pack) => scenarioPackDirectory(scenario, pack)),
+        configDirectory: scenarioConfigDirectory(scenario),
+        sources: {
+            dimensions: () =>
+                [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].map((type) => type.bedrockName),
+            players: () => [],
+            weather: level.getWeather(),
+            // A fixed clock: no scenario records a date, and a run must not depend on the host's.
+            clock: () => Date.UTC(2026, 10, 16)
+        },
+        seed: 0n,
+        watchdog: watchdogOf(scenario.properties),
+        log: { info: (line) => lines.push(line), warn: (line) => lines.push(line), error: (line) => lines.push(line) },
+        onShutdown: () => {
+            throw new Error(`Scenario ${scenario.id} asked for a server shutdown`);
+        }
+    });
+    if (scripts === undefined) throw new Error(`The script host did not load scenario ${scenario.id}'s packs.`);
+    try {
+        scripts.start({ setScriptPhase: () => {} });
+        const ended = (): boolean =>
+            loadedPacks(scenario).every(
+                (pack) =>
+                    lines.filter((line) => line.includes(`DUMP ${END_TABLE} {"pack":${JSON.stringify(pack)},`))
+                        .length >= (scenario.runs ?? 1)
+            );
+        let reloaded = false;
+        for (let tick = 0; tick < SCENARIO_TICKS && !ended(); tick++) {
+            scripts.flush();
+            // Between ticks, as a console command arrives.
+            const reloadAfter = scenario.reloadAfter;
+            if (
+                !reloaded &&
+                reloadAfter !== undefined &&
+                lines.some((line) => line.includes(`"event":${JSON.stringify(reloadAfter)}`))
+            ) {
+                reloaded = true;
+                scripts.reload();
+            }
+        }
+    } finally {
+        scripts.close();
+    }
+    return lines;
+};
+
 /**
  * Runs a scenario's packs on JSPrismarine and returns their record.
  *
  * An `engine` scenario runs each pack in its own bare script engine, with no world. A `world`
- * scenario returns undefined, and its row reads as deferred, until the script host skeleton,
- * issue #3203, fills that branch.
+ * scenario runs its packs together in a test level.
  *
- * @returns The record, or undefined while JSPrismarine cannot run the scenario's packs.
- * @throws NativeLibraryError when an `engine` scenario finds no script host library.
+ * @returns The record.
+ * @throws NativeLibraryError when the scenario finds no script host library.
  */
 export const runScenarioOnJsp = async (scenario: ScriptScenario): Promise<ScenarioRecord | undefined> => {
-    if (scenario.needs !== 'engine') return undefined;
+    if (scenario.needs === 'world') {
+        return readScenarioRecord(await runPacksInLevel(scenario), loadedPacks(scenario), scenario.runs);
+    }
     const library = ScriptHostLibrary.load();
     try {
         const lines = scenario.packs.flatMap((pack) => runPackInEngine(library, scenarioPackDirectory(scenario, pack)));

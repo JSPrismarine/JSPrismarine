@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { readScenarioGolden } from './record.ts';
-import { readScenarioPackIdentity, SCRIPT_SCENARIOS, scenarioPackDirectory } from './scenarios.ts';
+import { loadedPacks, readScenarioPackIdentity, SCRIPT_SCENARIOS, scenarioPackDirectory } from './scenarios.ts';
 
 describe('SCRIPT_SCENARIOS', () => {
     it('gives every scenario pack a manifest identity of its own', () => {
@@ -29,7 +29,7 @@ describe('SCRIPT_SCENARIOS', () => {
             if (golden === undefined) continue;
             expect(golden.family).toBe(scenario.family);
             expect([...new Set(golden.observations.map(({ pack }) => pack))].sort()).toEqual(
-                [...scenario.packs].sort()
+                [...loadedPacks(scenario)].sort()
             );
         }
     });

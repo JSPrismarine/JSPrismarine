@@ -1,0 +1,163 @@
+{
+    "$comment": [
+        "What the scripts of scenario `argument-errors` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.engine",
+    "scenario": "argument-errors",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "args",
+            "seq": 1,
+            "tick": 0,
+            "event": "system.run with a number",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: Closure: () => void"
+        },
+        {
+            "pack": "args",
+            "seq": 2,
+            "tick": 0,
+            "event": "system.run with no argument",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 1, received 0"
+        },
+        {
+            "pack": "args",
+            "seq": 3,
+            "tick": 0,
+            "event": "system.runTimeout with a string delay",
+            "error": "TypeError: Native type conversion failed. Function argument [1] expected type: number | undefined"
+        },
+        {
+            "pack": "args",
+            "seq": 4,
+            "tick": 0,
+            "event": "system.runTimeout with a negative delay",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: -1, Argument bounds: [0, 4294967295.00]"
+        },
+        {
+            "pack": "args",
+            "seq": 5,
+            "tick": 0,
+            "event": "system.runTimeout with a fractional delay",
+            "value": "number"
+        },
+        {
+            "pack": "args",
+            "seq": 6,
+            "tick": 0,
+            "event": "system.runTimeout with an extra argument",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 1-2, received 3"
+        },
+        {
+            "pack": "args",
+            "seq": 7,
+            "tick": 0,
+            "event": "system.clearRun with a string",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: number"
+        },
+        {
+            "pack": "args",
+            "seq": 8,
+            "tick": 0,
+            "event": "world.getDimension with a number",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: string"
+        },
+        {
+            "pack": "args",
+            "seq": 9,
+            "tick": 0,
+            "event": "world.getDimension with no argument",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 1, received 0"
+        },
+        {
+            "pack": "args",
+            "seq": 10,
+            "tick": 0,
+            "event": "world.getDimension returns a Dimension",
+            "value": true
+        },
+        {
+            "pack": "args",
+            "seq": 11,
+            "tick": 0,
+            "event": "world.sendMessage with a number",
+            "error": "TypeError: Native variant type conversion failed. Function argument [0] expected type: string | RawMessage | (string | RawMessage)[]"
+        },
+        {
+            "pack": "args",
+            "seq": 12,
+            "tick": 0,
+            "event": "world.sendMessage with no argument",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 1, received 0"
+        },
+        {
+            "pack": "args",
+            "seq": 13,
+            "tick": 0,
+            "event": "world.sendMessage with an array holding a number",
+            "error": "TypeError: Native variant type conversion failed. Function argument [0] expected type: string | RawMessage | (string | RawMessage)[]"
+        },
+        {
+            "pack": "args",
+            "seq": 14,
+            "tick": 0,
+            "event": "setWeather with a duration of 0",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 0, Argument bounds: [1, 1000000]"
+        },
+        {
+            "pack": "args",
+            "seq": 15,
+            "tick": 0,
+            "event": "setWeather with a duration past its maximum",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 1000001, Argument bounds: [1, 1000000]"
+        },
+        {
+            "pack": "args",
+            "seq": 16,
+            "tick": 0,
+            "event": "setWeather with a type outside the enum",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: WeatherType"
+        },
+        {
+            "pack": "args",
+            "seq": 17,
+            "tick": 0,
+            "event": "new World()",
+            "error": "ReferenceError: No constructor for native class 'World'."
+        },
+        {
+            "pack": "args",
+            "seq": 18,
+            "tick": 0,
+            "event": "World() without new",
+            "error": "TypeError: must be called with new"
+        },
+        {
+            "pack": "args",
+            "seq": 19,
+            "tick": 0,
+            "event": "new Dimension()",
+            "error": "ReferenceError: No constructor for native class 'Dimension'."
+        },
+        {
+            "pack": "args",
+            "seq": 20,
+            "tick": 0,
+            "event": "assigning to system.currentTick",
+            "error": "TypeError: 'currentTick' is read-only"
+        },
+        {
+            "pack": "args",
+            "seq": 21,
+            "tick": 0,
+            "event": "calling a method on the wrong receiver",
+            "error": "ReferenceError: Native function [World::getDimension] object bound to prototype does not exist."
+        }
+    ]
+}

@@ -1,0 +1,141 @@
+{
+    "$comment": [
+        "What the scripts of scenario `privileges` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.lifecycle",
+    "scenario": "privileges",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "early",
+            "seq": 1,
+            "tick": 0,
+            "event": "top level world.sendMessage",
+            "error": "ReferenceError: Native function [World::sendMessage] cannot be used in early execution."
+        },
+        {
+            "pack": "early",
+            "seq": 2,
+            "tick": 0,
+            "event": "top level world.getAllPlayers",
+            "error": "ReferenceError: Native function [World::getAllPlayers] cannot be used in early execution."
+        },
+        {
+            "pack": "early",
+            "seq": 3,
+            "tick": 0,
+            "event": "top level world.gameRules",
+            "error": "ReferenceError: Native property getter [World::gameRules] cannot be used in early execution."
+        },
+        {
+            "pack": "early",
+            "seq": 4,
+            "tick": 0,
+            "event": "top level system.currentTick",
+            "value": "number"
+        },
+        {
+            "pack": "early",
+            "seq": 5,
+            "tick": 0,
+            "event": "top level system.run",
+            "value": "number"
+        },
+        {
+            "pack": "early",
+            "seq": 6,
+            "tick": 0,
+            "event": "top level world.afterEvents",
+            "value": "object"
+        },
+        {
+            "pack": "early",
+            "seq": 7,
+            "tick": 0,
+            "event": "startup world.sendMessage",
+            "error": "ReferenceError: Native function [World::sendMessage] cannot be used in early execution."
+        },
+        {
+            "pack": "early",
+            "seq": 8,
+            "tick": 0,
+            "event": "startup world.getAllPlayers",
+            "error": "ReferenceError: Native function [World::getAllPlayers] cannot be used in early execution."
+        },
+        {
+            "pack": "early",
+            "seq": 9,
+            "tick": 0,
+            "event": "startup world.gameRules",
+            "error": "ReferenceError: Native property getter [World::gameRules] cannot be used in early execution."
+        },
+        {
+            "pack": "early",
+            "seq": 10,
+            "tick": 0,
+            "event": "startup system.currentTick",
+            "value": "number"
+        },
+        {
+            "pack": "early",
+            "seq": 11,
+            "tick": 0,
+            "event": "startup system.run",
+            "value": "number"
+        },
+        {
+            "pack": "early",
+            "seq": 12,
+            "tick": 0,
+            "event": "startup world.afterEvents",
+            "value": "object"
+        },
+        {
+            "pack": "early",
+            "seq": 13,
+            "tick": 0,
+            "event": "worldLoad world.sendMessage"
+        },
+        {
+            "pack": "early",
+            "seq": 14,
+            "tick": 0,
+            "event": "worldLoad world.getAllPlayers",
+            "value": 0
+        },
+        {
+            "pack": "early",
+            "seq": 15,
+            "tick": 0,
+            "event": "worldLoad world.gameRules",
+            "value": "object"
+        },
+        {
+            "pack": "early",
+            "seq": 16,
+            "tick": 0,
+            "event": "worldLoad system.currentTick",
+            "value": "number"
+        },
+        {
+            "pack": "early",
+            "seq": 17,
+            "tick": 0,
+            "event": "worldLoad system.run",
+            "value": "number"
+        },
+        {
+            "pack": "early",
+            "seq": 18,
+            "tick": 0,
+            "event": "worldLoad world.afterEvents",
+            "value": "object"
+        }
+    ]
+}
