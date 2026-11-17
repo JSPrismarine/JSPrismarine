@@ -1,0 +1,5 @@
+{
+    "entryPoints": ["src/**/*.ts"],
+    "exclude": ["**/*.test.ts"],
+    "readme": "README.md"
+}
