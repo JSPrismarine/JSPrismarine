@@ -6,11 +6,12 @@ import type { FilterEntityView } from '@jsprismarine/entities';
 import { trustedBy } from '@jsprismarine/entities/components/trust';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import type { ContentEntity } from '../../content/world/adapter';
+import { definitionOf } from '../../content/ContentOptions';
 
 import { mergeStatusEffect } from '../StatusEffect';
 import { brainEntityOf, brainMobOf, tickBrainNavigation } from './brainWorld';
 import { dataEntityRecordOf } from './persistence';
-import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
+import { entityFixture, entityFixtureStack, FLOOR_Y, TestEntityWorld } from './testing';
 
 /** A runtime over the entity fixture, with the world a test can poke at. */
 const runtimeOf = (world = new TestEntityWorld()) => entityFixture(world);
@@ -3010,6 +3011,43 @@ describe('EntityRuntime', () => {
             const resisted = 1 - victim!.facts.knockbackResistance;
             expect(victim!.body.velocity.x).toBeCloseTo((0.4 * resisted) / 2 + 0.75 * resisted);
             expect(ravager!.body.velocity.x).toBeCloseTo(0.06);
+        });
+
+        it("pushes a sulfur cube carrying a block by its archetype, as Java's SulfurCube.knockback does", () => {
+            const definitions = entityFixtureStack({
+                'minecraft:sulfur_cube': {
+                    components: {
+                        'minecraft:health': { value: 10, max: 10 },
+                        'minecraft:collision_box': { width: 1, height: 1 }
+                    }
+                }
+            });
+            const tags = new Map(definitions.tags);
+            const archetype = 'item/minecraft:sulfur_cube_archetype/slow_bouncy';
+            tags.set(archetype, definitionOf('tags', archetype, { values: ['minecraft:stone'] }));
+            const { runtime } = entityFixture(new TestEntityWorld(), {
+                load: () => ({ definitions: { ...definitions, tags }, diagnostics: [] })
+            });
+            const attacker = runtime.spawn('minecraft:cow', GROUND);
+            const empty = runtime.spawn('minecraft:sulfur_cube', { ...GROUND, x: GROUND.x + 2 });
+            const carrying = runtime.spawn('minecraft:sulfur_cube', { ...GROUND, x: GROUND.x + 2, z: GROUND.z + 5 });
+            carrying!.body.setEquipment({ mainhand: { identifier: 'minecraft:stone', count: 1 } });
+            const hit = (target: number) => {
+                runtime.store.get(target)!.body.velocity = { x: 0, y: 0, z: 0 };
+                runtime.damage({
+                    target,
+                    attacker: attacker!.id,
+                    cause: 'entity_attack',
+                    amount: 1,
+                    source: { route: 'mob_attack', knockback: { origin: attacker!.position, levels: 0 } }
+                });
+                return runtime.store.get(target)!.body.velocity;
+            };
+
+            expect(Math.hypot(hit(empty!.id).x, hit(empty!.id).z)).toBeCloseTo(0.4);
+            const pushed = hit(carrying!.id);
+            expect(pushed.x).toBeGreaterThan(0);
+            expect(Math.hypot(pushed.x, pushed.z)).not.toBeCloseTo(0.4);
         });
 
         it("throws an iron golem's target up 0.4 beyond the push, as Java's IronGolem.doHurtTarget does", () => {

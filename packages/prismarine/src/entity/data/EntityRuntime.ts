@@ -180,7 +180,7 @@ import {
 import { actuatorOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
 import { ENTITY_EYE_HEIGHT_FRACTION, blockPositionOf, entityEyePosition } from './position';
 import type { Look } from './lookingAt';
-import { isLookingAt } from './lookingAt';
+import { isLookingAt, viewVector } from './lookingAt';
 import { mobLootTableOf, rollMobDrops } from '../mobLoot';
 import { deathDamageSource, deathLootState, killerView } from './deathLoot';
 import type { DeathKiller } from './deathLoot';
@@ -254,6 +254,8 @@ import { damageCauseOf } from '../DamageCause';
 import { damageCausesInTag } from '../damageTypes';
 import type { HitGrace } from './damageStages';
 import { BASE_KNOCKBACK, KNOCKBACK_PER_LEVEL, behind, livingKnockback } from '../knockback';
+import { SULFUR_CUBE_KNOCKBACK, sulfurCubeKnockback } from './sulfurCubeKnockback';
+import type { SulfurCubeShove } from './sulfurCubeKnockback';
 import {
     attributeIn,
     attributeNamed,
@@ -3333,7 +3335,7 @@ export class EntityRuntime implements EntityScene {
 
         const taken = computation.amount;
         if (fresh && taken > 0 && source.feedback !== false) this.host.hurtFeedback?.(entity.id);
-        if (fresh && source.knockback !== undefined) this.shove(entity, source.knockback);
+        if (fresh && source.knockback !== undefined) this.shove(entity, source.knockback, intent);
 
         const damager = intent.attacker === undefined ? undefined : this.mobById(intent.attacker)?.view();
         const result = entity.instance.applyDamage(
@@ -3781,27 +3783,86 @@ export class EntityRuntime implements EntityScene {
      * They are worked out together and written once, because a player is sent its knockback and a
      * second packet in the same tick would overwrite the first.
      */
-    private shove(entity: DataEntity, knockback: NonNullable<DamageSourceFacts['knockback']>): void {
+    private shove(
+        entity: DataEntity,
+        knockback: NonNullable<DamageSourceFacts['knockback']>,
+        intent: DamageIntent
+    ): void {
         const onGround = entity.body.conditions.has('on_ground');
         const toward = { x: knockback.origin.x - entity.position.x, z: knockback.origin.z - entity.position.z };
         const shoves = [
-            { power: BASE_KNOCKBACK, toward },
-            ...(knockback.levels > 0 ? [{ power: knockback.levels * KNOCKBACK_PER_LEVEL, toward }] : []),
+            { power: BASE_KNOCKBACK, toward, extra: false },
+            ...(knockback.levels > 0 ? [{ power: knockback.levels * KNOCKBACK_PER_LEVEL, toward, extra: true }] : []),
             ...(knockback.extra !== undefined && knockback.extra.power > 0
-                ? [{ power: knockback.extra.power, toward: behind(knockback.extra.yaw) }]
+                ? [{ power: knockback.extra.power, toward: behind(knockback.extra.yaw), extra: true }]
                 : [])
         ];
+        const cube = this.carriedCubeKnockback(entity, intent);
         let velocity = entity.body.velocity;
         for (const shove of shoves)
-            velocity = livingKnockback({
-                velocity,
-                onGround,
-                resistance: entity.facts.knockbackResistance,
-                power: shove.power,
-                toward: shove.toward,
-                tieBreak: entity.id % 8
-            });
+            velocity =
+                cube === undefined
+                    ? livingKnockback({
+                          velocity,
+                          onGround,
+                          resistance: entity.facts.knockbackResistance,
+                          power: shove.power,
+                          toward: shove.toward,
+                          tieBreak: entity.id % 8
+                      })
+                    : sulfurCubeKnockback({ ...cube, ...shove, velocity, damage: intent.amount });
         this.knockTo(entity, velocity);
+    }
+
+    /**
+     * What a sulfur cube carrying a block is pushed by, Java's `SulfurCube.knockback`: its
+     * archetype, which the carried block's `#minecraft:sulfur_cube_archetype/<archetype>` tag
+     * names, and the attacker's eyes and look. An attacker whose look the server does not know is
+     * taken to look at the cube's center, which it hit. Undefined for anything else, and for a
+     * blow with no attacker, which takes the plain push.
+     */
+    private carriedCubeKnockback(
+        entity: DataEntity,
+        intent: DamageIntent
+    ): Omit<SulfurCubeShove, 'velocity' | 'toward' | 'power' | 'damage' | 'extra'> | undefined {
+        if (entity.identifier !== SULFUR_CUBE || intent.attacker === undefined) return undefined;
+        // Java keeps the block in the body slot; Bedrock's cube holds it in its main hand.
+        const carried = entity.body.equipment.body ?? entity.body.equipment.mainhand;
+        if (carried === undefined) return undefined;
+        const stack = itemOfDrop(carried, this.content());
+        const modifiers = [...SULFUR_CUBE_KNOCKBACK].find(
+            ([archetype]) => stack?.hasJavaTag(`minecraft:sulfur_cube_archetype/${archetype}`) === true
+        )?.[1];
+        if (modifiers === undefined) return undefined;
+
+        const stored = this.store.get(intent.attacker);
+        const attacker = stored ?? this.host.playerById?.(intent.attacker);
+        if (attacker === undefined) return undefined;
+        const eyes =
+            stored === undefined || clientOwnsMovement(stored.identifier)
+                ? EYE_HEIGHT
+                : stored.facts.box.height * ENTITY_EYE_HEIGHT_FRACTION;
+        const eye = { ...attacker.position, y: attacker.position.y + eyes };
+        const look = stored === undefined ? this.lookOf(attacker) : { yaw: stored.body.yaw, pitch: stored.body.pitch };
+        const height = entity.facts.box.height;
+        return {
+            position: entity.position,
+            height,
+            resistance: entity.facts.knockbackResistance,
+            modifiers,
+            attacker: {
+                position: attacker.position,
+                eye,
+                look:
+                    look === undefined
+                        ? {
+                              x: entity.position.x - eye.x,
+                              y: entity.position.y + height / 2 - eye.y,
+                              z: entity.position.z - eye.z
+                          }
+                        : viewVector(look)
+            }
+        };
     }
 
     /**
