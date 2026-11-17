@@ -201,11 +201,12 @@ export class Logger {
     private parseMessage = (input: string[]) => {
         const output = input.join('§r ');
 
-        // Make sure log messages end with a period.
-        const lastCharacter = output.at(-1);
-        if (output && lastCharacter !== '.' && lastCharacter !== '!' && lastCharacter !== '?') return `${output}.`;
+        // End a message with a period unless it already ends in punctuation, such as a colon that
+        // introduces the lines after it, or in whitespace. Trailing format codes don't count.
+        const visible = output.replace(/(?:§.)+$/u, '');
+        if (!visible || /[.!?:;,…\s]$/u.test(visible)) return output;
 
-        return output;
+        return `${output}.`;
     };
 
     /**

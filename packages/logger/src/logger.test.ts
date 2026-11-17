@@ -75,6 +75,11 @@ describe('message punctuation', () => {
         ['already ended.', 'already ended.'],
         ['already ended!', 'already ended!'],
         ['already ended?', 'already ended?'],
+        ['introduces a list:', 'introduces a list:'],
+        ['trails off…', 'trails off…'],
+        ['ends with a line break\n', 'ends with a line break\n'],
+        ['colored list:§r', 'colored list:§r'],
+        ['colored text§r', 'colored text§r.'],
         ['', '']
     ])('formats %j as %j', (input, expected) => {
         const { logger } = makeLogger();
