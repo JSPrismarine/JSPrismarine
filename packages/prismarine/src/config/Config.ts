@@ -113,7 +113,7 @@ const COMMENTS = {
     'script-watchdog-enable-shutdown':
         "Whether a hang, a stack overflow or running out of memory in a behavior pack script shuts the server down, as Bedrock Dedicated Server's setting of the same name does.",
     'script-watchdog-hang-threshold':
-        'How long one behavior pack script callback may run before it is stopped, in milliseconds. JSPrismarine counts work rather than time, so the same script stops at the same point on every machine.',
+        'How long the behavior pack scripts of one tick may run before they are stopped, in milliseconds, as the Bedrock Dedicated Server setting of the same name. JSPrismarine counts work rather than time, so the same script stops at the same point on every machine.',
     'script-watchdog-memory-limit':
         'How many megabytes the behavior pack scripts of one world may allocate together. Going over saves and shuts the server down. 0 sets no limit.'
 } as const satisfies Record<Exclude<keyof ConfigFile, ContentConfigKey>, string>;

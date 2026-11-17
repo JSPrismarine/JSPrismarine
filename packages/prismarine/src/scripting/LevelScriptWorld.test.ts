@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ChatSendIntent, Guard } from '@jsprismarine/script-host/host/world';
+
 import type { PlayerChatGuard } from '../chat/ChatManager';
 import { fakeLevel } from '../testing/level';
 import { LevelScriptWorld } from './LevelScriptWorld';
@@ -47,6 +49,29 @@ describe('LevelScriptWorld', () => {
         expect(seen).toEqual([{ sender: '7', message: 'mine' }]);
         remove();
         expect(guards).toEqual([]);
+    });
+
+    it('takes a chat guard that can only veto, as a script cannot change the line', () => {
+        const guards: PlayerChatGuard[] = [];
+        const { world } = scriptWorld({
+            players: () => [{ id: '7', sendMessage: () => {} }],
+            chat: {
+                addGuard: (guard) => {
+                    guards.push(guard);
+                    return () => {};
+                }
+            }
+        });
+        const replacing: Guard<ChatSendIntent> = (intent) => ({ veto: false, intent: { ...intent, message: 'x' } });
+        // @ts-expect-error ChatSendBeforeEvent's message is read-only, so a chat guard has no intent to hand back.
+        world.guardChat(replacing);
+        const [guard] = guards;
+        if (guard === undefined) throw new Error('no chat guard was added');
+
+        expect(guard({ sender: 7n, message: 'mine' })).toEqual({
+            veto: false,
+            intent: { sender: 7n, message: 'mine' }
+        });
     });
 
     it('runs a script guard in the level’s weather action, in the Script API’s names', () => {
