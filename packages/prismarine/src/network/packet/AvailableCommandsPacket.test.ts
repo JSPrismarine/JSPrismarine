@@ -390,7 +390,8 @@ describe('AvailableCommandsPacket', () => {
 
         const [written] = decoded.commands;
         expect(written?.chainedSubcommandOffsets).toEqual([0]);
-        expect(written?.overloads.map(({ chaining }) => chaining)).toEqual([true, true, false]);
+        // A chain continues into every overload that starts with a chained keyword, `run` too.
+        expect(written?.overloads.map(({ chaining }) => chaining)).toEqual([true, true, true]);
         // A chained parameter indexes `Chained Subcommand Data`, not `Enum Data`: a real server
         // writes `0x8100000` and the `EnumAsChainedCommand` option for it.
         expect(written?.overloads[0]?.parameters[2]).toEqual({

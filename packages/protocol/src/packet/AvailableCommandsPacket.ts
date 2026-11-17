@@ -33,6 +33,28 @@ const commandPermissionToString = (level: number): string => COMMAND_PERMISSION_
 /** The level a wire permission name stands for; an unknown name reads as level 0, `any`. */
 const commandPermissionFromString = (name: string): number => Math.max(0, COMMAND_PERMISSION_NAMES.indexOf(name));
 
+/**
+ * Whether a chain can continue into an overload, the packet's `isChaining`.
+ *
+ * It can when the overload starts with a keyword of the command's chained subcommand tables, or
+ * ends in a chained subcommand. A real server marks all of `/execute`'s overloads, `run` too
+ * (`bedrock-data/src/jsp/v2193/wire/0x4c.bin`). The flag is read off the parameters rather than
+ * stored a second time where the two could disagree.
+ * @param {CommandData} data - The command the overload belongs to.
+ * @param {CommandParameter[]} overload - The overload's parameters.
+ * @returns {boolean} The `isChaining` flag.
+ */
+const isChainingOverload = (data: CommandData, overload: CommandParameter[]): boolean => {
+    if (overload.some((parameter) => parameter.chainedSubcommand !== null)) return true;
+    const leading = overload[0]?.enum;
+    if (leading?.soft !== false) return false;
+    const tables = [
+        ...data.chainedSubcommands,
+        ...data.overloads.flat().flatMap((parameter) => parameter.chainedSubcommand ?? [])
+    ];
+    return leading.values.some((value) => tables.some((table) => table.values.includes(value)));
+};
+
 /** The low bits of a parameter's Parse Symbol: the index an enum, soft enum or postfix word carries. */
 const PARSE_SYMBOL_INDEX_MASK = 0xffff;
 
@@ -210,10 +232,7 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                     return index === undefined ? [] : [index];
                 }),
                 overloads: data.overloads.map((overload) => ({
-                    // Mojang's own data marks an overload as chaining exactly when it ends in a
-                    // chained subcommand, so the flag is read off the parameters rather than
-                    // stored a second time where the two could disagree.
-                    isChaining: overload.some((parameter) => parameter.chainedSubcommand !== null),
+                    isChaining: isChainingOverload(data, overload),
                     parameters: overload.map((parameter) => {
                         let type: number = parameter.paramType;
                         let flags: number = parameter.flags;

@@ -167,6 +167,24 @@ describe('AvailableCommandsPacket against the real server', () => {
             expect(run?.[1]?.paramType).toBe(CommandParameterType.CodeBuilderArgs);
         });
 
+        it(`marks the overloads chaining where the capture does at protocol ${protocolVersion}`, () => {
+            const layout = layoutAt(availableCommandsPacket, protocolVersion);
+            const flags = (payload: ReturnType<typeof layout.decode>) =>
+                payload.commands.map((command) => [command.name, command.overloads.map((o) => o.isChaining)]);
+
+            const packet = new AvailableCommandsPacket(Buffer.concat([Buffer.from([0x4c]), captured]));
+            packet.decode({ protocolVersion });
+            const sent = new AvailableCommandsPacket();
+            sent.commandData = packet.commandData;
+            sent.encode({ protocolVersion });
+
+            const original = layout.decode(new BinaryStream(captured));
+            // `/execute run <command>` ends in no chained parameter, and the server still marks it.
+            const execute = original.commands.find((command) => command.name === 'execute');
+            expect(execute?.overloads.at(-1)?.isChaining).toBe(true);
+            expect(flags(layout.decode(new BinaryStream(sent.getBuffer().subarray(1))))).toEqual(flags(original));
+        });
+
         it(`writes the permission levels as the lower case names the real server sends at protocol ${protocolVersion}`, () => {
             const layout = layoutAt(availableCommandsPacket, protocolVersion);
             const capturedNames = new Set(
