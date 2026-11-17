@@ -24,5 +24,9 @@
             "tick": 0,
             "event": "loaded"
         }
+    ],
+    "refusals": [
+        "Plugin [JSPrismarine scenario config-permissions narrowed - 1.0.0] - requesting dependency on module [@minecraft/server-ui] but it is not configured to use it.",
+        "Plugin [JSPrismarine scenario config-permissions unconfigured - 1.0.0] - requesting dependency on module [@minecraft/server-graphics] but it is not configured to use it."
     ]
 }

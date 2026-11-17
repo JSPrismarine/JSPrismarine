@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario beta-versions newer",
+        "description": "Declares @minecraft/server 2.12.0-beta. Written for packages/parity.",
+        "uuid": "4e4513a4-77b8-4b2a-9d34-ae06ed6547b7",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "fac037e3-d835-4157-8a10-64dded4b4c6c",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.12.0-beta"
+        }
+    ]
+}

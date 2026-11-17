@@ -1,0 +1,49 @@
+{
+    "$comment": [
+        "What the scripts of scenario `watchdog-terminate` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.events",
+    "scenario": "watchdog-terminate",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "terminate",
+            "seq": 1,
+            "tick": 1,
+            "event": "hang"
+        },
+        {
+            "pack": "terminate",
+            "seq": 2,
+            "tick": 1,
+            "event": "system.beforeEvents.watchdogTerminate",
+            "value": "Hang"
+        },
+        {
+            "pack": "terminate",
+            "seq": 3,
+            "tick": 2,
+            "event": "caught",
+            "error": "InternalError: stack overflow"
+        },
+        {
+            "pack": "terminate",
+            "seq": 4,
+            "tick": 2,
+            "event": "system.beforeEvents.watchdogTerminate",
+            "value": "StackOverflow"
+        },
+        {
+            "pack": "terminate",
+            "seq": 5,
+            "tick": 3,
+            "event": "still running"
+        }
+    ]
+}

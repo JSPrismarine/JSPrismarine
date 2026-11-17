@@ -124,11 +124,15 @@ const runPacksInLevel = async (scenario: ScriptScenario): Promise<string[]> => {
                 [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].map((type) => type.bedrockName),
             players: () => [],
             weather: level.getWeather(),
+            // No scenario player chats on JSPrismarine yet: a BDS scenario's chat comes from a
+            // GameTest simulated player, which needs @minecraft/server-gametest.
+            chat: { addGuard: () => () => {} },
             // A fixed clock: no scenario records a date, and a run must not depend on the host's.
             clock: () => Date.UTC(2026, 10, 16)
         },
         seed: 0n,
         watchdog: watchdogOf(scenario.properties),
+        experiments: scenario.experiments ?? [],
         log: { info: (line) => lines.push(line), warn: (line) => lines.push(line), error: (line) => lines.push(line) },
         onShutdown: () => {
             throw new Error(`Scenario ${scenario.id} asked for a server shutdown`);

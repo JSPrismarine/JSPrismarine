@@ -1,0 +1,29 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario beta-experiment-off ui-beta",
+        "description": "Declares @minecraft/server 2.0.0 and @minecraft/server-ui 2.3.0-beta. Written for packages/parity.",
+        "uuid": "d50184d5-f965-4040-a466-1c9749d8da63",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "3d573dfd-d4f8-47c4-9229-d2c6e9a71c30",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        },
+        {
+            "module_name": "@minecraft/server-ui",
+            "version": "2.3.0-beta"
+        }
+    ]
+}
