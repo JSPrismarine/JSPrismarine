@@ -5,24 +5,29 @@
  */
 import assert from 'node:assert/strict';
 
+import { NATIVE_BUILD_PLATFORMS } from '../../../../packages/script-host/src/platform.ts';
 import { SCRIPT_WEATHER_MESSAGE } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
 import { sleep } from '../scenario.mts';
 
-/** What the server logs when the platform has no script host library, and so runs no scripts. */
-const NO_SCRIPT_HOST = /the script host has no library for this machine/;
+/** What the server logs when it cannot load the script host, and so runs no scripts. */
+const NO_SCRIPT_HOST =
+    /behavior pack\(s\) have scripts, but @jsprismarine\/script-host (is not installed|has no library)/;
 
 export const scriptWorldMessage: Scenario = {
     name: 'script-world-message',
     description:
         "a behavior pack script's world.sendMessage, sent from its weatherChange after-event, shows in the player's chat",
     run: async ({ client, server, log }) => {
-        // The script host builds on Linux x64 only for now (issue #3215); elsewhere the server
-        // says so at startup and runs without scripts, which this scenario cannot check.
-        if (server.lines.some((line) => NO_SCRIPT_HOST.test(line))) {
-            log('skipped: this platform has no script host library, so the server runs no scripts');
+        // The script host builds on Linux only for now (issue #3215); elsewhere the server runs
+        // without scripts, which this scenario cannot check. Where it builds, a server that could
+        // not load it is a failure.
+        if (!NATIVE_BUILD_PLATFORMS.includes(process.platform)) {
+            log(`skipped: the script host has no build for ${process.platform}, so the server runs no scripts`);
             return;
         }
+        const unloaded = server.lines.find((line) => NO_SCRIPT_HOST.test(line));
+        assert.equal(unloaded, undefined, `the server could not load the script host: ${unloaded}`);
 
         const expected = `${SCRIPT_WEATHER_MESSAGE}Rain`;
         server.command('weather rain');

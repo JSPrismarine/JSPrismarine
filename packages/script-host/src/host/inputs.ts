@@ -1,3 +1,5 @@
+import { engineFunctionSource } from '../engineSource';
+
 /**
  * What a script could otherwise read from the host machine, made an input
  * ([ADR 0021](../../../../docs/adr/0021-the-script-watchdog-counts-steps.md)): `Math.random`
@@ -76,10 +78,13 @@ export function installInputs(s0: number, s1: number, s2: number, s3: number): (
 
     let now = 0;
     const RealDate = Date;
+    // Taken now, so a script that replaces `Reflect.construct` cannot change what `new Date` makes.
+    const construct = Reflect.construct;
     const DateInput = function Date(this: unknown, ...args: unknown[]): unknown {
         if (new.target === undefined) return new RealDate(now).toString();
-        // `new Date()` with arguments makes the same date it always does.
-        return args.length === 0 ? new RealDate(now) : Reflect.construct(RealDate, args, new.target);
+        // `new Date()` with arguments makes the same date it always does. Either way `new.target`
+        // gives the date its prototype, so a subclass of `Date` keeps its own.
+        return construct(RealDate, args.length === 0 ? [now] : args, new.target);
     };
     Object.defineProperty(DateInput, 'length', { value: RealDate.length });
     Object.defineProperty(DateInput, 'prototype', { value: RealDate.prototype, writable: false });
@@ -106,4 +111,4 @@ export function installInputs(s0: number, s1: number, s2: number, s3: number): (
 }
 
 /** The source text that evaluates, inside an engine, to {@link installInputs}. */
-export const installInputsSource = (): string => `(${installInputs.toString()})`;
+export const installInputsSource = (): string => engineFunctionSource(installInputs.toString());

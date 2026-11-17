@@ -24,7 +24,7 @@ layer through `node:ffi` on Node.js and through scriptc's FFI in the compiled bu
   out, that every script-to-host call goes through,
 - owns the step budget in the interrupt handler and the allocation limit
   ([ADR 0021](0021-the-script-watchdog-counts-steps.md)),
-- keeps its state for each engine instance, so each world thread owns its own,
+- keeps its state for each engine instance, so each level's thread owns its own,
 - carries the debugger patch. The VS Code extension's protocol comes from koush's debugger for
   Bellard's QuickJS, which changed about 450 lines of `quickjs.c` and added a debugger file of
   about 750 lines. We port that patch to the pinned release.

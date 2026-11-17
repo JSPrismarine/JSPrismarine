@@ -43,8 +43,11 @@ export class TaskQueue<Callback> {
      * @param tick - The current tick.
      * @param delay - `runTimeout`'s delay or `runInterval`'s interval, in ticks; 0 when absent.
      * @returns The task's id.
+     * @throws {RangeError} When the delay is NaN or infinite. The Script API's argument check
+     * refuses those first, as BDS does, so this only stops a caller that skips it.
      */
     public schedule(kind: TaskKind, callback: Callback, tick: number, delay = 0): number {
+        if (!Number.isFinite(delay)) throw new RangeError(`A task delay must be a finite number, not ${delay}`);
         const id = this.nextId++;
         const wait = Math.max(0, Math.floor(delay));
         const due = kind === 'run' ? tick + (this.running ? 1 : 0) : tick + wait;
@@ -72,15 +75,16 @@ export class TaskQueue<Callback> {
      * Runs every task due in a tick, in order, including the ones the tasks queue for the same
      * tick. An interval is queued again before its callback runs, so the callback can clear it.
      * @param run - Runs one task's callback.
+     * @param mayRun - Asked before each task; false leaves it and the rest queued, still due.
      * @returns How many tasks ran.
      */
-    public runDue(tick: number, run: (task: ScriptTask<Callback>) => void): number {
+    public runDue(tick: number, run: (task: ScriptTask<Callback>) => void, mayRun: () => boolean = () => true): number {
         this.running = true;
         let count = 0;
         try {
             for (;;) {
                 const task = this.tasks[0];
-                if (task === undefined || task.due > tick) break;
+                if (task === undefined || task.due > tick || !mayRun()) break;
                 this.tasks.shift();
                 if (task.interval !== undefined) this.insert({ ...task, due: tick + task.interval });
                 run(task);

@@ -39,6 +39,16 @@ export type GuardVerdict<Intent> = { readonly veto: true } | { readonly veto: fa
 /** A guard in an action's guard stage. It reads the intent and writes nothing. */
 export type Guard<Intent> = (intent: Intent) => GuardVerdict<Intent>;
 
+/** What a guard of an action no script may change decides: veto it, or let it go on as it is. */
+export interface VetoVerdict {
+    readonly veto: boolean;
+    /** A guard that can only veto hands back no intent. */
+    readonly intent?: never;
+}
+
+/** A guard that can veto an action but not change it. */
+export type VetoGuard<Intent> = (intent: Intent) => VetoVerdict;
+
 /** A change the world committed, for an after-event. */
 export type ScriptWorldEvent = { readonly type: 'weatherChange' } & Omit<WeatherChangeIntent, 'duration'>;
 
@@ -65,10 +75,11 @@ export interface ScriptWorld {
     guardWeather(guard: Guard<WeatherChangeIntent>): () => void;
     /**
      * Adds a guard to the chat action of the world's players, which runs before any other
-     * player, the console or a plugin gets the line. A veto drops the line.
+     * player, the console or a plugin gets the line. A veto drops the line. The guard cannot
+     * change the line: `ChatSendBeforeEvent.message` is read-only in the Script API.
      * @returns A function that removes it.
      */
-    guardChat(guard: Guard<ChatSendIntent>): () => void;
+    guardChat(guard: VetoGuard<ChatSendIntent>): () => void;
     /** The changes the world committed since the last call, in the order it committed them. */
     takeEvents(): readonly ScriptWorldEvent[];
     /**

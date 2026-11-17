@@ -177,6 +177,15 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
             'mc.system.runTimeout(() => {}, -1)',
             'ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: -1, Argument bounds: [0, 4294967295.00]'
         ],
+        // These two are from the `system-tasks` scenario's golden.
+        [
+            'mc.system.runTimeout(() => {}, NaN)',
+            'TypeError: NaN value is not supported. Function argument [1] expected type: number | undefined'
+        ],
+        [
+            'mc.system.runInterval(() => {}, Infinity)',
+            'TypeError: Infinity value is not supported. Function argument [1] expected type: number | undefined'
+        ],
         [
             'mc.system.runTimeout(() => {}, 1, 2)',
             'TypeError: Incorrect number of arguments to function. Expected 1-2, received 3'

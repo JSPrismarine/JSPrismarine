@@ -297,6 +297,7 @@ describe.skipIf(!scriptHostAvailable())('a debugger session', () => {
                 seqs.push(
                     ext.request('variables', { variablesReference: reference, filter: 'named', start: 1, count: 1 })
                 );
+                seqs.push(ext.request('variables', { variablesReference: reference, start: 1, count: 1 }));
                 ext.request('continue', { threadId: 1 });
             }
         ]);
@@ -309,7 +310,9 @@ describe.skipIf(!scriptHostAvailable())('a debugger session', () => {
                 { name: 'length', value: '101', type: 'number', variablesReference: 0 },
                 { name: 'label', value: '"y"', type: 'string', variablesReference: 0 }
             ],
-            [{ name: 'label', value: '"y"', type: 'string', variablesReference: 0 }]
+            [{ name: 'label', value: '"y"', type: 'string', variablesReference: 0 }],
+            // Without a filter, the page counts every name: the index, then length, then label.
+            [{ name: 'length', value: '101', type: 'number', variablesReference: 0 }]
         ]);
         expect(engine.stats().handles).toBe(0);
     });

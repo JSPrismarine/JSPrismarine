@@ -211,7 +211,7 @@ mark rather than against the prose.
 3. Create `packages/parity/src/<family>.test.ts`. Write a compare function that returns gap ids,
    run it through `checkAllowList`, and assert both the `unexpected` and `stale` halves are empty
    inside `describeFamily(FAMILIES.<family>, [<references>], ...)`.
-4. For each gap the project accepts, add an allow-list entry of kind `accepted` with a reason and
-   a reference. For each gap the comparison found that nobody has fixed, add one of kind
+4. For each gap the project accepts, add an allow-list entry of kind `intentional` with a reason
+   and a reference. For each gap the comparison found that nobody has fixed, add one of kind
    `defect`.
 5. Run the suite and the dashboard; the new family appears as its own row.
