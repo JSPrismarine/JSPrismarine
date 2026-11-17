@@ -25,6 +25,7 @@ import { CompressionType } from '../../packages/leveldb/src/compression/Compress
 import { resolveOptions } from '../../packages/leveldb/src/DatabaseOptions.ts';
 import { DEFAULT_BLOCK_SIZE } from '../../packages/leveldb/src/format/TableBuilder.ts';
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
+import { WORLD_EXPERIMENTS } from '../../packages/prismarine/src/world/WorldExperiments.ts';
 import {
     HEIGHT_BLENDING_RANGE_CHUNKS,
     OLD_CHUNK_CARVING_DISTANCE
@@ -863,6 +864,8 @@ export async function loadFacts(): Promise<Facts> {
             ...(await errorFacts()),
             ...(await configFacts()),
             ...(await bstatsFacts()),
+            // The ids a `worlds.<name>` entry's `experiments` accepts.
+            'world.experiments': WORLD_EXPERIMENTS.join(', '),
             ...eventFacts(),
             ...prismarineEntryFacts(),
             ...leveldbFacts(),

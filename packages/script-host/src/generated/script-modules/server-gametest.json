@@ -1,0 +1,797 @@
+{
+    "module": "@minecraft/server-gametest",
+    "uuid": "6f4b6893-1bb6-42fd-b458-7fa3d0c89616",
+    "versions": [
+        {"version":"1.0.0-beta","stability":"beta","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server":"1.17.0"}}
+    ],
+    "resolves": {},
+    "declarations": {
+        "FenceConnectivity": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "east": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "north": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "south": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "west": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "GameTestCompletedError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "reason": [
+                    {"from":"1.0.0-beta","kind":"property","type":"GameTestCompletedErrorReason","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "GameTestCompletedErrorReason": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "Cleanup": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Cleanup"}
+                ],
+                "Done": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Done"}
+                ]
+            }
+        },
+        "GameTestError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "context": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"GameTestErrorContext"},"readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "messageParameters": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":"string"},"readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "type": [
+                    {"from":"1.0.0-beta","kind":"property","type":"GameTestErrorType","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "GameTestErrorContext": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "absolutePosition": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"},"readOnly":false}
+                ],
+                "relativePosition": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"},"readOnly":false}
+                ],
+                "tickCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int32","readOnly":false}
+                ]
+            }
+        },
+        "GameTestErrorType": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "Assert": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Assert"}
+                ],
+                "AssertAtPosition": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AssertAtPosition"}
+                ],
+                "ExecutionTimeout": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ExecutionTimeout"}
+                ],
+                "ExhaustedAttempts": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ExhaustedAttempts"}
+                ],
+                "FailConditionsMet": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"FailConditionsMet"}
+                ],
+                "LevelStateModificationFailed": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LevelStateModificationFailed"}
+                ],
+                "MethodNotImplemented": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MethodNotImplemented"}
+                ],
+                "SimulatedPlayerOutOfBounds": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SimulatedPlayerOutOfBounds"}
+                ],
+                "Unknown": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Unknown"}
+                ],
+                "Waiting": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Waiting"}
+                ]
+            }
+        },
+        "GameTestSequence": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "thenExecute": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"GameTestSequence"}
+                ],
+                "thenExecuteAfter": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"delayTicks","type":"int32"},{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"GameTestSequence"}
+                ],
+                "thenExecuteFor": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"tickCount","type":"int32"},{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"GameTestSequence"}
+                ],
+                "thenFail": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"errorMessage","type":"string"}],"returns":"undefined"}
+                ],
+                "thenIdle": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"delayTicks","type":"int32"}],"returns":"GameTestSequence"}
+                ],
+                "thenSucceed": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "thenWait": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"GameTestSequence"}
+                ],
+                "thenWaitAfter": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"delayTicks","type":"int32"},{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"GameTestSequence"}
+                ]
+            }
+        },
+        "LookDuration": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "Continuous": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Continuous"}
+                ],
+                "Instant": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Instant"}
+                ],
+                "UntilMove": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UntilMove"}
+                ]
+            }
+        },
+        "MoveToOptions": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "faceTarget": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"boolean"},"readOnly":false}
+                ],
+                "speed": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"float"},"readOnly":false}
+                ]
+            }
+        },
+        "NavigationResult": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "getPath": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":{"kind":"array","element":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}}
+                ],
+                "isFullPath": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "PersonaArmSize": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "Slim": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Slim"}
+                ],
+                "Wide": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Wide"}
+                ]
+            }
+        },
+        "PersonaPieceType": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "Arms": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Arms"}
+                ],
+                "Back": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Back"}
+                ],
+                "Body": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Body"}
+                ],
+                "Bottom": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Bottom"}
+                ],
+                "Capes": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Capes"}
+                ],
+                "Dress": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Dress"}
+                ],
+                "Eyes": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Eyes"}
+                ],
+                "FaceAccessory": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"FaceAccessory"}
+                ],
+                "FacialHair": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"FacialHair"}
+                ],
+                "Feet": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Feet"}
+                ],
+                "Hair": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Hair"}
+                ],
+                "Hands": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Hands"}
+                ],
+                "Head": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Head"}
+                ],
+                "HighPants": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"HighPants"}
+                ],
+                "Hood": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Hood"}
+                ],
+                "LeftArm": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LeftArm"}
+                ],
+                "LeftLeg": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LeftLeg"}
+                ],
+                "Legs": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Legs"}
+                ],
+                "Mouth": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Mouth"}
+                ],
+                "Outerwear": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Outerwear"}
+                ],
+                "RightArm": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RightArm"}
+                ],
+                "RightLeg": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RightLeg"}
+                ],
+                "Skeleton": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Skeleton"}
+                ],
+                "Skin": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Skin"}
+                ],
+                "Top": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Top"}
+                ]
+            }
+        },
+        "PlayerPersonaPiece": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "id": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false}
+                ],
+                "isDefaultPiece": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"boolean"},"readOnly":false}
+                ],
+                "packId": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false}
+                ],
+                "productId": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false}
+                ],
+                "type": [
+                    {"from":"1.0.0-beta","kind":"property","type":"PersonaPieceType","readOnly":false}
+                ]
+            }
+        },
+        "PlayerSkinData": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "armSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"PersonaArmSize"},"readOnly":false}
+                ],
+                "personaPieces": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"PlayerPersonaPiece"}},"readOnly":false}
+                ],
+                "skinColor": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"RGB"}},"readOnly":false}
+                ]
+            }
+        },
+        "RegistrationBuilder": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "batch": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"batchName","type":"string"}],"returns":"RegistrationBuilder"}
+                ],
+                "maxAttempts": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"attemptCount","type":"int32"}],"returns":"RegistrationBuilder"}
+                ],
+                "maxTicks": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"tickCount","type":"int32"}],"returns":"RegistrationBuilder"}
+                ],
+                "padding": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"paddingBlocks","type":"int32"}],"returns":"RegistrationBuilder"}
+                ],
+                "required": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"isRequired","type":"boolean"}],"returns":"RegistrationBuilder"}
+                ],
+                "requiredSuccessfulAttempts": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"attemptCount","type":"int32"}],"returns":"RegistrationBuilder"}
+                ],
+                "rotateTest": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"rotate","type":"boolean"}],"returns":"RegistrationBuilder"}
+                ],
+                "setupTicks": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"tickCount","type":"int32"}],"returns":"RegistrationBuilder"}
+                ],
+                "structureLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"structureLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"structureDimension","type":{"kind":"optional","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionType"},"string"]}},"default":null}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"RegistrationBuilder"}
+                ],
+                "structureName": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"structureName","type":"string"}],"returns":"RegistrationBuilder"}
+                ],
+                "tag": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"tag","type":"string"}],"returns":"RegistrationBuilder"}
+                ]
+            }
+        },
+        "SculkSpreader": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "addCursorsWithOffset": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"offset","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"charge","type":"int32"}],"returns":"undefined"}
+                ],
+                "getCursorPosition": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"index","type":"int32"}],"returns":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}
+                ],
+                "getNumberOfCursors": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"int32"}
+                ],
+                "getTotalCharge": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"int32"}
+                ],
+                "maxCharge": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int32","readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "SimulatedPlayer": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":{"kind":"external","module":"@minecraft/server","name":"Player"}}
+            ],
+            "members": {
+                "attack": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "attackEntity": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entity","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}}],"returns":"boolean"}
+                ],
+                "breakBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"direction","type":{"kind":"external","module":"@minecraft/server","name":"Direction"},"default":1}],"throws":["GameTestError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"boolean"}
+                ],
+                "chat": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"message","type":"string"}],"returns":"undefined"}
+                ],
+                "disconnect": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "dropSelectedItem": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "fly": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "giveItem": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"itemStack","type":{"kind":"external","module":"@minecraft/server","name":"ItemStack"}},{"name":"selectSlot","type":"boolean","default":false}],"returns":"boolean"}
+                ],
+                "glide": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "headRotation": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector2"},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "interact": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "interactWithBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"direction","type":{"kind":"external","module":"@minecraft/server","name":"Direction"},"default":1}],"throws":["GameTestError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"boolean"}
+                ],
+                "interactWithEntity": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entity","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"boolean"}
+                ],
+                "isSprinting": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                ],
+                "jump": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "lookAtBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"duration","type":"LookDuration","default":2}],"throws":["GameTestError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"undefined"}
+                ],
+                "lookAtEntity": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entity","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},{"name":"duration","type":"LookDuration","default":2}],"returns":"undefined"}
+                ],
+                "lookAtLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"duration","type":"LookDuration","default":2}],"returns":"undefined"}
+                ],
+                "move": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"westEast","type":"float"},{"name":"northSouth","type":"float"},{"name":"speed","type":"float","default":1,"min":0,"max":1}],"returns":"undefined"}
+                ],
+                "moveRelative": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"leftRight","type":"float"},{"name":"backwardForward","type":"float"},{"name":"speed","type":"float","default":1,"min":0,"max":1}],"returns":"undefined"}
+                ],
+                "moveToBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"options","type":{"kind":"optional","type":"MoveToOptions"},"default":null}],"returns":"undefined"}
+                ],
+                "moveToLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"options","type":{"kind":"optional","type":"MoveToOptions"},"default":null}],"throws":["Error","GameTestError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"undefined"}
+                ],
+                "navigateToBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"speed","type":"float","default":1,"min":0,"max":1}],"throws":["GameTestError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"NavigationResult"}
+                ],
+                "navigateToEntity": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entity","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},{"name":"speed","type":"float","default":1,"min":0,"max":1}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"NavigationResult"}
+                ],
+                "navigateToLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"speed","type":"float","default":1,"min":0,"max":1}],"throws":["GameTestError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"NavigationResult"}
+                ],
+                "navigateToLocations": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"locations","type":{"kind":"array","element":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}},{"name":"speed","type":"float","default":1,"min":0,"max":1}],"throws":["GameTestError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"undefined"}
+                ],
+                "respawn": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "rotateBody": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"angleInDegrees","type":"float"}],"returns":"undefined"}
+                ],
+                "setBodyRotation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"angleInDegrees","type":"float"}],"returns":"undefined"}
+                ],
+                "setItem": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"itemStack","type":{"kind":"external","module":"@minecraft/server","name":"ItemStack"}},{"name":"slot","type":"int32"},{"name":"selectSlot","type":"boolean","default":false}],"returns":"boolean"}
+                ],
+                "setSkin": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"options","type":"PlayerSkinData"}],"throws":[{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"undefined"}
+                ],
+                "startBuild": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"slot","type":"int32","default":0}],"returns":"undefined"}
+                ],
+                "stopBreakingBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "stopBuild": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "stopFlying": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "stopGliding": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "stopInteracting": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "stopMoving": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "stopSwimming": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "stopUsingItem": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"ItemStack"}}}
+                ],
+                "swim": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "useItem": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"itemStack","type":{"kind":"external","module":"@minecraft/server","name":"ItemStack"}}],"returns":"boolean"}
+                ],
+                "useItemInSlot": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"slot","type":"int32"}],"returns":"boolean"}
+                ],
+                "useItemInSlotOnBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"slot","type":"int32"},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"direction","type":{"kind":"external","module":"@minecraft/server","name":"Direction"},"default":1},{"name":"faceLocation","type":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},"default":null}],"throws":["GameTestError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"boolean"}
+                ],
+                "useItemOnBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"itemStack","type":{"kind":"external","module":"@minecraft/server","name":"ItemStack"}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"direction","type":{"kind":"external","module":"@minecraft/server","name":"Direction"},"default":1},{"name":"faceLocation","type":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},"default":null}],"throws":["GameTestError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"boolean"}
+                ]
+            }
+        },
+        "Tags": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "suiteAll": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"suite:all"}
+                ],
+                "suiteDebug": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"suite:debug"}
+                ],
+                "suiteDefault": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"suite:default"}
+                ],
+                "suiteDisabled": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"suite:disabled"}
+                ],
+                "suiteNextUpdate": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"suite:nextupdate"}
+                ]
+            }
+        },
+        "Test": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "assert": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"condition","type":"boolean"},{"name":"message","type":"string"}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertBlockPresent": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"blockType","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"BlockType"},"string"]}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"isPresent","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertBlockState": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"callback","type":{"kind":"closure","arguments":[{"kind":"external","module":"@minecraft/server","name":"Block"}],"returns":"boolean","privilege":["default"]}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertCanReachLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"mob","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"canReach","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertContainerContains": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"itemStack","type":{"kind":"external","module":"@minecraft/server","name":"ItemStack"}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertContainerEmpty": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertEntityHasArmor": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"armorSlot","type":"int32"},{"name":"armorName","type":"string"},{"name":"armorData","type":"int32"},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"hasArmor","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertEntityHasComponent": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"componentIdentifier","type":"string"},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"hasComponent","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertEntityInstancePresent": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"entity","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"isPresent","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertEntityInstancePresentInArea": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"entity","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},{"name":"isPresent","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertEntityPresent": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"searchDistance","type":"float","default":0},{"name":"isPresent","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertEntityPresentInArea": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"isPresent","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertEntityState": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"entityTypeIdentifier","type":"string"},{"name":"callback","type":{"kind":"closure","arguments":[{"kind":"external","module":"@minecraft/server","name":"Entity"}],"returns":"boolean","privilege":["default"]}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertEntityTouching": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"isTouching","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertIsWaterlogged": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"isWaterlogged","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertItemEntityCountIs": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"itemType","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"ItemType"},"string"]}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"searchDistance","type":"float"},{"name":"count","type":"int32"}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertItemEntityPresent": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"itemType","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"ItemType"},"string"]}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"searchDistance","type":"float","default":0},{"name":"isPresent","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "assertRedstonePower": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"power","type":"int32"}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "destroyBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"dropResources","type":"boolean","default":false}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "fail": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"errorMessage","type":"string"}],"returns":"undefined"}
+                ],
+                "failIf": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ],
+                "getBlock": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Block"}}
+                ],
+                "getDimension": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Dimension"}}
+                ],
+                "getFenceConnectivity": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"FenceConnectivity"}
+                ],
+                "getSculkSpreader": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"optional","type":"SculkSpreader"}}
+                ],
+                "getTestDirection": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["GameTestCompletedError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Direction"}}
+                ],
+                "idle": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"tickDelay","type":"int32"}],"throws":["GameTestCompletedError"],"returns":{"kind":"promise","type":"undefined"}}
+                ],
+                "isCleaningUp": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "isCompleted": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
+                ],
+                "killAllEntities": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "onPlayerJump": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"mob","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},{"name":"jumpAmount","type":"int32"}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "pressButton": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "print": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"text","type":"string"}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "pullLever": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "pulseRedstone": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"duration","type":"int32"}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "relativeBlockLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"worldBlockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}
+                ],
+                "relativeLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"worldLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}
+                ],
+                "removeSimulatedPlayer": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"simulatedPlayer","type":"SimulatedPlayer"}],"throws":["GameTestCompletedError"],"returns":"undefined"}
+                ],
+                "rotateDirection": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"direction","type":{"kind":"external","module":"@minecraft/server","name":"Direction"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Direction"}}
+                ],
+                "rotateVector": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"vector","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}
+                ],
+                "runAfterDelay": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"delayTicks","type":"int32"},{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ],
+                "runAtTickTime": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"tick","type":"int32"},{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ],
+                "runOnFinish": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "setBlockPermutation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockData","type":{"kind":"external","module":"@minecraft/server","name":"BlockPermutation"}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "setBlockType": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockType","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"BlockType"},"string"]}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "setFluidContainer": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"type","type":{"kind":"external","module":"@minecraft/server","name":"FluidType"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "setTntFuse": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entity","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},{"name":"fuseLength","type":"int32"}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "spawn": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Entity"}}
+                ],
+                "spawnAtLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Entity"}}
+                ],
+                "spawnItem": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"itemStack","type":{"kind":"external","module":"@minecraft/server","name":"ItemStack"}},{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Entity"}}
+                ],
+                "spawnSimulatedPlayer": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"name","type":"string","default":"Simulated Player"},{"name":"gameMode","type":{"kind":"external","module":"@minecraft/server","name":"GameMode"},"default":0}],"throws":["GameTestCompletedError","GameTestError"],"returns":"SimulatedPlayer"}
+                ],
+                "spawnWithoutBehaviors": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Entity"}}
+                ],
+                "spawnWithoutBehaviorsAtLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Entity"}}
+                ],
+                "spreadFromFaceTowardDirection": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"fromFace","type":{"kind":"external","module":"@minecraft/server","name":"Direction"}},{"name":"direction","type":{"kind":"external","module":"@minecraft/server","name":"Direction"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "startSequence": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["GameTestCompletedError"],"returns":"GameTestSequence"}
+                ],
+                "succeed": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "succeedIf": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ],
+                "succeedOnTick": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"tick","type":"int32"}],"returns":"undefined"}
+                ],
+                "succeedOnTickWhen": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"tick","type":"int32"},{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ],
+                "succeedWhen": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ],
+                "succeedWhenBlockPresent": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockType","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"BlockType"},"string"]}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"isPresent","type":"boolean","default":true}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "succeedWhenEntityHasComponent": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"componentIdentifier","type":"string"},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"hasComponent","type":"boolean"}],"returns":"undefined"}
+                ],
+                "succeedWhenEntityPresent": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeIdentifier","type":"string"},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"isPresent","type":"boolean","default":true}],"returns":"undefined"}
+                ],
+                "triggerInternalBlockEvent": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"event","type":"string"},{"name":"eventParameters","type":{"kind":"array","element":"float"},"default":[]}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "until": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"throws":["GameTestCompletedError"],"returns":{"kind":"promise","type":"undefined"}}
+                ],
+                "walkTo": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"mob","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},{"name":"blockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"speedModifier","type":"float","default":1}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "walkToLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"mob","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}},{"name":"speedModifier","type":"float","default":1}],"throws":["GameTestCompletedError","GameTestError"],"returns":"undefined"}
+                ],
+                "worldBlockLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"relativeBlockLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}
+                ],
+                "worldLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"relativeLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}],"throws":["GameTestCompletedError","GameTestError"],"returns":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}
+                ]
+            }
+        },
+        "getPlayerSkin": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"PlayerSkinData"}
+            ]
+        },
+        "register": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["early_execution"],"arguments":[{"name":"testClassName","type":"string"},{"name":"testName","type":"string"},{"name":"testFunction","type":{"kind":"closure","arguments":["Test"],"returns":"undefined","privilege":["default"]}}],"returns":"RegistrationBuilder"}
+            ]
+        },
+        "registerAsync": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["early_execution"],"arguments":[{"name":"testClassName","type":"string"},{"name":"testName","type":"string"},{"name":"testFunction","type":{"kind":"closure","arguments":["Test"],"returns":{"kind":"promise","type":"undefined"},"privilege":["default"]}}],"returns":"RegistrationBuilder"}
+            ]
+        },
+        "setAfterBatchCallback": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["early_execution"],"arguments":[{"name":"batchName","type":"string"},{"name":"batchCallback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"throws":["GameTestError"],"returns":"undefined"}
+            ]
+        },
+        "setBeforeBatchCallback": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["early_execution"],"arguments":[{"name":"batchName","type":"string"},{"name":"batchCallback","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]}}],"throws":["GameTestError"],"returns":"undefined"}
+            ]
+        },
+        "spawnSimulatedPlayer": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["default"],"arguments":[{"name":"location","type":{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"}},{"name":"name","type":"string"},{"name":"gameMode","type":{"kind":"external","module":"@minecraft/server","name":"GameMode"},"default":0}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"SimulatedPlayer"}
+            ]
+        }
+    }
+}

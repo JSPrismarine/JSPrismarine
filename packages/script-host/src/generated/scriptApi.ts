@@ -11,6 +11,116 @@
 export interface ScriptApiMembers {
     "@minecraft/common": {
     };
+    "@minecraft/debug-utilities": {
+        "": {
+            "collectPluginStats": 'method';
+            "collectRuntimeStats": 'method';
+            "disableWatchdogTimingWarnings": 'method';
+        };
+        "DebugArrow": {
+            "constructor": 'constructor';
+            "headLength": 'accessor';
+            "headRadius": 'accessor';
+            "headSegments": 'accessor';
+        };
+        "DebugBox": {
+            "bound": 'accessor';
+            "constructor": 'constructor';
+        };
+        "DebugCircle": {
+            "constructor": 'constructor';
+        };
+        "DebugCone": {
+            "constructor": 'constructor';
+            "height": 'accessor';
+            "numSegments": 'accessor';
+            "radii": 'accessor';
+        };
+        "DebugCylinder": {
+            "constructor": 'constructor';
+            "height": 'accessor';
+            "numSegments": 'accessor';
+            "radii": 'accessor';
+        };
+        "DebugDrawer": {
+            "addShape": 'method';
+            "removeAll": 'method';
+            "removeShape": 'method';
+        };
+        "DebugEllipsoid": {
+            "constructor": 'constructor';
+            "radii": 'accessor';
+            "segmentsPerAxis": 'accessor';
+        };
+        "DebugLine": {
+            "constructor": 'constructor';
+            "endLocation": 'accessor';
+        };
+        "DebugPyramid": {
+            "constructor": 'constructor';
+            "depth": 'accessor';
+            "height": 'accessor';
+            "width": 'accessor';
+        };
+        "DebugShape": {
+            "attachedTo": 'accessor';
+            "color": 'accessor';
+            "dimension": 'getter';
+            "hasDuration": 'getter';
+            "location": 'getter';
+            "maximumRenderDistance": 'accessor';
+            "remove": 'method';
+            "rotation": 'accessor';
+            "scale": 'accessor';
+            "setLocation": 'method';
+            "timeLeft": 'accessor';
+            "totalTimeLeft": 'getter';
+            "visibleTo": 'accessor';
+        };
+        "DebugSphere": {
+            "constructor": 'constructor';
+        };
+        "DebugText": {
+            "backfaceVisible": 'accessor';
+            "backgroundColorOverride": 'accessor';
+            "constructor": 'constructor';
+            "depthTest": 'accessor';
+            "lineGapHeight": 'accessor';
+            "setText": 'method';
+            "text": 'getter';
+            "textBackfaceVisible": 'accessor';
+            "useRotation": 'accessor';
+        };
+        "DiagnosticsManager": {
+            "addTab": 'method';
+            "containsTab": 'method';
+            "containsView": 'method';
+            "createTab": 'method';
+            "createView": 'method';
+            "removeTab": 'method';
+            "tabs": 'getter';
+        };
+        "DiagnosticsTab": {
+            "addView": 'method';
+            "containsView": 'method';
+            "removeView": 'method';
+            "tabName": 'getter';
+            "views": 'getter';
+        };
+        "DiagnosticsView": {
+            "pushStats": 'method';
+        };
+    };
+    "@minecraft/diagnostics": {
+        "Sentry": {
+            "addBreadcrumb": 'method';
+            "addTag": 'method';
+            "captureException": 'method';
+            "getTags": 'method';
+            "init": 'method';
+            "removeTag": 'method';
+        };
+    };
     "@minecraft/server": {
         "AimAssistCategory": {
             "defaultBlockPriority": 'getter';
@@ -72,6 +182,10 @@ export interface ScriptApiMembers {
             "getPreset": 'method';
             "getPresets": 'method';
         };
+        "BannerPattern": {
+            "color": 'getter';
+            "pattern": 'getter';
+        };
         "BiomeType": {
             "getTags": 'method';
             "hasTags": 'method';
@@ -87,6 +201,7 @@ export interface ScriptApiMembers {
             "bottomCenter": 'method';
             "canBeDestroyedByLiquidSpread": 'method';
             "canContainLiquid": 'method';
+            "canPlace": 'method';
             "center": 'method';
             "dimension": 'getter';
             "east": 'method';
@@ -94,6 +209,7 @@ export interface ScriptApiMembers {
             "getComponents": 'method';
             "getItemStack": 'method';
             "getLightLevel": 'method';
+            "getMapColor": 'method';
             "getParts": 'method';
             "getRedstonePower": 'method';
             "getSkyLightLevel": 'method';
@@ -103,6 +219,7 @@ export interface ScriptApiMembers {
             "isAir": 'getter';
             "isLiquid": 'getter';
             "isLiquidBlocking": 'method';
+            "isSolid": 'getter';
             "isValid": 'getter' | 'method';
             "isWaterlogged": 'getter';
             "liquidCanFlowFromDirection": 'method';
@@ -117,12 +234,26 @@ export interface ScriptApiMembers {
             "setType": 'method';
             "setWaterlogged": 'method';
             "south": 'method';
+            "trySetPermutation": 'method';
             "type": 'getter';
             "typeId": 'getter';
             "west": 'method';
             "x": 'getter';
             "y": 'getter';
             "z": 'getter';
+        };
+        "BlockBoundingBoxUtils": {
+            "createValid": 'method';
+            "dilate": 'method';
+            "equals": 'method';
+            "expand": 'method';
+            "getCenter": 'method';
+            "getIntersection": 'method';
+            "getSpan": 'method';
+            "intersects": 'method';
+            "isInside": 'method';
+            "isValid": 'method';
+            "translate": 'method';
         };
         "BlockComponent": {
             "block": 'getter';
@@ -167,6 +298,7 @@ export interface ScriptApiMembers {
             "player": 'getter';
         };
         "BlockComponentRedstoneUpdateEvent": {
+            "firstUpdate": 'getter';
             "powerLevel": 'getter';
             "previousPowerLevel": 'getter';
         };
@@ -229,6 +361,7 @@ export interface ScriptApiMembers {
             "container": 'getter';
         };
         "BlockLocationIterator": {
+            "isValid": 'method';
             "next": 'method';
         };
         "BlockMapColorComponent": {
@@ -315,6 +448,7 @@ export interface ScriptApiMembers {
         };
         "BlockVolumeBase": {
             "getBlockLocationIterator": 'method';
+            "getBoundingBox": 'method';
             "getCapacity": 'method';
             "getClosest": 'method';
             "getFarthest": 'method';
@@ -339,13 +473,36 @@ export interface ScriptApiMembers {
             "isValid": 'getter';
             "playAnimation": 'method';
             "setCamera": 'method';
+            "setCameraWithEase": 'method';
             "setDefaultCamera": 'method';
             "setFov": 'method';
             "stopShaking": 'method';
         };
+        "CarryOverBlockEntityDataFunction": {
+            "dynamicProperties": 'getter';
+        };
         "CatmullRomSpline": {
             "constructor": 'constructor';
             "controlPoints": 'accessor';
+        };
+        "ChatSendAfterEvent": {
+            "message": 'getter';
+            "sender": 'getter';
+            "targets": 'getter';
+        };
+        "ChatSendAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "ChatSendBeforeEvent": {
+            "cancel": 'accessor';
+            "message": 'getter';
+            "sender": 'getter';
+            "targets": 'accessor';
+        };
+        "ChatSendBeforeEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
         };
         "ClientSystemInfo": {
             "locale": 'getter';
@@ -450,10 +607,12 @@ export interface ScriptApiMembers {
             "getEntities": 'method';
             "getEntitiesAtBlockLocation": 'method';
             "getEntitiesFromRay": 'method';
+            "getGeneratedStructures": 'method';
             "getLightLevel": 'method';
             "getPlayers": 'method';
             "getSkyLightLevel": 'method';
             "getTopmostBlock": 'method';
+            "getWeather": 'method';
             "heightRange": 'getter';
             "id": 'getter';
             "isChunkLoaded": 'method';
@@ -461,6 +620,7 @@ export interface ScriptApiMembers {
             "placeFeature": 'method';
             "placeFeatureRule": 'method';
             "playSound": 'method';
+            "poiManager": 'getter';
             "runCommand": 'method';
             "runCommandAsync": 'method';
             "setBlockPermutation": 'method';
@@ -469,6 +629,9 @@ export interface ScriptApiMembers {
             "spawnEntity": 'method';
             "spawnItem": 'method';
             "spawnParticle": 'method';
+            "spawnXp": 'method';
+            "stopAllSounds": 'method';
+            "stopSound": 'method';
         };
         "DimensionRegistry": {
             "registerCustomDimension": 'method';
@@ -597,6 +760,7 @@ export interface ScriptApiMembers {
             "setOnFire": 'method';
             "setProperty": 'method';
             "setRotation": 'method';
+            "target": 'getter';
             "teleport": 'method';
             "triggerEvent": 'method';
             "tryTeleport": 'method';
@@ -627,10 +791,12 @@ export interface ScriptApiMembers {
             "maxTurn": 'getter';
         };
         "EntityBreathableComponent": {
+            "airSupply": 'accessor';
             "breathesAir": 'getter';
             "breathesLava": 'getter';
             "breathesSolids": 'getter';
             "breathesWater": 'getter';
+            "canBreathe": 'getter';
             "generatesBubbles": 'getter';
             "getBreatheBlocks": 'method';
             "getNonBreatheBlocks": 'method';
@@ -782,6 +948,10 @@ export interface ScriptApiMembers {
             "private": 'getter';
             "restrictToOwner": 'getter';
         };
+        "EntityIsTamedComponent": {
+            "tamedToPlayer": 'getter';
+            "tamedToPlayerId": 'getter';
+        };
         "EntityItemComponent": {
             "itemStack": 'getter';
         };
@@ -862,6 +1032,11 @@ export interface ScriptApiMembers {
             "canWalk": 'getter';
             "canWalkInLava": 'getter';
             "isAmphibious": 'getter';
+        };
+        "EntityNpcComponent": {
+            "defaultScene": 'accessor';
+            "name": 'accessor';
+            "skinIndex": 'accessor';
         };
         "EntityOnFireComponent": {
             "onFireTicksRemaining": 'getter';
@@ -1086,6 +1261,7 @@ export interface ScriptApiMembers {
             "maxCommandChainLength": 'accessor';
             "mobGriefing": 'accessor';
             "naturalRegeneration": 'accessor';
+            "playerWaypoints": 'accessor';
             "playersSleepingPercentage": 'accessor';
             "projectilesCanBreakBlocks": 'accessor';
             "pvp": 'accessor';
@@ -1460,6 +1636,11 @@ export interface ScriptApiMembers {
             "itemTagsAny": 'getter';
             "itemTagsNone": 'getter';
         };
+        "MessageReceiveAfterEvent": {
+            "id": 'getter';
+            "message": 'getter';
+            "player": 'getter';
+        };
         "MolangVariableMap": {
             "constructor": 'constructor';
             "setColorRGB": 'method';
@@ -1467,6 +1648,14 @@ export interface ScriptApiMembers {
             "setFloat": 'method';
             "setSpeedAndDirection": 'method';
             "setVector3": 'method';
+        };
+        "PackSettingChangeAfterEvent": {
+            "settingName": 'getter';
+            "settingValue": 'getter';
+        };
+        "PackSettingChangeAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
         };
         "PassengerOfEntityCondition": {
             "entityType": 'getter';
@@ -1483,15 +1672,22 @@ export interface ScriptApiMembers {
             "addExperience": 'method';
             "addLevels": 'method';
             "camera": 'getter';
+            "chatDisplayName": 'getter';
+            "chatMessagePrefix": 'accessor';
+            "chatNamePrefix": 'accessor';
+            "chatNameSuffix": 'accessor';
             "clearPropertyOverridesForEntity": 'method';
             "clientSystemInfo": 'getter';
             "commandPermissionLevel": 'accessor';
+            "eatItem": 'method';
             "fogSettings": 'getter';
             "getAimAssist": 'method';
             "getControlScheme": 'method';
             "getGameMode": 'method';
             "getItemCooldown": 'method';
+            "getPing": 'method';
             "getSpawnPoint": 'method';
+            "getSplitScreenSlot": 'method';
             "getTotalXp": 'method';
             "graphicsMode": 'getter';
             "inputInfo": 'getter';
@@ -1504,9 +1700,11 @@ export interface ScriptApiMembers {
             "locatorBar": 'getter';
             "name": 'getter';
             "onScreenDisplay": 'getter';
+            "persistentId": 'getter';
             "playMusic": 'method';
             "playSound": 'method';
             "playerPermissionLevel": 'getter';
+            "postClientMessage": 'method';
             "queueMusic": 'method';
             "removePropertyOverrideForEntity": 'method';
             "resetLevel": 'method';
@@ -1518,7 +1716,9 @@ export interface ScriptApiMembers {
             "setSpawnPoint": 'method';
             "spawnParticle": 'method';
             "startItemCooldown": 'method';
+            "stopAllSounds": 'method';
             "stopMusic": 'method';
+            "stopSound": 'method';
             "totalXpNeededForNextLevel": 'getter';
             "xpEarnedAtCurrentLevel": 'getter';
         };
@@ -1728,6 +1928,17 @@ export interface ScriptApiMembers {
             "subscribe": 'method';
             "unsubscribe": 'method';
         };
+        "PlayerPlaceBlockBeforeEvent": {
+            "cancel": 'accessor';
+            "face": 'getter';
+            "faceLocation": 'getter';
+            "permutationToPlace": 'getter';
+            "player": 'getter';
+        };
+        "PlayerPlaceBlockBeforeEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
         "PlayerSpawnAfterEvent": {
             "initialSpawn": 'accessor';
             "player": 'accessor';
@@ -1755,9 +1966,45 @@ export interface ScriptApiMembers {
             "subscribe": 'method';
             "unsubscribe": 'method';
         };
+        "PlayerUseNameTagAfterEvent": {
+            "entityNamed": 'accessor';
+            "newName": 'accessor';
+            "player": 'accessor';
+            "previousName": 'accessor';
+        };
+        "PlayerUseNameTagAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
         "PlayerWaypoint": {
             "constructor": 'constructor';
             "playerRules": 'getter';
+        };
+        "PoiBlockInstance": {
+            "position": 'getter';
+            "tickets": 'getter';
+            "type": 'getter';
+        };
+        "PoiBlockManager": {
+            "addTemporary": 'method';
+            "at": 'method';
+            "exists": 'method';
+            "getInRange": 'method';
+            "getInRangeSorted": 'method';
+            "getInSquare": 'method';
+            "release": 'method';
+            "take": 'method';
+        };
+        "PoiBlockType": {
+            "equals": 'method';
+            "has": 'method';
+            "id": 'getter';
+            "name": 'getter';
+            "tickets": 'getter';
+            "usableRange": 'getter';
+        };
+        "PoiManager": {
+            "blocks": 'getter';
         };
         "PotionDeliveryType": {
             "id": 'getter';
@@ -1920,11 +2167,17 @@ export interface ScriptApiMembers {
             "position": 'getter';
             "seatRotation": 'getter';
         };
+        "ServerMessageAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
         "SetArmorTrimFunction": {
             "material": 'getter';
             "pattern": 'getter';
         };
         "SetBannerDetailsFunction": {
+            "baseColor": 'getter';
+            "patterns": 'getter';
             "type": 'getter';
         };
         "SetBookContentsFunction": {
@@ -1986,8 +2239,14 @@ export interface ScriptApiMembers {
         };
         "SoundInstance": {
             "durationInfo": 'getter';
+            "fade": 'method';
             "id": 'getter';
+            "pause": 'method';
             "recipient": 'getter';
+            "resume": 'method';
+            "seekTo": 'method';
+            "setPitch": 'method';
+            "setVolume": 'method';
             "soundEventId": 'getter';
             "stop": 'method';
         };
@@ -2003,6 +2262,7 @@ export interface ScriptApiMembers {
             "customCommandRegistry": 'getter';
             "dimensionRegistry": 'getter';
             "itemComponentRegistry": 'getter';
+            "worldClockRegistry": 'getter';
         };
         "Structure": {
             "getBlockPermutation": 'method';
@@ -2046,6 +2306,7 @@ export interface ScriptApiMembers {
         "SystemBeforeEvents": {
             "shutdown": 'getter';
             "startup": 'getter';
+            "watchdogTerminate": 'getter';
         };
         "SystemInfo": {
             "memoryTier": 'getter';
@@ -2065,6 +2326,7 @@ export interface ScriptApiMembers {
             "backgroundColorOverride": 'accessor';
             "constructor": 'constructor';
             "depthTest": 'accessor';
+            "lineGapHeight": 'accessor';
             "setText": 'method';
             "text": 'getter';
             "textBackfaceVisible": 'accessor';
@@ -2081,6 +2343,11 @@ export interface ScriptApiMembers {
             "removeAllTickingAreas": 'method';
             "removeTickingArea": 'method';
         };
+        "TimeMarker": {
+            "name": 'getter';
+            "period": 'getter';
+            "time": 'getter';
+        };
         "Trigger": {
             "constructor": 'constructor';
             "eventName": 'accessor';
@@ -2090,6 +2357,14 @@ export interface ScriptApiMembers {
             "sources": 'getter';
         };
         "TripWireTripAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "WatchdogTerminateBeforeEvent": {
+            "cancel": 'accessor';
+            "terminateReason": 'getter';
+        };
+        "WatchdogTerminateBeforeEventSignal": {
             "subscribe": 'method';
             "unsubscribe": 'method';
         };
@@ -2122,12 +2397,15 @@ export interface ScriptApiMembers {
         };
         "World": {
             "afterEvents": 'getter';
+            "allowCheats": 'accessor';
             "beforeEvents": 'getter';
+            "broadcastClientMessage": 'method';
             "clearDynamicProperties": 'method';
             "gameRules": 'getter';
             "getAbsoluteTime": 'method';
             "getAimAssist": 'method';
             "getAllPlayers": 'method';
+            "getClock": 'method';
             "getDay": 'method';
             "getDefaultSpawnLocation": 'method';
             "getDifficulty": 'method';
@@ -2165,6 +2443,7 @@ export interface ScriptApiMembers {
             "blockContainerOpened": 'getter';
             "blockExplode": 'getter';
             "buttonPush": 'getter';
+            "chatSend": 'getter';
             "dataDrivenEntityTrigger": 'getter';
             "effectAdd": 'getter';
             "entityContainerClosed": 'getter';
@@ -2195,6 +2474,8 @@ export interface ScriptApiMembers {
             "itemUse": 'getter';
             "itemUseOn": 'getter';
             "leverAction": 'getter';
+            "messageReceive": 'getter';
+            "packSettingChange": 'getter';
             "pistonActivate": 'getter';
             "playerBreakBlock": 'getter';
             "playerButtonInput": 'getter';
@@ -2214,6 +2495,7 @@ export interface ScriptApiMembers {
             "playerSpawn": 'getter';
             "playerStartBreakingBlock": 'getter';
             "playerSwingStart": 'getter';
+            "playerUseNameTag": 'getter';
             "pressurePlatePop": 'getter';
             "pressurePlatePush": 'getter';
             "projectileHitBlock": 'getter';
@@ -2222,10 +2504,15 @@ export interface ScriptApiMembers {
             "targetBlockHit": 'getter';
             "tripWireTrip": 'getter';
             "weatherChange": 'getter';
+            "worldClockOnPaused": 'getter';
+            "worldClockOnResumed": 'getter';
+            "worldClockOnTimeMarker": 'getter';
+            "worldClockOnTimeModified": 'getter';
             "worldInitialize": 'getter';
             "worldLoad": 'getter';
         };
         "WorldBeforeEvents": {
+            "chatSend": 'getter';
             "effectAdd": 'getter';
             "entityHeal": 'getter';
             "entityHurt": 'getter';
@@ -2240,8 +2527,62 @@ export interface ScriptApiMembers {
             "playerInteractWithBlock": 'getter';
             "playerInteractWithEntity": 'getter';
             "playerLeave": 'getter';
+            "playerPlaceBlock": 'getter';
             "weatherChange": 'getter';
+            "worldClockOnRestart": 'getter';
             "worldInitialize": 'getter';
+        };
+        "WorldClock": {
+            "addTimeMarker": 'method';
+            "isPaused": 'accessor';
+            "name": 'getter';
+            "removeTimeMarker": 'method';
+            "rewindTo": 'method';
+            "set": 'method';
+            "skipTo": 'method';
+            "time": 'accessor';
+            "timeMarkers": 'getter';
+        };
+        "WorldClockOnPausedAfterEvent": {
+            "clock": 'getter';
+        };
+        "WorldClockOnPausedAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "WorldClockOnRestartBeforeEvent": {
+            "cancel": 'accessor';
+            "clock": 'getter';
+            "newTime": 'accessor';
+        };
+        "WorldClockOnRestartBeforeEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "WorldClockOnResumedAfterEvent": {
+            "clock": 'getter';
+        };
+        "WorldClockOnResumedAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "WorldClockOnTimeMarkerAfterEvent": {
+            "clock": 'getter';
+            "timeMarker": 'getter';
+        };
+        "WorldClockOnTimeMarkerAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "WorldClockOnTimeModifiedAfterEvent": {
+            "clock": 'getter';
+        };
+        "WorldClockOnTimeModifiedAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "WorldClockRegistry": {
+            "registerClock": 'method';
         };
         "WorldInitializeAfterEventSignal": {
             "subscribe": 'method';
@@ -2258,6 +2599,235 @@ export interface ScriptApiMembers {
         "WorldLoadAfterEventSignal": {
             "subscribe": 'method';
             "unsubscribe": 'method';
+        };
+    };
+    "@minecraft/server-admin": {
+        "": {
+            "deopPlayer": 'method';
+            "kickPlayer": 'method';
+            "opPlayer": 'method';
+            "transferPlayer": 'method';
+        };
+        "AdminBeforeEvents": {
+            "asyncPlayerJoin": 'getter';
+        };
+        "AllowList": {
+            "add": 'method';
+            "clear": 'method';
+            "contains": 'method';
+            "enabled": 'accessor';
+            "entries": 'getter';
+            "reloadFile": 'method';
+            "remove": 'method';
+        };
+        "AsyncPlayerJoinBeforeEvent": {
+            "allowJoin": 'method';
+            "disallowJoin": 'method';
+            "disconnect": 'method';
+            "isValid": 'method';
+            "name": 'getter';
+            "persistentId": 'getter';
+            "splitScreenSlot": 'getter';
+        };
+        "AsyncPlayerJoinBeforeEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "DedicatedServerUtils": {
+            "allowList": 'getter';
+            "levelStorage": 'getter';
+            "reloadCDNConfig": 'method';
+            "reloadPermissions": 'method';
+            "reloadScriptingConfig": 'method';
+            "stopServer": 'method';
+        };
+        "LevelStorage": {
+            "saveHold": 'method';
+            "saveQuery": 'method';
+            "saveResume": 'method';
+        };
+        "LevelStorageQuerySnapshotFile": {
+            "fileName": 'getter';
+            "fileSize": 'getter';
+        };
+        "SecretString": {
+            "constructor": 'constructor';
+        };
+        "ServerSecrets": {
+            "get": 'method';
+            "names": 'getter';
+        };
+        "ServerVariables": {
+            "get": 'method';
+            "names": 'getter';
+        };
+    };
+    "@minecraft/server-gametest": {
+        "": {
+            "getPlayerSkin": 'method';
+            "register": 'method';
+            "registerAsync": 'method';
+            "setAfterBatchCallback": 'method';
+            "setBeforeBatchCallback": 'method';
+            "spawnSimulatedPlayer": 'method';
+        };
+        "FenceConnectivity": {
+            "east": 'getter';
+            "north": 'getter';
+            "south": 'getter';
+            "west": 'getter';
+        };
+        "GameTestSequence": {
+            "thenExecute": 'method';
+            "thenExecuteAfter": 'method';
+            "thenExecuteFor": 'method';
+            "thenFail": 'method';
+            "thenIdle": 'method';
+            "thenSucceed": 'method';
+            "thenWait": 'method';
+            "thenWaitAfter": 'method';
+        };
+        "NavigationResult": {
+            "getPath": 'method';
+            "isFullPath": 'getter';
+        };
+        "RegistrationBuilder": {
+            "batch": 'method';
+            "maxAttempts": 'method';
+            "maxTicks": 'method';
+            "padding": 'method';
+            "required": 'method';
+            "requiredSuccessfulAttempts": 'method';
+            "rotateTest": 'method';
+            "setupTicks": 'method';
+            "structureLocation": 'method';
+            "structureName": 'method';
+            "tag": 'method';
+        };
+        "SculkSpreader": {
+            "addCursorsWithOffset": 'method';
+            "getCursorPosition": 'method';
+            "getNumberOfCursors": 'method';
+            "getTotalCharge": 'method';
+            "maxCharge": 'getter';
+        };
+        "SimulatedPlayer": {
+            "attack": 'method';
+            "attackEntity": 'method';
+            "breakBlock": 'method';
+            "chat": 'method';
+            "disconnect": 'method';
+            "dropSelectedItem": 'method';
+            "fly": 'method';
+            "giveItem": 'method';
+            "glide": 'method';
+            "headRotation": 'getter';
+            "interact": 'method';
+            "interactWithBlock": 'method';
+            "interactWithEntity": 'method';
+            "isSprinting": 'accessor';
+            "jump": 'method';
+            "lookAtBlock": 'method';
+            "lookAtEntity": 'method';
+            "lookAtLocation": 'method';
+            "move": 'method';
+            "moveRelative": 'method';
+            "moveToBlock": 'method';
+            "moveToLocation": 'method';
+            "navigateToBlock": 'method';
+            "navigateToEntity": 'method';
+            "navigateToLocation": 'method';
+            "navigateToLocations": 'method';
+            "respawn": 'method';
+            "rotateBody": 'method';
+            "setBodyRotation": 'method';
+            "setItem": 'method';
+            "setSkin": 'method';
+            "startBuild": 'method';
+            "stopBreakingBlock": 'method';
+            "stopBuild": 'method';
+            "stopFlying": 'method';
+            "stopGliding": 'method';
+            "stopInteracting": 'method';
+            "stopMoving": 'method';
+            "stopSwimming": 'method';
+            "stopUsingItem": 'method';
+            "swim": 'method';
+            "useItem": 'method';
+            "useItemInSlot": 'method';
+            "useItemInSlotOnBlock": 'method';
+            "useItemOnBlock": 'method';
+        };
+        "Test": {
+            "assert": 'method';
+            "assertBlockPresent": 'method';
+            "assertBlockState": 'method';
+            "assertCanReachLocation": 'method';
+            "assertContainerContains": 'method';
+            "assertContainerEmpty": 'method';
+            "assertEntityHasArmor": 'method';
+            "assertEntityHasComponent": 'method';
+            "assertEntityInstancePresent": 'method';
+            "assertEntityInstancePresentInArea": 'method';
+            "assertEntityPresent": 'method';
+            "assertEntityPresentInArea": 'method';
+            "assertEntityState": 'method';
+            "assertEntityTouching": 'method';
+            "assertIsWaterlogged": 'method';
+            "assertItemEntityCountIs": 'method';
+            "assertItemEntityPresent": 'method';
+            "assertRedstonePower": 'method';
+            "destroyBlock": 'method';
+            "fail": 'method';
+            "failIf": 'method';
+            "getBlock": 'method';
+            "getDimension": 'method';
+            "getFenceConnectivity": 'method';
+            "getSculkSpreader": 'method';
+            "getTestDirection": 'method';
+            "idle": 'method';
+            "isCleaningUp": 'method';
+            "isCompleted": 'method';
+            "killAllEntities": 'method';
+            "onPlayerJump": 'method';
+            "pressButton": 'method';
+            "print": 'method';
+            "pullLever": 'method';
+            "pulseRedstone": 'method';
+            "relativeBlockLocation": 'method';
+            "relativeLocation": 'method';
+            "removeSimulatedPlayer": 'method';
+            "rotateDirection": 'method';
+            "rotateVector": 'method';
+            "runAfterDelay": 'method';
+            "runAtTickTime": 'method';
+            "runOnFinish": 'method';
+            "setBlockPermutation": 'method';
+            "setBlockType": 'method';
+            "setFluidContainer": 'method';
+            "setTntFuse": 'method';
+            "spawn": 'method';
+            "spawnAtLocation": 'method';
+            "spawnItem": 'method';
+            "spawnSimulatedPlayer": 'method';
+            "spawnWithoutBehaviors": 'method';
+            "spawnWithoutBehaviorsAtLocation": 'method';
+            "spreadFromFaceTowardDirection": 'method';
+            "startSequence": 'method';
+            "succeed": 'method';
+            "succeedIf": 'method';
+            "succeedOnTick": 'method';
+            "succeedOnTickWhen": 'method';
+            "succeedWhen": 'method';
+            "succeedWhenBlockPresent": 'method';
+            "succeedWhenEntityHasComponent": 'method';
+            "succeedWhenEntityPresent": 'method';
+            "triggerInternalBlockEvent": 'method';
+            "until": 'method';
+            "walkTo": 'method';
+            "walkToLocation": 'method';
+            "worldBlockLocation": 'method';
+            "worldLocation": 'method';
         };
     };
     "@minecraft/server-graphics": {
@@ -2384,6 +2954,88 @@ export interface ScriptApiMembers {
             "setWavesSpeedScaling": 'method';
         };
     };
+    "@minecraft/server-net": {
+        "CloseAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "HttpClient": {
+            "cancelAll": 'method';
+            "get": 'method';
+            "request": 'method';
+        };
+        "HttpHeader": {
+            "constructor": 'constructor';
+            "key": 'accessor';
+            "value": 'accessor';
+        };
+        "HttpRequest": {
+            "addHeader": 'method';
+            "body": 'accessor';
+            "constructor": 'constructor';
+            "headers": 'accessor';
+            "method": 'accessor';
+            "setBody": 'method';
+            "setHeaders": 'method';
+            "setMethod": 'method';
+            "setTimeout": 'method';
+            "timeout": 'accessor';
+            "uri": 'accessor';
+        };
+        "HttpResponse": {
+            "body": 'getter';
+            "deserialize": 'method';
+            "headers": 'getter';
+            "request": 'getter';
+            "status": 'getter';
+        };
+        "MessageAfterEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "NetworkBeforeEvents": {
+            "packetReceive": 'getter';
+            "packetSend": 'getter';
+        };
+        "PacketReceiveBeforeEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "PacketReceivedBeforeEvent": {
+            "cancel": 'accessor';
+            "packetId": 'getter';
+            "packetSize": 'getter';
+            "sender": 'getter';
+        };
+        "PacketSendBeforeEvent": {
+            "cancel": 'accessor';
+            "packetId": 'getter';
+            "recipients": 'getter';
+        };
+        "PacketSendBeforeEventSignal": {
+            "subscribe": 'method';
+            "unsubscribe": 'method';
+        };
+        "WebSocket": {
+            "connect": 'method';
+        };
+        "WebSocketClient": {
+            "afterEvents": 'getter';
+            "close": 'method';
+            "isOpen": 'getter';
+            "send": 'method';
+        };
+        "WebSocketClientAfterEvents": {
+            "close": 'getter';
+            "message": 'getter';
+        };
+        "WebSocketClientCloseAfterEvent": {
+            "reason": 'getter';
+        };
+        "WebSocketClientReceiveAfterEvent": {
+            "message": 'getter';
+        };
+    };
     "@minecraft/server-ui": {
         "ActionFormData": {
             "body": 'method';
@@ -2422,7 +3074,9 @@ export interface ScriptApiMembers {
         "MessageBox": {
             "body": 'method';
             "button1": 'method';
+            "button1WithOptions": 'method';
             "button2": 'method';
+            "button2WithOptions": 'method';
             "close": 'method';
             "constructor": 'constructor';
             "isShowing": 'method';

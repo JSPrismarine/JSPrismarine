@@ -149,16 +149,23 @@ describe('generateShape', () => {
         });
     });
 
-    it('leaves out beta versions unless asked for them', () => {
+    it('generates beta versions beside the stable ones, and resolves a major version to a stable one', () => {
         const metadata = source({ '1.0.0': [klass('Item', [])], '1.1.0-beta': [klass('Item', []), klass('Beta', [])] });
+        const history = generateShape(metadata).histories.get('@minecraft/server');
 
-        expect(generateShape(metadata).histories.get('@minecraft/server')?.declarations.Beta).toBeUndefined();
-        const withBeta = generateShape(metadata, { includeVersion: () => true }).histories.get('@minecraft/server');
-        expect(withBeta?.versions.map((entry) => [entry.version, entry.stability])).toEqual([
+        expect(history?.versions.map((entry) => [entry.version, entry.stability])).toEqual([
             ['1.0.0', 'stable'],
             ['1.1.0-beta', 'beta']
         ]);
-        expect(withBeta?.resolves).toEqual({ 1: '1.0.0' });
+        expect(history?.declarations.Beta?.segments).toMatchObject([{ from: '1.1.0-beta' }]);
+        expect(history?.resolves).toEqual({ 1: '1.0.0' });
+    });
+
+    it('leaves out the versions includeVersion refuses', () => {
+        const metadata = source({ '1.0.0': [klass('Item', [])], '1.1.0-beta': [klass('Item', []), klass('Beta', [])] });
+        const stable = generateShape(metadata, { includeVersion: (_version, stability) => stability === 'stable' });
+
+        expect(stable.histories.get('@minecraft/server')?.declarations.Beta).toBeUndefined();
     });
 
     it('fails on a metadata key it does not read', () => {

@@ -1,0 +1,528 @@
+{
+    "module": "@minecraft/debug-utilities",
+    "uuid": "1796ea86-0daf-4409-99ee-fd6467cf1203",
+    "versions": [
+        {"version":"1.0.0-beta","stability":"beta","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server":"1.17.0"}}
+    ],
+    "resolves": {},
+    "declarations": {
+        "DebugArrow": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugLine"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}},{"name":"endLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}]}
+                ],
+                "headLength": [
+                    {"from":"1.0.0-beta","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "headRadius": [
+                    {"from":"1.0.0-beta","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "headSegments": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"],"min":3,"max":128}
+                ]
+            }
+        },
+        "DebugBox": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugShape"}
+            ],
+            "members": {
+                "bound": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}}]}
+                ]
+            }
+        },
+        "DebugCircle": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugShape"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}}]}
+                ]
+            }
+        },
+        "DebugCone": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugShape"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}}]}
+                ],
+                "height": [
+                    {"from":"1.0.0-beta","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "numSegments": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"],"min":3,"max":128}
+                ],
+                "radii": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector2"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ]
+            }
+        },
+        "DebugCylinder": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugShape"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}}]}
+                ],
+                "height": [
+                    {"from":"1.0.0-beta","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "numSegments": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"],"min":3,"max":128}
+                ],
+                "radii": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector2"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ]
+            }
+        },
+        "DebugDrawer": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "addShape": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"shape","type":"DebugShape"},{"name":"dimension","type":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"Dimension"}},"default":null}],"returns":"undefined"}
+                ],
+                "removeAll": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"undefined"}
+                ],
+                "removeShape": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"shape","type":"DebugShape"}],"returns":"undefined"}
+                ]
+            }
+        },
+        "DebugEllipsoid": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugShape"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}}]}
+                ],
+                "radii": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "segmentsPerAxis": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"],"min":3,"max":128}
+                ]
+            }
+        },
+        "DebugLine": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugShape"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}},{"name":"endLocation","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"}}]}
+                ],
+                "endLocation": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ]
+            }
+        },
+        "DebugPyramid": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugShape"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}}]}
+                ],
+                "depth": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"float"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "height": [
+                    {"from":"1.0.0-beta","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "width": [
+                    {"from":"1.0.0-beta","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ]
+            }
+        },
+        "DebugShape": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "attachedTo": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"Entity"}},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "color": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"RGBA"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "dimension": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Dimension"},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "hasDuration": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "location": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "maximumRenderDistance": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"float"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"],"min":0}
+                ],
+                "remove": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"undefined"}
+                ],
+                "rotation": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "scale": [
+                    {"from":"1.0.0-beta","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "setLocation": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}}],"returns":"undefined"}
+                ],
+                "timeLeft": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"float"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "totalTimeLeft": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"float"},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "visibleTo": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":{"kind":"external","module":"@minecraft/server","name":"Player"}},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ]
+            }
+        },
+        "DebugSphere": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugShape"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}}]}
+                ]
+            }
+        },
+        "DebugText": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class","base":"DebugShape"}
+            ],
+            "members": {
+                "backfaceVisible": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "backgroundColorOverride": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"RGBA"}},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"DimensionLocation"},{"kind":"external","module":"@minecraft/server","name":"Vector3"}]}},{"name":"text","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}]}
+                ],
+                "depthTest": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "lineGapHeight": [
+                    {"from":"1.0.0-beta","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "setText": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"text","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"},{"kind":"external","module":"@minecraft/server","name":"RawMessageError"}],"returns":"undefined"}
+                ],
+                "text": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"RawMessage"},"string"]},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "textBackfaceVisible": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "useRotation": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ]
+            }
+        },
+        "DiagnosticsChartDisplayType": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "LineChart": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"DiagnosticsChartDisplayType","value":0}
+                ],
+                "StackedBarChart": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"DiagnosticsChartDisplayType","value":2}
+                ],
+                "StackedLineChart": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"DiagnosticsChartDisplayType","value":1}
+                ]
+            }
+        },
+        "DiagnosticsChartViewOptions": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "chartType": [
+                    {"from":"1.0.0-beta","kind":"property","type":"DiagnosticsChartDisplayType","readOnly":false}
+                ],
+                "targetValue": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"double"},"readOnly":false}
+                ],
+                "tickRange": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"uint32"},"readOnly":false}
+                ],
+                "yAxisLabel": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                ]
+            }
+        },
+        "DiagnosticsError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "reason": [
+                    {"from":"1.0.0-beta","kind":"property","type":"DiagnosticsErrorReason","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "DiagnosticsErrorReason": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "AlreadyRegistered": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AlreadyRegistered"}
+                ],
+                "InvalidData": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"InvalidData"}
+                ],
+                "InvalidName": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"InvalidName"}
+                ]
+            }
+        },
+        "DiagnosticsManager": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "addTab": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"tab","type":"DiagnosticsTab"}],"returns":"undefined"}
+                ],
+                "containsTab": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"tab","type":"DiagnosticsTab"}],"returns":"boolean"}
+                ],
+                "containsView": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"view","type":"DiagnosticsView"}],"returns":"boolean"}
+                ],
+                "createTab": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"tabName","type":"string"}],"throws":["DiagnosticsError"],"returns":"DiagnosticsTab"}
+                ],
+                "createView": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"statName","type":"string"},{"name":"options","type":{"kind":"optional","type":{"kind":"variant","types":["DiagnosticsChartViewOptions","DiagnosticsTableViewOptions"]}},"default":null}],"throws":["DiagnosticsError"],"returns":"DiagnosticsView"}
+                ],
+                "removeTab": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"tab","type":"DiagnosticsTab"}],"returns":"undefined"}
+                ],
+                "tabs": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":"DiagnosticsTab"},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "DiagnosticsStat": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "name": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false}
+                ],
+                "values": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":{"kind":"variant","types":["double","string"]}}},"readOnly":false}
+                ]
+            }
+        },
+        "DiagnosticsTab": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "addView": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"view","type":"DiagnosticsView"}],"returns":"undefined"}
+                ],
+                "containsView": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"view","type":"DiagnosticsView"}],"returns":"boolean"}
+                ],
+                "removeView": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"view","type":"DiagnosticsView"}],"returns":"undefined"}
+                ],
+                "tabName": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "views": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":"DiagnosticsView"},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "DiagnosticsTableDisplayType": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "MultiColumnTable": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"DiagnosticsTableDisplayType","value":1}
+                ],
+                "Table": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"DiagnosticsTableDisplayType","value":0}
+                ]
+            }
+        },
+        "DiagnosticsTableViewOptions": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "keyLabel": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                ],
+                "tableType": [
+                    {"from":"1.0.0-beta","kind":"property","type":"DiagnosticsTableDisplayType","readOnly":false}
+                ],
+                "valueLabels": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"readOnly":false}
+                ]
+            }
+        },
+        "DiagnosticsView": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "pushStats": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"stats","type":{"kind":"array","element":"DiagnosticsStat"}}],"throws":["DiagnosticsError"],"returns":"undefined"}
+                ]
+            }
+        },
+        "HandleCounts": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "handleCounts": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"map","key":"string","value":"int32"},"readOnly":false}
+                ],
+                "name": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false}
+                ],
+                "packId": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false}
+                ],
+                "scriptModuleUUID": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false}
+                ]
+            }
+        },
+        "PluginStats": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "plugins": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":"HandleCounts"},"readOnly":false}
+                ]
+            }
+        },
+        "RuntimeStats": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "arrayCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "atomCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "atomSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "fastArrayCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "fastArrayElementCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "functionCodeSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "functionCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "functionLineCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "functionSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "memoryAllocatedCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "memoryAllocatedLimit": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "memoryAllocatedSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "memoryUsedCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "memoryUsedSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "objectCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "objectSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "propertyCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "propertySize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "stringCount": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ],
+                "stringSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":false}
+                ]
+            }
+        },
+        "collectPluginStats": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["restricted_execution"],"arguments":[],"returns":"PluginStats"}
+            ]
+        },
+        "collectRuntimeStats": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["restricted_execution"],"arguments":[],"returns":"RuntimeStats"}
+            ]
+        },
+        "debugDrawer": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":"DebugDrawer"}
+            ]
+        },
+        "diagnosticsManager": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":"DiagnosticsManager"}
+            ]
+        },
+        "disableWatchdogTimingWarnings": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["restricted_execution"],"arguments":[{"name":"disable","type":"boolean"}],"returns":"undefined"}
+            ]
+        }
+    }
+}

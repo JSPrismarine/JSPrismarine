@@ -1,6 +1,6 @@
 /**
  * The behavior of the `@minecraft/server` members the skeleton implements, for one pack: the
- * system tasks, the lifecycle and weather events, `world.getDimension`, `world.sendMessage`,
+ * system tasks, the lifecycle, weather and chat events, the watchdog's terminate event, `world.getDimension`, `world.sendMessage`,
  * `world.getAllPlayers`, `Dimension.setWeather` and the members those return. Every other member
  * is present and throws `NotImplementedError` ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
  *
@@ -26,7 +26,9 @@ export const SIGNALS = [
     'WorldInitializeBeforeEventSignal',
     'WorldInitializeAfterEventSignal',
     'WeatherChangeBeforeEventSignal',
-    'WeatherChangeAfterEventSignal'
+    'WeatherChangeAfterEventSignal',
+    'ChatSendBeforeEventSignal',
+    'WatchdogTerminateBeforeEventSignal'
 ] as const;
 
 /** One of {@link SIGNALS}. */
@@ -50,8 +52,27 @@ export interface WeatherAfterData {
     readonly previousWeather: ScriptWeather;
 }
 
+/** A player's chat line as its before-event's members read and write it. */
+export interface ChatBeforeData {
+    readonly kind: 'chatBefore';
+    cancel: boolean;
+    readonly message: string;
+    /** The sender's index among the world's players, which picks their `Player` object. */
+    readonly sender: number;
+}
+
+/** Why the watchdog would shut the server down, as `WatchdogTerminateReason` names it. */
+export type WatchdogTerminateReason = 'Hang' | 'StackOverflow';
+
+/** A shutdown the watchdog is about to make, as its before-event's members read and write it. */
+export interface WatchdogTerminateData {
+    readonly kind: 'watchdogTerminate';
+    cancel: boolean;
+    readonly terminateReason: WatchdogTerminateReason;
+}
+
 /** What an event object's members read, by the tag the object was made with. */
-export type EventData = WeatherBeforeData | WeatherAfterData;
+export type EventData = WeatherBeforeData | WeatherAfterData | ChatBeforeData | WatchdogTerminateData;
 
 /** What the members of one pack's `@minecraft/server` reach of the runtime and the world. */
 export interface PackHost {
@@ -186,6 +207,8 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         .implement(SERVER, 'WorldAfterEvents', 'weatherChange', signal('WeatherChangeAfterEventSignal'))
         .implement(SERVER, 'WorldBeforeEvents', 'worldInitialize', signal('WorldInitializeBeforeEventSignal'))
         .implement(SERVER, 'WorldBeforeEvents', 'weatherChange', signal('WeatherChangeBeforeEventSignal'))
+        .implement(SERVER, 'WorldBeforeEvents', 'chatSend', signal('ChatSendBeforeEventSignal'))
+        .implement(SERVER, 'SystemBeforeEvents', 'watchdogTerminate', signal('WatchdogTerminateBeforeEventSignal'))
         .implement(SERVER, 'World', 'gameRules', { get: () => host.instance('GameRules', TAG.gameRules) })
         .implement(SERVER, 'World', 'getDimension', (call) => {
             const [requested] = call.args;
@@ -241,6 +264,25 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         })
         .implement(SERVER, 'WeatherChangeBeforeEvent', 'previousWeather', {
             get: (call) => data(call, 'weatherBefore').previousWeather
+        })
+        .implement(SERVER, 'ChatSendBeforeEvent', 'cancel', {
+            get: (call) => data(call, 'chatBefore').cancel,
+            set: (call) => {
+                data(call, 'chatBefore').cancel = call.args[0] === true;
+            }
+        })
+        .implement(SERVER, 'ChatSendBeforeEvent', 'message', { get: (call) => data(call, 'chatBefore').message })
+        .implement(SERVER, 'ChatSendBeforeEvent', 'sender', {
+            get: (call) => host.instance('Player', TAG.player + data(call, 'chatBefore').sender)
+        })
+        .implement(SERVER, 'WatchdogTerminateBeforeEvent', 'cancel', {
+            get: (call) => data(call, 'watchdogTerminate').cancel,
+            set: (call) => {
+                data(call, 'watchdogTerminate').cancel = call.args[0] === true;
+            }
+        })
+        .implement(SERVER, 'WatchdogTerminateBeforeEvent', 'terminateReason', {
+            get: (call) => data(call, 'watchdogTerminate').terminateReason
         })
         .implement(SERVER, 'WeatherChangeAfterEvent', 'dimension', {
             get: (call) => data(call, 'weatherAfter').dimension

@@ -1,0 +1,107 @@
+{
+    "module": "@minecraft/diagnostics",
+    "uuid": "b7b26c0f-2267-4713-8534-51ca98c51ee9",
+    "versions": [
+        {"version":"1.0.0-beta","stability":"beta","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server-admin":"1.0.0-beta"}}
+    ],
+    "resolves": {},
+    "declarations": {
+        "Sentry": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "addBreadcrumb": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"level","type":"SentryEventLevel"},{"name":"message","type":"string"},{"name":"category","type":{"kind":"optional","type":"string"},"default":null}],"throws":["SentryUninitializedError"],"returns":"undefined"}
+                ],
+                "addTag": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"name","type":"string"},{"name":"value","type":"string"}],"throws":["SentryUninitializedError"],"returns":"undefined"}
+                ],
+                "captureException": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"exception","type":"error"},{"name":"captureContext","type":{"kind":"optional","type":"SentryCaptureContext"},"default":null}],"throws":["SentryUninitializedError"],"returns":"undefined"}
+                ],
+                "getTags": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[],"throws":["SentryUninitializedError"],"returns":{"kind":"map","key":"string","value":"string"}}
+                ],
+                "init": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"options","type":"SentryOptions"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"SentryAlreadyInitializedError"],"returns":"undefined"}
+                ],
+                "removeTag": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"name","type":"string"}],"throws":["SentryUninitializedError"],"returns":"undefined"}
+                ]
+            }
+        },
+        "SentryAlreadyInitializedError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "SentryCaptureContext": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "extraData": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"map","key":"string","value":{"kind":"variant","types":["boolean","float","string"]}}},"readOnly":false}
+                ],
+                "level": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"SentryEventLevel"},"readOnly":false}
+                ],
+                "tags": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"map","key":"string","value":"string"}},"readOnly":false}
+                ]
+            }
+        },
+        "SentryEventLevel": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "debug": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"debug"}
+                ],
+                "error": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"error"}
+                ],
+                "fatal": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"fatal"}
+                ],
+                "info": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"info"}
+                ],
+                "warning": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"warning"}
+                ]
+            }
+        },
+        "SentryOptions": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "debug": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"boolean"},"readOnly":false}
+                ],
+                "dsn": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server-admin","name":"SecretString"},"string"]},"readOnly":false}
+                ],
+                "maxBreadcrumbs": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"uint8"},"readOnly":false}
+                ],
+                "sampleRate": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"float"},"readOnly":false}
+                ]
+            }
+        },
+        "SentryUninitializedError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "sentry": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":"Sentry"}
+            ]
+        }
+    }
+}

@@ -26,7 +26,7 @@ class RecordingLogger implements ScriptApiLogger {
 const serve = (version: string) => {
     const resolution = resolveDependency(
         { module_name: '@minecraft/server', version },
-        { pack: 'probe - 1.0.0', allowedModules: ALLOWED, histories: SCRIPT_MODULE_HISTORIES }
+        { pack: { name: 'probe', version: '1.0.0' }, allowedModules: ALLOWED, histories: SCRIPT_MODULE_HISTORIES }
     );
     if (!resolution.ok) throw new Error(resolution.message);
     return resolution.shape;

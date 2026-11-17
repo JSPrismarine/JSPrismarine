@@ -34,7 +34,10 @@ export interface MetadataSource {
 
 /** Which versions to generate and which corrections to apply. */
 export interface GenerateOptions {
-    /** Keeps a version; every stable version when absent. */
+    /**
+     * Keeps a version. Every version when absent: the stable ones, and the betas the pinned BDS
+     * serves to a world with the Beta APIs experiment on.
+     */
     readonly includeVersion?: (version: string, stability: VersionStability) => boolean;
     readonly overrides?: readonly ShapeOverride[];
 }
@@ -698,8 +701,7 @@ export const resolvesOf = (versions: readonly ModuleVersion[]): Record<string, s
  * an override no longer matches a gap.
  */
 export const generateShape = (source: MetadataSource, options: GenerateOptions = {}): GeneratedShape => {
-    const include =
-        options.includeVersion ?? ((_version: string, stability: VersionStability) => stability === 'stable');
+    const include = options.includeVersion ?? (() => true);
     const overrides = options.overrides ?? [];
     const files = listFiles(source);
     const byKey = new Map(files.map((entry) => [`${entry.module}@${entry.version}`, entry]));
