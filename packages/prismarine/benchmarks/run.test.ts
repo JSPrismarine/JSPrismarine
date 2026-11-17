@@ -27,3 +27,23 @@ describe('benchmark runner pack resolution', () => {
         expect(fromRoot.every((path) => basename(path) === 'vanilla_overlay')).toBe(true);
     });
 });
+
+describe('benchmark runner bundle', () => {
+    // The benchmark imports jsonc-parser through the config module and saves through LevelDB,
+    // whose table builder runs on a worker thread. A dependency left unbundled or a worker entry
+    // missing beside the bundle fails the run, and execFileSync throws on its exit code.
+    // Bundling the server and running it takes long enough on a loaded host to pass the default limit.
+    it('builds and runs a benchmark that loads jsonc-parser and starts a LevelDB worker', { timeout: 300_000 }, () => {
+        const output = execFileSync(process.execPath, ['benchmarks/run.mjs', 'benchmarks/entityOnlyChunkSave.ts'], {
+            cwd: packageRoot,
+            encoding: 'utf8'
+        });
+
+        expect(JSON.parse(output)).toMatchObject({
+            benchmark: 'entity-only-world-autosave',
+            actorMoved: true,
+            blockEdits: 0,
+            blockSubChunksWritten: 0
+        });
+    });
+});

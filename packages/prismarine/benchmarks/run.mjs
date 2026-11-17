@@ -40,20 +40,55 @@ const entryPath = resolve(entry);
 const outputDirectory = mkdtempSync(join(packageRoot, '.jsp-bench-'));
 const outfile = join(outputDirectory, 'bench.mjs');
 
+/**
+ * Worker-thread entries a benchmark may start, keyed by the define that tells their package where
+ * the worker is. Each package looks for its worker beside its own module by default, and a bundled
+ * module's own URL is the bundle's, where no worker file sits. So each worker is bundled as an extra
+ * entry and named through the define `.github/scripts/build-aot.mjs` uses for the same purpose.
+ *
+ * The generation pool's define is left out: it selects the single executable worker protocol,
+ * which only a compiled executable carries. In a bundle, `GenerationPool.unavailable` reports the
+ * worker missing and the data-driven generator generates on the calling thread instead.
+ */
+const workerEntries = {
+    JSP_EMBEDDED_RAKNET_WORKER: 'packages/raknet/src/WorkerServerSocket.worker.ts',
+    JSP_EMBEDDED_TABLE_BUILDER_WORKER: 'packages/leveldb/src/db/TableBuilderWorker.ts'
+};
+const workerOutput = (name) => `workers/${name}`;
+
 try {
     await esbuild.build({
         absWorkingDir: root,
+        // jsonc-parser's `main` is a UMD build that hands `require` to its factory as a
+        // parameter, so esbuild cannot see its `require("./impl/…")` calls and leaves them in the
+        // bundle, where they resolve against the bundle's directory and fail. Its ESM build bundles
+        // cleanly; `scripts/package-sea.mts` makes the same substitution. esbuild resolves an alias
+        // from `absWorkingDir`, which does not link the package, so it is resolved from here.
+        alias: { 'jsonc-parser': require.resolve('jsonc-parser/lib/esm/main.js') },
         banner: {
             // CommonJS dependencies in the bundle call require() for Node builtins.
             js: "import { createRequire as __jspCreateRequire } from 'node:module'; const require = __jspCreateRequire(import.meta.url);"
         },
         bundle: true,
-        entryPoints: [entryPath],
+        define: Object.fromEntries(
+            Object.keys(workerEntries).map((name) => [
+                name,
+                JSON.stringify(pathToFileURL(join(outputDirectory, `${workerOutput(name)}.mjs`)).href)
+            ])
+        ),
+        entryPoints: [
+            { in: entryPath, out: 'bench' },
+            ...Object.entries(workerEntries).map(([name, source]) => ({
+                in: resolve(root, source),
+                out: workerOutput(name)
+            }))
+        ],
         external: ['node:*'],
         format: 'esm',
         keepNames: false,
         logLevel: 'warning',
-        outfile,
+        outdir: outputDirectory,
+        outExtension: { '.js': '.mjs' },
         packages: 'bundle',
         platform: 'node',
         target: 'node22'
