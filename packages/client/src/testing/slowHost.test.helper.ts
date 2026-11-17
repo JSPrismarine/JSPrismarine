@@ -13,6 +13,11 @@ import { webcrypto } from 'node:crypto';
  * the work waits through the hold. A harness that does not runs a tick while the completion is
  * still held, and {@link SlowHost.held} names it.
  *
+ * Work that an unref'd timer starts is background work, as the timer is: it is held the same way,
+ * but {@link SlowHost.held} leaves it out. A RakNet socket's ticker is such a timer, and a socket
+ * another test file left open keeps ticking in the shared worker, so counting what it starts
+ * would make a step depend on when that ticker last fired.
+ *
  * Install it with the first import of a test file. Modules that keep a reference to an
  * asynchronous function when they load, as `promisify(deflateRaw)` does, keep the patched one
  * only if they load after it. While inactive every patched function passes straight through.
@@ -38,7 +43,23 @@ const originalClearImmediate = globalThis.clearImmediate;
 export const nextTurn = (): Promise<void> => new Promise((resolve) => originalSetImmediate(resolve));
 
 let active = false;
+/** Held work a harness waits for. */
 const holding = new Set<HeldWork>();
+/** Held work an unref'd timer started, which nothing waits for. */
+const holdingInBackground = new Set<HeldWork>();
+/** True while a callback that continues an unref'd timer runs. */
+let inBackground = false;
+
+/** Runs `callback` as background work when `background` is set, and as its caller's otherwise. */
+const runAs = (background: boolean, callback: () => void): void => {
+    const previous = inBackground;
+    inBackground ||= background;
+    try {
+        callback();
+    } finally {
+        inBackground = previous;
+    }
+};
 const timers = new Map<NodeJS.Timeout, HeldWork>();
 /** How to cancel each held immediate, by the handle `setImmediate` returned for it. */
 const immediates = new Map<NodeJS.Immediate, () => void>();
@@ -69,7 +90,9 @@ const workspaceOrigin = (): string | undefined => {
  */
 const hold = (api: string, origin: string, deliver: () => void): (() => void) => {
     const work: HeldWork = { api, origin };
-    holding.add(work);
+    const background = inBackground;
+    const set = background ? holdingInBackground : holding;
+    set.add(work);
     let turns = 0;
     let canceled = false;
     const turn = (): void => {
@@ -78,15 +101,15 @@ const hold = (api: string, origin: string, deliver: () => void): (() => void) =>
             originalSetImmediate(turn);
             return;
         }
-        holding.delete(work);
+        set.delete(work);
         // Counted on delivery, so a held immediate that was cleared does not count as one held.
         heldCount++;
-        deliver();
+        runAs(background, deliver);
     };
     originalSetImmediate(turn);
     return () => {
         canceled = true;
-        holding.delete(work);
+        set.delete(work);
     };
 };
 
@@ -253,7 +276,8 @@ Reflect.set(
             if (origin === undefined) return originalSetTimeout(callback, delay, ...args);
             const timer = originalSetTimeout(() => {
                 timers.delete(timer);
-                callback(...args);
+                // Read when it fires, since a caller unrefs a timer after setting it.
+                runAs(!timer.hasRef(), () => callback(...args));
             }, delay);
             timers.set(timer, { api: `setTimeout(${delay ?? 0})`, origin });
             return timer;
@@ -279,8 +303,9 @@ export const SlowHost = {
     },
     /**
      * Every completion still held and every timer workspace code set that has not fired and
-     * keeps the process alive. A stepped harness reads it before each tick: anything listed is
-     * work the tick would run ahead of.
+     * keeps the process alive. Work an unref'd timer started is left out, as the timer is. A
+     * stepped harness reads it before each tick: anything listed is work the tick would run
+     * ahead of.
      */
     held(): readonly HeldWork[] {
         const pendingTimers = [...timers].filter(([timer]) => timer.hasRef()).map(([, work]) => work);
