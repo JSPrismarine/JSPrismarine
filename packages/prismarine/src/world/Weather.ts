@@ -57,6 +57,33 @@ export const savedWeatherOf = (value: unknown): SavedWeather | undefined => {
     return { clearWeatherTime, rainTime, thunderTime, raining: record['raining'], thundering: record['thundering'] };
 };
 
+/** A weather change about to happen, as the guards of the weather action read it. */
+export interface WeatherChange {
+    readonly previous: Weather;
+    readonly next: Weather;
+    /** How long the new weather lasts, in ticks. */
+    readonly duration: number;
+}
+
+/**
+ * A guard of the weather action ([ADR 0013](../../../../docs/adr/0013-vetoable-actions-are-staged.md)):
+ * it reads the change and lets it through, with a weather and a duration it may replace, or
+ * vetoes it. It writes nothing.
+ */
+export type WeatherGuard = (
+    change: WeatherChange
+) => { readonly veto: true } | { readonly veto: false; readonly change: WeatherChange };
+
+/** Hears every weather change that took effect, whatever made it: a command, a script or the cycle. */
+export type WeatherListener = (change: { readonly previous: Weather; readonly current: Weather }) => void;
+
+/** How long the weather a state is in lasts, in ticks. */
+const durationOf = (state: WeatherState): number => {
+    const kind = weatherOf(state);
+    if (kind === 'clear') return state.clearWeatherTime;
+    return kind === 'rain' ? state.rainTime : state.thunderTime;
+};
+
 /** How often the current weather goes out again, so a player who just joined is told. */
 const RESEND_INTERVAL_TICKS = 20;
 
@@ -66,7 +93,36 @@ export class WorldWeather {
 
     private announced: Weather = 'clear';
 
+    private readonly guards: WeatherGuard[] = [];
+
+    private readonly listeners: WeatherListener[] = [];
+
     public constructor(private readonly world: WeatherWorld) {}
+
+    /**
+     * Adds a guard to the weather action, after the ones already there. A change that keeps the
+     * weather as it is goes past no guard.
+     * @returns A function that removes it.
+     */
+    public addGuard(guard: WeatherGuard): () => void {
+        this.guards.push(guard);
+        return () => {
+            const index = this.guards.indexOf(guard);
+            if (index >= 0) this.guards.splice(index, 1);
+        };
+    }
+
+    /**
+     * Hears each change of weather once it took effect.
+     * @returns A function that removes the listener.
+     */
+    public onChange(listener: WeatherListener): () => void {
+        this.listeners.push(listener);
+        return () => {
+            const index = this.listeners.indexOf(listener);
+            if (index >= 0) this.listeners.splice(index, 1);
+        };
+    }
 
     /** The five numbers, for the save file. */
     public saved(): SavedWeather {
@@ -103,7 +159,9 @@ export class WorldWeather {
      */
     public tick(tick: number): void {
         if (this.world.cycleAllowed()) {
+            const previous = weatherOf(this.state);
             this.state = advanceWeatherCycle(this.state, (bound) => this.world.randomInt(bound));
+            this.changed(previous);
         }
 
         const now = weatherOf(this.state);
@@ -122,16 +180,43 @@ export class WorldWeather {
      * The seam the command needs, and the whole of it: a host wires
      * `world.setWeather(kind, durationTicks)` to its `/weather` and nothing else.
      *
+     * A change of weather goes through the guards first, in the order they were added, and the
+     * first veto leaves the weather as it was; a guard may also replace the weather and the
+     * duration. Setting the weather it already is changes only how long it lasts.
+     *
      * @param kind - `clear`, `rain` or `thunder`.
      * @param durationTicks - How long, in ticks. Left out, each kind gets Java's own
      *   randomized default: 10 to 150 minutes clear, 10 to 20 raining, 3 to 13 storming.
      */
     public set(kind: Weather, durationTicks?: number): void {
-        this.state = weatherCommandState(kind, (bound) => this.world.randomInt(bound), durationTicks);
+        const randomInt = (bound: number): number => this.world.randomInt(bound);
+        const previous = weatherOf(this.state);
+        let state = weatherCommandState(kind, randomInt, durationTicks);
+        if (kind !== previous && this.guards.length > 0) {
+            const proposed: WeatherChange = { previous, next: kind, duration: durationOf(state) };
+            let change = proposed;
+            for (const guard of this.guards) {
+                const verdict = guard(change);
+                if (verdict.veto) return;
+                change = verdict.change;
+            }
+            if (change.next !== proposed.next || change.duration !== proposed.duration) {
+                state = weatherCommandState(change.next, randomInt, change.duration);
+            }
+        }
+        this.state = state;
 
         const now = weatherOf(this.state);
         this.announce(this.announced, now);
         this.announced = now;
+        this.changed(previous);
+    }
+
+    /** Tells the listeners when the weather is no longer what it was. */
+    private changed(previous: Weather): void {
+        const current = weatherOf(this.state);
+        if (current === previous) return;
+        for (const listener of [...this.listeners]) listener({ previous, current });
     }
 
     /**

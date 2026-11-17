@@ -180,6 +180,27 @@ describe('world', () => {
             ]);
         });
 
+        it('runs the script flush last, after the entities and before the change log is sealed', () => {
+            const { world, calls } = worldTicking();
+            world.setScriptPhase(() => void calls.push('scripts'));
+
+            world.update(1);
+
+            expect(calls.slice(0, 4)).toStrictEqual(['blockUpdates', 'systems', 'scripts', 'tickSealed']);
+        });
+
+        it('runs the script flush while the tick’s change log is open', () => {
+            const { world } = worldTicking();
+            const sealed: Array<number | undefined> = [];
+            world.setScriptPhase(() => sealed.push(world.getEntityStore().tickOpen ? 1 : undefined));
+
+            world.update(1);
+            world.setScriptPhase(undefined);
+            world.update(2);
+
+            expect(sealed).toEqual([1]);
+        });
+
         it('seals and sends nothing of a tick whose store failed to undo a unit', () => {
             const { world, calls } = worldTicking();
             // A unit in the tick that throws, and whose undo throws too, as a failed rollback does.

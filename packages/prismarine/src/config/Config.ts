@@ -105,8 +105,24 @@ const COMMENTS = {
     'enable-ticking':
         'Whether the world ticks. Off is only for tests, which step the ticks by hand with Server.advanceTick. Until one does, nothing a tick runs happens: no chunks go out, so a joining client never spawns.',
     'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
-    'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.'
+    'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.',
+    'script-watchdog-enable-shutdown':
+        "Whether a hang, a stack overflow or running out of memory in a behavior pack script shuts the server down, as Bedrock Dedicated Server's setting of the same name does.",
+    'script-watchdog-hang-threshold':
+        'How long one behavior pack script callback may run before it is stopped, in milliseconds. JSPrismarine counts work rather than time, so the same script stops at the same point on every machine.',
+    'script-watchdog-memory-limit':
+        'How many megabytes the behavior pack scripts of one world may allocate together. Going over saves and shuts the server down. 0 sets no limit.'
 } as const satisfies Record<Exclude<keyof ConfigFile, ContentConfigKey>, string>;
+
+/** The script watchdog's settings, as `config.json`'s `script-watchdog-*` keys set them. */
+export interface ScriptWatchdogConfig {
+    /** `script-watchdog-enable-shutdown`. */
+    readonly enableShutdown: boolean;
+    /** `script-watchdog-hang-threshold`, in milliseconds. */
+    readonly hangThreshold: number;
+    /** `script-watchdog-memory-limit`, in megabytes; 0 for none. */
+    readonly memoryLimit: number;
+}
 
 /**
  * Settings a fresh config leaves out. Each is read when the file has it, and reading one writes
@@ -115,7 +131,10 @@ const COMMENTS = {
 export const OPTIONAL_SETTINGS = [
     'server-udp-ports',
     'server-public-ip',
-    'query-port'
+    'query-port',
+    'script-watchdog-enable-shutdown',
+    'script-watchdog-hang-threshold',
+    'script-watchdog-memory-limit'
 ] as const satisfies readonly (keyof typeof COMMENTS)[];
 
 /** A setting a fresh config leaves out; see {@link OPTIONAL_SETTINGS}. */
@@ -186,7 +205,11 @@ const DEFAULTS = {
     'enable-process-title': true,
     'enable-ticking': true,
     'log-excluded-packets': [],
-    'crafting-recipe-limit': -1
+    'crafting-recipe-limit': -1,
+    // Bedrock Dedicated Server's defaults for the same keys.
+    'script-watchdog-enable-shutdown': true,
+    'script-watchdog-hang-threshold': 10_000,
+    'script-watchdog-memory-limit': 250
 } as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'>;
 
 /**
@@ -288,6 +311,13 @@ export class Config {
      */
     private enableQuery: boolean = DEFAULTS['enable-query'];
 
+    /** The `script-watchdog-*` settings, under Bedrock Dedicated Server's names and meanings. */
+    private scriptWatchdog: ScriptWatchdogConfig = {
+        enableShutdown: DEFAULTS['script-watchdog-enable-shutdown'],
+        hangThreshold: DEFAULTS['script-watchdog-hang-threshold'],
+        memoryLimit: DEFAULTS['script-watchdog-memory-limit']
+    };
+
     /** The UDP port the query protocol answers on; equal to {@link port} to share RakNet's socket. */
     /** `query-port` as the file sets it, or undefined when it follows the server port. */
     private queryPortSetting: number | undefined;
@@ -354,7 +384,11 @@ export class Config {
         const readUnwritten = <T>(
             key: OptionalSetting,
             defaults: T,
-            kind: 'number' | 'string' = typeof defaults === 'string' ? 'string' : 'number'
+            kind: 'number' | 'string' | 'boolean' = typeof defaults === 'string'
+                ? 'string'
+                : typeof defaults === 'boolean'
+                  ? 'boolean'
+                  : 'number'
         ): T => {
             const stored = config.get(key);
             // The stored value is the file's; a value of another kind is ignored, as `read` does.
@@ -422,6 +456,15 @@ export class Config {
         this.enableTicking = read('enable-ticking', this.enableTicking);
         this.logExcludedPackets = read('log-excluded-packets', this.logExcludedPackets);
         this.craftingRecipeLimit = read('crafting-recipe-limit', this.craftingRecipeLimit);
+        // A server without script packs never needs them, so a fresh file leaves them out.
+        this.scriptWatchdog = {
+            enableShutdown: readUnwritten(
+                'script-watchdog-enable-shutdown',
+                DEFAULTS['script-watchdog-enable-shutdown']
+            ),
+            hangThreshold: readUnwritten('script-watchdog-hang-threshold', DEFAULTS['script-watchdog-hang-threshold']),
+            memoryLimit: readUnwritten('script-watchdog-memory-limit', DEFAULTS['script-watchdog-memory-limit'])
+        };
     }
 
     /**
@@ -858,6 +901,11 @@ export class Config {
      */
     public getQueryPortSetting(): number | undefined {
         return this.queryPortSetting;
+    }
+
+    /** The script watchdog's settings; see `script-watchdog-*` in the config file. */
+    public getScriptWatchdog(): ScriptWatchdogConfig {
+        return this.scriptWatchdog;
     }
 
     public getEnableProcessTitle() {

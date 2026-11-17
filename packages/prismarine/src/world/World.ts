@@ -647,6 +647,9 @@ export class World implements Service {
     /** Whether the world has reported that its entity store broke and it stopped ticking. */
     private stopReported = false;
 
+    /** The script flush phase, when this world runs its level's scripts; see {@link World.setScriptPhase}. */
+    private scriptPhase: (() => void) | undefined;
+
     /**
      * The start region work while it is running, so a shutdown can wait for it rather than
      * race it. Null the rest of the time.
@@ -1176,6 +1179,20 @@ export class World implements Service {
     }
 
     /**
+     * Sets the script flush phase, the last phase of the tick before its change log is sealed
+     * ([ADR 0015](../../../../docs/adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
+     * A level runs its scripts in the phase of one of its worlds, so what a script writes, here
+     * or in a world that ticks after it, enters this tick's change log. A world without one runs
+     * an empty phase.
+     *
+     * @param phase - Runs the scripts until they have nothing left for this tick, or undefined to
+     *   stop running them.
+     */
+    public setScriptPhase(phase: (() => void) | undefined): void {
+        this.scriptPhase = phase;
+    }
+
+    /**
      * The phases of one tick, which {@link World.update} runs inside an open log tick, up to the
      * entity updates. The phases that send the tick's changes, the entity tracking among them,
      * follow the seal.
@@ -1301,6 +1318,17 @@ export class World implements Service {
             this.dataEntities().tick(tick, ({ x, z }) => isPositionTicking(x, z));
         } finally {
             endDataEntitiesProfile?.();
+        }
+
+        // Last, so the after-events and system tasks of everything this tick did run before the
+        // log closes, as Bedrock runs them at the end of the tick they were queued in.
+        const scriptPhase = this.scriptPhase;
+        if (scriptPhase === undefined) return;
+        const endScriptsProfile = startProfile?.(`World.scripts:${this.name}`);
+        try {
+            scriptPhase();
+        } finally {
+            endScriptsProfile?.();
         }
     }
 

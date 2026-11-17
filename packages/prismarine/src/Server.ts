@@ -20,6 +20,7 @@ import { lootBuildReport, lootSummary, lootWarning } from './content/lootReport'
 import { buildServerContent } from './content/ServerContent';
 import type { ServerContent } from './content/ServerContent';
 import { readContentSettings } from './content/settings';
+import type { ContentSettings } from './content/settings';
 import { serverWorldSource } from './content/world/serverSource';
 import { EntityRuntimes } from './entity/data/live';
 import type { LiveEntityRuntime } from './entity/data/live';
@@ -45,6 +46,8 @@ import type { OutboundPacketRecorder } from './network/OutboundPacketTrace';
 import type { Transport } from './network/transport/Transport';
 import { permissionsModule } from './modules/permissions';
 import { socialModule } from './modules/social';
+import { scriptsModule } from './modules/scripts';
+import type { LevelScripts } from './scripting/LevelScripts';
 import { worldsModule } from './modules/worlds';
 import { ServerTicker, tickerModule } from './modules/ticker';
 import type { TickRecorder } from './profiling/TickRecorder';
@@ -111,6 +114,13 @@ export default class Server {
     private readonly sessionManager = new SessionManager();
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
+    /** The wall clock an input step reads once, for script `Date`s; see {@link Server.getAdmittedClock}. */
+    private readonly wallClock: () => number;
+    private admittedClock: number;
+    /** The default level's behavior pack scripts, while the `prismarine:scripts` module runs them. */
+    private scripts: LevelScripts | undefined;
+    /** The content settings the last content build read; see {@link Server.getContentSettings}. */
+    private contentSettings: ContentSettings | undefined;
 
     /**
      * The module kernel the managers run on, built once in the constructor.
@@ -246,6 +256,8 @@ export default class Server {
      *   the shutdown failed, such as when a world could not be saved.
      * @param [options.tickClock] - The clock the tick loop schedules and times its phases by,
      *   `performance.now` by default. Nothing a tick simulates reads it.
+     * @param [options.wallClock] - The wall clock each input step admits once for behavior pack
+     *   scripts, `Date.now` by default. A replay harness gives one that returns the recorded values.
      * @returns {Server} The server instance.
      */
     public constructor({
@@ -258,7 +270,8 @@ export default class Server {
         transport,
         chunkAdmissionBudget,
         onStopCommandComplete,
-        tickClock
+        tickClock,
+        wallClock = Date.now
     }: {
         logger: Logger;
         config: Config;
@@ -270,8 +283,11 @@ export default class Server {
         chunkAdmissionBudget?: number;
         onStopCommandComplete?: (stopped: boolean) => void;
         tickClock?: () => number;
+        wallClock?: () => number;
     }) {
         this.kernel = new Kernel<ServerEvents>({ logger });
+        this.wallClock = wallClock;
+        this.admittedClock = wallClock();
 
         this.chunkCompletionQueue = new ChunkCompletionQueue(undefined, {
             tick: () => this.getTick(),
@@ -306,12 +322,17 @@ export default class Server {
                 // sees them from its first update. A chunk an input-lane handler waits for enters at
                 // once, because the step cannot finish without it. Portal trips come after the chunks, so
                 // a trip whose arrival chunks this step admitted lands in it.
-                admitInputs: () =>
-                    this.networking.admitInputs() +
-                    this.chunkCompletionQueue.admissions.admit(this.getTick()) +
-                    this.respawnRequests.admit() +
-                    this.dimensionTravel.admit() +
-                    this.worldMessages.admit(),
+                admitInputs: () => {
+                    // The one wall clock reading a tick admits, which script `Date`s read (ADR 0021).
+                    this.admittedClock = this.wallClock();
+                    return (
+                        this.networking.admitInputs() +
+                        this.chunkCompletionQueue.admissions.admit(this.getTick()) +
+                        this.respawnRequests.admit() +
+                        this.dimensionTravel.admit() +
+                        this.worldMessages.admit()
+                    );
+                },
                 pollNetwork: () => this.networking.pollInbound(),
                 // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
                 getWorlds: () => this.worldManager.getLevels(),
@@ -380,6 +401,7 @@ export default class Server {
         kernel.register(commandsModule(this.commandManager));
         kernel.register(worldsModule(this.worldManager, this.chunkScheduler));
         kernel.register(loadFunctionsModule(this.commandManager));
+        kernel.register(scriptsModule(this));
     }
 
     /**
@@ -418,6 +440,7 @@ export default class Server {
      */
     private enableContent(): void {
         const settings = readContentSettings();
+        this.contentSettings = settings;
         this.content = undefined;
         this.contentWorld = undefined;
         // A fresh registry per build: the runtimes hold a closure over the content that is
@@ -816,6 +839,47 @@ export default class Server {
      */
     public getWorldReplicators(): WorldReplicators {
         return this.worldReplicators;
+    }
+
+    /**
+     * The wall clock the last input step admitted, in milliseconds since the epoch. Inside a tick
+     * nothing reads the clock itself; behavior pack scripts read this through `Date`.
+     */
+    public getAdmittedClock(): number {
+        return this.admittedClock;
+    }
+
+    /**
+     * The content settings the content build read, such as the world pack directories.
+     * @throws {Error} Before the content has been built.
+     */
+    public getContentSettings(): ContentSettings {
+        if (this.contentSettings === undefined) throw new Error('The content settings are read with the content build');
+        return this.contentSettings;
+    }
+
+    /** The default level's behavior pack scripts, while they run. */
+    public getScripts(): LevelScripts | undefined {
+        return this.scripts;
+    }
+
+    /**
+     * Reloads the default level's behavior pack scripts, as Bedrock's `/reload` does: each pack
+     * gets `system.beforeEvents.shutdown`, then runs again from its top level. A server without
+     * scripts does nothing.
+     */
+    public reloadScripts(): void {
+        if (this.scripts === undefined) return;
+        this.scripts.reload();
+        this.logger.info('Script files have been reloaded.');
+    }
+
+    /**
+     * Records the default level's scripts, which the `prismarine:scripts` module starts and stops.
+     * @internal
+     */
+    public setScripts(scripts: LevelScripts | undefined): void {
+        this.scripts = scripts;
     }
 
     public getWorldManager(): WorldManager {
