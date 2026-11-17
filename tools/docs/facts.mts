@@ -40,7 +40,8 @@ import {
 } from '../../packages/worldgen/src/blending/generationVersion.ts';
 import { brandPurposes } from './site/.vitepress/theme/brandCatalog.ts';
 import { palette } from './site/.vitepress/theme/tokens.ts';
-import { loadCommands, loadOptionalSettings, loadServerCommands, loadSettings } from './code-data.mts';
+import type { ErrorData, ErrorDomainData } from './code-data.mts';
+import { loadCommands, loadErrors, loadOptionalSettings, loadServerCommands, loadSettings } from './code-data.mts';
 import { loadProject, repoRoot } from './project.mts';
 
 /** Pinned downloads in `packages/bedrock-data/sources.json`, as far as the docs quote them. */
@@ -82,6 +83,75 @@ function table(header: readonly string[], rows: readonly (readonly string[])[]) 
     const line = (cells: readonly string[]) =>
         `| ${cells.map((cell, column) => cell.padEnd(widths[column])).join(' | ')} |`;
     return [line(header), `| ${widths.map((width) => '-'.repeat(width)).join(' | ')} |`, ...rows.map(line)].join('\n');
+}
+
+/** Text as inline code, with a fence longer than any run of backticks inside it. */
+const inlineCode = (text: string) => {
+    const fence = '`'.repeat(Math.max(0, ...[...text.matchAll(/`+/g)].map(([run]) => run.length)) + 1);
+    return fence.length > 1 ? `${fence} ${text} ${fence}` : `\`${text}\``;
+};
+
+/** The package a domain's errors come from, as the reference names it. */
+const errorDomainPackage = (domain: string) =>
+    domain === 'common' ? '@jsprismarine/errors' : `@jsprismarine/${domain}`;
+
+/** One error as its section of the reference: the code as the heading, so the link's anchor lands on it. */
+const errorSection = (error: ErrorData, heading: string) =>
+    [
+        `${heading} ${inlineCode(error.code)}`,
+        inlineCode(error.template),
+        `Thrown as ${inlineCode(error.thrownAs)}, which extends ${inlineCode(error.base)}.`,
+        ...(error.description ? [error.description] : [])
+    ].join('\n\n');
+
+/** A domain's page body: the classes that group its errors, then every error, by module when it has several. */
+const errorDomainPage = ({ categories, groups }: ErrorDomainData) => {
+    const parts: string[] = [];
+    if (categories.length > 0) {
+        parts.push(
+            '## Groups',
+            'Catch one of these classes to handle every error that extends it.',
+            table(
+                ['Class', 'What its errors mean'],
+                categories.map(({ name, description }) => [inlineCode(name), description.replace(/\s*\n\s*/g, ' ')])
+            )
+        );
+    }
+    for (const { module, errors } of groups) {
+        const nested = groups.length > 1;
+        if (nested) parts.push(`## ${module[0]?.toUpperCase()}${module.slice(1)}`);
+        parts.push(...errors.map((error) => errorSection(error, nested ? '###' : '##')));
+    }
+    return parts.join('\n\n');
+};
+
+/** The error reference: every error the catalog in `@jsprismarine/errors` defines, a page per domain. */
+async function errorFacts() {
+    const domains = await loadErrors();
+    const count = ({ groups }: ErrorDomainData) => groups.reduce((total, { errors }) => total + errors.length, 0);
+    // The example is a real entry, logged by the real logger, so the page shows what a log holds.
+    const { PrismarineServerErrors } = await import('../../packages/errors/src/prismarine/server.ts');
+    const { Logger } = await import('../../packages/logger/src/logger.ts');
+    const example = new PrismarineServerErrors.PlayerNotFound({ username: 'Steve' });
+    const logged: string[] = [];
+    new Logger('error', [{ log: (record: { message: string }) => void logged.push(record.message) }]).error(example);
+    return {
+        'errors.example.code': example.code,
+        'errors.example.template': PrismarineServerErrors.PlayerNotFound.template,
+        'errors.example.message': example.message,
+        'errors.example.reference': logged[0]?.split('\n').at(-1) ?? '',
+        'errors.count': String(domains.reduce((total, domain) => total + count(domain), 0)),
+        'errors.domains': `\n${table(
+            ['Package', 'Errors'],
+            domains.map((domain) => [
+                `[${inlineCode(errorDomainPackage(domain.domain))}](${domain.domain}.md)`,
+                String(count(domain))
+            ])
+        )}\n`,
+        ...Object.fromEntries(
+            domains.map((domain) => [`errors.page.${domain.domain}`, `\n${errorDomainPage(domain)}\n`])
+        )
+    };
 }
 
 /** Command facts, from the registration the server runs. */
@@ -618,6 +688,7 @@ export async function loadFacts(): Promise<Facts> {
             )}\n`,
             ...(await commandFacts()),
             ...(await commandReferenceFacts()),
+            ...(await errorFacts()),
             ...(await configFacts()),
             ...eventFacts(),
             ...prismarineEntryFacts(),

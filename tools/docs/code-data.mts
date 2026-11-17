@@ -6,9 +6,11 @@
  * It runs the server's TypeScript, so it needs a TypeScript loader (`node --import tsx`).
  */
 
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+
+import { repoRoot } from './project.mts';
 
 /** One command the server registers. */
 export interface CommandData {
@@ -140,4 +142,110 @@ export async function loadSettings(): Promise<SettingData[]> {
 export async function loadOptionalSettings(): Promise<SettingData[]> {
     const { optionalSettings } = await import('../../packages/prismarine/src/config/Config.ts');
     return optionalSettings().map(({ key, comment }) => ({ key, comment }));
+}
+
+/** One error of the catalog in `@jsprismarine/errors`. */
+export interface ErrorData {
+    code: string;
+    /** How code throws it, such as `LeveldbErrors.DatabaseLocked`. */
+    thrownAs: string;
+    /** The message with its `{name}` placeholders. */
+    template: string;
+    /** The class it extends: `Error`, `TypeError`, `RangeError` or one of the domain's categories. */
+    base: string;
+    /** The entry's JSDoc, or empty when it has none. */
+    description: string;
+}
+
+/** A class a domain's errors extend so code can catch them together, such as `CorruptionError`. */
+export interface ErrorCategoryData {
+    name: string;
+    description: string;
+}
+
+/** One domain of the catalog: the errors a package throws, with a page of its own in the reference. */
+export interface ErrorDomainData {
+    domain: string;
+    /** The modules the domain's catalog is split across, such as `world` for `prismarine/world.ts`. */
+    groups: { module: string; errors: ErrorData[] }[];
+    categories: ErrorCategoryData[];
+}
+
+/** What `defineErrors` puts on each class it makes. */
+interface DefinedErrorClass {
+    readonly code: string;
+    readonly domain: string;
+    readonly template: string;
+}
+
+const isDefinedErrorClass = (value: unknown): value is DefinedErrorClass =>
+    typeof value === 'function' && 'code' in value && 'domain' in value && 'template' in value;
+
+/** A JSDoc comment as Markdown: its text, with `{@link X}` written as inline code. */
+const jsdocText = (node: import('typescript').Node, ts: typeof import('typescript')) =>
+    ts
+        .getJSDocCommentsAndTags(node)
+        .filter(ts.isJSDoc)
+        .map((doc) => ts.getTextOfJSDocComment(doc.comment) ?? '')
+        .join('\n\n')
+        .replace(/\{@link ([^}\s|]+)[^}]*\}/g, '`$1`')
+        .trim();
+
+/**
+ * Every error the catalog in `@jsprismarine/errors` defines, by domain. The codes, templates and
+ * classes come from the modules themselves; the descriptions are their JSDoc, read from the source.
+ */
+export async function loadErrors(): Promise<ErrorDomainData[]> {
+    const { default: ts } = await import('typescript');
+    const catalogDir = path.join(repoRoot, 'packages', 'errors', 'src');
+    const files = readdirSync(catalogDir, { recursive: true, encoding: 'utf8' })
+        .filter((file) => file.endsWith('.ts') && !file.includes('.test.') && file !== 'JSPrismarineError.ts')
+        .sort();
+
+    const domains = new Map<string, ErrorDomainData>();
+    for (const file of files) {
+        const source = readFileSync(path.join(catalogDir, file), 'utf8');
+        const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+        const descriptions = new Map<string, string>();
+        const visit = (node: import('typescript').Node) => {
+            if (
+                (ts.isPropertyAssignment(node) || ts.isClassDeclaration(node)) &&
+                node.name &&
+                ts.isIdentifier(node.name)
+            ) {
+                descriptions.set(node.name.text, jsdocText(node, ts));
+            }
+            ts.forEachChild(node, visit);
+        };
+        visit(parsed);
+
+        const exports: Record<string, unknown> = await import(path.join(catalogDir, file));
+        const module = file.replace(/\.ts$/, '').split(path.sep);
+        const domainName = module[0];
+        const domain = domains.get(domainName) ?? { domain: domainName, groups: [], categories: [] };
+        domains.set(domainName, domain);
+        const errors: ErrorData[] = [];
+        for (const [exported, value] of Object.entries(exports)) {
+            if (typeof value === 'function' && !isDefinedErrorClass(value)) {
+                domain.categories.push({ name: exported, description: descriptions.get(exported) ?? '' });
+                continue;
+            }
+            if (typeof value !== 'object' || value === null) continue;
+            for (const [key, error] of Object.entries(value)) {
+                if (!isDefinedErrorClass(error)) continue;
+                errors.push({
+                    code: error.code,
+                    thrownAs: `${exported}.${key}`,
+                    template: error.template,
+                    base: Object.getPrototypeOf(error).name,
+                    description: descriptions.get(key) ?? ''
+                });
+            }
+        }
+        domain.groups.push({
+            module: module.slice(1).join('/'),
+            errors: errors.sort((a, b) => a.code.localeCompare(b.code))
+        });
+    }
+    return [...domains.values()];
 }
