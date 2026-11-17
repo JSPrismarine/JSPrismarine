@@ -1,6 +1,7 @@
 /** The scenario suites a run chooses from, each one server and client the runner starts. */
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
+import { commandSyntaxError } from './scenarios/command-syntax-error.mts';
 import { spectatorPickup } from './scenarios/spectator-pickup.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
 import { itemDropPickup } from './scenarios/item-drop-pickup.mts';
@@ -88,6 +89,7 @@ export const suites: ScenarioSuite[] = [
             rejoin,
             movementRotation,
             chat,
+            commandSyntaxError,
             miningDrops,
             spectatorPickup,
             itemDropPickup,
