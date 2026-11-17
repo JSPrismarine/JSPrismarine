@@ -409,3 +409,56 @@ export const newSidesOf = (
     }
     return sides;
 };
+
+/** Java's `Direction.Plane.HORIZONTAL` as chunk steps, in its order: north, east, south, west. */
+const HORIZONTAL_STEPS = [
+    [0, -1],
+    [1, 0],
+    [0, 1],
+    [-1, 0]
+] as const;
+
+/**
+ * The positions Java's `Blender.generateBorderTicks` looks at in an old chunk, in its order, as
+ * chunk-local x and z and absolute y: in every column the layers just under, at the bottom of, at
+ * the top of and just over the old generation, then each edge column facing a new chunk from the
+ * bottom of the old generation up. Java marks a position for post-processing when it holds leaves
+ * or fluid; the test belongs to whoever reads the chunk's blocks.
+ *
+ * Java stops an edge column at the column's `MOTION_BLOCKING` height. Leaves and fluids both count
+ * toward that height, so nothing above it could pass the test, and this walks the old generation's
+ * full height instead of asking the caller for a heightmap.
+ *
+ * @param area - The old generation's range, a {@link BlendingData}'s `minY` and `height`.
+ * @param isNewSide - Whether the chunk one step away along x and z is new generation.
+ * @param visit - Called with each position.
+ */
+export const forEachBorderTick = (
+    area: Pick<BlendingData, 'minY' | 'height'>,
+    isNewSide: (stepX: number, stepZ: number) => boolean,
+    visit: (x: number, y: number, z: number) => void
+): void => {
+    const minY = area.minY;
+    const maxY = area.minY + area.height - 1;
+    for (let x = 0; x < 16; x++) {
+        for (let z = 0; z < 16; z++) {
+            visit(x, minY - 1, z);
+            visit(x, minY, z);
+            visit(x, maxY, z);
+            visit(x, maxY + 1, z);
+        }
+    }
+
+    for (const [stepX, stepZ] of HORIZONTAL_STEPS) {
+        if (!isNewSide(stepX, stepZ)) continue;
+        const fromX = stepX === 1 ? 15 : 0;
+        const toX = stepX === -1 ? 0 : 15;
+        const fromZ = stepZ === 1 ? 15 : 0;
+        const toZ = stepZ === -1 ? 0 : 15;
+        for (let x = fromX; x <= toX; x++) {
+            for (let z = fromZ; z <= toZ; z++) {
+                for (let y = minY; y <= maxY; y++) visit(x, y, z);
+            }
+        }
+    }
+};

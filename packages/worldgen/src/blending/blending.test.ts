@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import blendingVectors from '../../vectors/blending.json' with { type: 'json' };
 import { expectedFloat } from '../../vectors/vectors';
 import { floorDiv, floorMod } from '../math';
-import { Blender, blendingShiftNoise, newSidesOf } from './Blender';
+import { Blender, blendingShiftNoise, forEachBorderTick, newSidesOf } from './Blender';
 import type { OldChunkView } from './BlendingData';
 import { BLENDING_NO_VALUE, BLENDING_SURFACE_BLOCKS, BlendingData } from './BlendingData';
 import {
@@ -206,6 +206,57 @@ describe('Blender', () => {
         expect(Blender.of(40, 40, lookup)).toBe(Blender.EMPTY);
         expect(Blender.EMPTY.blendDensity(0, 0, 0, 0.25)).toBe(0.25);
         expect(Blender.EMPTY.blendOffsetAndFactor(0, 0)).toEqual({ alpha: 1, blendingOffset: 0 });
+    });
+});
+
+describe("Java's generateBorderTicks walk", () => {
+    const AREA = { minY: 0, height: 256 };
+
+    it("visits the layers around the old generation in every column, in Java's order", () => {
+        const visited: string[] = [];
+        forEachBorderTick(
+            AREA,
+            () => false,
+            (x, y, z) => visited.push(`${x},${y},${z}`)
+        );
+
+        expect(visited).toHaveLength(16 * 16 * 4);
+        expect(visited.slice(0, 8)).toEqual([
+            '0,-1,0',
+            '0,0,0',
+            '0,255,0',
+            '0,256,0',
+            '0,-1,1',
+            '0,0,1',
+            '0,255,1',
+            '0,256,1'
+        ]);
+    });
+
+    it('walks each edge column that faces a new chunk up through the old generation', () => {
+        const sides: string[] = [];
+        const columns = new Set<string>();
+        let inside = 0;
+        forEachBorderTick(
+            AREA,
+            (stepX, stepZ) => {
+                sides.push(`${stepX},${stepZ}`);
+                return stepX === 1 || stepZ === -1;
+            },
+            (x, y, z) => {
+                // The layer walk reaches only y -1, 0, 255 and 256; between them is the edge walk.
+                if (y <= 0 || y >= 255) return;
+                inside++;
+                columns.add(`${x},${z}`);
+            }
+        );
+
+        // North, east, south, west, as Java's `Direction.Plane.HORIZONTAL` lists them.
+        expect(sides).toEqual(['0,-1', '1,0', '0,1', '-1,0']);
+        // The north row and the east row share their corner column, which each walks.
+        expect(columns.size).toBe(31);
+        expect([...columns].every((column) => column.endsWith(',0') || column.startsWith('15,'))).toBe(true);
+        expect(inside).toBe(32 * 254);
     });
 });
 
