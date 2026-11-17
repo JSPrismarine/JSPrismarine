@@ -53,6 +53,21 @@ const locationFromFrame = (frame: string): [string, string, string] | undefined 
 };
 
 /**
+ * Where a message's visible text ends: before the format codes (`§` and one character) that
+ * close it. A scan from the end, which a regular expression anchored to the end would turn into
+ * quadratic backtracking on a message full of codes that do not end it.
+ */
+const visibleEnd = (text: string): number => {
+    let end = text.length;
+    for (;;) {
+        // The code's character is one UTF-16 unit, or two for one outside the Basic Multilingual Plane.
+        if (end >= 2 && text[end - 2] === '§') end -= 2;
+        else if (end >= 3 && text[end - 3] === '§' && /[\uDC00-\uDFFF]/u.test(text[end - 1] ?? '')) end -= 3;
+        else return end;
+    }
+};
+
+/**
  * Helper class for general logging.
  * @document ../../../docs/guide/log-levels.md
  * @class
@@ -203,7 +218,7 @@ export class Logger {
 
         // End a message with a period unless it already ends in punctuation, such as a colon that
         // introduces the lines after it, or in whitespace. Trailing format codes don't count.
-        const visible = output.replace(/(?:§.)+$/u, '');
+        const visible = output.slice(0, visibleEnd(output));
         if (!visible || /[.!?:;,…\s]$/u.test(visible)) return output;
 
         return `${output}.`;

@@ -80,6 +80,9 @@ describe('message punctuation', () => {
         ['ends with a line break\n', 'ends with a line break\n'],
         ['colored list:§r', 'colored list:§r'],
         ['colored text§r', 'colored text§r.'],
+        ['two codes close it:§a§r', 'two codes close it:§a§r'],
+        ['§aa colored start', '§aa colored start.'],
+        ['an astral code closes it:§\u{1F600}', 'an astral code closes it:§\u{1F600}'],
         ['', '']
     ])('formats %j as %j', (input, expected) => {
         const { logger } = makeLogger();
@@ -90,6 +93,17 @@ describe('message punctuation', () => {
 
         expect(messages).toEqual([expected]);
     });
+});
+
+it('punctuates a message of many format codes that do not close it', () => {
+    const { logger } = makeLogger();
+    const messages: string[] = [];
+    logger.onLine((message) => messages.push(message));
+
+    const codes = '§a'.repeat(50_000);
+    logger.info(`${codes}x`);
+
+    expect(messages).toEqual([`${codes}x.`]);
 });
 
 describe('namespace resolution', () => {
