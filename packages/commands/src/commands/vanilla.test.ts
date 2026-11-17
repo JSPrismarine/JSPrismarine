@@ -559,6 +559,21 @@ describe('the world commands', () => {
         expect(results).toEqual([6000]);
     });
 
+    it('/time set takes a named time of day as well as a tick count', () => {
+        const set: number[] = [];
+        const world = { setTime: (ticks: number) => void set.push(ticks) };
+        for (const line of [
+            'time set sunrise',
+            'time set day',
+            'time set noon',
+            'time set minecraft:midnight',
+            'time set 42'
+        ])
+            run(line, { world });
+
+        expect(set).toEqual([23_000, 1000, 6000, 18_000, 42]);
+    });
+
     it('/gamerule names every rule in the registry by its 1.21.11 id', () => {
         const set: unknown[] = [];
         run('gamerule max_command_sequence_length 1024', {

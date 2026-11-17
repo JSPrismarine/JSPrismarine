@@ -37,6 +37,30 @@ const CHEATS = {
     requiresCheats: true
 } as const;
 
+/** The names `/time set` accepts, in the order of Bedrock's `TimeSpec` enum. */
+const TIME_SPECS = ['day', 'sunrise', 'noon', 'sunset', 'night', 'midnight'] as const;
+
+type TimeSpec = (typeof TIME_SPECS)[number];
+
+/**
+ * The time of day each name stands for, in ticks. Java accepts `day`, `noon`,
+ * `night` and `midnight`; Bedrock adds `sunrise` and `sunset`.
+ */
+const TIME_SPEC_TICKS: Record<TimeSpec, number> = {
+    day: 1000,
+    sunrise: 23_000,
+    noon: 6000,
+    sunset: 12_000,
+    night: 13_000,
+    midnight: 18_000
+};
+
+const setTime = (context: Context, ticks: number): number => {
+    const current = source(context);
+    current.host.world.setTime(ticks);
+    return report(current, ticks === 0 ? 1 : ticks, `Set the time to ${ticks}`);
+};
+
 /** What `/locate` looks for, which is also the literal and the argument name of each form. */
 type LocateKind = 'structure' | 'biome' | 'poi';
 
@@ -318,16 +342,25 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
                 )
             )
             .then(
-                lit('set').then(
-                    arg('amount', timeArgument({ min: 0 })).executes(
-                        command((context) => {
-                            const current = source(context);
-                            const ticks = value<number>(context, 'amount');
-                            current.host.world.setTime(ticks);
-                            return report(current, ticks === 0 ? 1 : ticks, `Set the time to ${ticks}`);
-                        })
+                lit('set')
+                    .then(
+                        arg('amount', timeArgument({ min: 0 })).executes(
+                            command((context) => setTime(context, value<number>(context, 'amount')))
+                        )
                     )
-                )
+                    .then(
+                        // Named after Java's `timemarker` argument, so the Java 26.3 route
+                        // that merges over this one binds here and not to `amount`. That
+                        // route parses a resource location, so `minecraft:noon` arrives too.
+                        arg('timemarker', enumArgument('TimeSpec', TIME_SPECS)).executes(
+                            command((context) => {
+                                const marker = value<string>(context, 'timemarker').replace(/^minecraft:/, '');
+                                const spec = TIME_SPECS.find((name) => name === marker);
+                                if (spec === undefined) return report(source(context), 0, `Unknown time '${marker}'`);
+                                return setTime(context, TIME_SPEC_TICKS[spec]);
+                            })
+                        )
+                    )
             )
             .then(
                 lit('add').then(
