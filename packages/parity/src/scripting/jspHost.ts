@@ -276,20 +276,39 @@ const packsEnded = (scenario: ScriptScenario, lines: readonly string[]): boolean
             (scenario.runs ?? 1)
     );
 
+/** What {@link runPacksOnHeadlessServer} runs. */
+export interface HeadlessServerRun {
+    /** The behavior pack directories, as the world's packs. */
+    readonly packDirectories: readonly string[];
+    /** BDS's `config/` folder for the scripts, when there is one. */
+    readonly configDirectory?: string;
+    /** The world experiments to turn on, by their `level.dat` names. */
+    readonly experiments?: readonly string[];
+    /** A world folder to start from, such as one BDS saved, copied in before the server starts. */
+    readonly world?: string;
+    /** Where to copy the world folder the server saved once it has stopped. */
+    readonly keepWorld?: string;
+    /** Whether the packs have logged everything; the server ticks until it says so. */
+    readonly ended: (lines: readonly string[]) => boolean;
+    /** Console commands to send once a pack has logged an event, as a scenario's `gametestAfter`. */
+    readonly gametestAfter?: ScriptScenario['gametestAfter'];
+}
+
 /**
- * Runs a server scenario's packs in a headless JSPrismarine server with a flat world, one tick at
- * a time, and returns the lines they logged. Its `JSP_DIR` is a directory of its own, with the
- * scenario's packs as the world's packs and its `config/` folder beside them.
+ * Runs packs in a headless JSPrismarine server with a flat LevelDB world called `world`, one tick
+ * at a time until `ended` says so, and returns the lines they logged. Its `JSP_DIR` is a
+ * directory of its own, with the packs as the world's packs and a `config/` folder beside them.
+ * The server saves its world as it stops.
  * @throws Error when the server does not start.
  */
-const runPacksOnServer = async (scenario: ScriptScenario): Promise<string[]> => {
+export const runPacksOnHeadlessServer = async (run: HeadlessServerRun): Promise<string[]> => {
     const lines: string[] = [];
     const root = mkdtempSync(join(tmpdir(), 'jsp-parity-scripting-'));
     const previous = process.env.JSP_DIR;
     process.env.JSP_DIR = root;
     try {
-        const config = scenarioConfigDirectory(scenario);
-        if (config !== undefined) cpSync(config, join(root, 'config'), { recursive: true });
+        if (run.configDirectory !== undefined) cpSync(run.configDirectory, join(root, 'config'), { recursive: true });
+        if (run.world !== undefined) cpSync(run.world, join(root, 'worlds', 'world'), { recursive: true });
         writeFileSync(
             join(root, 'config.json'),
             JSON.stringify({
@@ -299,13 +318,13 @@ const runPacksOnServer = async (scenario: ScriptScenario): Promise<string[]> => 
                 'enable-ticking': false,
                 'chunk-workers': 0,
                 'enable-query': false,
-                'content-world-packs': scenario.packs.map((pack) => scenarioPackDirectory(scenario, pack)),
+                'content-world-packs': run.packDirectories,
                 worlds: {
                     world: {
                         preset: 'minecraft:flat',
                         provider: 'LevelDB',
                         seed: '1',
-                        ...(scenario.experiments === undefined ? {} : { experiments: scenario.experiments })
+                        ...(run.experiments === undefined ? {} : { experiments: run.experiments })
                     }
                 }
             })
@@ -325,10 +344,10 @@ const runPacksOnServer = async (scenario: ScriptScenario): Promise<string[]> => 
         await server.bootstrap('127.0.0.1', 0);
         try {
             let gametestSent = false;
-            for (let tick = 0; tick < SCENARIO_TICKS && !packsEnded(scenario, lines); tick++) {
+            for (let tick = 0; tick < SCENARIO_TICKS && !run.ended(lines); tick++) {
                 // Between ticks, as a console command arrives: after the first tick at the
                 // earliest, since BDS takes the command once the server runs, after its first ticks.
-                const gametest = scenario.gametestAfter;
+                const gametest = run.gametestAfter;
                 if (
                     !gametestSent &&
                     tick > 0 &&
@@ -354,12 +373,25 @@ const runPacksOnServer = async (scenario: ScriptScenario): Promise<string[]> => 
         } finally {
             await server.shutdown({ stayAlive: true });
         }
+        if (run.keepWorld !== undefined) cpSync(join(root, 'worlds', 'world'), run.keepWorld, { recursive: true });
     } finally {
         if (previous === undefined) delete process.env.JSP_DIR;
         else process.env.JSP_DIR = previous;
         rmSync(root, { recursive: true, force: true });
     }
     return lines;
+};
+
+/** Runs a server scenario's packs in a headless JSPrismarine server, as {@link runPacksOnHeadlessServer} does. */
+const runPacksOnServer = async (scenario: ScriptScenario): Promise<string[]> => {
+    const configDirectory = scenarioConfigDirectory(scenario);
+    return runPacksOnHeadlessServer({
+        packDirectories: scenario.packs.map((pack) => scenarioPackDirectory(scenario, pack)),
+        ...(configDirectory === undefined ? {} : { configDirectory }),
+        ...(scenario.experiments === undefined ? {} : { experiments: scenario.experiments }),
+        ...(scenario.gametestAfter === undefined ? {} : { gametestAfter: scenario.gametestAfter }),
+        ended: (lines) => packsEnded(scenario, lines)
+    });
 };
 
 /**
