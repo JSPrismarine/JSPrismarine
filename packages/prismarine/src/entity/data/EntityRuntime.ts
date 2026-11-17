@@ -1053,7 +1053,7 @@ export class EntityRuntime implements EntityScene {
         this.damagePipeline = new DamagePipeline({
             guards: damageGuards(damageReads, this.damageSensing),
             modifiers: damageModifiers(damageReads, this.damageSensing),
-            commit: (intent, computation) => this.commitDamage(intent, computation),
+            commit: (intent, computation, requested) => this.commitDamage(intent, computation, requested),
             reject: (intent, guard) =>
                 this.store.occurred({
                     kind: 'occurrence',
@@ -3314,7 +3314,11 @@ export class EntityRuntime implements EntityScene {
      * grace period, the hurt feedback and the shove, then the health with the sensor's events and
      * the hurt triggers, then the damage record, then the host's observers, then the death.
      */
-    private commitDamage(intent: DamageIntent, computation: DamageComputation): DamageCommitResult {
+    private commitDamage(
+        intent: DamageIntent,
+        computation: DamageComputation,
+        requested: DamageIntent = intent
+    ): DamageCommitResult {
         const sensing = this.damageSensing.of(intent);
         const entity = this.store.get(intent.target);
         if (entity === undefined) return { taken: 0, died: false };
@@ -3335,7 +3339,7 @@ export class EntityRuntime implements EntityScene {
 
         const taken = computation.amount;
         if (fresh && taken > 0 && source.feedback !== false) this.host.hurtFeedback?.(entity.id);
-        if (fresh && source.knockback !== undefined) this.shove(entity, source.knockback, intent);
+        if (fresh && source.knockback !== undefined) this.shove(entity, source.knockback, intent, requested.amount);
 
         const damager = intent.attacker === undefined ? undefined : this.mobById(intent.attacker)?.view();
         const result = entity.instance.applyDamage(
@@ -3782,11 +3786,15 @@ export class EntityRuntime implements EntityScene {
      *
      * They are worked out together and written once, because a player is sent its knockback and a
      * second packet in the same tick would overwrite the first.
+     *
+     * @param dealt - The blow as it arrived, which a sulfur cube's push is sized by even when the
+     *   cube is immune to it, as Java's `SulfurCube.hurtServer` passes it to `dealDefaultKnockback`.
      */
     private shove(
         entity: DataEntity,
         knockback: NonNullable<DamageSourceFacts['knockback']>,
-        intent: DamageIntent
+        intent: DamageIntent,
+        dealt: number
     ): void {
         const onGround = entity.body.conditions.has('on_ground');
         const toward = { x: knockback.origin.x - entity.position.x, z: knockback.origin.z - entity.position.z };
@@ -3810,7 +3818,7 @@ export class EntityRuntime implements EntityScene {
                           toward: shove.toward,
                           tieBreak: entity.id % 8
                       })
-                    : sulfurCubeKnockback({ ...cube, ...shove, velocity, damage: intent.amount });
+                    : sulfurCubeKnockback({ ...cube, ...shove, velocity, damage: dealt });
         this.knockTo(entity, velocity);
     }
 

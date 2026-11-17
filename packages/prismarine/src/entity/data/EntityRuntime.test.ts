@@ -3013,12 +3013,14 @@ describe('EntityRuntime', () => {
             expect(ravager!.body.velocity.x).toBeCloseTo(0.06);
         });
 
-        it("pushes a sulfur cube carrying a block by its archetype, as Java's SulfurCube.knockback does", () => {
+        it("pushes a sulfur cube carrying a block by its archetype and the blow it is immune to, as Java's SulfurCube does", () => {
             const definitions = entityFixtureStack({
                 'minecraft:sulfur_cube': {
                     components: {
                         'minecraft:health': { value: 10, max: 10 },
-                        'minecraft:collision_box': { width: 1, height: 1 }
+                        'minecraft:collision_box': { width: 1, height: 1 },
+                        // A cube with a block takes no damage, and Java still sizes its push by the blow.
+                        'minecraft:damage_sensor': { triggers: { cause: 'all', deals_damage: 'no' } }
                     }
                 }
             });

@@ -220,8 +220,14 @@ export interface DamageStages {
     /** The pack and game-rule guards, in order. Before-hooks are added with {@link DamagePipeline.addBeforeHook}. */
     readonly guards: readonly DamageGuard[];
     readonly modifiers: readonly DamageModifierSlot[];
-    /** Applies a computed blow through the store's setters. */
-    commit(intent: DamageIntent, computation: DamageComputation): DamageCommitResult;
+    /**
+     * Applies a computed blow through the store's setters.
+     *
+     * @param intent - The intent as the guards left it.
+     * @param requested - The intent as it arrived, before any guard replaced its amount, which
+     *   a push sized by the blow, such as a sulfur cube's, reads when a guard took the damage.
+     */
+    commit(intent: DamageIntent, computation: DamageComputation, requested: DamageIntent): DamageCommitResult;
     /** Records a veto. Nothing else is written. */
     reject(intent: DamageIntent, guard: DamageGuard): void;
 }
@@ -283,7 +289,7 @@ export class DamagePipeline {
         }
 
         const computation = this.compute(current);
-        const result = this.stages.commit(current, computation);
+        const result = this.stages.commit(current, computation, intent);
         return { committed: true, intent: current, computation, taken: result.taken, died: result.died };
     }
 
