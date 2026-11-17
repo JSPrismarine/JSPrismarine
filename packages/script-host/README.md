@@ -359,7 +359,12 @@ A script's `Entity` or `Block` is a handle: an object whose state names the enti
 block's position, and whose members read the world each time they run. Once an entity is gone,
 `isValid` is false, `id` and `typeId` still answer, and its other members throw BDS's
 `InvalidEntityError`. A pack gets one object per entity, so `===` compares two. An item stack is a
-value the script owns, held in its object's state. `src/testing/memoryWorld.test.helper.ts` is a `ScriptWorld`
+value the script owns, held in its object's state. A pack's
+dynamic properties on the world and on an entity live in the world, keyed by the pack's header
+UUID, and a script writes them through `ScriptWorld.setDynamicProperties`; an item stack keeps
+its own in its state, keyed by the script module UUID, as BDS keys them on disk. The scripts'
+`world.scoreboard` is `ScriptWorld.scoreboard`, which the server shares with `/scoreboard`.
+`src/testing/memoryWorld.test.helper.ts` is a `ScriptWorld`
 in memory, which counts what the host reads, for tests that bound the world calls a member makes.
 
 ```ts

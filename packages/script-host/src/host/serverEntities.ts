@@ -20,6 +20,7 @@ import {
     gameModeOf,
     invalidEntity,
     itemOf,
+    itemState,
     plainError,
     readMessage,
     SERVER,
@@ -317,7 +318,7 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
             const all = slots(call, 'getItem');
             const item = all[slotArgument(call, all.length)];
             if (item === undefined || item === null) return undefined;
-            return host.engine.release(host.create('ItemStack', TAG.itemStack, JSON.stringify(item)));
+            return host.engine.release(host.create('ItemStack', TAG.itemStack, itemState(item)));
         })
         .implement(SERVER, 'Container', 'setItem', (call) => {
             const all = slots(call, 'setItem');

@@ -416,7 +416,11 @@ export class ScriptApiContext {
         privilege: readonly Privilege[] | undefined,
         returns?: ShapeType
     ): RuntimeCall {
-        const checks = args.map((argument) => this.argument(argument, shape));
+        const converted = this.options.implementations.converts(shape.module, owner, member);
+        const checks = args.map((argument): RuntimeArgument => {
+            const checked = this.argument(argument, shape);
+            return converted.includes(argument.name) ? { type: { kind: 'host' }, optional: checked.optional } : checked;
+        });
         const required = checks.reduce((count, check, index) => (check.optional ? count : index + 1), 0);
         return {
             id: this.entry(shape.module, owner, member, access, privilege),

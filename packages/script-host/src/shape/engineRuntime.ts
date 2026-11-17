@@ -154,6 +154,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     const matches = (type: RuntimeType, value: unknown): boolean => {
         switch (type.kind) {
             case 'any':
+            case 'host':
                 return true;
             case 'boolean':
             case 'string':
@@ -234,7 +235,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         return makeError(
             COMMON,
             'ArgumentOutOfBoundsError',
-            `Unsupported or out of bounds value passed to function argument [${index}]. Value: ${value}, ${bounds}`,
+            `Unsupported or out of bounds value passed to function argument [${index}]. Value: ${bound32(value)}, ${bounds}`,
             { index, value, minValue: min, maxValue: max }
         );
     };
@@ -287,7 +288,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                     `${conversion} failed. Function argument [${index}] expected type: ${describe(argument.type)}`
                 );
             }
-            if (typeof value === 'number') {
+            if (typeof value === 'number' && argument.type.kind !== 'host') {
                 // BDS refuses NaN and an infinity before it checks any bounds.
                 if (!isFinite(value)) {
                     throw new TypeError(

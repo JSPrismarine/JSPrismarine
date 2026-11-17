@@ -499,6 +499,8 @@ export class WorldScripts {
         const context = engine.createContext();
         const implementations = serverImplementations({
             engine,
+            packUuid: pack.uuid,
+            moduleUuid: pack.moduleUuid,
             currentTick: () => this.tick,
             schedule: (kind, callback, delay) =>
                 this.tasks.schedule(kind, { loaded: self(), callback: engine.duplicate(callback) }, this.tick, delay),

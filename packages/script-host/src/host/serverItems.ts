@@ -9,7 +9,7 @@
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
 import { ScriptHandle } from '../values';
 import type { PackHost } from './minecraftServer';
-import { itemOf, plainError, SERVER, withNamespace } from './serverObjects';
+import { itemOf, itemState, plainError, SERVER, withNamespace } from './serverObjects';
 import type { ScriptItem } from './world';
 
 /**
@@ -20,7 +20,7 @@ import type { ScriptItem } from './world';
 export const implementItems = (implementations: ScriptApiImplementations, host: PackHost): void => {
     const { world } = host;
     const stackOf = (call: ScriptCall): ScriptItem => itemOf(call.state);
-    const write = (call: ScriptCall, item: ScriptItem): void => call.setState(JSON.stringify(item));
+    const write = (call: ScriptCall, item: ScriptItem): void => call.setState(itemState(item));
 
     implementations
         .implement(SERVER, 'ItemStack', 'constructor', (call) => {
@@ -33,7 +33,7 @@ export const implementItems = (implementations: ScriptApiImplementations, host: 
                 typeId: known.typeId,
                 amount: typeof amount === 'number' ? Math.trunc(amount) : 1
             };
-            return JSON.stringify(item);
+            return itemState(item);
         })
         .implement(SERVER, 'ItemStack', 'typeId', { get: (call) => stackOf(call).typeId })
         .implement(SERVER, 'ItemStack', 'amount', {

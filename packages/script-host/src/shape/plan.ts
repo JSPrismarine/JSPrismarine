@@ -15,7 +15,9 @@ export type RuntimeType =
     | { readonly kind: 'object'; readonly name: string }
     | { readonly kind: 'array'; readonly element: RuntimeType }
     | { readonly kind: 'optional'; readonly type: RuntimeType }
-    | { readonly kind: 'variant'; readonly types: readonly RuntimeType[] };
+    | { readonly kind: 'variant'; readonly types: readonly RuntimeType[] }
+    /** An argument the host converts and checks itself, which the runtime passes on as it is. */
+    | { readonly kind: 'host' };
 
 /** One argument's checks. */
 export interface RuntimeArgument {
