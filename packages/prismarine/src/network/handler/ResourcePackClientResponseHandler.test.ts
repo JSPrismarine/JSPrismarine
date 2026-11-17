@@ -38,6 +38,7 @@ import PackId from '@jsprismarine/protocol/structure/UUID';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet/ResourcePackClientResponsePacket';
+import ResourcePackStackPacket from '@jsprismarine/protocol/packet/ResourcePackStackPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import { ResourcePackStatus } from '@jsprismarine/protocol';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
@@ -248,6 +249,24 @@ describe('ResourcePackClientResponseHandler', () => {
         );
 
         expect(sent).toEqual(['ResourcePackStackPacket']);
+    });
+
+    it("lists the level's experiments in the pack stack", async () => {
+        const { packets, parts, session } = harness({ level: fakeLevel({ experiments: ['gametest'] }) });
+
+        await respond(
+            new ResourcePackClientResponseHandler(),
+            response(ResourcePackStatus.HaveAllPacks),
+            parts,
+            session
+        );
+
+        const stack = packets.find((sent) => sent instanceof ResourcePackStackPacket);
+        if (!(stack instanceof ResourcePackStackPacket)) throw new Error('no pack stack was sent');
+        expect(stack.getPacketData()).toMatchObject({
+            experiments: [{ name: 'gametest', enabled: true }],
+            experimentsAlreadyEnabled: true
+        });
     });
 
     it('sends the join in the order a dedicated server does', async () => {

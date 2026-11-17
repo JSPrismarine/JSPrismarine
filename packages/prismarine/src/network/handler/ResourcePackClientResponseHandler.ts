@@ -27,6 +27,7 @@ import { outsideTick } from '../../world/TickContext';
 import { whenInputCommits } from '../../world/inputUnit';
 import type { World } from '../../world/World';
 import { createStartGameData } from '../startGameData';
+import { experimentToggles } from '../../world/WorldExperiments';
 import { sendCachedJoinPacket } from '../joinPacketCache';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
@@ -183,14 +184,15 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                     return;
                 }
 
+                const experiments = session.getWorld().getLevel().getExperiments();
                 step.output(
                     session.getConnection().sendDataPacket(
                         new ResourcePackStackPacket({
                             texturePackRequired: false,
                             texturePacks: [],
                             gameVersion: '*',
-                            experiments: [],
-                            experimentsAlreadyEnabled: false,
+                            experiments: experimentToggles(experiments),
+                            experimentsAlreadyEnabled: experiments.length > 0,
                             editorPackTypes: EditorPackType.None
                         })
                     )

@@ -17,6 +17,7 @@ import { eyePositionAt } from '../entity/playerEyes';
 import type { ShownPlayer } from '../world/ShownPlayer';
 import type { PlayerSpawn } from '../world/SpawnPlacement';
 import type { World } from '../world/World';
+import { experimentToggles } from '../world/WorldExperiments';
 import { isFlatGenerator } from '../world/WorldPersistence';
 
 /** What the join state reads of the joining player, which `PlayerSession.getPlayer` answers with. */
@@ -108,8 +109,8 @@ export const createStartGameData = ({
         commandsEnabled: true,
         texturePacksRequired: false,
         gameRules,
-        experiments: [],
-        experimentsEverToggled: false,
+        experiments: experimentToggles(world.getLevel().getExperiments()),
+        experimentsEverToggled: world.getLevel().getExperiments().length > 0,
         bonusChestEnabled: false,
         startWithMapEnabled: false,
         playerPermissions: 1,

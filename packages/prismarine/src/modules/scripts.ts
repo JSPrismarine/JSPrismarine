@@ -42,10 +42,12 @@ export const scriptsModule = (server: Server): Module => ({
                                     .catch((error: unknown) => server.getLogger().error(error))
                         })),
                 weather: level.getWeather(),
+                chat: server.getChatManager(),
                 clock: () => server.getAdmittedClock()
             },
             seed: server.getWorldManager().getDefaultWorld().getSeed(),
             watchdog: server.getConfig().getScriptWatchdog(),
+            experiments: level.getExperiments(),
             log: {
                 info: (message) => server.getLogger().info(message),
                 warn: (message) => server.getLogger().warn(message),

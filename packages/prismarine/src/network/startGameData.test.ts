@@ -11,6 +11,7 @@ import { Dimensions } from '../world/DimensionType';
 import type { DimensionType } from '../world/DimensionType';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
+import type { WorldExperiment } from '../world/WorldExperiments';
 import { createStartGameData, startGameGenerator } from './startGameData';
 
 /** The vanilla Nether stem's key, which `@jsprismarine/worldgen` names only for the Overworld. */
@@ -44,8 +45,13 @@ const NETHER: LevelStem = {
 };
 
 /** A world of one dimension in a level with the given stems. */
-const worldOf = (dimension: DimensionType, stem: LevelStem, stems: ReadonlyMap<string, LevelStem>): World => {
-    const level = fakeLevel({ stems });
+const worldOf = (
+    dimension: DimensionType,
+    stem: LevelStem,
+    stems: ReadonlyMap<string, LevelStem>,
+    experiments: readonly WorldExperiment[] = []
+): World => {
+    const level = fakeLevel({ stems, experiments });
     const world = stub<World>({
         getLevel: () => level,
         getStem: () => stem,
@@ -82,6 +88,24 @@ const startGameFor = (world: World) =>
     });
 
 describe('startGameData', () => {
+    describe('experiments', () => {
+        const stems = new Map([[OVERWORLD_STEM_ID, FLAT]]);
+
+        it("sends each experiment the level has on, and that the world's experiments were toggled", () => {
+            const data = startGameFor(worldOf(Dimensions.Overworld, FLAT, stems, ['gametest']));
+
+            expect(data.experiments).toEqual([{ name: 'gametest', enabled: true }]);
+            expect(data.experimentsEverToggled).toBe(true);
+        });
+
+        it('sends none for a level without experiments', () => {
+            const data = startGameFor(worldOf(Dimensions.Overworld, FLAT, stems));
+
+            expect(data.experiments).toEqual([]);
+            expect(data.experimentsEverToggled).toBe(false);
+        });
+    });
+
     describe('generator', () => {
         it('is Flat for a flat Overworld stem', () => {
             const world = worldOf(Dimensions.Overworld, FLAT, new Map([[OVERWORLD_STEM_ID, FLAT]]));
