@@ -1,0 +1,224 @@
+--- a/libregexp.c
++++ b/libregexp.c
+@@ -79,6 +79,7 @@
+     BOOL ignore_case;
+     BOOL multi_line;
+     BOOL dotall;
++    BOOL no_new_syntax; /* JSPrismarine: LRE_FLAG_NO_NEW_SYNTAX */
+     uint8_t group_name_scope;
+     int capture_count;
+     int total_capture_count; /* -1 = not computed yet */
+@@ -1797,7 +1798,7 @@
+         len = strlen(p);
+         if (len == name_len && memcmp(name, p, name_len) == 0) {
+             scope1 = (uint8_t)p[len + 1];
+-            if (scope == scope1)
++            if (scope == scope1 || s->no_new_syntax)
+                 return TRUE;
+         }
+         p += len + LRE_GROUP_NAME_TRAILER_LEN;
+@@ -1910,7 +1911,8 @@
+                 p = s->buf_ptr;
+                 if (re_parse_expect(s, &p, ')'))
+                     return -1;
+-            } else if (p[2] == 'i' || p[2] == 'm' || p[2] == 's' || p[2] == '-') {
++            } else if (!s->no_new_syntax &&
++                       (p[2] == 'i' || p[2] == 'm' || p[2] == 's' || p[2] == '-')) {
+                 BOOL saved_ignore_case, saved_multi_line, saved_dotall;
+                 int add_mask, remove_mask;
+                 p += 2;
+@@ -2532,6 +2534,8 @@
+     s->buf_ptr = (const uint8_t *)buf;
+     s->buf_end = s->buf_ptr + buf_len;
+     s->buf_start = s->buf_ptr;
++    s->no_new_syntax = (re_flags & LRE_FLAG_NO_NEW_SYNTAX) != 0;
++    re_flags &= ~LRE_FLAG_NO_NEW_SYNTAX;
+     s->re_flags = re_flags;
+     s->is_unicode = ((re_flags & (LRE_FLAG_UNICODE | LRE_FLAG_UNICODE_SETS)) != 0);
+     is_sticky = ((re_flags & LRE_FLAG_STICKY) != 0);
+--- a/libregexp.h
++++ b/libregexp.h
+@@ -36,6 +36,9 @@
+ #define LRE_FLAG_INDICES    (1 << 6) /* Unused by libregexp, just recorded. */
+ #define LRE_FLAG_NAMED_GROUPS (1 << 7) /* named groups are present in the regexp */
+ #define LRE_FLAG_UNICODE_SETS (1 << 8)
++/* JSPrismarine: refuse modifier groups and duplicate group names; never
++   stored in the bytecode */
++#define LRE_FLAG_NO_NEW_SYNTAX (1 << 9)
+ 
+ #define LRE_RET_MEMORY_ERROR (-1)
+ #define LRE_RET_TIMEOUT      (-2)
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -359,6 +359,8 @@
+ 
+     JSInterruptHandler *interrupt_handler;
+     void *interrupt_opaque;
++    /* JSPrismarine: stack overflows thrown, caught or not */
++    uint64_t stack_overflow_count;
+ 
+     JSHostPromiseRejectionTracker *host_promise_rejection_tracker;
+     void *host_promise_rejection_tracker_opaque;
+@@ -545,6 +547,11 @@
+ 
+     /* when the counter reaches zero, JSRutime.interrupt_handler is called */
+     int interrupt_counter;
++    /* JSPrismarine: the Function constructors refuse to compile a string */
++    BOOL function_from_string_disabled;
++    /* JSPrismarine: regular expressions refuse the v flag, modifiers and
++       duplicate group names */
++    BOOL regexp_new_syntax_disabled;
+ 
+     struct list_head loaded_modules; /* list of JSModuleDef.link */
+ 
+@@ -2239,6 +2246,26 @@
+     rt->interrupt_opaque = opaque;
+ }
+ 
++void JS_DisableFunctionFromString(JSContext *ctx)
++{
++    ctx->function_from_string_disabled = TRUE;
++}
++
++uint64_t JS_GetStackOverflowCount(JSRuntime *rt)
++{
++    return rt->stack_overflow_count;
++}
++
++void JS_ResetInterruptCounter(JSContext *ctx)
++{
++    ctx->interrupt_counter = JS_INTERRUPT_COUNTER_INIT;
++}
++
++void JS_DisableNewRegExpSyntax(JSContext *ctx)
++{
++    ctx->regexp_new_syntax_disabled = TRUE;
++}
++
+ void JS_SetCanBlock(JSRuntime *rt, BOOL can_block)
+ {
+     rt->can_block = can_block;
+@@ -7788,6 +7815,7 @@
+ 
+ static JSValue JS_ThrowStackOverflow(JSContext *ctx)
+ {
++    ctx->rt->stack_overflow_count++;
+     return JS_ThrowInternalError(ctx, "stack overflow");
+ }
+ 
+@@ -40886,6 +40914,67 @@
+     return res;
+ }
+ 
++/* JSPrismarine: Object.__getClass and String.prototype.__quote, as older
++   releases defined them */
++static JSValue js_object___getClass(JSContext *ctx, JSValueConst this_val,
++                                    int argc, JSValueConst *argv)
++{
++    JSAtom atom;
++    JSObject *p;
++    int class_id;
++
++    if (JS_VALUE_GET_TAG(argv[0]) == JS_TAG_OBJECT) {
++        p = JS_VALUE_GET_OBJ(argv[0]);
++        class_id = p->class_id;
++        if (class_id == JS_CLASS_PROXY && JS_IsFunction(ctx, argv[0]))
++            class_id = JS_CLASS_BYTECODE_FUNCTION;
++        atom = ctx->rt->class_array[class_id].class_name;
++    } else {
++        atom = JS_ATOM_empty_string;
++    }
++    return JS_AtomToString(ctx, atom);
++}
++
++static int JS_ToQuotedString(JSContext *ctx, StringBuffer *b, JSValueConst val1);
++
++static JSValue js_string___quote(JSContext *ctx, JSValueConst this_val,
++                                 int argc, JSValueConst *argv)
++{
++    StringBuffer b_s, *b = &b_s;
++
++    string_buffer_init(ctx, b, 0);
++    if (JS_ToQuotedString(ctx, b, this_val)) {
++        string_buffer_free(b);
++        return JS_EXCEPTION;
++    }
++    return string_buffer_end(b);
++}
++
++static const JSCFunctionListEntry js_object_legacy_funcs[] = {
++    JS_CFUNC_DEF("__getClass", 1, js_object___getClass ),
++};
++
++static const JSCFunctionListEntry js_string_proto_legacy_funcs[] = {
++    JS_CFUNC_DEF("__quote", 1, js_string___quote ),
++};
++
++int JS_AddLegacyMembers(JSContext *ctx)
++{
++    JSValue object = JS_GetProperty(ctx, ctx->global_obj, JS_ATOM_Object);
++    int ret;
++
++    if (JS_IsException(object))
++        return -1;
++    ret = JS_SetPropertyFunctionList(ctx, object, js_object_legacy_funcs,
++                                     countof(js_object_legacy_funcs));
++    JS_FreeValue(ctx, object);
++    if (ret)
++        return -1;
++    return JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_STRING],
++                                      js_string_proto_legacy_funcs,
++                                      countof(js_string_proto_legacy_funcs));
++}
++
+ static const JSCFunctionListEntry js_object_funcs[] = {
+     JS_CFUNC_DEF("create", 2, js_object_create ),
+     JS_CFUNC_MAGIC_DEF("getPrototypeOf", 1, js_object_getPrototypeOf, 0 ),
+@@ -40943,6 +41032,9 @@
+     JSValue s, proto, obj = JS_UNDEFINED;
+     StringBuffer b_s, *b = &b_s;
+ 
++    if (ctx->function_from_string_disabled)
++        return JS_ThrowTypeError(ctx, "Function from string is not supported");
++
+     string_buffer_init(ctx, b, 0);
+     string_buffer_putc8(b, '(');
+ 
+@@ -47396,6 +47488,12 @@
+     bad_flags1:
+         return JS_ThrowSyntaxError(ctx, "invalid regular expression flags");
+     }
++    /* JSPrismarine: the syntax older releases lacked */
++    if (ctx->regexp_new_syntax_disabled) {
++        if (re_flags & LRE_FLAG_UNICODE_SETS)
++            goto bad_flags1;
++        re_flags |= LRE_FLAG_NO_NEW_SYNTAX;
++    }
+     
+     str = JS_ToCStringLen2(ctx, &len, pattern, !(re_flags & (LRE_FLAG_UNICODE | LRE_FLAG_UNICODE_SETS)));
+     if (!str)
+--- a/quickjs.h
++++ b/quickjs.h
+@@ -924,6 +924,22 @@
+ /* return != 0 if the JS code needs to be interrupted */
+ typedef int JSInterruptHandler(JSRuntime *rt, void *opaque);
+ void JS_SetInterruptHandler(JSRuntime *rt, JSInterruptHandler *cb, void *opaque);
++/* JSPrismarine: Function, GeneratorFunction, AsyncFunction and
++   AsyncGeneratorFunction throw a TypeError instead of compiling a string */
++void JS_DisableFunctionFromString(JSContext *ctx);
++/* JSPrismarine: the number of stack overflows the runtime has thrown,
++   whether or not a script caught them */
++uint64_t JS_GetStackOverflowCount(JSRuntime *rt);
++/* JSPrismarine: the next interrupt handler call comes after a full
++   JS_INTERRUPT_COUNTER_INIT polls, whatever ran before */
++void JS_ResetInterruptCounter(JSContext *ctx);
++/* JSPrismarine: regular expressions throw a SyntaxError for the v flag,
++   modifier groups such as (?i:a) and a group name used twice, as releases
++   before them did */
++void JS_DisableNewRegExpSyntax(JSContext *ctx);
++/* JSPrismarine: defines Object.__getClass and String.prototype.__quote,
++   which older releases had; returns -1 on an exception */
++int JS_AddLegacyMembers(JSContext *ctx);
+ /* if can_block is TRUE, Atomics.wait() can be used */
+ void JS_SetCanBlock(JSRuntime *rt, JS_BOOL can_block);
+ /* select which debug info is stripped from the compiled code */

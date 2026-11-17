@@ -12,7 +12,7 @@ it at all.
 The watchdog counts work. QuickJS calls its interrupt handler once every 10,000 of its internal
 polls, which it takes at backward jumps and calls. The host counts those handler calls, which this
 ADR calls steps, and charges them to a budget for each callback and for each tick. The research
-spike ran the same program to exactly 400 steps on every run. A script that runs out of budget is terminated as BDS terminates one: the callback throws, and
+spike ran the same program to exactly 400 steps on every run. QuickJS carries its poll counter from one call into the engine to the next, which would make a callback's step count depend on the callbacks before it and on state a save does not hold, so the host restarts the counter at each outermost entry. A script that runs out of budget is terminated as BDS terminates one: the callback throws, and
 `system.beforeEvents.watchdogTerminate` decides whether the runtime keeps going. The same script
 stops at the same step every time it runs. Memory works the same way: the engine's allocation
 limit in bytes stands in for `script-watchdog-memory-limit`, and reaching it saves the world and
