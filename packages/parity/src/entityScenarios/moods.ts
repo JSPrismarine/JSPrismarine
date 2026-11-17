@@ -340,31 +340,5 @@ export const moodScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                       reason: 'The sensor only picks the idle ground sound, which is sound selection: rendered presentation, category 1 of docs/data-driven/parity.md.'
                   }
                 : undefined
-    },
-    {
-        name: 'unrun-components',
-        java: "A bee carrying nectar grows the crops it passes over, Java's Bee$BeeGrowCropGoal, and a ravager a shield blocks is stunned or throws the defender back, Java's Ravager.blockedByItem.",
-        reference:
-            'Java Bee$BeeGrowCropGoal (nextInt(adjustedTickDelay(30)), bee_growables, 10 crops a pollination) and Ravager.blockedByItem (stunnedTick 40 half the time, strongKnockback otherwise), read from the pinned jar; issue #3194',
-        subjects: () => [
-            ...entitiesDeclaring('minecraft:ravager_blocked').map((subject) => ({
-                ...subject,
-                tag: 'minecraft:ravager_blocked'
-            }))
-        ],
-        idOf: (subject) => subject.javaId,
-        aspects: (subject) => (subject.tag === undefined ? [] : [subject.tag]),
-        run: (subject) => {
-            const component = subject.tag ?? '';
-            const java =
-                component === 'minecraft:grows_crop'
-                    ? javaMethodOf(`${javaEntityClassName(subject.javaId)}$BeeGrowCropGoal`, 'tick')
-                    : javaMethodOf(javaEntityClassName(subject.javaId), 'blockedByItem');
-            if (java === undefined) return `Java's ${subject.javaId} no longer has the rule ${component} stands for`;
-            // A component the registry holds as data only never runs, and no runtime code reads these two.
-            return serverContent().entities.components.hooksOf(component).size > 0
-                ? undefined
-                : `the server runs nothing for ${component}, so ${component === 'minecraft:grows_crop' ? 'a bee grows no crop' : 'a blocked ravager is never stunned or pushed back'}, where Java's does`;
-        }
     }
 ];

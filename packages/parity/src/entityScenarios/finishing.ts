@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { EntityPosition } from '@jsprismarine/entities';
+import { Activities, MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { bedrockBlockStateToJava, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import type { BlockStateValue } from '@jsprismarine/mapping';
 
@@ -13,6 +14,7 @@ import { isInDragonArena } from '@jsprismarine/prismarine/world/end/DragonFight'
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { javaOperations, pinnedJavaClass } from '../javaClassFile.ts';
 import { unpackVanillaDatapack } from '../javaDatapack.ts';
+import { serverContent } from '../serverStack.ts';
 import { withProbe } from './goalProbe.ts';
 import { inSandbox, SANDBOX_ORIGIN } from './sandbox.ts';
 import { javaAncestry, javaEntityClassName, javaMethodOf, numberNear, pushedNumbers } from './javaEntityCode.ts';
@@ -802,6 +804,82 @@ const compareNightSensor = (subject: EntitySubject): string | undefined => {
     return differences.length === 0 ? undefined : differences.join('; ');
 };
 
+/**
+ * A villager near a rung bell against Java's: `BellBlockEntity.updateEntities` writes
+ * `HEARD_BELL_TIME` into every living entity within 32 blocks of the bell, `ReactToBell` turns the
+ * villager's brain to `hide`, and `LocateHidingPlace` runs it to a bed within its search range.
+ */
+const compareBellHiding = (subject: EntitySubject): string | undefined => {
+    const bell = pinnedJavaClass('net/minecraft/world/level/block/entity/BellBlockEntity').find(
+        (method) => method.name === 'updateEntities'
+    );
+    const range = bell === undefined ? undefined : numberNear(bell, '.closerToCenterThan', 'before');
+    if (range === undefined) return "Java's bell no longer tells the entities around it that it rang";
+    const outcome = withProbe(subject.bedrock, { keep: [] }, (probe) => {
+        probe.block(6, 0, 0, 'minecraft:bed', { head_piece_bit: true, direction: 0, occupied_bit: false });
+        const far = probe.spawn(subject.bedrock, range + 8, 0, 0);
+        probe.runtime.ringBell(probe.at(-2, 0, 0));
+        probe.tick(2);
+        const place = probe.entity.brain?.getMemory(MemoryModuleTypes.HIDING_PLACE)?.pos;
+        const bed = probe.at(6, 0, 0);
+        return {
+            hiding: probe.entity.brain?.isActive(Activities.HIDE) === true,
+            farHiding: far.brain?.isActive(Activities.HIDE) === true,
+            hidesInBed:
+                place !== undefined &&
+                place.x === Math.floor(bed.x) &&
+                place.y === Math.floor(bed.y) &&
+                place.z === Math.floor(bed.z)
+        };
+    });
+    const differences: string[] = [];
+    if (!outcome.hiding) differences.push('a villager beside a rung bell never turns to hide, where Java hides it');
+    if (outcome.farHiding)
+        differences.push(
+            `a villager ${range + 8} blocks from the bell hides too, where Java's hears it only within ${range}`
+        );
+    if (outcome.hiding && !outcome.hidesInBed)
+        differences.push(
+            'a hiding villager picks no hiding place at the bed beside it, where Java runs it to that bed'
+        );
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
+/** The runtime id of the store player a ravager strikes. */
+const SHIELD_HOLDER_ID = 9_800_001;
+
+/**
+ * A ravager's blow on a player behind a raised shield against Java's: the shield blocks it
+ * (`LivingEntity.applyItemBlocking`), and `Ravager.blockedByItem` either stuns the ravager for 40
+ * ticks or throws the defender back.
+ */
+const compareRavagerBlocked = (subject: EntitySubject): string | undefined => {
+    const blocked = javaMethodOf(javaEntityClassName(subject.javaId), 'blockedByItem');
+    const stun = blocked === undefined ? [] : pushedNumbers(blocked.method);
+    if (blocked?.owner !== 'Ravager' || !stun.includes(40)) return "Java's ravager is no longer stunned by a shield";
+    const taken = withProbe(subject.bedrock, { keep: [] }, (probe) => {
+        const player = probe.runtime.spawnPlayer(SHIELD_HOLDER_ID, probe.at(1.5, 0, 0));
+        const target = probe.runtime.mobById(SHIELD_HOLDER_ID);
+        if (player === undefined || target === undefined) return 'the probe could not put a player in front of it';
+        try {
+            player.body.setEquipment({ offhand: { identifier: 'minecraft:shield', count: 1 } });
+            probe.runtime.playerSystems.setSneaking(player, true);
+            probe.tick(10);
+            const before = player.instance.attributes.get('health')?.current ?? 0;
+            const ravager = probe.runtime.bodyOf(probe.entity.instance);
+            if (ravager === undefined) return 'the probe lost the ravager';
+            probe.runtime.attack(ravager, target);
+            return before - (player.instance.attributes.get('health')?.current ?? 0);
+        } finally {
+            probe.runtime.remove(player.id, 'parity probe');
+        }
+    });
+    if (typeof taken === 'string') return taken;
+    return taken > 0
+        ? `a player crouching behind a raised shield takes ${taken} from its blow, so the server never blocks it and the ravager is never stunned or the defender thrown back, where Java's shield blocks it`
+        : undefined;
+};
+
 /** The scenarios of the finishing theme. */
 export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
@@ -947,5 +1025,29 @@ export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:environment_sensor'],
         run: compareNightSensor
+    },
+    {
+        name: 'villager-hides-on-bell',
+        java: "A villager within 32 blocks of a rung bell turns to hide and picks the bed nearby to run to, as Java's BellBlockEntity, ReactToBell and LocateHidingPlace have it.",
+        reference:
+            'Java BellBlockEntity.updateEntities (closerToCenterThan(32), HEARD_BELL_TIME), VillagerGoalPackages.getCorePackage (ReactToBell) and getHidePackage (SetHiddenState, LocateHidingPlace), read from the pinned jar; issue #3198',
+        subjects: () =>
+            entitiesDeclaring('minecraft:hide').filter((subject) => subject.javaId === 'minecraft:villager'),
+        idOf: (subject) => subject.javaId,
+        aspects: (subject) =>
+            ['minecraft:hide', 'minecraft:behavior.hide'].filter((component) =>
+                serverContent().entities.registry.get(subject.bedrock)?.declaredComponents.includes(component)
+            ),
+        run: compareBellHiding
+    },
+    {
+        name: 'ravager-blocked-by-shield',
+        java: "A ravager whose blow a raised shield blocks is stunned for 40 ticks half the time and throws the defender back otherwise, as Java's Ravager.blockedByItem does.",
+        reference:
+            'Java LivingEntity.applyItemBlocking and Ravager.blockedByItem (roarTick, nextDouble() < 0.5, stunnedTick 40, strongKnockback), read from the pinned jar; issues #3194 and #3222',
+        subjects: () => entitiesDeclaring('minecraft:ravager_blocked'),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:ravager_blocked'],
+        run: compareRavagerBlocked
     }
 ];

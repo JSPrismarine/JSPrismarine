@@ -532,6 +532,11 @@
             "reason": "A player's blow on a sulfur cube carrying a block pushes it by the cube's archetype knockback, as Java's SulfurCube.knockback replaces the plain push. Observed: a player's blow pushes a sulfur cube carrying a block 0.400, the plain push any mob takes, where Java's SulfurCube.knockback sizes it by the cube's archetype and the player's aim.",
             "reference": "Java SulfurCube.knockback (hasBodyItem, SulfurCubeArchetype$KnockbackModifiers horizontalPower and verticalPower, applyHorizontalHitAngleScale, applyVerticalHitAnglePowerTransfer, applyVerticalPositionAnglePowerRotation), read from the pinned jar"
         },
+        "ravager-blocked-by-shield:minecraft:ravager": {
+            "kind": "defect",
+            "reason": "A ravager whose blow a raised shield blocks is stunned for 40 ticks half the time and throws the defender back otherwise, as Java's Ravager.blockedByItem does. Observed: a player crouching behind a raised shield takes 12 from its blow, so the server never blocks it and the ravager is never stunned or the defender thrown back, where Java's shield blocks it.",
+            "reference": "Java LivingEntity.applyItemBlocking and Ravager.blockedByItem (roarTick, nextDouble() < 0.5, stunnedTick 40, strongKnockback), read from the pinned jar; issues #3194 and #3222"
+        },
         "schedules:minecraft:fox": {
             "kind": "intentional",
             "reason": "The fox's scheduler only moves it between its sleeping, night and normal ambient sound groups. Which ambient sound plays is sound selection, rendered presentation in category 1 of docs/data-driven/parity.md.",
@@ -821,11 +826,6 @@
             "kind": "intentional",
             "reason": "Bedrock spawns an ocelot with two kittens one time in seven, where Java's ocelot spawns alone. The litter is part of how Bedrock composes a natural spawn, and docs/data-driven/parity.md category 7 keeps Bedrock's spawn model.",
             "reference": "Java Chicken.aiStep and gameplay/chicken_lay, Armadillo.pickNextScuteDropTime and gameplay/armadillo_shed, CopperGolem.shear, Drowned.finalizeSpawn, Sniffer.spawnChildFromBreeding and WanderingTraderSpawner.spawn"
-        },
-        "unrun-components:minecraft:ravager": {
-            "kind": "defect",
-            "reason": "A bee carrying nectar grows the crops it passes over, Java's Bee$BeeGrowCropGoal, and a ravager a shield blocks is stunned or throws the defender back, Java's Ravager.blockedByItem. Observed: the server runs nothing for minecraft:ravager_blocked, so a blocked ravager is never stunned or pushed back, where Java's does.",
-            "reference": "Java Bee$BeeGrowCropGoal (nextInt(adjustedTickDelay(30)), bee_growables, 10 crops a pollination) and Ravager.blockedByItem (stunnedTick 40 half the time, strongKnockback otherwise), read from the pinned jar; issue #3194"
         },
         "warden-heartbeat:minecraft:warden": {
             "kind": "intentional",
