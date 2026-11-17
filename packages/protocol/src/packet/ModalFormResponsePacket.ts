@@ -20,8 +20,10 @@ export enum ModalFormCancelReason {
  * changelog row says so. Mojang's note for that build says it corrected the docs to match the
  * engine, so the presence bytes are not a 2225 wire change and apply at 2193 too
  * (`docs/research/protocol-2225-delta.md`, the preview.21 paragraph). The same row changes JSON
- * Response from `Json::Value` to `string`; the wire carries JSON text either way. No capture
- * holds this packet, so the optionals stay unbacked by captured bytes.
+ * Response from `Json::Value` to `string`; the wire carries JSON text either way. At 2193 the
+ * pinned Bedrock Dedicated Server read this layout as the parity suite's `form-responses`
+ * scenario records: a client sent it each answer with JSON, a reason, both or neither, and BDS
+ * settled each form accordingly.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/modal-form-response-packet/
  */
 export default class ModalFormResponsePacket extends FieldNetworkPacket {

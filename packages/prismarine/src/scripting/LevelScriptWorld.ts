@@ -10,6 +10,8 @@ import type { Weather } from '@jsprismarine/engine-systems';
 import type {
     ChatSendIntent,
     Guard,
+    ScriptFormChannel,
+    ScriptFormResponse,
     ScriptWeather,
     ScriptWorld,
     ScriptWorldEvent,
@@ -26,6 +28,10 @@ export interface ScriptWorldPlayer {
     readonly id: string;
     /** Puts a line of chat on the player's screen. */
     sendMessage(message: string): void;
+    /** Sends the player a form, as a `ModalFormRequestPacket`. A player without it is sent none. */
+    showForm?(formId: number, json: string): void;
+    /** Closes every form the player has open, as a `ClientboundCloseFormPacket`. */
+    closeForms?(): void;
 }
 
 /** What {@link LevelScriptWorld} reads of its level. */
@@ -52,7 +58,15 @@ const LEVEL_WEATHER: Readonly<Record<ScriptWeather, Weather>> = { Clear: 'clear'
 export class LevelScriptWorld implements ScriptWorld {
     private readonly sources: ScriptWorldSources;
     private readonly committed: ScriptWorldEvent[] = [];
+    private readonly answers: ScriptFormResponse[] = [];
     private readonly stopListening: () => void;
+
+    /** The forms of the level's scripts, which travel to the level's players and back. */
+    public readonly forms: ScriptFormChannel = {
+        show: (player, formId, json) => this.player(player)?.showForm?.(formId, json),
+        closeAll: (player) => this.player(player)?.closeForms?.(),
+        takeResponses: () => this.answers.splice(0)
+    };
 
     /** Starts recording the level's weather changes for the scripts' after-events. */
     public constructor(sources: ScriptWorldSources) {
@@ -80,6 +94,14 @@ export class LevelScriptWorld implements ScriptWorld {
     /** Puts a line of chat on the screen of every player in the level. */
     public sendMessage(message: string): void {
         for (const player of this.sources.players()) player.sendMessage(message);
+    }
+
+    /**
+     * Takes a client's answer to a form, as an input the input step admits; the next script
+     * flush settles the form ([ADR 0009](../../../../docs/adr/0009-external-inputs-enter-once-per-tick.md)).
+     */
+    public answerForm(response: ScriptFormResponse): void {
+        this.answers.push(response);
     }
 
     /** The level's weather, in the Script API's names. */
@@ -133,6 +155,10 @@ export class LevelScriptWorld implements ScriptWorld {
     /** The wall clock the input step admitted for this tick. */
     public clock(): number {
         return this.sources.clock();
+    }
+
+    private player(id: string): ScriptWorldPlayer | undefined {
+        return this.sources.players().find((player) => player.id === id);
     }
 
     /** Stops recording the level's changes. */
