@@ -1,5 +1,22 @@
 # @jsprismarine/item-behaviors
 
+## 0.22.0
+
+### Patch Changes
+
+- [`16bb25f`](https://github.com/JSPrismarine/JSPrismarine/commit/16bb25f95c60cdeeda1561211bd66a42d30c89c4) Thanks [@filiphsps](https://github.com/filiphsps)! - Right-clicking armor to wear it now swaps it with the hand instead of copying it. The worn piece leaves the hand, and armor already in the slot goes to the hand, or to the inventory when the hand holds more than one. The armor keeps its durability, enchantments and name. `EquipAction` has a new `fromHand` flag that asks the world for this swap.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`8b807d8`](https://github.com/JSPrismarine/JSPrismarine/commit/8b807d84205904bc5e5a85eae1342ecf0c798f92) Thanks [@filiphsps](https://github.com/filiphsps)! - Steer a pig or strider only while its rider holds a carrot or warped fungus on a stick, as Java's `getControllingPassenger` does: `controlled_by_player` now leaves a mob whose rider holds nothing to its own goals. Using the item boosts the mount the rider steers for Java's 140 plus up to 840 ticks, refuses a second boost while one runs, and costs Java's durability only when the boost takes: 7 for a carrot on a stick, 1 for a warped fungus on a stick, which becomes a fishing rod once worn out. The item world gains an optional `boostMount` query for it.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`cdc540f`](https://github.com/JSPrismarine/JSPrismarine/commit/cdc540fbf991e5845cd45730a0c010b6b2429784) Thanks [@filiphsps](https://github.com/filiphsps)! - Hang paintings as Java's `Painting.create` does: a placed painting shows one of the `minecraft:placeable` variants that fit its wall with the largest area, drawn at random, and none is placed where no picture fits. The painting item hangs one only on a wall face and keeps the stack when nothing fits, through the new optional `hangPainting` on the item world. Clients are now shown a painting with `AddPaintingPacket`, by the motif their resource pack names the picture, at the center of its face.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`74c76c9`](https://github.com/JSPrismarine/JSPrismarine/commit/74c76c9dc50d90a7fdd09007a428d30b4e1b4cf8) Thanks [@filiphsps](https://github.com/filiphsps)! - Place a bamboo raft or chest raft as a boat or chest boat whose variant is bamboo. `placedEntityOf` named a `minecraft:raft` entity, which Bedrock does not have, so placing a raft spawned nothing.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`9b60a1f`](https://github.com/JSPrismarine/JSPrismarine/commit/9b60a1fe97ec232d06328e4ba432f09a3c835089) Thanks [@filiphsps](https://github.com/filiphsps)! - A raised shield now blocks blows, as Java's `LivingEntity.applyItemBlocking` does. A player who has sneaked for the shield's block delay with a `minecraft:blocks_attacks` item in a hand turns aside a blow from up to 90 degrees off its look, as the item's damage reductions and `bypassed_by` say. The shield wears by its `item_damage`, a weapon with `disable_blocking_for_seconds` such as an axe disables it, and a blow it took whole pushes nothing. A blocked ravager runs its `minecraft:ravager_blocked`: half the time it is stunned, and otherwise it throws the defender by Java's `Ravager.strongKnockback`. `EntityHostFacts` gains `handsOf` and `wearHeldItem`, which the live host answers from a store player's inventory, and `shieldDurabilityCost` also takes an item type.
+- Updated dependencies []:
+  - @jsprismarine/items@0.22.0
+  - @jsprismarine/content@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

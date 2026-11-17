@@ -1,5 +1,12 @@
 # @jsprismarine/raknet
 
+## 0.22.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/binaryutils@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes

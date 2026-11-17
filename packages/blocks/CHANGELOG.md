@@ -1,5 +1,19 @@
 # @jsprismarine/blocks
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3110](https://github.com/JSPrismarine/JSPrismarine/pull/3110) [`51cd835`](https://github.com/JSPrismarine/JSPrismarine/commit/51cd8359d07faf342bb191fefd3d58303ddac488) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `collisionShapeOf`, which reads a resolved block state's `minecraft:collision_box` as boxes normalized to the block's cell, and `isFullCubeShape`, which tells whether such a shape fills the cell.
+
+- [`b1b1871`](https://github.com/JSPrismarine/JSPrismarine/commit/b1b18714efe02837d35771b5198bd529a54b6403) Thanks [@filiphsps](https://github.com/filiphsps)! - Generate each block's liquid reaction from the pinned Bedrock Dedicated Server's Script API instead of reading it from the checked-in geometry table. `bedrockLiquidReactionOf` and `isWashedAway` now read `src/tables/blockLiquidReactions.json`, which `pnpm --filter @jsprismarine/blocks run generate:liquid-reactions` writes from the `dump:bedrock` capture, so a block added by a newer capture gets its reaction. The answers are the same for every block type of 1.26.51. `blockGeometry.json` no longer has a `liquid` field.
+- Updated dependencies [[`546c624`](https://github.com/JSPrismarine/JSPrismarine/commit/546c624aaeeefec693909b9e3413819d3bb45f9f), [`6c08cc8`](https://github.com/JSPrismarine/JSPrismarine/commit/6c08cc82964458a0913751e0761cdd274eaf7349), [`bf5aca9`](https://github.com/JSPrismarine/JSPrismarine/commit/bf5aca98eed1198b84057e8369d45f0651be2b51)]:
+  - @jsprismarine/mapping@0.22.0
+  - @jsprismarine/packs@0.22.0
+  - @jsprismarine/minecraft@0.22.0
+  - @jsprismarine/content@0.22.0
+  - @jsprismarine/molang@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

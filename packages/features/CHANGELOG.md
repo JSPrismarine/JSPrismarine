@@ -1,5 +1,15 @@
 # @jsprismarine/features
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`c705cbd`](https://github.com/JSPrismarine/JSPrismarine/commit/c705cbd1671f7298795c5b7543f89631cbe67003) Thanks [@filiphsps](https://github.com/filiphsps)! - Add an optional `FeatureWorld.scheduleFluidTick`, Java's `WorldGenLevel.scheduleTick` for a fluid. A spring asks for a tick at the fluid it opens, and a geode asks for one at each fluid beside its crack, as their Java features do, so a world that schedules the tick starts the stream instead of leaving the fluid standing.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`4e53fa1`](https://github.com/JSPrismarine/JSPrismarine/commit/4e53fa191a5c5977ebbc340ada37af1c821ef6bf) Thanks [@filiphsps](https://github.com/filiphsps)! - Mark the positions Java 26.3 marks for post-processing when world generation places soul sand, a magma block or a small mushroom, and every face a multiface growth places. Soul sand and a magma block mark the block above them, so the water standing there gets its tick when the chunk loads. `FeatureWorld.setBlock` takes an optional `{ postProcess: false }`, which the ore feature passes because Java writes ore past the region, and `FeatureWorld.markForPostProcessing` is a new optional hook.
+- Updated dependencies [[`729cc48`](https://github.com/JSPrismarine/JSPrismarine/commit/729cc4858e11042f4c80a99615996a5b02417c04), [`246333d`](https://github.com/JSPrismarine/JSPrismarine/commit/246333d2e667c3ba8c2b0e7e414d7963b8a32508), [`0076fcd`](https://github.com/JSPrismarine/JSPrismarine/commit/0076fcd84bfc65a9ff2d75f993528fa9236f1779), [`7282f36`](https://github.com/JSPrismarine/JSPrismarine/commit/7282f36c8b1342316f54e6985655e570ba991e9a)]:
+  - @jsprismarine/worldgen@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

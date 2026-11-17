@@ -1,5 +1,13 @@
 # @jsprismarine/minecraft
 
+## 0.22.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/errors@0.22.0
+  - @jsprismarine/nbt@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

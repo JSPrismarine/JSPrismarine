@@ -1,5 +1,14 @@
 # @jsprismarine/nethernet
 
+## 0.22.0
+
+### Patch Changes
+
+- Updated dependencies [[`b79964d`](https://github.com/JSPrismarine/JSPrismarine/commit/b79964d727c920cba3537d26dae40a3d9a937c81), [`5d63108`](https://github.com/JSPrismarine/JSPrismarine/commit/5d63108845d1a218c3eca2c17ad3eb11224f54ab), [`c54e7dc`](https://github.com/JSPrismarine/JSPrismarine/commit/c54e7dcbff0c97136fbd7dbf3e6481cbeaf634e8)]:
+  - @jsprismarine/native-network@0.22.0
+  - @jsprismarine/logger@0.22.0
+  - @jsprismarine/binaryutils@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes

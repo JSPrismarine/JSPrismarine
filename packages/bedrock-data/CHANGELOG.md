@@ -1,5 +1,25 @@
 # @jsprismarine/bedrock-data
 
+## 0.22.0
+
+### Minor Changes
+
+- [#3111](https://github.com/JSPrismarine/JSPrismarine/pull/3111) [`defb0a9`](https://github.com/JSPrismarine/JSPrismarine/commit/defb0a9f9defe6ae0dbc7d9d952157d35acb2123) Thanks [@filiphsps](https://github.com/filiphsps)! - Build the item versions, item components, creative menu and actor list from the join packets a Bedrock Dedicated Server sent, captured under `src/jsp/v<protocol>/wire/`, instead of from CloudburstMC/Data. A creative entry's `block_states` and a group's `icon_block_states` now hold a compound with only the `network_id`, because the packet carries the hashed block runtime id and nothing else. The compound no longer has `name`, `states`, `version`, `block_id` or `name_hash`.
+
+### Patch Changes
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`88e2ea5`](https://github.com/JSPrismarine/JSPrismarine/commit/88e2ea5674df47aa1503a8ba6bde1daf6ef6d7f5) Thanks [@filiphsps](https://github.com/filiphsps)! - `java_entity_goals` records `selfEntities` on a goal that calls `setAlertOthers`: the entity types whose class is the registering mob's class or extends it, which Java's `HurtByTargetGoal.alertOthers` searches.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`2619388`](https://github.com/JSPrismarine/JSPrismarine/commit/26193886953b4e1c9313d74c0282187dabcc0268) Thanks [@filiphsps](https://github.com/filiphsps)! - Export `java_entity_goals`, the goals each Java mob registers and the arguments it passes them, read from the pinned 26.3 server jar's bytecode by the new `dump:java-goals` script. A class literal lists every entity type it covers, and an item predicate lists the item tags and items its code reads.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`a1e9ab8`](https://github.com/JSPrismarine/JSPrismarine/commit/a1e9ab8d87e99f47d1514496feec1f820893cf6a) Thanks [@filiphsps](https://github.com/filiphsps)! - Record each Java mob's move control, the degrees a smooth swimmer turns a tick, and whether its path finder opens doors, passes open doors and walks over fences in `java_entity_navigation`. The table now also covers the iron, snow and copper golems.
+
+- [#3111](https://github.com/JSPrismarine/JSPrismarine/pull/3111) [`724ce2e`](https://github.com/JSPrismarine/JSPrismarine/commit/724ce2e8dd9a3a8cd01888d7444a4182f51a272e) Thanks [@filiphsps](https://github.com/filiphsps)! - Serve the Minecraft Preview protocol 2259 (1.26.70.24). `@jsprismarine/bedrock-data/v2259` publishes the item table, block definitions and biome definitions captured from BDS 1.26.70.24, and the server negotiates 2259 with preview clients using them while still advertising 1.26.62.
+
+- [`87d037b`](https://github.com/JSPrismarine/JSPrismarine/commit/87d037b97f4df2d2c8e64b91434db12e87fb91dc) Thanks [@filiphsps](https://github.com/filiphsps)! - Publish `entity_identifiers` from `@jsprismarine/bedrock-data/v2225` and `/v2259`, built from each version's own `AvailableActorIdentifiersPacket` capture. A protocol 2225 or 2259 session now receives its version's actor list, so a 2225 client can be told about `minecraft:ice_ball`.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`5008a9d`](https://github.com/JSPrismarine/JSPrismarine/commit/5008a9ddf6357a0d46df2b62c1b3aeabee636623) Thanks [@filiphsps](https://github.com/filiphsps)! - `java_entity_navigation` now holds the villager. The dumper's probe level gives the villager's constructor an empty environment attribute system to read its schedule from, so the server pins Java's ground navigation for villagers: they turn toward a waypoint by Java's move control and open wooden doors by Java's path costs.
+
 ## 0.21.0
 
 ### Patch Changes

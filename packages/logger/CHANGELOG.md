@@ -1,5 +1,15 @@
 # @jsprismarine/color-parser
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`5d63108`](https://github.com/JSPrismarine/JSPrismarine/commit/5d63108845d1a218c3eca2c17ad3eb11224f54ab) Thanks [@filiphsps](https://github.com/filiphsps)! - Find where a message's visible text ends with a scan rather than a regular expression, which backtracked quadratically on a message full of format codes that do not end it.
+
+- [`c54e7dc`](https://github.com/JSPrismarine/JSPrismarine/commit/c54e7dcbff0c97136fbd7dbf3e6481cbeaf634e8) Thanks [@filiphsps](https://github.com/filiphsps)! - The logger no longer adds a period to a message that already ends in a colon, semicolon, comma or ellipsis, or in whitespace. A colon that introduces the lines after it, as in the startup banner's list of protocol versions, now stays as written. Format codes at the end of a message are ignored when checking.
+- Updated dependencies []:
+  - @jsprismarine/color-parser@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

@@ -1,5 +1,21 @@
 # @jsprismarine/commands
 
+## 0.22.0
+
+### Patch Changes
+
+- [`af72b29`](https://github.com/JSPrismarine/JSPrismarine/commit/af72b2965f9f430f47d31636ec623496c79d6356) Thanks [@filiphsps](https://github.com/filiphsps)! - Write chained subcommands the way a Bedrock Dedicated Server does. Each value pair in `buildAvailableCommands`'s `chainedSubcommands` now names the keyword's enum in `second` instead of repeating `first`, and a chained parameter's parse symbol is `Chained | Valid | index` instead of an enum's. `ParameterTypeFlag.Chained` and `chainedParseSymbol` build that word.
+
+- [`31cb079`](https://github.com/JSPrismarine/JSPrismarine/commit/31cb0792a2e01450ae55bac5881c2c1df3bd1ff3) Thanks [@filiphsps](https://github.com/filiphsps)! - Mark every flattened overload that starts with one of its command's chained keywords as chaining, so `buildAvailableCommands` sends `/execute run <command>` as chaining, the way a Bedrock Dedicated Server does.
+
+- [`49c8e60`](https://github.com/JSPrismarine/JSPrismarine/commit/49c8e60a1de3b304a78f2010a849ac9b2d5c6bd9) Thanks [@filiphsps](https://github.com/filiphsps)! - Give `CODEBUILDERARGS`, the command `/execute run` takes, the type id 90 a Bedrock Dedicated Server writes, not 92. `AvailableCommandsPacket` now decodes a real server's packet, which it rejected as carrying an unknown parse symbol.
+
+- [`d50b18c`](https://github.com/JSPrismarine/JSPrismarine/commit/d50b18c84aa4094e2e3fe347dfc426b93f16727c) Thanks [@filiphsps](https://github.com/filiphsps)! - Accept a named time of day in `/time set`: `day`, `sunrise`, `noon`, `sunset`, `night` and `midnight`, with or without the `minecraft:` namespace. The command used to pass the name through as the time.
+- Updated dependencies [[`546c624`](https://github.com/JSPrismarine/JSPrismarine/commit/546c624aaeeefec693909b9e3413819d3bb45f9f)]:
+  - @jsprismarine/mapping@0.22.0
+  - @jsprismarine/minecraft@0.22.0
+  - @jsprismarine/brigadier@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

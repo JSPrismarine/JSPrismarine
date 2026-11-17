@@ -1,5 +1,13 @@
 # @jsprismarine/packs
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`6c08cc8`](https://github.com/JSPrismarine/JSPrismarine/commit/6c08cc82964458a0913751e0761cdd274eaf7349) Thanks [@filiphsps](https://github.com/filiphsps)! - The pack loader routes `data/<ns>/enchantment_provider/` into `Definitions.enchantmentProviders`, the registry Java's `EnchantmentHelper.enchantItemFromProvider` reads to enchant a mob's spawn gear. The composed vanilla prefix cache moves to v10, since a v9 cache holds no such registry.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`bf5aca9`](https://github.com/JSPrismarine/JSPrismarine/commit/bf5aca98eed1198b84057e8369d45f0651be2b51) Thanks [@filiphsps](https://github.com/filiphsps)! - Load Java's `painting_variant` registry from a datapack into `Definitions.paintingVariants`, keyed by namespaced id, so the server can choose the picture a placed painting shows.
+
 ## 0.21.0
 
 ### Patch Changes

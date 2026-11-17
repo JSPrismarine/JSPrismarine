@@ -1,5 +1,13 @@
 # @jsprismarine/mapping
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`546c624`](https://github.com/JSPrismarine/JSPrismarine/commit/546c624aaeeefec693909b9e3413819d3bb45f9f) Thanks [@filiphsps](https://github.com/filiphsps)! - `bedrockBlockStateToJava` returns one frozen result per Bedrock state instead of building a new one on every call. Fluid searches and tag checks ask about the same few states thousands of times a tick. The returned objects were already typed read-only; they are now frozen too.
+- Updated dependencies []:
+  - @jsprismarine/minecraft@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

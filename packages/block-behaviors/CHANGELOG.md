@@ -1,5 +1,33 @@
 # @jsprismarine/block-behaviors
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`55b53b6`](https://github.com/JSPrismarine/JSPrismarine/commit/55b53b658df9d1b873378150cfc64b998571917c) Thanks [@filiphsps](https://github.com/filiphsps)! - A bell a player strikes or redstone powers now rings for the entities around it, as Java's `BellBlockEntity` does: every villager within 32 blocks remembers it heard the bell and runs to hide. Block worlds gain an optional `ringBell`, and the content entity access an optional `ringBell`, which the entity runtime answers.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`e3d203b`](https://github.com/JSPrismarine/JSPrismarine/commit/e3d203bb7d9629039d52350284e8cb1b314537f6) Thanks [@filiphsps](https://github.com/filiphsps)! - Add the `fluid-replacement` setting, which picks the edition that decides what flowing water and lava destroy. `java`, the default, follows Java 26.3's `FlowingFluid.canHoldFluid`: a fluid washes away what `#minecraft:washed_away_by_fluids` lists and keeps out of every waterloggable block, so a big dripleaf or sugar cane stays standing. `bedrock` keeps the previous behavior, each block's Bedrock `liquidReactionOnTouch`. `@jsprismarine/block-behaviors` gains `WorldActions.liquidReactionOf`, through which a host answers by its rule.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`2f037fe`](https://github.com/JSPrismarine/JSPrismarine/commit/2f037fe80b088db870ccccc7d16bf6c0e098fe71) Thanks [@filiphsps](https://github.com/filiphsps)! - Read each cell of a fluid's slope search once, as Java's `FlowingFluid.getSpread` does. The search revisited the same cells and read the world again each time: a water source spreading on flat ground made 1979 block reads for 126 cells, and now makes 136.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`f157163`](https://github.com/JSPrismarine/JSPrismarine/commit/f157163a0251bafa6d91f786a21eb9168e9ef74a) Thanks [@filiphsps](https://github.com/filiphsps)! - Let a falling block move only into the space Java's `FallingBlock.isFree` allows: air, fire, a liquid or a replaceable block. Gravel used to fall into, and destroy, any block a piston would pop, such as the moss block under it, which stripped lush caves as their gravel settled.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`536e660`](https://github.com/JSPrismarine/JSPrismarine/commit/536e66006c0e97fc3568ac13182cccf6590019a1) Thanks [@filiphsps](https://github.com/filiphsps)! - Grow cave vines and kelp from their heads, as Java's `GrowingPlantHeadBlock` does. A random tick used to advance the age of every segment in place, so a cave and its vines wrote block states thousands of times a minute without growing anything. Now only a head younger than 25 grows, one block down into air for cave vines (berries at 0.11) and up into water for kelp, at Java's 0.1 and 0.14.
+
+- [`a2bfa09`](https://github.com/JSPrismarine/JSPrismarine/commit/a2bfa0936ca918e7f0b5300d8554b9edf74d596d) Thanks [@filiphsps](https://github.com/filiphsps)! - A brown or red mushroom now survives a neighbor update the way Java's `MushroomBlock.canSurvive` decides: on mycelium, podzol or nylium in any light, and on any other full, opaque block in light below 13. It used to need vegetation soil, so a cave mushroom on stone broke the first time a block next to it changed.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`34738b0`](https://github.com/JSPrismarine/JSPrismarine/commit/34738b0cd119c2c6c0f53e2b93931c40b0361b09) Thanks [@filiphsps](https://github.com/filiphsps)! - Let an extending piston carry the entities standing where its head or a pushed block arrives one block along, as Java's `PistonMovingBlockEntity.moveCollidedEntities` does. A world gets this by implementing the new optional `WorldActions.moveEntity`; one that leaves it out keeps today's behavior.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`e2493a5`](https://github.com/JSPrismarine/JSPrismarine/commit/e2493a5db24c6612cb694f91023caf52cdf29db5) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep a stalagmite standing on the block below it. Pointed dripstone used to require support from above, so every stalagmite popped at the first neighbor update. Support now follows the tip, as Java's `PointedDripstoneBlock.canSurvive` does, and a pointed dripstone pointing the same way counts as support.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`aa124a1`](https://github.com/JSPrismarine/JSPrismarine/commit/aa124a10aa2f144816b124cc86db6adc5dc3bcf7) Thanks [@filiphsps](https://github.com/filiphsps)! - Stop random ticks from restarting flowing water and lava. Java gives water no random tick and lava's only spreads fire, so settled flowing water no longer starts moving again minutes later and washes away the plants beside it.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`bec14d2`](https://github.com/JSPrismarine/JSPrismarine/commit/bec14d2bf8f26ffe565f779e9bd421d901b85bae) Thanks [@filiphsps](https://github.com/filiphsps)! - Read a waterlogged block's water as the fluid at its position. `WorldActions` gains an optional `getLiquid`, which answers with the liquid in a position's second storage layer, and the fluid rules ask it wherever Java's `BlockState.getFluidState` would: a waterlogged neighbor counts as a water source for spreading and for two-source conversion, is a hole a stream can fall into, and turns lava beside it into obsidian or cobblestone. A world that keeps one layer only behaves exactly as before.
+- Updated dependencies [[`51cd835`](https://github.com/JSPrismarine/JSPrismarine/commit/51cd8359d07faf342bb191fefd3d58303ddac488), [`b1b1871`](https://github.com/JSPrismarine/JSPrismarine/commit/b1b18714efe02837d35771b5198bd529a54b6403), [`546c624`](https://github.com/JSPrismarine/JSPrismarine/commit/546c624aaeeefec693909b9e3413819d3bb45f9f)]:
+  - @jsprismarine/blocks@0.22.0
+  - @jsprismarine/mapping@0.22.0
+  - @jsprismarine/content@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

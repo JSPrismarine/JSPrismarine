@@ -1,5 +1,23 @@
 # @jsprismarine/client
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3104](https://github.com/JSPrismarine/JSPrismarine/pull/3104) [`42d8273`](https://github.com/JSPrismarine/JSPrismarine/commit/42d8273ca5d12139b7614764d238469d53592875) Thanks [@filiphsps](https://github.com/filiphsps)! - `jsp-client bot` exits once it prints its report after SIGINT or SIGTERM, instead of waiting out its `--duration`. An interrupt during the ramp now stops the remaining bots from connecting and prints the report too, and a second signal after the run ends the process as usual.
+
+- [#3104](https://github.com/JSPrismarine/JSPrismarine/pull/3104) [`0fb4089`](https://github.com/JSPrismarine/JSPrismarine/commit/0fb40897552edd6f549d70e958f3f030f99a6218) Thanks [@filiphsps](https://github.com/filiphsps)! - `ClientSession.send` sends packets that keep their body in fields, such as `AnimatePacket`, `EmotePacket` and `LevelSoundEventPacket`. It threw `Cannot serialize packet without data` for every one of them.
+
+- [#3111](https://github.com/JSPrismarine/JSPrismarine/pull/3111) [`5b27434`](https://github.com/JSPrismarine/JSPrismarine/commit/5b27434a78665edde9971cd72611551e45e64dae) Thanks [@filiphsps](https://github.com/filiphsps)! - Add the wire layouts of Minecraft Preview protocol 2259 (1.26.70.24). `ResourcePackStack.includeEditorPacks` is now `editorPackTypes`, a set of `EditorPackType` flags written as a byte from 2259 and as a boolean before it. `CommandBlockUpdate`, `StructureBlockUpdate` and `Transfer` payloads gain the fields 2259 appended (`lastOutputIsRawMessage`, `keepStructureVoid`, `transferSettings`), which read as their defaults at older protocols. `NetworkSettings` accepts an optional `sctpRecoveryProfile`. `PlaySoundPacket`, `CommandOutputMessage`, the `Text` body, `ServerJoinInformation` and `PassengerOfBlock` gain optional members for their 2259 fields. A field spec can now name its layout per protocol version with `versioned()`. The client can speak 2259, and its capture and bring-up tools take `--network`.
+- Updated dependencies [[`b3fa388`](https://github.com/JSPrismarine/JSPrismarine/commit/b3fa3886bf17dc1bd93f6d733eae384e0b664fbf), [`49c8e60`](https://github.com/JSPrismarine/JSPrismarine/commit/49c8e60a1de3b304a78f2010a849ac9b2d5c6bd9), [`bb1a6d8`](https://github.com/JSPrismarine/JSPrismarine/commit/bb1a6d8d827409951c56c2bc16302f5396e30042), [`45aac79`](https://github.com/JSPrismarine/JSPrismarine/commit/45aac797b6835465fc0e91eb956a2cf778e424e3), [`5d63108`](https://github.com/JSPrismarine/JSPrismarine/commit/5d63108845d1a218c3eca2c17ad3eb11224f54ab), [`c54e7dc`](https://github.com/JSPrismarine/JSPrismarine/commit/c54e7dcbff0c97136fbd7dbf3e6481cbeaf634e8), [`c7c7e05`](https://github.com/JSPrismarine/JSPrismarine/commit/c7c7e05ce1dc2cc87c3a282b7e619ca10bfdfd9b), [`5b27434`](https://github.com/JSPrismarine/JSPrismarine/commit/5b27434a78665edde9971cd72611551e45e64dae), [`96ac6ee`](https://github.com/JSPrismarine/JSPrismarine/commit/96ac6ee330cbb1d9a6c0148c8751871bf8a17b17), [`2a6f360`](https://github.com/JSPrismarine/JSPrismarine/commit/2a6f3603f15c76f87935cd32142af6dff197127d), [`ea15ac7`](https://github.com/JSPrismarine/JSPrismarine/commit/ea15ac79cd4c7fde87093c27e972bed763f1c2f1)]:
+  - @jsprismarine/protocol@0.22.0
+  - @jsprismarine/logger@0.22.0
+  - @jsprismarine/minecraft@0.22.0
+  - @jsprismarine/nethernet@0.22.0
+  - @jsprismarine/auth@0.22.0
+  - @jsprismarine/math@0.22.0
+  - @jsprismarine/raknet@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes
