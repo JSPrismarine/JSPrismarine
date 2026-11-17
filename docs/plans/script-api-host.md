@@ -270,6 +270,24 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
 12. [ ] [#3209](https://github.com/JSPrismarine/JSPrismarine/issues/3209) **Persistence.** Dynamic properties and script scoreboards, byte-compatible with BDS and
     checked by the LevelDB compatibility suite in both directions.
 13. [ ] [#3210](https://github.com/JSPrismarine/JSPrismarine/issues/3210) **`@minecraft/server-ui`.** Forms, over the modal form packets.
+    - Learned (2026-11-17): a GameTest simulated player has no client, so the form captures join a
+      headless `@jsprismarine/client` to BDS. A scenario's `client` lists its answers, and the
+      `scripting.ui` goldens keep the form JSON the client received. The four scenarios, `forms`,
+      `form-json`, `form-responses` and `forms-v1`, match on JSPrismarine.
+    - Learned: BDS writes form JSON with jsoncpp's old writer: keys in byte order, a newline at the
+      end, only `"`, `\` and control characters escaped (`\u001F` in upper case), and floats as
+      `%#.16g` with the trailing zeros cut to one, so 0.5 is `0.50`. Slider bounds and steps are
+      32-bit floats and defaults integers, even a version 1 slider's float default. An empty
+      element list is `null`. Version 1 `MessageFormData` swaps `button1` and `button2` in the
+      JSON and reads `true` as 1; version 2 reads `true` as 0.
+    - Learned: BDS checks a response's JSON type, not its range: an action form takes any integer,
+      as a 32-bit unsigned number, or a boolean; a modal form takes a flat list of any length.
+      A cancel reason wins over JSON, a response with neither stays open, and text that is not
+      JSON disconnects the client. A player who leaves rejects their forms with `PlayerQuit`,
+      newest first, and `closeAllForms` sends `ClientboundCloseForm` and settles nothing.
+    - Left: the data-driven `CustomForm`, `MessageBox` and observables of 2.1.0 and later throw
+      `NotImplementedError`; the disconnect reason BDS gives for a response that is not JSON is
+      not captured, so JSPrismarine's is its own.
 14. [ ] [#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211) **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
     same tests.
 15. [ ] [#3212](https://github.com/JSPrismarine/JSPrismarine/issues/3212) **`@minecraft/server-net` and `@minecraft/server-admin`.** Responses as inputs, and the
@@ -278,7 +296,8 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
     docs page with the detect-and-fall-back pattern.
 17. [ ] [#3214](https://github.com/JSPrismarine/JSPrismarine/issues/3214) **The docs.** Rewrite [Extending JSPrismarine](../guide/extending.md) around script packs,
     with embedding as the lower-level option.
-18. [ ] [#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215) **Every platform.** The native builds for each platform ADR 0006 lists.
+18. [ ] [#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215) **Every platform.** The native builds for each platform ADR 0006 lists. Then drop `"private": true` from `@jsprismarine/script-host` and list it again in the docs site's
+    `packageAreas.ts`.
 19. [ ] [#3216](https://github.com/JSPrismarine/JSPrismarine/issues/3216) **scriptc.** The scriptc binding over the same C layer, once the server compiles under
     scriptc.
 20. [ ] [#3217](https://github.com/JSPrismarine/JSPrismarine/issues/3217) **The rest.** `debug-utilities`, `diagnostics` and `server-graphics`, as the corpus asks.

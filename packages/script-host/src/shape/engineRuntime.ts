@@ -22,6 +22,14 @@ export interface EngineRuntime {
      * @param fields - The error's property values as JSON, or an empty string.
      */
     raise(module: string, name: string, message: string, fields: string): void;
+    /**
+     * Makes an instance of a bound error class without throwing it, for the host to reject a
+     * promise with.
+     * @param fields - The error's property values as JSON, or an empty string.
+     */
+    error(module: string, name: string, message: string, fields: string): Error;
+    /** The tag the host gave an instance, or -1 for a value the host did not make. */
+    tag(value: unknown): number;
 }
 
 /**
@@ -453,6 +461,13 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         create,
         raise(module: string, name: string, message: string, fields: string): void {
             pending = { error: makeError(module, name, message, fields === '' ? undefined : parse(fields)) };
+        },
+        error(module: string, name: string, message: string, fields: string): Error {
+            return makeError(module, name, message, fields === '' ? undefined : parse(fields));
+        },
+        tag(value: unknown): number {
+            if ((typeof value !== 'object' && typeof value !== 'function') || value === null) return -1;
+            return weakHas(bound, value) ? (weakGet(bound, value) ?? 0) : -1;
         }
     };
 }

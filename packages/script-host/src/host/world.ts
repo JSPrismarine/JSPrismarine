@@ -52,6 +52,28 @@ export type VetoGuard<Intent> = (intent: Intent) => VetoVerdict;
 /** A change the world committed, for an after-event. */
 export type ScriptWorldEvent = { readonly type: 'weatherChange' } & Omit<WeatherChangeIntent, 'duration'>;
 
+/** A client's answer to a form, which reaches the scripts as an input of the tick it arrived in. */
+export interface ScriptFormResponse {
+    /** The id of the player who answered, as {@link ScriptWorld.players} lists it. */
+    readonly player: string;
+    /** The id the form was sent with. */
+    readonly formId: number;
+    /** The JSON text the client sent, or null when it sent none. */
+    readonly response: string | null;
+    /** The cancel reason byte the client sent, or null when it sent none. */
+    readonly cancelReason: number | null;
+}
+
+/** How the scripts' forms reach the world's players, and their answers come back. */
+export interface ScriptFormChannel {
+    /** Sends a player a form: a `ModalFormRequestPacket` with the id and the JSON as they are. */
+    show(player: string, formId: number, json: string): void;
+    /** Closes every form a player has open: a `ClientboundCloseFormPacket`. */
+    closeAll(player: string): void;
+    /** The answers the input step admitted since the last call, in the order they arrived. */
+    takeResponses(): readonly ScriptFormResponse[];
+}
+
 /** What the script host reads and writes of one world. */
 export interface ScriptWorld {
     /** The world's dimensions, as Bedrock names them, such as `minecraft:overworld`. */
@@ -88,4 +110,6 @@ export interface ScriptWorld {
      * ([ADR 0021](../../../../docs/adr/0021-the-script-watchdog-counts-steps.md)).
      */
     clock(): number;
+    /** The channel `@minecraft/server-ui` forms travel over. A world without one sends no form. */
+    readonly forms?: ScriptFormChannel;
 }

@@ -375,6 +375,40 @@ record it:
 - **Reload.** `reload` sends `system.beforeEvents.shutdown`, then runs every pack again from its
   top level, as BDS's `/reload` does. `system.currentTick` carries on.
 
+### Forms
+
+A pack that declares `@minecraft/server-ui` gets `ActionFormData`, `ModalFormData`,
+`MessageFormData`, their responses and `uiManager.closeAllForms`, in the version 1 and version 2
+shapes and the beta. The data-driven `CustomForm`, `MessageBox` and observables throw
+`NotImplementedError`. Forms reach the world through `ScriptWorld.forms`, a `ScriptFormChannel`
+that sends a player a form, closes a player's forms, and hands back the answers the input step
+admitted. A world without one sends no form.
+
+The `scripting.ui` family of the parity suite records each rule below on the pinned BDS, and its
+scenarios compare the form JSON a client receives byte for byte.
+
+- **The JSON.** `src/host/formJson.ts` writes what BDS's JSON writer writes: keys in byte order,
+  a newline at the end, only `"`, `\` and control characters escaped, and a slider's 32-bit
+  float bounds in BDS's float format, so 0.5 is `0.50` and 0.1 is `0.1000000014901161`. A
+  `RawMessage` becomes a `rawtext` list, and one that holds nothing throws BDS's
+  `RawMessageError`. A builder call turns its arguments into JSON at once, so a script that
+  changes a `RawMessage` afterwards does not change the form.
+- **Where the state lives.** A form's parts and a response's data live beside the objects in the
+  pack's realm, in a `WeakMap` the host reaches through `src/host/formKit.ts`, so a form a script
+  drops goes with it. Reading an argument runs inside the engine, under the watchdog.
+- **The answer.** `show()` returns a promise, and the client's answer settles it in the next
+  script flush, before its promise jobs run. A cancel reason wins over JSON: 1 is `UserBusy` and
+  any other byte `UserClosed`. An action form takes an integer, read as a 32-bit unsigned
+  number, or a boolean; a modal form takes a flat list, with `null` read as `undefined` in
+  version 2 only; a message form reads `true` as its first button in version 2 and as its
+  second in version 1, whose JSON swaps the two buttons. Anything else rejects with
+  `FormRejectError` and `MalformedResponse`. An answer for a form the player was not sent, or
+  with neither JSON nor a reason, is dropped.
+- **Leaving.** A player who leaves rejects each of their open forms with `PlayerQuit`, the
+  newest first. `show()` for that player then throws `InvalidEntityError`, and `closeAllForms`
+  throws `Error: Invalid Player handle.`. `closeAllForms` closes a player's forms and settles
+  none of them.
+
 ## Building it
 
 The package is private, and not published to npm, until each platform has a prebuilt library that
