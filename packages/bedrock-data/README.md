@@ -168,6 +168,10 @@ the rest of the repository reads, under the same gitignored cache:
 - `java-structures/<version>/`, the 1511 structure templates. The data generator writes no NBT,
   so these come straight out of the jar; `pnpm run extract:structures` does that step on its own,
   for a checkout with no JDK.
+- `java-lang/<version>/en_us.json`, Java's English strings, also straight out of the jar. The
+  server names an advancement in chat with them, since a Bedrock client has no string for a Java
+  advancement's translation key. `pnpm run extract:lang` does that step on its own, and
+  `ensure:worldgen` runs it for a cache built before the step existed.
 
 The templates matter for speed rather than for correctness. The world generator can read them
 out of the jar, but that means inflating all 17655 of its entries on the first template a world

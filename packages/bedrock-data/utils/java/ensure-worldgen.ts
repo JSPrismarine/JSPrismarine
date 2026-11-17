@@ -21,6 +21,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { fetchSource } from '../fetch/fetch.ts';
+import { extractJavaLang, javaLangPath } from './extract-lang.ts';
 import { findJdkHome, JDK_HOME_ENV } from './jdk.ts';
 import {
     cacheRoot,
@@ -47,6 +48,14 @@ const source = await loadJavaServerSource();
 const paths = worldgenCachePaths(source.version);
 
 if (worldgenCacheComplete(paths)) {
+    // A cache built before the English strings were extracted has the jar but not the strings,
+    // and lifting them out of it is a zip read rather than a data generator run.
+    const lang = javaLangPath(source.version);
+    const jar = javaServerJarPath(source);
+    if (!existsSync(lang) && existsSync(jar)) {
+        await extractJavaLang(jar, lang);
+        console.log(`Wrote the Java ${source.version} English strings to ${lang}`);
+    }
     console.log(`Java ${source.version} world generation data is ready in ${cacheRoot}`);
     process.exit(0);
 }

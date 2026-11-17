@@ -30,6 +30,7 @@ import { dirname, join } from 'node:path';
 
 import { hashFile } from '../fetch/hash.ts';
 import { readZipEntry } from '../fetch/unzip.ts';
+import { extractJavaLang, javaLangPath } from './extract-lang.ts';
 import { extractJavaStructures } from './extract-structures.ts';
 import { findJdkHome, jdkBinaryPath } from './jdk.ts';
 import {
@@ -151,7 +152,10 @@ rmSync(workDir, { recursive: true, force: true });
 // The generator writes no NBT, so the structure templates come straight out of the jar. Doing
 // it here means one command leaves a complete world generation cache behind.
 const templateCount = await extractJavaStructures(jarPath, structuresDir);
+// The English strings, which the server names an advancement with.
+await extractJavaLang(jarPath, javaLangPath(version));
 
 console.log(`Wrote the vanilla datapack to ${datapackDir} (pack format ${major}.${minor})`);
 console.log(`Wrote the data reports to ${join(reportsDir, 'reports')}`);
 console.log(`Wrote ${templateCount} structure templates to ${structuresDir}`);
+console.log(`Wrote the English strings to ${javaLangPath(version)}`);
