@@ -347,10 +347,6 @@ export const moodScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         reference:
             'Java Bee$BeeGrowCropGoal (nextInt(adjustedTickDelay(30)), bee_growables, 10 crops a pollination) and Ravager.blockedByItem (stunnedTick 40 half the time, strongKnockback otherwise), read from the pinned jar; issue #3194',
         subjects: () => [
-            ...entitiesDeclaring('minecraft:grows_crop').map((subject) => ({
-                ...subject,
-                tag: 'minecraft:grows_crop'
-            })),
             ...entitiesDeclaring('minecraft:ravager_blocked').map((subject) => ({
                 ...subject,
                 tag: 'minecraft:ravager_blocked'
