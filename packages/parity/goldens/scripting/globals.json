@@ -1,0 +1,1699 @@
+{
+    "$comment": [
+        "What the scripts of scenario `globals` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.engine",
+    "scenario": "globals",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "engine",
+            "seq": 1,
+            "tick": 0,
+            "event": "globalThis",
+            "value": [
+                "AggregateError",
+                "Array",
+                "ArrayBuffer",
+                "BigInt",
+                "BigInt64Array",
+                "BigUint64Array",
+                "Boolean",
+                "DataView",
+                "Date",
+                "Error",
+                "EvalError",
+                "FinalizationRegistry",
+                "Float32Array",
+                "Float64Array",
+                "Function",
+                "Infinity",
+                "Int16Array",
+                "Int32Array",
+                "Int8Array",
+                "InternalError",
+                "JSON",
+                "Map",
+                "Math",
+                "NaN",
+                "Number",
+                "Object",
+                "Promise",
+                "Proxy",
+                "RangeError",
+                "ReferenceError",
+                "Reflect",
+                "RegExp",
+                "Set",
+                "SharedArrayBuffer",
+                "String",
+                "Symbol",
+                "SyntaxError",
+                "TypeError",
+                "URIError",
+                "Uint16Array",
+                "Uint32Array",
+                "Uint8Array",
+                "Uint8ClampedArray",
+                "WeakMap",
+                "WeakRef",
+                "WeakSet",
+                "[Symbol.toStringTag]",
+                "console",
+                "decodeURI",
+                "decodeURIComponent",
+                "encodeURI",
+                "encodeURIComponent",
+                "escape",
+                "globalThis",
+                "isFinite",
+                "isNaN",
+                "parseFloat",
+                "parseInt",
+                "print",
+                "undefined",
+                "unescape"
+            ]
+        },
+        {
+            "pack": "engine",
+            "seq": 2,
+            "tick": 0,
+            "event": "members AggregateError",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "message",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 3,
+            "tick": 0,
+            "event": "members Array",
+            "value": {
+                "own": [
+                    "[Symbol.species]",
+                    "from",
+                    "isArray",
+                    "length",
+                    "name",
+                    "of",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.iterator]",
+                    "[Symbol.unscopables]",
+                    "at",
+                    "concat",
+                    "constructor",
+                    "copyWithin",
+                    "entries",
+                    "every",
+                    "fill",
+                    "filter",
+                    "find",
+                    "findIndex",
+                    "findLast",
+                    "findLastIndex",
+                    "flat",
+                    "flatMap",
+                    "forEach",
+                    "includes",
+                    "indexOf",
+                    "join",
+                    "keys",
+                    "lastIndexOf",
+                    "length",
+                    "map",
+                    "pop",
+                    "push",
+                    "reduce",
+                    "reduceRight",
+                    "reverse",
+                    "shift",
+                    "slice",
+                    "some",
+                    "sort",
+                    "splice",
+                    "toLocaleString",
+                    "toReversed",
+                    "toSorted",
+                    "toSpliced",
+                    "toString",
+                    "unshift",
+                    "values",
+                    "with"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 4,
+            "tick": 0,
+            "event": "members ArrayBuffer",
+            "value": {
+                "own": [
+                    "[Symbol.species]",
+                    "isView",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "byteLength",
+                    "constructor",
+                    "slice"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 5,
+            "tick": 0,
+            "event": "members BigInt",
+            "value": {
+                "own": [
+                    "asIntN",
+                    "asUintN",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "constructor",
+                    "toString",
+                    "valueOf"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 6,
+            "tick": 0,
+            "event": "members BigInt64Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 7,
+            "tick": 0,
+            "event": "members BigUint64Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 8,
+            "tick": 0,
+            "event": "members Boolean",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "toString",
+                    "valueOf"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 9,
+            "tick": 0,
+            "event": "members DataView",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "buffer",
+                    "byteLength",
+                    "byteOffset",
+                    "constructor",
+                    "getBigInt64",
+                    "getBigUint64",
+                    "getFloat32",
+                    "getFloat64",
+                    "getInt16",
+                    "getInt32",
+                    "getInt8",
+                    "getUint16",
+                    "getUint32",
+                    "getUint8",
+                    "setBigInt64",
+                    "setBigUint64",
+                    "setFloat32",
+                    "setFloat64",
+                    "setInt16",
+                    "setInt32",
+                    "setInt8",
+                    "setUint16",
+                    "setUint32",
+                    "setUint8"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 10,
+            "tick": 0,
+            "event": "members Date",
+            "value": {
+                "own": [
+                    "UTC",
+                    "length",
+                    "name",
+                    "now",
+                    "parse",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toPrimitive]",
+                    "constructor",
+                    "getDate",
+                    "getDay",
+                    "getFullYear",
+                    "getHours",
+                    "getMilliseconds",
+                    "getMinutes",
+                    "getMonth",
+                    "getSeconds",
+                    "getTime",
+                    "getTimezoneOffset",
+                    "getUTCDate",
+                    "getUTCDay",
+                    "getUTCFullYear",
+                    "getUTCHours",
+                    "getUTCMilliseconds",
+                    "getUTCMinutes",
+                    "getUTCMonth",
+                    "getUTCSeconds",
+                    "getYear",
+                    "setDate",
+                    "setFullYear",
+                    "setHours",
+                    "setMilliseconds",
+                    "setMinutes",
+                    "setMonth",
+                    "setSeconds",
+                    "setTime",
+                    "setUTCDate",
+                    "setUTCFullYear",
+                    "setUTCHours",
+                    "setUTCMilliseconds",
+                    "setUTCMinutes",
+                    "setUTCMonth",
+                    "setUTCSeconds",
+                    "setYear",
+                    "toDateString",
+                    "toGMTString",
+                    "toISOString",
+                    "toJSON",
+                    "toLocaleDateString",
+                    "toLocaleString",
+                    "toLocaleTimeString",
+                    "toString",
+                    "toTimeString",
+                    "toUTCString",
+                    "valueOf"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 11,
+            "tick": 0,
+            "event": "members Error",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "message",
+                    "name",
+                    "toString"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 12,
+            "tick": 0,
+            "event": "members EvalError",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "message",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 13,
+            "tick": 0,
+            "event": "members FinalizationRegistry",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "constructor",
+                    "register",
+                    "unregister"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 14,
+            "tick": 0,
+            "event": "members Float32Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 15,
+            "tick": 0,
+            "event": "members Float64Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 16,
+            "tick": 0,
+            "event": "members Function",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.hasInstance]",
+                    "apply",
+                    "arguments",
+                    "bind",
+                    "call",
+                    "caller",
+                    "constructor",
+                    "fileName",
+                    "length",
+                    "lineNumber",
+                    "name",
+                    "toString"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 17,
+            "tick": 0,
+            "event": "members Int16Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 18,
+            "tick": 0,
+            "event": "members Int32Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 19,
+            "tick": 0,
+            "event": "members Int8Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 20,
+            "tick": 0,
+            "event": "members InternalError",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "message",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 21,
+            "tick": 0,
+            "event": "members JSON",
+            "value": {
+                "own": [
+                    "[Symbol.toStringTag]",
+                    "parse",
+                    "stringify"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 22,
+            "tick": 0,
+            "event": "members Map",
+            "value": {
+                "own": [
+                    "[Symbol.species]",
+                    "groupBy",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.iterator]",
+                    "[Symbol.toStringTag]",
+                    "clear",
+                    "constructor",
+                    "delete",
+                    "entries",
+                    "forEach",
+                    "get",
+                    "has",
+                    "keys",
+                    "set",
+                    "size",
+                    "values"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 23,
+            "tick": 0,
+            "event": "members Math",
+            "value": {
+                "own": [
+                    "E",
+                    "LN10",
+                    "LN2",
+                    "LOG10E",
+                    "LOG2E",
+                    "PI",
+                    "SQRT1_2",
+                    "SQRT2",
+                    "[Symbol.toStringTag]",
+                    "abs",
+                    "acos",
+                    "acosh",
+                    "asin",
+                    "asinh",
+                    "atan",
+                    "atan2",
+                    "atanh",
+                    "cbrt",
+                    "ceil",
+                    "clz32",
+                    "cos",
+                    "cosh",
+                    "exp",
+                    "expm1",
+                    "floor",
+                    "fround",
+                    "hypot",
+                    "imul",
+                    "log",
+                    "log10",
+                    "log1p",
+                    "log2",
+                    "max",
+                    "min",
+                    "pow",
+                    "random",
+                    "round",
+                    "sign",
+                    "sin",
+                    "sinh",
+                    "sqrt",
+                    "tan",
+                    "tanh",
+                    "trunc"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 24,
+            "tick": 0,
+            "event": "members Number",
+            "value": {
+                "own": [
+                    "EPSILON",
+                    "MAX_SAFE_INTEGER",
+                    "MAX_VALUE",
+                    "MIN_SAFE_INTEGER",
+                    "MIN_VALUE",
+                    "NEGATIVE_INFINITY",
+                    "NaN",
+                    "POSITIVE_INFINITY",
+                    "isFinite",
+                    "isInteger",
+                    "isNaN",
+                    "isSafeInteger",
+                    "length",
+                    "name",
+                    "parseFloat",
+                    "parseInt",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "toExponential",
+                    "toFixed",
+                    "toLocaleString",
+                    "toPrecision",
+                    "toString",
+                    "valueOf"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 25,
+            "tick": 0,
+            "event": "members Object",
+            "value": {
+                "own": [
+                    "__getClass",
+                    "assign",
+                    "create",
+                    "defineProperties",
+                    "defineProperty",
+                    "entries",
+                    "freeze",
+                    "fromEntries",
+                    "getOwnPropertyDescriptor",
+                    "getOwnPropertyDescriptors",
+                    "getOwnPropertyNames",
+                    "getOwnPropertySymbols",
+                    "getPrototypeOf",
+                    "groupBy",
+                    "hasOwn",
+                    "is",
+                    "isExtensible",
+                    "isFrozen",
+                    "isSealed",
+                    "keys",
+                    "length",
+                    "name",
+                    "preventExtensions",
+                    "prototype",
+                    "seal",
+                    "setPrototypeOf",
+                    "values"
+                ],
+                "prototype": [
+                    "__defineGetter__",
+                    "__defineSetter__",
+                    "__lookupGetter__",
+                    "__lookupSetter__",
+                    "__proto__",
+                    "constructor",
+                    "hasOwnProperty",
+                    "isPrototypeOf",
+                    "propertyIsEnumerable",
+                    "toLocaleString",
+                    "toString",
+                    "valueOf"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 26,
+            "tick": 0,
+            "event": "members Promise",
+            "value": {
+                "own": [
+                    "[Symbol.species]",
+                    "all",
+                    "allSettled",
+                    "any",
+                    "length",
+                    "name",
+                    "prototype",
+                    "race",
+                    "reject",
+                    "resolve",
+                    "withResolvers"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "catch",
+                    "constructor",
+                    "finally",
+                    "then"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 27,
+            "tick": 0,
+            "event": "members Proxy",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "revocable"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 28,
+            "tick": 0,
+            "event": "members RangeError",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "message",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 29,
+            "tick": 0,
+            "event": "members ReferenceError",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "message",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 30,
+            "tick": 0,
+            "event": "members Reflect",
+            "value": {
+                "own": [
+                    "[Symbol.toStringTag]",
+                    "apply",
+                    "construct",
+                    "defineProperty",
+                    "deleteProperty",
+                    "get",
+                    "getOwnPropertyDescriptor",
+                    "getPrototypeOf",
+                    "has",
+                    "isExtensible",
+                    "ownKeys",
+                    "preventExtensions",
+                    "set",
+                    "setPrototypeOf"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 31,
+            "tick": 0,
+            "event": "members RegExp",
+            "value": {
+                "own": [
+                    "[Symbol.species]",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.matchAll]",
+                    "[Symbol.match]",
+                    "[Symbol.replace]",
+                    "[Symbol.search]",
+                    "[Symbol.split]",
+                    "compile",
+                    "constructor",
+                    "dotAll",
+                    "exec",
+                    "flags",
+                    "global",
+                    "hasIndices",
+                    "ignoreCase",
+                    "multiline",
+                    "source",
+                    "sticky",
+                    "test",
+                    "toString",
+                    "unicode"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 32,
+            "tick": 0,
+            "event": "members Set",
+            "value": {
+                "own": [
+                    "[Symbol.species]",
+                    "groupBy",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.iterator]",
+                    "[Symbol.toStringTag]",
+                    "add",
+                    "clear",
+                    "constructor",
+                    "delete",
+                    "entries",
+                    "forEach",
+                    "has",
+                    "keys",
+                    "size",
+                    "values"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 33,
+            "tick": 0,
+            "event": "members SharedArrayBuffer",
+            "value": {
+                "own": [
+                    "[Symbol.species]",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "byteLength",
+                    "constructor",
+                    "slice"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 34,
+            "tick": 0,
+            "event": "members String",
+            "value": {
+                "own": [
+                    "fromCharCode",
+                    "fromCodePoint",
+                    "length",
+                    "name",
+                    "prototype",
+                    "raw"
+                ],
+                "prototype": [
+                    "[Symbol.iterator]",
+                    "__quote",
+                    "anchor",
+                    "at",
+                    "big",
+                    "blink",
+                    "bold",
+                    "charAt",
+                    "charCodeAt",
+                    "codePointAt",
+                    "concat",
+                    "constructor",
+                    "endsWith",
+                    "fixed",
+                    "fontcolor",
+                    "fontsize",
+                    "includes",
+                    "indexOf",
+                    "isWellFormed",
+                    "italics",
+                    "lastIndexOf",
+                    "length",
+                    "link",
+                    "localeCompare",
+                    "match",
+                    "matchAll",
+                    "normalize",
+                    "padEnd",
+                    "padStart",
+                    "repeat",
+                    "replace",
+                    "replaceAll",
+                    "search",
+                    "slice",
+                    "small",
+                    "split",
+                    "startsWith",
+                    "strike",
+                    "sub",
+                    "substr",
+                    "substring",
+                    "sup",
+                    "toLocaleLowerCase",
+                    "toLocaleUpperCase",
+                    "toLowerCase",
+                    "toString",
+                    "toUpperCase",
+                    "toWellFormed",
+                    "trim",
+                    "trimEnd",
+                    "trimLeft",
+                    "trimRight",
+                    "trimStart",
+                    "valueOf"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 35,
+            "tick": 0,
+            "event": "members Symbol",
+            "value": {
+                "own": [
+                    "asyncIterator",
+                    "for",
+                    "hasInstance",
+                    "isConcatSpreadable",
+                    "iterator",
+                    "keyFor",
+                    "length",
+                    "match",
+                    "matchAll",
+                    "name",
+                    "prototype",
+                    "replace",
+                    "search",
+                    "species",
+                    "split",
+                    "toPrimitive",
+                    "toStringTag",
+                    "unscopables"
+                ],
+                "prototype": [
+                    "[Symbol.toPrimitive]",
+                    "[Symbol.toStringTag]",
+                    "constructor",
+                    "description",
+                    "toString",
+                    "valueOf"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 36,
+            "tick": 0,
+            "event": "members SyntaxError",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "message",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 37,
+            "tick": 0,
+            "event": "members TypeError",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "message",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 38,
+            "tick": 0,
+            "event": "members URIError",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "constructor",
+                    "message",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 39,
+            "tick": 0,
+            "event": "members Uint16Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 40,
+            "tick": 0,
+            "event": "members Uint32Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 41,
+            "tick": 0,
+            "event": "members Uint8Array",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 42,
+            "tick": 0,
+            "event": "members Uint8ClampedArray",
+            "value": {
+                "own": [
+                    "BYTES_PER_ELEMENT",
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "BYTES_PER_ELEMENT",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 43,
+            "tick": 0,
+            "event": "members WeakMap",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "constructor",
+                    "delete",
+                    "get",
+                    "has",
+                    "set"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 44,
+            "tick": 0,
+            "event": "members WeakRef",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "constructor",
+                    "deref"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 45,
+            "tick": 0,
+            "event": "members WeakSet",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "add",
+                    "constructor",
+                    "delete",
+                    "has"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 46,
+            "tick": 0,
+            "event": "members decodeURI",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 47,
+            "tick": 0,
+            "event": "members decodeURIComponent",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 48,
+            "tick": 0,
+            "event": "members encodeURI",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 49,
+            "tick": 0,
+            "event": "members encodeURIComponent",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 50,
+            "tick": 0,
+            "event": "members escape",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 51,
+            "tick": 0,
+            "event": "members isFinite",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 52,
+            "tick": 0,
+            "event": "members isNaN",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 53,
+            "tick": 0,
+            "event": "members parseFloat",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 54,
+            "tick": 0,
+            "event": "members parseInt",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 55,
+            "tick": 0,
+            "event": "members unescape",
+            "value": {
+                "own": [
+                    "length",
+                    "name"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 56,
+            "tick": 0,
+            "event": "members %TypedArray%",
+            "value": {
+                "own": [
+                    "[Symbol.species]",
+                    "from",
+                    "length",
+                    "name",
+                    "of",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.iterator]",
+                    "[Symbol.toStringTag]",
+                    "at",
+                    "buffer",
+                    "byteLength",
+                    "byteOffset",
+                    "constructor",
+                    "copyWithin",
+                    "entries",
+                    "every",
+                    "fill",
+                    "filter",
+                    "find",
+                    "findIndex",
+                    "findLast",
+                    "findLastIndex",
+                    "forEach",
+                    "includes",
+                    "indexOf",
+                    "join",
+                    "keys",
+                    "lastIndexOf",
+                    "length",
+                    "map",
+                    "reduce",
+                    "reduceRight",
+                    "reverse",
+                    "set",
+                    "slice",
+                    "some",
+                    "sort",
+                    "subarray",
+                    "toLocaleString",
+                    "toReversed",
+                    "toSorted",
+                    "toString",
+                    "values",
+                    "with"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 57,
+            "tick": 0,
+            "event": "members %GeneratorFunction%",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "constructor",
+                    "prototype"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 58,
+            "tick": 0,
+            "event": "members %AsyncFunction%",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "constructor"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 59,
+            "tick": 0,
+            "event": "members %AsyncGeneratorFunction%",
+            "value": {
+                "own": [
+                    "length",
+                    "name",
+                    "prototype"
+                ],
+                "prototype": [
+                    "[Symbol.toStringTag]",
+                    "constructor",
+                    "prototype"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 60,
+            "tick": 0,
+            "event": "members %GeneratorPrototype%",
+            "value": {
+                "own": [
+                    "[Symbol.toStringTag]",
+                    "constructor",
+                    "next",
+                    "return",
+                    "throw"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 61,
+            "tick": 0,
+            "event": "members %AsyncGeneratorPrototype%",
+            "value": {
+                "own": [
+                    "[Symbol.toStringTag]",
+                    "constructor",
+                    "next",
+                    "return",
+                    "throw"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 62,
+            "tick": 0,
+            "event": "members %IteratorPrototype%",
+            "value": {
+                "own": [
+                    "[Symbol.iterator]"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 63,
+            "tick": 0,
+            "event": "members %AsyncIteratorPrototype%",
+            "value": {
+                "own": [
+                    "[Symbol.asyncIterator]"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 64,
+            "tick": 0,
+            "event": "members %ArrayIteratorPrototype%",
+            "value": {
+                "own": [
+                    "[Symbol.toStringTag]",
+                    "next"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 65,
+            "tick": 0,
+            "event": "members %MapIteratorPrototype%",
+            "value": {
+                "own": [
+                    "[Symbol.toStringTag]",
+                    "next"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 66,
+            "tick": 0,
+            "event": "members %SetIteratorPrototype%",
+            "value": {
+                "own": [
+                    "[Symbol.toStringTag]",
+                    "next"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 67,
+            "tick": 0,
+            "event": "members %StringIteratorPrototype%",
+            "value": {
+                "own": [
+                    "[Symbol.toStringTag]",
+                    "next"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 68,
+            "tick": 0,
+            "event": "members %RegExpStringIteratorPrototype%",
+            "value": {
+                "own": [
+                    "[Symbol.toStringTag]",
+                    "next"
+                ]
+            }
+        },
+        {
+            "pack": "engine",
+            "seq": 69,
+            "tick": 0,
+            "event": "Object.__getClass",
+            "value": [
+                1,
+                "Array",
+                "Object",
+                "Function",
+                "Function",
+                "Object",
+                "Map",
+                "RegExp",
+                "Object",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "pack": "engine",
+            "seq": 70,
+            "tick": 0,
+            "event": "String.prototype.__quote",
+            "value": [
+                1,
+                "\"a\\\"b\\\\c\\n\\t\\u0001é\\ud800\"",
+                "\"12\""
+            ]
+        },
+        {
+            "pack": "engine",
+            "seq": 71,
+            "tick": 0,
+            "event": "String.prototype.__quote on undefined",
+            "error": "TypeError: null or undefined are forbidden"
+        },
+        {
+            "pack": "engine",
+            "seq": 72,
+            "tick": 0,
+            "event": "eval",
+            "error": "ReferenceError: 'eval' is not defined"
+        },
+        {
+            "pack": "engine",
+            "seq": 73,
+            "tick": 0,
+            "event": "new Function from a string",
+            "error": "TypeError: Function from string is not supported"
+        },
+        {
+            "pack": "engine",
+            "seq": 74,
+            "tick": 0,
+            "event": "Function from a string",
+            "error": "TypeError: Function from string is not supported"
+        },
+        {
+            "pack": "engine",
+            "seq": 75,
+            "tick": 0,
+            "event": "new Function with no arguments",
+            "error": "TypeError: Function from string is not supported"
+        },
+        {
+            "pack": "engine",
+            "seq": 76,
+            "tick": 0,
+            "event": "new GeneratorFunction from a string",
+            "error": "TypeError: Function from string is not supported"
+        },
+        {
+            "pack": "engine",
+            "seq": 77,
+            "tick": 0,
+            "event": "new AsyncFunction from a string",
+            "error": "TypeError: Function from string is not supported"
+        },
+        {
+            "pack": "engine",
+            "seq": 78,
+            "tick": 0,
+            "event": "new AsyncGeneratorFunction from a string",
+            "error": "TypeError: Function from string is not supported"
+        },
+        {
+            "pack": "engine",
+            "seq": 79,
+            "tick": 0,
+            "event": "new RegExp with the v flag",
+            "error": "SyntaxError: invalid regular expression flags"
+        },
+        {
+            "pack": "engine",
+            "seq": 80,
+            "tick": 0,
+            "event": "new RegExp with the d flag",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "pack": "engine",
+            "seq": 81,
+            "tick": 0,
+            "event": "new RegExp with a modifier group",
+            "error": "SyntaxError: invalid group"
+        },
+        {
+            "pack": "engine",
+            "seq": 82,
+            "tick": 0,
+            "event": "new RegExp with a duplicate group name",
+            "error": "SyntaxError: duplicate group name"
+        },
+        {
+            "pack": "engine",
+            "seq": 83,
+            "tick": 0,
+            "event": "stack overflow",
+            "error": "InternalError: stack overflow"
+        },
+        {
+            "pack": "engine",
+            "seq": 84,
+            "tick": 0,
+            "event": "import ./syntax/regexpV.js",
+            "error": "SyntaxError: invalid regular expression flags"
+        },
+        {
+            "pack": "engine",
+            "seq": 85,
+            "tick": 0,
+            "event": "import ./syntax/using.js",
+            "error": "SyntaxError: expecting ';'"
+        }
+    ]
+}

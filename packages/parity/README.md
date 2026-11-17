@@ -81,14 +81,21 @@ the log becomes a golden. The family's test runs the same packs on JSPrismarine 
 two records.
 
 - [`src/scripting/scenarios.ts`](src/scripting/scenarios.ts) declares each scenario: its id, its
-  family and its packs in world order.
+  family, its packs in world order and what JSPrismarine needs to run it.
 - `scenarios/<scenario>/<pack>/` holds each pack, with its own `manifest.json`, so the directory
   loads on BDS as it is.
 - `goldens/scripting/<scenario>.json` is the BDS record.
 - `runScenarioOnJsp` in [`src/scripting/jspHost.ts`](src/scripting/jspHost.ts) returns
-  JSPrismarine's record. It returns nothing until the script host lands
-  ([#3203](https://github.com/JSPrismarine/JSPrismarine/issues/3203)), so every scenario row is a
-  `deferred` gap in `goldens/behavior-gaps.json` until then.
+  JSPrismarine's record.
+
+A scenario that `needs` only the `engine` imports no module and reports only through `console`.
+`runScenarioOnJsp` runs each of its packs in a bare `@jsprismarine/script-host` engine, with the
+entry loaded as a module and `console` and `print` writing the log lines. Its family's test skips
+where the script host library is not built, unless `JSP_SCRIPT_HOST_REQUIRE=1` is set, as CI sets
+it on Linux x64. A scenario that `needs` a `world` waits for the script host that loads packs into
+one ([#3203](https://github.com/JSPrismarine/JSPrismarine/issues/3203)). Until then
+`runScenarioOnJsp` returns nothing for it, and its row is a `deferred` gap in
+`goldens/behavior-gaps.json`.
 
 A family with no captured scenario reports "not measured". A declared scenario with no golden
 fails its row.
@@ -106,7 +113,7 @@ DUMP end {"pack":"v2","records":15}
 | ------- | ---------------------------------------------------------------------------- |
 | `pack`  | The pack's directory name under `scenarios/<scenario>/`                      |
 | `seq`   | The pack's own count of its observations, from 1                             |
-| `tick`  | `system.currentTick` at the observation                                      |
+| `tick`  | `system.currentTick` at the observation; 0 in an `engine` scenario           |
 | `event` | What happened, such as `system.beforeEvents.startup` or `top-level system.run` |
 | `value` | What an observed call returned, when it returned                             |
 | `error` | `String(error)` of what an observed call threw, when it threw                |

@@ -35,6 +35,7 @@ import {
     renderScenarioGolden,
     SCENARIO_GOLDEN_DIRECTORY,
     SCENARIO_GOLDEN_FORMAT,
+    readServerVersion,
     scenarioGoldenPath
 } from '../src/scripting/record.ts';
 import type { ScenarioGolden } from '../src/scripting/record.ts';
@@ -145,8 +146,19 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         const status = await server.stop(NATIVE_TIMEOUTS.stop * launcher.timeoutScale);
         if (status !== 0) console.warn(`The server exited with status ${status}.`);
     } finally {
+        // A failed wait leaves the server running, and holding the ports the next capture needs.
+        // stop() returns at once when the server has already exited.
+        await server.stop(NATIVE_TIMEOUTS.stop * launcher.timeoutScale);
         // A stop that timed out kills the CLI rather than the container it started.
         launcher.cleanup();
+    }
+
+    // A server path override can point at another BDS, and the golden names the pinned version.
+    const running = readServerVersion(server.lines);
+    if (running !== pinnedServer.serverVersion) {
+        throw new Error(
+            `The server reported version ${running ?? 'none'}, not the pinned ${pinnedServer.serverVersion}.`
+        );
     }
 
     return {

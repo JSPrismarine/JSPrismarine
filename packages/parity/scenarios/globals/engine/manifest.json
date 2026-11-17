@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario globals engine",
+        "description": "Records the globals, built-in members and engine errors a script sees. Written for packages/parity.",
+        "uuid": "3cf6044d-a21b-4e72-8f54-d455ce845a8d",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "87178c92-29aa-49d1-862f-412b6d06ca0c",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

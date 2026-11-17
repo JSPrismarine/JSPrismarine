@@ -1,8 +1,10 @@
 import { it } from 'vitest';
 
+import { scriptHostAvailable } from '../../../script-host/src/testing/library.test.helper.ts';
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { measureScenarios, scenarioGroup } from '../behaviorScenarios.ts';
 import { describeFamily } from '../measure.ts';
+import type { ReferenceSource } from '../references.ts';
 import { scriptingGoldens } from '../references.ts';
 import { runScenarioOnJsp } from './jspHost.ts';
 import type { ScenarioRecord } from './record.ts';
@@ -59,24 +61,43 @@ export const scenarioRecordComparison = (
 });
 
 /**
+ * The references a scripting family needs before its rows run. A family that declares scenarios
+ * needs none, because its rows report a scenario without a golden as a defect, and skipping the
+ * family as "not measured" would hide that. A family with no scenario needs a golden to exist.
+ *
+ * @param family - The family.
+ * @param scenarios - The scenarios the family declares.
+ * @returns The references to check, empty when the rows report missing goldens themselves.
+ */
+export const scriptingFamilyReferences = (
+    family: ScriptingFamily,
+    scenarios: readonly ScriptScenario[]
+): ReferenceSource[] => (scenarios.length === 0 ? [scriptingGoldens(family)] : []);
+
+/**
  * Declares one scripting family's tests: a row per scenario of the family, each comparing
  * JSPrismarine's record with the BDS golden.
  *
- * A family with no captured scenario reports "not measured". Rows that differ are checked
- * against `goldens/behavior-gaps.json`, and `PARITY_UPDATE_BEHAVIOR_GAPS=1` rewrites the family's
- * baseline from what they observed.
+ * A family with no declared scenario reports "not measured"; a declared scenario with no golden
+ * fails its row. Rows that differ are checked against `goldens/behavior-gaps.json`, and `PARITY_UPDATE_BEHAVIOR_GAPS=1` rewrites the family's
+ * baseline from what they observed. A family with a scenario that runs in a bare engine skips
+ * where no script host library is built, unless `JSP_SCRIPT_HOST_REQUIRE=1` asks for it.
  * @param family - The family, which is also the describe title the dashboard groups by.
  * @param sourceFile - The test file, for the tracker's source link.
  */
 export const describeScriptingFamily = (family: ScriptingFamily, sourceFile: string): void => {
     const scenarios = SCRIPT_SCENARIOS.filter((scenario) => scenario.family === family);
+    const needsLibrary = scenarios.some((scenario) => scenario.needs === 'engine');
 
-    describeFamily(family, [scriptingGoldens(family)], () => {
-        it("records what the pinned Bedrock Dedicated Server's scripts recorded", async () => {
-            const records = new Map<string, ScenarioRecord | undefined>();
-            for (const scenario of scenarios) records.set(scenario.id, await runScenarioOnJsp(scenario));
+    describeFamily(family, scriptingFamilyReferences(family, scenarios), () => {
+        it.skipIf(needsLibrary && !scriptHostAvailable())(
+            "records what the pinned Bedrock Dedicated Server's scripts recorded",
+            async () => {
+                const records = new Map<string, ScenarioRecord | undefined>();
+                for (const scenario of scenarios) records.set(scenario.id, await runScenarioOnJsp(scenario));
 
-            measureScenarios(family, sourceFile, scenarioGroup([scenarioRecordComparison(scenarios, records)]));
-        });
+                measureScenarios(family, sourceFile, scenarioGroup([scenarioRecordComparison(scenarios, records)]));
+            }
+        );
     });
 };
