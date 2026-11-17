@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { scriptHostAvailable } from '../testing/library.test.helper';
 import type { DebuggerWorkerData, DebuggerWorkerReport } from '../testing/debuggerWorker';
 import { DebuggerChannelBridge } from './channel';
-import { FrameDecoder, encodeFrame } from './framing';
+import { DebuggerFramingError, FrameDecoder, MAX_RECEIVED_FRAME_LENGTH, encodeFrame } from './framing';
 import { isRecord } from '../isRecord';
 import {
     DebuggerTransportError,
@@ -89,6 +89,50 @@ describe('the debugger transport', () => {
         expect(await fromExtension).toEqual({ type: 'resume' });
         socket.close();
         server.close();
+    });
+
+    it('closes fully once its last message is sent, though the peer keeps its side open', async () => {
+        const server = createServer({ allowHalfOpen: true });
+        const peer = new Promise<{ socket: Socket; received: unknown[]; ended: Promise<void> }>((resolve) => {
+            server.on('connection', (socket) => {
+                const decoder = new FrameDecoder();
+                const received: unknown[] = [];
+                socket.on('data', (chunk: Buffer) => received.push(...decoder.push(chunk)));
+                const ended = new Promise<void>((done) => socket.once('end', () => done()));
+                resolve({ socket, received, ended });
+            });
+        });
+        await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+        const address = server.address();
+        if (address === null || typeof address === 'string') throw new Error('no address');
+
+        const socket = await connectToDebugger({ host: '127.0.0.1', port: address.port });
+        const closed = new Promise<Error | undefined>((resolve) => socket.onClose(resolve));
+        socket.send({ type: 'event', event: { type: 'ThreadEvent', reason: 'exited', thread: 1 } });
+        socket.close();
+
+        expect(await closed).toBeUndefined();
+        const { socket: peerSocket, received, ended } = await peer;
+        await ended;
+        expect(received).toEqual([{ type: 'event', event: { type: 'ThreadEvent', reason: 'exited', thread: 1 } }]);
+        peerSocket.destroy();
+        server.close();
+    });
+
+    it('closes a connection whose frame header states a body over the limit', async () => {
+        const listener = await listenForDebugger({ port: 0 });
+        const peer = createConnection({ host: '127.0.0.1', port: listener.address.port });
+        const peerClosed = new Promise<void>((resolve) => peer.once('close', () => resolve()));
+        peer.on('error', () => undefined);
+        const socket = await listener.connection;
+        const closed = new Promise<Error | undefined>((resolve) => socket.onClose(resolve));
+
+        peer.write(`${(MAX_RECEIVED_FRAME_LENGTH + 1).toString(16).padStart(8, '0')}\n`);
+
+        expect(await closed).toBeInstanceOf(DebuggerFramingError);
+        await peerClosed;
+        expect(socket.closed).toBe(true);
+        listener.close();
     });
 
     it.skipIf(!scriptHostAvailable())(

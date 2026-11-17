@@ -38,7 +38,7 @@ export interface NativeSymbols {
     jsh_encode(engine: NativePointer, handle: number): number;
     jsh_dup(engine: NativePointer, handle: number): number;
     jsh_free(engine: NativePointer, handle: number): void;
-    jsh_debug_attach(engine: NativePointer, pollLines: number): number;
+    jsh_debug_attach(engine: NativePointer, context: number, pollLines: number): number;
     jsh_debug_detach(engine: NativePointer): void;
     jsh_debug_set_breakpoints(engine: NativePointer, path: string, length: number): number;
     jsh_debug_set_stop_on_exception(engine: NativePointer, stop: number): void;
@@ -91,7 +91,7 @@ const signatures: Record<keyof NativeSymbols, readonly [Kind, readonly Kind[]]> 
     jsh_encode: ['int32', ['pointer', 'int32']],
     jsh_dup: ['int32', ['pointer', 'int32']],
     jsh_free: ['void', ['pointer', 'int32']],
-    jsh_debug_attach: ['int32', ['pointer', 'float64']],
+    jsh_debug_attach: ['int32', ['pointer', 'int32', 'float64']],
     jsh_debug_detach: ['void', ['pointer']],
     jsh_debug_set_breakpoints: ['int32', ['pointer', 'string', 'int32']],
     jsh_debug_set_stop_on_exception: ['void', ['pointer', 'int32']],

@@ -75,9 +75,9 @@ describe.skipIf(!scriptHostAvailable())('the engine debugger', () => {
         for (const engine of engines.splice(0)) engine.destroy();
     });
 
-    const attach = (engine: ScriptEngine, actions: StopAction[], pollLines = 0): ScriptedClient => {
+    const attach = (engine: ScriptEngine, actions: StopAction[], pollLines = 0, context = 0): ScriptedClient => {
         const client = new ScriptedClient(actions);
-        client.engineDebugger = engine.attachDebugger(client, { pollLines });
+        client.engineDebugger = engine.attachDebugger(client, { pollLines, context });
         return client;
     };
 
@@ -309,6 +309,38 @@ describe.skipIf(!scriptHostAvailable())('the engine debugger', () => {
             expect(accessorRead).toBe(false);
         });
 
+        it('describes a callable proxy, and an object whose prototype or constructor is a proxy, without running a trap', () => {
+            const engine = create();
+            const client = attach(engine, []);
+            const trap = '{ getOwnPropertyDescriptor() { globalThis.trapped = true; for (;;) {} } }';
+            const values = [
+                client.engineDebugger.evaluate(-1, `Object.create(new Proxy({}, ${trap}))`),
+                client.engineDebugger.evaluate(
+                    -1,
+                    `Object.create({ constructor: new Proxy(function () {}, ${trap}) })`
+                ),
+                client.engineDebugger.evaluate(-1, `new Proxy(function named() {}, ${trap})`)
+            ];
+            // An unlimited budget would leave a trap that ran spinning forever instead of failing.
+            engine.setBudget({ perCallback: 20 });
+            const steps = engine.stats().steps;
+
+            const described = values.map((value) => {
+                if (!(value instanceof ScriptHandle)) throw new Error('expected an object');
+                const description = client.engineDebugger.describe(value);
+                engine.free(value);
+                return description;
+            });
+
+            expect(described).toMatchObject([
+                { kind: 'object', name: 'Object' },
+                { kind: 'object', name: 'Object' },
+                { kind: 'proxy', name: 'Proxy' }
+            ]);
+            expect(engine.stats().steps).toBe(steps);
+            expect(engine.evaluate('globalThis.trapped')).toBeUndefined();
+        });
+
         it('pages through an array’s elements', () => {
             const engine = create();
             let page: unknown;
@@ -438,6 +470,28 @@ describe.skipIf(!scriptHostAvailable())('the engine debugger', () => {
             expect(engine.stats().callbackSteps).toBe(expected);
         });
 
+        it('leaves the stopped script’s step counts as they were after a global evaluation', () => {
+            // The script polls about 605,000 times, halfway between two steps, so an evaluation's
+            // 6,000 polls would move it past the next one if they carried over.
+            const work = 'let n = 0;\nfor (let i = 0; i < 302500; i++) { n += i % 7; }\nn;';
+            const plain = create();
+            plain.evaluate(work, 'global.js');
+
+            const engine = create();
+            const client = attach(engine, [
+                ({ debugger: debug }) => {
+                    debug.evaluate(-1, 'let polls = 0; for (let i = 0; i < 3000; i++) { polls++; } polls;');
+                    return 'continue';
+                }
+            ]);
+            client.engineDebugger.setBreakpoints('global.js', [1]);
+            engine.evaluate(work, 'global.js');
+
+            expect(client.stops).toHaveLength(1);
+            expect(engine.stats().callbackSteps).toBe(plain.stats().callbackSteps);
+            expect(engine.stats().steps).toBe(plain.stats().steps);
+        });
+
         it('evaluates at the global level with frame -1, with no script running', () => {
             const engine = create();
             const client = attach(engine, []);
@@ -495,6 +549,122 @@ describe.skipIf(!scriptHostAvailable())('the engine debugger', () => {
 
             expect(() => engine.evaluate('while (true) {}')).toThrow(ScriptTerminatedError);
             expect(client.stops).toEqual([]);
+        });
+    });
+
+    describe('contexts', () => {
+        /** An engine with a second context, as a world runs a second pack, each with a marker. */
+        const twoContexts = (): { engine: ScriptEngine; second: number } => {
+            const engine = create();
+            const second = engine.createContext();
+            engine.evaluate("globalThis.where = 'first';");
+            engine.inContext(second, () => engine.evaluate("globalThis.where = 'second';"));
+            return { engine, second };
+        };
+
+        it('stops only in the watched context, though another context runs a file of the same name', () => {
+            const { engine, second } = twoContexts();
+            const client = attach(engine, [], 0, second);
+            client.engineDebugger.setBreakpoints('main.js', [2]);
+            client.engineDebugger.setStopOnException(true);
+            client.engineDebugger.pause();
+
+            expect(engine.evaluate(program, 'main.js')).toBe(5);
+            expect(() => engine.evaluate('throw new Error("first")', 'main.js')).toThrow(ScriptError);
+            expect(client.stops).toEqual([]);
+
+            expect(engine.inContext(second, () => engine.evaluate(program, 'main.js'))).toBe(5);
+            expect(client.stops.map(({ reason, line }) => [reason, line])).toEqual([
+                ['pause', 11],
+                ['breakpoint', 2],
+                ['breakpoint', 2]
+            ]);
+        });
+
+        it('steps through a call into another context without stopping in it', () => {
+            const { engine, second } = twoContexts();
+            const other = engine.evaluate('(function other() {\n    let x = 1;\n    return x + 1;\n})', 'other.js');
+            if (!(other instanceof ScriptHandle)) throw new Error('expected a function');
+            engine.inContext(second, () =>
+                engine.defineGlobalFunction('callOther', () => engine.call(other, undefined))
+            );
+            const client = attach(engine, [() => 'stepIn', () => 'stepIn', () => 'stepIn'], 0, second);
+            client.engineDebugger.setBreakpoints('main.js', [2]);
+            client.engineDebugger.setBreakpoints('other.js', [2]);
+
+            const source = 'function run() {\n    const got = callOther();\n    return got * 10;\n}\nrun();';
+            expect(engine.inContext(second, () => engine.evaluate(source, 'main.js'))).toBe(20);
+            engine.free(other);
+
+            expect(client.stops.map(({ reason, file, line }) => [reason, file, line])).toEqual([
+                ['breakpoint', 'main.js', 2],
+                ['step', 'main.js', 3],
+                ['step', 'main.js', 5]
+            ]);
+        });
+
+        it('reads and evaluates each frame in the context its function belongs to', () => {
+            const { engine, second } = twoContexts();
+            const watched = engine.inContext(second, () =>
+                engine.evaluate('(function watched(n) {\n    const inner = n * 2;\n    return inner;\n})', 'watched.js')
+            );
+            if (!(watched instanceof ScriptHandle)) throw new Error('expected a function');
+            engine.defineGlobalFunction('callWatched', (n) => engine.call(watched, undefined, n));
+            const seen: Record<string, ScriptValue> = {};
+            const client = attach(
+                engine,
+                [
+                    ({ debugger: debug, frames }) => {
+                        seen.frames = frames.map(({ name }) => name).join(' ');
+                        seen.innerWhere = debug.evaluate(0, 'where + inner');
+                        seen.outerWhere = debug.evaluate(2, 'where + outerLocal');
+                        seen.globalWhere = debug.evaluate(-1, 'where');
+                        for (const [frame, key] of [
+                            [0, 'innerGlobal'],
+                            [2, 'outerGlobal']
+                        ] as const) {
+                            const global = debug.scope(frame, 'global');
+                            for (const { name, value } of debug.properties(global).properties) {
+                                if (name === 'where') seen[key] = value;
+                                if (value instanceof ScriptHandle) engine.free(value);
+                            }
+                            engine.free(global);
+                        }
+                        const locals = debug.scope(2, 'local');
+                        seen.outerLocals = debug
+                            .properties(locals)
+                            .properties.map(({ name }) => name)
+                            .join(' ');
+                        engine.free(locals);
+                        return 'continue';
+                    }
+                ],
+                0,
+                second
+            );
+            client.engineDebugger.setBreakpoints('watched.js', [3]);
+
+            const source =
+                'function outer() {\n    const outerLocal = 7;\n    return callWatched(outerLocal);\n}\nouter();';
+            expect(engine.evaluate(source, 'first.js')).toBe(14);
+            engine.free(watched);
+
+            expect(seen).toEqual({
+                frames: 'watched callWatched outer <eval>',
+                innerWhere: 'second14',
+                outerWhere: 'first7',
+                globalWhere: 'second',
+                innerGlobal: 'second',
+                outerGlobal: 'first',
+                outerLocals: 'outerLocal'
+            });
+            expect(engine.stats().handles).toBe(0);
+        });
+
+        it('refuses a context the engine does not have', () => {
+            const engine = create();
+            expect(() => engine.attachDebugger(new ScriptedClient([]), { context: 1 })).toThrow(RangeError);
+            expect(() => attach(engine, [])).not.toThrow();
         });
     });
 

@@ -5,11 +5,12 @@
  * session whole messages.
  */
 
-import type { ScriptEngine } from '../ScriptEngine';
+import { DEFAULT_CONTEXT } from '../ScriptEngine';
+import type { ScriptContextId, ScriptEngine } from '../ScriptEngine';
 import { ScriptError } from '../errors';
-import type { ScriptHandle } from '../values';
+import { ScriptHandle } from '../values';
 import type { ScriptValue } from '../values';
-import type { EngineDebugger, PauseOutcome, PauseReason, ResumeMode, ScopeKind } from './EngineDebugger';
+import type { EngineDebugger, PauseOutcome, PauseReason, PropertyPage, ResumeMode, ScopeKind } from './EngineDebugger';
 import {
     DEBUGGER_PROTOCOL_VERSION,
     DebuggerMessages,
@@ -30,6 +31,11 @@ export interface DebuggerChannel {
     receive(): unknown;
     /** Returns the next message if one has arrived, without waiting; undefined otherwise. */
     poll(): unknown;
+    /**
+     * Whether the connection has closed. `receive` and `poll` still return the messages that
+     * arrived before it closed.
+     */
+    readonly closed: boolean;
 }
 
 /** How a {@link ScriptDebugSession} presents the world's scripts to the extension. */
@@ -74,6 +80,12 @@ interface VariableBody {
     readonly indexedVariables?: number;
 }
 
+/** The largest array index, 2^32 - 2, one less than the longest array length. */
+const MAX_ARRAY_INDEX = 2 ** 32 - 2;
+
+/** Whether a property name is an array index: a canonical integer from 0 to {@link MAX_ARRAY_INDEX}. */
+const isArrayIndex = (name: string): boolean => /^(?:0|[1-9]\d*)$/.test(name) && Number(name) <= MAX_ARRAY_INDEX;
+
 const scopeNames: Readonly<Record<ScopeKind, string>> = { local: 'Local', closure: 'Closure', global: 'Global' };
 
 const resumeCommands: Readonly<Record<string, ResumeMode>> = {
@@ -85,7 +97,7 @@ const resumeCommands: Readonly<Record<string, ResumeMode>> = {
 
 /**
  * One debugger connection over a {@link DebuggerChannel}. The world host runs {@link handshake},
- * then {@link attach} with the engine of the pack the extension picked, then calls {@link poll}
+ * then {@link attach} with the engine and context of the pack the extension picked, then calls {@link poll}
  * between ticks until the connection closes or {@link detach} ends it. Every method blocks the
  * calling thread for as long as the extension keeps a script stopped, which is how a stopped
  * script stops its world's tick.
@@ -133,7 +145,10 @@ export class ScriptDebugSession {
         });
         for (;;) {
             const message = this.next(this.channel.receive());
-            if (message === undefined) throw new DebuggerConnectionError('The debugger closed the connection');
+            if (message === undefined) {
+                this.close();
+                throw new DebuggerConnectionError('The debugger closed the connection');
+            }
             if (message.type !== 'protocol') continue;
             if (message.version !== DEBUGGER_PROTOCOL_VERSION) {
                 throw new DebuggerConnectionError(DebuggerMessages.versionMismatch);
@@ -153,20 +168,26 @@ export class ScriptDebugSession {
     }
 
     /**
-     * Attaches to the engine of the picked pack, and handles the extension's configuration, its
-     * breakpoints and exception setting, until it sends `resume`. The engine runs no script until then.
+     * Attaches to the picked pack's context, and handles the extension's configuration, its
+     * breakpoints and exception setting, until it sends `resume`. The engine runs no script until
+     * then. Only that context's scripts stop: another pack's file of the same name never does.
+     * @param engine - The engine the pack runs in.
+     * @param context - The pack's context in the engine.
      */
-    public attach(engine: ScriptEngine): void {
+    public attach(engine: ScriptEngine, context: ScriptContextId = DEFAULT_CONTEXT): void {
         if (this.engine !== undefined) throw new Error('The session is already attached to an engine');
         this.engine = engine;
         this.debug = engine.attachDebugger(
             { paused: (reason) => this.paused(reason), poll: () => this.pollRunning() },
-            { pollLines: this.options.pollLines }
+            { context, pollLines: this.options.pollLines }
         );
         this.event({ type: 'ThreadEvent', reason: 'new', thread: this.threadId });
         for (;;) {
             const message = this.next(this.channel.receive());
-            if (message === undefined) return;
+            if (message === undefined) {
+                this.close();
+                return;
+            }
             if (message.type === 'resume') return;
             this.handle(message);
         }
@@ -174,9 +195,13 @@ export class ScriptDebugSession {
 
     /**
      * Handles what the extension has sent while no script ran, without waiting. A pause request
-     * stops the next script the engine runs at its first line.
+     * stops the next script the engine runs at its first line. Once the connection has closed and
+     * its last messages are handled, the session closes and detaches.
      */
     public poll(): void {
+        if (this.closedValue) return;
+        // Read before draining: when the connection closes mid-drain, the next poll reads what came first.
+        const disconnected = this.channel.closed;
         for (
             let message = this.next(this.channel.poll());
             message !== undefined;
@@ -184,6 +209,7 @@ export class ScriptDebugSession {
         ) {
             this.handle(message);
         }
+        if (disconnected) this.close();
     }
 
     /** Shows script output in the extension's debug console. */
@@ -364,41 +390,72 @@ export class ScriptDebugSession {
         }));
     }
 
-    /** The `variables` body: one page of an object's or a scope's properties. */
+    /**
+     * The `variables` body: one page of an object's or a scope's properties. A scope is a copy of
+     * the frame's variables, so each request reads a new one, which an evaluation may have changed.
+     */
     private variables(args: Record<string, unknown>): VariableBody[] {
         const debug = this.requireStopped();
         const id = typeof args.variablesReference === 'number' ? args.variablesReference : 0;
         const reference = this.references.get(id);
         if (reference === undefined) throw new Error(`No variables have reference ${id}`);
-        const handle = reference.kind === 'value' ? reference.handle : debug.scope(reference.frame, reference.scope);
-        if (reference.kind === 'scope') this.references.set(id, { kind: 'value', handle });
+        if (reference.kind === 'value') return this.page(debug, reference.handle, args);
+        const scope = debug.scope(reference.frame, reference.scope);
+        try {
+            const variables = this.page(debug, scope, args);
+            if (reference.scope === 'local' && reference.frame === 0 && this.stopped === 'exception') {
+                variables.unshift(this.variable('<exception>', debug.exception()));
+            }
+            return variables;
+        } finally {
+            this.engine?.free(scope);
+        }
+    }
 
-        const description = debug.describe(handle);
-        const indexed = description.kind === 'array' && typeof description.detail === 'number' ? description.detail : 0;
-        const start = typeof args.start === 'number' ? args.start : 0;
+    /**
+     * One page of a value's properties, as the `variables` arguments ask for it. The `indexed` and
+     * `named` filters each page within their own group: the array indices, or every other name.
+     */
+    private page(debug: EngineDebugger, handle: ScriptHandle, args: Record<string, unknown>): VariableBody[] {
+        const start = typeof args.start === 'number' && args.start > 0 ? args.start : 0;
         const count = typeof args.count === 'number' && args.count > 0 ? args.count : undefined;
-        const page =
-            args.filter === 'indexed'
-                ? debug.properties(handle, start, count ?? indexed)
-                : debug.properties(handle, args.filter === 'named' ? indexed : 0);
+        let page: PropertyPage;
+        if (args.filter === 'indexed' || args.filter === 'named') {
+            const indices = this.indexCount(debug, handle);
+            page =
+                args.filter === 'indexed'
+                    ? debug.properties(handle, start, Math.min(count ?? indices, Math.max(indices - start, 0)))
+                    : debug.properties(handle, indices + start, count);
+        } else {
+            page = debug.properties(handle);
+        }
 
-        const variables: VariableBody[] = [];
-        if (
-            reference.kind === 'scope' &&
-            reference.scope === 'local' &&
-            reference.frame === 0 &&
-            this.stopped === 'exception'
-        ) {
-            variables.push(this.variable('<exception>', debug.exception()));
+        return page.properties.map((property) =>
+            property.accessor
+                ? { name: property.name, value: '(accessor)', type: 'accessor', variablesReference: 0 }
+                : this.variable(property.name, property.value)
+        );
+    }
+
+    /**
+     * How many of a value's own property names are array indices. QuickJS lists those first, in
+     * ascending order, so they are a prefix of the names, and a binary search finds where it ends
+     * by reading one name at a time.
+     */
+    private indexCount(debug: EngineDebugger, handle: ScriptHandle): number {
+        let low = 0;
+        let high = debug.properties(handle, 0, 0).total;
+        while (low < high) {
+            const middle = Math.floor((low + high) / 2);
+            const [property] = debug.properties(handle, middle, 1).properties;
+            if (property?.value instanceof ScriptHandle) this.engine?.free(property.value);
+            if (property !== undefined && isArrayIndex(property.name)) {
+                low = middle + 1;
+            } else {
+                high = middle;
+            }
         }
-        for (const property of page.properties) {
-            variables.push(
-                property.accessor
-                    ? { name: property.name, value: '(accessor)', type: 'accessor', variablesReference: 0 }
-                    : this.variable(property.name, property.value)
-            );
-        }
-        return variables;
+        return low;
     }
 
     /** The `evaluate` body. A failed evaluation is a result too: the extension never answers an error here. */

@@ -11,8 +11,19 @@ import type { MessagePort } from 'node:worker_threads';
 import type { DebuggerChannel } from './DebugSession';
 import type { HostMessage } from './protocol';
 
-/** The words of the shared signal: how many messages were delivered, and whether the connection closed. */
+/** The words of the shared signal: a count that moves on each delivery and on close, and the closed flag. */
 const Signal = { delivered: 0, closed: 1 } as const;
+
+/**
+ * Marks the channel closed and wakes a waiting `receive`. The delivered count changes before the
+ * notify: a `receive` that saw the channel open and has not yet started to wait then finds the
+ * count moved and returns at once, instead of missing a notify that came first.
+ */
+const markClosed = (signal: Int32Array): void => {
+    Atomics.store(signal, Signal.closed, 1);
+    Atomics.add(signal, Signal.delivered, 1);
+    Atomics.notify(signal, Signal.delivered);
+};
 
 /** A connection to the extension that a bridge can join to, such as a {@link DebuggerSocket}. */
 export interface DebuggerConnection {
@@ -69,8 +80,7 @@ export class PortDebuggerChannel implements DebuggerChannel {
 
     /** Closes this end, which also tells the connection's side. */
     public close(): void {
-        Atomics.store(this.signal, Signal.closed, 1);
-        Atomics.notify(this.signal, Signal.delivered);
+        markClosed(this.signal);
         this.port.close();
     }
 }
@@ -130,8 +140,7 @@ export class DebuggerChannelBridge {
     /** Tells the engine's thread the connection closed, after the messages already delivered. */
     public close(): void {
         if (this.closed) return;
-        Atomics.store(this.signal, Signal.closed, 1);
-        Atomics.notify(this.signal, Signal.delivered);
+        markClosed(this.signal);
         this.port.close();
     }
 }

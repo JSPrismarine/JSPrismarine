@@ -309,6 +309,20 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
         ).toMatch(/^TypeError: Native type conversion failed/);
     });
 
+    it('writes BDS’s messages with built-ins a script cannot replace', () => {
+        const scripts = engine();
+        bindServer(scripts, '2.0.0');
+        const replace =
+            "Array.prototype.reverse = Array.prototype.map = Array.prototype.join = () => { throw new Error('replaced'); }; Number.prototype.toFixed = () => 'replaced'; globalThis.String = () => 'replaced';";
+
+        expect(thrown(scripts, `${replace} mc.system.runTimeout(() => {}, -1)`)).toBe(
+            'ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: -1, Argument bounds: [0, 4294967295.00]'
+        );
+        expect(thrown(scripts, 'mc.world.sendMessage(42)')).toBe(
+            'TypeError: Native variant type conversion failed. Function argument [0] expected type: string | RawMessage | (string | RawMessage)[]'
+        );
+    });
+
     it('forwards the validated arguments past accessors a script put on Array.prototype', () => {
         const scripts = engine();
         const seen: unknown[][] = [];
@@ -334,10 +348,10 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
         bindServer(scripts, '2.0.0');
 
         expect(thrown(scripts, "mc.World.prototype.getDimension.call({}, 'overworld')")).toBe(
-            'TypeError: Native object bound to prototype does not exist.'
+            'ReferenceError: Native function [World::getDimension] object bound to prototype does not exist.'
         );
         expect(thrown(scripts, "Object.getOwnPropertyDescriptor(mc.World.prototype, 'seed').get.call(1)")).toBe(
-            'TypeError: Native object bound to prototype does not exist.'
+            'ReferenceError: Native property getter [World::seed] object bound to prototype does not exist.'
         );
     });
 

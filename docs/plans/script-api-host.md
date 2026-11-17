@@ -151,7 +151,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      the int32 range, whatever the type, so only `details` bounds an argument.
 5. [x] [#3202](https://github.com/JSPrismarine/JSPrismarine/issues/3202) **The parity families.** Declare the `scripting.*` families, write the BDS runner and the
    golden format, and land one scenario that runs on BDS, with JSP's row recorded as a gap.
-6. [ ] [#3203](https://github.com/JSPrismarine/JSPrismarine/issues/3203) **The skeleton.** The milestone that proves every mechanism once:
+6. [x] [#3203](https://github.com/JSPrismarine/JSPrismarine/issues/3203) **The skeleton.** The milestone that proves every mechanism once:
    - manifest and native module resolution, including an undeclared `@jsprismarine/server` import
      that rejects on BDS and resolves on JSP
    - `permissions.json`, `variables.json` and `secrets.json` from the BDS layout
@@ -189,7 +189,13 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      level and flushes in its default world's tick, before that world's change log seals. The
      version 2 packs' early execution runs once the worlds have loaded, just before the version 1
      packs, since no script can observe the world in early execution.
-   - Left: `/reload` reloads scripts but not function files; `@minecraft/server`'s weather and
+   - Left: `/reload` reloads scripts but not function files
+     ([#3225](https://github.com/JSPrismarine/JSPrismarine/issues/3225)); the replay trace does not
+     record the admitted clock yet ([#3226](https://github.com/JSPrismarine/JSPrismarine/issues/3226));
+     the `script-world-message` client-e2e scenario has not run anywhere
+     ([#3227](https://github.com/JSPrismarine/JSPrismarine/issues/3227)); the milliseconds-to-steps
+     ratio is a placeholder ([#3228](https://github.com/JSPrismarine/JSPrismarine/issues/3228));
+     `chatSend` and `watchdogTerminate` move to slice 9; `@minecraft/server`'s weather and
      `world.sendMessage` are the only world members with behavior; the script host is an optional
      dependency of `prismarine` while it is private and built for Linux x64 only
      ([#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215)).
