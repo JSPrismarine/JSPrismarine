@@ -6,6 +6,7 @@ import { BatchCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
 import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
+import BlockEventPacket from '@jsprismarine/protocol/packet/BlockEventPacket';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
@@ -264,6 +265,27 @@ describe('network', () => {
                 expect(
                     near.sent.map((packet) => packet instanceof LevelEventPacket && packet.getPacketData()?.eventId)
                 ).toStrictEqual([LevelEvent.STOP_RAINING]);
+            });
+        });
+
+        describe('block-event', () => {
+            it('reaches the players near the block with its type and value', async () => {
+                const near = viewer(1n);
+                const replicator = replicatorOver([near.session]);
+
+                sealOccurrences(
+                    replicator,
+                    { kind: 'occurrence', occurrence: 'block-event', data: { x: 0, y: 64, z: 2, type: 1, value: 2 } },
+                    { kind: 'occurrence', occurrence: 'block-event', data: { x: 4000, y: 64, z: 0, type: 1, value: 1 } }
+                );
+                await replicator.flushOccurrences();
+
+                expect(near.sent).toHaveLength(1);
+                const packet = near.sent[0];
+                if (!(packet instanceof BlockEventPacket)) throw new Error('expected a block event');
+                const data = packet.getPacketData();
+                expect([data?.blockPosition.x, data?.blockPosition.y, data?.blockPosition.z]).toEqual([0, 64, 2]);
+                expect([data?.eventType, data?.eventValue]).toEqual([1, 2]);
             });
         });
 

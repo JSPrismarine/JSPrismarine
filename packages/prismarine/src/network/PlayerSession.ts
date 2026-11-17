@@ -59,6 +59,7 @@ import { eyePositionAt } from '../entity/playerEyes';
 import type ContainerEntry from '../inventory/ContainerEntry';
 import type HumanInventory from '../inventory/HumanInventory';
 import { blockContainerOf } from '../inventory/blockContainers';
+import { showContainerLid } from '../inventory/containerLid';
 import { blockSlotName } from '../inventory/containerSlots';
 import { WindowIds } from '../inventory/WindowIds';
 import type { PlayerContainer } from '../inventory/slotLog';
@@ -1819,6 +1820,10 @@ export default class PlayerSession {
             throw error;
         }
 
+        // Counted once the window is this session's, and again for the one it replaced.
+        if (current !== undefined && current.trade === undefined) this.showLid(current);
+        this.showLid(opened);
+
         return opened;
     }
 
@@ -1899,6 +1904,12 @@ export default class PlayerSession {
         trade.release();
     }
 
+    /** Shows the lid of a block container this session opened or closed in its current state. */
+    private showLid(container: OpenBlockContainer): void {
+        const at = container.position;
+        showContainerLid(this.world, { x: at.getX(), y: at.getY(), z: at.getZ() }, container.identifier);
+    }
+
     /** The block container this session has open, or undefined for none. */
     public getOpenBlockContainer(): OpenBlockContainer | undefined {
         return this.blockContainer;
@@ -1950,11 +1961,12 @@ export default class PlayerSession {
      * @returns {boolean} whether a window with that id was open.
      */
     public closeWindow(windowId: number): boolean {
-        if (this.blockContainer?.windowId === windowId) {
-            const trade = this.blockContainer.trade;
+        const open = this.blockContainer;
+        if (open?.windowId === windowId) {
             this.blockContainer = undefined;
             this.containerData.clear();
-            trade?.release();
+            if (open.trade === undefined) this.showLid(open);
+            else open.trade.release();
         }
 
         return this.openWindows.delete(windowId);

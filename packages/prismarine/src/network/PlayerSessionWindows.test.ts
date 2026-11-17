@@ -32,6 +32,8 @@ const protocolCodec = stub<ProtocolCodec>({ context: { protocolVersion: 2193 } }
 const sessionFor = () => {
     const sent: NetworkPacket[] = [];
     const inventories: Array<{ windowId: number; after: number }> = [];
+    // Each lid shown, with whether the session still had that container open, which is the count.
+    const lids: Array<{ identifier: string; open: boolean }> = [];
     const connection = stub<ClientConnection>({
         codec: protocolCodec,
         sendDataPacket: async (packet) => void sent.push(packet)
@@ -55,10 +57,13 @@ const sessionFor = () => {
         containerData: new Map<number, number>(),
         blockContainer: undefined,
         sendInventory: async (windowId: number = WindowIds.INVENTORY) =>
-            void inventories.push({ windowId, after: sent.length })
+            void inventories.push({ windowId, after: sent.length }),
+        // The world the lid is counted in is not part of this double.
+        showLid: (container: { identifier: string }) =>
+            void lids.push({ identifier: container.identifier, open: session.getOpenBlockContainer() === container })
     });
 
-    return { session, sent, inventories };
+    return { session, sent, inventories, lids };
 };
 
 describe('network', () => {
@@ -81,7 +86,7 @@ describe('network', () => {
         });
 
         it('opens a chest on the block it stands on, and sends what it holds', async () => {
-            const { session, sent } = sessionFor();
+            const { session, sent, lids } = sessionFor();
             const stick = new ContainerEntry({ item: new Item({ name: 'minecraft:stick', count: 1 }), count: 3 });
 
             const opened = await session.openBlockContainer(new Vector3(4, 64, -7), 'minecraft:chest', [stick]);
@@ -107,6 +112,11 @@ describe('network', () => {
 
             expect(session.closeWindow(WindowIds.FIRST)).toBe(true);
             expect(session.getOpenBlockContainer()).toBeUndefined();
+            // The lid is counted with the window open, and again once it closed.
+            expect(lids).toEqual([
+                { identifier: 'minecraft:chest', open: true },
+                { identifier: 'minecraft:chest', open: false }
+            ]);
         });
 
         it.each(['minecraft:furnace', 'minecraft:blast_furnace', 'minecraft:smoker'])(

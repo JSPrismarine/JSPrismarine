@@ -71,6 +71,7 @@ import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldS
 import { WorldSystems } from './WorldSystems';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import type { Weather } from '@jsprismarine/engine-systems';
+import { showContainerLid } from '../inventory/containerLid';
 import type { ContentPosition } from '../content/world/adapter';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
@@ -2075,6 +2076,23 @@ export class World implements Service {
     }
 
     /**
+     * A block-defined event, such as a chest's lid opening, which Java calls `Level.blockEvent`.
+     * It is a `block-event` occurrence in the change log, which replication sends to the players
+     * near the block.
+     * @param {ContentPosition} position - The block.
+     * @param {number} type - The event, which the block at `position` interprets.
+     * @param {number} value - Its value, read together with `type`.
+     */
+    public sendBlockEvent(position: ContentPosition, type: number, value: number): void {
+        if (!this.isHere(new Vector3(position.x, position.y, position.z))) return;
+        this.occurred({
+            kind: 'occurrence',
+            occurrence: 'block-event',
+            data: { x: position.x, y: position.y, z: position.z, type, value }
+        });
+    }
+
+    /**
      * A noise one entity made: being hit, dying, swinging at something. It is an `actor-sound`
      * occurrence in the change log, at where the entity stands now, which replication sends to
      * whoever is near enough rather than to whoever is tracking the entity, because a sound is
@@ -3847,6 +3865,12 @@ export class World implements Service {
         const id = Number(session.runtimeId);
         const { runtime } = this.dataEntities();
         this.players.delete(id);
+        // Recounted without the player, so a chest they had open does not stay open.
+        const open = session.getOpenBlockContainer();
+        if (open !== undefined && open.trade === undefined) {
+            const at = open.position;
+            showContainerLid(this, { x: at.getX(), y: at.getY(), z: at.getZ() }, open.identifier);
+        }
         leaveStore(runtime, session.getPlayer(), 'left_world');
         // The undo of the caller's unit adds the entity back and the runtime hands it to the store
         // player again, but the player map is not in the log.

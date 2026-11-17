@@ -47,6 +47,7 @@ import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/
 import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/packet/UpdateSubChunkBlocksPacket';
 import UpdateSubChunkNetworkBlockInfo from '@jsprismarine/protocol/structure/UpdateSubChunkNetworkBlockInfo';
 import Vec3 from '@jsprismarine/protocol/structure/Vec3';
+import BlockEventPacket from '@jsprismarine/protocol/packet/BlockEventPacket';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
@@ -356,6 +357,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         switch (entry.occurrence) {
             case 'world-effect':
                 this.sendWorldEffect(entry.data);
+                return undefined;
+            case 'block-event':
+                this.sendBlockEvent(entry.data);
                 return undefined;
             case 'block-sound':
                 this.sendBlockSound(entry.data);
@@ -789,6 +793,16 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         }
 
         this.sendAround(new Vector3(position.x, position.y, position.z), packet, { radius: WORLD_EVENT_RADIUS });
+    }
+
+    /** A block-defined event, such as a chest lid opening, to the players near the block. */
+    private sendBlockEvent({ x, y, z, type, value }: OccurrenceKinds['block-event']): void {
+        const packet = new BlockEventPacket({
+            blockPosition: new BlockPos(x, y, z),
+            eventType: type,
+            eventValue: value
+        });
+        this.sendAround(new Vector3(x + 0.5, y + 0.5, z + 0.5), packet, { radius: WORLD_EVENT_RADIUS });
     }
 
     /**

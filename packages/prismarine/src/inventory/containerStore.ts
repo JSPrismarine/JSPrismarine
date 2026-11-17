@@ -99,7 +99,7 @@ const enderChestBacking = (inventory: Inventory): SlotBacking => ({
 });
 
 /** The two halves of a double chest, lowest on x and then z first, or the one block on its own. */
-const halvesOf = (world: WorldActions, at: ContentPosition, identifier: string): ContentPosition[] => {
+export const halvesOf = (world: WorldActions, at: ContentPosition, identifier: string): ContentPosition[] => {
     const partner = pairedPosition(world.getBlockData(at));
     if (partner === undefined) return [at];
 

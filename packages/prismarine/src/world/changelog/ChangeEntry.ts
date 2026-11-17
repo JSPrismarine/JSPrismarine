@@ -194,6 +194,14 @@ export interface OccurrenceKinds {
         readonly effect: LevelEvent;
         readonly data: number;
     }>;
+    /** A block-defined event, such as a chest lid opening, whose type and value the block reads. */
+    'block-event': OccurrenceShape<{
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly type: number;
+        readonly value: number;
+    }>;
     /** An entity made a noise, such as being hit or swinging at something, where it stood. */
     'actor-sound': OccurrenceShape<{
         readonly entity: EntityId;
