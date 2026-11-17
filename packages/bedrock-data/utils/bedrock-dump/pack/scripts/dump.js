@@ -65,30 +65,6 @@ const list = (value) => {
 // Blocks
 // ---------------------------------------------------------------------------
 
-function* blockTypes() {
-    for (const type of BlockTypes.getAll()) {
-        try {
-            const permutation = BlockPermutation.resolve(type.id);
-            const stack = permutation.getItemStack(1);
-            emit('block-types', {
-                id: type.id,
-                localizationKey: type.localizationKey,
-                tags: list(permutation.getTags()).sort(),
-                item: stack ? stack.typeId : null,
-                water: {
-                    contain: permutation.canContainLiquid(LiquidType.Water),
-                    blocking: permutation.isLiquidBlocking(LiquidType.Water),
-                    destroyed: permutation.canBeDestroyedByLiquidSpread(LiquidType.Water),
-                    spawns: permutation.liquidSpreadCausesSpawn(LiquidType.Water)
-                }
-            });
-        } catch (error) {
-            failed('block-types', type.id, error);
-        }
-        yield;
-    }
-}
-
 /**
  * The values a property is declared with, game wide. A starting set, not the answer: `age` is
  * declared 0..15 and cocoa takes 0..2, so each value is then offered to the block itself.
@@ -112,14 +88,87 @@ const accepted = (blockId, property, values) =>
         }
     });
 
+/** Each property of a block with the values the block accepts and its default value. */
+const domainsOf = (blockId) =>
+    Object.entries(BlockPermutation.resolve(blockId).getAllStates()).map(([name, value]) => {
+        const domain = accepted(blockId, name, candidates(name, value));
+        return { name, values: domain.length > 0 ? domain : [value], default: value };
+    });
+
+/** Every combination of the given property values, as a state map. */
+function* combinations(domains, at = 0, states = {}) {
+    if (at === domains.length) {
+        yield states;
+        return;
+    }
+    const { name, values } = domains[at];
+    for (const value of values) yield* combinations(domains, at + 1, { ...states, [name]: value });
+}
+
+/** What water does to one permutation, as the four Script API questions answer it. */
+const waterOf = (permutation) => ({
+    contain: permutation.canContainLiquid(LiquidType.Water),
+    blocking: permutation.isLiquidBlocking(LiquidType.Water),
+    destroyed: permutation.canBeDestroyedByLiquidSpread(LiquidType.Water),
+    spawns: permutation.liquidSpreadCausesSpawn(LiquidType.Water)
+});
+
+const sameWater = (left, right) =>
+    left.contain === right.contain &&
+    left.blocking === right.blocking &&
+    left.destroyed === right.destroyed &&
+    left.spawns === right.spawns;
+
+/**
+ * The permutations of a block whose water answers differ from the default permutation's.
+ *
+ * Every combination of every property the Script API reports is asked, which includes the legacy
+ * properties a flattened block still carries, so the network states are a subset of what is
+ * covered. Only the differences are kept, so the table stays one row per block type. An empty
+ * list says every permutation answers like the default.
+ */
+const waterPermutationsOf = (blockId, water) => {
+    const differing = [];
+    for (const states of combinations(domainsOf(blockId))) {
+        let answer;
+        try {
+            answer = waterOf(BlockPermutation.resolve(blockId, states));
+        } catch (error) {
+            failed('block-types', `${blockId} ${JSON.stringify(states)}`, error);
+            continue;
+        }
+        if (!sameWater(answer, water)) differing.push({ states, water: answer });
+    }
+    return differing;
+};
+
+function* blockTypes() {
+    for (const type of BlockTypes.getAll()) {
+        try {
+            const permutation = BlockPermutation.resolve(type.id);
+            const stack = permutation.getItemStack(1);
+            const water = waterOf(permutation);
+            emit('block-types', {
+                id: type.id,
+                localizationKey: type.localizationKey,
+                tags: list(permutation.getTags()).sort(),
+                item: stack ? stack.typeId : null,
+                water,
+                waterPermutations: waterPermutationsOf(type.id, water)
+            });
+        } catch (error) {
+            failed('block-types', type.id, error);
+        }
+        yield;
+    }
+}
+
 function* blockDomains() {
     for (const type of BlockTypes.getAll()) {
         try {
-            const states = BlockPermutation.resolve(type.id).getAllStates();
             const props = {};
-            for (const [name, value] of Object.entries(states)) {
-                const domain = accepted(type.id, name, candidates(name, value));
-                props[name] = { values: domain.length > 0 ? domain : [value], default: value };
+            for (const domain of domainsOf(type.id)) {
+                props[domain.name] = { values: domain.values, default: domain.default };
             }
             emit('block-domains', { name: type.id, props });
         } catch (error) {
