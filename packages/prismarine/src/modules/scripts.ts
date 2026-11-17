@@ -3,6 +3,7 @@ import ClientboundCloseFormPacket from '@jsprismarine/protocol/packet/Clientboun
 import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormRequestPacket';
 
 import type Server from '../Server';
+import { levelScriptAccess } from '../scripting/levelScriptAccess';
 import { LevelScripts } from '../scripting/LevelScripts';
 import { withCwd } from '../utils/cwd';
 import { contentToken, worldsToken } from './tokens';
@@ -43,6 +44,7 @@ export const scriptsModule = (server: Server): Module => ({
                         .filter((session) => session.getWorld().getLevel() === level)
                         .map((session) => ({
                             id: String(session.getRuntimeId()),
+                            name: session.identity.name,
                             sendMessage: (message) =>
                                 void session
                                     .sendMessage(message)
@@ -55,7 +57,12 @@ export const scriptsModule = (server: Server): Module => ({
                         })),
                 weather: level.getWeather(),
                 chat: server.getChatManager(),
-                clock: () => server.getAdmittedClock()
+                clock: () => server.getAdmittedClock(),
+                access: levelScriptAccess(server, level),
+                onPlayerLeaving: (listener) =>
+                    server
+                        .getKernel()
+                        .events.on('playerDespawn', (event) => listener(String(event.getSession().runtimeId)))
             },
             seed: server.getWorldManager().getDefaultWorld().getSeed(),
             watchdog: server.getConfig().getScriptWatchdog(),
