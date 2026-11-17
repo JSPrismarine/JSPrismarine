@@ -26,6 +26,7 @@ import { DetachedPlayerView, moveStorePlayer, StorePlayerActor } from '../entity
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { mayFlyIn } from '../entity/playerComponents';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
+import PlayerDespawnEvent from '../events/player/PlayerDespawnEvent';
 import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
@@ -751,6 +752,9 @@ export default class PlayerSession {
         );
         // Tells everyone who could see this player to take them away, world-scoped and only the
         // clients that actually had them.
+        // Posted while the player's entity is still in the world, for a listener that reads it
+        // on the way out, such as a script's `world.beforeEvents.playerLeave`.
+        release(() => this.server.getKernel().events.post('playerDespawn', new PlayerDespawnEvent(this)));
         release(() => this.world.removePlayer(this));
         release(() => this.released(this.removeFromPlayerList()));
 

@@ -4,7 +4,7 @@ import type { ChatSendIntent, Guard } from '@jsprismarine/script-host/host/world
 
 import type { PlayerChatGuard } from '../chat/ChatManager';
 import { fakeLevel } from '../testing/level';
-import { LevelScriptWorld } from './LevelScriptWorld';
+import { LevelScriptWorld, NO_LEVEL_ACCESS } from './LevelScriptWorld';
 import type { ScriptWorldSources } from './LevelScriptWorld';
 
 /** A level's script world over a test level's real weather. */
@@ -148,5 +148,64 @@ describe('LevelScriptWorld', () => {
         expect(sent).toEqual(['1 form 3 {}\n', '1 closed']);
         expect(world.forms.takeResponses()).toEqual([{ player: '1', formId: 3, response: '0', cancelReason: null }]);
         expect(world.forms.takeResponses()).toEqual([]);
+    });
+
+    it('tells the scripts of a player joining and leaving, once each, at the next take', () => {
+        let online = [{ id: '7', name: 'Alex', sendMessage: () => {} }];
+        const { world } = scriptWorld({ players: () => online });
+
+        expect(world.takeEvents()).toEqual([
+            { type: 'playerJoin', playerId: '7', playerName: 'Alex' },
+            { type: 'playerSpawn', playerId: '7', initialSpawn: true }
+        ]);
+        expect(world.takeEvents()).toEqual([]);
+        online = [];
+        expect(world.takeEvents()).toEqual([{ type: 'playerLeave', playerId: '7', playerName: 'Alex' }]);
+    });
+
+    it('calls a leave watcher only for a player the scripts were told of', () => {
+        const listeners: ((player: string) => void)[] = [];
+        const { world } = scriptWorld({
+            players: () => [{ id: '7', name: 'Alex', sendMessage: () => {} }],
+            onPlayerLeaving: (listener) => {
+                listeners.push(listener);
+                return () => {};
+            }
+        });
+        const left: string[] = [];
+        world.watchPlayerLeave((player) => left.push(player));
+        world.takeEvents();
+        for (const listener of listeners) {
+            listener('7');
+            listener('9');
+        }
+
+        expect(left).toEqual(['7']);
+    });
+
+    it('answers /scriptevent itself and passes every other command on', () => {
+        const ran: string[] = [];
+        const { world } = scriptWorld({
+            access: {
+                ...NO_LEVEL_ACCESS,
+                runCommand: (command) => {
+                    ran.push(command);
+                    return { successCount: 1 };
+                }
+            }
+        });
+
+        expect(world.runCommand('scriptevent jsp:hello hi there', { dimension: 'minecraft:overworld' })).toEqual({
+            successCount: 1
+        });
+        expect(world.runCommand('scriptevent hello hi', { dimension: 'minecraft:overworld' })).toEqual({
+            successCount: 0
+        });
+        expect(world.runCommand('scriptevent minecraft:hello', { entity: '7' })).toEqual({ successCount: 0 });
+        expect(world.runCommand('say hi', { entity: '7' })).toEqual({ successCount: 1 });
+        expect(ran).toEqual(['say hi']);
+        expect(world.takeEvents()).toEqual([
+            { type: 'scriptEvent', id: 'jsp:hello', message: 'hi there', sourceType: 'Server' }
+        ]);
     });
 });
