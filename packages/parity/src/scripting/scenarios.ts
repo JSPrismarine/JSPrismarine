@@ -219,6 +219,44 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         }
     },
     {
+        id: 'jsp-detect',
+        family: 'scripting.lifecycle',
+        description:
+            'A pack that leaves @jsprismarine/server out of its manifest and imports it with import() inside try ' +
+            'loads on both servers: the import rejects and the pack takes its fallback where the module does not ' +
+            'exist, and a file that imports the module statically fails to load there too.',
+        reference: 'docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md',
+        packs: ['detect'],
+        needs: 'world',
+        jsprismarineDiffers: {
+            'import @jsprismarine/server': {
+                observed: { value: 'resolved' },
+                because: 'JSPrismarine resolves an undeclared @jsprismarine/server',
+                reference: 'docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md'
+            },
+            server: {
+                observed: {
+                    value: {
+                        exports: ['jsprismarine'],
+                        name: 'JSPrismarine',
+                        version: 'string',
+                        minecraftVersion: 'string',
+                        protocolVersion: 'number',
+                        frozen: true
+                    }
+                },
+                because:
+                    'a pack that gets @jsprismarine/server uses it, and takes the fallback only where the import rejects',
+                reference: 'docs/guide/jsprismarine-module.md'
+            },
+            'import ./static.js': {
+                observed: { value: 'JSPrismarine' },
+                because: 'modules under @jsprismarine/ need no manifest entry, so a static import of one resolves',
+                reference: 'docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md'
+            }
+        }
+    },
+    {
         id: 'contexts',
         family: 'scripting.engine',
         description:
