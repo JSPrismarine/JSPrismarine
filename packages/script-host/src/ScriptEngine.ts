@@ -159,6 +159,8 @@ export class ScriptEngine {
     private debuggerListener: DebuggerListener | undefined;
     /** How many callbacks from the engine are running. */
     private active = 0;
+    /** Handles host functions returned, each with the depth of the host call, until the engine has read them. */
+    private readonly released: { readonly handle: ScriptHandle; readonly depth: number }[] = [];
     private destroyed = false;
 
     /** Use {@link ScriptHostLibrary.createEngine}. */
@@ -195,7 +197,9 @@ export class ScriptEngine {
      */
     public evaluate(source: string, name = '<eval>'): ScriptValue {
         const text = Buffer.from(`${source}\0`, 'utf8');
-        return this.take(this.check(this.native.jsh_eval_script(this.live(), name, text, text.length - 1)));
+        return this.settle(() =>
+            this.take(this.check(this.native.jsh_eval_script(this.live(), name, text, text.length - 1)))
+        );
     }
 
     /**
@@ -207,7 +211,9 @@ export class ScriptEngine {
      */
     public evaluateModule(name: string, source: string): ScriptHandle {
         const text = Buffer.from(`${source}\0`, 'utf8');
-        return new ScriptHandle(this.check(this.native.jsh_eval_module(this.live(), name, text, text.length - 1)));
+        return this.settle(
+            () => new ScriptHandle(this.check(this.native.jsh_eval_module(this.live(), name, text, text.length - 1)))
+        );
     }
 
     /**
@@ -217,7 +223,7 @@ export class ScriptEngine {
      * @throws {ScriptError} When a job throws; the jobs after it stay pending.
      */
     public runJobs(context?: ScriptContextId): number {
-        return this.check(this.native.jsh_run_jobs(this.live(), context ?? -1));
+        return this.settle(() => this.check(this.native.jsh_run_jobs(this.live(), context ?? -1)));
     }
 
     /**
@@ -263,7 +269,20 @@ export class ScriptEngine {
      */
     public call(fn: ScriptHandle, thisValue: ScriptHandle | undefined, ...args: ScriptValue[]): ScriptValue {
         const writer = new ValueWriter(this.buffer).list(args);
-        return this.take(this.check(this.native.jsh_call(this.live(), fn.id, thisValue?.id ?? 0, writer.length)));
+        return this.settle(() =>
+            this.take(this.check(this.native.jsh_call(this.live(), fn.id, thisValue?.id ?? 0, writer.length)))
+        );
+    }
+
+    /**
+     * Frees a handle that a host function returns, once the engine has read the result. A host
+     * function cannot free a handle it made for its result before it returns, and the engine
+     * takes its own reference when it reads one.
+     * @returns The handle, for the host function to return.
+     */
+    public release(handle: ScriptHandle): ScriptHandle {
+        this.released.push({ handle, depth: this.active });
+        return handle;
     }
 
     /** Returns a handle to the global object, which the caller frees. */
@@ -317,6 +336,28 @@ export class ScriptEngine {
     /** Returns a second handle to the same value, which outlives the first. */
     public duplicate(handle: ScriptHandle): ScriptHandle {
         return new ScriptHandle(this.check(this.native.jsh_dup(this.live(), handle.id)));
+    }
+
+    /**
+     * Frees the released handles of host calls at `depth` or deeper, whose results the engine has
+     * read: a host call that starts at a depth has seen the calls before it at that depth return.
+     */
+    private freeReleased(depth: number): void {
+        for (let index = this.released.length - 1; index >= 0; index--) {
+            const entry = this.released[index];
+            if (entry === undefined || entry.depth < depth) continue;
+            this.released.splice(index, 1);
+            this.native.jsh_free(this.pointer, entry.handle.id);
+        }
+    }
+
+    /** Runs one call into the engine, then frees what host functions released, once no host call is running. */
+    private settle<Result>(run: () => Result): Result {
+        try {
+            return run();
+        } finally {
+            if (this.active === 0 && !this.destroyed) this.freeReleased(1);
+        }
     }
 
     /** Releases a handle. The value lives on while the script still refers to it. */
@@ -394,6 +435,7 @@ export class ScriptEngine {
         this.native.jsh_engine_destroy(this.pointer);
         this.bound.unregisterHostCallback(this.callback);
         this.functions.clear();
+        this.released.length = 0;
     }
 
     private live(): NativePointer {
@@ -430,6 +472,7 @@ export class ScriptEngine {
     private onHost(op: number, id: number, length: number): number {
         this.active++;
         try {
+            this.freeReleased(this.active);
             if (op === Op.Grow) {
                 this.buffer.reserve(length);
                 return 0;

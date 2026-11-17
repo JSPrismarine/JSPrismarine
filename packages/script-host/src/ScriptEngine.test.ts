@@ -267,6 +267,26 @@ describe.skipIf(!scriptHostAvailable())('a script engine', () => {
             expect(engine.stats().handles).toBe(before);
         });
 
+        it('frees a handle a host function released once the script has its result', () => {
+            const engine = create();
+            engine.defineGlobalFunction('pair', (callback) => {
+                const made = engine.evaluate('[1, 2]');
+                if (!(made instanceof ScriptHandle)) throw new TypeError('An array literal evaluated to a primitive');
+                // A nested call into the script must not free the handle before it is returned.
+                if (callback instanceof ScriptHandle) {
+                    const inner = engine.call(callback, undefined);
+                    if (inner instanceof ScriptHandle) engine.free(inner);
+                }
+                return engine.release(made);
+            });
+            const before = engine.stats().handles;
+
+            expect(
+                engine.evaluate('let sum = 0; for (let i = 0; i < 100; i++) sum += pair(() => pair())[1]; sum')
+            ).toBe(200);
+            expect(engine.stats().handles).toBe(before);
+        });
+
         it('lets a host function call back into the script it serves', () => {
             const engine = create();
             engine.defineGlobalFunction('twice', (callback) => {
