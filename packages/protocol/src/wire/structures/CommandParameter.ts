@@ -84,8 +84,11 @@ export enum CommandArgumentType {
     PoiTag = 87,
     /** `POI_TYPE`, new in 1.26.50. */
     PoiType = 88,
-    /** `CODEBUILDERARGS`, the command `/execute run` takes. */
-    CodeBuilderArgs = 92
+    /**
+     * `CODEBUILDERARGS`, the command `/execute run` takes. A Bedrock Dedicated Server writes it
+     * as 90 (`bedrock-data/src/jsp/v2193/wire/0x4c.bin` and its `v2225` twin).
+     */
+    CodeBuilderArgs = 90
 }
 
 /**

@@ -32,6 +32,7 @@ describe('CommandParameter', () => {
         expect(CommandParameterTypeFlag.Enum).toBe(0x200000);
         expect(CommandParameterTypeFlag.Postfix).toBe(0x1000000);
         expect(CommandParameterTypeFlag.SoftEnum).toBe(0x4000000);
+        expect(CommandParameterTypeFlag.Chained).toBe(0x8000000);
     });
 
     it('carries the protocol 2193 argument type ids', () => {
@@ -58,7 +59,7 @@ describe('CommandParameter', () => {
             ClockTimeMarker: 86,
             PoiTag: 87,
             PoiType: 88,
-            CodeBuilderArgs: 92
+            CodeBuilderArgs: 90
         });
     });
 
@@ -82,7 +83,7 @@ describe('CommandParameter', () => {
         expect(CommandParameterType.Json).toBe(0x100000 | 74);
         expect(CommandParameterType.BlockStateArray).toBe(0x100000 | 84);
         expect(CommandParameterType.PoiTag).toBe(0x100000 | 87);
-        expect(CommandParameterType.CodeBuilderArgs).toBe(0x100000 | 92);
+        expect(CommandParameterType.CodeBuilderArgs).toBe(0x100000 | 90);
         expect(CommandParameterType.Enum).toBe(0x200000);
     });
 });

@@ -217,8 +217,8 @@ describe('the chained subcommand encoding', () => {
             options: ParameterOption.EnumAsChainedCommand
         });
         expect(run?.isChaining).toBe(false);
-        // Mojang spells `/execute run <command: CODEBUILDERARGS>`, type id 92.
-        expect(run?.parameters.at(-1)?.parseSymbol).toBe(ParameterTypeFlag.Valid | 92);
+        // Mojang spells `/execute run <command: CODEBUILDERARGS>`, and a real server writes it as 90.
+        expect(run?.parameters.at(-1)?.parseSymbol).toBe(ParameterTypeFlag.Valid | 90);
     });
 });
 

@@ -3,7 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { availableCommandsPacket } from '../wire/definitions/availableCommands';
 import { layoutAt } from '../wire/WireLayout';
-import CommandParameter, { CommandParameterFlags, CommandParameterTypeFlag } from '../wire/structures/CommandParameter';
+import CommandParameter, {
+    CommandParameterFlags,
+    CommandParameterType,
+    CommandParameterTypeFlag
+} from '../wire/structures/CommandParameter';
 import { CommandEnum } from '../wire/structures/CommandEnum';
 import { CommandChainedSubcommand } from '../wire/structures/CommandChainedSubcommand';
 import CommandData from '../wire/structures/CommandData';
@@ -150,6 +154,17 @@ describe('AvailableCommandsPacket against the real server', () => {
             const encoded = new BinaryStream();
             layout.encode(encoded, payload);
             expect(encoded.getBuffer().equals(captured)).toBe(true);
+        });
+
+        it(`decodes the captured packet through the class at protocol ${protocolVersion}`, () => {
+            const packet = new AvailableCommandsPacket(Buffer.concat([Buffer.from([0x4c]), captured]));
+            packet.decode({ protocolVersion });
+
+            const run = packet.commandData
+                .find((command) => command.commandName === 'execute')
+                ?.overloads.find((overload) => overload[0]?.enum?.values.includes('run'));
+            expect(run?.[1]?.paramName).toBe('command');
+            expect(run?.[1]?.paramType).toBe(CommandParameterType.CodeBuilderArgs);
         });
 
         it(`writes the permission levels as the lower case names the real server sends at protocol ${protocolVersion}`, () => {

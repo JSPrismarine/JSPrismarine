@@ -9,6 +9,11 @@
  * halves join on a published key rather than on a guess. `PoiTag` and
  * `PoiType` were inserted at 87 and 88 in 1.26.50, which moved everything
  * above them, so these are version-pinned numbers.
+ *
+ * Where a real server's packet shows an id, the capture wins over the research
+ * table: `CODEBUILDERARGS` is 90 because that is the word a Bedrock Dedicated
+ * Server writes for `/execute run <command>` in
+ * `bedrock-data/src/jsp/v2193/wire/0x4c.bin` and its `v2225` twin.
  */
 import { bedrockCommandTable } from './bedrockTable';
 
@@ -71,7 +76,8 @@ export const BedrockParameterTypeId = {
     CLOCK_TIMEMARKER_NAME: 86,
     POI_TAG: 87,
     POI_TYPE: 88,
-    CODEBUILDERARGS: 92
+    /** 90 in a real server's packet; see the module comment. */
+    CODEBUILDERARGS: 90
 } as const;
 
 /** A basic parameter type name that has an id of its own. */
