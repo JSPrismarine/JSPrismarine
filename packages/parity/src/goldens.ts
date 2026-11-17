@@ -42,6 +42,21 @@ export const bedrockCapture = (file: string): string => {
     return join(bedrockDataRoot, 'src/jsp', `v${sources.bds.defaultProtocolVersion}`, file);
 };
 
+/** One line the `commands` capture pass typed at the console, and the line the server answered it with. */
+export interface CommandAnswer {
+    /** The line as typed, without a leading slash. */
+    command: string;
+    /** `INFO` for a line the server ran, `ERROR` for one it refused. */
+    level: 'INFO' | 'ERROR';
+    /** What the server printed, without the log prefix. */
+    message: string;
+}
+
+/** Reads the console answers the `commands` capture pass recorded from the pinned server. */
+export const loadCommandAnswers = (): { server: string; answers: CommandAnswer[] } =>
+    // Parsed JSON, written by `utils/bedrock-dump/run.ts`'s `commands` pass in this shape.
+    readJson(bedrockCapture('command_answers.json')) as { server: string; answers: CommandAnswer[] };
+
 /** The block palette capture: the one state capture records per block, and what each property accepts. */
 export interface BlockPaletteCapture {
     minecraftVersion: string;

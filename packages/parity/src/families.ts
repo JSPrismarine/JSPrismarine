@@ -100,6 +100,8 @@ export const FAMILIES = {
 
     /** The command tree the server publishes against Mojang's Bedrock command metadata (phase 5). */
     commandsTree: 'commands.tree',
+    /** How the console answers a command line, against the pinned Bedrock Dedicated Server's answers. */
+    commandsAnswers: 'commands.answers',
 
     /** The End crystal, dragon, spike, and podium data the respawn fight reads. */
     gameplayEndFight: 'gameplay.end-fight',

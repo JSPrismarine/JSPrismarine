@@ -218,6 +218,13 @@ export const REFERENCES = {
         "Mojang's Bedrock commands with their overloads and enums"
     ),
 
+    /** How a 1.26.51 server's console answers each probe line of the `commands` capture pass. */
+    bedrockCommandAnswers: committed(
+        'bedrock-command-answers',
+        `${bedrockCaptureDir()}/command_answers.json`,
+        "the Bedrock Dedicated Server console's answer to each probe command line"
+    ),
+
     /** The Java worldgen registries the oracle dumper copied out of the jar. */
     worldgenRegistries: committed(
         'worldgen-registries',
