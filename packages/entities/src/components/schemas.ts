@@ -89,11 +89,14 @@ export const numberComponent = (
  * Writing the attribute on initialize is what makes a re-added component
  * group reset the stat: the zombie's baby group carries its own
  * `minecraft:movement`, and adding it again puts the speed back.
+ *
+ * @param min - The lowest value the attribute holds, 0 when omitted.
  */
 export const attributeComponent = (
     name: string,
     attribute: AttributeName,
-    fallback: number
+    fallback: number,
+    min?: number
 ): ComponentFactory<EntityHooks, { readonly value: number; readonly max: number }> => ({
     name,
     hooks: ['onInitialize'],
@@ -107,7 +110,7 @@ export const attributeComponent = (
     },
     create: (params) => ({
         onInitialize: (entity) => {
-            entity.attributes.define(attribute, { base: params.value, max: params.max });
+            entity.attributes.define(attribute, { base: params.value, max: params.max, min });
         }
     })
 });

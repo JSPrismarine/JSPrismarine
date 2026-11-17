@@ -92,7 +92,7 @@ export interface EntityFacts {
     readonly health: number;
     /** Half-hearts a plain melee hit is worth, from `minecraft:attack`. */
     readonly attackDamage: number;
-    /** Nought to one, from `minecraft:knockback_resistance`. */
+    /** From -2 to 1, from `minecraft:knockback_resistance`. Below 0 strengthens a push. */
     readonly knockbackResistance: number;
     /** How far the entity notices things, from `minecraft:follow_range`. */
     readonly followRange: number;

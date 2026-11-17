@@ -21,7 +21,9 @@ export const attributeComponents: readonly ComponentFactory<
     attributeComponent('minecraft:lava_movement', 'lava_movement', 0.02),
     attributeComponent('minecraft:flying_speed', 'flying_speed', 0.02),
     attributeComponent('minecraft:follow_range', 'follow_range', 16),
-    attributeComponent('minecraft:knockback_resistance', 'knockback_resistance', 0),
+    // Java's `knockback_resistance` runs from -2 to 1. A sulfur cube's bouncy and sticky
+    // archetypes declare -2, which triples the push it takes.
+    attributeComponent('minecraft:knockback_resistance', 'knockback_resistance', 0, -2),
     attributeComponent('minecraft:attack_damage', 'attack_damage', 1),
     attributeComponent('minecraft:horse.jump_strength', 'jump_strength', 0.7)
 ];
