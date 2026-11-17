@@ -17,6 +17,7 @@ import type { GameTestReply } from '@jsprismarine/script-host/host/gametest';
 import type { GameTestCommand, ScriptLog, WorldScripts } from '@jsprismarine/script-host/host/WorldScripts';
 import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
 
+import { about } from '../about';
 import type { ScriptDebuggerConfig, ScriptWatchdogConfig } from '../config/Config';
 import { isRecord } from '../utils/isRecord';
 import { BETA_APIS } from '../world/WorldExperiments';
@@ -177,6 +178,7 @@ export class LevelScripts {
                 printScriptLine(scriptDebugger, message, 'error');
             }
         };
+        const { version, minecraftVersion, protocolVersion } = about();
         const runtime = new host.WorldScripts({
             library,
             world,
@@ -184,6 +186,7 @@ export class LevelScripts {
             config: host.readScriptConfig(options.configDirectory),
             betaApis: options.experiments?.includes(BETA_APIS) === true,
             log,
+            server: { version, minecraftVersion, protocolVersion },
             seed: options.seed,
             watchdog: host.watchdogSettings({
                 'script-watchdog-enable-shutdown': String(options.watchdog.enableShutdown),
