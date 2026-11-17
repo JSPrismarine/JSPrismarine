@@ -200,7 +200,9 @@ jobs:
 
             # A deployment of any branch but the project's production branch is a preview, which
             # Cloudflare serves at <branch>.<project>.pages.dev. Each pull request gets a branch name of
-            # its own, so Cloudflare counts a preview's files against that preview alone.
+            # its own, so Cloudflare counts a preview's files against that preview alone. The upload
+            # names no commit: Cloudflare's GitHub app comments on any pull request whose head commit a
+            # deployment names, which put a second preview comment beside the one below.
             - name: 🚀 Upload the preview
               id: upload
               if: github.event.action != 'closed'
@@ -214,7 +216,6 @@ jobs:
                       pages deploy docs-site
                       --project-name=${{ env.PAGES_PROJECT }}
                       --branch=pr-${{ github.event.number }}
-                      --commit-hash=${{ github.event.pull_request.head.sha }}
 
             # An upload replaces the deployment before it, and a closed pull request keeps none. A
             # replaced deployment that survives is a copy nothing links to, so only a failure to delete
