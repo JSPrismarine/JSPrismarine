@@ -90,6 +90,12 @@ commit messages and comments.
   ([ADR 0003](docs/adr/0003-declarative-wire-layouts.md)). Write its body by hand only for a
   reason the ADR lists, and record it with `node scripts/check-wire-layouts.mts --update --reason
   <reason>`; `pnpm run lint:wire-layouts` fails on an unlisted hand-written body.
+- Throw only errors defined in `@jsprismarine/errors`. Add an entry to the throwing package's
+  catalog there (`packages/errors/src/<package>.ts`) and throw `new <Package>Errors.<Key>({ ... })`;
+  its [README](packages/errors/README.md) covers templates, bases and fields. The JSDoc on an entry
+  is its text in the error reference, so explain the cause and the fix there. Biome's
+  `no-raw-errors` plugin rejects `new Error(...)` and `extends Error` in package source. Run
+  `pnpm run docs:facts` after changing a catalog.
 - Add no barrel files and no `export *` ([ADR 0010](docs/adr/0010-no-barrel-files.md)). Import
   from the module that defines a symbol. `pnpm run lint:barrels` runs Biome's `noBarrelFile` and
   `noReExportAll` rules and fails when a file fires either more often than

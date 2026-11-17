@@ -182,6 +182,7 @@ export class Logger {
      * @private
      * @internal
      */
+    // biome-ignore lint/plugin/no-raw-errors: nothing is thrown; the error only records where the log call came from.
     private getNamespace = (stack = new Error().stack) => {
         if (!stack) return '';
 
