@@ -3,7 +3,8 @@
  * system tasks, the lifecycle, the world, player, weather, chat and script events, the watchdog's
  * terminate event, dimensions, and through the modules it registers, entities and players
  * (`serverEntities.ts`), blocks (`serverBlocks.ts`), item stacks (`serverItems.ts`), dynamic
- * properties (`serverProperties.ts`) and the scoreboard (`serverScoreboard.ts`). Every
+ * properties (`serverProperties.ts`), the scoreboard (`serverScoreboard.ts`), and custom
+ * commands and components (`serverCustom.ts`). Every
  * other member is present and throws `NotImplementedError`
  * ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
  *
@@ -16,7 +17,9 @@ import { ScriptApiImplementations } from '../shape/implementations';
 import type { ScriptCall } from '../shape/implementations';
 import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
+import type { PackCustomContent } from './customContent';
 import { implementBlocks } from './serverBlocks';
+import { implementCustom } from './serverCustom';
 import { implementEntities } from './serverEntities';
 import { implementItems } from './serverItems';
 import { implementDynamicProperties } from './serverProperties';
@@ -166,6 +169,8 @@ export interface PackHost {
     create(className: string, tag: number, state?: string): ScriptHandle;
     /** The data behind an event object. */
     eventData(tag: number): EventData | undefined;
+    /** The runtime's custom commands and components, which the pack registers into in `startup`. */
+    readonly custom: PackCustomContent;
 }
 
 const isWeather = (value: ScriptValue): value is ScriptWeather =>
@@ -358,6 +363,7 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     implementItems(implementations, host);
     implementDynamicProperties(implementations, host);
     implementScoreboard(implementations, host);
+    implementCustom(implementations, host);
     for (const name of SIGNALS) {
         implementations
             .implement(SERVER, name, 'subscribe', (call) => {

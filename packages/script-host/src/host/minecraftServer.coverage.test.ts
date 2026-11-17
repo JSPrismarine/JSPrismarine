@@ -41,7 +41,13 @@ const HOST: PackHost = {
     instance: unreachable,
     entity: unreachable,
     create: unreachable,
-    eventData: unreachable
+    eventData: unreachable,
+    custom: {
+        registering: unreachable,
+        registerEnum: unreachable,
+        registerCommand: unreachable,
+        registerComponent: unreachable
+    }
 };
 
 /** The corpus's uses of `@minecraft/server`, per pack: the served version and each name's count. */
