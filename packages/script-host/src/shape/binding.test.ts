@@ -1,9 +1,9 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../../.test/reportProgress';
 import { SCRIPT_MODULE_HISTORIES } from '../generated/scriptModules';
 import { ScriptApiError } from '../errors';
-import type { ScriptEngine } from '../ScriptEngine';
+import type { ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
 import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
 import type { ScriptApiLogger } from './binding';
 import { ScriptApiContext } from './binding';
@@ -55,7 +55,11 @@ const thrown = (engine: ScriptEngine, source: string): string =>
     );
 
 describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine', () => {
-    const library = loadLibrary();
+    // Loading runs in a hook, which a skipped suite never runs, so a missing library skips the file.
+    let library: ScriptHostLibrary;
+    beforeAll(() => {
+        library = loadLibrary();
+    });
     const engines: ScriptEngine[] = [];
     const engine = (): ScriptEngine => {
         const created = library.createEngine();
@@ -186,6 +190,46 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
 
         expect(scripts.evaluate("new mc.ItemStack('minecraft:apple') instanceof mc.ItemStack")).toBe(true);
         expect(seen).toEqual([['minecraft:apple', 1]]);
+    });
+
+    it('checks array arguments with built-ins a script cannot replace', () => {
+        const scripts = engine();
+        const implementations = new ScriptApiImplementations().implement(
+            '@minecraft/server',
+            'ItemStack',
+            'constructor',
+            () => undefined
+        );
+        bindServer(scripts, '2.0.0', implementations);
+
+        expect(
+            thrown(
+                scripts,
+                "Array.prototype.every = () => true; Array.prototype.some = () => true; new mc.ItemStack('minecraft:apple').setLore([1])"
+            )
+        ).toMatch(/^TypeError: Native type conversion failed/);
+    });
+
+    it('refuses an instance member called on something that is not an instance', () => {
+        const scripts = engine();
+        bindServer(scripts, '2.0.0');
+
+        expect(thrown(scripts, "mc.World.prototype.getDimension.call({}, 'overworld')")).toBe(
+            'TypeError: Native object bound to prototype does not exist.'
+        );
+        expect(thrown(scripts, "Object.getOwnPropertyDescriptor(mc.World.prototype, 'seed').get.call(1)")).toBe(
+            'TypeError: Native object bound to prototype does not exist.'
+        );
+    });
+
+    it('frees its handles once, however often it is destroyed', () => {
+        const scripts = engine();
+        const { context } = bindServer(scripts, '2.0.0');
+        context.destroy();
+        const after = scripts.stats().handles;
+        context.destroy();
+
+        expect(scripts.stats().handles).toBe(after);
     });
 
     it('refuses to construct a class without a constructor', () => {

@@ -118,6 +118,8 @@
         "build:native": "node scripts/build-native.mts",
         "generate:shape": "node scripts/generate-shape.mts",
         "check:shape": "node scripts/generate-shape.mts --check",
+        "count:corpus": "node scripts/count-corpus.mts",
+        "check:corpus": "node scripts/count-corpus.mts --check",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
@@ -138,6 +140,7 @@
         "@types/node": "26.6.6",
         "glob": "14.0.6",
         "rimraf": "6.1.4",
+        "rolldown": "1.3.2",
         "typescript": "7.0.2",
         "vite": "8.3.8",
         "vitest": "5.1.0"

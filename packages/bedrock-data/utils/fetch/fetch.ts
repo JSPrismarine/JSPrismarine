@@ -86,6 +86,18 @@ const readMarker = async (markerPath: string): Promise<FetchMarker | undefined> 
     }
 };
 
+/**
+ * Whether the cache already holds a verified copy of a source: its marker was written by the same
+ * pin and allowlist. This is the check {@link fetchSource} makes before it downloads, so a reader
+ * that asks here and finds `true` gets a fetch that touches no network. A fetch interrupted before
+ * it wrote the marker leaves `false`, whatever content it unpacked.
+ *
+ * @param descriptor - The source, from one of `manifest.ts`'s descriptor builders.
+ * @param cacheRoot - The shared cache root, usually `cacheRoot` from `paths.ts`.
+ */
+export const isSourceCached = async (descriptor: SourceDescriptor, cacheRoot: string): Promise<boolean> =>
+    markerMatches(await readMarker(join(cacheRoot, descriptor.name, descriptor.version, MARKER_FILE)), descriptor);
+
 const download = async (url: string, destination: string, fetchImpl: typeof fetch): Promise<void> => {
     const response = await fetchImpl(url, { headers: { 'user-agent': DOWNLOAD_USER_AGENT }, redirect: 'follow' });
     if (!response.ok || response.body === null) {
@@ -132,8 +144,7 @@ export const fetchSource = async (descriptor: SourceDescriptor, options: FetchOp
     const contentPath = sourceCachePath(descriptor, options.cacheRoot);
     const markerPath = join(versionDir, MARKER_FILE);
 
-    const marker = await readMarker(markerPath);
-    if (markerMatches(marker, descriptor)) {
+    if (await isSourceCached(descriptor, options.cacheRoot)) {
         return { descriptor, contentPath, fromOverride: false, fromCache: true };
     }
 

@@ -1,4 +1,4 @@
-import type { ModuleHistory, ModuleVersion, Segment, ShapeDeclaration, ShapeMember } from './format';
+import type { ModuleHistory, ModuleVersion, Segment, ShapeDeclaration, ShapeMember } from './format.ts';
 
 /** One declaration as a single version has it. */
 export interface DeclarationShape {

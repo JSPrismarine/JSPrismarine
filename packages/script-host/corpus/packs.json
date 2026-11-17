@@ -1,0 +1,283 @@
+{
+    "$comment": [
+        "The add-on corpus: open-source behavior packs with scripts, pinned by repository and full",
+        "commit. The repository holds no copy of any of them. `scripts/count-corpus.mts` fetches each",
+        "repository's codeload zip at its commit into `node_modules/.cache/jsprismarine/addon-corpus/`,",
+        "checks the zip's sha256 against `sha256` before unpacking, and reuses the cached copy after",
+        "that. The counter writes `usage.json` and `ranking.md` beside this file.",
+        "",
+        "Each pack names its `manifest.json` and the directories its scripts are read from. A",
+        "TypeScript pack is read from its TypeScript sources, never built: `build` says what its",
+        "build step would do. `excluded` lists packs in a pinned repository, and whole repositories,",
+        "that the corpus leaves out, with the reason. Only licenses that allow use are accepted;",
+        "`scripts/corpus/manifest.mts` lists them.",
+        "",
+        "Candidates come from section 12 of `docs/research/bedrock-script-api.md`. Each commit was the",
+        "default branch's head on 2026-11-17, each sha256 was measured from codeload that day, and",
+        "each license was read from the repository's license file at the commit. GitHub does not",
+        "promise byte-stable archives: if a digest stops matching, check that the commit is",
+        "unchanged and record the new digest."
+    ],
+    "repositories": [
+        {
+            "url": "https://github.com/microsoft/minecraft-scripting-samples",
+            "commit": "73a171fc8393a1052b4ca0669dc82231f775d8b1",
+            "sha256": "f2cba630f6c88258b9dcfb3b4bd5584abd7f516c91798b66d52a5f0ed2d50152",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "samples-build-challenge",
+                    "manifest": "build-challenge/behavior_packs/buildchallenge/manifest.json",
+                    "sources": ["build-challenge/scripts"],
+                    "build": "just-scripts bundles build-challenge/scripts into the pack's scripts/main.js"
+                },
+                {
+                    "id": "samples-custom-commands",
+                    "manifest": "custom-commands/behavior_packs/mike_cc/manifest.json",
+                    "sources": ["custom-commands/scripts"],
+                    "build": "just-scripts bundles custom-commands/scripts into the pack's scripts/main.js"
+                },
+                {
+                    "id": "samples-custom-components",
+                    "manifest": "custom-components/behavior_packs/custom_components/manifest.json",
+                    "sources": ["custom-components/scripts"],
+                    "build": "just-scripts bundles custom-components/scripts into the pack's scripts/main.js"
+                },
+                {
+                    "id": "samples-howto-gallery",
+                    "manifest": "howto-gallery/behavior_packs/howto-gallery/manifest.json",
+                    "sources": ["howto-gallery/scripts"],
+                    "build": "just-scripts bundles howto-gallery/scripts into the pack's scripts/main.js"
+                },
+                {
+                    "id": "samples-howto-gallery-betas",
+                    "manifest": "howto-gallery-betas/behavior_packs/howto-gallery-betas/manifest.json",
+                    "sources": ["howto-gallery-betas/scripts"],
+                    "build": "just-scripts bundles howto-gallery-betas/scripts into the pack's scripts/main.js"
+                },
+                {
+                    "id": "samples-script-box",
+                    "manifest": "script-box/behavior_packs/script-box/manifest.json",
+                    "sources": ["script-box/scripts"],
+                    "build": "just-scripts bundles script-box/scripts into the pack's scripts/main.js"
+                },
+                {
+                    "id": "samples-cotta",
+                    "manifest": "ts-starter-complete-cotta/behavior_packs/cotta/manifest.json",
+                    "sources": ["ts-starter-complete-cotta/scripts"],
+                    "build": "just-scripts bundles ts-starter-complete-cotta/scripts into the pack's scripts/main.js"
+                }
+            ],
+            "excluded": [
+                {
+                    "path": "editor-basics",
+                    "reason": "Depends on @minecraft/server-editor, which runs only in Bedrock Editor, not in BDS"
+                },
+                {
+                    "path": "editor-multi",
+                    "reason": "Depends on @minecraft/server-editor, which runs only in Bedrock Editor, not in BDS"
+                },
+                {
+                    "path": "editor-script-box",
+                    "reason": "Depends on @minecraft/server-editor, which runs only in Bedrock Editor, not in BDS"
+                },
+                {
+                    "path": "ts-starter",
+                    "reason": "A project template whose one script prints a message every 100 ticks, not an add-on"
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/ForestOfLight/Canopy",
+            "commit": "36089a5313113637e39b1676280a6e687c12f4f4",
+            "sha256": "e7ce1b22c8d759f886fce28c7451b7bd5a6d3fc10eb700e36a500cfe53d4b5e0",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "canopy",
+                    "manifest": "Canopy[BP]/manifest.json",
+                    "sources": ["Canopy[BP]/scripts"]
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/ForestOfLight/Construct",
+            "commit": "b720880d5236722579ab87e0e51c2611c7d18ca7",
+            "sha256": "21629853aefc969f55b32c3524bae8e600542976ef3546b14341582bdf2bf97f",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "construct",
+                    "manifest": "packs/BP/manifest.json",
+                    "sources": ["packs/BP/scripts"]
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/ForestOfLight/Understudy",
+            "commit": "406f3c86805439ad1252438c292dd10bc4054906",
+            "sha256": "2c11c2eb2bd4fb935c402f4a8b6639e3ddbe07f83b8bf0c6e3fa0aae6bfd2a5c",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "understudy",
+                    "manifest": "packs/BP/manifest.json",
+                    "sources": ["packs/BP/scripts"]
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/ForestOfLight/Statistic-Display",
+            "commit": "cd4c89e86f5d79c224f3c28dafdde4d3c9576e3e",
+            "sha256": "1b9a36c4154ef5e590f745c903cd33bd0f6edc5f8ecf89923d824b01d65c031d",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "statistic-display",
+                    "manifest": "packs/BP/manifest.json",
+                    "sources": ["packs/BP/scripts"]
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/LushWay/Scripts",
+            "commit": "ecc3e49bcffe72b4a3ee472ed2b18102703a48c2",
+            "sha256": "d679f12cf2c68deb8ad59b4df137f9bd5578a4b33094cca6f9761b4ab8a3d11c",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "lushway",
+                    "manifest": "src/ui/bp/manifest.json",
+                    "sources": ["src"],
+                    "exclude": ["src/test"],
+                    "build": "The scripts:build script bundles src with tools/build.ts, which the commit does not contain. The root manifest.json is a placeholder that depends on @minecraft/example; src/ui/bp/manifest.json declares the modules"
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/CrzxaExe/UnRealm-Bedrock",
+            "commit": "4565698900e32f281167bd4c352b686195cf3b7f",
+            "sha256": "c7535a27de7511daf9a6c90d99977bfc9a3f7283fe36d52b075c6233df472c46",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "unrealm",
+                    "manifest": "behavior_packs/BZB/manifest.json",
+                    "sources": ["scripts"],
+                    "build": "just-scripts bundles scripts into the pack's scripts/main.js"
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/xigma0512/XBlockFire",
+            "commit": "4be06ec5161490058beccef7708dd8714b54738b",
+            "sha256": "111e2897cd0996adf44ca2676971bd37878d53a7cc7b8fb98a26108320ce402a",
+            "license": "Apache-2.0",
+            "packs": [
+                {
+                    "id": "xblockfire",
+                    "manifest": "behavior_packs/xblockfire/manifest.json",
+                    "sources": ["scripts"],
+                    "build": "just-scripts bundles scripts into the pack's scripts/main.js"
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/gamelist1990/ChestLockAddon",
+            "commit": "73f997a816456d3dfbf18ac43a1294a82290c502",
+            "sha256": "de18a91a1d2e5d5c8fd281a0c4b1f3622d157635cbecf9c3f25a6e57e8a20c91",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "chestlock",
+                    "manifest": "devFolder/manifest.json",
+                    "sources": ["devFolder/src"],
+                    "build": "tsc compiles devFolder/src into devFolder/scripts, whose Loader.js is the entry"
+                }
+            ],
+            "excluded": [
+                {
+                    "path": "lbAddon/BH",
+                    "reason": "Depends on @minecraft/server 2.0.0-alpha, a prerelease no current BDS ships"
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/AresgettaGamer/Frame-and-Pane",
+            "commit": "2d4ba3b1f0590153a8ffdac90f34ec18e11f9e80",
+            "sha256": "5dd88daf22cf28556ef3b8893b66ba0b1a77567d5a856d48a06e57f755a32471",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "frame-and-pane",
+                    "manifest": "behavior_pack/manifest.json",
+                    "sources": ["behavior_pack/scripts"]
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/tepi-games/aerell-fasting",
+            "commit": "d83e5c90905a43d64faadb0fe6949ff2b85b83a7",
+            "sha256": "1e7a093322c48ae02cffd4c320f4e8585259e40ffc4332d97778f41f605dcf20",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "aerell-fasting",
+                    "manifest": "addon/behavior/manifest.json",
+                    "sources": ["addon/scripts"],
+                    "build": "scripts/sync.sh bundles addon/scripts/main.ts with Bun into addon/behavior/scripts/main.js"
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/woozystudio/ItemEditor",
+            "commit": "e17b8bfcb49c314096b473f47b4f387d73709593",
+            "sha256": "7a83d17dd38c1e3616783e714cc22740513cfdbce15c6307e7890ed5ded9ad0e",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "item-editor",
+                    "manifest": "behavior_packs/itemeditor/manifest.json",
+                    "sources": ["scripts"],
+                    "build": "just-scripts bundles scripts into the pack's scripts/main.js"
+                }
+            ]
+        },
+        {
+            "url": "https://github.com/mcbe-mods/ChopPop",
+            "commit": "3872d0f0d2c29788de95c6e5f79d376c5a53b9e0",
+            "sha256": "1f932ceb884c3363fa46f32eaf5feb0efda6956693f85cf1951793d225db0f79",
+            "license": "MIT",
+            "packs": [
+                {
+                    "id": "choppop",
+                    "manifest": "src/behavior_pack/manifest.json",
+                    "sources": ["src/behavior_pack/scripts"],
+                    "build": "mcbe-create bundles src/behavior_pack/scripts, with the @mcbe-mods libraries it imports, into scripts/main.js. The libraries' own Script API use is not counted"
+                }
+            ]
+        }
+    ],
+    "excluded": [
+        {
+            "url": "https://github.com/SolightzZ/Protection-Area-Addon",
+            "license": "MIT",
+            "reason": "The manifest's entry, scripts/main.js, is missing at 21f6803776e6f1186752bd31d294688971535103: the scripts sit in `New scripts/` and `scripts old/`, so the pack does not load as checked in"
+        },
+        {
+            "url": "https://github.com/Visual1mpact/Paradox_AntiCheat",
+            "license": "GPL-3.0",
+            "reason": "GPL-3.0"
+        },
+        {
+            "url": "https://github.com/SjnExe/AddonExe",
+            "license": "MIT",
+            "reason": "The repository has no manifest.json: scripts/build/updateManifests.ts writes it at build time"
+        },
+        {
+            "url": "https://github.com/i-bexx/inside-the-cage-addon",
+            "license": null,
+            "reason": "No license GitHub can identify (NOASSERTION)"
+        }
+    ]
+}

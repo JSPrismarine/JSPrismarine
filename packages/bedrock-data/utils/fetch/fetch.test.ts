@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { bedrockServerPath } from './bds.ts';
-import { fetchSource, hashSourceContent, resolveContentRoot, sourceCachePath } from './fetch.ts';
+import { fetchSource, hashSourceContent, isSourceCached, resolveContentRoot, sourceCachePath } from './fetch.ts';
 import { hashFolder } from './folder-hash.ts';
 import { verifyFileHash } from './hash.ts';
 import {
@@ -129,6 +129,18 @@ describe('fetchSource', () => {
         const second = await fetchSource(descriptor, { cacheRoot, env: {}, fetchImpl: failingFetch });
         expect(second.fromCache).toBe(true);
         await expect(readFile(join(second.contentPath, 'pack/a.txt'), 'utf8')).resolves.toBe('alpha');
+    });
+
+    it('counts as cached only once the marker of the same pin is written', async () => {
+        const zip = buildZip({ 'pack/a.txt': 'alpha' });
+        const cacheRoot = join(dir, 'cache');
+        const descriptor = archiveDescriptor(sha256(zip));
+        // Content an interrupted fetch left behind, with no marker, is not a verified copy.
+        await mkdir(sourceCachePath(descriptor, cacheRoot), { recursive: true });
+        await expect(isSourceCached(descriptor, cacheRoot)).resolves.toBe(false);
+        await fetchSource(descriptor, { cacheRoot, env: {}, fetchImpl: stubFetch(zip).impl });
+        await expect(isSourceCached(descriptor, cacheRoot)).resolves.toBe(true);
+        await expect(isSourceCached(archiveDescriptor('0'.repeat(64)), cacheRoot)).resolves.toBe(false);
     });
 
     it('rejects a download whose digest does not match the manifest', async () => {

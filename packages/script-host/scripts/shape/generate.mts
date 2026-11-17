@@ -238,6 +238,8 @@ const KNOWN_KEYS = {
         'max_value'
     ],
     constant: ['name', 'type', 'value', 'is_read_only', 'is_static'],
+    // A public module's file that only points at the bindings that hold its API.
+    stub: ['module_type', 'name', 'uuid', 'parentModule', 'peer_dependencies', 'wrapper_module'],
     class: ['name', 'type', 'base_types', 'functions', 'properties', 'constants', 'iterator', 'runtime_conditions'],
     module: [
         'name',
@@ -740,6 +742,7 @@ export const generateShape = (source: MetadataSource, options: GenerateOptions =
             let stub: RawStub | undefined;
             if ('parentModule' in content) {
                 stub = content;
+                expectKeys(stub, KNOWN_KEYS.stub, entry.file);
                 const parent = byKey.get(`${stub.parentModule.name}@${stub.parentModule.version}`);
                 if (parent === undefined) {
                     throw new Error(
