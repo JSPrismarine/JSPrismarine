@@ -1,6 +1,7 @@
 /**
- * The commands this server adds to the vanilla set: `/tps`, `/version`, `/debug`, `/ban` and
- * `/pardon`.
+ * The commands this server adds to the vanilla set: `/tps`, `/version`, `/debug`, `/ban`,
+ * `/pardon`, and Bedrock Dedicated Server's `/script debugger`, which the shared command set leaves
+ * out because only a server that runs behavior pack scripts has a debugger to attach.
  *
  * They register into the same `CommandRegistry` as the vanilla commands, so one dispatcher
  * parses them, one flattener advertises them and `/help` lists them. Their bodies reach the
@@ -8,10 +9,12 @@
  * counters, the world manager) is part of the command layer's shared host seam, and widening that
  * seam for one server's extras would make every other host implement them.
  */
+import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { CommandRegistry, CommandSource, Context } from '@jsprismarine/commands';
 import {
     arg,
     command,
+    integerArgument,
     lit,
     messageArgument,
     softEnumArgument,
@@ -25,6 +28,8 @@ import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { TPS_AVERAGE_MINUTES } from '../modules/ticker';
 import { describeSupportedProtocols } from '../network/codec/describeCodecs';
+import type { ScriptDebugger, ScriptDebuggerReply } from '../scripting/ScriptDebugger';
+import { ScriptDebuggerMessages } from '../scripting/ScriptDebugger';
 import { softwareLabel } from '../version';
 import { deferCommandWork } from './deferred';
 import { resolvePlayer } from './host/support';
@@ -61,6 +66,30 @@ const later = (context: Context, run: (current: CommandSource) => Promise<string
     deferCommandWork(
         run(current).then((feedback) => {
             if (feedback !== undefined) current.sendFeedback(feedback);
+        })
+    );
+    return RAN;
+};
+
+/**
+ * Runs a `/script debugger` action on the default level's debugger, and prints its reply as
+ * feedback or as an error. A server running no behavior pack scripts has no debugger to start.
+ */
+const debuggerAction = (
+    context: Context,
+    server: Server,
+    action: (scriptDebugger: ScriptDebugger) => Promise<ScriptDebuggerReply>,
+    withoutScripts: ScriptDebuggerReply = {
+        ok: false,
+        message: `${ScriptDebuggerMessages.failed}: no behavior pack scripts are running`
+    }
+): number => {
+    const current = source(context);
+    const scriptDebugger = server.getScripts()?.debugger;
+    deferCommandWork(
+        (scriptDebugger === undefined ? Promise.resolve(withoutScripts) : action(scriptDebugger)).then((reply) => {
+            if (reply?.ok === true) current.sendFeedback(reply.message);
+            else if (reply !== undefined) current.sendError(reply.message);
         })
     );
     return RAN;
@@ -252,6 +281,65 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
                 )
         ),
         { description: 'Ban a player.', permissionLevel: CommandPermissionLevel.ADMIN }
+    );
+
+    const close = command((context) =>
+        debuggerAction(context, server, (scriptDebugger) => scriptDebugger.close(), {
+            ok: true,
+            message: ScriptDebuggerMessages.closed
+        })
+    );
+    // BDS's syntax: `listen <port>`, or a bare `listen` once force-inbound-debug-port is set. The
+    // config is read when the command runs, so the tree is the same whatever it says.
+    const portForced = (): boolean => server.getConfig().getScriptDebugger().portForced;
+    const listen = lit('listen')
+        .executes(
+            command((context) => {
+                if (!portForced()) throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand().create();
+                return debuggerAction(context, server, (scriptDebugger) => scriptDebugger.listen());
+            })
+        )
+        .then(
+            arg('port', integerArgument({ min: 0, max: 65_535 }))
+                .requires(() => !portForced())
+                .executes(
+                    command((context) =>
+                        debuggerAction(context, server, (scriptDebugger) =>
+                            scriptDebugger.listen(value<number>(context, 'port'))
+                        )
+                    )
+                )
+        );
+    // One body for each of `connect`'s overloads: no host, a host, a host and a port.
+    const connect = (read: (context: Context) => [host?: string, port?: number]) =>
+        command((context) =>
+            debuggerAction(context, server, (scriptDebugger) => scriptDebugger.connect(...read(context)))
+        );
+    registry.register(
+        lit('script').then(
+            lit('debugger')
+                .then(listen)
+                .then(
+                    lit('connect')
+                        .executes(connect(() => []))
+                        .then(
+                            arg('host', stringArgument())
+                                .executes(connect((context) => [value<string>(context, 'host')]))
+                                .then(
+                                    arg('port', integerArgument({ min: 1, max: 65_535 })).executes(
+                                        connect((context) => [
+                                            value<string>(context, 'host'),
+                                            value<number>(context, 'port')
+                                        ])
+                                    )
+                                )
+                        )
+                )
+                .then(lit('close').executes(close))
+                // JSPrismarine's alias of `close`, the verb the script host plan names.
+                .then(lit('detach').executes(close))
+        ),
+        { description: 'Script debugger commands.', permissionLevel: CommandPermissionLevel.ADMIN }
     );
 
     registry.register(

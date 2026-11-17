@@ -6,11 +6,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import type BanManager from '../ban/BanManager';
+import type { Config, ScriptDebuggerConfig } from '../config/Config';
+import type { LevelScripts } from '../scripting/LevelScripts';
+import type { ScriptDebugger, ScriptDebuggerReply } from '../scripting/ScriptDebugger';
 import type PlayerSession from '../network/PlayerSession';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { collectAsyncCommands } from './deferred';
 import { registerJsprismarineCommands } from './jsprismarineCommands';
+
+/** The script debugger's settings as a fresh config has them, with `changes` on top. */
+const debuggerSettings = (changes: Partial<ScriptDebuggerConfig>): ScriptDebuggerConfig => ({
+    allowInbound: false,
+    allowOutbound: false,
+    listenPort: 19_144,
+    portForced: false,
+    listenAddress: '127.0.0.1',
+    autoAttach: 'disabled',
+    autoAttachConnectAddress: '',
+    autoAttachTimeout: 0,
+    passcode: '',
+    ...changes
+});
 
 describe("this server's own commands", () => {
     let registry: CommandRegistry<CommandSource>;
@@ -110,5 +127,125 @@ describe("this server's own commands", () => {
         expect(registry.getMetadata('debug')?.permissionLevel).toBe(CommandPermissionLevel.OWNER);
         expect(registry.getMetadata('tps')?.permissionLevel).toBe(CommandPermissionLevel.ANY);
         expect(registry.getMetadata('version')?.permissionLevel).toBe(CommandPermissionLevel.ANY);
+    });
+});
+
+describe('/script debugger', () => {
+    /** What the command bodies asked of the debugger, and what each run printed. */
+    const setUp = (options: { forced?: boolean; scripts?: boolean; reply?: ScriptDebuggerReply } = {}) => {
+        const calls: string[] = [];
+        const answer = (fallback: ScriptDebuggerReply): ScriptDebuggerReply =>
+            'reply' in options ? options.reply : fallback;
+        const scriptDebugger = stub<ScriptDebugger>({
+            listen: async (port) => {
+                calls.push(`listen ${port}`);
+                return answer({ ok: true, message: `Debugger listening on port ${port ?? 19_144}` });
+            },
+            connect: async (host, port) => {
+                calls.push(`connect ${host} ${port}`);
+                return answer({ ok: true, message: `Debugger connected to host ${host} on port ${port}` });
+            },
+            close: async () => {
+                calls.push('close');
+                return answer({ ok: true, message: 'Debugger closed' });
+            }
+        });
+        const server = stub<Server>({
+            getConfig: () =>
+                stub<Config>({
+                    getScriptDebugger: () =>
+                        debuggerSettings(options.forced === true ? { portForced: true, listenPort: 19_200 } : {})
+                }),
+            getScripts: () => (options.scripts === false ? undefined : stub<LevelScripts>({ debugger: scriptDebugger }))
+        });
+        const registry = new CommandRegistry<CommandSource>();
+        registerJsprismarineCommands(registry, server);
+        const feedback: string[] = [];
+        const errors: string[] = [];
+        const run = async (line: string): Promise<void> => {
+            const source = createCommandSource({
+                host: testCommandHost(),
+                permissionLevel: CommandPermissionLevel.INTERNAL,
+                onFeedback: (message) => void feedback.push(message),
+                onError: (message) => void errors.push(message)
+            });
+            await Promise.all(collectAsyncCommands(() => registry.getDispatcher().execute(line, source)));
+        };
+        return { registry, calls, feedback, errors, run };
+    };
+
+    it("listens on the port it names, and prints BDS's line", async () => {
+        const { calls, feedback, run } = setUp();
+
+        await run('script debugger listen 19144');
+
+        expect(calls).toEqual(['listen 19144']);
+        expect(feedback).toEqual(['Debugger listening on port 19144']);
+    });
+
+    it('takes no port once force-inbound-debug-port is set, and needs one until then, as BDS does', async () => {
+        const forced = setUp({ forced: true });
+        await forced.run('script debugger listen');
+        await expect(forced.run('script debugger listen 19144')).rejects.toThrow();
+        expect(forced.calls).toEqual(['listen undefined']);
+        expect(forced.feedback).toEqual(['Debugger listening on port 19144']);
+
+        const open = setUp();
+        await expect(open.run('script debugger listen')).rejects.toThrow();
+        expect(open.calls).toEqual([]);
+    });
+
+    it('connects with an optional host and port', async () => {
+        const { calls, run } = setUp();
+
+        await run('script debugger connect');
+        await run('script debugger connect localhost');
+        await run('script debugger connect 127.0.0.1 19150');
+
+        expect(calls).toEqual([
+            'connect undefined undefined',
+            'connect localhost undefined',
+            'connect 127.0.0.1 19150'
+        ]);
+    });
+
+    it('prints a refusal as an error, and nothing when the reply is empty', async () => {
+        const refused = setUp({ reply: { ok: false, message: 'Inbound connections are disabled' } });
+        await refused.run('script debugger listen 19144');
+        expect(refused.errors).toEqual(['Inbound connections are disabled']);
+        expect(refused.feedback).toEqual([]);
+
+        // A connection whose handshake BDS refused prints its line in the log, and the command nothing.
+        const silent = setUp({ reply: undefined });
+        await silent.run('script debugger connect');
+        expect([silent.calls, silent.feedback, silent.errors]).toEqual([['connect undefined undefined'], [], []]);
+    });
+
+    it('closes on close and on detach', async () => {
+        const { calls, feedback, run } = setUp();
+
+        await run('script debugger close');
+        await run('script debugger detach');
+
+        expect(calls).toEqual(['close', 'close']);
+        expect(feedback).toEqual(['Debugger closed', 'Debugger closed']);
+    });
+
+    it('says why it cannot start without behavior pack scripts, and still closes', async () => {
+        const { errors, feedback, run } = setUp({ scripts: false });
+
+        await run('script debugger listen 19144');
+        await run('script debugger connect');
+        await run('script debugger close');
+
+        expect(errors).toEqual([
+            'Failed to start debugger: no behavior pack scripts are running',
+            'Failed to start debugger: no behavior pack scripts are running'
+        ]);
+        expect(feedback).toEqual(['Debugger closed']);
+    });
+
+    it('needs the permission level BDS gives it', () => {
+        expect(setUp().registry.getMetadata('script')?.permissionLevel).toBe(CommandPermissionLevel.ADMIN);
     });
 });
