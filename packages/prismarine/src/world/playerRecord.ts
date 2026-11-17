@@ -49,6 +49,8 @@ export interface PlayerRecordSource {
     getSpawnPoint(): StoredSpawnPoint | undefined;
     getPortalCooldown(): number;
     hasSeenCredits(): boolean;
+    /** Ticks since the player last slept or died. */
+    getTimeSinceRest(): number;
 }
 
 /**
@@ -70,6 +72,7 @@ export interface PlayerRecordTarget {
     setSpawnPoint(spawn: StoredSpawnPoint | undefined): void;
     setSeenCredits(seen: boolean): void;
     setPortalCooldown(ticks: number): void;
+    setTimeSinceRest(ticks: number): void;
 }
 
 /**
@@ -146,6 +149,8 @@ export const playerRecordFrom = (
         ...(spawn === undefined ? {} : { spawn: { ...spawn } }),
         portalCooldown: player.getPortalCooldown(),
         seenCredits: player.hasSeenCredits(),
+        // Left out at 0, which a record without it reads as, so a rested player's record keeps its old bytes.
+        ...(player.getTimeSinceRest() > 0 ? { timeSinceRest: player.getTimeSinceRest() } : {}),
         savedAt: Date.now()
     } satisfies WorldPlayerData;
 };
@@ -224,6 +229,7 @@ export const applyPlayerRecord = (
     player.setSpawnPoint(data.spawn);
     player.setSeenCredits(data.seenCredits === true);
     if (data.portalCooldown !== undefined) player.setPortalCooldown(data.portalCooldown);
+    player.setTimeSinceRest(data.timeSinceRest ?? 0);
 };
 
 /** Where a record puts a returning player: the eye and the look. */

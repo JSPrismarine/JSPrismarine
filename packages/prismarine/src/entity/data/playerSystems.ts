@@ -56,6 +56,9 @@ import { eyesInWall } from './collision';
 import { bedrockCauseOf } from './legacyDamage';
 import { blockPositionOf } from './position';
 
+/** The largest value a Java statistic holds, `Integer.MAX_VALUE`, which `ServerStatsCounter` clamps to. */
+const MAX_STAT_VALUE = 2_147_483_647;
+
 /** What the player systems need from the runtime that holds them. */
 export interface PlayerSystemsPorts {
     /** Logs one write to a store player's state, as `EntityStore.written` does. */
@@ -123,6 +126,17 @@ export interface PlayerParts {
      * @returns Whether the player carries that container and slot.
      */
     restoreSlot(container: string, slot: number, value: PlainData, content: ServerContent): boolean;
+    /**
+     * The player's ticks since rest, Java's `Stats.TIME_SINCE_REST`: a statistic the player keeps
+     * beside its components, which the systems count without logging. Absent, the systems keep it.
+     */
+    readonly rest?: RestClock;
+}
+
+/** Reads and writes a player's ticks since rest. */
+export interface RestClock {
+    get(): number;
+    set(ticks: number): void;
 }
 
 /** Where a store player's writes are logged while its entity is in the store. */
@@ -136,6 +150,8 @@ export interface PlayerLog {
 /** One store player's state beside its entity. */
 interface StorePlayer {
     readonly survival: SurvivalPlayer;
+    /** The ticks since rest, the player's own or, for an entity no store player attached to, the systems'. */
+    readonly rest: RestClock;
     /** The player's own writers, or undefined for an entity no store player attached to. */
     readonly parts: PlayerParts | undefined;
 }
@@ -154,6 +170,11 @@ export class PlayerSystems {
      */
     public componentsOf(entity: DataEntity): PlayerComponents {
         return this.playerOf(entity).survival.components;
+    }
+
+    /** A store player's ticks since it last slept or died, Java's `Stats.TIME_SINCE_REST`. */
+    public timeSinceRestOf(entity: DataEntity): number {
+        return this.playerOf(entity).rest.get();
     }
 
     /**
@@ -202,6 +223,7 @@ export class PlayerSystems {
         }
         this.tickMeal(entity, survival);
         this.tickMining(survival);
+        this.tickRest(entity);
     }
 
     /**
@@ -213,6 +235,8 @@ export class PlayerSystems {
      */
     public died(entity: DataEntity): void {
         diedVitals(this.playerOf(entity).survival);
+        // `ServerPlayer.die` resets `Stats.TIME_SINCE_REST` with `TIME_SINCE_DEATH`.
+        this.playerOf(entity).rest.set(0);
         this.stopMining(entity);
     }
 
@@ -402,6 +426,17 @@ export class PlayerSystems {
      * with `in_wall` damage every tick, and the grace period holds that to one blow in
      * {@link SUFFOCATION_INTERVAL} ticks.
      */
+    /**
+     * Java's `ServerPlayer.doTick` counts `Stats.TIME_SINCE_REST` up every tick the player is not
+     * asleep, whatever its game mode, and `startSleeping` sets it back to 0, so it stays there
+     * through the night.
+     */
+    private tickRest(entity: DataEntity): void {
+        const { rest } = this.playerOf(entity);
+        const sleeping = this.componentsOf(entity).get('movement.sleeping');
+        rest.set(sleeping ? 0 : Math.min(MAX_STAT_VALUE, rest.get() + 1));
+    }
+
     private tickSuffocation(entity: DataEntity): void {
         const { x, y, z } = entity.position;
         if (eyesInWall({ x, y: y + EYE_HEIGHT, z }, entity.facts.box.width, this.ports))
@@ -476,7 +511,14 @@ export class PlayerSystems {
 
     private register(entity: DataEntity, components: PlayerComponents, parts: PlayerParts | undefined): StorePlayer {
         const health = () => entity.instance.attributes.get('health');
+        let kept = 0;
         const player: StorePlayer = {
+            rest: parts?.rest ?? {
+                get: () => kept,
+                set: (ticks) => {
+                    kept = ticks;
+                }
+            },
             survival: {
                 components,
                 vulnerable: () => survivalReaches(components.get('abilities.gamemode')),

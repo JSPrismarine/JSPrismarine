@@ -141,6 +141,10 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
                                   identifier: PLAYER_IDENTIFIER,
                                   creative: session.gamemode === Gametype.CREATIVE,
                                   spectator: session.gamemode === Gametype.SPECTATOR,
+                                  // Read only by the phantom spawner, and only for a player it looks at.
+                                  get timeSinceRest() {
+                                      return session.getPlayer().getTimeSinceRest();
+                                  },
                                   yaw: actor.headYaw,
                                   pitch: actor.pitch
                               }

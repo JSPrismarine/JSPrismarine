@@ -44,6 +44,14 @@ describe('world', () => {
             expect(playerDataFromNbt(nbt)).toEqual(data);
         });
 
+        it("round-trips the ticks since rest under Bedrock's TimeSinceRest tag", () => {
+            const data = record({ timeSinceRest: 80_000 });
+            const nbt = playerDataToNbt(data);
+
+            expect(nbt.getNumber('TimeSinceRest', -1)).toBe(80_000);
+            expect(playerDataFromNbt(nbt)).toEqual(data);
+        });
+
         describe('seenCredits', () => {
             it("writes the flag under Bedrock's HasSeenCredits tag", () => {
                 const nbt = playerDataToNbt(record({ seenCredits: true }));

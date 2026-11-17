@@ -42,6 +42,9 @@ export const TNT_EXPLODES = idOf('tntExplodes');
 /** `minecraft:spawn_mobs`: whether the natural spawn cycle runs. */
 export const SPAWN_MOBS = idOf('doMobSpawning');
 
+/** `minecraft:spawn_phantoms`: whether phantoms come for a player who has not slept. */
+export const SPAWN_PHANTOMS = idOf('doInsomnia');
+
 /** `minecraft:fire_spread_radius_around_player`: how far from a player fire ticks. */
 export const FIRE_SPREAD_RADIUS = idOf('doFireTick');
 

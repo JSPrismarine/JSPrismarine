@@ -37,8 +37,8 @@ export const moonBrightnessAt = (worldTime: number): number =>
 
 const clamp = (value: number, low: number, high: number): number => Math.min(high, Math.max(low, value));
 
-/** Java's numeric difficulty ids, which scale the regional difficulty. */
-const DIFFICULTY_IDS: Readonly<Record<Difficulty, number>> = { peaceful: 0, easy: 1, normal: 2, hard: 3 };
+/** Java's numeric difficulty ids, `Difficulty.getId`, which scale the regional difficulty. */
+export const DIFFICULTY_IDS: Readonly<Record<Difficulty, number>> = { peaceful: 0, easy: 1, normal: 2, hard: 3 };
 
 /**
  * `DifficultyInstance.calculateDifficulty`: the effective difficulty of one place, from 0 on

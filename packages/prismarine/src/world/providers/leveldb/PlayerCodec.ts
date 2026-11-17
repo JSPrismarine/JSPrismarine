@@ -232,6 +232,9 @@ const SPAWN_TAGS = { x: 'SpawnX', y: 'SpawnY', z: 'SpawnZ', dimension: 'SpawnDim
 /** Bedrock's tag for the dimension the player is in. */
 const DIMENSION_TAG = 'DimensionId';
 
+/** Bedrock's tag for the ticks since the player last slept, which its insomnia counts. */
+const TIME_SINCE_REST_TAG = 'TimeSinceRest';
+
 /** Bedrock's tag for whether the player has watched the end credits. */
 const SEEN_CREDITS_TAG = 'HasSeenCredits';
 
@@ -297,6 +300,7 @@ export const playerDataToNbt = (data: WorldPlayerData, known: KnownDimensions = 
 
     if (data.portalCooldown !== undefined) root.addValue('PortalCooldown', new Types.NumberVal(data.portalCooldown));
     if (data.seenCredits !== undefined) root.addValue(SEEN_CREDITS_TAG, new Types.ByteVal(data.seenCredits ? 1 : 0));
+    if (data.timeSinceRest !== undefined) root.addValue(TIME_SINCE_REST_TAG, new Types.NumberVal(data.timeSinceRest));
     const dimensionId = data.dimension === undefined ? undefined : bedrockIdOf(data.dimension, types);
     if (dimensionId !== undefined) root.addValue(DIMENSION_TAG, new Types.NumberVal(dimensionId));
     if (data.spawn !== undefined) {
@@ -390,6 +394,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound, known: KnownDimensions = 
         ...(spawn === undefined ? {} : { spawn }),
         ...(nbt.has('PortalCooldown') ? { portalCooldown: nbt.getNumber('PortalCooldown', 0) } : {}),
         ...(seenCredits === undefined ? {} : { seenCredits }),
+        ...(nbt.has(TIME_SINCE_REST_TAG) ? { timeSinceRest: nbt.getNumber(TIME_SINCE_REST_TAG, 0) } : {}),
         ...(saved?.has('savedAt') ? { savedAt: saved.getDouble('savedAt', 0) } : {}),
         ...(inventory === undefined ? {} : { inventory }),
         ...(legacyAttributes.health === undefined ? {} : { health: legacyAttributes.health }),

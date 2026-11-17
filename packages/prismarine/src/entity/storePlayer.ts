@@ -81,6 +81,8 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     public readonly attributes = new Attributes(Attributes.getPlayerDefaults());
     /** The skin the login carried, which a skin change replaces. */
     public skin: Skin | null = null;
+    /** {@link StorePlayer.getTimeSinceRest}'s count. */
+    private timeSinceRest = 0;
     /** The device the login named, or null when it said nothing. */
     public device: Device | null = null;
     /** The platform chat id, which the login handler does not read yet and leaves empty. */
@@ -180,7 +182,11 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
             components: this.components,
             shownForm: () => this.shownForm(),
             restoreField: (field, value) => this.restoreField(field, value),
-            restoreSlot: (container, slot, value, content) => this.restoreSlot(container, slot, value, content)
+            restoreSlot: (container, slot, value, content) => this.restoreSlot(container, slot, value, content),
+            rest: {
+                get: () => this.getTimeSinceRest(),
+                set: (ticks) => this.setTimeSinceRest(ticks)
+            }
         });
     }
 
@@ -478,6 +484,20 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** Records whether the player has watched the end credits. */
     public setSeenCredits(seen: boolean): void {
         this.components.set('respawn.seenCredits', seen);
+    }
+
+    /**
+     * Ticks since the player last slept or died, Java's `Stats.TIME_SINCE_REST`, which decides
+     * whether phantoms come for them. A statistic, as in Java, kept beside the player's logged
+     * components rather than in them, so a tick spent awake writes nothing to the change log.
+     */
+    public getTimeSinceRest(): number {
+        return this.timeSinceRest;
+    }
+
+    /** Sets the ticks since the player last slept or died, as the rest clock and a saved record do. */
+    public setTimeSinceRest(ticks: number): void {
+        this.timeSinceRest = Math.max(0, Math.trunc(ticks));
     }
 
     /**

@@ -452,6 +452,28 @@ describe('a store player', () => {
         });
     });
 
+    describe('rest', () => {
+        it("counts Java's time since rest every tick awake, and holds it at 0 asleep and after a death", () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            const rest = () => fixture.runtime.playerSystems.timeSinceRestOf(player);
+
+            ticks(fixture, 5);
+            expect(rest()).toBe(5);
+
+            components.set('movement.sleeping', true);
+            ticks(fixture, 3, 6);
+            expect(rest()).toBe(0);
+
+            components.set('movement.sleeping', false);
+            ticks(fixture, 4, 9);
+            expect(rest()).toBe(4);
+
+            fixture.runtime.hurt(player, undefined, 'entity_attack', 50);
+            expect(rest()).toBe(0);
+        });
+    });
+
     describe('death and revival', () => {
         it('ends the drowning and the mining in the blow that kills it', () => {
             const fixture = storePlayerFixture();

@@ -422,6 +422,11 @@ export interface WorldPlayerData {
      */
     seenCredits?: boolean;
     /**
+     * Ticks since this player last slept or died, Java's `Stats.TIME_SINCE_REST` and Bedrock's
+     * `TimeSinceRest`. Absent on a record written before this field existed, which reads as 0.
+     */
+    timeSinceRest?: number;
+    /**
      * When this record was written, in milliseconds since the epoch.
      *
      * Written so a tool or a later migration can tell two copies of a record apart. Absent on a

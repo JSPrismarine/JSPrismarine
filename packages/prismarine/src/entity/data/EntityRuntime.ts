@@ -66,6 +66,7 @@ import { addTrusted } from '@jsprismarine/entities/components/trust';
 import { javaItemTagsForBedrock } from '../../content/javaTags';
 import { itemMatchesName } from '@jsprismarine/entities/itemNames';
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
+import { isFullCubeShape } from '@jsprismarine/blocks/geometry';
 import { isLovedItem, PIGLIN, wantsToPickUp as wantsToPickUpAsPiglin } from '@jsprismarine/entity-brains/mobs/piglin';
 import { wardenHearsVibration } from '@jsprismarine/entity-brains/mobs/warden';
 
@@ -109,6 +110,7 @@ import {
     MOB_DROPS,
     MOB_GRIEFING,
     SPAWN_MOBS,
+    SPAWN_PHANTOMS,
     TNT_EXPLODES,
     ruleIsOn
 } from '../../content/world/gameRules';
@@ -139,6 +141,7 @@ import {
     canPickUpLootChance,
     clampedRegionalDifficulty,
     moonBrightnessAt,
+    DIFFICULTY_IDS,
     regionalDifficulty
 } from '../regionalDifficulty';
 import type { RegionalDifficultyInputs } from '../regionalDifficulty';
@@ -297,6 +300,20 @@ import {
 import { bedrockEntityIdentifierOf } from '../identifierMapping';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 import { isDay } from '../../world/DayCycle';
+import { overworldSkyDarken } from '../../world/skyDarken';
+import { PhantomSpawner } from './phantomSpawner';
+
+/** The dimension Java runs its `PhantomSpawner` in, the overworld's only custom spawners being there. */
+const OVERWORLD = 'minecraft:overworld';
+
+/** The mob `PhantomSpawner` spawns, which no natural spawn rule may. */
+const PHANTOM = 'minecraft:phantom';
+
+/** The sky light `Level.canSeeSky` asks for: the brightest there is. */
+const FULL_SKY_LIGHT = 15;
+
+/** Java's block tag `NaturalSpawner.isValidEmptySpawnBlock` refuses a spawn inside. */
+const PREVENT_MOB_SPAWNING_INSIDE = 'minecraft:prevent_mob_spawning_inside';
 import type { GameEventListener } from '../../world/GameEventListenerRegistry';
 import { VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from '../Environment';
 import { cushions } from '../playerFall';
@@ -900,6 +917,8 @@ export class EntityRuntime implements EntityScene {
     private facts: EntityFactsLookup | undefined;
     private factsGeneration = -1;
     private spawner: Spawner | undefined;
+    /** Java's `PhantomSpawner`, which this runtime runs in the overworld only, as Java's server does. */
+    private readonly phantoms = new PhantomSpawner();
     /** The world the spawn rules read, kept because the despawn pass reads the same one. */
     private spawnWorld: SpawnWorld | undefined;
     /** The path finder's view, built once; see {@link EntityRuntime.navigation}. */
@@ -2131,6 +2150,7 @@ export class EntityRuntime implements EntityScene {
         if (this.store.broken !== undefined) return;
         this.tickLeashes();
         this.runSpawnCycle(tick);
+        this.runPhantomSpawner();
         this.runDespawnCycle(shouldTick);
     }
 
@@ -2332,7 +2352,8 @@ export class EntityRuntime implements EntityScene {
     public startSpawning(world: SpawnWorld): void {
         this.spawnWorld = world;
         this.spawner = new Spawner({
-            rules: this.content().spawnRules,
+            // No Java biome spawns a phantom: `PhantomSpawner` does, for a player who has not slept.
+            rules: this.content().spawnRules.filter((rule) => rule.identifier !== PHANTOM),
             world,
             random: this.world.random,
             onUnanswered: (test, reason) => this.report(`a spawn rule's ${test.test} test was ${reason}`)
@@ -2359,6 +2380,42 @@ export class EntityRuntime implements EntityScene {
                 { event: request.spawnEvent, pool: request.pool }
             );
         return requests;
+    }
+
+    /**
+     * One tick of Java's `PhantomSpawner`, which the overworld runs beside natural spawning when
+     * it spawns monsters: off on peaceful, with `spawn_mobs` off or with `spawn_phantoms` off.
+     */
+    private runPhantomSpawner(): void {
+        const { level, blocks } = this.world;
+        if (level.dimension !== OVERWORLD) return;
+        this.phantoms.tick({
+            random: this.world.random,
+            spawnsPhantoms: () =>
+                level.difficulty() !== 'peaceful' && ruleIsOn(level, SPAWN_MOBS) && ruleIsOn(level, SPAWN_PHANTOMS),
+            hasSkyLight: () => level.hasSkyLight,
+            seaLevel: () => level.seaLevel,
+            skyDarken: () => overworldSkyDarken(level.dayTime(), level.weather()),
+            players: () => this.host.players(),
+            canSeeSky: (at) => (blocks.skyLight?.(at) ?? 0) >= FULL_SKY_LIGHT,
+            regionalDifficulty: (at) => regionalDifficulty(this.regionalDifficultyInputs(at)),
+            difficultyId: () => DIFFICULTY_IDS[level.difficulty()],
+            isValidEmptySpawnBlock: (at) => {
+                const block = blocks.get(at);
+                if (block === undefined) return false;
+                const shape = this.navigation().collisionAt(at);
+                return (
+                    (shape === undefined || !isFullCubeShape(shape)) &&
+                    liquidStateOf({ identifier: block.identifier, states: block.states }) === undefined &&
+                    !javaBlockTagsForBedrock(this.content().tags, block.identifier, block.states).includes(
+                        PREVENT_MOB_SPAWNING_INSIDE
+                    )
+                );
+            },
+            spawnPhantom: (at) => {
+                this.spawn(PHANTOM, { x: at.x + 0.5, y: at.y, z: at.z + 0.5 });
+            }
+        });
     }
 
     /**

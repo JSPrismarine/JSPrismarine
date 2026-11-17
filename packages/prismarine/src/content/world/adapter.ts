@@ -73,6 +73,11 @@ export interface ContentEntity {
     readonly creative?: boolean;
     /** Whether this player is in spectator mode; absent for non-players. */
     readonly spectator?: boolean;
+    /**
+     * Ticks since this player last slept or died, Java's `Stats.TIME_SINCE_REST`, which the
+     * phantom spawner reads; absent for non-players and read as 0.
+     */
+    readonly timeSinceRest?: number;
     /** Where this player's head faces, in degrees; absent when the host does not say. */
     readonly yaw?: number;
     /** This player's head pitch, in degrees; absent when the host does not say. */
