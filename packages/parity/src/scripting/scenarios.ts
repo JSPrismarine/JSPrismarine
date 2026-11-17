@@ -509,5 +509,16 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         experiments: ['gametest'],
         gametestAfter: { event: 'ready for /gametest', commands: ['gametest runset jsp'] },
         needs: 'server'
+    },
+    {
+        id: 'persistence',
+        family: 'scripting.world',
+        description:
+            'The world, an entity and an unstackable item stack each keep dynamic properties by pack, with fixed ' +
+            'errors for a value no property holds or a string too long, and the script scoreboard and /scoreboard ' +
+            'share one set of objectives, scores and display slots.',
+        reference: 'docs/plans/script-api-host.md slice 12',
+        packs: ['persistence'],
+        needs: 'server'
     }
 ];
