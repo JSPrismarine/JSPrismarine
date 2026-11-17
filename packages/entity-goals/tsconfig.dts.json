@@ -11,6 +11,7 @@
         "incremental": false,
         "inlineSourceMap": false,
         "paths": {
+            "@jsprismarine/entities/*": ["../entities/dist/*"],
             "@jsprismarine/*": ["../*/dist/index.d.ts"]
         }
     },
