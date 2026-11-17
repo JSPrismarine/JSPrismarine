@@ -88,7 +88,9 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             runtime.tick(2);
 
             expect(cube.instance.componentParams('minecraft:friction_modifier')).toBe(0.3);
-            expect(cube.body.velocity.x).toBeCloseTo(0.8638);
+            // Java's `travelInAir`: the ground's 0.6 friction with the bouncy friction modifier of 0.3
+            // keeps 0.88, times the 0.91 air drag with the air drag modifier of 0.01.
+            expect(cube.body.velocity.x).toBeCloseTo((1 - 0.4 * 0.3) * (1 - 0.09 * 0.01));
             runtime.remove(cube.id, 'vanilla physics coverage');
         });
 
