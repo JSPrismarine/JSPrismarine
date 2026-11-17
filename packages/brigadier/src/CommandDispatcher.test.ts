@@ -10,7 +10,7 @@ import { argument as argumentOf } from './builder/RequiredArgumentBuilder';
 import type CommandContext from './context/CommandContext';
 import CommandSyntaxException from './exceptions/CommandSyntaxException';
 
-const { integer } = DefaultType;
+const { integer, word } = DefaultType;
 
 const literal = literalOf<Object>;
 const argument = <T>(name: string, type: ArgumentType<T>) => argumentOf<Object, T>(name, type);
@@ -422,5 +422,65 @@ describe('CommandDispatcherTest', () => {
 
     it('testFindNodeDoesntExist', () => {
         expect(subject.findNode(['foo', 'bar'])).to.equal(null);
+    });
+});
+
+describe('a dispatcher that reads a line as Bedrock does', () => {
+    const source: Object = {};
+    const thrownBy = (run: () => unknown): CommandSyntaxException => {
+        try {
+            run();
+        } catch (error) {
+            if (error instanceof CommandSyntaxException) return error;
+            throw error;
+        }
+        throw new Error('nothing was thrown');
+    };
+
+    it('reads a run of spaces between arguments as one separator', () => {
+        const subject = new CommandDispatcher<Object>(null, { spaceRuns: true });
+        const command = createMockedCommand();
+        subject.register(literal('foo').then(literal('bar').then(argument('n', integer()).executes(command))));
+
+        expect(subject.execute('foo   bar    7', source)).toEqual([69]);
+        expect(command.execHistory.map((context) => context.getArgument('n'))).toEqual([7]);
+    });
+
+    it('still reads exactly one space without the option, as upstream Brigadier does', () => {
+        const subject = new CommandDispatcher<Object>();
+        subject.register(literal('foo').then(literal('bar').executes(createMockedCommand())));
+
+        expect(thrownBy(() => subject.execute('foo  bar', source)).getCursor()).toBe(4);
+    });
+
+    it('leaves trailing spaces unread, so the line is refused where they start', () => {
+        const subject = new CommandDispatcher<Object>(null, { spaceRuns: true });
+        subject.register(literal('foo').then(literal('bar').executes(createMockedCommand())));
+
+        expect(thrownBy(() => subject.execute('foo bar  ', source)).getCursor()).toBe('foo bar'.length);
+    });
+
+    it('points at the first word no route could read', () => {
+        // One route reads a word and stops; the other reads two integers and wants `end`.
+        const build = (options = {}) => {
+            const subject = new CommandDispatcher<Object>(null, options);
+            subject.register(
+                literal('foo')
+                    .then(argument('w', word()).executes(createMockedCommand()))
+                    .then(
+                        argument('x', integer()).then(
+                            argument('y', integer()).then(literal('end').executes(createMockedCommand()))
+                        )
+                    )
+            );
+            return subject;
+        };
+        const input = 'foo 1 2 nope';
+
+        expect(thrownBy(() => build({ farthestFailure: true }).execute(input, source)).getCursor()).toBe(
+            'foo 1 2 '.length
+        );
+        // Upstream keeps the first route that failed without an exception, which stops at `2`.
+        expect(thrownBy(() => build().execute(input, source)).getCursor()).toBe('foo 1 '.length);
     });
 });

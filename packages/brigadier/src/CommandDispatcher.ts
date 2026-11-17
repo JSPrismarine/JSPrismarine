@@ -21,15 +21,45 @@ const USAGE_REQUIRED_OPEN = '(';
 const USAGE_REQUIRED_CLOSE = ')';
 const USAGE_OR = '|';
 
+/** How a dispatcher reads a command line where Bedrock and upstream Brigadier disagree. */
+export interface CommandDispatcherOptions {
+    /**
+     * Reads a run of spaces between two arguments as one separator, as Bedrock does. Upstream
+     * Brigadier reads exactly one space, so `time   set` fails there.
+     */
+    readonly spaceRuns?: boolean;
+    /**
+     * When no route reads the whole line, reports the route that read farthest, so the error points
+     * at the first word no route could read, as Bedrock does. Upstream Brigadier prefers a route
+     * that failed without an exception, wherever it stopped.
+     */
+    readonly farthestFailure?: boolean;
+}
+
 export default class CommandDispatcher<S> {
     private root: RootCommandNode<S>;
+    private readonly options: CommandDispatcherOptions;
 
     private consumer: ResultConsumer<S> = {
         onCommandComplete() {}
     };
 
-    public constructor(root: RootCommandNode<S> | null = null) {
+    public constructor(root: RootCommandNode<S> | null = null, options: CommandDispatcherOptions = {}) {
         this.root = root || new RootCommandNode<S>();
+        this.options = options;
+    }
+
+    /**
+     * How many characters separate the argument that ends at the reader's cursor from the next
+     * one: the run of spaces there, or one space when the dispatcher reads exactly one.
+     *
+     * @returns 0 when no separator follows, which ends the line or leaves trailing spaces.
+     */
+    private separatorLength(reader: StringReader): number {
+        if (!this.options.spaceRuns) return reader.peek() === ARGUMENT_SEPARATOR ? 1 : 0;
+        let length = 0;
+        while (reader.canRead(length + 1) && reader.peek(length) === ARGUMENT_SEPARATOR) length++;
+        return length;
     }
 
     public register(command: LiteralArgumentBuilder<S>): LiteralCommandNode<S> {
@@ -170,8 +200,9 @@ export default class CommandDispatcher<S> {
             }
 
             context.withCommand(child.getCommand()!);
-            if (reader.canRead(!child.getRedirect() ? 2 : 1)) {
-                reader.skip();
+            const separator = reader.canRead() ? this.separatorLength(reader) : 0;
+            if (separator > 0 && reader.canRead(!child.getRedirect() ? separator + 1 : separator)) {
+                reader.setCursor(reader.getCursor() + separator);
                 if (child.getRedirect()) {
                     let childContext: CommandContextBuilder<S> = new CommandContextBuilder(
                         this,
@@ -206,6 +237,10 @@ export default class CommandDispatcher<S> {
                     }
                     if (a.getReader().canRead() && !b.getReader().canRead()) {
                         return 1;
+                    }
+                    if (this.options.farthestFailure && a.getReader().canRead()) {
+                        const farther = b.getReader().getCursor() - a.getReader().getCursor();
+                        if (farther !== 0) return farther;
                     }
                     if (a.getExceptions().size === 0 && b.getExceptions().size !== 0) {
                         return -1;

@@ -88,3 +88,17 @@ try {
     console.error(error.getMessage());
 }
 ```
+
+### Read a line as Bedrock does
+
+By default the dispatcher parses a line exactly as Mojang's Brigadier does. Two options change that
+to match the Bedrock Dedicated Server:
+
+```typescript
+const dispatcher = new CommandDispatcher(null, { spaceRuns: true, farthestFailure: true });
+```
+
+- `spaceRuns` reads any run of spaces between two arguments as one separator, so `time   set   day`
+  parses. Brigadier reads exactly one space.
+- `farthestFailure` makes a refused line's error point at the first word no route could read.
+  Brigadier reports the first route that stopped without an exception, wherever it stopped.
