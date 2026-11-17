@@ -334,9 +334,58 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       ([#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211)); the
       `script-teleport` client-e2e scenario has not passed locally, where the client stayed on
       the loading screen of a server skipping ticks.
-11. [ ] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
+11. [x] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.
+    - Done (2026-11-17): the registries of `startup` and version 1's `worldInitialize` with BDS's
+      errors; custom commands in the server's command tree with every `CustomCommandParamType`,
+      their permission level, `cheatsRequired`, an alias without the namespace and their enums in
+      `AvailableCommandsPacket`; the callback in restricted execution, its result message to the
+      sender and its failure as 0 successes. The `jsprismarine:script_components` behavior
+      attaches to every block and item whose pack JSON names a custom component, as a version 2
+      key or in `minecraft:custom_components`, and forwards `onPlayerBreak`, `onPlayerInteract`,
+      `beforeOnPlayerPlace`, `onTick`, `onRandomTick`, `onUse`, `onUseOn`, `onConsume` and
+      `onMineBlock`. `onPlace` and `onBreak` come from `World.onBlockWritten`, since a command's
+      or a script's write runs no behavior hook. `beforeOnPlayerPlace` is a new `BlockHooks` hook,
+      a guard of the player's placement. A block with `minecraft:tick` schedules its ticks when it
+      is placed. A block a world pack defines now gets a state schema when the content builds, so
+      its states have runtime ids and a command or script can place it. The `scripting.commands`
+      and `scripting.components` families hold the scenarios, and `script-custom-command` is the
+      client-e2e scenario.
+    - Learned, from the pinned BDS 1.26.51.1: a name without a namespace or in `minecraft` throws
+      `NamespaceNameError` (`string must be prefixed with a namespace (eg. namespace:value).`,
+      `string has invalid namespace (minecraft).`); a second registration throws
+      `CustomCommandError` (`Custom Command 'jsp:hello' was already registered.`, `Custom Command
+      Enum ...`) or `BlockCustomComponentAlreadyRegisteredError`; a missing enum throws `Custom
+      Command depends on one or more unknown enums [jsp:nothing].`; a registration after
+      `startup` throws `Custom Command registration failed outside of the ModuleStartup event.` or
+      `CustomComponentInvalidRegistryError: Cannot register custom component outside of the
+      ModuleStartup event.`, not the privilege error. A command name with an upper-case letter
+      registers without an error, then BDS logs two `[Commands] Register Command` lines and drops
+      it. BDS also answers a custom command without its namespace.
+    - Learned: a callback gets `String`, `Integer`, `Float` and `Boolean` as plain values, a
+      `Location` as a `Vector3` whose whole absolute x and z name the middle of the block, a
+      selector as an array of entities (empty when nothing matches, with no error), and a type as
+      its `EntityType`, `ItemType` or `BlockType`. An `Enum` parameter takes a word the enum does
+      not list. From a script's `runCommand` the origin is `Server`; a `Failure` result or a
+      callback that throws gives 0 successes and no error, and so does a command above the game
+      directors' level. On the console a success message prints as information and a failure
+      message, or a thrown error's message, as an error.
+    - Learned: `onPlace`, `onTick` and `onBreak` run after the script that placed or removed the
+      block, in the same tick, and `/setblock` and `Block.setType` raise them. A block with
+      `minecraft:tick` interval 10 ticks 10 and 20 ticks after it was placed. A block named in
+      `minecraft:custom_components` gets `onPlace` but no `onBreak`, and its component's
+      parameters are `undefined`. A block whose version 2 component no script registered fails to
+      parse, so the block does not exist; JSPrismarine resolves the content before any script
+      runs and loads it.
+    - Left: no engine event raises `onStepOn`, `onStepOff`, `onEntityFallOn`, `onEntity`,
+      `onRedstoneUpdate`, `onBlockStateChange`, `onHitEntity`, `onCompleteUse` or
+      `onBeforeDurabilityDamage` for a script's component yet; a component a permutation names
+      runs for every state of the block; an item hook's block is read in the overworld; command
+      parse errors keep Brigadier's wording; `cheatsRequired` is recorded but JSPrismarine has no
+      cheats setting; BDS's `ParameterLimit` is not checked; `/setblock` of the block already
+      standing there counts one success where BDS counts none; the item and player hooks need a
+      GameTest simulated player for a BDS row ([#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211)).
 12. [x] [#3209](https://github.com/JSPrismarine/JSPrismarine/issues/3209) **Persistence.** Dynamic properties and script scoreboards, byte-compatible with BDS and
     checked by the LevelDB compatibility suite in both directions.
     - Done (2026-11-17): the dynamic property members of `World`, `Entity` and `ItemStack`, with
@@ -381,7 +430,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
     - Learned: JSPrismarine neither saves nor loads an actor's `CustomName`, so a name tag a
       script sets is gone after a restart, and an entity from a BDS world loads without its name.
       The compatibility pack finds its armor stand by a tag instead.
-13. [ ] [#3210](https://github.com/JSPrismarine/JSPrismarine/issues/3210) **`@minecraft/server-ui`.** Forms, over the modal form packets.
+13. [x] [#3210](https://github.com/JSPrismarine/JSPrismarine/issues/3210) **`@minecraft/server-ui`.** Forms, over the modal form packets.
     - Learned (2026-11-17): a GameTest simulated player has no client, so the form captures join a
       headless `@jsprismarine/client` to BDS. A scenario's `client` lists its answers, and the
       `scripting.ui` goldens keep the form JSON the client received. The four scenarios, `forms`,
@@ -400,7 +449,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
     - Left: the data-driven `CustomForm`, `MessageBox` and observables of 2.1.0 and later throw
       `NotImplementedError`; the disconnect reason BDS gives for a response that is not JSON is
       not captured, so JSPrismarine's is its own.
-14. [ ] [#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211) **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
+14. [x] [#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211) **`@minecraft/server-gametest`.** Also for writing our own scenarios, since BDS runs the
     same tests.
     - Done (2026-11-17): `register`, `registerAsync`, the `RegistrationBuilder` options, `Test`'s
       `succeed`, `fail`, `assert`, `runAfterDelay`, `runAtTickTime`, `idle`, `succeedWhen`, the

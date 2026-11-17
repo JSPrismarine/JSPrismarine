@@ -290,6 +290,196 @@ export interface ScriptSimulatedPlayers {
     tick(): void;
 }
 
+/** A custom command's parameter type, as `CustomCommandParamType` names it. */
+export type ScriptCommandParamType =
+    | 'BlockType'
+    | 'Boolean'
+    | 'EntitySelector'
+    | 'EntityType'
+    | 'Enum'
+    | 'Float'
+    | 'Integer'
+    | 'ItemType'
+    | 'Location'
+    | 'PlayerSelector'
+    | 'String';
+
+/** One parameter of a custom command. */
+export interface ScriptCommandParameter {
+    readonly name: string;
+    readonly type: ScriptCommandParamType;
+    /** The registered enum an `Enum` parameter takes its values from. */
+    readonly enumName?: string;
+}
+
+/** A command a script registered in `startup`, as the world's command tree takes it. */
+export interface ScriptCustomCommand {
+    /** The name with its namespace, such as `jsp:hello`. BDS also answers to it without one. */
+    readonly name: string;
+    readonly description: string;
+    /** The `CommandPermissionLevel` it needs: 0 for anyone up to 4 for the owner. */
+    readonly permissionLevel: number;
+    readonly cheatsRequired: boolean;
+    readonly mandatoryParameters: readonly ScriptCommandParameter[];
+    readonly optionalParameters: readonly ScriptCommandParameter[];
+}
+
+/** An enum a script registered for its commands' `Enum` parameters. */
+export interface ScriptCommandEnum {
+    /** The name with its namespace, which a parameter names. */
+    readonly name: string;
+    readonly values: readonly string[];
+}
+
+/** An entity a command argument or a hook names: its id, and its type, which picks its class. */
+export interface ScriptEntityRef {
+    readonly id: string;
+    readonly typeId: string;
+}
+
+/**
+ * One argument of a custom command as the world parsed it: a string for `String` and `Enum`, a
+ * number for `Integer` and `Float`, a boolean, or the location, entities or type the others name.
+ */
+export type ScriptCommandArgument =
+    | string
+    | number
+    | boolean
+    | { readonly kind: 'location'; readonly location: ScriptVector3 }
+    | { readonly kind: 'entities'; readonly entities: readonly ScriptEntityRef[] }
+    | { readonly kind: 'entityType' | 'itemType' | 'blockType'; readonly id: string };
+
+/** Who ran a custom command, as `CustomCommandOrigin` reads it. */
+export interface ScriptCommandOrigin {
+    readonly sourceType: ScriptEventSourceType;
+    /** The entity the command runs as, absent for the server. */
+    readonly sourceEntity?: ScriptEntityRef;
+    /** The player who talked to the NPC that ran it. */
+    readonly initiator?: ScriptEntityRef;
+}
+
+/** What a custom command's callback answered, which the world tells the sender. */
+export interface ScriptCommandOutcome {
+    readonly status: 'success' | 'failure';
+    /** The message the sender is shown. Absent when the callback gave none. */
+    readonly message?: string;
+}
+
+/** The custom commands the scripts registered in `startup`, and the way to run one. */
+export interface ScriptCommandSet {
+    readonly commands: readonly ScriptCustomCommand[];
+    readonly enums: readonly ScriptCommandEnum[];
+    /**
+     * Runs a command's callback, in restricted execution, while the command runs.
+     * @param name - The command's full name, as {@link ScriptCustomCommand.name} gives it.
+     * @param args - The arguments in parameter order, mandatory ones first, without the ones left out.
+     */
+    run(name: string, origin: ScriptCommandOrigin, args: readonly ScriptCommandArgument[]): ScriptCommandOutcome;
+}
+
+/** A face of a block, as the Script API's `Direction` names it. */
+export type ScriptDirection = 'Down' | 'East' | 'North' | 'South' | 'Up' | 'West';
+
+/** A custom component a block or item names, with the parameters it gives it. */
+export interface ScriptComponentUse {
+    /** The component's name with its namespace. */
+    readonly name: string;
+    /** The parameters a version 2 block or item gives the component, as JSON data. */
+    readonly params?: unknown;
+    /**
+     * Whether a block names it in `minecraft:custom_components`, as the formats before version 2
+     * did. Such a block gets no parameters and none of the hooks Mojang added after it, such as
+     * `onBreak`, as the `custom-components` scenario recorded on BDS.
+     */
+    readonly legacy?: boolean;
+}
+
+/** A block position in a dimension. */
+export interface ScriptBlockLocation extends ScriptVector3 {
+    readonly dimension: string;
+}
+
+/** A block hook the world raises for the custom components a block names. */
+export type ScriptBlockHookEvent = {
+    readonly components: readonly ScriptComponentUse[];
+    readonly block: ScriptBlockLocation;
+} & (
+    | { readonly hook: 'onPlace'; readonly previousBlock: ScriptBlockPermutation }
+    | {
+          readonly hook: 'onBreak';
+          readonly brokenBlockPermutation: ScriptBlockPermutation;
+          readonly entitySource?: ScriptEntityRef;
+      }
+    | {
+          readonly hook: 'onPlayerBreak';
+          readonly brokenBlockPermutation: ScriptBlockPermutation;
+          readonly player?: ScriptEntityRef;
+      }
+    | {
+          readonly hook: 'onPlayerInteract';
+          readonly player?: ScriptEntityRef;
+          readonly face: ScriptDirection;
+          readonly faceLocation?: ScriptVector3;
+      }
+    | {
+          readonly hook: 'beforeOnPlayerPlace';
+          readonly player?: ScriptEntityRef;
+          readonly face: ScriptDirection;
+          readonly permutationToPlace: ScriptBlockPermutation;
+      }
+    | { readonly hook: 'onTick' | 'onRandomTick' }
+);
+
+/** An item hook the world raises for the custom components an item names. */
+export type ScriptItemHookEvent = {
+    readonly components: readonly ScriptComponentUse[];
+    /** The stack the hook is about, as it was when the world raised it. */
+    readonly item: ScriptItem;
+    /** The entity using the item. */
+    readonly source: ScriptEntityRef;
+} & (
+    | { readonly hook: 'onUse' | 'onCompleteUse' | 'onConsume' }
+    | {
+          readonly hook: 'onUseOn';
+          readonly block: ScriptBlockLocation;
+          readonly usedOnBlockPermutation: ScriptBlockPermutation;
+          readonly blockFace: ScriptDirection;
+          readonly faceLocation: ScriptVector3;
+      }
+    | { readonly hook: 'onHitEntity'; readonly hitEntity: ScriptEntityRef; readonly hadEffect: boolean }
+    | {
+          readonly hook: 'onMineBlock';
+          readonly block: ScriptBlockLocation;
+          readonly minedBlockPermutation: ScriptBlockPermutation;
+      }
+);
+
+/** The block hooks a custom component can have, as {@link ScriptBlockHookEvent} names them. */
+export type ScriptBlockHook = ScriptBlockHookEvent['hook'];
+
+/** The item hooks a custom component can have, as {@link ScriptItemHookEvent} names them. */
+export type ScriptItemHook = ScriptItemHookEvent['hook'];
+
+/**
+ * Where the world sends the hooks of the custom components its blocks and items name. A hook a
+ * script can cancel runs at once, as a guard of the action it is about
+ * ([ADR 0013](../../../../docs/adr/0013-vetoable-actions-are-staged.md)); every other hook waits
+ * for the script flush at the end of the tick, as on BDS.
+ */
+export interface ScriptComponentSink {
+    /** Whether a script registered one of the components with the hook, so the world can skip building an event. */
+    handlesBlock(components: readonly ScriptComponentUse[], hook: ScriptBlockHook): boolean;
+    /** Whether a script registered one of the components with the hook. */
+    handlesItem(components: readonly ScriptComponentUse[], hook: ScriptItemHook): boolean;
+    /**
+     * Raises a block hook.
+     * @returns Whether a script canceled it, which only `beforeOnPlayerPlace` can.
+     */
+    block(event: ScriptBlockHookEvent): boolean;
+    /** Raises an item hook. */
+    item(event: ScriptItemHookEvent): void;
+}
+
 /** What the script host reads and writes of one world. */
 export interface ScriptWorld {
     /** The world's dimensions, as Bedrock names them, such as `minecraft:overworld`. */
@@ -433,4 +623,16 @@ export interface ScriptWorld {
     placeStructure?(dimension: string, location: ScriptVector3, structure: Uint8Array): void;
     /** Sets a player's game mode, as `/gamemode` does. */
     setGameMode?(id: string, gameMode: ScriptGameMode): void;
+    /**
+     * Puts the custom commands the scripts registered into the world's command tree, after
+     * `startup`. A world without it has no custom commands.
+     * @returns A function that takes them out again, which a reload calls before it registers anew.
+     */
+    registerCommands?(commands: ScriptCommandSet): () => void;
+    /**
+     * Sends the hooks of the custom components the world's blocks and items name to `sink`, once
+     * the scripts have registered them. A world without it raises no hook.
+     * @returns A function that stops it.
+     */
+    bindComponents?(sink: ScriptComponentSink): () => void;
 }

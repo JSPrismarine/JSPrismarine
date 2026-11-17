@@ -8,7 +8,9 @@ import type {
     Guard,
     ScriptBlockPermutation,
     ScriptCommandResult,
+    ScriptCommandSet,
     ScriptCommandSource,
+    ScriptComponentSink,
     ScriptEntityState,
     ScriptItem,
     ScriptDisplay,
@@ -163,6 +165,12 @@ export class MemoryWorld implements ScriptWorld {
     /** The commands scripts ran, with their source. */
     public readonly commands: string[] = [];
     public readonly reads: WorldReads = { entity: 0, entities: 0, block: 0, inventory: 0 };
+    /** The custom commands the scripts put into the command tree, until they take them out. */
+    public commandSet: ScriptCommandSet | undefined;
+    /** How many times the scripts registered custom commands. */
+    public commandRegistrations = 0;
+    /** Where the scripts take the custom component hooks, once they have registered components. */
+    public componentSink: ScriptComponentSink | undefined;
     private current: ScriptWeather = 'Clear';
     private readonly guards: Guard<WeatherChangeIntent>[] = [];
     private readonly chatGuards: VetoGuard<ChatSendIntent>[] = [];
@@ -422,6 +430,19 @@ export class MemoryWorld implements ScriptWorld {
     }
     public takeEvents(): readonly ScriptWorldEvent[] {
         return this.committed.splice(0);
+    }
+    public registerCommands(commands: ScriptCommandSet): () => void {
+        this.commandSet = commands;
+        this.commandRegistrations++;
+        return () => {
+            if (this.commandSet === commands) this.commandSet = undefined;
+        };
+    }
+    public bindComponents(sink: ScriptComponentSink): () => void {
+        this.componentSink = sink;
+        return () => {
+            if (this.componentSink === sink) this.componentSink = undefined;
+        };
     }
     public clock(): number {
         return this.now;
