@@ -1,4 +1,4 @@
-import { NativeLibraryError } from '@jsprismarine/script-host/library';
+import { NativeLibraryError } from '@jsprismarine/errors/script-host';
 import { expect, it } from 'vitest';
 
 import { scriptHostAvailable } from '../../../script-host/src/testing/library.test.helper.ts';
@@ -153,6 +153,10 @@ export const describeScriptingFamily = (family: ScriptingFamily, sourceFile: str
     const scenarios = SCRIPT_SCENARIOS.filter((scenario) => scenario.family === family);
     // Every scenario runs in the script host, a bare engine or a level's.
     const needsLibrary = scenarios.length > 0;
+    // A server scenario boots a whole server, whose vanilla entities come from the pinned Bedrock
+    // Dedicated Server's pack. Without it a pack's spawnEntity('minecraft:armor_stand') throws, so
+    // the family runs where that data is.
+    const needsRealData = scenarios.some((scenario) => scenario.needs === 'server');
 
     describeFamily(family, scriptingFamilyReferences(family, scenarios), () => {
         // A missing golden's row matches the scenario's allow-list entry by id, which would let it
@@ -165,7 +169,7 @@ export const describeScriptingFamily = (family: ScriptingFamily, sourceFile: str
         it.skipIf(needsLibrary && !scriptHostAvailable())(
             "records what the pinned Bedrock Dedicated Server's scripts recorded",
             // A server scenario boots a whole server, whose content build takes most of it.
-            { timeout: 300_000 },
+            { timeout: 300_000, tags: needsRealData ? ['real-data'] : [] },
             async () => {
                 const records = new Map<string, ScenarioOutcome>();
                 for (const scenario of scenarios) records.set(scenario.id, await runScenarioOutcome(scenario));
