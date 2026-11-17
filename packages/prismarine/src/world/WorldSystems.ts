@@ -263,6 +263,12 @@ export class WorldSystems {
             this.lighting.onChunkLoaded(chunkX, chunkZ);
             this.litChunks.set(key, chunk);
             this.readyChunks.delete(key);
+            // Its first light runs again, and its neighbors wait for it as they wait for a chunk
+            // that has just loaded.
+            if (this.view.lightChunks !== undefined) {
+                this.unreadyChunks.set(key, chunk);
+                this.litLightChunks = undefined;
+            }
             return;
         }
         this.unlitChunks.set(key, chunk);

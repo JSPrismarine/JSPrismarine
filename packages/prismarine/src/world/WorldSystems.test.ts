@@ -619,6 +619,22 @@ describe('world', () => {
                 expect(systems.isLightReady(1, 0)).toBe(true);
             });
 
+            it('holds a ready chunk back while a neighbor replaced where it stands runs its light again', () => {
+                const { chunks, blocks, systems } = ringOf(1);
+                for (let tick = 1; tick <= Math.ceil(chunks.length / LIGHT_CHUNKS_PER_TICK); tick++) systems.tick(tick);
+                expect(systems.isLightReady(1, 0)).toBe(true);
+
+                // The world announces a chunk again without dropping it first, with a source in it.
+                blocks.set(key(24, 41, 24), GLOWSTONE);
+                systems.onChunkLoaded(1, 1);
+                expect(systems.lighting.isFloodingAround(1, 1)).toBe(true);
+                expect(systems.isLightReady(1, 0)).toBe(false);
+
+                systems.tick(10);
+                expect(systems.isLightReady(1, 0)).toBe(true);
+                expect(systems.isLightReady(1, 1)).toBe(true);
+            });
+
             it('is not ready in a chunk while a neighbor the ring requires waits to be taken in', () => {
                 const { chunks, systems } = ringOf(1);
                 expect(chunks.length).toBeGreaterThan(LIGHT_CHUNKS_PER_TICK);
