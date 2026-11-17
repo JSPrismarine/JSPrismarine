@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../../.test/reportProgress';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
@@ -572,6 +573,25 @@ describe('the world commands', () => {
             run(line, { world });
 
         expect(set).toEqual([23_000, 1000, 6000, 18_000, 42]);
+    });
+
+    it('/time set refuses a word that names no time of day, pointing at the word', () => {
+        const set: number[] = [];
+        const world = { setTime: (ticks: number) => void set.push(ticks) };
+
+        let thrown: unknown;
+        try {
+            run('time set nonsense', { world });
+        } catch (error) {
+            thrown = error;
+        }
+
+        expect(thrown).toBeInstanceOf(CommandSyntaxException);
+        expect(thrown instanceof CommandSyntaxException && [thrown.getInput(), thrown.getCursor()]).toEqual([
+            'time set nonsense',
+            'time set '.length
+        ]);
+        expect(set).toEqual([]);
     });
 
     it('/gamerule names every rule in the registry by its 1.21.11 id', () => {

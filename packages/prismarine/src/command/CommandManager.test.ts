@@ -224,6 +224,28 @@ describe('command', () => {
             );
         };
 
+        // What the pinned Bedrock Dedicated Server (1.26.51.1) prints at its console for each line.
+        it.each([
+            ['/time set nonsense', 'Syntax error: Unexpected "nonsense": at "/time set >>nonsense<<"'],
+            ['/time set', 'Syntax error: Unexpected "": at "/time set>><<"'],
+            ['/time nonsense', 'Syntax error: Unexpected "nonsense": at "/time >>nonsense<<"'],
+            ['/time set 100 extra', 'Syntax error: Unexpected "extra": at "e set 100 >>extra<<"'],
+            ['/time add abc', 'Syntax error: Unexpected "abc": at "/time add >>abc<<"'],
+            ['/give @s diamond abc', 'Syntax error: Unexpected "abc": at "s diamond >>abc<<"'],
+            ['/gamerule doDaylightCycle notabool', 'Syntax error: Unexpected "notabool": at "ightCycle >>notabool<<"'],
+            ['/weather clear abc', 'Syntax error: Unexpected "abc": at "her clear >>abc<<"'],
+            ['/difficulty bogus', 'Syntax error: Unexpected "bogus": at "ifficulty >>bogus<<"']
+        ])('refuses %s with the syntax error BDS words', async (line, expected) => {
+            const commandManager = managerOver({});
+            await commandManager.enable();
+
+            const console = new Console(server);
+            const sendMessage = vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
+
+            await expect(commandManager.dispatchCommand(console, console, line)).resolves.toBe(false);
+            expect(sendMessage.mock.calls.map(([message]) => message)).toEqual([`§c${expected}`]);
+        });
+
         it('tells the sender of a failure in the work a command started, and answers false', async () => {
             // `/debug loadWorld` loads the level after the dispatcher has answered, so the config
             // lookup that fails does so in the work the body parked.

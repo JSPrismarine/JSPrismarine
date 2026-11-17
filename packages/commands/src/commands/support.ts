@@ -9,7 +9,7 @@ import type {
     LiteralArgumentBuilder,
     RequiredArgumentBuilder
 } from '@jsprismarine/brigadier';
-import { CommandSyntaxException, argument, literal } from '@jsprismarine/brigadier';
+import { CommandSyntaxException, StringReader, argument, literal } from '@jsprismarine/brigadier';
 
 import type { BedrockDescribedType, Coordinate, CoordinateTriple, ScoreHolderModel } from '../argumentTypes';
 import { enumArgument, stringArgument } from '../argumentTypes';
@@ -148,6 +148,20 @@ export const arg = <T>(name: string, type: ArgumentType<T>): RequiredArgumentBui
  * expects is named at the call site instead.
  */
 export const value = <T>(context: Context, name: string): T => context.getArgument(name);
+
+/**
+ * Refuses an argument its parser read but the command cannot use, as a parse error pointing at
+ * the argument, which is how Bedrock refuses a word that is not one of a parameter's values.
+ *
+ * @throws {CommandSyntaxException} Always, carrying the command line with the cursor at the
+ *   argument's start, or at the end of what was read when no argument of that name was parsed.
+ */
+export const unexpectedArgument = (context: Context, name: string): never => {
+    const parsed = context.getNodes().find((entry) => entry.getNode().getName() === name);
+    const reader = new StringReader(context.getInput());
+    reader.setCursor(parsed?.getRange().getStart() ?? context.getRange().getEnd());
+    throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().createWithContext(reader);
+};
 
 /** Reads the source out of a Brigadier context. */
 export const source = (context: Context): CommandSource => context.getSource();

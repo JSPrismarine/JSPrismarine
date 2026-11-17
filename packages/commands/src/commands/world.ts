@@ -30,7 +30,18 @@ import type { BlockRef, CommandSource } from '../host';
 import { suggestFromData } from '../suggestions';
 import type { CommandRegistry } from '../tree';
 import type { Context } from './support';
-import { arg, command, dimensionArgument, lit, report, resolvePosition, select, source, value } from './support';
+import {
+    arg,
+    command,
+    dimensionArgument,
+    lit,
+    report,
+    resolvePosition,
+    select,
+    source,
+    unexpectedArgument,
+    value
+} from './support';
 
 const CHEATS = {
     permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
@@ -351,12 +362,13 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
                     .then(
                         // Named after Java's `timemarker` argument, so the Java 26.3 route
                         // that merges over this one binds here and not to `amount`. That
-                        // route parses a resource location, so `minecraft:noon` arrives too.
+                        // route parses a resource location, so `minecraft:noon` arrives too,
+                        // and so does any other word, which Bedrock refuses as a syntax error.
                         arg('timemarker', enumArgument('TimeSpec', TIME_SPECS)).executes(
                             command((context) => {
                                 const marker = value<string>(context, 'timemarker').replace(/^minecraft:/, '');
                                 const spec = TIME_SPECS.find((name) => name === marker);
-                                if (spec === undefined) return report(source(context), 0, `Unknown time '${marker}'`);
+                                if (spec === undefined) return unexpectedArgument(context, 'timemarker');
                                 return setTime(context, TIME_SPEC_TICKS[spec]);
                             })
                         )

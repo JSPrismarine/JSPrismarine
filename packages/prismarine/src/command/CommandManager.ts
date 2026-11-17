@@ -2,6 +2,7 @@ import type { ParseResults, RootCommandNode } from '@jsprismarine/brigadier';
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { CommandHost, CommandRegistry, CommandSource, FlattenedCommand } from '@jsprismarine/commands';
 import { bedrockCommand, createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
+import { bedrockSyntaxError } from '@jsprismarine/commands/syntaxError';
 import { MinecraftErrors } from '@jsprismarine/errors/minecraft';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 import { TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
@@ -32,6 +33,12 @@ export interface PlayerCommandSender extends CommandExecutor, ReferencedEntity {
     isOp(): boolean;
     getPermissions(): string[];
 }
+
+/**
+ * What a sender is told about a syntax exception: BDS's wording when it points into the command
+ * line, and the exception's own message when a command's body threw it.
+ */
+const syntaxErrorMessage = (error: CommandSyntaxException): string => bedrockSyntaxError(error) ?? error.getMessage();
 
 /**
  * Whether a sender is a player rather than the console. A sender standing at a runtime id is a
@@ -697,7 +704,7 @@ export class CommandManager implements Service {
         } catch (error: unknown) {
             switch (true) {
                 case error instanceof CommandSyntaxException:
-                    started.push(Promise.resolve(sender.sendMessage(`§c${error.getMessage()}`)));
+                    started.push(Promise.resolve(sender.sendMessage(`§c${syntaxErrorMessage(error)}`)));
                     return { ran: false, finished: settle() };
                 // A command that names a player or a game mode that does not exist is the sender's mistake,
                 // so the sender reads why; anything else is the server's and goes to the log.
@@ -727,7 +734,7 @@ export class CommandManager implements Service {
         // Work a body started rejects with whatever it threw, such as a plain `Error`.
         const message =
             error instanceof CommandSyntaxException
-                ? error.getMessage()
+                ? syntaxErrorMessage(error)
                 : error instanceof Error
                   ? error.message
                   : String(error);
