@@ -201,6 +201,25 @@ describe('Supervisor', () => {
         expect(states().at(-1)).toBe('2:starting');
     });
 
+    it('reloads a running child’s scripts with /reload, and restarts a child that crashed', async () => {
+        const { supervisor, children } = setup();
+        await supervisor.start();
+        await children[0]?.running();
+        const commands: unknown[] = [];
+        children[0]?.server.onMessage((message) => commands.push(message));
+
+        supervisor.reloadScripts('packs/probe/scripts/main.js');
+        await vi.waitFor(() => expect(commands).toHaveLength(1));
+        expect(commands).toEqual([{ type: 'command', v: 1, id: 'reload-1', line: 'reload' }]);
+
+        children[0]?.exit(1);
+        expect(supervisor.state).toBe('waiting');
+        const restarted = nextChildLink(supervisor);
+        supervisor.reloadScripts('packs/probe/scripts/main.js');
+        await restarted;
+        expect(children).toHaveLength(2);
+    });
+
     it('exits with the crash code when nothing can restart the child', async () => {
         const { supervisor, children, states, exit } = setup({ canRestart: false });
         await supervisor.start();
