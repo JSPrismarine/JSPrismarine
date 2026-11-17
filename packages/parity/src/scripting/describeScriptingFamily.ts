@@ -1,4 +1,5 @@
-import { it } from 'vitest';
+import { NativeLibraryError } from '@jsprismarine/script-host/library';
+import { expect, it } from 'vitest';
 
 import { scriptHostAvailable } from '../../../script-host/src/testing/library.test.helper.ts';
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
@@ -18,17 +19,33 @@ export const NO_SCRIPT_HOST = 'JSPrismarine has no script host to run the scenar
 /** Where the missing script host is tracked, cited by every row that waits on it. */
 export const SCRIPT_HOST_ISSUE = 'issue #3203';
 
+/** What running a scenario on JSPrismarine gave: a record, nothing yet, or the error it threw. */
+export type ScenarioOutcome = ScenarioRecord | undefined | { readonly failed: unknown };
+
+/**
+ * Runs a scenario on JSPrismarine, keeping what it throws so the scenario still gets a row. A
+ * missing script host library is not the scenario's fault, and still fails the test.
+ */
+export const runScenarioOutcome = async (scenario: ScriptScenario): Promise<ScenarioOutcome> => {
+    try {
+        return await runScenarioOnJsp(scenario);
+    } catch (error) {
+        if (error instanceof NativeLibraryError) throw error;
+        return { failed: error };
+    }
+};
+
 /**
  * The comparison behind every scripting row: JSPrismarine's record of a scenario against the
  * golden the pinned Bedrock Dedicated Server produced.
  *
- * @param records - JSPrismarine's record of each scenario by id, undefined while it has no
- *   script host. The records are taken before the rows run, because the host is asynchronous
+ * @param records - What running each scenario on JSPrismarine gave, by id: its record,
+ *   undefined while it has no script host, or the error it threw. The records are taken before the rows run, because the host is asynchronous
  *   and a row is not.
  */
 export const scenarioRecordComparison = (
     scenarios: readonly ScriptScenario[],
-    records: ReadonlyMap<string, ScenarioRecord | undefined>
+    records: ReadonlyMap<string, ScenarioOutcome>
 ): BehaviorScenario<ScriptScenario> => ({
     name: 'bds-record',
     java: "The scenario's scripts record the same observations, in the same order, as on the pinned Bedrock Dedicated Server.",
@@ -44,6 +61,7 @@ export const scenarioRecordComparison = (
         }
         const record = records.get(scenario.id);
         if (record === undefined) return NO_SCRIPT_HOST;
+        if ('failed' in record) return `JSPrismarine threw while running the scenario: ${String(record.failed)}`;
         return diffScenarioRecords(golden, record);
     },
     classify: (scenario, difference) =>
@@ -90,11 +108,18 @@ export const describeScriptingFamily = (family: ScriptingFamily, sourceFile: str
     const needsLibrary = scenarios.some((scenario) => scenario.needs === 'engine');
 
     describeFamily(family, scriptingFamilyReferences(family, scenarios), () => {
+        // A missing golden's row matches the scenario's allow-list entry by id, which would let it
+        // pass, so a test that needs no script host library checks every scenario has its golden.
+        it('has a BDS golden for every declared scenario', () => {
+            const missing = scenarios.filter((scenario) => readScenarioGolden(scenario.id) === undefined);
+            expect(missing.map((scenario) => scenario.id)).toEqual([]);
+        });
+
         it.skipIf(needsLibrary && !scriptHostAvailable())(
             "records what the pinned Bedrock Dedicated Server's scripts recorded",
             async () => {
-                const records = new Map<string, ScenarioRecord | undefined>();
-                for (const scenario of scenarios) records.set(scenario.id, await runScenarioOnJsp(scenario));
+                const records = new Map<string, ScenarioOutcome>();
+                for (const scenario of scenarios) records.set(scenario.id, await runScenarioOutcome(scenario));
 
                 measureScenarios(family, sourceFile, scenarioGroup([scenarioRecordComparison(scenarios, records)]));
             }
