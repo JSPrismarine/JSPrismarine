@@ -6,6 +6,8 @@ import {
     flattenCommandTree,
     registerVanillaCommands
 } from '@jsprismarine/commands';
+import type { EntityTypes } from '@jsprismarine/entities';
+import { buildVanillaCommands, summonableEntityTypes } from '@jsprismarine/prismarine/command/vanillaCommands';
 import { expect, it } from 'vitest';
 
 import { checkAllowList } from './allowlist.ts';
@@ -14,6 +16,7 @@ import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 import { parityCase, reportParityCases } from './trackerCases.ts';
+import { loadOverlayEntityTypes, loadVanillaEntityTypes } from './vanillaEntities.ts';
 
 /**
  * Phase 5's command row: the tree the server publishes against Mojang's own Bedrock command
@@ -116,5 +119,54 @@ describeFamily(FAMILIES.commandsTree, [REFERENCES.bedrockCommandMetadata], () =>
             serverOverloads: overloads
         });
         expect(commands).toBeGreaterThan(0);
+    });
+});
+
+/**
+ * The `/summon` entity enum the server advertises, against the `is_summonable` flag of every
+ * vanilla and overlay entity definition.
+ *
+ * Mojang's own `EntityType` enum holds exactly the vanilla types the pack marks summonable, so
+ * Bedrock Dedicated Server refuses `/summon fishing_hook` or `/summon player` at parse. The
+ * server offers Mojang's enum plus the summonable types its own content declares, so a type the
+ * client is offered is one it may summon, and a type it is not offered fails at parse.
+ *
+ * Gap ids: `summon-enum:<id>` where the advertised enum and the definition's flag disagree.
+ */
+const compareSummonEnum = (): { gaps: string[]; detail: string[]; cases: ReturnType<typeof parityCase>[] } => {
+    // The overlay loads over the vanilla pack, so its definition wins where both declare a type.
+    const loaded: EntityTypes[] = [loadVanillaEntityTypes(), loadOverlayEntityTypes()];
+    const types = new Map(loaded.flatMap((entityTypes) => [...entityTypes.registry.entries()]));
+    const registry = buildVanillaCommands({
+        entityTypes: [...new Set(loaded.flatMap((entityTypes) => summonableEntityTypes(entityTypes.registry)))]
+    });
+
+    const summon = flattenCommandTree(registry).commands.find((command) => command.name === 'summon');
+    const shape = summon?.overloads[0]?.parameters.find((parameter) => parameter.name === 'entity')?.shape;
+    const advertised = new Set(shape?.kind === 'enum' ? shape.values : []);
+    const offered = (identifier: string) =>
+        advertised.has(identifier) ||
+        (identifier.startsWith('minecraft:') && advertised.has(identifier.slice('minecraft:'.length)));
+
+    const gaps: string[] = [];
+    const detail: string[] = [];
+    const cases = [...types].map(([identifier, type]) => {
+        const matched = offered(identifier) === type.flags.summonable;
+        if (!matched) {
+            gaps.push(`summon-enum:${identifier}`);
+            detail.push(`${identifier}: offered ${offered(identifier)}, is_summonable ${type.flags.summonable}`);
+        }
+        return parityCase(`summon:${identifier}`, `/summon ${identifier}`, 'Summon entity enum', matched);
+    });
+    return { gaps, detail, cases };
+};
+
+describeFamily(FAMILIES.commandsTree, [REFERENCES.bedrockCommandMetadata, REFERENCES.bedrockBehaviorPack], () => {
+    const { gaps, detail, cases } = compareSummonEnum();
+    const verdict = checkAllowList(FAMILIES.commandsTree, gaps);
+    reportParityCases(FAMILIES.commandsTree, import.meta.filename, cases);
+
+    it('offers /summon exactly the entity types their definitions mark summonable', () => {
+        expect(verdict.unexpected, detail.join('\n')).toEqual([]);
     });
 });

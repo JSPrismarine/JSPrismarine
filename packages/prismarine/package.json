@@ -249,6 +249,10 @@
             "jsprismarine:dist": "./dist/chat/Chat.js",
             "default": "./src/chat/Chat.ts"
         },
+        "./command/vanillaCommands": {
+            "jsprismarine:dist": "./dist/command/vanillaCommands.js",
+            "default": "./src/command/vanillaCommands.ts"
+        },
         "./config/Config": {
             "jsprismarine:dist": "./dist/config/Config.js",
             "default": "./src/config/Config.ts"
