@@ -123,14 +123,23 @@
                 "@minecraft/debug-utilities": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {
                         "DebugArrow": 1,
+                        "DebugArrow.constructor": 1,
+                        "DebugArrow.headLength": 1,
+                        "DebugArrow.headRadius": 1,
                         "DebugBox": 14,
+                        "DebugBox.bound": 12,
+                        "DebugBox.constructor": 14,
+                        "DebugDrawer.addShape": 10,
+                        "DebugDrawer.removeShape": 4,
                         "DebugLine": 3,
+                        "DebugLine.constructor": 3,
+                        "DebugShape.color": 18,
                         "DebugText": 1,
-                        "debugDrawer": 14,
-                        "debugDrawer.addShape": 10,
-                        "debugDrawer.removeShape": 4
+                        "DebugText.constructor": 1,
+                        "debugDrawer": 14
                     },
                     "fields": {},
                     "unmatched": {}
@@ -138,7 +147,7 @@
                 "@minecraft/server": {
                     "declared": "2.12.0-beta",
                     "stability": "beta",
-                    "shape": "2.10.0",
+                    "shape": "2.11.0-beta",
                     "uses": {
                         "Block": 5,
                         "Block.getComponent": 2,
@@ -162,6 +171,10 @@
                         "BlockVolumeBase.getCapacity": 1,
                         "ButtonState": 6,
                         "ButtonState.Pressed": 6,
+                        "ChatSendBeforeEvent.cancel": 1,
+                        "ChatSendBeforeEvent.message": 1,
+                        "ChatSendBeforeEvent.sender": 1,
+                        "ChatSendBeforeEventSignal.subscribe": 1,
                         "CommandError": 1,
                         "CommandPermissionLevel": 49,
                         "CommandPermissionLevel.Admin": 1,
@@ -376,6 +389,8 @@
                         "PlayerPlaceBlockAfterEvent.player": 1,
                         "PlayerPlaceBlockAfterEventSignal.subscribe": 2,
                         "PlayerPlaceBlockAfterEventSignal.unsubscribe": 1,
+                        "PlayerPlaceBlockBeforeEventSignal.subscribe": 1,
+                        "PlayerPlaceBlockBeforeEventSignal.unsubscribe": 1,
                         "PlayerStartBreakingBlockAfterEventSignal.subscribe": 3,
                         "PlayerStartBreakingBlockAfterEventSignal.unsubscribe": 3,
                         "PressurePlatePushAfterEventSignal.subscribe": 1,
@@ -475,6 +490,7 @@
                         "WorldAfterEvents.pressurePlatePush": 2,
                         "WorldAfterEvents.projectileHitEntity": 1,
                         "WorldAfterEvents.worldLoad": 8,
+                        "WorldBeforeEvents.chatSend": 1,
                         "WorldBeforeEvents.entityItemPickup": 2,
                         "WorldBeforeEvents.entityRemove": 5,
                         "WorldBeforeEvents.explosion": 3,
@@ -482,11 +498,13 @@
                         "WorldBeforeEvents.playerInteractWithBlock": 7,
                         "WorldBeforeEvents.playerInteractWithEntity": 4,
                         "WorldBeforeEvents.playerLeave": 8,
+                        "WorldBeforeEvents.playerPlaceBlock": 2,
                         "WorldLoadAfterEventSignal.subscribe": 8,
                         "system": 214,
                         "world": 280
                     },
                     "fields": {
+                        "DimensionLocation.dimension": 1,
                         "EntityDamageSource.cause": 1,
                         "EntityFilter.excludeNames": 1,
                         "EntityFilter.name": 1,
@@ -510,14 +528,13 @@
                         "Entity.inputInfo": 1,
                         "Entity.name": 1,
                         "Vector3.length": 1,
-                        "WorldBeforeEvents.chatSend": 1,
-                        "WorldBeforeEvents.playerItemAttackEntity": 2,
-                        "WorldBeforeEvents.playerPlaceBlock": 2
+                        "WorldBeforeEvents.playerItemAttackEntity": 2
                     }
                 },
                 "@minecraft/server-gametest": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {
                         "SimulatedPlayer": 2,
                         "spawnSimulatedPlayer": 1
@@ -528,7 +545,7 @@
                 "@minecraft/server-ui": {
                     "declared": "2.4.0-beta",
                     "stability": "beta",
-                    "shape": "2.2.0",
+                    "shape": "2.3.0-beta",
                     "uses": {
                         "CustomForm": 5,
                         "CustomForm.button": 6,
@@ -863,6 +880,7 @@
                 "@minecraft/server-admin": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {
                         "transferPlayer": 2
                     },
@@ -998,12 +1016,19 @@
                 "@minecraft/debug-utilities": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {
                         "DebugBox": 2,
+                        "DebugBox.constructor": 2,
+                        "DebugDrawer.addShape": 4,
                         "DebugLine": 1,
+                        "DebugLine.constructor": 1,
+                        "DebugShape.color": 2,
+                        "DebugShape.scale": 3,
+                        "DebugShape.timeLeft": 1,
                         "DebugSphere": 1,
-                        "debugDrawer": 4,
-                        "debugDrawer.addShape": 4
+                        "DebugSphere.constructor": 1,
+                        "debugDrawer": 4
                     },
                     "fields": {},
                     "unmatched": {}
@@ -1011,7 +1036,7 @@
                 "@minecraft/server": {
                     "declared": "2.12.0-beta",
                     "stability": "beta",
-                    "shape": "2.10.0",
+                    "shape": "2.11.0-beta",
                     "uses": {
                         "BlockEvent.block": 2,
                         "BlockPermutation": 3,
@@ -1105,6 +1130,7 @@
                         "PlayerLeaveBeforeEventSignal.subscribe": 3,
                         "PlayerLeaveBeforeEventSignal.unsubscribe": 2,
                         "PlayerPlaceBlockAfterEventSignal.subscribe": 1,
+                        "PlayerPlaceBlockBeforeEventSignal.subscribe": 1,
                         "PlayerStartBreakingBlockAfterEventSignal.subscribe": 1,
                         "PlayerSwingStartAfterEventSignal.subscribe": 1,
                         "ScriptEventCommandMessageAfterEvent.id": 1,
@@ -1155,6 +1181,7 @@
                         "WorldBeforeEvents.playerInteractWithBlock": 2,
                         "WorldBeforeEvents.playerInteractWithEntity": 1,
                         "WorldBeforeEvents.playerLeave": 5,
+                        "WorldBeforeEvents.playerPlaceBlock": 1,
                         "WorldLoadAfterEventSignal.subscribe": 2,
                         "system": 54,
                         "world": 54
@@ -1163,14 +1190,12 @@
                         "PlayerSwingEventOptions.heldItemOption": 1,
                         "PlayerSwingEventOptions.swingSource": 1
                     },
-                    "unmatched": {
-                        "WorldBeforeEvents.playerPlaceBlock": 1
-                    }
+                    "unmatched": {}
                 },
                 "@minecraft/server-ui": {
                     "declared": "2.4.0-beta",
                     "stability": "beta",
-                    "shape": "2.2.0",
+                    "shape": "2.3.0-beta",
                     "uses": {
                         "CustomForm": 11,
                         "CustomForm.button": 12,
@@ -1208,6 +1233,7 @@
                         "ObservableUIRawMessage.setData": 5
                     },
                     "fields": {
+                        "ButtonOptions.imageDetails": 1,
                         "ButtonOptions.tooltip": 1,
                         "ButtonOptions.visible": 1,
                         "DividerOptions.visible": 1,
@@ -1221,9 +1247,7 @@
                         "ToggleOptions.visible": 1,
                         "UIRawMessage.text": 1
                     },
-                    "unmatched": {
-                        "ButtonOptions.imageDetails": 1
-                    }
+                    "unmatched": {}
                 }
             }
         },
@@ -1366,13 +1390,24 @@
                 "@minecraft/debug-utilities": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {
                         "DebugArrow": 1,
+                        "DebugArrow.constructor": 1,
+                        "DebugArrow.headLength": 1,
+                        "DebugArrow.headRadius": 1,
                         "DebugBox": 1,
+                        "DebugBox.constructor": 1,
+                        "DebugDrawer.addShape": 4,
                         "DebugLine": 1,
+                        "DebugLine.constructor": 1,
+                        "DebugShape.color": 3,
+                        "DebugShape.scale": 2,
                         "DebugText": 1,
-                        "debugDrawer": 4,
-                        "debugDrawer.addShape": 4
+                        "DebugText.constructor": 1,
+                        "DebugText.setText": 1,
+                        "DebugText.useRotation": 1,
+                        "debugDrawer": 4
                     },
                     "fields": {},
                     "unmatched": {}
@@ -1380,13 +1415,14 @@
                 "@minecraft/server": {
                     "declared": "2.11.0-beta",
                     "stability": "beta",
-                    "shape": "2.10.0",
+                    "shape": "2.11.0-beta",
                     "uses": {
                         "Block": 1,
                         "Block.below": 1,
                         "Block.dimension": 9,
                         "Block.getComponent": 2,
                         "Block.isAir": 3,
+                        "Block.isSolid": 3,
                         "Block.isValid": 3,
                         "Block.location": 13,
                         "Block.offset": 1,
@@ -1394,8 +1430,8 @@
                         "Block.setPermutation": 6,
                         "Block.setType": 3,
                         "Block.typeId": 12,
-                        "Block.y": 1,
-                        "BlockEvent.block": 16,
+                        "Block.y": 2,
+                        "BlockEvent.block": 18,
                         "BlockEvent.dimension": 1,
                         "BlockInventoryComponent": 1,
                         "BlockInventoryComponent.componentId": 1,
@@ -1405,14 +1441,14 @@
                         "BlockPermutation.getState": 1,
                         "BlockPermutation.matches": 1,
                         "BlockPermutation.resolve": 11,
-                        "BlockPermutation.type": 7,
+                        "BlockPermutation.type": 8,
                         "BlockPermutation.withState": 2,
                         "BlockPistonComponent.getAttachedBlocksLocations": 1,
                         "BlockStateType.validValues": 1,
                         "BlockStates": 2,
                         "BlockStates.get": 1,
                         "BlockStates.getAll": 1,
-                        "BlockType.id": 12,
+                        "BlockType.id": 13,
                         "BlockTypes": 7,
                         "BlockTypes.get": 4,
                         "BlockTypes.getAll": 3,
@@ -1420,6 +1456,10 @@
                         "BlockVolume.constructor": 1,
                         "Camera.fade": 2,
                         "Camera.setCamera": 4,
+                        "ChatSendAfterEvent.message": 4,
+                        "ChatSendAfterEvent.sender": 17,
+                        "ChatSendBeforeEvent.cancel": 1,
+                        "ChatSendBeforeEventSignal.subscribe": 2,
                         "CommandPermissionLevel": 4,
                         "CommandPermissionLevel.Any": 2,
                         "CommandPermissionLevel.GameDirectors": 1,
@@ -1456,7 +1496,7 @@
                         "Dimension.createExplosion": 3,
                         "Dimension.getBlock": 14,
                         "Dimension.getBlockFromRay": 1,
-                        "Dimension.getEntities": 2,
+                        "Dimension.getEntities": 3,
                         "Dimension.getPlayers": 2,
                         "Dimension.playSound": 1,
                         "Dimension.spawnEntity": 6,
@@ -1472,14 +1512,13 @@
                         "EnchantmentType.maxLevel": 2,
                         "Entity": 3,
                         "Entity.addEffect": 7,
-                        "Entity.addTag": 2,
                         "Entity.applyDamage": 3,
-                        "Entity.applyImpulse": 2,
+                        "Entity.applyImpulse": 1,
                         "Entity.applyKnockback": 3,
-                        "Entity.dimension": 34,
+                        "Entity.dimension": 35,
                         "Entity.getBlockFromViewDirection": 6,
                         "Entity.getBlockStandingOn": 1,
-                        "Entity.getComponent": 22,
+                        "Entity.getComponent": 21,
                         "Entity.getDynamicProperty": 2,
                         "Entity.getEffects": 1,
                         "Entity.getHeadLocation": 10,
@@ -1487,20 +1526,20 @@
                         "Entity.getRotation": 4,
                         "Entity.getTags": 2,
                         "Entity.getViewDirection": 9,
-                        "Entity.id": 144,
+                        "Entity.id": 149,
                         "Entity.isOnGround": 2,
-                        "Entity.isSneaking": 6,
-                        "Entity.isValid": 33,
-                        "Entity.location": 46,
+                        "Entity.isSneaking": 7,
+                        "Entity.isValid": 34,
+                        "Entity.location": 48,
                         "Entity.matches": 3,
-                        "Entity.nameTag": 4,
+                        "Entity.nameTag": 3,
                         "Entity.remove": 5,
                         "Entity.removeEffect": 2,
                         "Entity.removeTag": 1,
-                        "Entity.runCommand": 6,
-                        "Entity.setDynamicProperty": 5,
+                        "Entity.runCommand": 7,
+                        "Entity.setDynamicProperty": 2,
                         "Entity.setProperty": 4,
-                        "Entity.teleport": 14,
+                        "Entity.teleport": 15,
                         "Entity.typeId": 12,
                         "EntityAttributeComponent.currentValue": 6,
                         "EntityAttributeComponent.defaultValue": 2,
@@ -1510,6 +1549,7 @@
                         "EntityComponentTypes": 6,
                         "EntityComponentTypes.Equippable": 2,
                         "EntityComponentTypes.Item": 1,
+                        "EntityComponentTypes.Npc": 1,
                         "EntityComponentTypes.Projectile": 1,
                         "EntityComponentTypes.Riding": 1,
                         "EntityDamageCause": 11,
@@ -1540,8 +1580,8 @@
                         "EntityHurtBeforeEvent.hurtEntity": 1,
                         "EntityHurtBeforeEventSignal.subscribe": 1,
                         "EntityItemComponent.itemStack": 1,
-                        "EntityProjectileComponent.owner": 4,
-                        "EntityProjectileComponent.shoot": 1,
+                        "EntityNpcComponent.name": 2,
+                        "EntityProjectileComponent.owner": 3,
                         "EntityRidingComponent.entityRidingOn": 1,
                         "EntitySpawnAfterEvent.entity": 9,
                         "EntitySpawnAfterEventSignal.subscribe": 5,
@@ -1627,7 +1667,7 @@
                         "Player.inputPermissions": 3,
                         "Player.isFlying": 1,
                         "Player.level": 2,
-                        "Player.name": 41,
+                        "Player.name": 42,
                         "Player.onScreenDisplay": 33,
                         "Player.playSound": 12,
                         "Player.selectedSlotIndex": 1,
@@ -1672,6 +1712,10 @@
                         "PlayerPermissionLevel.Custom": 1,
                         "PlayerPlaceBlockAfterEvent.player": 3,
                         "PlayerPlaceBlockAfterEventSignal.subscribe": 3,
+                        "PlayerPlaceBlockBeforeEvent.cancel": 7,
+                        "PlayerPlaceBlockBeforeEvent.permutationToPlace": 1,
+                        "PlayerPlaceBlockBeforeEvent.player": 3,
+                        "PlayerPlaceBlockBeforeEventSignal.subscribe": 3,
                         "PlayerSpawnAfterEvent.initialSpawn": 7,
                         "PlayerSpawnAfterEvent.player": 13,
                         "PlayerSpawnAfterEventSignal.subscribe": 11,
@@ -1734,10 +1778,14 @@
                         "System.waitTicks": 2,
                         "SystemAfterEvents.scriptEventReceive": 7,
                         "SystemBeforeEvents.startup": 2,
+                        "SystemBeforeEvents.watchdogTerminate": 1,
                         "TicksPerDay": 2,
                         "TicksPerSecond": 18,
                         "TimeOfDay": 1,
                         "TimeOfDay.Day": 1,
+                        "WatchdogTerminateBeforeEvent.cancel": 1,
+                        "WatchdogTerminateBeforeEvent.terminateReason": 1,
+                        "WatchdogTerminateBeforeEventSignal.subscribe": 1,
                         "World": 2,
                         "World.afterEvents": 59,
                         "World.beforeEvents": 18,
@@ -1768,12 +1816,14 @@
                         "WorldAfterEvents.playerPlaceBlock": 3,
                         "WorldAfterEvents.playerSpawn": 12,
                         "WorldAfterEvents.worldLoad": 1,
+                        "WorldBeforeEvents.chatSend": 2,
                         "WorldBeforeEvents.entityHurt": 1,
                         "WorldBeforeEvents.explosion": 2,
                         "WorldBeforeEvents.itemUse": 2,
                         "WorldBeforeEvents.playerBreakBlock": 2,
                         "WorldBeforeEvents.playerInteractWithBlock": 3,
                         "WorldBeforeEvents.playerInteractWithEntity": 1,
+                        "WorldBeforeEvents.playerPlaceBlock": 3,
                         "WorldLoadAfterEventSignal.subscribe": 1,
                         "system": 189,
                         "world": 239
@@ -1800,8 +1850,9 @@
                         "EntityEffectOptions.showParticles": 6,
                         "EntityFilter.excludeFamilies": 1,
                         "EntityFilter.families": 2,
-                        "EntityFilter.type": 1,
-                        "EntityQueryOptions.location": 4,
+                        "EntityFilter.type": 2,
+                        "EntityQueryOptions.closest": 1,
+                        "EntityQueryOptions.location": 5,
                         "EntityQueryOptions.maxDistance": 4,
                         "ExplosionOptions.breaksBlocks": 2,
                         "ExplosionOptions.causesFire": 1,
@@ -1810,7 +1861,6 @@
                         "InventoryItemEventOptions.ignoreQuantityChange": 1,
                         "PlayerSoundOptions.pitch": 2,
                         "PlayerSoundOptions.volume": 2,
-                        "ProjectileShootOptions.uncertainty": 1,
                         "RGB.blue": 7,
                         "RGB.green": 7,
                         "RGB.red": 7,
@@ -1821,7 +1871,6 @@
                         "RawMessage.with": 6,
                         "RawText.rawtext": 1,
                         "ScriptEventMessageFilterOptions.namespaces": 6,
-                        "SpawnEntityOptions.spawnEvent": 1,
                         "StructureCreateOptions.includeBlocks": 3,
                         "StructureCreateOptions.includeEntities": 3,
                         "StructureCreateOptions.saveMode": 3,
@@ -1833,16 +1882,15 @@
                         "TeleportOptions.rotation": 1,
                         "Vector2.x": 4,
                         "Vector2.y": 4,
-                        "Vector3.x": 17,
-                        "Vector3.y": 16,
-                        "Vector3.z": 14,
+                        "Vector3.x": 33,
+                        "Vector3.y": 32,
+                        "Vector3.z": 30,
                         "VectorXZ.x": 2,
                         "VectorXZ.z": 1,
                         "WorldSoundOptions.pitch": 1,
                         "WorldSoundOptions.volume": 1
                     },
                     "unmatched": {
-                        "Block.isSolid": 3,
                         "BlockPermutation.states": 1,
                         "BlockPermutation.typeId": 2,
                         "Entity.database": 3,
@@ -1855,24 +1903,20 @@
                         "Entity.scores": 9,
                         "Entity.sendMessage": 1,
                         "Entity.success": 2,
-                        "EntityComponent.name": 2,
-                        "EntityComponentTypes.Npc": 1,
                         "ItemStack.durability": 7,
                         "ItemStack.enchantable": 9,
                         "Player.getById": 9,
                         "Player.getByName": 2,
                         "Player.nameOrUnknown": 7,
-                        "SystemBeforeEvents.watchdogTerminate": 1,
                         "Vector3.includeBlocks": 1,
                         "Vector3.includeEntities": 1,
-                        "Vector3.saveMode": 1,
-                        "WorldBeforeEvents.chatSend": 2,
-                        "WorldBeforeEvents.playerPlaceBlock": 3
+                        "Vector3.saveMode": 1
                     }
                 },
                 "@minecraft/server-admin": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {},
                     "fields": {},
                     "unmatched": {}
@@ -1880,9 +1924,27 @@
                 "@minecraft/server-gametest": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {
+                        "RegistrationBuilder.maxTicks": 4,
+                        "RegistrationBuilder.structureName": 4,
+                        "RegistrationBuilder.tag": 3,
+                        "SimulatedPlayer.attack": 3,
+                        "SimulatedPlayer.breakBlock": 2,
+                        "SimulatedPlayer.interactWithBlock": 3,
+                        "SimulatedPlayer.lookAtBlock": 3,
+                        "SimulatedPlayer.lookAtEntity": 1,
+                        "SimulatedPlayer.moveToBlock": 3,
+                        "SimulatedPlayer.respawn": 1,
+                        "SimulatedPlayer.stopBreakingBlock": 2,
+                        "SimulatedPlayer.stopInteracting": 2,
+                        "SimulatedPlayer.stopMoving": 3,
                         "Tags": 3,
                         "Tags.suiteDisabled": 3,
+                        "Test.idle": 19,
+                        "Test.setBlockType": 2,
+                        "Test.spawnSimulatedPlayer": 4,
+                        "Test.succeed": 5,
                         "registerAsync": 4
                     },
                     "fields": {},
@@ -1891,6 +1953,7 @@
                 "@minecraft/server-net": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {},
                     "fields": {},
                     "unmatched": {}
@@ -1898,7 +1961,7 @@
                 "@minecraft/server-ui": {
                     "declared": "2.3.0-beta",
                     "stability": "beta",
-                    "shape": "2.2.0",
+                    "shape": "2.3.0-beta",
                     "uses": {
                         "ActionFormData": 3,
                         "ActionFormData.button": 1,
@@ -2500,9 +2563,12 @@
                 "@minecraft/server": {
                     "declared": "2.2.0-beta",
                     "stability": "beta",
-                    "shape": "2.10.0",
+                    "shape": "2.11.0-beta",
                     "uses": {
                         "Block.location": 1,
+                        "ChatSendBeforeEvent.cancel": 1,
+                        "ChatSendBeforeEvent.message": 3,
+                        "ChatSendBeforeEventSignal.subscribe": 1,
                         "Dimension.runCommand": 1,
                         "Entity.dimension": 2,
                         "Entity.getBlockFromViewDirection": 1,
@@ -2521,6 +2587,7 @@
                         "World.getAllPlayers": 1,
                         "World.getDimension": 1,
                         "World.sendMessage": 8,
+                        "WorldBeforeEvents.chatSend": 1,
                         "system": 3,
                         "world": 11
                     },
@@ -2530,9 +2597,18 @@
                         "Vector3.y": 1,
                         "Vector3.z": 1
                     },
-                    "unmatched": {
-                        "WorldBeforeEvents.chatSend": 1
-                    }
+                    "unmatched": {}
+                },
+                "@minecraft/server-admin": {
+                    "stability": "stable",
+                    "uses": {
+                        "secrets": 1,
+                        "secrets.get": 1,
+                        "variables": 1,
+                        "variables.get": 1
+                    },
+                    "fields": {},
+                    "unmatched": {}
                 },
                 "@minecraft/server-gametest": {
                     "declared": "2.2.0-beta",
@@ -2543,10 +2619,23 @@
                     "fields": {},
                     "unmatched": {}
                 },
+                "@minecraft/server-net": {
+                    "stability": "stable",
+                    "uses": {
+                        "HttpHeader": 4,
+                        "HttpRequest": 2,
+                        "HttpRequestMethod": 2,
+                        "HttpRequestMethod.Post": 2,
+                        "http": 2,
+                        "http.request": 2
+                    },
+                    "fields": {},
+                    "unmatched": {}
+                },
                 "@minecraft/server-ui": {
                     "declared": "2.2.0-beta",
                     "stability": "beta",
-                    "shape": "2.2.0",
+                    "shape": "2.3.0-beta",
                     "uses": {
                         "ActionFormData": 1,
                         "ActionFormData.body": 1,
@@ -2785,7 +2874,7 @@
                 "@minecraft/server": {
                     "declared": "2.9.0-beta",
                     "stability": "beta",
-                    "shape": "2.10.0",
+                    "shape": "2.11.0-beta",
                     "uses": {
                         "Block": 4,
                         "BlockVolume": 2,
@@ -2884,6 +2973,7 @@
                         "world": 62
                     },
                     "fields": {
+                        "DimensionLocation.dimension": 1,
                         "EntityFilter.name": 2,
                         "StructureCreateOptions.includeBlocks": 2,
                         "StructureCreateOptions.includeEntities": 2,
@@ -2896,6 +2986,7 @@
                 "@minecraft/server-gametest": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {
                         "spawnSimulatedPlayer": 1
                     },
@@ -2913,7 +3004,7 @@
                 "@minecraft/server": {
                     "declared": "2.7.0-beta",
                     "stability": "beta",
-                    "shape": "2.10.0",
+                    "shape": "2.11.0-beta",
                     "uses": {
                         "Block.above": 1,
                         "Block.below": 1,
@@ -2934,6 +3025,11 @@
                         "BlockPermutation.resolve": 2,
                         "Camera.clear": 2,
                         "Camera.setCamera": 1,
+                        "ChatSendBeforeEvent.cancel": 1,
+                        "ChatSendBeforeEvent.message": 1,
+                        "ChatSendBeforeEvent.sender": 1,
+                        "ChatSendBeforeEvent.targets": 1,
+                        "ChatSendBeforeEventSignal.subscribe": 1,
                         "CommandPermissionLevel": 29,
                         "CommandPermissionLevel.Admin": 5,
                         "CommandPermissionLevel.Any": 13,
@@ -2983,13 +3079,12 @@
                         "Entity.getRotation": 2,
                         "Entity.getVelocity": 6,
                         "Entity.hasTag": 3,
-                        "Entity.id": 99,
+                        "Entity.id": 100,
                         "Entity.isFalling": 3,
                         "Entity.isInWater": 1,
                         "Entity.isOnGround": 8,
                         "Entity.isSneaking": 9,
                         "Entity.location": 34,
-                        "Entity.nameTag": 1,
                         "Entity.removeTag": 3,
                         "Entity.runCommand": 6,
                         "Entity.setOnFire": 1,
@@ -3095,6 +3190,7 @@
                         "PlayerPermissionLevel": 1,
                         "PlayerPermissionLevel.Operator": 1,
                         "PlayerPlaceBlockAfterEventSignal.subscribe": 1,
+                        "PlayerPlaceBlockBeforeEventSignal.subscribe": 1,
                         "PlayerSpawnAfterEvent.initialSpawn": 1,
                         "PlayerSpawnAfterEvent.player": 1,
                         "PlayerSpawnAfterEventSignal.subscribe": 1,
@@ -3142,8 +3238,10 @@
                         "WorldAfterEvents.playerPlaceBlock": 1,
                         "WorldAfterEvents.playerSpawn": 1,
                         "WorldAfterEvents.worldLoad": 1,
+                        "WorldBeforeEvents.chatSend": 1,
                         "WorldBeforeEvents.playerBreakBlock": 1,
                         "WorldBeforeEvents.playerLeave": 1,
+                        "WorldBeforeEvents.playerPlaceBlock": 1,
                         "WorldLoadAfterEventSignal.subscribe": 1,
                         "system": 92,
                         "world": 40
@@ -3186,14 +3284,13 @@
                     "unmatched": {
                         "Entity.selectedSlotIndex": 3,
                         "Entity.sendMessage": 1,
-                        "RawMessage.split": 2,
-                        "WorldBeforeEvents.chatSend": 1,
-                        "WorldBeforeEvents.playerPlaceBlock": 1
+                        "RawMessage.split": 2
                     }
                 },
                 "@minecraft/server-gametest": {
                     "declared": "1.0.0-beta",
                     "stability": "beta",
+                    "shape": "1.0.0-beta",
                     "uses": {},
                     "fields": {},
                     "unmatched": {}
@@ -3201,7 +3298,7 @@
                 "@minecraft/server-ui": {
                     "declared": "2.1.0-beta",
                     "stability": "beta",
-                    "shape": "2.2.0",
+                    "shape": "2.3.0-beta",
                     "uses": {
                         "ActionFormData": 35,
                         "ActionFormData.body": 35,
@@ -3253,7 +3350,7 @@
                 "@minecraft/server": {
                     "declared": "2.8.0-beta",
                     "stability": "beta",
-                    "shape": "2.10.0",
+                    "shape": "2.11.0-beta",
                     "uses": {
                         "Block.dimension": 1,
                         "Block.getComponent": 2,
@@ -3262,9 +3359,13 @@
                         "BlockInventoryComponent.container": 1,
                         "Camera.fade": 1,
                         "Camera.setCamera": 1,
+                        "ChatSendAfterEvent.message": 1,
+                        "ChatSendAfterEvent.sender": 3,
+                        "ChatSendAfterEventSignal.subscribe": 1,
                         "CommandPermissionLevel": 5,
                         "CommandPermissionLevel.Any": 1,
                         "CommandPermissionLevel.GameDirectors": 4,
+                        "Container.addItem": 2,
                         "Container.find": 1,
                         "Container.getItem": 1,
                         "Container.setItem": 2,
@@ -3301,7 +3402,7 @@
                         "Entity.addEffect": 1,
                         "Entity.applyDamage": 1,
                         "Entity.dimension": 10,
-                        "Entity.getComponent": 12,
+                        "Entity.getComponent": 14,
                         "Entity.getDynamicProperty": 1,
                         "Entity.getHeadLocation": 5,
                         "Entity.getProperty": 1,
@@ -3330,7 +3431,7 @@
                         "EntityHitEntityAfterEvent.hitEntity": 1,
                         "EntityHitEntityAfterEventSignal.subscribe": 1,
                         "EntityHitEntityAfterEventSignal.unsubscribe": 1,
-                        "EntityInventoryComponent.container": 4,
+                        "EntityInventoryComponent.container": 6,
                         "EntityItemComponent.itemStack": 1,
                         "EntityProjectileComponent.shoot": 1,
                         "EntityRemoveBeforeEvent.removedEntity": 1,
@@ -3395,6 +3496,7 @@
                         "Player.playSound": 8,
                         "Player.sendMessage": 5,
                         "Player.setGameMode": 1,
+                        "Player.stopSound": 1,
                         "PlayerHotbarSelectedSlotChangeAfterEvent.itemStack": 3,
                         "PlayerHotbarSelectedSlotChangeAfterEvent.player": 3,
                         "PlayerHotbarSelectedSlotChangeAfterEventSignal.subscribe": 2,
@@ -3439,6 +3541,7 @@
                         "World.getPlayers": 4,
                         "World.scoreboard": 9,
                         "World.setDynamicProperty": 1,
+                        "WorldAfterEvents.chatSend": 1,
                         "WorldAfterEvents.dataDrivenEntityTrigger": 4,
                         "WorldAfterEvents.entityDie": 1,
                         "WorldAfterEvents.entityHitEntity": 2,
@@ -3504,15 +3607,13 @@
                         "WorldSoundOptions.volume": 1
                     },
                     "unmatched": {
-                        "Entity.name": 1,
-                        "Player.stopSound": 1,
-                        "WorldAfterEvents.chatSend": 1
+                        "Entity.name": 1
                     }
                 },
                 "@minecraft/server-ui": {
                     "declared": "2.1.0-beta",
                     "stability": "beta",
-                    "shape": "2.2.0",
+                    "shape": "2.3.0-beta",
                     "uses": {
                         "ActionFormData": 1,
                         "ActionFormData.body": 1,

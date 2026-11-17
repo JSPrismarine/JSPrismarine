@@ -141,6 +141,30 @@ The consequence for a generator: on a given BDS, every 2.x pack sees one surface
 
 Beta versions do not follow semver: "even minor version increments can include backwards-compatibility breaking changes", and they need the "Beta APIs" experiment (`docs:Documents/scripting/versioning.md`). BDS's message for a missing experiment is `Plugin [{}] - requesting dependency on beta APIs [{}], but the Beta APIs experiment is not enabled.`, and for internal versions `requesting dependency on internal APIs [{}], but does not have permission to access them.` (Read.)
 
+Runs on 2026-11-17 against the same BDS settle what a beta resolves to. (Run.)
+
+- The Beta APIs experiment is the `gametest` toggle in `level.dat`'s `experiments` compound, beside `experiments_ever_used` and `saved_with_toggled_experiments`. A staged world whose `level.dat` holds only that compound and `Generator` loads with the experiment on.
+- With the experiment on, a pack that declares `@minecraft/server` 2.11.0-beta, or the version `beta`, gets the 2.11.0-beta API: 584 exports, with `WorldBeforeEvents.chatSend` and `SystemBeforeEvents.watchdogTerminate`. 2.12.0-beta, 2.9.0-beta, 3.0.0-beta and 1.17.0-beta do not load. The pack gets `Plugin [<name> - <version>] - failed to create context.`, then a message of several lines that names the version it asked for, the one beta BDS ships and the versions it ships, and later `run failed, no runtime or context available.`:
+
+  ```text
+  Plugin [probe newer] - module [probe newer - 1.0.0] requested invalid version [2.12.0-beta] of [@minecraft/server].
+
+  Current [beta] version is [2.11.0-beta].
+
+  Available versions:
+  0.1.0
+  1.19.0
+  2.10.0
+  2.11.0-beta
+  3.0.0-alpha
+  ```
+
+- A stable version BDS does not ship, 2.11.0 or 4.0.0, gets the same message without the `Current [beta]` line, with or without the experiment. `@minecraft/server-ui` 2.4.0-beta lists `0.1.0`, `1.3.0`, `2.2.0`, `2.3.0-beta` and `3.0.0-alpha`, and `@minecraft/server-gametest` 2.2.0-beta lists `0.1.0`, `1.0.0-beta` and `2.0.0-alpha`. The `0.1.0` and `-alpha` versions have no metadata.
+- An allowed module BDS does not know gets `Plugin [<name>] - module [<name> - <version>] depends on unknown module [<module> - <version>].` between the same two lines.
+- Without the experiment, every beta, shipped or not and of any module, gets the experiment message, with the word `beta` written as the shipped version: `Plugin [probe word - 1.0.0] - requesting dependency on beta APIs [@minecraft/server - 2.11.0-beta], but the Beta APIs experiment is not enabled.` `3.0.0-alpha` loads without the experiment and has 586 exports.
+- A GameTest simulated player's `chat` raises `world.beforeEvents.chatSend` inside the call, with the player as `sender` and `targets` undefined. A cancel stops the line, and `world.afterEvents.chatSend` gets only the other line, in the flush. The test needs a structure file under `structures/<namespace>/<name>.mcstructure` even with `structureLocation`.
+- `system.beforeEvents.watchdogTerminate` comes after the `hang detected` or `Stack overflow detected` line, with `terminateReason` `Hang` or `StackOverflow`. When a script cancels it, nothing more is logged and the server keeps running.
+
 ### Module versions and game versions
 
 The Microsoft Learn table (`docs:Documents/scripting/versioning.md`, `ms.date` 01/29/2025) maps `@minecraft/server` 1.0.0 to 1.19.70, 1.1.0 to 1.19.80, 1.2.0 to 1.20.0, 1.3.0 to 1.20.10, 1.4.0 to 1.20.20, 1.5.0 to 1.20.30, 1.6.0 to 1.20.40, 1.7.0 to 1.20.50, 1.8.0 to 1.20.60, 1.9.0 to 1.20.70, 1.10.0 to 1.20.80, 1.11.0 to 1.21.0, 1.13.0 to 1.21.20, 1.14.0 to 1.21.30, 1.15.0 to 1.21.40, 1.16.0 to 1.21.50 and 1.17.0 to 1.21.60. It has no 1.12.0 row and stops at 1.17.0. The same page says 2.0.0-beta started with the 1.21.70 previews. `docs:ScriptAPI/minecraft/server/minecraft-server.md` calls 2.11.0 "the latest as of version 1.26.70-beta.24", while the pinned 1.26.50.4 metadata still has 2.11.0 as beta and BDS 1.26.51.1 serves 2.10.0. Nothing published maps 1.18.0 to 2.10.0 to a game version. (Read.)

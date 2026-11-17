@@ -3,8 +3,13 @@
 
 import type { ModuleHistory } from '../shape/format.ts';
 import common from './script-modules/common.json' with { type: 'json' };
+import debugUtilities from './script-modules/debug-utilities.json' with { type: 'json' };
+import diagnostics from './script-modules/diagnostics.json' with { type: 'json' };
 import server from './script-modules/server.json' with { type: 'json' };
+import serverAdmin from './script-modules/server-admin.json' with { type: 'json' };
+import serverGametest from './script-modules/server-gametest.json' with { type: 'json' };
 import serverGraphics from './script-modules/server-graphics.json' with { type: 'json' };
+import serverNet from './script-modules/server-net.json' with { type: 'json' };
 import serverUi from './script-modules/server-ui.json' with { type: 'json' };
 
 /** The `bedrock-samples` checkout the histories come from. */
@@ -16,7 +21,12 @@ export const SCRIPT_METADATA_SOURCE = {"repo":"Mojang/bedrock-samples","tag":"v1
  */
 export const SCRIPT_MODULE_HISTORIES: Readonly<Record<string, ModuleHistory>> = {
     "@minecraft/common": common as ModuleHistory,
+    "@minecraft/debug-utilities": debugUtilities as ModuleHistory,
+    "@minecraft/diagnostics": diagnostics as ModuleHistory,
     "@minecraft/server": server as ModuleHistory,
+    "@minecraft/server-admin": serverAdmin as ModuleHistory,
+    "@minecraft/server-gametest": serverGametest as ModuleHistory,
     "@minecraft/server-graphics": serverGraphics as ModuleHistory,
+    "@minecraft/server-net": serverNet as ModuleHistory,
     "@minecraft/server-ui": serverUi as ModuleHistory
 };
