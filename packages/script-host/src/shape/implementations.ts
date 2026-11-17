@@ -13,13 +13,30 @@ export interface ScriptCall {
     /** The tag the host gave `self` when it made the instance, or 0. See `ScriptApiContext.create`. */
     readonly tag: number;
     /**
+     * The state the host gave `self` when it made the instance, or the one a constructor's
+     * implementation returned: an empty string when it has none.
+     */
+    readonly state: string;
+    /** Replaces the state of `self`, for a member that changes its own object, such as `ItemStack.amount`. */
+    setState(state: string): void;
+    /** The state of an object the host made, such as a `BlockPermutation` argument; empty for any other value. */
+    stateOf(value: ScriptValue): string;
+    /** A plain argument, such as a `Record` of block states, as JSON; undefined when it has none. */
+    stringify(value: ScriptValue): string | undefined;
+    /**
      * The arguments after the metadata's checks, with each omitted argument's default filled in.
      * A setter's one argument is the value. Handles last until the implementation returns.
      */
     readonly args: readonly ScriptValue[];
 }
 
-/** A method's, constructor's or module function's behavior, or a property's getter. */
+/**
+ * A method's, constructor's or module function's behavior, or a property's getter.
+ *
+ * A member whose metadata return type is plain data, an interface such as `Vector3` or an array
+ * of plain values such as `string[]`, returns it as one JSON string, which the binding parses
+ * inside the engine. A constructor may return a string, which becomes the new object's state.
+ */
 export type MemberFunction = (call: ScriptCall) => ScriptValue;
 
 /** A read-only property's implementation. */

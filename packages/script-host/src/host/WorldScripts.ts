@@ -37,22 +37,17 @@ import { ScriptHandle } from '../values';
 import { scanCoverage } from './coverage';
 import { installInputsSource, randomState } from './inputs';
 import type { EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
-import { playerTag, serverImplementations } from './minecraftServer';
+import { serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
 import { serverUiImplementations } from './minecraftServerUi';
+import type { EntityKey } from './serverObjects';
+import { entityKeyOf, PLAYER, TAG } from './serverObjects';
 import type { ScriptConfig, ScriptPack } from './pack';
 import { packLabel, packScripts, readPackFile } from './pack';
 import { PackForms, SERVER_UI } from './PackForms';
 import { ScriptForms } from './ScriptForms';
 import { TaskQueue } from './tasks';
-import type {
-    ChatSendIntent,
-    ScriptWeather,
-    ScriptWorld,
-    ScriptWorldEvent,
-    VetoVerdict,
-    WeatherChangeIntent
-} from './world';
+import type { ChatSendIntent, ScriptWorld, ScriptWorldEvent, VetoVerdict, WeatherChangeIntent } from './world';
 
 /** Where the runtime writes the content log: what scripts print, their errors and the watchdog's. */
 export interface ScriptLog {
@@ -130,6 +125,9 @@ export interface ScriptDebugTarget {
 /** The module JSPrismarine resolves for a pack without a manifest entry (ADR 0020). */
 export const JSPRISMARINE_MODULE = '@jsprismarine/server';
 
+/** How many entity objects a pack holds before the first time the gone ones leave. */
+const ENTITY_PRUNE_START = 256;
+
 /** The ones a pack's lifecycle is chosen by. */
 const SERVER_MODULE = '@minecraft/server';
 
@@ -145,6 +143,8 @@ interface LoadedPack {
     readonly modules: Map<string, ScriptHandle>;
     readonly shapes: ModuleShape[];
     readonly instances: Map<string, ScriptHandle>;
+    /** The pack's object for each entity it has seen, by entity id. */
+    readonly entities: Map<string, ScriptHandle>;
     /** Sets the clock its `Date` reads. */
     setNow?: ScriptHandle;
     jsp?: ScriptHandle;
@@ -201,8 +201,8 @@ export class WorldScripts {
     private tickEntries = 0;
     /** Set while `watchdogTerminate` is delivered, so a handler that itself trips the watchdog shuts down. */
     private deliveringWatchdogTerminate = false;
-    /** The number each player id the scripts have seen got, which picks its `Player` object. */
-    private readonly playerNumbers = new Map<string, number>();
+    /** How many entity objects a pack may hold before the ones of entities that are gone leave. */
+    private entityPruneAt = ENTITY_PRUNE_START;
     /** The pack whose callback the runtime entered last, which a tick that runs over is blamed on. */
     private lastEntered: LoadedPack | undefined;
     /** The `@minecraft/server-ui` forms the world's players have open. */
@@ -244,7 +244,8 @@ export class WorldScripts {
         if (this.releaseGuards.length === 0) {
             this.releaseGuards = [
                 this.options.world.guardWeather((intent) => this.weatherGuard(intent)),
-                this.options.world.guardChat((intent) => this.chatGuard(intent))
+                this.options.world.guardChat((intent) => this.chatGuard(intent)),
+                this.options.world.watchPlayerLeave((player) => this.playerLeaving(player))
             ];
         }
         this.refreshClock();
@@ -384,6 +385,7 @@ export class WorldScripts {
         for (const loaded of this.loaded) {
             loaded.forms?.destroy();
             for (const handle of loaded.instances.values()) this.engine.free(handle);
+            for (const handle of loaded.entities.values()) this.engine.free(handle);
             if (loaded.setNow !== undefined) this.engine.free(loaded.setNow);
             if (loaded.jsp !== undefined) this.engine.free(loaded.jsp);
             loaded.api.destroy();
@@ -455,14 +457,11 @@ export class WorldScripts {
             subscribe: (signal, callback) =>
                 this.subscriptions.push({ signal, loaded: self(), callback: engine.duplicate(callback) }),
             unsubscribe: (signal, callback) => this.unsubscribe(signal, self(), callback),
-            instance: (className, tag) => this.instance(self(), className, tag),
-            create: (className, tag) => this.create(self(), className, tag),
-            eventData: (tag) => this.events.get(tag),
-            dimensions: () => this.options.world.dimensions(),
-            players: () => this.options.world.players(),
-            playerNumber: (id) => this.playerNumber(id),
-            sendMessage: (message) => this.options.world.sendMessage(message),
-            setWeather: (dimension, weather, duration) => this.setWeather(dimension, weather, duration)
+            world: this.options.world,
+            instance: (className, tag, state) => this.instance(self(), className, tag, state),
+            entity: (key) => this.entityObject(self(), key),
+            create: (className, tag, state) => this.create(self(), className, tag, state),
+            eventData: (tag) => this.events.get(tag)
         } satisfies PackHost);
         // Made in the pack's context, so the API's classes and errors belong to the pack's realm
         // and no two packs share a prototype.
@@ -484,7 +483,8 @@ export class WorldScripts {
             lifecycle,
             modules: new Map(),
             shapes,
-            instances: new Map()
+            instances: new Map(),
+            entities: new Map()
         };
         const self = (): LoadedPack => entry;
 
@@ -573,24 +573,25 @@ export class WorldScripts {
         return readPackFile(loaded.pack, name);
     }
 
-    private instance(loaded: LoadedPack, className: string, tag: number): ScriptHandle {
-        const key = `${className}\n${tag}`;
+    private instance(loaded: LoadedPack, className: string, tag: number, state = ''): ScriptHandle {
+        const key = `${className}\n${tag}\n${state}`;
         const existing = loaded.instances.get(key);
         if (existing !== undefined) return existing;
-        const made = this.create(loaded, className, tag);
+        const made = this.create(loaded, className, tag, state);
         loaded.instances.set(key, made);
         return made;
     }
 
-    /** The player a `Player` argument of a pack's call stands for, by the tag the host made it with. */
+    /**
+     * The player a `Player` argument of a pack's call stands for: the entity its object carries,
+     * which still names a player who left, so their object never reaches another player.
+     */
     private formPlayer(loaded: LoadedPack, value: ScriptValue): FormPlayer | undefined {
-        const tag = loaded.api.tagOf(value);
-        if (tag === undefined) return undefined;
-        const players = this.options.world.players();
-        const present = players.find((id) => playerTag(this.playerNumber(id)) === tag);
-        if (present !== undefined) return { id: present, present: true };
-        for (const [id, number] of this.playerNumbers) if (playerTag(number) === tag) return { id, present: false };
-        return undefined;
+        const made = loaded.api.identify(value);
+        if (made?.tag !== TAG.entity) return undefined;
+        const { id, typeId } = entityKeyOf(made.state);
+        if (typeId !== PLAYER) return undefined;
+        return { id, present: this.options.world.players().includes(id) };
     }
 
     /**
@@ -606,16 +607,30 @@ export class WorldScripts {
         );
     }
 
-    private playerNumber(id: string): number {
-        const known = this.playerNumbers.get(id);
-        if (known !== undefined) return known;
-        const number = this.playerNumbers.size;
-        this.playerNumbers.set(id, number);
-        return number;
+    /**
+     * A pack's one object for an entity. The pack keeps it while the entity lives; once the
+     * pack's list of them has doubled, the objects of entities that are gone leave it, so a
+     * script that still holds one keeps it and a script that asks again gets a new one.
+     */
+    private entityObject(loaded: LoadedPack, key: EntityKey): ScriptHandle {
+        const existing = loaded.entities.get(key.id);
+        if (existing !== undefined) return existing;
+        if (loaded.entities.size >= this.entityPruneAt) {
+            for (const [id, handle] of loaded.entities) {
+                if (this.options.world.entity(id) !== undefined) continue;
+                this.engine.free(handle);
+                loaded.entities.delete(id);
+            }
+            this.entityPruneAt = Math.max(ENTITY_PRUNE_START, loaded.entities.size * 2);
+        }
+        const className = key.typeId === PLAYER ? 'Player' : 'Entity';
+        const made = this.create(loaded, className, TAG.entity, JSON.stringify({ id: key.id, typeId: key.typeId }));
+        loaded.entities.set(key.id, made);
+        return made;
     }
 
-    private create(loaded: LoadedPack, className: string, tag: number): ScriptHandle {
-        return loaded.api.create(SERVER_MODULE, className, tag);
+    private create(loaded: LoadedPack, className: string, tag: number, state = ''): ScriptHandle {
+        return loaded.api.create(SERVER_MODULE, className, tag, state);
     }
 
     private unsubscribe(signal: SignalName, loaded: LoadedPack, callback: ScriptHandle): void {
@@ -653,6 +668,28 @@ export class WorldScripts {
             this.dispatch('WorldInitializeAfterEventSignal', 'default', (loaded) =>
                 this.create(loaded, 'WorldInitializeAfterEvent', 0)
             );
+        } else if (event.type === 'playerJoin' || event.type === 'playerLeave') {
+            const { playerId, playerName } = event;
+            this.dispatchWith(
+                event.type === 'playerJoin' ? 'PlayerJoinAfterEventSignal' : 'PlayerLeaveAfterEventSignal',
+                event.type === 'playerJoin' ? 'PlayerJoinAfterEvent' : 'PlayerLeaveAfterEvent',
+                { kind: 'playerPresence', playerId, playerName }
+            );
+        } else if (event.type === 'playerSpawn') {
+            this.dispatchWith('PlayerSpawnAfterEventSignal', 'PlayerSpawnAfterEvent', {
+                kind: 'playerSpawn',
+                player: { id: event.playerId, typeId: PLAYER },
+                initialSpawn: event.initialSpawn
+            });
+        } else if (event.type === 'scriptEvent') {
+            const source = event.sourceEntity === undefined ? undefined : this.options.world.entity(event.sourceEntity);
+            this.dispatchWith('ScriptEventCommandMessageAfterEventSignal', 'ScriptEventCommandMessageAfterEvent', {
+                kind: 'scriptEvent',
+                id: event.id,
+                message: event.message,
+                sourceType: event.sourceType,
+                ...(source === undefined ? {} : { sourceEntity: { id: source.id, typeId: source.typeId } })
+            });
         } else {
             const tag = this.addEvent({
                 kind: 'weatherAfter',
@@ -667,6 +704,25 @@ export class WorldScripts {
             );
             this.events.delete(tag);
         }
+    }
+
+    /** Sends an after-event whose object reads `data`, to every subscriber of its signal. */
+    private dispatchWith(signal: SignalName, className: string, data: EventData): void {
+        if (!this.subscriptions.some((each) => each.signal === signal)) return;
+        const tag = this.addEvent(data);
+        this.dispatch(signal, 'default', (loaded) => this.create(loaded, className, tag));
+        this.events.delete(tag);
+    }
+
+    /** `world.beforeEvents.playerLeave`, while a player leaves and before their entity goes. */
+    private playerLeaving(player: string): void {
+        if (this.stopped || !this.subscriptions.some((each) => each.signal === 'PlayerLeaveBeforeEventSignal')) return;
+        this.refreshClock();
+        const tag = this.addEvent({ kind: 'playerLeaving', player: { id: player, typeId: PLAYER } });
+        this.dispatch('PlayerLeaveBeforeEventSignal', 'restricted_execution', (loaded) =>
+            this.create(loaded, 'PlayerLeaveBeforeEvent', tag)
+        );
+        this.events.delete(tag);
     }
 
     /** The weather action's scripting guard: `world.beforeEvents.weatherChange`. */
@@ -731,10 +787,6 @@ export class WorldScripts {
             this.events.delete(tag);
         }
         return data.cancel;
-    }
-
-    private setWeather(dimension: string, weather: ScriptWeather, duration: number): void {
-        this.options.world.setWeather(dimension, weather, duration);
     }
 
     private addEvent(data: EventData): number {

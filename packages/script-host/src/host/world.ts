@@ -49,8 +49,84 @@ export interface VetoVerdict {
 /** A guard that can veto an action but not change it. */
 export type VetoGuard<Intent> = (intent: Intent) => VetoVerdict;
 
+/** A position in a dimension, in blocks. */
+export interface ScriptVector3 {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
+/** An entity as the world holds it now, read in one call. */
+export interface ScriptEntityState {
+    /** The entity's id, which every other read and write names it by. */
+    readonly id: string;
+    /** Its type, such as `minecraft:armor_stand`. */
+    readonly typeId: string;
+    /** The dimension it is in, as {@link ScriptWorld.dimensions} names it. */
+    readonly dimension: string;
+    /** Where its feet are. */
+    readonly location: ScriptVector3;
+    /** Its name tag; a player's is their name. Empty when it has none. */
+    readonly nameTag: string;
+    readonly tags: readonly string[];
+    /** A player's name. Absent for every other entity. */
+    readonly name?: string;
+    /** How many slots its inventory has. Absent for an entity without one. */
+    readonly inventorySize?: number;
+}
+
+/** An item stack as plain data. */
+export interface ScriptItem {
+    /** The item's type, such as `minecraft:apple`. */
+    readonly typeId: string;
+    readonly amount: number;
+    /** The stack's custom name. Absent when it has none. */
+    readonly nameTag?: string;
+    /** The lines of lore under its name. Absent or empty when it has none. */
+    readonly lore?: readonly string[];
+}
+
+/** A block's type and the value of each of its states, as the Script API's `BlockPermutation` holds them. */
+export interface ScriptBlockPermutation {
+    readonly typeId: string;
+    readonly states: Readonly<Record<string, string | number | boolean>>;
+}
+
+/** An item type the world knows. */
+export interface ScriptItemType {
+    /** The type's full id, with its namespace. */
+    readonly typeId: string;
+    /** How many items one stack holds at most. */
+    readonly maxStackSize: number;
+}
+
+/** What a command a script ran did: how many times it succeeded, or why it failed. */
+export type ScriptCommandResult = { readonly successCount: number } | { readonly error: string };
+
+/** Who a script's command runs as: a dimension, as the server does, or an entity, as `@s`. */
+export type ScriptCommandSource = { readonly dimension: string } | { readonly entity: string };
+
+/** How a script's `/scriptevent` was sent, as `ScriptEventSource` names it. */
+export type ScriptEventSourceType = 'Block' | 'Entity' | 'NPCDialogue' | 'Server';
+
 /** A change the world committed, for an after-event. */
-export type ScriptWorldEvent = { readonly type: 'weatherChange' } & Omit<WeatherChangeIntent, 'duration'>;
+export type ScriptWorldEvent =
+    | ({ readonly type: 'weatherChange' } & Omit<WeatherChangeIntent, 'duration'>)
+    /** A player joined and their client finished loading into the world. */
+    | { readonly type: 'playerJoin'; readonly playerId: string; readonly playerName: string }
+    /** A player appeared in the world, on joining or on respawning. */
+    | { readonly type: 'playerSpawn'; readonly playerId: string; readonly initialSpawn: boolean }
+    /** A player left; their entity is already gone. */
+    | { readonly type: 'playerLeave'; readonly playerId: string; readonly playerName: string }
+    /** A `/scriptevent` ran. */
+    | {
+          readonly type: 'scriptEvent';
+          readonly id: string;
+          readonly message: string;
+          readonly sourceType: ScriptEventSourceType;
+          /** The entity that ran it, when an entity did. */
+          readonly sourceEntity?: string;
+      };
 
 /** A client's answer to a form, which reaches the scripts as an input of the tick it arrived in. */
 export interface ScriptFormResponse {
@@ -80,8 +156,83 @@ export interface ScriptWorld {
     dimensions(): readonly string[];
     /** The ids of the players in the world, in the order they joined. */
     players(): readonly string[];
-    /** Puts a line of chat on the screen of every player in the world. */
-    sendMessage(message: string): void;
+    /**
+     * Puts a line of chat on the screen of every player in the world, or of one.
+     * @param player - The id of the one player, as {@link ScriptWorld.players} lists it.
+     */
+    sendMessage(message: string, player?: string): void;
+    /**
+     * Reads one entity, a player included.
+     * @returns Undefined once the entity is dead or gone, which makes its script object invalid.
+     */
+    entity(id: string): ScriptEntityState | undefined;
+    /** Every entity of a dimension that is loaded, players included, in a fixed order. */
+    entities(dimension: string): readonly ScriptEntityState[];
+    /**
+     * Spawns an entity through the world's own spawn.
+     * @param typeId - The type with its namespace.
+     * @returns The new entity's id, `unknown-type` for a type the world has no definition of, or
+     *   `unloaded` when the location's chunk is not loaded.
+     */
+    spawnEntity(dimension: string, typeId: string, location: ScriptVector3): string | 'unknown-type' | 'unloaded';
+    /** Moves an entity to a location of a dimension, as `/teleport` does. */
+    teleport(id: string, dimension: string, location: ScriptVector3): void;
+    /**
+     * Kills an entity through the world's damage pipeline, as `/kill` does.
+     * @returns Whether it died.
+     */
+    kill(id: string): boolean;
+    /** Takes an entity out of the world without killing it, so it drops nothing. */
+    remove(id: string): void;
+    setNameTag(id: string, nameTag: string): void;
+    /** @returns False when the entity already has the tag. */
+    addTag(id: string, tag: string): boolean;
+    /** @returns False when the entity does not have the tag. */
+    removeTag(id: string, tag: string): boolean;
+    /**
+     * The slots of an entity's inventory, in order, each the stack it holds or null.
+     * @returns Undefined for an entity without an inventory.
+     */
+    inventory(id: string): readonly (ScriptItem | null)[] | undefined;
+    /** Puts a stack into one slot of an entity's inventory, or empties it. */
+    setInventoryItem(id: string, slot: number, item: ScriptItem | undefined): void;
+    /** The lowest block height of a dimension, and the height above its top block. */
+    heightRange(dimension: string): { readonly min: number; readonly max: number };
+    /**
+     * Reads one block.
+     * @param location - A block position, in whole numbers.
+     * @returns Undefined when its chunk is not loaded.
+     */
+    block(dimension: string, location: ScriptVector3): ScriptBlockPermutation | undefined;
+    /** Sets one block through the world's setter, which tells clients and neighbors. */
+    setBlock(dimension: string, location: ScriptVector3, permutation: ScriptBlockPermutation): void;
+    /**
+     * Completes a block permutation from its type and some of its states, each state left out
+     * taking its default.
+     * @param typeId - The type with its namespace.
+     * @returns Undefined for a type the world does not have, or a state the type does not have.
+     *   A state value the type does not allow takes the state's default.
+     */
+    resolveBlock(
+        typeId: string,
+        states: Readonly<Record<string, string | number | boolean>>
+    ): ScriptBlockPermutation | undefined;
+    /**
+     * Looks an item type up.
+     * @param typeId - The type with its namespace.
+     */
+    itemType(typeId: string): ScriptItemType | undefined;
+    /**
+     * Runs a command as `source`, to its end, and tells what it did.
+     * @param command - The command without its slash.
+     */
+    runCommand(command: string, source: ScriptCommandSource): ScriptCommandResult;
+    /**
+     * Calls `listener` with a player's id while they leave, before their entity goes, for
+     * `world.beforeEvents.playerLeave`.
+     * @returns A function that stops it.
+     */
+    watchPlayerLeave(listener: (player: string) => void): () => void;
     /** The weather of a dimension now. */
     weather(dimension: string): ScriptWeather;
     /**

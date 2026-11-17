@@ -2,11 +2,11 @@ import { engineFunctionSource } from '../engineSource';
 import type { RuntimeCall, RuntimeExport, RuntimeMember, RuntimePlan, RuntimeType } from './plan';
 
 /**
- * The host function the runtime calls for every member: the member's id, `this`, the tag the host
- * gave `this` when it made the instance (0 when it gave none, or for a static member), and the
- * checked arguments.
+ * The host function the runtime calls for every member: the member's id, `this`, the tag and the
+ * state the host gave `this` when it made the instance (0 and an empty string when it gave none,
+ * or for a static member), and the checked arguments.
  */
-export type RuntimeHost = (id: number, self: unknown, tag: number, ...args: unknown[]) => unknown;
+export type RuntimeHost = (id: number, self: unknown, tag: number, state: string, ...args: unknown[]) => unknown;
 
 /** What {@link engineRuntime} returns inside the engine. */
 export interface EngineRuntime {
@@ -14,9 +14,19 @@ export interface EngineRuntime {
     bind(plan: string): object;
     /**
      * Makes an instance of a bound class without running its constructor, for the host to hand
-     * out. Its members receive `tag`, which the host uses to find what the instance stands for.
+     * out. Its members receive `tag` and `state`, which the host uses to find what the instance
+     * stands for, such as an entity's id.
      */
-    create(module: string, name: string, tag: number): object;
+    create(module: string, name: string, tag: number, state: string): object;
+    /** Replaces the state an instance's members receive, for a member that changes its own object. */
+    setState(instance: object, state: string): void;
+    /** The state of an instance the host made, or an empty string for any other value. */
+    stateOf(value: unknown): string;
+    /**
+     * A plain value as JSON, read with the built-ins as they were before any script ran, or
+     * undefined when it has none, such as a cycle or a function.
+     */
+    stringify(value: unknown): string | undefined;
     /**
      * Makes the host call that is running throw an instance of a bound error class when it returns.
      * @param fields - The error's property values as JSON, or an empty string.
@@ -30,6 +40,8 @@ export interface EngineRuntime {
     error(module: string, name: string, message: string, fields: string): Error;
     /** The tag the host gave an instance, or -1 for a value the host did not make. */
     tag(value: unknown): number;
+    /** The state an instance's members receive, or an empty string when it has none. */
+    state(value: unknown): string;
 }
 
 /**
@@ -49,7 +61,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     const { create: createObject, defineProperty, getOwnPropertyDescriptor, setPrototypeOf } = Object;
     const { isArray } = Array;
     const { isFinite, isInteger } = Number;
-    const { parse } = JSON;
+    const { parse, stringify } = JSON;
     const { Error, TypeError, ReferenceError, Map, Set, WeakMap, String } = globalThis;
     const iterator = Symbol.iterator;
     const uncurry =
@@ -74,6 +86,12 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     const errorFields = new WeakMap<object, Readonly<Record<string, unknown>>>();
     /** Every instance the host made or a constructor built, with the tag its members receive. */
     const bound = new WeakMap<object, number>();
+    /**
+     * The state of each instance that has one, which its members receive. It lives as long as the
+     * instance does, so a value the host gives an object, such as an item stack, needs no table
+     * in the host that a script's garbage would grow.
+     */
+    const states = new WeakMap<object, string>();
     /** Set while the runtime constructs an error itself, which scripts may not. */
     let internal = false;
     let pending: { readonly error: unknown } | undefined;
@@ -116,12 +134,14 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         return result;
     };
 
-    const tagOf = (self: unknown): number =>
-        (typeof self === 'object' || typeof self === 'function') && self !== null ? (weakGet(bound, self) ?? 0) : 0;
+    const isObject = (value: unknown): value is object =>
+        (typeof value === 'object' || typeof value === 'function') && value !== null;
+    const tagOf = (self: unknown): number => (isObject(self) ? (weakGet(bound, self) ?? 0) : 0);
+    const stateOf = (self: unknown): string => (isObject(self) ? (weakGet(states, self) ?? '') : '');
 
     const invoke = (id: number, self: unknown, args: readonly unknown[]): unknown => {
-        const list: unknown[] = [id, self, tagOf(self)];
-        for (let index = 0; index < args.length; index++) put(list, index + 3, args[index]);
+        const list: unknown[] = [id, self, tagOf(self), stateOf(self)];
+        for (let index = 0; index < args.length; index++) put(list, index + 4, args[index]);
         const result = apply(host, undefined, list);
         if (pending !== undefined) {
             const { error } = pending;
@@ -219,8 +239,27 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         );
     };
 
-    /** Checks a call's arguments and fills in omitted defaults. */
-    const check = (call: RuntimeCall, args: readonly unknown[]): unknown[] => {
+    /** What BDS throws for a value set on a property outside its bounds, such as `ItemStack.amount = 0`. */
+    const propertyOutOfBounds = (name: string, value: number, min?: number, max?: number): Error => {
+        const bounds =
+            min !== undefined && max !== undefined
+                ? `Property bounds: [${bound32(min)}, ${bound32(max)}]`
+                : min !== undefined
+                  ? `Property min: ${bound32(min)}`
+                  : `Property max: ${bound32(max ?? 0)}`;
+        return makeError(
+            COMMON,
+            'PropertyOutOfBoundsError',
+            `Unsupported or out of bounds value set on Property: ${name}, Value: ${value}, ${bounds}`,
+            { value, minValue: min, maxValue: max }
+        );
+    };
+
+    /**
+     * Checks a call's arguments and fills in omitted defaults.
+     * @param property - The property a setter's one argument is for, which words a bounds error.
+     */
+    const check = (call: RuntimeCall, args: readonly unknown[], property?: string): unknown[] => {
         if (args.length < call.required || args.length > call.arguments.length) {
             const expected =
                 call.required === call.arguments.length
@@ -257,7 +296,11 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 }
                 const low = argument.min !== undefined && value < argument.min;
                 const high = argument.max !== undefined && value > argument.max;
-                if (low || high) throw outOfBounds(index, value, argument.min, argument.max);
+                if (low || high) {
+                    throw property === undefined
+                        ? outOfBounds(index, value, argument.min, argument.max)
+                        : propertyOutOfBounds(property, value, argument.min, argument.max);
+                }
             }
             if (typeof value === 'string' && argument.maxLength !== undefined && value.length > argument.maxLength) {
                 throw outOfBounds(index, value.length, undefined, argument.maxLength);
@@ -273,6 +316,10 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         throw new ReferenceError(`${label} object bound to prototype does not exist.`);
     };
 
+    /** A result the host passed as JSON, parsed; any other result as it is. */
+    const decode = (json: boolean | undefined, result: unknown): unknown =>
+        json === true && typeof result === 'string' ? parse(result) : result;
+
     /**
      * @param receiver - How BDS names the member in a receiver error, such as `Native function
      *   [World::getDimension]`; undefined for a static member or a module function.
@@ -282,7 +329,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             [name](this: unknown, ...args: unknown[]): unknown {
                 const checked = check(call, args);
                 checkReceiver(this, receiver);
-                return invoke(call.id, this, checked);
+                return decode(call.json, invoke(call.id, this, checked));
             }
         };
         const fn = holder[name];
@@ -294,7 +341,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     const moduleFunction = (name: string, call: RuntimeCall): ((...args: unknown[]) => unknown) => {
         const holder = {
             [name](...args: unknown[]): unknown {
-                return invoke(call.id, undefined, check(call, args));
+                return decode(call.json, invoke(call.id, undefined, check(call, args)));
             }
         };
         const fn = holder[name];
@@ -309,17 +356,18 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     const accessors = (
         name: string,
         get: number,
+        json: boolean | undefined,
         set: RuntimeCall | undefined,
         owner: string | undefined
     ): PropertyDescriptor => {
         const holder = {
             get [name](): unknown {
                 checkReceiver(this, owner === undefined ? undefined : `Native property getter [${owner}::${name}]`);
-                return invoke(get, this, []);
+                return decode(json, invoke(get, this, []));
             },
             set [name](value: unknown) {
                 if (set === undefined) throw new TypeError(`'${name}' is read-only`);
-                const checked = check(set, [value]);
+                const checked = check(set, [value], name);
                 checkReceiver(this, owner === undefined ? undefined : `Native property setter [${owner}::${name}]`);
                 invoke(set.id, this, checked);
             }
@@ -343,7 +391,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             define(
                 target,
                 member.name,
-                accessors(member.name, member.get, member.set, member.static ? undefined : owner)
+                accessors(member.name, member.get, member.json, member.set, member.static ? undefined : owner)
             );
         } else {
             define(target, member.name, { value: member.value, enumerable: true });
@@ -361,7 +409,9 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 if (construct === undefined) throw noConstructor(name);
                 const checked = check(construct, args);
                 weakSet(bound, this, 0);
-                invoke(construct.id, this, checked);
+                // A constructor's implementation returns the new object's state, when it has one.
+                const state = invoke(construct.id, this, checked);
+                if (typeof state === 'string') weakSet(states, this, state);
             }
         };
         const Class = holder[name];
@@ -418,11 +468,12 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         return ErrorClass;
     };
 
-    const create = (module: string, name: string, tag: number): object => {
+    const create = (module: string, name: string, tag: number, state: string): object => {
         const Class = mapGet(classes, key(module, name));
         if (Class === undefined) throw new ReferenceError(`${module} has no bound class ${name}`);
         const instance = createObject(Class.prototype);
         weakSet(bound, instance, tag);
+        if (state !== '') weakSet(states, instance, state);
         return instance;
     };
 
@@ -441,7 +492,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             case 'constant':
                 return entry.value;
             case 'object':
-                return create(entry.module, entry.className, 0);
+                return create(entry.module, entry.className, 0, '');
             case 'function':
                 return moduleFunction(entry.name, entry.call);
         }
@@ -459,6 +510,17 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
             return namespace;
         },
         create,
+        setState(instance: object, state: string): void {
+            if (weakHas(bound, instance)) weakSet(states, instance, state);
+        },
+        stateOf,
+        stringify(value: unknown): string | undefined {
+            try {
+                return stringify(value);
+            } catch {
+                return undefined;
+            }
+        },
         raise(module: string, name: string, message: string, fields: string): void {
             pending = { error: makeError(module, name, message, fields === '' ? undefined : parse(fields)) };
         },
@@ -468,6 +530,9 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         tag(value: unknown): number {
             if ((typeof value !== 'object' && typeof value !== 'function') || value === null) return -1;
             return weakHas(bound, value) ? (weakGet(bound, value) ?? 0) : -1;
+        },
+        state(value: unknown): string {
+            return stateOf(value);
         }
     };
 }

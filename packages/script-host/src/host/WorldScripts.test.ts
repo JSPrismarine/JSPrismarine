@@ -11,81 +11,7 @@ import { readScriptConfig, readScriptPack } from './pack';
 import type { CriticalException, WatchdogSettings } from './WorldScripts';
 import { WorldScripts } from './WorldScripts';
 import type { ScriptValue } from '../values';
-import type {
-    ChatSendIntent,
-    Guard,
-    ScriptWeather,
-    ScriptWorld,
-    ScriptWorldEvent,
-    VetoGuard,
-    WeatherChangeIntent
-} from './world';
-
-/** A world in memory: one weather, its guards, and the messages it was sent. */
-class FakeWorld implements ScriptWorld {
-    public now = 1_800_000_000_000;
-    public readonly messages: string[] = [];
-    /** The chat lines the guards let through. */
-    public readonly chats: string[] = [];
-    public online: readonly string[] = [];
-    private current: ScriptWeather = 'Clear';
-    private readonly guards: Guard<WeatherChangeIntent>[] = [];
-    private readonly chatGuards: VetoGuard<ChatSendIntent>[] = [];
-    private readonly committed: ScriptWorldEvent[] = [];
-
-    public dimensions(): readonly string[] {
-        return ['minecraft:overworld', 'minecraft:nether', 'minecraft:the_end'];
-    }
-    public players(): readonly string[] {
-        return this.online;
-    }
-    /** A player types a line of chat. */
-    public chat(sender: string, message: string): void {
-        for (const guard of this.chatGuards) if (guard({ sender, message }).veto) return;
-        this.chats.push(`${sender}: ${message}`);
-    }
-    public guardChat(guard: VetoGuard<ChatSendIntent>): () => void {
-        this.chatGuards.push(guard);
-        return () => this.chatGuards.splice(this.chatGuards.indexOf(guard), 1);
-    }
-    public sendMessage(message: string): void {
-        this.messages.push(message);
-    }
-    public weather(): ScriptWeather {
-        return this.current;
-    }
-    /** Changes the weather as `WorldWeather.set` does: weather it already has runs no guard and commits nothing. */
-    public setWeather(dimension: string, weather: ScriptWeather, duration: number): void {
-        if (weather === this.current) return;
-        let intent: WeatherChangeIntent = { dimension, previousWeather: this.current, newWeather: weather, duration };
-        for (const guard of this.guards) {
-            const verdict = guard(intent);
-            if (verdict.veto) return;
-            intent = verdict.intent;
-        }
-        this.committed.push({
-            type: 'weatherChange',
-            dimension,
-            previousWeather: this.current,
-            newWeather: intent.newWeather
-        });
-        this.current = intent.newWeather;
-    }
-    /** How many guards the runtime still has on the world's actions. */
-    public guardCount(): number {
-        return this.guards.length + this.chatGuards.length;
-    }
-    public guardWeather(guard: Guard<WeatherChangeIntent>): () => void {
-        this.guards.push(guard);
-        return () => this.guards.splice(this.guards.indexOf(guard), 1);
-    }
-    public takeEvents(): readonly ScriptWorldEvent[] {
-        return this.committed.splice(0);
-    }
-    public clock(): number {
-        return this.now;
-    }
-}
+import { MemoryWorld } from '../testing/memoryWorld.test.helper';
 
 /** What a runtime wrote to the content log, by level. */
 class Log {
@@ -147,14 +73,14 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
     const start = (
         packs: readonly ScriptPack[],
         options: {
-            world?: FakeWorld;
+            world?: MemoryWorld;
             seed?: bigint;
             watchdog?: WatchdogSettings;
             critical?: CriticalException[];
             betaApis?: boolean;
         } = {}
     ) => {
-        const world = options.world ?? new FakeWorld();
+        const world = options.world ?? new MemoryWorld();
         const log = new Log();
         const scripts = new WorldScripts({
             library,
@@ -236,7 +162,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
     });
 
     it('stops a tick whose after-events keep committing more at the tick budget', () => {
-        const world = new FakeWorld();
+        const world = new MemoryWorld();
         const { scripts, log } = start(
             [
                 writePack(`import { world, WeatherType } from '@minecraft/server';
@@ -293,7 +219,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
     });
 
     it('gives Date the clock the world admitted for the tick, not the host’s', () => {
-        const world = new FakeWorld();
+        const world = new MemoryWorld();
         const { scripts, log } = start(
             [
                 writePack(
@@ -311,7 +237,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
     });
 
     it('keeps a Date subclass and its clock, even after a script replaces Reflect.construct', () => {
-        const world = new FakeWorld();
+        const world = new MemoryWorld();
         world.now = 1000;
         const { scripts, log } = start(
             [
@@ -370,7 +296,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
     });
 
     it('sends the text of a message, and stops a message whose length never ends at the step budget', () => {
-        const world = new FakeWorld();
+        const world = new MemoryWorld();
         const { scripts, log } = start(
             [
                 writePack(`import { system, world } from '@minecraft/server';
@@ -407,7 +333,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
     });
 
     it('frees a runtime the watchdog stopped when it shuts down, without sending shutdown', () => {
-        const world = new FakeWorld();
+        const world = new MemoryWorld();
         const critical: CriticalException[] = [];
         const { scripts, log } = start(
             [
@@ -444,8 +370,8 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
     });
 
     it('gives a player who takes a leaving player’s place a Player object of their own', () => {
-        const world = new FakeWorld();
-        world.online = ['7'];
+        const world = new MemoryWorld();
+        const first = world.join('First');
         const { scripts, log } = start(
             [
                 writePack(
@@ -462,18 +388,19 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             ],
             { world, betaApis: true }
         );
-        world.chat('7', 'hello');
+        world.chat(first, 'hello');
         scripts.flush();
-        world.online = ['8'];
-        world.chat('8', 'hello');
+        world.leave(first);
+        world.chat(world.join('Second'), 'hello');
         scripts.flush();
 
         expect(log.printed()).toEqual(['same sender false true', 'same listed false']);
     });
 
     it("lets world.beforeEvents.chatSend cancel a player's chat, in restricted execution", () => {
-        const world = new FakeWorld();
-        world.online = ['7', '9'];
+        const world = new MemoryWorld();
+        world.join('Alex');
+        const steve = world.join('Steve');
         const { log } = start(
             [
                 writePack(
@@ -489,16 +416,16 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             { world, betaApis: true }
         );
 
-        world.chat('9', 'hello');
-        world.chat('9', 'cancel me');
+        world.chat(steve, 'hello');
+        world.chat(steve, 'cancel me');
 
-        expect(world.chats).toEqual(['9: hello']);
+        expect(world.chats).toEqual([`${steve}: hello`]);
         const restricted = 'ReferenceError: Native function [World::playMusic] cannot be used in restricted execution.';
         expect(log.printed()).toEqual(['hello true true', restricted, 'cancel me true true', restricted]);
     });
 
     it('lets a before-event veto or change the world’s action, and sends the after-event in the flush', () => {
-        const world = new FakeWorld();
+        const world = new MemoryWorld();
         const { scripts, log } = start(
             [
                 writePack(`import { system, world, WeatherType } from '@minecraft/server';
@@ -620,7 +547,7 @@ system.run(() => {
         const log = new Log();
         const scripts = new WorldScripts({
             library,
-            world: new FakeWorld(),
+            world: new MemoryWorld(),
             packs: [
                 {
                     ...pack,
@@ -673,5 +600,210 @@ system.run(() => {
             'error [Scripting] Plugin [unshipped - 1.0.0] - run failed, no runtime or context available.'
         ]);
         expect(log.printed()).toEqual(['ran']);
+    });
+    describe('the core members', () => {
+        /** Runs `body` once the world has loaded, printing each line it returns through `console.warn`. */
+        const run = (body: string, world = new MemoryWorld()) => {
+            const { scripts, log } = start(
+                [
+                    writePack(`import * as mc from '@minecraft/server';
+                    const { world, system, ItemStack, BlockPermutation } = mc;
+                    const show = (label, call) => {
+                        try { console.warn(label, JSON.stringify(call())); } catch (error) { console.warn(label, JSON.stringify(String(error))); }
+                    };
+                    world.afterEvents.worldLoad.subscribe(() => { ${body} });`)
+                ],
+                { world }
+            );
+            scripts.flush();
+            return { scripts, world, printed: log.printed() };
+        };
+
+        it('reads an entity with one host call and one world read per member', () => {
+            const world = new MemoryWorld();
+            const { scripts } = start(
+                [
+                    writePack(`import { system, world } from '@minecraft/server';
+                        let stand;
+                        world.afterEvents.worldLoad.subscribe(() => {
+                            stand = world.getDimension('overworld').spawnEntity('minecraft:armor_stand', { x: 0, y: -60, z: 0 });
+                        });
+                        system.runTimeout(() => { for (let i = 0; i < 10; i++) stand.location.y; }, 1);`)
+                ],
+                { world }
+            );
+            scripts.flush();
+            const calls = scripts.stats().hostCalls;
+            const reads = world.reads.entity;
+            scripts.flush();
+
+            expect(scripts.stats().hostCalls - calls).toBe(10);
+            expect(world.reads.entity - reads).toBe(10);
+        });
+
+        it('gives an entity its members, and throws BDS errors once it is killed', () => {
+            const { printed } = run(`
+                const overworld = world.getDimension('overworld');
+                show('unknown', () => overworld.spawnEntity('jsp_nothing', { x: 0, y: -60, z: 0 }));
+                show('unloaded', () => overworld.spawnEntity('armor_stand', { x: 9999.5, y: -60, z: 0 }));
+                const stand = overworld.spawnEntity('armor_stand', { x: 0.5, y: -60, z: 0.5 });
+                show('read', () => [stand.typeId, stand.location, stand.dimension === overworld, stand.isValid, stand.nameTag]);
+                stand.nameTag = 'Named';
+                show('tags', () => [stand.addTag('a'), stand.addTag('a'), stand.hasTag('a'), stand.getTags(), stand.removeTag('a'), stand.removeTag('a')]);
+                stand.teleport({ x: 2.5, y: -60, z: 3.5 });
+                show('query', () => [
+                    overworld.getEntities({ type: 'armor_stand' })[0] === stand,
+                    overworld.getEntities({ name: 'Named' }).length,
+                    overworld.getEntities({ location: { x: 0, y: -60, z: 0 }, maxDistance: 2 }).length,
+                    stand.location
+                ]);
+                show('kill', () => [stand.kill(), stand.isValid, stand.id, stand.typeId]);
+                show('location', () => stand.location);
+                show('nameTag', () => { stand.nameTag = 'x'; });
+                show('addTag', () => stand.addTag('b'));`);
+
+            expect(printed).toEqual([
+                `unknown "InvalidArgumentError: Invalid value passed to argument [0]. 'minecraft:jsp_nothing' is not a valid entity type."`,
+                'unloaded "LocationInUnloadedChunkError: Trying to access location (9999.0, -60.0, 0.0) which is not in a chunk currently loaded and ticking."',
+                'read ["minecraft:armor_stand",{"x":0.5,"y":-60,"z":0.5},true,true,""]',
+                'tags [true,false,true,["a"],true,false]',
+                'query [true,1,0,{"x":2.5,"y":-60,"z":3.5}]',
+                'kill [true,false,"1","minecraft:armor_stand"]',
+                `location "InvalidEntityError: Failed to get property 'location' due to Entity being invalid (has the Entity been removed?)."`,
+                `nameTag "InvalidEntityError: Failed to set property 'nameTag' due to Entity being invalid (has the Entity been removed?)."`,
+                `addTag "InvalidEntityError: Failed to call function 'addTag' due to Entity being invalid (has the Entity been removed?)."`
+            ]);
+        });
+
+        it("reads and writes an entity's inventory through copies of its stacks", () => {
+            const { printed } = run(`
+                const cart = world.getDimension('overworld').spawnEntity('chest_minecart', { x: 0, y: -60, z: 0 });
+                const container = cart.getComponent('inventory').container;
+                container.setItem(3, new ItemStack('apple', 5));
+                container.getItem(3).amount = 1;
+                show('slots', () => [container.size, container.emptySlotsCount, container.getItem(3).amount, container.getItem(0)]);
+                show('out of range', () => container.setItem(27));
+                cart.remove();
+                show('gone', () => [container.isValid, cart.isValid]);
+                show('size', () => container.size);`);
+
+            expect(printed).toEqual([
+                'slots [27,26,5,null]',
+                `out of range "Error: Invalid container slot provided '27'. Maximum slot is '26'."`,
+                'gone [false,false]',
+                `size "Error: Failed to get property 'size'."`
+            ]);
+        });
+
+        it('reads, sets and resolves blocks', () => {
+            const { printed } = run(`
+                const overworld = world.getDimension('overworld');
+                const grass = overworld.getBlock({ x: 0.5, y: -61, z: -0.5 });
+                show('read', () => [grass.typeId, grass.location, grass.dimension === overworld, grass.permutation.type.id]);
+                show('unloaded', () => overworld.getBlock({ x: 9999, y: 0, z: 0 }) === undefined);
+                show('below', () => overworld.getBlock({ x: 0, y: -65, z: 0 }));
+                grass.setType('stone');
+                show('setType', () => [grass.typeId, overworld.getBlock({ x: 0, y: -61, z: -1 }).typeId]);
+                show('unknown type', () => grass.setType('jsp_nothing'));
+                const log = BlockPermutation.resolve('oak_log', { pillar_axis: 'x' });
+                grass.setPermutation(log);
+                show('permutation', () => [grass.permutation.getAllStates(), grass.permutation.getState('pillar_axis')]);
+                show('bad value', () => BlockPermutation.resolve('oak_log', { pillar_axis: 'w' }).getAllStates());
+                show('unknown block', () => BlockPermutation.resolve('jsp_nothing'));
+                show('unknown state', () => BlockPermutation.resolve('oak_log', { jsp: 1 }));`);
+
+            expect(printed).toEqual([
+                'read ["minecraft:grass_block",{"x":0,"y":-61,"z":-1},true,"minecraft:grass_block"]',
+                'unloaded true',
+                'below "LocationOutOfWorldBoundariesError: Trying to access location (0.0, -65.0, 0.0) which is outside of the world boundaries."',
+                'setType ["minecraft:stone","minecraft:stone"]',
+                'unknown type "Error: Block type minecraft:jsp_nothing not found."',
+                'permutation [{"pillar_axis":"x"},"x"]',
+                'bad value {"pillar_axis":"y"}',
+                'unknown block "Error: Failed to resolve block \\"minecraft:jsp_nothing\\"."',
+                'unknown state "Error: Failed to resolve block \\"minecraft:oak_log\\" with properties: {\\"jsp\\":1}\\n"'
+            ]);
+        });
+
+        it('makes item stacks that keep what a script writes', () => {
+            const { printed } = run(`
+                const apple = new ItemStack('apple', 3);
+                show('new', () => [apple.typeId, apple.amount, apple.nameTag === undefined, apple.getLore()]);
+                apple.nameTag = 'Named';
+                apple.setLore(['a', 'b']);
+                apple.amount = 65;
+                show('written', () => [apple.nameTag, apple.getLore(), apple.amount]);
+                show('amount 0', () => { apple.amount = 0; });
+                show('unknown', () => new ItemStack('jsp_nothing'));`);
+
+            expect(printed).toEqual([
+                'new ["minecraft:apple",3,true,[]]',
+                'written ["Named",["a","b"],64]',
+                'amount 0 "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: amount, Value: 0, Property bounds: [1, 255]"',
+                `unknown "Error: Invalid item identifier 'minecraft:jsp_nothing'."`
+            ]);
+        });
+
+        it('sends the player events, finds players, and keeps one object per player', () => {
+            const world = new MemoryWorld();
+            const { scripts, log } = start(
+                [
+                    writePack(`import { world } from '@minecraft/server';
+                        world.afterEvents.playerJoin.subscribe((event) => console.warn('join', event.playerName));
+                        world.afterEvents.playerSpawn.subscribe((event) => console.warn('spawn', event.player.name, event.initialSpawn, event.player === world.getAllPlayers()[0]));
+                        world.beforeEvents.playerLeave.subscribe((event) => console.warn('leaving', event.player.name));
+                        world.afterEvents.playerLeave.subscribe((event) => console.warn('left', event.playerName, world.getPlayers({ name: 'Alex' }).length));
+                        world.afterEvents.playerSpawn.subscribe((event) => {
+                            event.player.sendMessage('hi');
+                            try { world.getPlayers({ type: 'player' }); } catch (error) { console.warn(String(error)); }
+                        });`)
+                ],
+                { world }
+            );
+            const alex = world.join('Alex');
+            scripts.flush();
+            world.leave(alex);
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'join Alex',
+                'spawn Alex true true',
+                'CommandError: Error occurred with parsing command params: Type argument applied to player-only selector',
+                'leaving Alex',
+                'left Alex 0'
+            ]);
+            expect(world.messages).toEqual([`${alex}> hi`]);
+        });
+
+        it('runs commands and sends scriptEventReceive for /scriptevent', () => {
+            const { world, printed } = run(`
+                system.afterEvents.scriptEventReceive.subscribe((event) =>
+                    console.warn('event', event.id, event.message, event.sourceType, event.sourceEntity === undefined));
+                const overworld = world.getDimension('overworld');
+                show('scriptevent', () => overworld.runCommand('/scriptevent jsp:hello hi there').successCount);
+                show('unknown', () => overworld.runCommand('jspnothing'));`);
+
+            // The event comes in the same flush, after the callback that ran the command, as on BDS.
+            expect(printed).toEqual([
+                'scriptevent 1',
+                'unknown "CommandError: Error occurred with parsing command params: Syntax error: Unexpected \\"jspnothing\\": at \\">>jspnothing<<\\""',
+                'event jsp:hello hi there Server true'
+            ]);
+            expect(world.commands).toEqual([
+                'minecraft:overworld: scriptevent jsp:hello hi there',
+                'minecraft:overworld: jspnothing'
+            ]);
+        });
+
+        it('frees the handles of the arrays and objects it returns', () => {
+            const { scripts } = run(`
+                const overworld = world.getDimension('overworld');
+                overworld.spawnEntity('armor_stand', { x: 0, y: -60, z: 0 });
+                globalThis.query = () => { for (let i = 0; i < 50; i++) { overworld.getEntities(); overworld.getBlock({ x: 0, y: -61, z: 0 }).permutation; } };
+                query();`);
+            const before = scripts.stats().handles;
+            scripts.flush();
+            expect(scripts.stats().handles).toBe(before);
+        });
     });
 });

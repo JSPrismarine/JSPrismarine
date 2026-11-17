@@ -264,6 +264,29 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      `ChatSendBeforeEvent.targets` and `Player.name` have no behavior yet.
 10. [ ] [#3207](https://github.com/JSPrismarine/JSPrismarine/issues/3207) **Core server breadth.** Players, entities, blocks, dimensions, items and the events the
     corpus uses most, in batches. Each batch names the corpus packs it makes run.
+    - Batch 1 (2026-11-17): `world.getPlayers` and `getAllPlayers`, `Dimension.getEntities`,
+      `spawnEntity`, `getBlock` and `runCommand`, `Entity` and `Player` with the inventory's
+      `Container`, `Block`, `BlockPermutation`, `ItemStack`, the player join, spawn and leave
+      events, `world.beforeEvents.playerLeave` and `system.afterEvents.scriptEventReceive`. The
+      corpus's share of member uses with behavior went from 19.8% to 60.4%. The `scripting.world`,
+      `entities`, `blocks` and `items` families hold the scenarios; `items` matches BDS.
+    - Learned: with no player, BDS loads no chunk, so a scenario that reads blocks adds a ticking
+      area and counts ticks from the tick the chunk at the origin loads. A GameTest simulated
+      player raises `playerJoin` and `playerSpawn` in the same tick, after the test's own code.
+    - Learned: BDS returns a new `Block` for every `getBlock` and the same `Entity` and `Dimension`
+      objects every time, and a killed entity's `id` and `typeId` still answer while its other
+      members throw `InvalidEntityError`. A value set on a property outside its bounds throws
+      `PropertyOutOfBoundsError`, not the argument error, and `ItemStack.amount` set past the
+      stack size holds a full stack while the constructor takes up to 255.
+    - Learned: the server scenarios run on JSPrismarine in a headless server with a flat world,
+      so their rows exercise the command verbs and setters scripts write through.
+    - Left: command errors keep Brigadier's wording rather than BDS's `Syntax error`; only a
+      player has an inventory a script reaches; JSPrismarine's palette lacks `old_log_type` and
+      `stone_type`; `/scriptevent` works only from a script; world dynamic properties wait for
+      slice 12; the `players` row waits for `@minecraft/server-gametest`
+      ([#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211)); the
+      `script-teleport` client-e2e scenario has not passed locally, where the client stayed on
+      the loading screen of a server skipping ticks.
 11. [ ] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.

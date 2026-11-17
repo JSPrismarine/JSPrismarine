@@ -8,7 +8,8 @@ import type { ScriptHostLibrary } from '../ScriptEngine';
 import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
 import { readScriptConfig, readScriptPack } from './pack';
 import { WorldScripts } from './WorldScripts';
-import type { ScriptFormChannel, ScriptFormResponse, ScriptWeather, ScriptWorld, ScriptWorldEvent } from './world';
+import { MemoryWorld } from '../testing/memoryWorld.test.helper';
+import type { ScriptFormChannel, ScriptFormResponse } from './world';
 
 /** A sent form, as the fake channel keeps it. */
 interface SentForm {
@@ -17,16 +18,17 @@ interface SentForm {
     readonly json: string;
 }
 
-/** A world with players and a form channel that records what it sends and hands back queued answers. */
-class FormWorld implements ScriptWorld, ScriptFormChannel {
-    public online: readonly string[] = ['7'];
+/** A {@link MemoryWorld} with one player and a form channel that records what it sends and hands back queued answers. */
+class FormWorld extends MemoryWorld implements ScriptFormChannel {
     public readonly sent: SentForm[] = [];
     public readonly closed: string[] = [];
     public readonly forms: ScriptFormChannel = this;
+    /** The id of the player online from the start. */
+    public readonly player = this.join('Alex');
     private readonly answers: ScriptFormResponse[] = [];
 
     /** A client answers a form; the next flush takes it, as the input step admits it. */
-    public answer(formId: number, response: string | null, cancelReason: number | null = null, player = '7'): void {
+    public answer(formId: number, response: string | null, cancelReason: number | null = null, player = this.player) {
         this.answers.push({ player, formId, response, cancelReason });
     }
     public show(player: string, formId: number, json: string): void {
@@ -37,29 +39,6 @@ class FormWorld implements ScriptWorld, ScriptFormChannel {
     }
     public takeResponses(): readonly ScriptFormResponse[] {
         return this.answers.splice(0);
-    }
-    public dimensions(): readonly string[] {
-        return ['minecraft:overworld'];
-    }
-    public players(): readonly string[] {
-        return this.online;
-    }
-    public sendMessage(): void {}
-    public weather(): ScriptWeather {
-        return 'Clear';
-    }
-    public setWeather(): void {}
-    public guardWeather(): () => void {
-        return () => {};
-    }
-    public guardChat(): () => void {
-        return () => {};
-    }
-    public takeEvents(): readonly ScriptWorldEvent[] {
-        return [];
-    }
-    public clock(): number {
-        return 0;
     }
 }
 
@@ -146,7 +125,7 @@ system.run(() => {
         scripts.flush();
         expect(world.sent).toEqual([
             {
-                player: '7',
+                player: world.player,
                 formId: 1,
                 json:
                     '{"content":"One","elements":[{"image":null,"text":"a","type":"button"},' +
@@ -215,7 +194,7 @@ system.run(() => {
     }, 2);
 });`);
         scripts.flush();
-        world.online = [];
+        world.leave(world.player);
         scripts.flush();
         scripts.flush();
         expect(printed()).toEqual([
@@ -235,7 +214,7 @@ system.run(() => {
 });`);
         scripts.flush();
         scripts.flush();
-        expect(world.closed).toEqual(['7']);
+        expect(world.closed).toEqual([world.player]);
         expect(printed()).toEqual([]);
     });
 
@@ -279,6 +258,60 @@ system.run(() => {
         scripts.flush();
         expect(printed()).toEqual([
             'RawMessageError: Failed to resolve raw message from json: \n{"rawtext":[null]}\n.'
+        ]);
+    });
+
+    it("keeps a player's object theirs after they leave, so a form shown with it never reaches who joined next", () => {
+        const { world, scripts, printed } = start(`
+let first;
+system.run(() => {
+    first = world.getAllPlayers()[0];
+});
+system.runTimeout(() => {
+    const [second] = world.getAllPlayers();
+    log(['same player', first === second]);
+    try {
+        new ui.ActionFormData().title('old').show(first);
+    } catch (error) {
+        log(String(error) + ' ' + JSON.stringify([error.id === undefined, error.type]));
+    }
+    new ui.ActionFormData().title('new').show(second).then((response) => log(describe(response)));
+}, 2);`);
+        scripts.flush();
+        world.leave(world.player);
+        const next = world.join('Steve');
+        scripts.flush();
+        scripts.flush();
+        expect(world.sent.map(({ player, json }) => [player, JSON.parse(json).title])).toEqual([[next, 'new']]);
+
+        world.answer(1, '0', null, next);
+        scripts.flush();
+        expect(printed()).toEqual([
+            '["same player",false]',
+            'InvalidEntityError: Failed to call function \'show\' due to Entity being invalid (has the Entity been removed?). [false,"minecraft:player"]',
+            '{"canceled":false,"reason":null,"selection":0,"values":null}'
+        ]);
+    });
+
+    it('shows a form to the one object a pack has for a player, whichever member gave it', () => {
+        const { world, scripts, printed } = start(`
+world.afterEvents.playerSpawn.subscribe(({ player }) => {
+    if (player.name !== 'Steve') return;
+    const listed = world.getAllPlayers().find((each) => each.name === 'Steve');
+    const [found] = world.getDimension('overworld').getEntities({ type: 'player', name: 'Steve' });
+    log(['one object', player === listed, found === listed]);
+    new ui.MessageFormData().body('hi').show(found).then((response) => log(describe(response)));
+});`);
+        scripts.flush();
+        const steve = world.join('Steve');
+        scripts.flush();
+        expect(world.sent.map(({ player }) => player)).toEqual([steve]);
+
+        world.answer(world.sent[0]?.formId ?? -1, '1', null, steve);
+        scripts.flush();
+        expect(printed()).toEqual([
+            '["one object",true,true]',
+            '{"canceled":false,"reason":null,"selection":1,"values":null}'
         ]);
     });
 
