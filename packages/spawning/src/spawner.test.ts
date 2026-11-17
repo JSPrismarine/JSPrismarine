@@ -103,7 +103,7 @@ describe('one spawn cycle', () => {
         expect(spawned.length).toBeGreaterThan(0);
         // A herd member may stand in the next chunk over; the position an attempt starts from may not.
         expect(lightReads.length).toBeGreaterThan(0);
-        expect(lightReads.filter((at) => at.x < -16)).toEqual([]);
+        expect(lightReads.filter((at) => at.x < 0)).toEqual([]);
         expect(new Spawner({ rules: [COW], world: baseWorld, random: seededRandom(7) }).cycle('animal', 0)).not.toEqual(
             spawned
         );
