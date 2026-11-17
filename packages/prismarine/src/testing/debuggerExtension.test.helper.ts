@@ -85,6 +85,9 @@ const converse = (socket: Socket): void => {
             }
         }
     });
+    // A host that closes while this side still writes can answer with a reset. Without a listener the
+    // error would end the worker before it reports the close a test waits for. 'close' follows it.
+    socket.on('error', () => {});
     socket.on('close', () => report({ kind: 'closed' }));
     port.on('message', (command: DebuggerExtensionCommand) => {
         if (command.op === 'hang-up') socket.destroy();

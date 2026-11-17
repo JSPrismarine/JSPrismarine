@@ -10,6 +10,8 @@
  * time it scores.
  */
 
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
+
 /** How a participant is known, as BDS's `IdentityType` and the Script API's `ScoreboardIdentityType` name it. */
 export type ParticipantType = 'Entity' | 'FakePlayer' | 'Player';
 
@@ -347,7 +349,8 @@ export class Scoreboard {
             }
             return known;
         }
-        if ('participant' in ref) throw new RangeError(`No scoreboard participant has the id ${ref.participant}`);
+        if ('participant' in ref)
+            throw new PrismarineWorldErrors.UnknownScoreboardParticipant({ participant: ref.participant });
         this.lastId += 1;
         const made: Participant =
             'name' in ref
