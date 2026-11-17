@@ -160,6 +160,23 @@ describe.skipIf(!scriptHostAvailable())('a script engine', () => {
             expect(engine.inContext(second, () => engine.evaluate('ownerOfCaller()'))).toBe('second');
         });
 
+        it('throws a host error in the realm of the script that called, whichever context is current', () => {
+            const engine = create();
+            const second = engine.createContext();
+            const probe = engine.inContext(second, () => {
+                engine.defineGlobalFunction('fail', () => {
+                    throw new TypeError('refused');
+                });
+                return engine.evaluate(
+                    '() => { try { fail(); } catch (error) { return [error instanceof TypeError, error.message].join(); } }'
+                );
+            });
+            if (!(probe instanceof ScriptHandle)) throw new Error('the probe is a function');
+
+            expect(engine.call(probe, undefined)).toBe('true,refused');
+            engine.free(probe);
+        });
+
         it("runs one context's promise jobs and leaves the others queued in their order", () => {
             const engine = create();
             const second = engine.createContext();

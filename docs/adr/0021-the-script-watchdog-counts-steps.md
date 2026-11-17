@@ -50,6 +50,10 @@ reports from scripted servers could not be replayed, and those are the servers t
 
 - A step is coarse: one step is about 10,000 polls. The constant that sets it is compile-time,
   and a patch can make it smaller if a scenario needs a finer budget.
+- A callback too short to reach a poll takes no step, so the script flush also charges one step
+  of the tick's budget for each callback it enters. A chain of short callbacks that queue each
+  other in the same tick then ends at the budget, as a hang, and what is still due waits for the
+  next tick.
 - A step is not a millisecond. A step-intensive script that BDS allows inside 10,000 ms may stop
   earlier or later on JSP. The ratio is a default an admin can change, and the parity suite
   records where it differs.

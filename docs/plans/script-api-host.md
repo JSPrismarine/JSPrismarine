@@ -11,7 +11,8 @@ become JSPrismarine's primary plugin format.
 
 The decisions that carry it:
 
-- Each world runs its packs' scripts in one embedded QuickJS runtime on the world's own thread.
+- Each level, which is one Bedrock world with all its dimensions, runs its packs' scripts in one
+  embedded QuickJS runtime on the thread its worlds tick on.
   Before-events are guards and after-events flush at the end of the tick
   ([ADR 0020](../adr/0020-scripts-run-in-quickjs-on-the-world-thread.md),
   [ADR 0015](../adr/0015-a-tick-is-a-fixed-sequence-of-synchronous-phases.md)).
@@ -83,7 +84,7 @@ depends on it, never the other way. Inside the package:
 - **The pack loader.** It reads `type: "script"` modules from the world's behavior packs, resolves
   their native module dependencies and versions, applies `permissions.json`, and starts each
   pack's entry under the right lifecycle.
-- **The world seam.** A narrow interface that `prismarine` implements for each world: reads by id,
+- **The world seam.** A narrow interface that `prismarine` implements for each level: reads by id,
   writes through setters, guard registration for before-events, the change log for after-events,
   and the inputs that carry `Date` and `server-net` responses. The host never imports the world's
   classes.

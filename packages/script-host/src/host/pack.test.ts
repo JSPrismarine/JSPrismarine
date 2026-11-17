@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -64,6 +64,28 @@ describe('readScriptPack', () => {
         const pack = readScriptPack(join(directory, 'pack'));
         if (pack === undefined) throw new Error('the pack has a script module');
         expect(readPackFile(pack, '../secret.txt')).toBeUndefined();
+    });
+
+    it('reads no file a link in the pack points outside it, and follows one that stays inside', () => {
+        const directory = temporary();
+        writeJson(join(directory, 'pack', 'manifest.json'), {
+            header: { name: 'p', uuid: 'u', version: [1, 0, 0] },
+            modules: [{ type: 'script', uuid: MODULE_UUID, entry: 'scripts/main.js' }]
+        });
+        writeFileSync(join(directory, 'secret.js'), 'outside');
+        mkdirSync(join(directory, 'outside'));
+        writeFileSync(join(directory, 'outside', 'nested.js'), 'outside too');
+        mkdirSync(join(directory, 'pack', 'scripts'));
+        writeFileSync(join(directory, 'pack', 'scripts', 'main.js'), 'inside');
+        symlinkSync(join(directory, 'secret.js'), join(directory, 'pack', 'scripts', 'link.js'));
+        symlinkSync(join(directory, 'outside'), join(directory, 'pack', 'scripts', 'linked'));
+        symlinkSync(join(directory, 'pack', 'scripts', 'main.js'), join(directory, 'pack', 'scripts', 'alias.js'));
+        const pack = readScriptPack(join(directory, 'pack'));
+        if (pack === undefined) throw new Error('the pack has a script module');
+
+        expect(readPackFile(pack, 'scripts/link.js')).toBeUndefined();
+        expect(readPackFile(pack, 'scripts/linked/nested.js')).toBeUndefined();
+        expect(readPackFile(pack, 'scripts/alias.js')).toBe('inside');
     });
 });
 

@@ -68,6 +68,30 @@ describe('TaskQueue', () => {
         expect(runTick(queue, 1)).toEqual([]);
     });
 
+    it('refuses a delay that is not a finite number, which would never fall due', () => {
+        const queue = new TaskQueue<string>();
+        for (const delay of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+            expect(() => queue.schedule('interval', 'never', 0, delay)).toThrow(RangeError);
+        }
+        expect(queue.hasDue(0)).toBe(false);
+        expect(queue.schedule('run', 'first id', 0)).toBe(1);
+    });
+
+    it('leaves the tasks a stopped pass did not reach queued and still due', () => {
+        const queue = new TaskQueue<string>();
+        for (const name of ['a', 'b', 'c']) queue.schedule('timeout', name, 0, 0);
+        let allowed = 2;
+        const ran: string[] = [];
+        queue.runDue(
+            0,
+            (task) => ran.push(task.callback),
+            () => allowed-- > 0
+        );
+
+        expect(ran).toEqual(['a', 'b']);
+        expect(runTick(queue, 1)).toEqual(['c']);
+    });
+
     it('hands out ids from 1 that grow by one', () => {
         const queue = new TaskQueue<string>();
         expect([

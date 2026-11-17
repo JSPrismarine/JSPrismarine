@@ -415,6 +415,7 @@ export class ScriptDebugSession {
     /**
      * One page of a value's properties, as the `variables` arguments ask for it. The `indexed` and
      * `named` filters each page within their own group: the array indices, or every other name.
+     * Without a filter, `start` and `count` page through every name.
      */
     private page(debug: EngineDebugger, handle: ScriptHandle, args: Record<string, unknown>): VariableBody[] {
         const start = typeof args.start === 'number' && args.start > 0 ? args.start : 0;
@@ -427,7 +428,7 @@ export class ScriptDebugSession {
                     ? debug.properties(handle, start, Math.min(count ?? indices, Math.max(indices - start, 0)))
                     : debug.properties(handle, indices + start, count);
         } else {
-            page = debug.properties(handle);
+            page = debug.properties(handle, start, count);
         }
 
         return page.properties.map((property) =>

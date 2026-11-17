@@ -1,6 +1,12 @@
 import { join } from 'node:path';
 
 /**
+ * The operating systems `build:native` builds the library on. Prebuilt libraries for the rest
+ * are [#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215).
+ */
+export const NATIVE_BUILD_PLATFORMS: readonly NodeJS.Platform[] = ['linux'];
+
+/**
  * The file name of the shared library on an operating system.
  * @param platform - The operating system, as `process.platform` names it.
  * @returns The file name.

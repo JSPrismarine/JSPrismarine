@@ -3,8 +3,8 @@
  * may use, in the layout Bedrock Dedicated Server (BDS) reads them in, so a pack and its
  * configuration move from BDS without edits.
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
+import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import { isRecord } from '../isRecord';
 import type { ModuleDependency } from '../shape/resolve';
@@ -82,16 +82,24 @@ export const readScriptPack = (directory: string): ScriptPack | undefined => {
     };
 };
 
+/** Whether `file` is below `root`, both resolved paths. */
+const isBelow = (root: string, file: string): boolean => {
+    const inside = relative(root, file);
+    return inside !== '' && inside !== '..' && !inside.startsWith(`..${sep}`) && !isAbsolute(inside);
+};
+
 /**
- * Reads a file of a pack, by its path relative to the pack.
+ * Reads a file of a pack, by its path relative to the pack. A symbolic link counts by where it
+ * points, so a link to a file outside the pack reads nothing.
  * @returns Its text, or undefined when it does not exist or the path leaves the pack.
  */
 export const readPackFile = (pack: ScriptPack, path: string): string | undefined => {
     const root = resolve(pack.directory);
     const file = resolve(root, path);
-    const inside = relative(root, file);
-    if (inside.startsWith('..') || inside === '' || !existsSync(file)) return undefined;
-    return readFileSync(file, 'utf8');
+    if (!isBelow(root, file) || !existsSync(file)) return undefined;
+    const target = realpathSync(file);
+    if (!isBelow(realpathSync(root), target)) return undefined;
+    return readFileSync(target, 'utf8');
 };
 
 /** Every JavaScript file of a pack's `scripts` folder, by its path relative to the pack. */

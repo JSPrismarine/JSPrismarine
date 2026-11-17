@@ -42,7 +42,7 @@ export type Resolution =
 const BETA = 'beta';
 
 /** The beta a module's history serves: its newest beta version, which BDS calls the current one. */
-const currentBeta = (history: ModuleHistory): string | undefined =>
+export const currentBeta = (history: ModuleHistory): string | undefined =>
     history.versions.filter((entry) => entry.stability === 'beta').at(-1)?.version;
 
 /**

@@ -84,19 +84,47 @@ describe('debugger framing', () => {
             request: { request_seq: 1, command: 'evaluate', args: { expression: 'x'.repeat(4096) } }
         };
         const frame = encodeFrame(message);
-        const concat = Buffer.concat.bind(Buffer);
+        // Every public way the decoder could copy bytes from one buffer into another. Node's own
+        // code calls none of these through the objects a spy replaces, so nothing counts twice.
         let copied = 0;
+        const concat = Buffer.concat.bind(Buffer);
         vi.spyOn(Buffer, 'concat').mockImplementation((list, totalLength) => {
             const joined = concat(list, totalLength);
             copied += joined.byteLength;
             return joined;
+        });
+        const from = Buffer.from;
+        // One function stands in for every overload of Buffer.from, which no single signature types.
+        vi.spyOn(Buffer, 'from').mockImplementation(((...args: unknown[]) => {
+            const made: Buffer = Reflect.apply(from, Buffer, args);
+            // A string is encoded, and an ArrayBuffer is viewed; anything else is copied.
+            if (typeof args[0] !== 'string' && !(args[0] instanceof ArrayBuffer)) copied += made.byteLength;
+            return made;
+        }) as typeof Buffer.from);
+        const copy = Buffer.prototype.copy;
+        vi.spyOn(Buffer.prototype, 'copy').mockImplementation(function (this: Buffer, ...args) {
+            const count = copy.apply(this, args);
+            copied += count;
+            return count;
+        });
+        const set = Uint8Array.prototype.set;
+        vi.spyOn(Uint8Array.prototype, 'set').mockImplementation(function (this: Uint8Array, source, offset) {
+            set.call(this, source, offset);
+            copied += source.length;
+        });
+        const slice = Uint8Array.prototype.slice;
+        vi.spyOn(Uint8Array.prototype, 'slice').mockImplementation(function (this: Uint8Array, start, end) {
+            const part = slice.call(this, start, end);
+            copied += part.byteLength;
+            return part;
         });
 
         const decoder = new FrameDecoder();
         const messages = [...frame].flatMap((byte) => decoder.push(Uint8Array.of(byte)));
 
         expect(messages).toEqual([message]);
-        expect(copied).toBeLessThanOrEqual(frame.byteLength);
+        // Once as it arrives, and once more when the body's chunks are joined.
+        expect(copied).toBeLessThanOrEqual(2 * frame.byteLength);
     });
 
     it('refuses a header that is not 8 hexadecimal digits and a newline, and a body that is not JSON', () => {
