@@ -118,6 +118,8 @@ export default class Client extends EventEmitter {
     private login: LoginSequence | null = null;
     private startGame: StartGame | null = null;
     private connected = false;
+    /** True once `connect` dialed the transport, so there is a socket for `disconnect` to release. */
+    private dialed = false;
 
     public constructor(private readonly options: ClientOptions) {
         super();
@@ -205,6 +207,7 @@ export default class Client extends EventEmitter {
     public async connect(): Promise<StartGame> {
         if (this.connected) throw new ClientErrors.AlreadyConnected();
 
+        this.dialed = true;
         await this.transport.connect();
         this.connected = true;
 
@@ -228,10 +231,18 @@ export default class Client extends EventEmitter {
         }
     }
 
+    /**
+     * Closes the connection and releases the transport.
+     *
+     * Runs whether or not the client still counts as connected: a server that ended the connection
+     * leaves the transport's socket bound and its RakNet ticker running until the transport is
+     * closed, and both transports' `close` is safe to call again. A client that never dialed has
+     * nothing to release.
+     */
     public disconnect(reason = 'client disconnect'): void {
-        if (!this.connected) return;
-
         this.connected = false;
+        if (!this.dialed) return;
+
         this.transport.close(reason);
     }
 
