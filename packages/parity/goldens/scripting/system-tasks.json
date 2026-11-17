@@ -55,107 +55,149 @@
             "pack": "tasks",
             "seq": 7,
             "tick": 0,
-            "event": "worldLoad promise job"
+            "event": "runTimeout with a delay of NaN",
+            "error": "TypeError: NaN value is not supported. Function argument [1] expected type: number | undefined"
         },
         {
             "pack": "tasks",
             "seq": 8,
             "tick": 0,
-            "event": "run A"
+            "event": "runInterval with an interval of NaN",
+            "error": "TypeError: NaN value is not supported. Function argument [1] expected type: number | undefined"
         },
         {
             "pack": "tasks",
             "seq": 9,
             "tick": 0,
-            "event": "run A promise job"
+            "event": "runTimeout with a delay of Infinity",
+            "error": "TypeError: Infinity value is not supported. Function argument [1] expected type: number | undefined"
         },
         {
             "pack": "tasks",
             "seq": 10,
             "tick": 0,
-            "event": "run B"
+            "event": "runInterval with an interval of Infinity",
+            "error": "TypeError: Infinity value is not supported. Function argument [1] expected type: number | undefined"
         },
         {
             "pack": "tasks",
             "seq": 11,
             "tick": 0,
-            "event": "runTimeout 0"
+            "event": "runTimeout with a delay of -1",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: -1, Argument bounds: [0, 4294967295.00]"
         },
         {
             "pack": "tasks",
             "seq": 12,
             "tick": 0,
-            "event": "runTimeout without a delay"
+            "event": "runInterval with an interval of -1",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: -1, Argument bounds: [0, 4294967295.00]"
         },
         {
             "pack": "tasks",
             "seq": 13,
             "tick": 0,
-            "event": "runInterval 0 call 1"
+            "event": "worldLoad promise job"
         },
         {
             "pack": "tasks",
             "seq": 14,
             "tick": 0,
-            "event": "runInterval without an interval call 1"
+            "event": "run A"
         },
         {
             "pack": "tasks",
             "seq": 15,
             "tick": 0,
-            "event": "run that throws ran"
+            "event": "run A promise job"
         },
         {
             "pack": "tasks",
             "seq": 16,
             "tick": 0,
-            "event": "run after the one that throws"
+            "event": "run B"
         },
         {
             "pack": "tasks",
             "seq": 17,
             "tick": 0,
-            "event": "run A nested runTimeout 0"
+            "event": "runTimeout 0"
         },
         {
             "pack": "tasks",
             "seq": 18,
+            "tick": 0,
+            "event": "runTimeout without a delay"
+        },
+        {
+            "pack": "tasks",
+            "seq": 19,
+            "tick": 0,
+            "event": "runInterval 0 call 1"
+        },
+        {
+            "pack": "tasks",
+            "seq": 20,
+            "tick": 0,
+            "event": "runInterval without an interval call 1"
+        },
+        {
+            "pack": "tasks",
+            "seq": 21,
+            "tick": 0,
+            "event": "run that throws ran"
+        },
+        {
+            "pack": "tasks",
+            "seq": 22,
+            "tick": 0,
+            "event": "run after the one that throws"
+        },
+        {
+            "pack": "tasks",
+            "seq": 23,
+            "tick": 0,
+            "event": "run A nested runTimeout 0"
+        },
+        {
+            "pack": "tasks",
+            "seq": 24,
             "tick": 1,
             "event": "runInterval 0 call 2"
         },
         {
             "pack": "tasks",
-            "seq": 19,
+            "seq": 25,
             "tick": 1,
             "event": "runInterval without an interval call 2"
         },
         {
             "pack": "tasks",
-            "seq": 20,
+            "seq": 26,
             "tick": 1,
             "event": "run A nested run"
         },
         {
             "pack": "tasks",
-            "seq": 21,
+            "seq": 27,
             "tick": 2,
             "event": "runTimeout 2"
         },
         {
             "pack": "tasks",
-            "seq": 22,
+            "seq": 28,
             "tick": 2,
             "event": "runInterval 0 call 3"
         },
         {
             "pack": "tasks",
-            "seq": 23,
+            "seq": 29,
             "tick": 3,
             "event": "runInterval 3 call 1"
         },
         {
             "pack": "tasks",
-            "seq": 24,
+            "seq": 30,
             "tick": 6,
             "event": "runInterval 3 call 2"
         }

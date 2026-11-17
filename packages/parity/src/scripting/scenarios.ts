@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { Family } from '../families.ts';
-import type { Observation } from './record.ts';
+import type { Observation, ScenarioRecord } from './record.ts';
 import { isRecord } from '../isRecord.ts';
 
 /** A family of the `scripting` group. */
@@ -62,6 +62,12 @@ export interface ScriptScenario {
      */
     readonly reloadAfter?: string;
     /**
+     * An event a task the pack queued before the reload records when it runs. The reload drops
+     * that task, so a capture whose record holds the event sent the reload too late to show it,
+     * and {@link checkReloadLanded} rejects it.
+     */
+    readonly reloadDrops?: string;
+    /**
      * A GameTest the capture runs on BDS's console with `/gametest run` once a pack records the
      * event, for a scenario that needs a player: a test can spawn a simulated player, and the
      * capture has no client. JSPrismarine's runner has no GameTest runner yet.
@@ -69,10 +75,18 @@ export interface ScriptScenario {
     readonly gametestAfter?: { readonly event: string; readonly test: string };
     /**
      * Observations JSPrismarine makes differently from BDS on purpose, by event: what JSPrismarine
-     * records instead of the golden's value or error, and the decision that makes it differ.
+     * records instead of the golden's value or error, why, and the decision record that says so.
+     * The scenario's row reports each as an intentional difference.
      */
     readonly jsprismarineDiffers?: Readonly<
-        Record<string, { readonly observed: Pick<Observation, 'value' | 'error'>; readonly because: string }>
+        Record<
+            string,
+            {
+                readonly observed: Pick<Observation, 'value' | 'error'>;
+                readonly because: string;
+                readonly reference: string;
+            }
+        >
     >;
 }
 
@@ -86,6 +100,22 @@ export const SCENARIO_DIRECTORY = join(import.meta.dirname, '..', '..', 'scenari
 export const scenarioConfigDirectory = (scenario: ScriptScenario): string | undefined => {
     const directory = join(SCENARIO_DIRECTORY, scenario.id, 'config');
     return existsSync(directory) ? directory : undefined;
+};
+
+/**
+ * Rejects a reload scenario's record when the task the reload should drop ran first: the reload
+ * landed after that task was due, so the record would not show what a reload drops.
+ * @throws {Error} When the record holds the scenario's {@link ScriptScenario.reloadDrops} event.
+ */
+export const checkReloadLanded = (scenario: ScriptScenario, record: ScenarioRecord): void => {
+    const dropped = scenario.reloadDrops;
+    if (dropped === undefined) return;
+    const ran = record.observations.find((observation) => observation.event === dropped);
+    if (ran !== undefined) {
+        throw new Error(
+            `The ${scenario.id} capture recorded "${dropped}" at tick ${ran.tick}, so the reload landed too late. Run it again.`
+        );
+    }
 };
 
 /** The packs of a scenario that load, and so have to write their end line. */
@@ -167,7 +197,8 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
             'import @jsprismarine/server': {
                 observed: { value: 'resolved' },
                 because:
-                    'ADR 0020: JSPrismarine resolves an undeclared @jsprismarine/server, so a pack can detect it and fall back on BDS'
+                    'JSPrismarine resolves an undeclared @jsprismarine/server, so a pack can detect it and fall back on BDS',
+                reference: 'docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md'
             }
         }
     },
@@ -248,6 +279,7 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         packs: ['reloaded'],
         runs: 2,
         reloadAfter: 'ready for /reload',
+        reloadDrops: 'a task queued before the reload',
         needs: 'world'
     },
     {

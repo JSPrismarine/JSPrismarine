@@ -84,6 +84,29 @@ world.afterEvents.worldLoad.subscribe(() => {
     );
     system.run(() => record('run after the one that throws'));
 
+    // A delay the uint32 bounds check lets through or refuses: when each one's task runs, if it
+    // runs. An interval clears itself after three calls, so one that repeats within a tick ends.
+    const delays = [
+        ['NaN', Number.NaN],
+        ['Infinity', Number.POSITIVE_INFINITY],
+        ['-1', -1]
+    ];
+    for (const [name, delay] of delays) {
+        attempt(
+            `runTimeout with a delay of ${name}`,
+            () => typeof system.runTimeout(() => record(`runTimeout ${name} ran`), delay)
+        );
+        let calls = 0;
+        attempt(`runInterval with an interval of ${name}`, () => {
+            const id = system.runInterval(() => {
+                calls += 1;
+                record(`runInterval ${name} call ${calls}`);
+                if (calls === 3) system.clearRun(id);
+            }, delay);
+            return typeof id;
+        });
+    }
+
     Promise.resolve().then(() => record('worldLoad promise job'));
 });
 

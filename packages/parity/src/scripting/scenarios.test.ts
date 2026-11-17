@@ -4,7 +4,13 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { readScenarioGolden } from './record.ts';
-import { loadedPacks, readScenarioPackIdentity, SCRIPT_SCENARIOS, scenarioPackDirectory } from './scenarios.ts';
+import {
+    checkReloadLanded,
+    loadedPacks,
+    readScenarioPackIdentity,
+    SCRIPT_SCENARIOS,
+    scenarioPackDirectory
+} from './scenarios.ts';
 
 describe('SCRIPT_SCENARIOS', () => {
     it('gives every scenario pack a manifest identity of its own', () => {
@@ -32,5 +38,20 @@ describe('SCRIPT_SCENARIOS', () => {
                 [...loadedPacks(scenario)].sort()
             );
         }
+    });
+
+    it('rejects a reload capture whose dropped task ran before the reload landed, and keeps one where it did not', () => {
+        const reload = SCRIPT_SCENARIOS.find((scenario) => scenario.id === 'reload');
+        const golden = readScenarioGolden('reload');
+        if (reload === undefined || golden === undefined) throw new Error('reload has a golden');
+        const late = {
+            observations: [
+                ...golden.observations,
+                { pack: 'reloaded', seq: 99, tick: 40, event: 'a task queued before the reload' }
+            ]
+        };
+
+        expect(() => checkReloadLanded(reload, golden)).not.toThrow();
+        expect(() => checkReloadLanded(reload, late)).toThrow(/landed too late/);
     });
 });

@@ -1846,5 +1846,11 @@
             "reference": "issue #3211"
         }
     },
-    "scripting.lifecycle": {}
+    "scripting.lifecycle": {
+        "bds-record:module-resolution": {
+            "kind": "intentional",
+            "reason": "import @jsprismarine/server: JSPrismarine resolves an undeclared @jsprismarine/server, so a pack can detect it and fall back on BDS.",
+            "reference": "docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md"
+        }
+    }
 }
