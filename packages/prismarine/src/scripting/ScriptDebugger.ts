@@ -17,12 +17,9 @@
  * The script host is an optional dependency, so this module imports its types only; the modules
  * it runs come in {@link ScriptDebuggerOptions.host}.
  */
+import { DebuggerConnectionError } from '@jsprismarine/errors/script-host';
 import type { ScriptContextId, ScriptEngine } from '@jsprismarine/script-host';
-import type {
-    DebuggerChannel,
-    DebuggerConnectionError,
-    ScriptDebugSession
-} from '@jsprismarine/script-host/debugger/DebugSession';
+import type { DebuggerChannel, ScriptDebugSession } from '@jsprismarine/script-host/debugger/DebugSession';
 import type { PortDebuggerChannel } from '@jsprismarine/script-host/debugger/channel';
 import type { DebuggerPlugin, HostMessage } from '@jsprismarine/script-host/debugger/protocol';
 import type { DebuggerThread, DebuggerThreadConnection } from '@jsprismarine/script-host/debugger/thread';
@@ -36,7 +33,6 @@ export interface ScriptDebuggerHost {
     readonly ScriptDebugSession: typeof ScriptDebugSession;
     readonly PortDebuggerChannel: typeof PortDebuggerChannel;
     readonly DebuggerThread: typeof DebuggerThread;
-    readonly DebuggerConnectionError: typeof DebuggerConnectionError;
     /** `LogLevel` of the extension's protocol. */
     readonly LogLevel: { readonly log: number; readonly warn: number; readonly error: number };
     /** The port the extension and BDS use when none is given. */
@@ -447,7 +443,7 @@ export class ScriptDebugger {
         try {
             target = (connection.session.handshake() ?? scripts.plugins()[0]?.module_uuid)?.toLowerCase();
         } catch (error) {
-            if (error instanceof host.DebuggerConnectionError && !connection.session.closed) {
+            if (error instanceof DebuggerConnectionError && !connection.session.closed) {
                 log.error(`[Scripting] ${error.message}`);
                 connection.session.print(error.message, host.LogLevel.error);
             }

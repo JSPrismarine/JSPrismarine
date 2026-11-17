@@ -301,7 +301,7 @@ const importScriptHost = async () => {
         { ScriptHostLibrary },
         { WorldScripts, watchdogSettings },
         { readScriptConfig, readScriptPack, readPackFile },
-        { ScriptDebugSession, DebuggerConnectionError },
+        { ScriptDebugSession },
         { PortDebuggerChannel },
         { DebuggerThread },
         { DEFAULT_DEBUGGER_PORT, LogLevel }
@@ -316,7 +316,6 @@ const importScriptHost = async () => {
     ]);
     const debuggerHost: ScriptDebuggerHost = {
         ScriptDebugSession,
-        DebuggerConnectionError,
         PortDebuggerChannel,
         DebuggerThread,
         LogLevel,

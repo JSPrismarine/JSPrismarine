@@ -946,7 +946,7 @@ export default class Server {
      * @throws {Error} Before the content has been built.
      */
     public getContentSettings(): ContentSettings {
-        if (this.contentSettings === undefined) throw new Error('The content settings are read with the content build');
+        if (this.contentSettings === undefined) throw new PrismarineServerErrors.ContentSettingsReadBeforeBuild();
         return this.contentSettings;
     }
 
