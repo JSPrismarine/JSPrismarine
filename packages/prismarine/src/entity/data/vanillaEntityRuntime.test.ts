@@ -165,8 +165,13 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             };
 
             it('rolls Java’s table with the player who killed it, so a blaze drops rods only for a player', () => {
-                expect(killed('minecraft:blaze', KILLER).drops).toContain('minecraft:blaze_rod');
-                expect(killed('minecraft:blaze', undefined, 'fall').drops).not.toContain('minecraft:blaze_rod');
+                // Java's table rolls a uniform 0 to 1 rods, so one kill in two drops none.
+                const rods = (attacker: number | undefined, cause: string): number =>
+                    Array.from({ length: 16 }, () => killed('minecraft:blaze', attacker, cause).drops)
+                        .flat()
+                        .filter((identifier) => identifier === 'minecraft:blaze_rod').length;
+                expect(rods(KILLER, 'entity_attack')).toBeGreaterThan(0);
+                expect(rods(undefined, 'fall')).toBe(0);
             });
 
             it('drops a sheep’s wool in the sheep’s own color', () => {
