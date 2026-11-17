@@ -1,0 +1,30 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario custom-components components",
+        "description": "Registers block and item custom components at startup and records which hooks the pack's blocks run them through. Written for packages/parity.",
+        "uuid": "153985bf-96bd-4b80-8421-fdc659f9f2a4",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "c8ca478d-04dd-4394-8729-950fb0ac58d7",
+            "version": [1, 0, 0]
+        },
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "1ab1dd09-4360-49cd-8df7-44221b1e30b6",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

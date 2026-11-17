@@ -1,0 +1,13 @@
+{
+    "format_version": "1.21.90",
+    "minecraft:block": {
+        "description": {
+            "identifier": "jsp:ticker",
+            "menu_category": { "category": "construction" }
+        },
+        "components": {
+            "jsp:recorder": { "label": "ticker", "power": 3 },
+            "minecraft:tick": { "interval_range": [10, 10], "looping": true }
+        }
+    }
+}

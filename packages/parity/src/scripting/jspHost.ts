@@ -292,6 +292,8 @@ export interface HeadlessServerRun {
     readonly ended: (lines: readonly string[]) => boolean;
     /** Console commands to send once a pack has logged an event, as a scenario's `gametestAfter`. */
     readonly gametestAfter?: ScriptScenario['gametestAfter'];
+    /** Console commands to type, and finish, once a pack has logged an event, as a scenario's `consoleAfter`. */
+    readonly consoleAfter?: ScriptScenario['consoleAfter'];
 }
 
 /**
@@ -344,6 +346,7 @@ export const runPacksOnHeadlessServer = async (run: HeadlessServerRun): Promise<
         await server.bootstrap('127.0.0.1', 0);
         try {
             let gametestSent = false;
+            let typed = false;
             for (let tick = 0; tick < SCENARIO_TICKS && !run.ended(lines); tick++) {
                 // Between ticks, as a console command arrives: after the first tick at the
                 // earliest, since BDS takes the command once the server runs, after its first ticks.
@@ -364,6 +367,19 @@ export const runPacksOnHeadlessServer = async (run: HeadlessServerRun): Promise<
                             .then((ran) => {
                                 if (!ran) lines.push(`The console command ${command} did not run`);
                             });
+                    }
+                }
+                // Typed between ticks, as a console command arrives, and finished before the next tick.
+                const typing = run.consoleAfter;
+                if (
+                    !typed &&
+                    typing !== undefined &&
+                    lines.some((line) => line.includes(`"event":${JSON.stringify(typing.event)}`))
+                ) {
+                    typed = true;
+                    const sender = server.getConsoleSender();
+                    for (const command of typing.commands) {
+                        await server.getCommandManager().dispatchCommand(sender, sender, command);
                     }
                 }
                 server.advanceTick();
@@ -390,6 +406,7 @@ const runPacksOnServer = async (scenario: ScriptScenario): Promise<string[]> => 
         ...(configDirectory === undefined ? {} : { configDirectory }),
         ...(scenario.experiments === undefined ? {} : { experiments: scenario.experiments }),
         ...(scenario.gametestAfter === undefined ? {} : { gametestAfter: scenario.gametestAfter }),
+        ...(scenario.consoleAfter === undefined ? {} : { consoleAfter: scenario.consoleAfter }),
         ended: (lines) => packsEnded(scenario, lines)
     });
 };

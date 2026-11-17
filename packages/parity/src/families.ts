@@ -161,6 +161,10 @@ export const FAMILIES = {
     scriptingItems: 'scripting.items',
     /** `@minecraft/server-gametest`: when a GameTest runs, how it ends, and what its simulated players do. */
     scriptingGametest: 'scripting.gametest',
+    /** Custom commands a script registers: the command tree, the callbacks' arguments and the results their senders get. */
+    scriptingCommands: 'scripting.commands',
+    /** Custom block and item components a script registers, and the hooks a pack's blocks and items run them through. */
+    scriptingComponents: 'scripting.components',
 
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',

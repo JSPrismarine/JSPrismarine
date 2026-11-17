@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario custom-command-errors errors",
+        "description": "Runs custom commands whose arguments or names do not parse and records the errors. Written for packages/parity.",
+        "uuid": "77fd4756-fb7f-4a24-9f42-ed427fd9b067",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "ad208791-febb-4c75-ae04-14d0c09ee31d",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}
