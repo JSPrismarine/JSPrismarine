@@ -370,6 +370,13 @@ export default class PlayerSession {
     /** Whether the player finished joining and has not left; see {@link PlayerSession.isConnected}. */
     private joined = false;
 
+    /**
+     * Whether everyone was told this player joined. The login marks a player joined before the
+     * resource pack phase, and the join message goes out only at the end of it, so a player
+     * kicked in between has joined without anyone hearing of it.
+     */
+    private joinAnnounced = false;
+
     /** How long the join took, for the debug log. */
     private readonly timer = new Timer();
 
@@ -740,24 +747,28 @@ export default class PlayerSession {
         release(() => this.world.removePlayer(this));
         release(() => this.released(this.removeFromPlayerList()));
 
-        // Announce disconnection. The leaving player is still in the fan-out here.
+        // Announce disconnection, to players who were told of the join. The leaving player is
+        // still in the fan-out here.
         const chat = this.server.getChatManager();
-        release(() =>
-            this.released(
-                chat.send(
-                    new Chat({
-                        sender: this.server.getConsoleSender(),
-                        // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
-                        message: `%multiplayer.player.left`,
-                        parameters: [this.identity.name],
-                        needsTranslation: true,
-                        type: ChatType.TRANSLATION
-                    })
+        if (this.joinAnnounced) {
+            release(() =>
+                this.released(
+                    chat.send(
+                        new Chat({
+                            sender: this.server.getConsoleSender(),
+                            // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
+                            message: `%multiplayer.player.left`,
+                            parameters: [this.identity.name],
+                            needsTranslation: true,
+                            type: ChatType.TRANSLATION
+                        })
+                    )
                 )
-            )
-        );
+            );
+        }
 
         this.joined = false;
+        this.joinAnnounced = false;
         chat.leave(this.chatRecipient);
         if (failure !== undefined) throw failure.error;
     }
@@ -944,6 +955,16 @@ export default class PlayerSession {
         });
         await this.send(response);
         return entries.length;
+    }
+
+    /**
+     * Records that the join burst told everyone this player joined, so that its leave tells
+     * them it left. A player kicked before this, such as one that refused the resource packs,
+     * leaves without a message.
+     * @group Lifecycle
+     */
+    public announcedJoin(): void {
+        this.joinAnnounced = true;
     }
 
     /** Whether the player has joined and not left. */

@@ -1,6 +1,7 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
+import ChatEvent from '../events/chat/ChatEvent';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 
 describe('PlayerSession', () => {
@@ -93,6 +94,34 @@ describe('PlayerSession', () => {
             expect(roster).toEqual(['save', 'remove']);
             expect(session.isConnected()).toBe(false);
             expect(() => session.getPlayer()).toThrow(/has left/);
+        });
+
+        /** The chat lines the leave sent, by message. */
+        const chatSent = (events: ReadonlyArray<readonly [string, unknown]>): string[] =>
+            events.flatMap(([name, event]) =>
+                name === 'chat' && event instanceof ChatEvent ? [event.getChat().getMessage()] : []
+            );
+
+        it('says nothing of a player kicked before the join was announced', async () => {
+            // A player that refused the resource packs: the login marked it joined, and the
+            // join message waits for the end of the pack phase.
+            const { session, events } = fakePlayer({ name: 'Refuser' });
+            await session.join();
+
+            session.leave();
+
+            expect(chatSent(events)).toEqual([]);
+            expect(session.isConnected()).toBe(false);
+        });
+
+        it('says a player whose join was announced left the game', async () => {
+            const { session, events } = fakePlayer({ name: 'Leaver' });
+            await session.join();
+            session.announcedJoin();
+
+            session.leave();
+
+            expect(chatSent(events)).toEqual(['%multiplayer.player.left']);
         });
 
         it("disables itself even when the player's leave fails", async () => {

@@ -162,7 +162,8 @@ const harness = ({
         sendTime: record('SetTime'),
         sendAttributes: record('UpdateAttributes'),
         sendMetadata: record('SetActorData'),
-        sendInventory: record('InventoryContent')
+        sendInventory: record('InventoryContent'),
+        announcedJoin: () => {}
     });
 
     const announce = vi.fn(async (_chat: Chat) => {});

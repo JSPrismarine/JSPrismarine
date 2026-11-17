@@ -434,6 +434,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 })
             )
         );
+        session.announcedJoin();
         return allSent(sends);
     }
 }
