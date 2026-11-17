@@ -69,6 +69,7 @@ export class ScriptApiContext {
     private readonly raiseFunction: ScriptHandle;
     private readonly entries: MemberEntry[] = [];
     private readonly bound = new Map<string, { readonly shape: ModuleShape; readonly namespace: ScriptHandle }>();
+    private destroyed = false;
     private readonly reported = new Set<number>();
 
     /**
@@ -132,6 +133,9 @@ export class ScriptApiContext {
 
     /** Frees the context's handles. The engine keeps what scripts still refer to. */
     public destroy(): void {
+        // A second destroy would free slots the engine may have handed to live values since.
+        if (this.destroyed) return;
+        this.destroyed = true;
         for (const { namespace } of this.bound.values()) this.engine.free(namespace);
         this.bound.clear();
         for (const handle of [this.bindFunction, this.createFunction, this.raiseFunction, this.runtime]) {

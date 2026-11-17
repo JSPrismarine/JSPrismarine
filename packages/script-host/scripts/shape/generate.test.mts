@@ -63,10 +63,10 @@ const klass = (name: string, functions: object[], properties: object[] = []) => 
 });
 
 /** A metadata directory of `@minecraft/server` versions, each a stub and its bindings file. */
-const source = (versions: Record<string, object[]>): MetadataSource => {
+const source = (versions: Record<string, object[]>, stubExtra: object = {}): MetadataSource => {
     const files = new Map<string, unknown>();
     for (const [version, classes] of Object.entries(versions)) {
-        files.set(`server_${version}.json`, stub(version));
+        files.set(`server_${version}.json`, { ...stub(version), ...stubExtra });
         files.set(`server-bindings_${version}.json`, api(classes));
     }
     return { files: [...files.keys()], read: (file) => files.get(file) };
@@ -84,6 +84,12 @@ const OVERRIDE: ShapeOverride = {
 };
 
 describe('generateShape', () => {
+    it('fails on a key in a public module file that it does not read', () => {
+        expect(() => generateShape(source({ '1.0.0': [] }, { unexpected: true }), { overrides: [] })).toThrow(
+            'server_1.0.0.json has the key unexpected, which the shape generator does not read'
+        );
+    });
+
     it('keeps one segment per stretch of versions with the same value', () => {
         const amount = (max: number) => ({
             name: 'amount',
