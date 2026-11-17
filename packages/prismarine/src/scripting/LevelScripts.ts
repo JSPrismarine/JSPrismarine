@@ -4,12 +4,18 @@
  * ([ADR 0020](../../../../docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md)).
  *
  * The script host is an optional dependency: it is a native library that is not built for every
- * platform yet. A server without it, or without a library for its platform, runs without
- * scripts and says so once when a world pack has some.
+ * platform yet, and npm cannot install it until it ships prebuilt libraries
+ * ([#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215)). A server without it, or
+ * without a library for its platform, runs without scripts and says why once when a world pack
+ * has some.
  */
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import type { ScriptLog, WorldScripts } from '@jsprismarine/script-host/host/WorldScripts';
 
 import type { ScriptWatchdogConfig } from '../config/Config';
+import { isRecord } from '../utils/isRecord';
 import { BETA_APIS } from '../world/WorldExperiments';
 import { LevelScriptWorld } from './LevelScriptWorld';
 import type { ScriptWorldSources } from './LevelScriptWorld';
@@ -39,12 +45,35 @@ export interface ScriptPhaseWorld {
     setScriptPhase(phase: (() => void) | undefined): void;
 }
 
+/** Where a script host that cannot run here says to look for when it will. */
+const PREBUILT_LIBRARIES_ISSUE = 'https://github.com/JSPrismarine/JSPrismarine/issues/3215';
+
+/**
+ * Whether a pack's manifest has a script module, read without the script host, so a server that
+ * lacks it can tell whether that costs the world anything. The script host reads the module in
+ * full when it is there.
+ */
+const hasScriptModule = (directory: string): boolean => {
+    const path = join(directory, 'manifest.json');
+    if (!existsSync(path)) return false;
+    try {
+        const manifest: unknown = JSON.parse(readFileSync(path, 'utf8'));
+        const modules = isRecord(manifest) && Array.isArray(manifest.modules) ? manifest.modules : [];
+        return modules.some((module) => isRecord(module) && module.type === 'script');
+    } catch {
+        // The content loader reports a manifest that is not JSON.
+        return false;
+    }
+};
+
 /** One level's scripts. */
 export class LevelScripts {
     private readonly runtime: WorldScripts;
     private readonly world: LevelScriptWorld;
     private readonly closeLibrary: () => void;
     private attached: ScriptPhaseWorld | undefined;
+    /** Set while {@link LevelScripts.close} runs, when a watchdog shutdown would stop a stop. */
+    private closing = false;
 
     private constructor(runtime: WorldScripts, world: LevelScriptWorld, closeLibrary: () => void) {
         this.runtime = runtime;
@@ -62,8 +91,12 @@ export class LevelScripts {
         try {
             host = await importScriptHost();
         } catch {
-            if (options.packDirectories.length > 0) {
-                options.log.warn('The script host is not installed, so behavior pack scripts do not run');
+            const scripted = options.packDirectories.filter(hasScriptModule).length;
+            if (scripted > 0) {
+                options.log.warn(
+                    `${scripted} behavior pack(s) have scripts, but @jsprismarine/script-host is not installed, so they ` +
+                        `do not run. npm cannot install it until it ships prebuilt libraries: ${PREBUILT_LIBRARIES_ISSUE}`
+                );
             }
             return undefined;
         }
@@ -77,11 +110,14 @@ export class LevelScripts {
             library = host.ScriptHostLibrary.load();
         } catch (error: unknown) {
             options.log.warn(
-                `${packs.length} behavior pack(s) have scripts, but the script host has no library for this machine, so they do not run: ${String(error)}`
+                `${packs.length} behavior pack(s) have scripts, but @jsprismarine/script-host has no library for ` +
+                    `${process.platform}-${process.arch}, so they do not run: ${String(error)}. Prebuilt libraries ` +
+                    `for every platform: ${PREBUILT_LIBRARIES_ISSUE}`
             );
             return undefined;
         }
         const world = new LevelScriptWorld(options.sources);
+        let scripts: LevelScripts | undefined;
         const runtime = new host.WorldScripts({
             library,
             world,
@@ -95,9 +131,15 @@ export class LevelScripts {
                 'script-watchdog-hang-threshold': String(options.watchdog.hangThreshold),
                 'script-watchdog-memory-limit': String(options.watchdog.memoryLimit)
             }),
-            onShutdown: () => options.onShutdown()
+            // A shutdown callback that trips the watchdog while the server is stopping asks for
+            // nothing: the stop is already under way, and a second request would exit before the
+            // worlds save.
+            onShutdown: () => {
+                if (scripts?.closing !== true) options.onShutdown();
+            }
         });
-        return new LevelScripts(runtime, world, () => library.close());
+        scripts = new LevelScripts(runtime, world, () => library.close());
+        return scripts;
     }
 
     /** `system.currentTick` of the level's scripts. */
@@ -129,6 +171,7 @@ export class LevelScripts {
 
     /** Sends `system.beforeEvents.shutdown` and stops the scripts. */
     public close(): void {
+        this.closing = true;
         this.attached?.setScriptPhase(undefined);
         this.attached = undefined;
         this.runtime.shutdown();

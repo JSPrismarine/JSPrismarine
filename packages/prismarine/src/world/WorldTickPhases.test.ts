@@ -180,13 +180,22 @@ describe('world', () => {
             ]);
         });
 
-        it('runs the script flush last, after the entities and before the change log is sealed', () => {
-            const { world, calls } = worldTicking();
+        it('runs the script flush last, after the entities and before the change log is sealed', async () => {
+            // A player ticks wherever it stands, so the fixture needs no simulated chunk for it.
+            const player = actorOf({
+                getPosition: () => new Position(0, 64, 0, world),
+                getType: () => 'minecraft:player',
+                getRuntimeId: () => 1n,
+                claimUpdate: () => true,
+                update: async () => void calls.push('entity')
+            });
+            const { world, calls } = worldTicking({ entities: [player] });
+            Object.assign(world, { touchPortals: () => {}, updateTracking: async () => {} });
             world.setScriptPhase(() => void calls.push('scripts'));
 
-            world.update(1);
+            await world.update(1);
 
-            expect(calls.slice(0, 4)).toStrictEqual(['blockUpdates', 'systems', 'scripts', 'tickSealed']);
+            expect(calls.slice(0, 5)).toStrictEqual(['blockUpdates', 'systems', 'entity', 'scripts', 'tickSealed']);
         });
 
         it('runs the script flush while the tick’s change log is open', () => {

@@ -73,6 +73,7 @@ export class Supervisor {
     private forced = false;
     private currentState: SupervisorState = 'stopped';
     private currentGeneration = 0;
+    private scriptReloads = 0;
 
     public constructor(private readonly options: SupervisorOptions) {
         this.exit = options.exit ?? ((code) => process.exit(code));
@@ -168,6 +169,19 @@ export class Supervisor {
             return;
         }
         void this.start();
+    }
+
+    /**
+     * Reloads the behavior pack scripts after a script file changed. A running child gets
+     * `/reload`, as typed on the console, so it keeps its world. A child that crashed and waits
+     * for a fix is started again, since nothing else would bring it back.
+     */
+    public reloadScripts(reason: string): void {
+        if (this.currentState === 'waiting') {
+            this.restart(reason);
+            return;
+        }
+        this.serverLink?.send({ type: 'command', v: 1, id: `reload-${++this.scriptReloads}`, line: 'reload' });
     }
 
     /** Stops the child and, once it has exited, ends the host with its exit code. */

@@ -13,6 +13,7 @@ import type {
     ScriptWeather,
     ScriptWorld,
     ScriptWorldEvent,
+    VetoGuard,
     WeatherChangeIntent
 } from '@jsprismarine/script-host/host/world';
 
@@ -116,7 +117,7 @@ export class LevelScriptWorld implements ScriptWorld {
      * Adds a script guard to the chat of the level's players, under the ids the scripts know
      * them by. A line from a player in another level goes past it.
      */
-    public guardChat(guard: Guard<ChatSendIntent>): () => void {
+    public guardChat(guard: VetoGuard<ChatSendIntent>): () => void {
         return this.sources.chat.addGuard((intent) => {
             const sender = String(intent.sender);
             if (!this.players().includes(sender)) return { veto: false, intent };

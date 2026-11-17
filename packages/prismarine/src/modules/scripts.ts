@@ -1,10 +1,15 @@
-import { join } from 'node:path';
-
 import type { Module } from '@jsprismarine/kernel';
 
 import type Server from '../Server';
 import { LevelScripts } from '../scripting/LevelScripts';
+import { withCwd } from '../utils/cwd';
 import { contentToken, worldsToken } from './tokens';
+
+/**
+ * BDS's `config/` folder for the server's scripts: in the server directory, which `JSP_DIR`
+ * names, beside `config.json`.
+ */
+export const scriptConfigDirectory = (): string => withCwd('config');
 
 /**
  * Runs the behavior pack scripts of the default level: the world packs `content-world-packs`
@@ -25,7 +30,7 @@ export const scriptsModule = (server: Server): Module => ({
         const level = server.getWorldManager().getDefaultLevel();
         const scripts = await LevelScripts.load({
             packDirectories: server.getContentSettings().worldPacks,
-            configDirectory: join(process.cwd(), 'config'),
+            configDirectory: scriptConfigDirectory(),
             sources: {
                 dimensions: () =>
                     [...level.getStems().keys()].map((dimension) => level.dimensionTypeOf(dimension).bedrockName),

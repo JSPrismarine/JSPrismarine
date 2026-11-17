@@ -290,16 +290,13 @@ const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined):
     await ui.attach(supervisor);
 
     if (args.watch) {
-        let scriptReloads = 0;
         await new Watcher({
             packagesDir,
             built: runsBuiltOutput(),
             contentPackPaths: contentPackPaths(),
             onEvent: (event) => supervisor.emit(event),
             requestRestart: (reason) => supervisor.restart(reason),
-            // `/reload`, as typed on the console, so the running server keeps its world.
-            requestScriptReload: () =>
-                supervisor.serverLink?.send({ type: 'command', v: 1, id: `reload-${++scriptReloads}`, line: 'reload' })
+            requestScriptReload: (reason) => supervisor.reloadScripts(reason)
         }).start();
     }
 
