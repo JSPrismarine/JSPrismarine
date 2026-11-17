@@ -46,6 +46,8 @@ import { GAMETEST, GameTests } from './gametest';
 import type { ComponentKind } from './customContent';
 import { CustomContent } from './customContent';
 import { installInputsSource, randomState } from './inputs';
+import type { JsprismarineServerInfo } from './jsprismarineServer';
+import { JSPRISMARINE_MODULE, jsprismarineServerSource } from './jsprismarineServer';
 import type { EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
@@ -144,6 +146,8 @@ export interface WorldScriptsOptions {
      */
     readonly betaApis?: boolean;
     readonly log: ScriptLog;
+    /** The server the packs run on, which `@jsprismarine/server` tells them about. */
+    readonly server: JsprismarineServerInfo;
     /** The world's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
     readonly watchdog?: WatchdogSettings;
@@ -161,9 +165,6 @@ export interface ScriptDebugTarget {
     readonly engine: ScriptEngine;
     readonly context: ScriptContextId;
 }
-
-/** The module JSPrismarine resolves for a pack without a manifest entry (ADR 0020). */
-export const JSPRISMARINE_MODULE = '@jsprismarine/server';
 
 /** How many entity objects a pack holds before the first time the gone ones leave. */
 const ENTITY_PRUNE_START = 256;
@@ -187,6 +188,7 @@ interface LoadedPack {
     readonly entities: Map<string, ScriptHandle>;
     /** Sets the clock its `Date` reads. */
     setNow?: ScriptHandle;
+    /** Its `@jsprismarine/server` namespace, made the first time it imports the module. */
     jsp?: ScriptHandle;
     /** Its `@minecraft/server-ui` forms, when it declares the module. */
     forms?: PackForms;
@@ -700,7 +702,7 @@ export class WorldScripts {
         if (declared !== undefined) return declared;
         if (name === JSPRISMARINE_MODULE) {
             if (loaded.jsp === undefined) {
-                const namespace = this.engine.evaluate('Object.create(null)');
+                const namespace = this.engine.evaluate(jsprismarineServerSource(this.options.server));
                 if (namespace instanceof ScriptHandle) loaded.jsp = namespace;
             }
             return loaded.jsp;
@@ -1029,7 +1031,7 @@ export class WorldScripts {
     }
 
     /**
-     * Calls one script callback under a privilege, logging what it throws.
+     * Calls one script callback in its pack's context under a privilege, logging what it throws.
      * @param self - The callback's `this`, such as the custom component a hook belongs to.
      */
     private invoke(
@@ -1043,7 +1045,9 @@ export class WorldScripts {
         this.lastEntered = loaded;
         this.withPrivilege(privilege, () =>
             this.guarded(loaded, () => {
-                const result = this.engine.call(callback, self, ...args);
+                // In the pack's context, so an async callback's continuation queues with the
+                // pack's promise jobs, which the flush runs, and not in another context's.
+                const result = this.engine.inContext(loaded.context, () => this.engine.call(callback, self, ...args));
                 if (result instanceof ScriptHandle) this.engine.free(result);
             })
         );

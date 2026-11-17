@@ -40,6 +40,8 @@ Start from what you are here to do.
 
 - [Extending JSPrismarine](extending.md): packs for content, and embedding the server for code.
 - [Using packs](../data-driven/using-packs.md): which pack formats load and how a stack composes.
+- [The JSPrismarine script module](jsprismarine-module.md): use JSPrismarine-only features from a
+  pack script, and fall back on Bedrock Dedicated Server.
 - [Run from source](running.md#run-from-source): `pnpm run dev`, which restarts the server when your
   pack or code changes.
 
