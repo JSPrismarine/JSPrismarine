@@ -241,15 +241,8 @@ const readers: ReadonlyMap<string, TestEntry> = new Map<string, TestEntry>([
 
     // World state, read from the world view whatever the subject is.
     ['clock_time', { read: (_subject, context) => context.world?.timeOfDay?.() }],
-    [
-        'hourly_clock_time',
-        {
-            read: (_subject, context) => {
-                const time = context.world?.timeOfDay?.();
-                return time === undefined ? undefined : Math.floor(time / 1000) * 1000;
-            }
-        }
-    ],
+    // The time of day in ticks, 0 to 24000, to the tick: the creaking's pack crumbles it past 23400.
+    ['hourly_clock_time', { read: (_subject, context) => context.world?.timeOfDay?.() }],
     [
         'is_daytime',
         {

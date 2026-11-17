@@ -300,6 +300,9 @@ describe('evaluateFilter', () => {
 
             expect(evaluate({ test: 'is_daytime' }, world)).toBe(false);
             expect(evaluate({ test: 'hourly_clock_time', operator: '>=', value: 13000 }, world)).toBe(true);
+            // To the tick, as the creaking's pack compares it with 23400 and 12600.
+            expect(evaluate({ test: 'hourly_clock_time', operator: '>', value: 13400 }, world)).toBe(true);
+            expect(evaluate({ test: 'hourly_clock_time', operator: '<', value: 13600 }, world)).toBe(true);
             expect(evaluate({ test: 'is_difficulty', value: 'hard' }, world)).toBe(true);
             expect(evaluate({ test: 'weather', value: 'thunder' }, world)).toBe(true);
             expect(evaluate({ test: 'is_game_rule', domain: 'tntexplodes' }, world)).toBe(true);
