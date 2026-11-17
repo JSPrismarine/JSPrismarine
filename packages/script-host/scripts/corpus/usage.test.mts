@@ -51,6 +51,26 @@ describe('the corpus usage counter', () => {
         ]);
     });
 
+    it('resolves a call through a computed key the source spells out, as it does a dot call', () => {
+        const dot = count(`
+            import { world } from '@minecraft/server';
+            world.getPlayers()[0].kill();
+        `);
+        const computed = count(`
+            import { world } from '@minecraft/server';
+            world['getPlayers']()[0]['kill']();
+            world[\`getAllPlayers\`]().forEach((player) => player.sendMessage('a'));
+        `);
+        expect(keys(dot)).toEqual(['Entity.kill', 'World.getPlayers', 'world']);
+        expect(keys(computed)).toEqual([
+            'Entity.kill',
+            'Player.sendMessage',
+            'World.getAllPlayers',
+            'World.getPlayers',
+            'world'
+        ]);
+    });
+
     it('counts every occurrence', () => {
         const modules = count(`
             import { world } from '@minecraft/server';
@@ -96,6 +116,38 @@ describe('the corpus usage counter', () => {
             'ActionFormData.title',
             'ActionFormResponse.selection'
         ]);
+    });
+
+    it('gives both parameters of a sort comparator the element type', () => {
+        const modules = count(`
+            import { world } from '@minecraft/server';
+            world.getPlayers().sort((a, b) => a.level - b.level);
+            world.getPlayers().toSorted((a, b) => a.name.localeCompare(b.name));
+            world.getPlayers().forEach((player, index) => player.level + index.level);
+        `);
+        const uses = modules.get('@minecraft/server')?.uses;
+        expect(uses?.get('Player.level')).toBe(3);
+        expect(uses?.get('Player.name')).toBe(2);
+    });
+
+    it('follows a name through straight-line reassignment', () => {
+        const modules = count(`
+            import { world } from '@minecraft/server';
+            let target = world.getDimension('overworld');
+            target.getBlock({ x: 0, y: 0, z: 0 });
+            target = world.getPlayers()[0];
+            target.kill();
+            target = JSON.parse('{}');
+            target.kill();
+            target.getBlock({ x: 0, y: 0, z: 0 });
+            let later;
+            later = world.getPlayers()[0];
+            later.kill();
+        `);
+        const uses = modules.get('@minecraft/server')?.uses;
+        expect(uses?.get('Dimension.getBlock')).toBe(1);
+        expect(uses?.get('Entity.kill')).toBe(2);
+        expect(modules.get('@minecraft/server')?.unmatched.size).toBe(0);
     });
 
     it('gives getComponent the class of a literal component id', () => {

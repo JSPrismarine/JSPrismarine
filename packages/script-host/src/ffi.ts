@@ -36,6 +36,18 @@ export interface NativeSymbols {
     jsh_encode(engine: NativePointer, handle: number): number;
     jsh_dup(engine: NativePointer, handle: number): number;
     jsh_free(engine: NativePointer, handle: number): void;
+    jsh_debug_attach(engine: NativePointer, pollLines: number): number;
+    jsh_debug_detach(engine: NativePointer): void;
+    jsh_debug_set_breakpoints(engine: NativePointer, path: string, length: number): number;
+    jsh_debug_set_stop_on_exception(engine: NativePointer, stop: number): void;
+    jsh_debug_pause(engine: NativePointer): void;
+    jsh_debug_resume(engine: NativePointer, mode: number): number;
+    jsh_debug_frames(engine: NativePointer): number;
+    jsh_debug_scope(engine: NativePointer, frame: number, scope: number): number;
+    jsh_debug_exception(engine: NativePointer): number;
+    jsh_debug_evaluate(engine: NativePointer, frame: number, source: Uint8Array, length: number): number;
+    jsh_debug_describe(engine: NativePointer, handle: number): number;
+    jsh_debug_properties(engine: NativePointer, handle: number, start: number, count: number): number;
 }
 
 /** The engine's callback: an operation, an id and a byte length in, a length or a status out. */
@@ -74,7 +86,19 @@ const signatures: Record<keyof NativeSymbols, readonly [Kind, readonly Kind[]]> 
     jsh_decode: ['int32', ['pointer', 'int32']],
     jsh_encode: ['int32', ['pointer', 'int32']],
     jsh_dup: ['int32', ['pointer', 'int32']],
-    jsh_free: ['void', ['pointer', 'int32']]
+    jsh_free: ['void', ['pointer', 'int32']],
+    jsh_debug_attach: ['int32', ['pointer', 'float64']],
+    jsh_debug_detach: ['void', ['pointer']],
+    jsh_debug_set_breakpoints: ['int32', ['pointer', 'string', 'int32']],
+    jsh_debug_set_stop_on_exception: ['void', ['pointer', 'int32']],
+    jsh_debug_pause: ['void', ['pointer']],
+    jsh_debug_resume: ['int32', ['pointer', 'int32']],
+    jsh_debug_frames: ['int32', ['pointer']],
+    jsh_debug_scope: ['int32', ['pointer', 'int32', 'int32']],
+    jsh_debug_exception: ['int32', ['pointer']],
+    jsh_debug_evaluate: ['int32', ['pointer', 'int32', 'buffer', 'int32']],
+    jsh_debug_describe: ['int32', ['pointer', 'int32']],
+    jsh_debug_properties: ['int32', ['pointer', 'int32', 'int32', 'int32']]
 };
 
 const hostCallbackSignature = { arguments: ['int32', 'int32', 'int32'], return: 'int32' };

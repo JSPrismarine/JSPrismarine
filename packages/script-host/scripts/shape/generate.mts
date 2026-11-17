@@ -19,9 +19,9 @@ import type {
     ShapeType,
     VersionStability
 } from '../../src/shape/format.ts';
+import { isRecord } from '../../src/isRecord.ts';
 import { DEFAULT_VALID_RANGE, isNumberType, isPrimitiveType } from '../../src/shape/format.ts';
 import { compareVersions } from '../../src/shape/version.ts';
-import { isRecord } from '../isRecord.mts';
 import type { ShapeOverride } from './overrides.mts';
 
 /** The files of one `metadata/script_modules/@minecraft` directory. */

@@ -1,0 +1,5 @@
+---
+'@jsprismarine/script-host': patch
+---
+
+Add a script debugger to the engine. `engine.attachDebugger` stops a script at a breakpoint, after a step over, in or out, on a pause request, and on thrown values when asked, and blocks the engine call that ran it until the listener resumes it. While a script is stopped, the debugger reads its stack, the local, closure and global variables of each frame, and object properties without running getters, and evaluates source inside a frame with write access to its variables. It reads no clock and costs no steps, so a script stops at the same line every run and keeps its step counts. The QuickJS patch behind it ports the debugger hooks of koush's QuickJS fork, and with no debugger attached the interpreter runs as before. `ScriptDebugSession` speaks the protocol of Mojang's Minecraft Bedrock Debugger for VS Code over a channel to the engine's thread, with BDS's handshake checks and messages, and `listenForDebugger` and `connectToDebugger` carry it over TCP, refusing a listener on a non-loopback address without a passcode.

@@ -13,7 +13,7 @@ import { COUNT_COMMAND } from './report.mts';
 const manifest = readCorpusManifest();
 // Runs when every pinned repository is cached, so ordinary runs need no network.
 // `JSP_ADDON_CORPUS_TESTS=1` fetches what is missing instead of skipping.
-const enabled = process.env.JSP_ADDON_CORPUS_TESTS === '1' || isCorpusCached(manifest);
+const enabled = process.env.JSP_ADDON_CORPUS_TESTS === '1' || (await isCorpusCached(manifest));
 
 describe.skipIf(!enabled)('the checked-in corpus counts', { tags: ['real-data'] }, () => {
     it('are what the pinned corpus counts', async () => {
