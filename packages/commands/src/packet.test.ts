@@ -191,17 +191,27 @@ describe('the chained subcommand encoding', () => {
         const execute = payload.commands.find((command) => command.name === 'execute')!;
 
         expect(payload.chainedSubcommandValues).toEqual(['as', 'at', 'run']);
-        expect(payload.chainedSubcommands).toEqual([
-            {
-                name: 'EXECUTECHAINEDOPTION_0',
-                values: [
-                    { first: 0, second: 0 },
-                    { first: 1, second: 1 },
-                    { first: 2, second: 2 }
-                ]
-            }
-        ]);
+        expect(payload.chainedSubcommands.map((table) => table.name)).toEqual(['EXECUTECHAINEDOPTION_0']);
         expect(execute.chainedSubcommandIndexes).toEqual([0]);
+    });
+
+    it("pairs each keyword with the enum that leads the keyword's overload", () => {
+        const { payload } = buildAvailableCommands(buildExecute());
+        const [table] = payload.chainedSubcommands;
+
+        // A real server's capture pairs `as` with `Option_As` and `if` with `Option_If_Unless`.
+        // Here `as` and `at` share a continuation, so they share one enum.
+        expect(
+            table?.values.map(({ first, second }) => [
+                payload.chainedSubcommandValues[first],
+                payload.enums[second]?.name,
+                payload.enums[second]?.valueIndexes.map((index) => payload.enumValues[index])
+            ])
+        ).toEqual([
+            ['as', 'OPTION_AS_AT', ['as', 'at']],
+            ['at', 'OPTION_AS_AT', ['as', 'at']],
+            ['run', 'OPTION_RUN', ['run']]
+        ]);
     });
 
     it('marks the chaining overload and sets EnumAsChainedCommand on its tail', () => {
@@ -212,7 +222,8 @@ describe('the chained subcommand encoding', () => {
         expect(chaining?.isChaining).toBe(true);
         expect(chaining?.parameters.at(-1)).toEqual({
             name: 'chainedCommand',
-            parseSymbol: ParameterTypeFlag.Enum | ParameterTypeFlag.Valid | 0,
+            // The word a real server writes: `Chained | Valid` over the table's index.
+            parseSymbol: ParameterTypeFlag.Chained | ParameterTypeFlag.Valid | 0,
             optional: false,
             options: ParameterOption.EnumAsChainedCommand
         });
@@ -294,11 +305,10 @@ describe('the payload against the packet field widths', () => {
                     } else if ((symbol & ParameterTypeFlag.Postfix) !== 0) {
                         expect(payload.postfixes[symbol & 0xff_ff]).toBeDefined();
                         expect(symbol & ParameterTypeFlag.Valid).toBe(0);
+                    } else if ((symbol & ParameterTypeFlag.Chained) !== 0) {
+                        expect(payload.chainedSubcommands[symbol & 0xff_ff]).toBeDefined();
                     } else if ((symbol & ParameterTypeFlag.Enum) !== 0) {
-                        const index = symbol & 0xff_ff;
-                        expect(
-                            payload.enums[index] !== undefined || payload.chainedSubcommands[index] !== undefined
-                        ).toBe(true);
+                        expect(payload.enums[symbol & 0xff_ff]).toBeDefined();
                     } else {
                         // A basic type always carries Valid and a non-zero id.
                         expect(symbol & ParameterTypeFlag.Valid).toBe(ParameterTypeFlag.Valid);

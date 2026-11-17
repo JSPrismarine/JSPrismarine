@@ -153,7 +153,7 @@ const redirectOf = <S>(node: CommandNode<S>): CommandNode<S> | null => node.getR
 const CHAINED_SUBCOMMAND_SUFFIX = 'CHAINEDOPTION_';
 
 /** Mojang's spelling for a one-keyword subcommand enum, `OPTION_AS` and friends. */
-const literalEnumName = (names: readonly string[]): string =>
+export const literalEnumName = (names: readonly string[]): string =>
     `OPTION_${names
         .join('_')
         .toUpperCase()

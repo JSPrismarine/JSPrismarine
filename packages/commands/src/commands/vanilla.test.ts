@@ -87,7 +87,8 @@ describe('the command set', () => {
         // Master's `/tick` command added a Java-only node, so the digest was repinned to include it.
         // `/gamerule` then took each rule's legacy and Bedrock names, which the packet lists too.
         // `/execute run <command>` then took the type id a real server writes, 90.
-        expect(digest).toBe('407b1a2deca5c77ca15f0931f0ebc182004d13f7');
+        // The chained subcommand pairs and parse symbols then took the form a real server sends.
+        expect(digest).toBe('f8215eaee3f1b6669b0e5ed6c770f5bd96b931d9');
     });
 });
 

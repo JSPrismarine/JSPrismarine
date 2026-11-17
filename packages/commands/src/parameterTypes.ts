@@ -22,6 +22,7 @@ import { bedrockCommandTable } from './bedrockTable';
  *
  * A basic type is its id with `Valid` set. An enum parameter carries `Enum`
  * (or `SoftEnum`) with `Valid` and the enum's index in its own table. A
+ * chained subcommand carries `Chained` with `Valid` and its table's index. A
  * postfixed integer carries `Postfix` and the postfix's index, and is the one
  * case with no `Valid` bit.
  */
@@ -29,7 +30,12 @@ export const ParameterTypeFlag = {
     Valid: 0x100000,
     Enum: 0x200000,
     Postfix: 0x1000000,
-    SoftEnum: 0x4000000
+    SoftEnum: 0x4000000,
+    /**
+     * A chained subcommand table. A Bedrock Dedicated Server writes `0x8100000`
+     * for `/execute`'s trailing parameter.
+     */
+    Chained: 0x8000000
 } as const;
 
 /**
@@ -137,6 +143,15 @@ export const enumParseSymbol = (index: number): number =>
  */
 export const softEnumParseSymbol = (index: number): number =>
     (ParameterTypeFlag.SoftEnum | ParameterTypeFlag.Valid | index) >>> 0;
+
+/**
+ * Builds the `Parse Symbol` word of a chained subcommand parameter.
+ *
+ * @param index - The table's position in the packet's `Chained Subcommand
+ *   Data` list, which is numbered separately from the enum lists.
+ */
+export const chainedParseSymbol = (index: number): number =>
+    (ParameterTypeFlag.Chained | ParameterTypeFlag.Valid | index) >>> 0;
 
 /**
  * Builds the `Parse Symbol` word of a postfixed integer.

@@ -25,10 +25,11 @@
  * enums share is written into `Enum Values` once.
  */
 import type { FlattenNote, FlattenOptions, FlattenResult, FlattenedParameter } from './flatten';
-import { flattenCommandTree } from './flatten';
+import { flattenCommandTree, literalEnumName } from './flatten';
 import {
     ParameterOption,
     basicParseSymbol,
+    chainedParseSymbol,
     enumParseSymbol,
     postfixParseSymbol,
     softEnumParseSymbol
@@ -79,12 +80,13 @@ export interface AvailableCommandEnum {
 export interface AvailableChainedSubcommand {
     readonly name: string;
     /**
-     * The value pairs.
+     * The value pairs, one per keyword.
      *
-     * Mojang's schema names the two members `first` and `second` and defines
-     * neither. The only datum a chained subcommand table has per entry is the
-     * keyword, so this package writes its index into `Chained Subcommand
-     * Values` in both members.
+     * `first` is the keyword's index in `Chained Subcommand Values` and
+     * `second` is the index in `Enum Data` of the enum that holds the keyword,
+     * which for `/execute` is the enum leading the keyword's own overload
+     * (`Option_As`, `Option_If_Unless`). That is what a Bedrock Dedicated
+     * Server sends in `bedrock-data/src/jsp/v2193/wire/0x4c.bin`.
      */
     readonly values: readonly { readonly first: number; readonly second: number }[];
 }
@@ -188,23 +190,18 @@ const encode = (
     const postfixes = new IndexTable<string>((value) => value);
     const enums = new IndexTable<AvailableCommandEnum>((entry) => entry.name);
     const softEnums = new IndexTable<AvailableSoftEnum>((entry) => entry.name);
-    const chainedSubcommands = new IndexTable<AvailableChainedSubcommand>((entry) => entry.name);
+    // Each table's keywords, filled into value pairs once every enum has its index.
+    const chainedSubcommands = new IndexTable<{ name: string; keywords: readonly string[] }>((entry) => entry.name);
+    // The `Enum Data` index of each table's keywords, keyed by table name.
+    const keywordEnums = new Map<string, Map<string, number>>();
 
     const addEnum = (name: string, values: readonly string[]): number =>
         enums.add({ name, valueIndexes: values.map((value) => enumValues.add(value)) });
 
-    // The chained-subcommand tables go in before any parameter refers to one,
-    // so a chained parameter's index always points at a filled table.
+    // The chained-subcommand tables are numbered before any parameter refers to
+    // one, so a command's index and a parameter's index agree.
     const chainedIndexes = flattened.commands.map((command) =>
-        command.chainedSubcommands.map((table) =>
-            chainedSubcommands.add({
-                name: table.name,
-                values: table.values.map((value) => {
-                    const index = chainedValues.add(value);
-                    return { first: index, second: index };
-                })
-            })
-        )
+        command.chainedSubcommands.map((table) => chainedSubcommands.add({ name: table.name, keywords: table.values }))
     );
 
     const parameterOf = (parameter: FlattenedParameter): AvailableCommandParameter => {
@@ -244,7 +241,7 @@ const encode = (
             case 'chained':
                 return {
                     name: parameter.name,
-                    parseSymbol: enumParseSymbol(chainedSubcommands.add({ name: shape.name, values: [] })),
+                    parseSymbol: chainedParseSymbol(chainedSubcommands.add({ name: shape.name, keywords: [] })),
                     optional: parameter.optional,
                     options: ParameterOption.EnumAsChainedCommand
                 };
@@ -257,6 +254,33 @@ const encode = (
         const aliasEnum =
             command.aliases.length === 0 ? -1 : addEnum(`${command.name}Aliases`, [command.name, ...command.aliases]);
 
+        const overloads = command.overloads.map((overload) => ({
+            isChaining: overload.chaining,
+            parameters: overload.parameters.map(parameterOf)
+        }));
+
+        // A keyword's enum is the hard enum leading an overload of this command
+        // that lists it, the way `Option_If_Unless` leads `/execute if`.
+        const leading = new Map<string, number>();
+        for (const overload of command.overloads) {
+            const shape = overload.parameters[0]?.shape;
+            if (shape?.kind !== 'enum') continue;
+            // `parameterOf` already added this enum, so this only reads its index.
+            const index = addEnum(shape.name, shape.values);
+            for (const value of shape.values) {
+                if (!leading.has(value)) leading.set(value, index);
+            }
+        }
+        for (const table of command.chainedSubcommands) {
+            const resolved = new Map<string, number>();
+            for (const keyword of table.values) {
+                // A keyword no overload leads with, such as one the overload
+                // limit cut, gets an enum of its own so the pair still names one.
+                resolved.set(keyword, leading.get(keyword) ?? addEnum(literalEnumName([keyword]), [keyword]));
+            }
+            keywordEnums.set(table.name, resolved);
+        }
+
         return {
             name: command.name,
             description: command.description,
@@ -264,10 +288,7 @@ const encode = (
             permissionLevel: command.permissionLevel,
             aliasEnum,
             chainedSubcommandIndexes: chainedIndexes[position] ?? [],
-            overloads: command.overloads.map((overload) => ({
-                isChaining: overload.chaining,
-                parameters: overload.parameters.map(parameterOf)
-            }))
+            overloads
         };
     });
 
@@ -276,7 +297,13 @@ const encode = (
         chainedSubcommandValues: chainedValues.list(),
         postfixes: postfixes.list(),
         enums: enums.list(),
-        chainedSubcommands: chainedSubcommands.list(),
+        chainedSubcommands: chainedSubcommands.list().map(({ name, keywords }) => ({
+            name,
+            values: keywords.map((keyword) => ({
+                first: chainedValues.add(keyword),
+                second: keywordEnums.get(name)?.get(keyword) ?? 0
+            }))
+        })),
         commands,
         softEnums: softEnums.list(),
         constraints: []
