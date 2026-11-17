@@ -44,6 +44,10 @@ import { lookVector } from '../Archery';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { ContentItemDrop, ContentPosition } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
+import { EntityBossBars } from './bossBars';
+import type { OwnBossBar, ShownBossBar } from './bossBars';
+import { BossBar } from '../../network/BossBar';
+import { BossBarColor } from '@jsprismarine/protocol/packet/BossEventPacket';
 import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
@@ -560,6 +564,32 @@ const liveHost = (
  * spawn loop, the despawn pass and the actors the clients are shown, and none
  * of them has to be started, stopped or ordered by the caller.
  */
+/**
+ * A boss bar on the clients' screens for one entity's own bar, purple and darkening the sky as
+ * Java's `WitherBoss` builds its `ServerBossEvent`, bound to the entity's actor.
+ */
+const liveBossBar = (
+    entity: DataEntity,
+    shown: OwnBossBar,
+    report: (message: string) => void
+): ShownBossBar<PlayerSession> => {
+    const bar = new BossBar({ actorUniqueId: BigInt(entity.id), name: shown.name, color: BossBarColor.Purple });
+    const sent = (sends: Promise<void>): void => {
+        void sends.catch((error: unknown) => report(`the boss bar of ${entity.identifier} failed: ${String(error)}`));
+    };
+    sent(bar.setPercent(shown.progress));
+    return {
+        show: (session) => sent(bar.addPlayer(session)),
+        hide: (session) => sent(bar.removePlayer(session)),
+        setProgress: (progress) => sent(bar.setPercent(progress)),
+        setName: (name) => sent(bar.setName(name)),
+        close: () => {
+            for (const session of bar.players()) sent(bar.removePlayer(session));
+        }
+    };
+};
+
+/** One dimension's entity runtime over a running server, shown to its clients through store actors. */
 export class LiveEntityRuntime {
     /** The entities themselves, for the content adapter's three groups and for tests. */
     public readonly runtime: EntityRuntime;
@@ -581,6 +611,8 @@ export class LiveEntityRuntime {
     private readonly inertTypes = new Map<number, string>();
     /** The players whose sessions this runtime has disconnected for failing their updates. */
     private readonly failedPlayers = new Set<number>();
+    /** The bars a wither carries for itself, on the screens of the players whose clients track it. */
+    private readonly bossBars: EntityBossBars<PlayerSession>;
 
     /**
      * @param players - The server's store players, whose actors show them as players and whose
@@ -588,6 +620,7 @@ export class LiveEntityRuntime {
      */
     public constructor(options: LiveEntityOptions, players = new StorePlayers()) {
         this.options = options;
+        this.bossBars = new EntityBossBars((entity, shown) => liveBossBar(entity, shown, options.report));
         const blows: StoreActorBlows = {
             hurt: (entity, amount, source, route) =>
                 this.landed(this.runtime.damage(intentOfLegacyBlow(entity, amount, source, route))),
@@ -755,6 +788,8 @@ export class LiveEntityRuntime {
         }
 
         this.runtime.tick(tick, shouldTick);
+        const world = this.options.liveWorld();
+        if (world !== undefined) this.bossBars.sync(this.runtime.entities(), world.getViewers());
     }
 
     /** The dropped stacks of this dimension. */

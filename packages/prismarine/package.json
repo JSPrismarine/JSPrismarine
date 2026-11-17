@@ -301,6 +301,10 @@
             "jsprismarine:dist": "./dist/entity/data/actorView.js",
             "default": "./src/entity/data/actorView.ts"
         },
+        "./entity/data/bossBars": {
+            "jsprismarine:dist": "./dist/entity/data/bossBars.js",
+            "default": "./src/entity/data/bossBars.ts"
+        },
         "./entity/data/brainWorld": {
             "jsprismarine:dist": "./dist/entity/data/brainWorld.js",
             "default": "./src/entity/data/brainWorld.ts"
@@ -632,6 +636,10 @@
         "./world/DimensionType": {
             "jsprismarine:dist": "./dist/world/DimensionType.js",
             "default": "./src/world/DimensionType.ts"
+        },
+        "./world/end/DragonFight": {
+            "jsprismarine:dist": "./dist/world/end/DragonFight.js",
+            "default": "./src/world/end/DragonFight.ts"
         },
         "./world/GameRuleManager": {
             "jsprismarine:dist": "./dist/world/GameRuleManager.js",

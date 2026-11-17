@@ -33,6 +33,17 @@ const DRAGON_SPAWN = { x: 0, y: 128, z: 0 } as const;
 /** How far from (0, 128, 0) a player still counts as in the arena, Java's `validPlayer` range. */
 const ARENA_RADIUS = 192;
 
+/**
+ * Whether a player standing here sees the dragon's bar, Java's `EnderDragonFight.validPlayer`:
+ * within 192 blocks of (0, 128, 0), the distance measured in three dimensions.
+ */
+export const isInDragonArena = (position: { readonly x: number; readonly y: number; readonly z: number }): boolean => {
+    const dx = position.x - DRAGON_SPAWN.x;
+    const dy = position.y - DRAGON_SPAWN.y;
+    const dz = position.z - DRAGON_SPAWN.z;
+    return dx * dx + dy * dy + dz * dz <= ARENA_RADIUS * ARENA_RADIUS;
+};
+
 /** How often the fight re-checks who is in the arena, Java's `TIME_BETWEEN_PLAYER_SCANS`. */
 const PLAYER_SCAN_INTERVAL = 20;
 
@@ -616,10 +627,7 @@ export class DragonFight {
     }
 
     private inArena(position: Vector3): boolean {
-        const dx = position.getX() - DRAGON_SPAWN.x;
-        const dy = position.getY() - DRAGON_SPAWN.y;
-        const dz = position.getZ() - DRAGON_SPAWN.z;
-        return dx * dx + dy * dy + dz * dz <= ARENA_RADIUS * ARENA_RADIUS;
+        return isInDragonArena({ x: position.getX(), y: position.getY(), z: position.getZ() });
     }
 
     /**
