@@ -1,0 +1,51 @@
+{
+    "$comment": [
+        "What the scripts of scenario `custom-command-errors` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.commands",
+    "scenario": "custom-command-errors",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "errors",
+            "seq": 1,
+            "tick": 0,
+            "event": "runCommand jsp:count seven",
+            "error": "CommandError: Error occurred with parsing command params: Syntax error: Unexpected \"seven\": at \"jsp:count >>seven<<\"\n"
+        },
+        {
+            "pack": "errors",
+            "seq": 2,
+            "tick": 0,
+            "event": "runCommand jsp:kind jsp_nothing",
+            "error": "CommandError: Error occurred with parsing command params: Syntax error: Unexpected \"jsp_nothing\": at \"jsp:kind >>jsp_nothing<<\"\n"
+        },
+        {
+            "pack": "errors",
+            "seq": 3,
+            "tick": 0,
+            "event": "runCommand jsp:shout",
+            "error": "CommandError: Error occurred with parsing command params: Syntax error: Unexpected \"jsp:shout\": at \">>jsp:shout<<\"\n"
+        },
+        {
+            "pack": "errors",
+            "seq": 4,
+            "tick": 0,
+            "event": "runCommand jsp:Shout",
+            "error": "CommandError: Error occurred with parsing command params: Syntax error: Unexpected \"jsp:Shout\": at \">>jsp:Shout<<\"\n"
+        },
+        {
+            "pack": "errors",
+            "seq": 5,
+            "tick": 0,
+            "event": "runCommand jsp:late",
+            "error": "CommandError: Error occurred with parsing command params: Syntax error: Unexpected \"jsp:late\": at \">>jsp:late<<\"\n"
+        }
+    ]
+}

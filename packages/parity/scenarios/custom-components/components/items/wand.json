@@ -1,0 +1,12 @@
+{
+    "format_version": "1.21.90",
+    "minecraft:item": {
+        "description": {
+            "identifier": "jsp:wand",
+            "menu_category": { "category": "items" }
+        },
+        "components": {
+            "jsp:item_recorder": { "power": 3 }
+        }
+    }
+}

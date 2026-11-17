@@ -1761,6 +1761,20 @@
             "reference": "docs/plans/script-api-host.md slice 10"
         }
     },
+    "scripting.commands": {
+        "bds-record:custom-command-errors": {
+            "kind": "defect",
+            "reason": "A custom command's argument that does not parse, and a command name the tree does not hold, fail with Brigadier's message on JSPrismarine, such as \"Expected integer at position 10\" and \"Unknown command at position 0\", where BDS words them \"Syntax error: Unexpected \\\"seven\\\": at \\\"jsp:count >>seven<<\\\"\". Every command that parses runs as on BDS, as the custom-commands scenario records.",
+            "reference": "docs/plans/script-api-host.md slice 11"
+        }
+    },
+    "scripting.components": {
+        "bds-record:custom-components": {
+            "kind": "defect",
+            "reason": "/setblock of the block already standing there counts one success on JSPrismarine, where BDS counts none. Every registration, error and hook, with its event, parameters and tick, matches BDS.",
+            "reference": "docs/plans/script-api-host.md slice 11"
+        }
+    },
     "scripting.engine": {},
     "scripting.entities": {
         "bds-record:entities": {
