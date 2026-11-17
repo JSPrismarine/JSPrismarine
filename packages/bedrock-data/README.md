@@ -58,7 +58,7 @@ captured data. Set `JSP_JAVA_SERVER_JAR` to use an existing inner jar, or run
 `pnpm run dump:bedrock` is the other half of the same capture-time task, run on a Bedrock
 version bump and weekly rather than as part of the build. It copies the fetched server into
 `node_modules/.cache/jsprismarine/bds-run/<version>/`, makes the binary executable, turns the
-content log on, and drives four passes over the console, each with a world of its own:
+content log on, and drives these passes over the console, each with a world of its own:
 
 | Pass       | What it does                                                                       | What it writes                                                                     |
 | ---------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -66,6 +66,7 @@ content log on, and drives four passes over the console, each with a world of it
 | `refworld` | Generates the reference region through ticking areas, then reduces the saved world | `src/jsp/v<protocol>/reference_world.json`                                         |
 | `packets`  | Logs a client in and records what the server sends it                              | `src/jsp/v<protocol>/*.json`, `*.nbt`, `packets/*.bin`                             |
 | `palette`  | Places every block type, then asks the game which values each property takes       | `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json`               |
+| `commands` | Types probe command lines at the console and records the server's answer to each   | `src/jsp/v<protocol>/command_answers.json`                                         |
 
 Run one pass with `--pass`, and pass `--force` to copy the server again:
 
@@ -79,7 +80,7 @@ Mojang publishes the server for Linux x86-64 and Windows, and `sources.json` pin
 On a Linux x86-64 machine `dump:bedrock` starts that binary directly, which is also what
 `.github/workflows/capture.yml` does on its `ubuntu-latest` runner. On any other host, an Apple
 Silicon Mac or a Linux arm64 box, it starts the same staged copy inside a Linux x86-64 container
-instead. You get the same four passes and the same files in the same places; only the thing that
+instead. You get the same passes and the same files in the same places; only the thing that
 executes the binary changes.
 
 The container path needs a container runtime whose daemon is running. The capture tries `docker`

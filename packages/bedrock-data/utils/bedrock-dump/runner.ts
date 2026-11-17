@@ -4,7 +4,7 @@
  * Mojang publishes Bedrock Dedicated Server as a Linux x86-64 ELF binary (and a Windows one
  * `sources.json` does not pin). The capture used to refuse every other host outright, which left
  * an Apple Silicon maintainer unable to refresh a golden or add a protocol version. A Linux
- * x86-64 container closes that gap: the same binary, the same four passes, the same files on the
+ * x86-64 container closes that gap: the same binary, the same passes, the same files on the
  * host, with the host's own CPU only when it can run the thing.
  *
  * Two decisions worth keeping in view.

@@ -7,7 +7,7 @@
  * counterpart; it writes `src/jsp/java/`, which tracks Java releases and is not keyed by
  * Bedrock protocol version.
  *
- * Four passes, each a fresh world in the same staged server:
+ * The passes, each a fresh world in the same staged server:
  *
  * - `dump` runs the dump behavior pack and writes one JSON file per Script API table into
  *   `src/jsp/v<protocol>/bedrock/`;
@@ -17,7 +17,9 @@
  * - `packets` logs a client in and records what the server sends every joining client, which
  *   is `packages/client/tools/capture-server-data.mjs`;
  * - `palette` runs the two halves of the block palette capture and writes
- *   `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json`.
+ *   `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json`;
+ * - `commands` types the lines in `commands.ts` at the console and records how the server
+ *   answers each, in `src/jsp/v<protocol>/command_answers.json`.
  *
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock
@@ -46,8 +48,10 @@ import { fileURLToPath } from 'node:url';
 
 import { bedrockServerPath } from '../fetch/bds.ts';
 import { bdsDescriptor, loadBdsData, selectBdsVersion } from '../fetch/manifest.ts';
-import { dumpArgs, selectPasses } from './cli.ts';
+import { PASSES, dumpArgs, selectPasses } from './cli.ts';
 import type { Pass } from './cli.ts';
+import { COMMAND_PROBES, readCommandAnswer } from './commands.ts';
+import type { CommandAnswer } from './commands.ts';
 import { describePending, sessionVerdict, VERIFY_INTERVAL_MS } from './completion.ts';
 import type { PendingChunk } from './completion.ts';
 import { hostNodeArgs } from './host.ts';
@@ -153,6 +157,9 @@ if (!existsSync(join(unpacked, 'bedrock_server'))) {
 const runRoot = join(cacheRoot, 'bds-run', bds.version);
 await mkdir(outDirectory, { recursive: true });
 
+/** `Pass 2 of 5`, read off the pass list so a new pass renumbers the rest. */
+const passLabel = (pass: Pass): string => `Pass ${PASSES.indexOf(pass) + 1} of ${PASSES.length}`;
+
 const writeJson = async (path: string, value: unknown, indent = 0): Promise<void> => {
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, `${JSON.stringify(value, undefined, indent)}\n`);
@@ -239,7 +246,7 @@ const capture = async (
 // ---------------------------------------------------------------------------
 
 const runDumpPass = async (): Promise<void> => {
-    console.log('Pass 1 of 4: the dump pack');
+    console.log(`${passLabel('dump')}: the dump pack`);
     const staged = await stageServer({
         unpacked,
         root: runRoot,
@@ -347,7 +354,7 @@ const generateReferenceRegion = async (staged: StagedServer): Promise<void> => {
 };
 
 const runReferenceWorldPass = async (): Promise<void> => {
-    console.log('Pass 2 of 4: the reference world');
+    console.log(`${passLabel('refworld')}: the reference world`);
     const staged = await stageServer({
         unpacked,
         root: runRoot,
@@ -389,7 +396,7 @@ const runReferenceWorldPass = async (): Promise<void> => {
  * writes the manifest per pass, so here they are just two calls.
  */
 const runPalettePass = async (): Promise<void> => {
-    console.log('Pass 4 of 4: the block palette');
+    console.log(`${passLabel('palette')}: the block palette`);
     const datagen = join(repositoryRoot, 'packages/minecraft/datagen');
     const scratch = join(runRoot, 'palette');
     await mkdir(scratch, { recursive: true });
@@ -463,7 +470,7 @@ const runPalettePass = async (): Promise<void> => {
 // ---------------------------------------------------------------------------
 
 const runPacketPass = async (): Promise<void> => {
-    console.log('Pass 3 of 4: the packet capture');
+    console.log(`${passLabel('packets')}: the packet capture`);
     const tool = join(repositoryRoot, 'packages/client/tools/capture-server-data.mjs');
     if (!existsSync(join(repositoryRoot, 'packages/client/dist/index.js'))) {
         throw new Error('The capture client is not built. Run `pnpm run build` first.');
@@ -514,6 +521,69 @@ const runPacketPass = async (): Promise<void> => {
 };
 
 // ---------------------------------------------------------------------------
+// Pass: how the console answers command lines
+// ---------------------------------------------------------------------------
+
+/** How long the console may take to answer one command line. */
+const ANSWER_TIMEOUT_MS = 30_000;
+
+/**
+ * Captures `command_answers.json`: each line in {@link COMMAND_PROBES} typed at the console, with
+ * the line the server answered it with. A flat world, since no probe needs terrain.
+ */
+const runCommandPass = async (): Promise<void> => {
+    console.log(`${passLabel('commands')}: the command answers`);
+    const staged = await stageServer({
+        unpacked,
+        root: runRoot,
+        force: false,
+        levelName: 'jsp-commands',
+        properties: { 'level-type': 'FLAT', 'view-distance': '4' }
+    });
+
+    const server = startServer({
+        ...launcher.launch(staged.root),
+        cwd: staged.root,
+        onLine: (line) => console.log(`  ${line}`)
+    });
+    const answers: CommandAnswer[] = [];
+    try {
+        await server.waitForLine((line) => line.includes(READY_LINE), 'the ready line', TIMEOUTS.boot);
+        // The server prints warning banners as `ERROR` lines just after the ready line. They are
+        // out by the time it answers `list`, so no probe mistakes one for its answer.
+        const warmUp = server.lines.length;
+        server.send('list');
+        await server.waitForLine(
+            (line) => line.includes('players online'),
+            'an answer to list',
+            ANSWER_TIMEOUT_MS * launcher.timeoutScale,
+            warmUp
+        );
+        for (const command of COMMAND_PROBES) {
+            const from = server.lines.length;
+            server.send(command);
+            const line = await server.waitForLine(
+                (candidate) => readCommandAnswer(command, candidate) !== undefined,
+                `an answer to ${command}`,
+                ANSWER_TIMEOUT_MS * launcher.timeoutScale,
+                from
+            );
+            const answer = readCommandAnswer(command, line);
+            if (answer !== undefined) answers.push(answer);
+        }
+    } finally {
+        await server.stop(TIMEOUTS.stop);
+        launcher.cleanup();
+    }
+
+    await writeJson(
+        join(outDirectory, 'command_answers.json'),
+        { server: pinnedServer.serverVersion, leading: 'console', answers },
+        4
+    );
+};
+
+// ---------------------------------------------------------------------------
 // The run
 // ---------------------------------------------------------------------------
 
@@ -521,7 +591,8 @@ const passes: Record<Pass, () => Promise<void>> = {
     dump: runDumpPass,
     refworld: runReferenceWorldPass,
     packets: runPacketPass,
-    palette: runPalettePass
+    palette: runPalettePass,
+    commands: runCommandPass
 };
 
 console.log(
