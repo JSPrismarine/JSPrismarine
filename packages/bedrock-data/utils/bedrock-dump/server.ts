@@ -14,7 +14,8 @@
  */
 import { spawn } from 'node:child_process';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
-import { chmod, cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { rmSync } from 'node:fs';
+import { chmod, cp, mkdir, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
 import { join } from 'node:path';
 
@@ -28,6 +29,58 @@ export const READY_LINE = 'Server started';
 const NOT_STAGED = new Set(['worlds', '.jsp-fetch.json']);
 
 const STAGE_MARKER = '.jsp-staged.json';
+
+/** Directory in a run directory holding one empty file per process using it, named by its id. */
+const USERS_DIRECTORY = '.jsp-in-use';
+
+/**
+ * What a staged copy was made from, as the staging marker records it.
+ *
+ * The archive's real path, not the path it was reached by: linked worktrees reach the shared cache
+ * through a link of their own (`scripts/share-worktree-cache.ts`), and a path that names the
+ * worktree would make each worktree take the other's copy for stale. The binary's size and
+ * modification time tell a re-extracted or replaced archive from the one the copy was made from.
+ */
+const stagingIdentity = async (unpacked: string): Promise<string> => {
+    const binary = await stat(join(unpacked, SERVER_BINARY)).catch(() => undefined);
+    return JSON.stringify({
+        unpacked: await realpath(unpacked),
+        binary: binary === undefined ? null : { size: binary.size, modified: binary.mtimeMs }
+    });
+};
+
+/** Whether a process with this id is running. */
+const isRunning = (pid: number): boolean => {
+    try {
+        process.kill(pid, 0);
+        return true;
+    } catch (error: unknown) {
+        // EPERM: the process exists but belongs to someone else.
+        return error instanceof Error && 'code' in error && error.code === 'EPERM';
+    }
+};
+
+/** The other running processes that staged a server in `root`. Entries of exited ones are skipped. */
+const otherUsers = async (root: string): Promise<number[]> => {
+    const entries = await readdir(join(root, USERS_DIRECTORY)).catch((): string[] => []);
+    return entries.map(Number).filter((pid) => Number.isInteger(pid) && pid !== process.pid && isRunning(pid));
+};
+
+/** Run directories this process registered in, removed from their user lists when it exits. */
+const registered = new Set<string>();
+
+/** Records this process as a user of `root` until it exits. */
+const registerUser = async (root: string): Promise<void> => {
+    await mkdir(join(root, USERS_DIRECTORY), { recursive: true });
+    await writeFile(join(root, USERS_DIRECTORY, String(process.pid)), '');
+    if (registered.size === 0) {
+        process.once('exit', () => {
+            for (const directory of registered)
+                rmSync(join(directory, USERS_DIRECTORY, String(process.pid)), { force: true });
+        });
+    }
+    registered.add(root);
+};
 
 /**
  * Properties every pass overrides, whatever else it sets.
@@ -123,8 +176,11 @@ export interface StageOptions {
  * properties for this pass.
  *
  * The copy is skipped when the run directory already holds one made from the same archive,
- * because it is 315 MB. The world directory is always recreated, so each pass starts from a
- * freshly generated world.
+ * because it is 315 MB, whichever worktree made it. The world directory is always recreated, so
+ * each pass starts from a freshly generated world.
+ *
+ * @throws Error when another running process staged a server in the same run directory. Its
+ *   capture may still be running there, and restaging would delete its server or its world.
  */
 export const stageServer = async (options: StageOptions): Promise<StagedServer> => {
     // StagedServer.transport tells the client how to dial, so an override would leave it wrong.
@@ -135,16 +191,27 @@ export const stageServer = async (options: StageOptions): Promise<StagedServer> 
     const root = options.root;
     const marker = join(root, STAGE_MARKER);
 
+    // Every pass deletes the world, and a stale copy is deleted whole, so a run directory another
+    // running process staged is left alone: wiping it would break the capture running there.
+    const users = await otherUsers(root);
+    if (users.length > 0) {
+        throw new Error(
+            `${root} is in use by process ${users.join(', ')}; wait for it to finish, or stage in another run directory`
+        );
+    }
+
+    const identity = await stagingIdentity(options.unpacked);
     const staged = await readFile(marker, 'utf8').catch(() => '');
-    if (options.force === true || staged.trim() !== options.unpacked) {
+    if (options.force === true || staged.trim() !== identity) {
         await rm(root, { recursive: true, force: true });
         await mkdir(root, { recursive: true });
         for (const entry of await readdir(options.unpacked)) {
             if (NOT_STAGED.has(entry)) continue;
             await cp(join(options.unpacked, entry), join(root, entry), { recursive: true });
         }
-        await writeFile(marker, `${options.unpacked}\n`);
+        await writeFile(marker, `${identity}\n`);
     }
+    await registerUser(root);
 
     const binary = join(root, SERVER_BINARY);
     // The zip reader writes plain files, so the copy arrives without an execute bit.

@@ -1,5 +1,6 @@
 import { constants } from 'node:fs';
-import { access, chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { access, chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -122,6 +123,55 @@ describe('stageServer', () => {
         const second = await stageServer({ unpacked, root: join(workspace, 'run') });
         expect(await readFile(join(second.root, 'behavior_packs', 'marker'), 'utf8')).toBe('kept');
         await expect(stat(join(second.worldDirectory, 'level.dat'))).rejects.toThrow();
+    });
+
+    it('reuses a copy another worktree staged through its own link to the shared cache', async () => {
+        const unpacked = await fakeArchive(join(workspace, 'cache', 'unpacked'));
+        // Each linked worktree reaches the shared cache through a link of its own.
+        await symlink(join(workspace, 'cache'), join(workspace, 'worktree-a'));
+        await symlink(join(workspace, 'cache'), join(workspace, 'worktree-b'));
+        const root = join(workspace, 'run');
+
+        const first = await stageServer({ unpacked: join(workspace, 'worktree-a', 'unpacked'), root });
+        await writeFile(join(first.root, 'behavior_packs', 'marker'), 'kept');
+        await stageServer({ unpacked: join(workspace, 'worktree-b', 'unpacked'), root });
+
+        expect(unpacked).toBe(join(workspace, 'cache', 'unpacked'));
+        expect(await readFile(join(root, 'behavior_packs', 'marker'), 'utf8')).toBe('kept');
+    });
+
+    it('copies the archive again once its server binary changes', async () => {
+        const unpacked = await fakeArchive(join(workspace, 'unpacked'));
+        const root = join(workspace, 'run');
+        await stageServer({ unpacked, root });
+        await writeFile(join(root, 'behavior_packs', 'marker'), 'stale');
+
+        await writeFile(join(unpacked, 'bedrock_server'), '#!/bin/sh\necho newer\nexit 0\n');
+        await stageServer({ unpacked, root });
+
+        await expect(stat(join(root, 'behavior_packs', 'marker'))).rejects.toThrow();
+    });
+
+    it('leaves a run directory another running process staged alone', async () => {
+        const unpacked = await fakeArchive(join(workspace, 'unpacked'));
+        const root = join(workspace, 'run');
+        const staged = await stageServer({ unpacked, root });
+        await writeFile(join(staged.worldDirectory, 'level.dat'), 'in use');
+        // The parent process stands in for a capture another worktree runs here.
+        await writeFile(join(root, '.jsp-in-use', String(process.ppid)), '');
+
+        await expect(stageServer({ unpacked, root, force: true })).rejects.toThrow(String(process.ppid));
+        expect(await readFile(join(staged.worldDirectory, 'level.dat'), 'utf8')).toBe('in use');
+    });
+
+    it('ignores what a process that has exited left in the run directory', async () => {
+        const unpacked = await fakeArchive(join(workspace, 'unpacked'));
+        const root = join(workspace, 'run');
+        await stageServer({ unpacked, root });
+        const exited = spawnSync(process.execPath, ['-e', '']).pid;
+        await writeFile(join(root, '.jsp-in-use', String(exited)), '');
+
+        await expect(stageServer({ unpacked, root })).resolves.toMatchObject({ root });
     });
 });
 
