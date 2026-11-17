@@ -47,6 +47,15 @@ export const SCRIPT_FORM_TITLE = 'client-e2e form';
  */
 export const SCRIPT_FORM_MESSAGE = 'client-e2e script: the form answer is ';
 
+/** The custom command the client e2e script pack registers in `startup`. */
+export const SCRIPT_COMMAND = 'e2e:greet';
+
+/**
+ * What the client e2e script pack's custom command answers its sender, followed by the word the
+ * sender passed and the type of the entity that ran it.
+ */
+export const SCRIPT_COMMAND_MESSAGE = 'client-e2e command: greeted ';
+
 /** How far east, in blocks, the client e2e script pack teleports every player when it thunders. */
 export const SCRIPT_TELEPORT_DISTANCE = 12;
 
@@ -494,8 +503,23 @@ export const startServer = async (
     fs.writeFileSync(
         path.join(scriptPack, 'scripts', 'main.js'),
         [
-            "import { world } from '@minecraft/server';",
+            "import { CommandPermissionLevel, CustomCommandParamType, CustomCommandStatus, system, world } from '@minecraft/server';",
             "import { ActionFormData } from '@minecraft/server-ui';",
+            '',
+            'system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {',
+            '    customCommandRegistry.registerCommand(',
+            '        {',
+            `            name: '${SCRIPT_COMMAND}',`,
+            "            description: 'Greets whoever runs it',",
+            '            permissionLevel: CommandPermissionLevel.Any,',
+            "            mandatoryParameters: [{ name: 'word', type: CustomCommandParamType.String }]",
+            '        },',
+            '        (origin, word) => ({',
+            '            status: CustomCommandStatus.Success,',
+            `            message: \`${SCRIPT_COMMAND_MESSAGE}\${word} by \${origin.sourceEntity?.typeId}\``,
+            '        })',
+            '    );',
+            '});',
             '',
             'world.afterEvents.weatherChange.subscribe((event) => {',
             `    world.sendMessage(\`${SCRIPT_WEATHER_MESSAGE}\${event.newWeather}\`);`,

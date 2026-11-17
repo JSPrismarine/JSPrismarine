@@ -65,6 +65,22 @@ export const TAG = {
     identity: 17,
     /** A score as `getScores` read it; its state names the participant and the score. */
     scoreInfo: 18,
+    /** `StartupEvent.customCommandRegistry`. */
+    customCommandRegistry: 19,
+    /** The block component registry of `startup` or `worldInitialize`. */
+    blockComponentRegistry: 20,
+    /** The item component registry of `startup` or `worldInitialize`. */
+    itemComponentRegistry: 21,
+    /** Who ran a custom command; its state is a `ScriptCommandOrigin`. */
+    commandOrigin: 22,
+    /** An entity type; its state is the type's id. */
+    entityType: 23,
+    /** An item type; its state is the type's id. */
+    itemType: 24,
+    /** A custom component hook's event; its state is the event the world raised. */
+    componentEvent: 25,
+    /** The parameters a block or item gives a custom component; its state is their JSON, empty for none. */
+    componentParameters: 26,
     /** A signal's tag is this plus its index in the signal list. */
     signal: 100
 } as const;

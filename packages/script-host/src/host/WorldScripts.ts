@@ -37,6 +37,8 @@ import { ScriptHandle } from '../values';
 import { scanCoverage } from './coverage';
 import type { GameTestCall, GameTestReply } from './gametest';
 import { GAMETEST, GameTests } from './gametest';
+import type { ComponentKind } from './customContent';
+import { CustomContent } from './customContent';
 import { installInputsSource, randomState } from './inputs';
 import type { EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { serverImplementations } from './minecraftServer';
@@ -50,8 +52,24 @@ import type { ScriptConfig, ScriptPack } from './pack';
 import { packLabel, packScripts, readPackBytes, readPackFile } from './pack';
 import { PackForms, SERVER_UI } from './PackForms';
 import { ScriptForms } from './ScriptForms';
+import { hookEventOf } from './serverCustom';
 import { TaskQueue } from './tasks';
-import type { ChatSendIntent, ScriptWorld, ScriptWorldEvent, VetoVerdict, WeatherChangeIntent } from './world';
+import type {
+    ChatSendIntent,
+    ScriptBlockHook,
+    ScriptBlockHookEvent,
+    ScriptCommandArgument,
+    ScriptCommandOrigin,
+    ScriptCommandOutcome,
+    ScriptComponentSink,
+    ScriptComponentUse,
+    ScriptItemHook,
+    ScriptItemHookEvent,
+    ScriptWorld,
+    ScriptWorldEvent,
+    VetoVerdict,
+    WeatherChangeIntent
+} from './world';
 
 /** A `/gametest` subcommand, as BDS's command takes them. */
 export type GameTestCommand =
@@ -181,8 +199,22 @@ interface TaskCallback {
     readonly callback: ScriptHandle;
 }
 
-/** An after-event waiting for the flush: one the lifecycle queued, or one the world committed. */
-type AfterEvent = { readonly type: 'worldLoad' } | { readonly type: 'worldInitialize' } | ScriptWorldEvent;
+/**
+ * An after-event waiting for the flush: one the lifecycle queued, one the world committed, or a
+ * custom component hook the world raised.
+ */
+type AfterEvent =
+    | { readonly type: 'worldLoad' }
+    | { readonly type: 'worldInitialize' }
+    | { readonly type: 'blockHook'; readonly event: ScriptBlockHookEvent }
+    | { readonly type: 'itemHook'; readonly event: ScriptItemHookEvent }
+    | ScriptWorldEvent;
+
+/** The hooks a block naming a component in `minecraft:custom_components` does not get on BDS. */
+const LEGACY_SKIPPED_HOOKS: ReadonlySet<string> = new Set(['onBreak']);
+
+/** The block hooks a script can cancel, which run at once rather than in the flush. */
+const BEFORE_HOOKS: ReadonlySet<string> = new Set<ScriptBlockHook>(['beforeOnPlayerPlace']);
 
 /** What a script's `import()` of a native module the manifest does not declare rejects with on BDS. */
 const unrecognized = (name: string): ReferenceError =>
@@ -227,6 +259,12 @@ export class WorldScripts {
     private readonly gametests: GameTests<LoadedPack>;
     /** The ids of the simulated players GameTests spawned, whose objects are `SimulatedPlayer`s. */
     private readonly simulated = new Set<string>();
+    /** The custom commands and components the packs registered, which a reload replaces. */
+    private custom: CustomContent<LoadedPack>;
+    /** Which lifecycle event lets packs register custom content now, if any. */
+    private registering: 'startup' | 'worldInitialize' | undefined;
+    /** Takes the custom commands and the component sink off the world, before a reload or a shutdown. */
+    private releaseCustom: (() => void)[] = [];
 
     public constructor(options: WorldScriptsOptions) {
         this.options = options;
@@ -242,6 +280,7 @@ export class WorldScripts {
                 this.loaded.map((each) => readPackBytes(each.pack, path)).find((bytes) => bytes !== undefined),
             free: (handle) => this.engine.free(handle)
         });
+        this.custom = new CustomContent(this.engine);
     }
 
     /**
@@ -299,10 +338,16 @@ export class WorldScripts {
         this.withPrivilege('early_execution', () => {
             for (const loaded of early) this.evaluateEntry(loaded);
             for (const loaded of early) this.runJobs(loaded);
-            this.dispatch('StartupBeforeEventSignal', 'early_execution', (loaded) =>
-                this.create(loaded, 'StartupEvent', 0)
-            );
+            this.registering = 'startup';
+            try {
+                this.dispatch('StartupBeforeEventSignal', 'early_execution', (loaded) =>
+                    this.create(loaded, 'StartupEvent', 0)
+                );
+            } finally {
+                this.registering = undefined;
+            }
         });
+        this.commitCommands();
     }
 
     /**
@@ -314,9 +359,15 @@ export class WorldScripts {
         this.refreshClock();
         const late = this.loadPacks(1);
         for (const loaded of late) this.evaluateEntry(loaded);
-        this.dispatch('WorldInitializeBeforeEventSignal', 'restricted_execution', (loaded) =>
-            this.create(loaded, 'WorldInitializeBeforeEvent', 0)
-        );
+        this.registering = 'worldInitialize';
+        try {
+            this.dispatch('WorldInitializeBeforeEventSignal', 'restricted_execution', (loaded) =>
+                this.create(loaded, 'WorldInitializeBeforeEvent', 0)
+            );
+        } finally {
+            this.registering = undefined;
+        }
+        this.bindComponents();
         this.lifecycleEvents.push({ type: 'worldLoad' }, { type: 'worldInitialize' });
     }
 
@@ -378,6 +429,7 @@ export class WorldScripts {
         this.teardown();
         this.stopped = false;
         this.engine = this.createEngine();
+        this.custom = new CustomContent(this.engine);
         this.startEarly();
         this.startWorld();
     }
@@ -426,6 +478,8 @@ export class WorldScripts {
             );
         }
         this.stopped = true;
+        for (const release of this.releaseCustom.splice(0)) release();
+        this.custom.free();
         for (const task of this.tasks.drain()) this.engine.free(task.callback.callback);
         this.tasks = new TaskQueue();
         for (const subscription of this.subscriptions) this.engine.free(subscription.callback);
@@ -515,7 +569,12 @@ export class WorldScripts {
             instance: (className, tag, state) => this.instance(self(), className, tag, state),
             entity: (key) => this.entityObject(self(), key),
             create: (className, tag, state) => this.create(self(), className, tag, state),
-            eventData: (tag) => this.events.get(tag)
+            eventData: (tag) => this.events.get(tag),
+            custom: this.custom.forPack(
+                () => self(),
+                shapes.find((shape) => shape.module === SERVER_MODULE),
+                () => this.registering === (lifecycle === 2 ? 'startup' : 'worldInitialize')
+            )
         } satisfies PackHost);
         // Made in the pack's context, so the API's classes and errors belong to the pack's realm
         // and no two packs share a prototype.
@@ -763,6 +822,10 @@ export class WorldScripts {
                 message: event.message,
                 sender: event.sender
             });
+        } else if (event.type === 'blockHook') {
+            this.runBlockHook(event.event);
+        } else if (event.type === 'itemHook') {
+            this.runItemHook(event.event);
         } else if (event.type === 'scriptEvent') {
             const source = event.sourceEntity === undefined ? undefined : this.options.world.entity(event.sourceEntity);
             this.dispatchWith('ScriptEventCommandMessageAfterEventSignal', 'ScriptEventCommandMessageAfterEvent', {
@@ -961,16 +1024,234 @@ export class WorldScripts {
         });
     }
 
-    /** Calls one script callback under a privilege, logging what it throws. */
-    private invoke(loaded: LoadedPack, callback: ScriptHandle, privilege: Privilege, args: ScriptValue[]): void {
+    /**
+     * Calls one script callback under a privilege, logging what it throws.
+     * @param self - The callback's `this`, such as the custom component a hook belongs to.
+     */
+    private invoke(
+        loaded: LoadedPack,
+        callback: ScriptHandle,
+        privilege: Privilege,
+        args: ScriptValue[],
+        self?: ScriptHandle
+    ): void {
         this.tickEntries++;
         this.lastEntered = loaded;
         this.withPrivilege(privilege, () =>
             this.guarded(loaded, () => {
-                const result = this.engine.call(callback, undefined, ...args);
+                const result = this.engine.call(callback, self, ...args);
                 if (result instanceof ScriptHandle) this.engine.free(result);
             })
         );
+    }
+
+    /**
+     * Puts the custom commands the packs registered in `startup` into the world's command tree.
+     * BDS registers them after `startup`, and logs and drops one whose name has an upper-case
+     * letter, which the registration itself accepted.
+     */
+    private commitCommands(): void {
+        const { commands, enums } = this.custom.commandList();
+        const kept = commands.filter((command) => {
+            if (command.name === command.name.toLowerCase()) return true;
+            const alias = command.name.slice(command.name.indexOf(':') + 1);
+            for (const prefix of [`<${command.name}>`, `<${command.name}> Alias <${alias}>`]) {
+                this.options.log.error(
+                    `[Commands] Register Command ${prefix} | Keywords in commands need to be lower case. '${command.name}' was not registered.`
+                );
+            }
+            return false;
+        });
+        if (kept.length === 0) return;
+        const release = this.options.world.registerCommands?.({
+            commands: kept,
+            enums,
+            run: (name, origin, args) => this.runCustomCommand(name, origin, args)
+        });
+        if (release !== undefined) this.releaseCustom.push(release);
+    }
+
+    /**
+     * Runs a custom command's callback in restricted execution, as the command runs. A callback
+     * that throws fails the command with its error's message, after the content log has it.
+     */
+    private runCustomCommand(
+        name: string,
+        origin: ScriptCommandOrigin,
+        args: readonly ScriptCommandArgument[]
+    ): ScriptCommandOutcome {
+        const registered = this.custom.command(name);
+        if (registered === undefined || this.stopped) return { status: 'failure' };
+        const loaded = registered.owner;
+        const engine = this.engine;
+        this.refreshClock();
+        let outcome: ScriptCommandOutcome = { status: 'success' };
+        const made: ScriptHandle[] = [];
+        const values: ScriptValue[] = [];
+        try {
+            engine.inContext(loaded.context, () => {
+                for (const value of [
+                    this.create(loaded, 'CustomCommandOrigin', TAG.commandOrigin, JSON.stringify(origin)),
+                    ...args.map((arg) => this.commandArgument(loaded, arg))
+                ]) {
+                    if (value instanceof ScriptHandle) made.push(value);
+                    values.push(value);
+                }
+            });
+            this.tickEntries++;
+            this.lastEntered = loaded;
+            this.withPrivilege('restricted_execution', () =>
+                this.guarded(
+                    loaded,
+                    () => {
+                        const result = engine.call(registered.callback, undefined, ...values);
+                        if (!(result instanceof ScriptHandle)) return;
+                        try {
+                            const status = engine.get(result, 'status');
+                            const message = engine.get(result, 'message');
+                            outcome = {
+                                status: status === 1 ? 'failure' : 'success',
+                                ...(typeof message === 'string' ? { message } : {})
+                            };
+                        } finally {
+                            engine.free(result);
+                        }
+                    },
+                    (message) => {
+                        outcome = { status: 'failure', message };
+                    }
+                )
+            );
+        } finally {
+            for (const handle of made) engine.free(handle);
+        }
+        return outcome;
+    }
+
+    /** Makes the script value of an argument that is not a plain value, in the pack's realm. */
+    private commandArgument(loaded: LoadedPack, arg: ScriptCommandArgument): ScriptValue {
+        if (typeof arg !== 'object') return arg;
+        const engine = this.engine;
+        switch (arg.kind) {
+            case 'location': {
+                const { x, y, z } = arg.location;
+                return engine.evaluate(`({ x: ${x}, y: ${y}, z: ${z} })`);
+            }
+            case 'entities': {
+                const list = engine.evaluate('(...entities) => entities');
+                if (!(list instanceof ScriptHandle)) return null;
+                try {
+                    return engine.call(
+                        list,
+                        undefined,
+                        ...arg.entities.map((entity) => this.entityObject(loaded, entity))
+                    );
+                } finally {
+                    engine.free(list);
+                }
+            }
+            case 'entityType':
+                return this.create(loaded, 'EntityType', TAG.entityType, arg.id);
+            case 'itemType':
+                return this.create(loaded, 'ItemType', TAG.itemType, arg.id);
+            case 'blockType':
+                return this.create(loaded, 'BlockType', TAG.blockType, arg.id);
+        }
+    }
+
+    /**
+     * Sends the world's custom component hooks to the packs, once every lifecycle has had its
+     * chance to register components.
+     */
+    private bindComponents(): void {
+        if (!this.custom.hasComponents()) return;
+        const sink: ScriptComponentSink = {
+            handlesBlock: (components, hook) => this.handles('block', components, hook),
+            handlesItem: (components, hook) => this.handles('item', components, hook),
+            block: (event) => {
+                if (this.stopped || !this.handles('block', event.components, event.hook)) return false;
+                if (BEFORE_HOOKS.has(event.hook)) {
+                    this.refreshClock();
+                    return this.runBlockHook(event);
+                }
+                this.lifecycleEvents.push({ type: 'blockHook', event });
+                return false;
+            },
+            item: (event) => {
+                if (this.stopped || !this.handles('item', event.components, event.hook)) return;
+                this.lifecycleEvents.push({ type: 'itemHook', event });
+            }
+        };
+        const release = this.options.world.bindComponents?.(sink);
+        if (release !== undefined) this.releaseCustom.push(release);
+    }
+
+    /** Whether a pack registered one of the components with the hook. */
+    private handles(
+        kind: ComponentKind,
+        components: readonly ScriptComponentUse[],
+        hook: ScriptBlockHook | ScriptItemHook
+    ): boolean {
+        return components.some((use) => {
+            if (use.legacy === true && LEGACY_SKIPPED_HOOKS.has(hook)) return false;
+            return this.custom.component(kind, use.name)?.hooks.has(hook) === true;
+        });
+    }
+
+    /**
+     * Runs a block hook of each component the block names that has it, in the order the block
+     * names them, each with its own event and parameters.
+     * @returns Whether a before-hook's script canceled the action.
+     */
+    private runBlockHook(event: ScriptBlockHookEvent): boolean {
+        return this.runHook('block', event.components, event.hook, event);
+    }
+
+    /** Runs an item hook of each component the item names that has it. */
+    private runItemHook(event: ScriptItemHookEvent): void {
+        this.runHook('item', event.components, event.hook, event);
+    }
+
+    private runHook(
+        kind: ComponentKind,
+        components: readonly ScriptComponentUse[],
+        hook: ScriptBlockHook | ScriptItemHook,
+        event: ScriptBlockHookEvent | ScriptItemHookEvent
+    ): boolean {
+        const before = BEFORE_HOOKS.has(hook);
+        let canceled = false;
+        for (const use of components) {
+            if (use.legacy === true && LEGACY_SKIPPED_HOOKS.has(hook)) continue;
+            const registered = this.custom.component(kind, use.name);
+            const callback = registered?.hooks.get(hook);
+            const eventClass = registered?.eventClasses.get(hook);
+            if (registered === undefined || callback === undefined || eventClass === undefined) continue;
+            const loaded = registered.owner;
+            const made = this.create(loaded, eventClass, TAG.componentEvent, JSON.stringify(event));
+            const parameters = this.create(
+                loaded,
+                'CustomComponentParameters',
+                TAG.componentParameters,
+                use.legacy === true ? '' : JSON.stringify(use.params ?? {})
+            );
+            try {
+                this.invoke(
+                    loaded,
+                    callback,
+                    before ? 'restricted_execution' : 'default',
+                    [made, parameters],
+                    registered.component
+                );
+                if (before) {
+                    const state = loaded.api.identify(made)?.state;
+                    canceled ||= state !== undefined && state !== '' && hookEventOf(state).cancel === true;
+                }
+            } finally {
+                this.engine.free(made);
+                this.engine.free(parameters);
+            }
+        }
+        return canceled;
     }
 
     private withPrivilege<Result>(privilege: Privilege, run: () => Result): Result {
@@ -983,8 +1264,11 @@ export class WorldScripts {
         }
     }
 
-    /** Runs one entry into the engine for a pack, and reports what went wrong as BDS does. */
-    private guarded(loaded: LoadedPack, run: () => void): void {
+    /**
+     * Runs one entry into the engine for a pack, and reports what went wrong as BDS does.
+     * @param failed - Told the message of an error the script threw, after the content log has it.
+     */
+    private guarded(loaded: LoadedPack, run: () => void, failed?: (message: string) => void): void {
         if (this.stopped) return;
         const overflows = this.engine.stats().stackOverflows;
         try {
@@ -1000,6 +1284,7 @@ export class WorldScripts {
                 this.options.log.error(
                     `[Scripting] [${loaded.pack.name}] ${error.message}${stack === '' ? '' : `    ${stack}`}`
                 );
+                failed?.(error.scriptMessage);
             } else {
                 throw error;
             }

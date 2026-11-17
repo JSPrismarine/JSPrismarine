@@ -496,6 +496,35 @@ declares the module gets a `SimulatedPlayer` object for it. Its `chat`, moves, j
 attacks and item uses reach the world as `SimulatedPlayerAction`s, and `simulatedPlayers.tick`
 moves it once per flush.
 
+### Custom commands and components
+
+A version 2 pack registers custom commands, command enums and custom components in
+`system.beforeEvents.startup`, through the event's `customCommandRegistry`,
+`blockComponentRegistry` and `itemComponentRegistry`. A version 1 pack registers components in
+`world.beforeEvents.worldInitialize`. `src/host/customContent.ts` checks each registration as BDS
+does, and the `custom-commands` and `custom-components` scenarios of the parity suite record BDS's
+errors: a name needs a namespace other than `minecraft`, a name registers once, an `Enum`
+parameter needs its enum registered first, and a registration outside `startup` throws
+`CustomCommandError` or `CustomComponentInvalidRegistryError`. A component's hooks are read when it
+registers, and a hook that is not a function throws BDS's conversion error.
+
+- **Commands.** After `startup` the runtime hands the world its commands through
+  `ScriptWorld.registerCommands`, with their parameters, permission levels, `cheatsRequired` and
+  enums, and logs and leaves out a command whose name has an upper-case letter, as BDS does. The
+  world parses a command's arguments and calls the set's `run`, which runs the callback in
+  restricted execution with a `CustomCommandOrigin` and the arguments, and answers its
+  `CustomCommandResult`. A callback that throws fails the command with the error's message, after
+  the content log has it. A reload takes the commands out and registers the new ones.
+- **Components.** Once every lifecycle has had its chance to register, the runtime binds a
+  `ScriptComponentSink` through `ScriptWorld.bindComponents`. The world names, for each hook, the
+  components the block or item names, each with the parameters its pack JSON gives it, and the
+  sink runs the hook of every registered component that has it, in that order, with an event of
+  the class the pack's own `@minecraft/server` version gives the hook and a
+  `CustomComponentParameters`. `beforeOnPlayerPlace` runs at once, in restricted execution, and its
+  `cancel` refuses the placement. Every other hook waits for the script flush, where BDS ran it.
+  A block that names a component in `minecraft:custom_components` gets no parameters and no
+  `onBreak`, as on BDS.
+
 ## Building it
 
 The package is private, and not published to npm, until each platform has a prebuilt library that
