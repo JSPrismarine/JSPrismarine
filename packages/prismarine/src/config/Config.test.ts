@@ -4,6 +4,8 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Difficulty, Gametype, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { DEFAULT_DEBUGGER_PORT } from '@jsprismarine/script-host/debugger/protocol';
+import { DEFAULT_LISTEN_ADDRESS } from '@jsprismarine/script-host/debugger/transport';
 import pkg from '../../package.json' with { type: 'json' };
 import { Config, toPacketCompressionLevel, toPacketCompressionThreshold } from './Config';
 import { parseConfigDocument } from './ConfigDocument';
@@ -336,6 +338,64 @@ describe('config', () => {
             const reread = new Config();
             await reread.enable();
             expect(reread.getQueryPort()).toBe(25565);
+        });
+
+        it("keeps the script debugger off with BDS's defaults, and writes none of its keys to a fresh file", () => {
+            const text = readFileSync(path.join(configDirectory, 'config.json'), 'utf8');
+
+            expect(config.getScriptDebugger()).toStrictEqual({
+                allowInbound: false,
+                allowOutbound: false,
+                listenPort: DEFAULT_DEBUGGER_PORT,
+                portForced: false,
+                listenAddress: DEFAULT_LISTEN_ADDRESS,
+                autoAttach: 'disabled',
+                autoAttachConnectAddress: '',
+                autoAttachTimeout: 0,
+                passcode: ''
+            });
+            expect(text).not.toMatch(/script-debug|debug-port/);
+        });
+
+        it("reads the script debugger's settings under BDS's names", async () => {
+            writeFileSync(
+                path.join(configDirectory, 'config.json'),
+                JSON.stringify({
+                    'allow-inbound-script-debugging': true,
+                    'allow-outbound-script-debugging': true,
+                    'force-inbound-debug-port': 19200,
+                    'script-debugger-listen-address': '0.0.0.0',
+                    'script-debugger-auto-attach': 'connect',
+                    'script-debugger-auto-attach-connect-address': 'localhost:19300',
+                    'script-debugger-auto-attach-timeout': 5,
+                    'script-debugger-passcode': 'hunter2'
+                })
+            );
+            const reread = new Config();
+            await reread.enable();
+
+            expect(reread.getScriptDebugger()).toStrictEqual({
+                allowInbound: true,
+                allowOutbound: true,
+                listenPort: 19200,
+                portForced: true,
+                listenAddress: '0.0.0.0',
+                autoAttach: 'connect',
+                autoAttachConnectAddress: 'localhost:19300',
+                autoAttachTimeout: 5,
+                passcode: 'hunter2'
+            });
+        });
+
+        it('leaves auto-attach disabled for a mode BDS does not have', async () => {
+            writeFileSync(
+                path.join(configDirectory, 'config.json'),
+                JSON.stringify({ 'script-debugger-auto-attach': 'always' })
+            );
+            const reread = new Config();
+            await reread.enable();
+
+            expect(reread.getScriptDebugger().autoAttach).toBe('disabled');
         });
 
         it('keeps query on the game socket when the server port is overridden, and writes no query port', async () => {
