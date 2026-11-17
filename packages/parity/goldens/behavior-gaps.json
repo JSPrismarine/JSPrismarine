@@ -447,11 +447,6 @@
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
             "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
         },
-        "java-rule-lava_movement:minecraft:strider": {
-            "kind": "defect",
-            "reason": "A strider walks across a lava pool on its surface as it walks on land, and wanders about on it by its own goals, since Java floats it from Strider.tick rather than from a goal that holds it still. Observed: left on the lava for 600 ticks it wanders 0.00 blocks, where Java's RandomStrollGoal walks it about.",
-            "reference": "Java Strider.canStandOnFluid (lava), StriderPathNavigation, which paths over lava, Strider.floatStrider, called from Strider.tick, and the RandomStrollGoal Strider.registerGoals adds"
-        },
         "jump-apex:minecraft:dolphin": {
             "kind": "intentional",
             "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
