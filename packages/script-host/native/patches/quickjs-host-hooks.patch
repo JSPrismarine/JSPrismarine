@@ -98,7 +98,40 @@
  void JS_SetCanBlock(JSRuntime *rt, BOOL can_block)
  {
      rt->can_block = can_block;
-@@ -7788,6 +7815,7 @@
+@@ -2336,6 +2363,32 @@
+     return ret;
+ }
+ 
++/* JSPrismarine: JS_ExecutePendingJob for the first pending job whose realm
++   is `realm`, leaving the jobs of other contexts in their order */
++int JS_ExecutePendingJobOf(JSRuntime *rt, JSContext *realm)
++{
++    struct list_head *el;
++    JSJobEntry *e;
++    JSValue res;
++    int i, ret;
++
++    list_for_each(el, &rt->job_list) {
++        e = list_entry(el, JSJobEntry, link);
++        if (e->realm != realm)
++            continue;
++        list_del(&e->link);
++        res = e->job_func(realm, e->argc, (JSValueConst *)e->argv);
++        for(i = 0; i < e->argc; i++)
++            JS_FreeValue(realm, e->argv[i]);
++        ret = JS_IsException(res) ? -1 : 1;
++        JS_FreeValue(realm, res);
++        js_free(realm, e);
++        JS_FreeContext(realm);
++        return ret;
++    }
++    return 0;
++}
++
+ static inline uint32_t atom_get_free(const JSAtomStruct *p)
+ {
+     return (uintptr_t)p >> 1;
+@@ -7788,6 +7841,7 @@
  
  static JSValue JS_ThrowStackOverflow(JSContext *ctx)
  {
@@ -106,7 +139,7 @@
      return JS_ThrowInternalError(ctx, "stack overflow");
  }
  
-@@ -40886,6 +40914,67 @@
+@@ -40886,6 +40940,67 @@
      return res;
  }
  
@@ -174,7 +207,7 @@
  static const JSCFunctionListEntry js_object_funcs[] = {
      JS_CFUNC_DEF("create", 2, js_object_create ),
      JS_CFUNC_MAGIC_DEF("getPrototypeOf", 1, js_object_getPrototypeOf, 0 ),
-@@ -40943,6 +41032,9 @@
+@@ -40943,6 +41058,9 @@
      JSValue s, proto, obj = JS_UNDEFINED;
      StringBuffer b_s, *b = &b_s;
  
@@ -184,7 +217,7 @@
      string_buffer_init(ctx, b, 0);
      string_buffer_putc8(b, '(');
  
-@@ -47396,6 +47488,12 @@
+@@ -47396,6 +47514,12 @@
      bad_flags1:
          return JS_ThrowSyntaxError(ctx, "invalid regular expression flags");
      }
@@ -199,7 +232,7 @@
      if (!str)
 --- a/quickjs.h
 +++ b/quickjs.h
-@@ -924,6 +924,22 @@
+@@ -924,6 +924,26 @@
  /* return != 0 if the JS code needs to be interrupted */
  typedef int JSInterruptHandler(JSRuntime *rt, void *opaque);
  void JS_SetInterruptHandler(JSRuntime *rt, JSInterruptHandler *cb, void *opaque);
@@ -219,6 +252,10 @@
 +/* JSPrismarine: defines Object.__getClass and String.prototype.__quote,
 +   which older releases had; returns -1 on an exception */
 +int JS_AddLegacyMembers(JSContext *ctx);
++/* JSPrismarine: runs the first pending job of one context, leaving the
++   others' jobs in order; returns 0 when that context has none, 1 when the job
++   ran and -1 when it threw */
++int JS_ExecutePendingJobOf(JSRuntime *rt, JSContext *realm);
  /* if can_block is TRUE, Atomics.wait() can be used */
  void JS_SetCanBlock(JSRuntime *rt, JS_BOOL can_block);
  /* select which debug info is stripped from the compiled code */

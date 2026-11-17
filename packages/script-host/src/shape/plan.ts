@@ -3,10 +3,13 @@
  * its members run, as JSON. The binding builds it from a module shape, with every type
  * reduced to what a check needs and every member given the id the host dispatches on.
  */
+import type { Privilege } from './format';
 
 /** A value check, from a member's metadata type. */
 export type RuntimeType =
-    | { readonly kind: 'any' | 'boolean' | 'string' | 'number' | 'undefined' | 'function' }
+    | { readonly kind: 'any' | 'boolean' | 'string' | 'number' | 'undefined' }
+    /** A closure; `signature` is how BDS's errors write its type, such as `() => void`. */
+    | { readonly kind: 'function'; readonly signature: string }
     | { readonly kind: 'instance' | 'enum'; readonly module: string; readonly name: string }
     /** An interface or a map: any object. */
     | { readonly kind: 'object'; readonly name: string }
@@ -87,4 +90,6 @@ export interface MemberEntry {
     readonly owner: string;
     readonly member: string;
     readonly access: 'call' | 'construct' | 'get' | 'set';
+    /** The privileges besides `default` that the member may run under, from its metadata. */
+    readonly privilege: readonly Privilege[];
 }

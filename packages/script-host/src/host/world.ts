@@ -1,0 +1,67 @@
+/**
+ * The world seam: what the script host reads and writes of the world its scripts run in.
+ *
+ * The server implements {@link ScriptWorld} for each world that runs scripts, and the host never
+ * imports a world class ([ADR 0020](../../../../docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md)).
+ * Everything crossing it is plain data: ids, strings and numbers
+ * ([ADR 0011](../../../../docs/adr/0011-a-world-exchanges-only-plain-data.md)). Reads go through
+ * getters and writes through the world's own setters. A before-event is a guard the host
+ * registers in an action's guard stage ([ADR 0013](../../../../docs/adr/0013-vetoable-actions-are-staged.md)),
+ * and an after-event is a change the world committed, which the host takes in the script flush
+ * at the end of the tick.
+ */
+
+/** The weather as the Script API's `WeatherType` names it. */
+export type ScriptWeather = 'Clear' | 'Rain' | 'Thunder';
+
+/** A weather change a script's before-event sees before the world commits it. */
+export interface WeatherChangeIntent {
+    /** The dimension, as Bedrock names it, such as `minecraft:overworld`. */
+    readonly dimension: string;
+    readonly previousWeather: ScriptWeather;
+    readonly newWeather: ScriptWeather;
+    /** How long the new weather lasts, in ticks. */
+    readonly duration: number;
+}
+
+/**
+ * What a guard decides: let the action go on, with the intent it may have replaced, or veto it.
+ */
+export type GuardVerdict<Intent> = { readonly veto: true } | { readonly veto: false; readonly intent: Intent };
+
+/** A guard in an action's guard stage. It reads the intent and writes nothing. */
+export type Guard<Intent> = (intent: Intent) => GuardVerdict<Intent>;
+
+/** A change the world committed, for an after-event. */
+export type ScriptWorldEvent = { readonly type: 'weatherChange' } & Omit<WeatherChangeIntent, 'duration'>;
+
+/** What the script host reads and writes of one world. */
+export interface ScriptWorld {
+    /** The world's dimensions, as Bedrock names them, such as `minecraft:overworld`. */
+    dimensions(): readonly string[];
+    /** The ids of the players in the world, in the order they joined. */
+    players(): readonly string[];
+    /** Puts a line of chat on the screen of every player in the world. */
+    sendMessage(message: string): void;
+    /** The weather of a dimension now. */
+    weather(dimension: string): ScriptWeather;
+    /**
+     * Changes a dimension's weather through the world's weather action: its guards run, and a
+     * change they let through is committed and taken as a `weatherChange` event later.
+     * @param duration - How long, in ticks.
+     */
+    setWeather(dimension: string, weather: ScriptWeather, duration: number): void;
+    /**
+     * Adds a guard to the weather action's guard stage.
+     * @returns A function that removes it.
+     */
+    guardWeather(guard: Guard<WeatherChangeIntent>): () => void;
+    /** The changes the world committed since the last call, in the order it committed them. */
+    takeEvents(): readonly ScriptWorldEvent[];
+    /**
+     * The wall clock as the input step admitted it for the current tick, in milliseconds since
+     * the epoch. `Date` reads this rather than the host's clock, so a replay sees the same dates
+     * ([ADR 0021](../../../../docs/adr/0021-the-script-watchdog-counts-steps.md)).
+     */
+    clock(): number;
+}

@@ -136,6 +136,76 @@ describe.skipIf(!scriptHostAvailable())('a script engine', () => {
         });
     });
 
+    describe('contexts', () => {
+        it('gives each context a global object of its own', () => {
+            const engine = create();
+            const second = engine.createContext();
+            engine.evaluate('globalThis.owner = "first"; Array.prototype.marked = true');
+
+            expect(engine.inContext(second, () => engine.evaluate('typeof owner + " " + typeof [].marked'))).toBe(
+                'undefined undefined'
+            );
+            expect(engine.evaluate('owner')).toBe('first');
+        });
+
+        it('runs the host function a script calls in that script’s context', () => {
+            const engine = create();
+            const second = engine.createContext();
+            engine.inContext(second, () => {
+                engine.evaluate('globalThis.owner = "second"');
+                engine.defineGlobalFunction('ownerOfCaller', () => engine.evaluate('owner'));
+            });
+            engine.evaluate('globalThis.owner = "first"');
+
+            expect(engine.inContext(second, () => engine.evaluate('ownerOfCaller()'))).toBe('second');
+        });
+
+        it("runs one context's promise jobs and leaves the others queued in their order", () => {
+            const engine = create();
+            const second = engine.createContext();
+            engine.evaluate('globalThis.log = []');
+            const log = engine.global();
+            engine.evaluate('Promise.resolve().then(() => log.push("first 1"))');
+            engine.inContext(second, () => {
+                engine.set(engine.global(), 'log', engine.get(log, 'log'));
+                engine.evaluate('Promise.resolve().then(() => log.push("second"))');
+            });
+            engine.evaluate('Promise.resolve().then(() => log.push("first 2"))');
+
+            expect(engine.runJobs(second)).toBe(1);
+            expect(engine.evaluate('log.join()')).toBe('second');
+            expect(engine.runJobs()).toBe(2);
+            expect(engine.evaluate('log.join()')).toBe('second,first 1,first 2');
+            engine.free(log);
+        });
+
+        it('loads a module from an object the host gives, telling the loader which context imports it', () => {
+            const contexts: number[] = [];
+            let exports: ScriptHandle | undefined;
+            const engine = create({
+                loadModule: (name, context) => {
+                    contexts.push(context);
+                    return name === 'host:values' ? exports : undefined;
+                }
+            });
+            const second = engine.createContext();
+            engine.inContext(second, () => {
+                const made = engine.evaluate('({ answer: 42, name: "values" })');
+                if (made instanceof ScriptHandle) exports = made;
+                engine.free(
+                    engine.evaluateModule(
+                        'main.js',
+                        'import { answer, name } from "host:values"; globalThis.read = answer + name;'
+                    )
+                );
+            });
+
+            expect(contexts).toEqual([second]);
+            expect(engine.inContext(second, () => engine.evaluate('read'))).toBe('42values');
+            if (exports !== undefined) engine.free(exports);
+        });
+    });
+
     describe('host calls', () => {
         it('returns a host function’s value to the script, one host call per call', () => {
             const engine = create();
