@@ -1,5 +1,38 @@
 # @jsprismarine/protocol
 
+## 0.22.0
+
+### Minor Changes
+
+- [#3111](https://github.com/JSPrismarine/JSPrismarine/pull/3111) [`5b27434`](https://github.com/JSPrismarine/JSPrismarine/commit/5b27434a78665edde9971cd72611551e45e64dae) Thanks [@filiphsps](https://github.com/filiphsps)! - Add the wire layouts of Minecraft Preview protocol 2259 (1.26.70.24). `ResourcePackStack.includeEditorPacks` is now `editorPackTypes`, a set of `EditorPackType` flags written as a byte from 2259 and as a boolean before it. `CommandBlockUpdate`, `StructureBlockUpdate` and `Transfer` payloads gain the fields 2259 appended (`lastOutputIsRawMessage`, `keepStructureVoid`, `transferSettings`), which read as their defaults at older protocols. `NetworkSettings` accepts an optional `sctpRecoveryProfile`. `PlaySoundPacket`, `CommandOutputMessage`, the `Text` body, `ServerJoinInformation` and `PassengerOfBlock` gain optional members for their 2259 fields. A field spec can now name its layout per protocol version with `versioned()`. The client can speak 2259, and its capture and bring-up tools take `--network`.
+
+- [#3111](https://github.com/JSPrismarine/JSPrismarine/pull/3111) [`96ac6ee`](https://github.com/JSPrismarine/JSPrismarine/commit/96ac6ee330cbb1d9a6c0148c8751871bf8a17b17) Thanks [@filiphsps](https://github.com/filiphsps)! - Add the seven packets Minecraft Preview protocol 2259 introduced: `ChatPacket`, `ServerboundRequestOnlineMusicPlaybackPacket`, `ClientboundOnlineMusicPlaybackResponsePacket`, `PlayerToggleArmorVisibilityRequestPacket`, `ClientboundMusicPlaybackFailurePacket`, `VirtualContainerOpenPacket` and `VirtualContainerClosePacket`. The data store packets carry 2259's variable-name records under `variableUpdates` and `variableUpdate`; `ServerboundDataStore.update` is now `null` from 2259. Attribute values gain a `String` alternative, which `ClientboundAttributeLayerSyncPacket` refuses to write before 2259.
+
+### Patch Changes
+
+- [`b3fa388`](https://github.com/JSPrismarine/JSPrismarine/commit/b3fa3886bf17dc1bd93f6d733eae384e0b664fbf) Thanks [@filiphsps](https://github.com/filiphsps)! - Mark every `AvailableCommandsPacket` overload that starts with one of its command's chained keywords as `isChaining`, not only the ones that end in a chained subcommand. `/execute run <command>` is now sent as chaining, the way a Bedrock Dedicated Server sends it.
+
+- [`49c8e60`](https://github.com/JSPrismarine/JSPrismarine/commit/49c8e60a1de3b304a78f2010a849ac9b2d5c6bd9) Thanks [@filiphsps](https://github.com/filiphsps)! - Give `CODEBUILDERARGS`, the command `/execute run` takes, the type id 90 a Bedrock Dedicated Server writes, not 92. `AvailableCommandsPacket` now decodes a real server's packet, which it rejected as carrying an unknown parse symbol.
+
+- [`bb1a6d8`](https://github.com/JSPrismarine/JSPrismarine/commit/bb1a6d8d827409951c56c2bc16302f5396e30042) Thanks [@filiphsps](https://github.com/filiphsps)! - Write an item's Bedrock tags as the `minecraft:tags` component as well as `item_tags` in `buildItemRegistry`, as the Bedrock Dedicated Server does whenever the list is not empty. A client reads that component to match a component-based item against a recipe's tag, so coal and charcoal were not `minecraft:coals` to it. The recipe book then hid the torch recipes and showed the wrong craftable state.
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`45aac79`](https://github.com/JSPrismarine/JSPrismarine/commit/45aac797b6835465fc0e91eb956a2cf778e424e3) Thanks [@filiphsps](https://github.com/filiphsps)! - Run a player's hunger by Java's `FoodData`. A fresh player starts on 5 saturation instead of 20. Exhaustion adds up to a cap of 40, and each tick spends 4 of it on one point of saturation or food once it is above 4, where it used to spend everything at once and at exactly 4. The player exhaustion attribute's maximum is now 40.
+
+- [#3111](https://github.com/JSPrismarine/JSPrismarine/pull/3111) [`c7c7e05`](https://github.com/JSPrismarine/JSPrismarine/commit/c7c7e05ce1dc2cc87c3a282b7e619ca10bfdfd9b) Thanks [@filiphsps](https://github.com/filiphsps)! - Support one Minecraft Preview protocol alongside the released ones. A `ProtocolVersionDefinition` and its codec can set `preview`, and `ProtocolCodecRegistry` gains `advertisedCodec`, the newest release. The registry refuses more than one preview, or a preview older than a release.
+
+- [#3111](https://github.com/JSPrismarine/JSPrismarine/pull/3111) [`2a6f360`](https://github.com/JSPrismarine/JSPrismarine/commit/2a6f3603f15c76f87935cd32142af6dff197127d) Thanks [@filiphsps](https://github.com/filiphsps)! - `readCapturedBlockState` reads a compound that has no `states` tag instead of throwing, and returns no states for it.
+
+- [#3111](https://github.com/JSPrismarine/JSPrismarine/pull/3111) [`ea15ac7`](https://github.com/JSPrismarine/JSPrismarine/commit/ea15ac79cd4c7fde87093c27e972bed763f1c2f1) Thanks [@filiphsps](https://github.com/filiphsps)! - A decoded packet now gets its own empty list for a field its protocol version leaves off the wire. Every decode used to return the same array, so pushing into one payload's list changed the next one.
+- Updated dependencies [[`51cd835`](https://github.com/JSPrismarine/JSPrismarine/commit/51cd8359d07faf342bb191fefd3d58303ddac488), [`b1b1871`](https://github.com/JSPrismarine/JSPrismarine/commit/b1b18714efe02837d35771b5198bd529a54b6403)]:
+  - @jsprismarine/blocks@0.22.0
+  - @jsprismarine/items@0.22.0
+  - @jsprismarine/minecraft@0.22.0
+  - @jsprismarine/recipes@0.22.0
+  - @jsprismarine/binaryutils@0.22.0
+  - @jsprismarine/content@0.22.0
+  - @jsprismarine/math@0.22.0
+  - @jsprismarine/nbt@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes

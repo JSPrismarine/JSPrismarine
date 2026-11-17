@@ -1,5 +1,11 @@
 # @jsprismarine/native-network
 
+## 0.22.0
+
+### Patch Changes
+
+- [`b79964d`](https://github.com/JSPrismarine/JSPrismarine/commit/b79964d727c920cba3537d26dae40a3d9a937c81) Thanks [@filiphsps](https://github.com/filiphsps)! - Record an executable's embedded library's digest beside the copy it extracts, as a local `build:native` records its build. An executable built from native sources the manifest does not publish yet refused the library embedded in it.
+
 ## 0.21.0
 
 ### Patch Changes

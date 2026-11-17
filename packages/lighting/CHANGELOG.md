@@ -1,5 +1,17 @@
 # @jsprismarine/lighting
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`2c9a6f6`](https://github.com/JSPrismarine/JSPrismarine/commit/2c9a6f6a1176fa27ac589de969a99158b3f21921) Thanks [@filiphsps](https://github.com/filiphsps)! - Remember the chunk column a light flood last looked up. Each flood node looked up its own column and its six neighbors' by a key wide enough to be a heap number, so a flood of 2292 nodes made 25879 lookups. It now makes fewer than one per node.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`3380424`](https://github.com/JSPrismarine/JSPrismarine/commit/338042415a3d9f52b77e863e9f6fa4763e7bd66b) Thanks [@filiphsps](https://github.com/filiphsps)! - Stop a chunk load's column scan below the column's height in sections whose palette emits no light. A column of stone was read block by block to the floor looking for light sources its section hints already ruled out.
+
+- [#3224](https://github.com/JSPrismarine/JSPrismarine/pull/3224) [`95e3a8c`](https://github.com/JSPrismarine/JSPrismarine/commit/95e3a8c0397fe10894f5e30537542f1218881646) Thanks [@enricoangelon](https://github.com/enricoangelon)! - Add `LightEngine.settleAround(chunkX, chunkZ, budget)`, which finishes the light of one chunk by running only the nodes queued in it and its eight neighbors. Light reaches fifteen blocks, so the chunk then holds the levels a full flush gives it, and the work does not depend on how much is queued elsewhere. The light queue keeps its nodes per chunk column so that call reads no other column, and `flush` now empties the column that has waited longest before it starts the next. A full flush reaches the same light as before.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`4f7ee39`](https://github.com/JSPrismarine/JSPrismarine/commit/4f7ee392a706362e915c52f144099278d3d2bbc7) Thanks [@filiphsps](https://github.com/filiphsps)! - Stop a light read from running every chunk's queued light flood. A random tick on a grass block read light, and the read flushed the whole light queue, so a tick after chunks loaded could run seconds of other chunks' floods. The light engine now counts its queued work by chunk: a read flushes only when its own chunk or a neighbor still has light queued, and a chunk whose light is still flooding is not random-ticked, as Java ticks a chunk only once its light is done.
+
 ## 0.21.0
 
 ### Patch Changes

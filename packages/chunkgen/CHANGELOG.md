@@ -1,5 +1,17 @@
 # @jsprismarine/chunkgen
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`0a2ea6c`](https://github.com/JSPrismarine/JSPrismarine/commit/0a2ea6cff0b5de9247af4a99e83a64b4db8b970e) Thanks [@filiphsps](https://github.com/filiphsps)! - Cut background generation only for stalls that more generation would make worse. `ConcurrencyGovernor` counts a stall once rather than once per tick the ticker runs to catch up, and with the new optional `utilization` signal and `busyUtilization` option (0.8 by default) it ignores a late tick while the server thread has mostly been waiting. The server passes the event loop's utilization over the last one to two seconds. The control group throttle signal is unchanged.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`56ba011`](https://github.com/JSPrismarine/JSPrismarine/commit/56ba011300f7eab7aa5a0b3c93ba4692d2a10ac4) Thanks [@filiphsps](https://github.com/filiphsps)! - Keep a generation worker clear of background work only while a player is waiting on a chunk. The governor used to reserve one worker permanently, so a server with two workers generated a moving player's surroundings on one of them. A generation pool now holds background work to one worker fewer than it has whenever an `immediate` task is running or waiting, and the governor may give the background every worker otherwise.
+
+- [#3109](https://github.com/JSPrismarine/JSPrismarine/pull/3109) [`b870aca`](https://github.com/JSPrismarine/JSPrismarine/commit/b870aca119ffc24f785455ac6a33093ed19e6d8d) Thanks [@filiphsps](https://github.com/filiphsps)! - Send each terrain tile to the generation host once. A feature task carried the nine terrain tiles around its chunk, about 1.8 MB, and its neighbors carried six of the same nine, all serialized on the server thread. `@jsprismarine/chunkgen/reusableInput` marks a part of a task's input the host keeps under a key; a later task names the key, and a host that no longer holds it is sent the value again. Feature tasks now post about 270 KB each.
+
+- [#3109](https://github.com/JSPrismarine/JSPrismarine/pull/3109) [`bb50807`](https://github.com/JSPrismarine/JSPrismarine/commit/bb50807fc6ebcbf4e462d281cb846a2a05d285ef) Thanks [@filiphsps](https://github.com/filiphsps)! - Skip the holders that already reached a status when a request walks its layers. A request for a chunk in a retained neighborhood built a status body and a promise for each of the hundreds of holders in each layer's square, though almost all of them were finished; a repeat terrain request now asks none of them to run.
+
 ## 0.21.0
 
 ### Patch Changes

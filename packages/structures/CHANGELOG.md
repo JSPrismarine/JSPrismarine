@@ -1,5 +1,14 @@
 # @jsprismarine/structures
 
+## 0.22.0
+
+### Patch Changes
+
+- Updated dependencies [[`546c624`](https://github.com/JSPrismarine/JSPrismarine/commit/546c624aaeeefec693909b9e3413819d3bb45f9f)]:
+  - @jsprismarine/mapping@0.22.0
+  - @jsprismarine/binaryutils@0.22.0
+  - @jsprismarine/nbt@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

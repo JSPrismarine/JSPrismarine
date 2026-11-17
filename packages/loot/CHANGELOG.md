@@ -1,5 +1,13 @@
 # @jsprismarine/loot
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3229](https://github.com/JSPrismarine/JSPrismarine/pull/3229) [`dd0e6fc`](https://github.com/JSPrismarine/JSPrismarine/commit/dd0e6fc0b4db5e573f74eb7924e0202710153e67) Thanks [@filiphsps](https://github.com/filiphsps)! - Evaluate Bedrock's `has_variant` and `has_mark_variant` loot conditions against the entity a table is rolled for, and apply `set_data`. A bowl used on a mooshroom now gives mushroom stew, or suspicious stew carrying the effect of the flower a brown mooshroom ate.
+- Updated dependencies []:
+  - @jsprismarine/predicates@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes

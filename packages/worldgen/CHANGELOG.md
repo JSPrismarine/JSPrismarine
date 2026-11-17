@@ -1,5 +1,17 @@
 # @jsprismarine/worldgen
 
+## 0.22.0
+
+### Patch Changes
+
+- [`729cc48`](https://github.com/JSPrismarine/JSPrismarine/commit/729cc4858e11042f4c80a99615996a5b02417c04) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `forEachBorderTick` to `blending/Blender`, the positions Java's `Blender.generateBorderTicks` checks in an old chunk for leaves and fluids to mark for post-processing.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`246333d`](https://github.com/JSPrismarine/JSPrismarine/commit/246333d2e667c3ba8c2b0e7e414d7963b8a32508) Thanks [@filiphsps](https://github.com/filiphsps)! - Carry each terrain tile's sampled biome cells with the tile, so a feature worker, the server thread and a terrain cache hit read them instead of searching the climate tree again. With two workers, a 25-chunk block now runs about 40% fewer climate searches, and the generated chunks are byte-identical. `@jsprismarine/worldgen` adds `createBiomeCellMemo`, a biome memo that can be told answers computed on another thread.
+
+- [#3083](https://github.com/JSPrismarine/JSPrismarine/pull/3083) [`0076fcd`](https://github.com/JSPrismarine/JSPrismarine/commit/0076fcd84bfc65a9ff2d75f993528fa9236f1779) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `blending/belowZeroRetrogen.ts`, Java's rules for giving a pre-1.18 overworld chunk its floor under y = 0: which chunks are upgraded, which columns stay open, and which biomes the new floor keeps.
+
+- [#3083](https://github.com/JSPrismarine/JSPrismarine/pull/3083) [`7282f36`](https://github.com/JSPrismarine/JSPrismarine/commit/7282f36c8b1342316f54e6985655e570ba991e9a) Thanks [@filiphsps](https://github.com/filiphsps)! - Add Java's world blender: `blending/Blender.ts` and `blending/BlendingData.ts` bend a new chunk's heights, densities and biomes toward the old chunks next to it, and filter its carvers, matching Java 26.3 exactly against the new `vectors/blending.json`. `blending/generationVersion.ts` exports the data versions that decide which chunks are old, and `NormalNoise.parity` ports Java's `NormalNoise.createParity`.
+
 ## 0.21.0
 
 ### Patch Changes

@@ -1,5 +1,0 @@
----
-'@jsprismarine/entity-goals': patch
----
-
-Run Java's rules for more vanilla goals. A tamed wolf now joins the fight its owner started and turns on whatever hurt its owner, once per blow, and a fox defends a trusted player the same way, through the new `GoalMob.lastHurt` and `lastHurtBy` marks. A bee or allay hovers 1 to 3 blocks over the ground under its destination, a dolphin surfaces only below 140 ticks of air, an iron golem strolls its village by day, and the golem's flower stays out for 400 game ticks. The wither closes to within 3 blocks of its target and climbs 5 above it, the ravager's roar hurts what its damage filters accept, a phantom with no path steers straight at its target, a squid flees its attacker, a witch or trader drinks the potion its filters pick and takes its effects, milk clears every effect, and a fox pounces, bites on the leap, picks ripe berry bushes back to growth 1 and eats on Java's clock. `GoalWorld.attack` takes an optional damage, and `GoalWorld.blockAt` and the states argument of `setBlock` let a goal read and write a crop's growth.

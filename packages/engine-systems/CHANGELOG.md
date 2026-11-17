@@ -1,5 +1,18 @@
 # @jsprismarine/engine-systems
 
+## 0.22.0
+
+### Patch Changes
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`c103c08`](https://github.com/JSPrismarine/JSPrismarine/commit/c103c08d6181d51f46cdc927ba949a927a50a9f7) Thanks [@filiphsps](https://github.com/filiphsps)! - Take a chunk's scheduled fluid ticks off the world's tick list when the chunk unloads, after its save has written them to its `PendingTicks` record, as Java's `LevelTicks.removeContainer` does. A reload schedules them again from the record. A chunk with a fluid tick its save did not write stays loaded until the next pass. Block ticks are not persisted, so they stay queued as before. `TickList` gains `ticksInChunk` and `clearChunk`, which find a chunk's ticks through a per-chunk index instead of reading the whole queue.
+
+- [#3109](https://github.com/JSPrismarine/JSPrismarine/pull/3109) [`7dded4e`](https://github.com/JSPrismarine/JSPrismarine/commit/7dded4ea9333ba51d6c0bbc04e291adf7e1b190d) Thanks [@filiphsps](https://github.com/filiphsps)! - Look a random tick's section up once for all the positions drawn in it. `WorldAccess` gains an optional `sectionRuntimeIds`, which the server answers with a reader over the section's own storage, so each of the three draws per section no longer finds the chunk and the sub chunk again.
+
+- [#3084](https://github.com/JSPrismarine/JSPrismarine/pull/3084) [`72d0bca`](https://github.com/JSPrismarine/JSPrismarine/commit/72d0bca20ad6081af2820e57bd6eb462bb45124f) Thanks [@filiphsps](https://github.com/filiphsps)! - Leave nothing on the ground while a freshly generated chunk settles. The fluid generation leaves to tick, and what it sets off, used to wash plants away and drop them, so exploring new terrain left hundreds of items lying in caves. While a generated chunk settles, what the world's own block updates, scheduled ticks and random ticks destroy in it drops nothing. Water that flows out of a settling chunk carries the settling into the chunk it reaches. A chunk settles once it and its eight neighbors are loaded with no fluid tick and no block update queued, or when a player or a command writes a block in it, after which drops are as usual. `TickList` gains `hasTicksInChunk`.
+- Updated dependencies [[`51cd835`](https://github.com/JSPrismarine/JSPrismarine/commit/51cd8359d07faf342bb191fefd3d58303ddac488), [`b1b1871`](https://github.com/JSPrismarine/JSPrismarine/commit/b1b18714efe02837d35771b5198bd529a54b6403), [`546c624`](https://github.com/JSPrismarine/JSPrismarine/commit/546c624aaeeefec693909b9e3413819d3bb45f9f)]:
+  - @jsprismarine/blocks@0.22.0
+  - @jsprismarine/mapping@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes
