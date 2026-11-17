@@ -37,6 +37,7 @@
         "@jsprismarine/entities": "workspace:*",
         "@jsprismarine/entity-brains": "workspace:*",
         "@jsprismarine/entity-goals": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/features": "workspace:*",
         "@jsprismarine/item-behaviors": "workspace:*",
         "@jsprismarine/items": "workspace:*",
