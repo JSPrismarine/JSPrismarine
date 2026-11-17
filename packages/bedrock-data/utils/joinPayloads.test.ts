@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { creative_groups, creativeitems, entity_identifiers, item_components, item_table } from '../src/index.ts';
-import { item_table as item_table_2225 } from '../src/v2225.ts';
+import { entity_identifiers as entity_identifiers_2225, item_table as item_table_2225 } from '../src/v2225.ts';
+import { entity_identifiers as entity_identifiers_2259 } from '../src/v2259.ts';
 import {
     assertActorIdentifiers,
     JOIN_PACKET_IDS,
@@ -97,6 +98,16 @@ describe('the tables generated from the default capture', () => {
         expect(
             entity_identifiers.equals(readWirePayload(defaultCapture, JOIN_PACKET_IDS.availableActorIdentifiers))
         ).toBe(true);
+    });
+
+    it.each([
+        ['v2225', entity_identifiers_2225],
+        ['v2259', entity_identifiers_2259]
+    ])('replay the actor list the %s server sent, not the default one', (version, published) => {
+        const captured = readWirePayload(join(jsp, version), JOIN_PACKET_IDS.availableActorIdentifiers);
+
+        expect(published.equals(captured)).toBe(true);
+        expect(published.equals(entity_identifiers)).toBe(false);
     });
 
     it('list the creative menu in the order and with the blocks the server sent', () => {

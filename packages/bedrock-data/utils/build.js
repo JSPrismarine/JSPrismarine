@@ -139,12 +139,19 @@ for (const file of files) {
 
 // The actor list, as `AvailableActorIdentifiersPacket` carried it. A server replays the payload
 // verbatim, so it is copied as it came, once it is known to be the one compound it should be.
-const actorSource = requireSource(wireFile(jsp, JOIN_PACKET_IDS.availableActorIdentifiers));
-const actorTarget = path.resolve('src/generated/entity_identifiers.json');
-if (force || !isUpToDate(actorSource, actorTarget)) {
-    console.log('Generating entity_identifiers.json...');
-    const data = assertActorIdentifiers(fs.readFileSync(actorSource)).toString('base64');
-    fs.writeFileSync(actorTarget, JSON.stringify({ data }, null, 0));
+// Each captured version gets its own, beside its item table: a release adds actor types, and a
+// session given another version's list cannot be told about them.
+for (const protocolVersion of capturedProtocolVersions) {
+    const isDefault = protocolVersion === defaultProtocolVersion;
+    const actorSource = requireSource(wireFile(`jsp/v${protocolVersion}`, JOIN_PACKET_IDS.availableActorIdentifiers));
+    const directory = isDefault ? '' : `v${protocolVersion}`;
+    const actorTarget = path.resolve('src/generated', directory, 'entity_identifiers.json');
+    if (force || !isUpToDate(actorSource, actorTarget)) {
+        console.log(`Generating ${path.join(directory, 'entity_identifiers.json')}...`);
+        const data = assertActorIdentifiers(fs.readFileSync(actorSource)).toString('base64');
+        fs.mkdirSync(path.dirname(actorTarget), { recursive: true });
+        fs.writeFileSync(actorTarget, JSON.stringify({ data }, null, 0));
+    }
 }
 
 /** The base64 little endian compound `{ network_id }` the catalog carries a block state as. */

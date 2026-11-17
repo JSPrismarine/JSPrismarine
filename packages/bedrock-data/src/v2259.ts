@@ -9,6 +9,7 @@
  * its template-pool order, so a 2259 session sends the default version's rules.
  */
 import biome_definitions_network_data from './generated/v2259/biome_definitions_network.json';
+import entity_identifiers_data from './generated/v2259/entity_identifiers.json';
 import item_table_data from './generated/v2259/item_table.json';
 import block_definitions_data from './jsp/v2259/block_definitions.json';
 
@@ -28,3 +29,9 @@ export const block_definitions: readonly BlockDefinitionEntry[] = block_definiti
 
 /** The vanilla biome definitions at 2259, as `BiomeDefinitionListPacket` carries them. */
 export const biome_definitions_network: Buffer = Buffer.from(biome_definitions_network_data.data, 'base64');
+
+/**
+ * Every actor type a 1.26.70.24 client may be asked to render, as `AvailableActorIdentifiersPacket`
+ * carries it: one network NBT compound holding an `idlist`, replayed verbatim.
+ */
+export const entity_identifiers: Buffer = Buffer.from(entity_identifiers_data.data, 'base64');

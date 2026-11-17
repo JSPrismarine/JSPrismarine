@@ -7,7 +7,7 @@
  * rather than in place of it: a session picks the tables for the protocol it negotiated, and
  * nothing that already imports the unversioned names changes.
  *
- * Of the three, only the item table differs from 2193. The block definitions and the biome
+ * The item table and the actor list differ from 2193. The block definitions and the biome
  * definitions came back byte-identical, which is a measured fact about 1.26.60 rather than a
  * fallback - these are read from the 1.26.60 capture, not aliased to the 2193 export.
  *
@@ -16,6 +16,7 @@
  * which carry the same pools.
  */
 import biome_definitions_network_data from './generated/v2225/biome_definitions_network.json';
+import entity_identifiers_data from './generated/v2225/entity_identifiers.json';
 import item_table_data from './generated/v2225/item_table.json';
 import block_definitions_data from './jsp/v2225/block_definitions.json';
 
@@ -53,3 +54,11 @@ export const block_definitions: readonly BlockDefinitionEntry[] = block_definiti
  * Byte-identical to 2193's; no biome type appears in the 2193-to-2225 structural delta.
  */
 export const biome_definitions_network: Buffer = Buffer.from(biome_definitions_network_data.data, 'base64');
+
+/**
+ * Every actor type a 1.26.60.6 client may be asked to render, as `AvailableActorIdentifiersPacket`
+ * carries it: one network NBT compound holding an `idlist`, replayed verbatim.
+ *
+ * Against 2193 this adds `minecraft:ice_ball`.
+ */
+export const entity_identifiers: Buffer = Buffer.from(entity_identifiers_data.data, 'base64');

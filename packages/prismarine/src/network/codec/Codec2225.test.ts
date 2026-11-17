@@ -46,6 +46,14 @@ describe('network/codec', () => {
             expect(advertisedCodec).toBe(Codec2225);
         });
 
+        it('sends the actor list 1.26.60 sent, with the ice ball 2193 lacks', () => {
+            const listed = (codec: typeof Codec2225) =>
+                codec.context.entityIdentifiers?.toString('latin1').includes('minecraft:ice_ball');
+
+            expect(listed(Codec2225)).toBe(true);
+            expect(listed(Codec2193)).toBe(false);
+        });
+
         it('carries the 2193 table plus the eight packets 1.26.60 added, renumbering nothing', () => {
             for (const [name, id] of Object.entries(packetIds2193)) {
                 expect(Codec2225.netIdOf(name), name).toBe(id);

@@ -1,5 +1,5 @@
-import { entity_identifiers, jigsaw_structure_data } from '@jsprismarine/bedrock-data';
-import { biome_definitions_network, block_definitions } from '@jsprismarine/bedrock-data/v2259';
+import { jigsaw_structure_data } from '@jsprismarine/bedrock-data';
+import { biome_definitions_network, block_definitions, entity_identifiers } from '@jsprismarine/bedrock-data/v2259';
 import { createProtocolCodec, ProtocolVersions } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 
