@@ -20,8 +20,9 @@
  * 8. Game rules: `fireDamage` for a burning entity.
  * 9. Before-hooks, which a host adds.
  *
- * Modifier slots, lowest priority first: the grace period's difference, armor, protection
- * enchantments, resistance, absorption, the dragon's scaling and the damage sensor's multiplier.
+ * Modifier slots, lowest priority first: what a raised shield blocks, the grace period's
+ * difference, armor, protection enchantments, resistance, absorption, the dragon's scaling and the
+ * damage sensor's multiplier.
  */
 import type { DamageSensing, FilterEntityView } from '@jsprismarine/entities';
 
@@ -72,7 +73,15 @@ export interface DamageStageReads {
     resists?(target: DataEntity, cause: string): boolean;
     /** Whether a cause is one Java's `witch_resistant_to` damage type tag names. */
     witchResists?(cause: string): boolean;
+    /** How much of a blow of `amount` the target's raised shield blocks, 0 when it blocks none. */
+    blocked?(target: DataEntity, intent: DamageIntent, amount: number): number;
 }
+
+/**
+ * The name of the slot that takes off what a raised shield blocks, which the commit reads to run
+ * what a blocked blow does.
+ */
+export const ITEM_BLOCKING = 'item_blocking';
 
 /** The entity type Java's `Witch.getDamageAfterMagicAbsorb` shields. */
 const WITCH = 'minecraft:witch';
@@ -236,6 +245,17 @@ export const damageModifiers = (reads: DamageStageReads, sensing: DamageSensingS
         return target === undefined ? undefined : reads.mitigation?.(target, intent);
     };
     return [
+        {
+            // Java's `LivingEntity.hurtServer` takes what `applyItemBlocking` blocks off first.
+            name: ITEM_BLOCKING,
+            priority: 50,
+            modifier: (intent, amount) => {
+                const target = reads.target(intent.target);
+                if (target === undefined || amount <= 0) return undefined;
+                const blocked = reads.blocked?.(target, intent, amount) ?? 0;
+                return blocked > 0 ? { operation: 'add', value: -blocked } : undefined;
+            }
+        },
         {
             // A harder blow than the one still running gets through, for the difference.
             name: 'hit_grace',

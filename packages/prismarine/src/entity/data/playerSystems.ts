@@ -59,6 +59,18 @@ import { blockPositionOf } from './position';
 /** The largest value a Java statistic holds, `Integer.MAX_VALUE`, which `ServerStatsCounter` clamps to. */
 const MAX_STAT_VALUE = 2_147_483_647;
 
+/**
+ * Writes whether a player is sneaking and, when it starts, the tick it started on, which is when
+ * a shield it holds went up.
+ *
+ * @param tick - The game tick the client reported it on.
+ */
+export const writeSneaking = (components: PlayerComponents, sneaking: boolean, tick: number): void => {
+    if (!sneaking) components.set('movement.sneakingSince', null);
+    else if (components.get('movement.sneakingSince') === null) components.set('movement.sneakingSince', tick);
+    components.set('movement.sneaking', sneaking);
+};
+
 /** What the player systems need from the runtime that holds them. */
 export interface PlayerSystemsPorts {
     /** Logs one write to a store player's state, as `EntityStore.written` does. */
@@ -319,9 +331,12 @@ export class PlayerSystems {
         this.componentsOf(entity).set('movement.sprinting', sprinting);
     }
 
-    /** Writes whether a store player is sneaking, as its client reports it. */
+    /**
+     * Writes whether a store player is sneaking, as its client reports it, and the tick it began,
+     * which is when a shield it holds went up.
+     */
     public setSneaking(entity: DataEntity, sneaking: boolean): void {
-        this.componentsOf(entity).set('movement.sneaking', sneaking);
+        writeSneaking(this.componentsOf(entity), sneaking, this.ports.level.gameTime());
     }
 
     /** Writes a store player's game mode, which decides which blows and survival rules reach it. */

@@ -166,6 +166,8 @@ const PLAYER_COMPONENT_WRITES: readonly {
     readonly field: string;
     readonly write: (player: PlayerSession) => void;
     readonly read: (player: PlayerSession) => unknown;
+    /** Fields the same write also sets, as starting to sneak records when the sneak began. */
+    readonly alsoWrites?: readonly string[];
 }[] = [
     {
         field: 'vitals.food',
@@ -212,7 +214,9 @@ const PLAYER_COMPONENT_WRITES: readonly {
     {
         field: 'movement.sneaking',
         write: (player) => player.inputs().setPlayerSneaking(player.getPlayer(), true),
-        read: (player) => player.isSneaking()
+        read: (player) => player.isSneaking(),
+        // The tick a sneak began, which a raised shield's block delay counts from.
+        alsoWrites: ['movement.sneakingSince']
     },
     {
         field: 'movement.sleeping',
@@ -518,7 +522,7 @@ describe('a world tick and its change log', () => {
 
         it.each(PLAYER_COMPONENT_WRITES)(
             'logs a write to $field once, and undoes it to the same digest',
-            async ({ field, write, read }) => {
+            async ({ field, write, read, alsoWrites = [] }) => {
                 const { world, player } = await survivalPlayer();
                 const before = read(player);
                 const digest = world.replayStateDigest();
@@ -538,13 +542,15 @@ describe('a world tick and its change log', () => {
                 beginMeasuredChangeTick(world);
                 write(player);
                 world.sealChangeTick();
-                expect(world.lastChangeTick()?.entries).toEqual([
-                    expect.objectContaining({
-                        kind: 'field',
-                        field: 'entity',
-                        address: { entity: player.getRuntimeId(), field }
-                    })
-                ]);
+                const logged = (world.lastChangeTick()?.entries ?? []).map((entry) =>
+                    entry.kind === 'field' && entry.field === 'entity' ? entry.address : entry
+                );
+                expect(logged).toEqual(
+                    expect.arrayContaining(
+                        [field, ...alsoWrites].map((written) => ({ entity: player.getRuntimeId(), field: written }))
+                    )
+                );
+                expect(logged).toHaveLength(1 + alsoWrites.length);
             }
         );
 

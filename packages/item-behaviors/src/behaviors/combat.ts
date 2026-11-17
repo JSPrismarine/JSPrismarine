@@ -244,9 +244,10 @@ export const shieldBehavior: ItemBehaviorSpec = {
  * `base + factor * damage` above it, floored.
  *
  * This is a server entry point rather than a hook, because blocking happens
- * on the damage path and the hook table has no hook for it.
+ * on the damage path and the hook table has no hook for it. It reads only the
+ * component, so an item type answers as its stacks do.
  */
-export const shieldDurabilityCost = (stack: ItemStack, blockedDamage: number): number => {
+export const shieldDurabilityCost = (stack: Pick<ItemStack, 'params'>, blockedDamage: number): number => {
     const rules = stack.params(blocksAttacks);
     const itemDamage = rules?.item_damage;
     if (itemDamage === undefined) return 0;

@@ -85,6 +85,11 @@ export type PlayerComponentValues = {
     'abilities.gamemode': Gametype;
     /** Whether the client reported the player sneaking. */
     'movement.sneaking': boolean;
+    /**
+     * The game tick the player began sneaking on, or null while it is not sneaking. A Bedrock
+     * player raises a shield by sneaking, so this is when a raised shield went up.
+     */
+    'movement.sneakingSince': number | null;
     /** Whether the client reported the player asleep in a bed. */
     'movement.sleeping': boolean;
     /** Whether the player is sprinting. */
@@ -132,6 +137,7 @@ const initialState = () => ({
     // A player is in survival until a saved record or the world's default game mode says otherwise.
     'abilities.gamemode': Gametype.SURVIVAL,
     'movement.sneaking': false,
+    'movement.sneakingSince': null,
     'movement.sleeping': false,
     'respawn.spawnPoint': null,
     'respawn.seenCredits': false,
@@ -220,6 +226,9 @@ const gamemodeIn = (value: PlainData): Gametype => {
 
 const startedAtIn = (value: PlainData): number | null => optionalNumberField('itemUse.startedAt')(value) ?? null;
 
+const sneakingSinceIn = (value: PlainData): number | null =>
+    optionalNumberField('movement.sneakingSince')(value) ?? null;
+
 const miningIn = (value: PlainData): PlayerMining | null => {
     if (value === null) return null;
     if (isPlainRecord(value)) {
@@ -271,6 +280,7 @@ const FIELDS: { readonly [F in PlayerComponentField]: FieldDescriptor<PlayerComp
     'abilities.flying': own('abilities.flying', booleanField('abilities.flying')),
     'abilities.gamemode': own('abilities.gamemode', gamemodeIn),
     'movement.sneaking': own('movement.sneaking', booleanField('movement.sneaking')),
+    'movement.sneakingSince': own('movement.sneakingSince', sneakingSinceIn),
     'movement.sleeping': own('movement.sleeping', booleanField('movement.sleeping')),
     'movement.sprinting': metadataFlag(
         (metadata) => metadata.sprinting,

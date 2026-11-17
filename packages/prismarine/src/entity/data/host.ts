@@ -51,6 +51,12 @@ export interface EntityWorldFacts {
     readonly random: RandomSource;
 }
 
+/** What a player holds in each hand, by item identifier; an empty hand is left out. */
+export interface PlayerHands {
+    readonly mainhand?: string;
+    readonly offhand?: string;
+}
+
 /**
  * The facts about entities that the data-driven index does not hold.
  *
@@ -134,6 +140,16 @@ export interface EntityHostFacts {
      * hand. Left out by a host that keeps no inventory for store players, such as a test's.
      */
     heldItemOf?(playerId: number): string | undefined;
+    /**
+     * What a store player holds in each hand, by identifier, which the store does not model yet.
+     * Left out, or answering undefined, the entity's own equipment stands for it.
+     */
+    handsOf?(playerId: number): PlayerHands | undefined;
+    /**
+     * Spends durability of what a store player holds in one hand, as a blocked blow wears a
+     * shield. A stack worn through breaks. Left out, the entity's own equipment is worn.
+     */
+    wearHeldItem?(playerId: number, hand: keyof PlayerHands, amount: number): void;
     /**
      * Finishes a store player's meal: the item in hand runs `onConsume`, which feeds the player
      * and hands back what the meal leaves. Left out, a finished meal does nothing.

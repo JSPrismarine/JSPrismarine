@@ -140,8 +140,6 @@ const EYE_LAUNCH_PITCH_FLOOR = 0.8;
 const UNWRITTEN_SYSTEMS = {
     'grant-experience': 'a player experience bar',
     'shear-entity': 'the entity components that hold it',
-    blocking: 'shield blocking',
-    'disable-shield': 'shield blocking',
     brush: 'the brush system',
     fishing: 'the fishing system',
     map: 'the map system',
@@ -675,10 +673,14 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             case 'signal':
                 signal(action);
                 return;
-            case 'grant-experience':
-            case 'shear-entity':
             case 'blocking':
             case 'disable-shield':
+                // The entity runtime decides both on the damage path: a shield is raised while its
+                // player sneaks, and an axe disables one only through a blow the shield blocked, as
+                // Java's `Player.blockUsingItem` does, not through every blow that lands.
+                return;
+            case 'grant-experience':
+            case 'shear-entity':
             case 'brush':
             case 'fishing':
             case 'map':

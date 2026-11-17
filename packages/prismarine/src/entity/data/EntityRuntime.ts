@@ -81,7 +81,9 @@ import {
 } from '@jsprismarine/entity-brains';
 import { blockPosTracker } from '@jsprismarine/entity-brains';
 import type { VillagerRaidEffect, VillagerRaidState, VillagerTask } from '@jsprismarine/entity-brains';
-import { entityData, potionDurationScale } from '@jsprismarine/items';
+import { blocksAttacks, entityData, maxDamage, potionDurationScale, weapon } from '@jsprismarine/items';
+import type { HolderSet, ItemType } from '@jsprismarine/items';
+import { shieldDurabilityCost } from '@jsprismarine/item-behaviors/behaviors/combat';
 import type { RecipeBook } from '@jsprismarine/recipes';
 import { EXPLOSION_ENTITY_REACH } from '@jsprismarine/engine-systems';
 import type {
@@ -193,7 +195,7 @@ import { brainEntityById, brainItemOf, brainMobOf, brainWorldOf, tickBrainNaviga
 import { flatInventoryRoom, inPickupReach, pickupQueryRadius, villagerWants } from './lootPickup';
 import type { LootPickupRule } from './lootPickup';
 import { entityFilterContextOf } from './filterView';
-import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
+import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts, PlayerHands } from './host';
 import { DroppedItems, isDroppedItem } from './droppedItems';
 import { javaBlockTagsForBedrock } from '../../content/javaTags';
 import { AREA_EFFECT_CLOUD, AreaEffectClouds, instantEffect, isAreaEffectCloud } from './areaEffectCloud';
@@ -220,7 +222,7 @@ import {
 import { HangingEntities, isHangingEntity } from './hangingEntities';
 import { placeablePaintingVariants } from './paintings';
 import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
-import { PlayerSystems } from './playerSystems';
+import { PlayerSystems, writeSneaking } from './playerSystems';
 import { itemDropOf } from '../../inventory/persistence';
 import { maxStackSizeOf, resistsDamageOf } from '../../item/Item';
 import { navigationViewOf } from './navigationView';
@@ -247,14 +249,16 @@ import type {
     DamageRoute,
     DamageSourceFacts
 } from './damagePipeline';
-import { DamageSensingSlot, damageGuards, damageModifiers } from './damageStages';
+import { DamageSensingSlot, ITEM_BLOCKING, damageGuards, damageModifiers } from './damageStages';
 import { INVULNERABILITY_TICKS } from '../Damage';
 import type { DamageCause } from '../DamageCause';
 import { damageCauseOf } from '../DamageCause';
-import { damageCausesInTag } from '../damageTypes';
+import { damageCauseOfType, damageCausesInTag } from '../damageTypes';
+import { damageTagsOf } from '../mobLoot';
 import type { HitGrace } from './damageStages';
 import { BASE_KNOCKBACK, KNOCKBACK_PER_LEVEL, behind, livingKnockback } from '../knockback';
 import { SULFUR_CUBE_KNOCKBACK, sulfurCubeKnockback } from './sulfurCubeKnockback';
+import { blockDelayTicks, blockedDamage, blockingAngle, disableTicks, strongKnockback } from './itemBlocking';
 import type { SulfurCubeShove } from './sulfurCubeKnockback';
 import {
     attributeIn,
@@ -389,6 +393,38 @@ const THROWS_ON_ITS_OWN: ReadonlySet<string> = new Set(['minecraft:hoglin', 'min
 
 /** What `LivingEntity.causeExtraKnockback` leaves of the attacker's horizontal motion. */
 const EXTRA_KNOCKBACK_SLOWDOWN = 0.6;
+
+/** How hard `LivingEntity.blockedByItem` shoves a defender whose shield let part of a blow through. */
+const BLOCKED_KNOCKBACK = 0.5;
+
+/** A player's raised shield: the hand that holds it and the item type it is. */
+interface RaisedShield {
+    readonly hand: keyof PlayerHands;
+    readonly type: ItemType;
+}
+
+/** Whether a blow committed with all of it taken off by a raised shield. */
+const wasBlockedWhole = (outcome: DamageOutcome): boolean =>
+    outcome.committed &&
+    outcome.computation.modifiers.some((modifier) => modifier.name === ITEM_BLOCKING && modifier.amountAfter <= 0);
+
+/**
+ * The push two bodies give each other, Java's `Entity.push(Entity)`: the second is pushed this way
+ * and the first the other, up to 0.05 a tick, and none for two whose centers are within 0.01
+ * blocks of each other.
+ *
+ * @param dx - The second body's horizontal offset from the first.
+ */
+const entityPushImpulse = (dx: number, dz: number): EntityPosition | undefined => {
+    const largestDifference = Math.max(Math.abs(dx), Math.abs(dz));
+    if (largestDifference < 0.01) return undefined;
+    const root = Math.sqrt(largestDifference);
+    const scale = Math.min(1, 1 / root);
+    return { x: (dx / root) * scale * 0.05, y: 0, z: (dz / root) * scale * 0.05 };
+};
+
+/** The Bedrock name of a Java sound event a component names, such as `item.shield.block`. */
+const bedrockSoundOf = (sound: string): string => sound.replace(/^minecraft:/, '');
 
 /** The types whose vibrations no listener hears, Java's `Entity.dampensVibrations` overrides. */
 const DAMPENS_VIBRATIONS: ReadonlySet<string> = new Set(['minecraft:warden']);
@@ -700,6 +736,10 @@ export class EntityRuntime implements EntityScene {
      * {@link EntityRuntime.setHitGrace}, so an undone unit puts it back.
      */
     private readonly hitGraces = new Map<number, HitGrace>();
+    /** The game tick each player's shield is disabled until, after an axe's blow, by player id. */
+    private readonly shieldsDisabled = new Map<number, number>();
+    /** The causes each `blocks_attacks` damage type set stands for, by the set written out. */
+    private readonly damageSets = new Map<string, ReadonlySet<DamageCause>>();
     /**
      * The last blow each player dealt and the last one it took, by player runtime id, which the
      * owner and trust goals read as Java's `getLastHurtMob` and `getLastHurtByMob`. A mob's own
@@ -1047,7 +1087,9 @@ export class EntityRuntime implements EntityScene {
             witchResists: (cause: string) => {
                 this.witchResistedCauses ??= damageCausesInTag(this.content(), 'minecraft:witch_resistant_to');
                 return this.witchResistedCauses.has(damageCauseOf(cause));
-            }
+            },
+            blocked: (target: DataEntity, intent: DamageIntent, amount: number) =>
+                this.blockedBy(target, intent, amount)
         };
         this.damageSensing = new DamageSensingSlot(damageReads);
         this.damagePipeline = new DamagePipeline({
@@ -2961,7 +3003,9 @@ export class EntityRuntime implements EntityScene {
                 ...(extra > 0 ? { extra: { power: extra, yaw: attacker.yaw } } : {})
             };
             const blow = player ? { mitigated: true, graced: true, knockback } : { knockback };
-            const landed = this.blow(other, attacker.id, 'entity_attack', damage, blow).committed;
+            // A blow a raised shield took whole is not a hurt, so `doHurtTarget` does nothing more.
+            const outcome = this.blow(other, attacker.id, 'entity_attack', damage, blow);
+            const landed = outcome.committed && !wasBlockedWhole(outcome);
             if (landed && attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
             // `causeExtraKnockback` slows the attacker as it pushes.
             if (landed && extra > 0)
@@ -3337,9 +3381,16 @@ export class EntityRuntime implements EntityScene {
         const absorbed = computation.modifiers.find((modifier) => modifier.name === 'absorption');
         if (absorbed !== undefined) this.setAbsorption(entity, this.absorptionOf(entity) + absorbed.value);
 
+        // `hurtServer` runs what a raised shield does before the blow, and a blow it took whole
+        // pushes nothing.
+        const blocking = computation.modifiers.find((modifier) => modifier.name === ITEM_BLOCKING);
+        const wholeBlocked = blocking !== undefined && blocking.amountAfter <= 0;
+        if (blocking !== undefined) this.blockedBlow(entity, intent, -blocking.value, wholeBlocked);
+
         const taken = computation.amount;
         if (fresh && taken > 0 && source.feedback !== false) this.host.hurtFeedback?.(entity.id);
-        if (fresh && source.knockback !== undefined) this.shove(entity, source.knockback, intent, requested.amount);
+        if (fresh && !wholeBlocked && source.knockback !== undefined)
+            this.shove(entity, source.knockback, intent, requested.amount);
 
         const damager = intent.attacker === undefined ? undefined : this.mobById(intent.attacker)?.view();
         const result = entity.instance.applyDamage(
@@ -3529,7 +3580,7 @@ export class EntityRuntime implements EntityScene {
     /** Writes whether a store player is sneaking, as its client reports it. */
     public setPlayerSneaking(player: PlayerInputTarget, sneaking: boolean): void {
         const entity = this.entityOfPlayer(player);
-        if (entity === undefined) player.getComponents().set('movement.sneaking', sneaking);
+        if (entity === undefined) writeSneaking(player.getComponents(), sneaking, this.world.level.gameTime());
         else this.playerSystems.setSneaking(entity, sneaking);
     }
 
@@ -3883,6 +3934,209 @@ export class EntityRuntime implements EntityScene {
         const halved = { x: carried.x / 2, y: carried.y, z: carried.z / 2 };
         entity.body.velocity = halved;
         entity.body.push({ x: velocity.x - halved.x, y: velocity.y - halved.y, z: velocity.z - halved.z });
+    }
+
+    /**
+     * A player's raised shield, Java's `LivingEntity.getItemBlockingWith`: an item with
+     * `minecraft:blocks_attacks` in a hand, the main hand first, of a player that has been
+     * sneaking for at least the item's block delay, which is how a Bedrock player raises one, and
+     * whose shield no axe has disabled.
+     */
+    private raisedShieldOf(entity: DataEntity): RaisedShield | undefined {
+        if (!clientOwnsMovement(entity.identifier)) return undefined;
+        const since = this.playerSystems.componentsOf(entity).get('movement.sneakingSince');
+        const now = this.world.level.gameTime();
+        if (since === null || (this.shieldsDisabled.get(entity.id) ?? now) > now) return undefined;
+        const hands = this.handsOf(entity);
+        for (const hand of ['mainhand', 'offhand'] as const) {
+            const identifier = hands[hand];
+            const type = identifier === undefined ? undefined : this.content().items.types.get(identifier);
+            const rules = type?.params(blocksAttacks);
+            if (type === undefined || rules === undefined) continue;
+            return now - since >= blockDelayTicks(rules.block_delay_seconds) ? { hand, type } : undefined;
+        }
+        return undefined;
+    }
+
+    /** What a player holds in each hand: its inventory's, through the host, or its entity's equipment. */
+    private handsOf(entity: DataEntity): PlayerHands {
+        const hosted = this.host.handsOf?.(entity.id);
+        if (hosted !== undefined) return hosted;
+        const { mainhand, offhand } = entity.body.equipment;
+        return {
+            ...(mainhand === undefined ? {} : { mainhand: mainhand.identifier }),
+            ...(offhand === undefined ? {} : { offhand: offhand.identifier })
+        };
+    }
+
+    /**
+     * How much of a blow a target's raised shield blocks, Java's `LivingEntity.applyItemBlocking`:
+     * nothing for a damage type the shield's `bypassed_by` names, and otherwise what its damage
+     * reductions take of a blow from in front, measured from where the blow came from.
+     */
+    private blockedBy(target: DataEntity, intent: DamageIntent, amount: number): number {
+        const rules = this.raisedShieldOf(target)?.type.params(blocksAttacks);
+        if (rules === undefined) return 0;
+        if (rules.bypassed_by !== undefined && this.inDamageSet(rules.bypassed_by, intent.cause)) return 0;
+        const angle = blockingAngle(target.position, target.body.yaw, this.blowOrigin(intent));
+        return blockedDamage(rules, amount, angle, (set) => this.inDamageSet(set, intent.cause));
+    }
+
+    /**
+     * Where a blow came from, Java's `DamageSource.getSourcePosition`: what made contact, else the
+     * point the blow shoves away from, else the attacker; undefined for a blow from nowhere.
+     */
+    private blowOrigin(intent: DamageIntent): EntityPosition | undefined {
+        const contact = intent.projectile === undefined ? undefined : this.store.get(intent.projectile);
+        if (contact !== undefined) return contact.position;
+        if (intent.source.knockback !== undefined) return intent.source.knockback.origin;
+        if (intent.attacker === undefined) return undefined;
+        return (this.store.get(intent.attacker) ?? this.host.playerById?.(intent.attacker))?.position;
+    }
+
+    /** Whether a blow's cause is one of the Java damage types a `blocks_attacks` set names. */
+    private inDamageSet(set: HolderSet, cause: string): boolean {
+        const key = set.kind === 'tag' ? `#${set.tag}` : set.entries.join(',');
+        let causes = this.damageSets.get(key);
+        if (causes === undefined) {
+            const content = this.content();
+            causes =
+                set.kind === 'tag'
+                    ? damageCausesInTag(content, set.tag)
+                    : new Set(set.entries.map((type) => damageCauseOfType(type, new Set(damageTagsOf(content, type)))));
+            this.damageSets.set(key, causes);
+        }
+        return causes.has(damageCauseOf(cause));
+    }
+
+    /**
+     * What a blow a raised shield blocked does besides, Java's `applyItemBlocking` and the
+     * `blockUsingItem` it calls: the shield takes its `item_damage` of what it blocked and plays
+     * its block sound, and a living attacker's `blockedByItem` runs, unless the blow was a
+     * projectile. A weapon with `disable_blocking_for_seconds`, an axe, then disables the shield
+     * for that long, scaled by the shield's `disable_cooldown_scale`, as `Player.blockUsingItem`
+     * does.
+     *
+     * @param blocked - What the shield took off the blow.
+     * @param whole - Whether it took all of it.
+     */
+    private blockedBlow(defender: DataEntity, intent: DamageIntent, blocked: number, whole: boolean): void {
+        const shield = this.raisedShieldOf(defender);
+        const rules = shield?.type.params(blocksAttacks);
+        if (shield === undefined || rules === undefined) return;
+
+        const creative = this.playerSystems.componentsOf(defender).get('abilities.gamemode') === Gametype.CREATIVE;
+        const wear = creative ? 0 : shieldDurabilityCost(shield.type, blocked);
+        if (wear > 0) this.wearHand(defender, shield.hand, wear);
+        if (rules.block_sound !== undefined)
+            this.host.playSoundAt?.(defender.position, bedrockSoundOf(rules.block_sound));
+
+        if (intent.projectile !== undefined || intent.attacker === undefined) return;
+        const attacker = this.store.get(intent.attacker);
+        const hostPlayer = attacker === undefined ? this.host.playerById?.(intent.attacker) : undefined;
+        if (attacker === undefined && hostPlayer === undefined) return;
+        if (attacker !== undefined) this.attackerBlocked(attacker, defender, whole);
+        else if (hostPlayer !== undefined && !whole) this.shoveTowardBlocked(hostPlayer.position, defender);
+
+        const weaponId =
+            attacker === undefined
+                ? this.host.heldItemOf?.(intent.attacker)
+                : clientOwnsMovement(attacker.identifier)
+                  ? this.handsOf(attacker).mainhand
+                  : attacker.body.equipment.mainhand?.identifier;
+        const seconds =
+            weaponId === undefined
+                ? 0
+                : (this.content().items.types.get(weaponId)?.params(weapon)?.disable_blocking_for_seconds ?? 0);
+        const ticks = disableTicks(seconds, rules.disable_cooldown_scale);
+        if (ticks <= 0) return;
+        this.setShieldDisabled(defender.id, this.world.level.gameTime() + ticks);
+        if (rules.disabled_sound !== undefined)
+            this.host.playSoundAt?.(defender.position, bedrockSoundOf(rules.disabled_sound));
+    }
+
+    /**
+     * An attacker's `blockedByItem`. A ravager runs its `minecraft:ravager_blocked`, as Java's
+     * `Ravager.blockedByItem` does, unless it is stunned or roaring already. Anything else, when
+     * the shield let some of the blow through, shoves the defender 0.5 toward it, as
+     * `LivingEntity.blockedByItem` does.
+     */
+    private attackerBlocked(attacker: DataEntity, defender: DataEntity, whole: boolean): void {
+        const reaction = attacker.instance.componentParams('minecraft:ravager_blocked');
+        if (!isRecord(reaction)) {
+            if (!whole) this.shoveTowardBlocked(attacker.position, defender);
+            return;
+        }
+        const { instance } = attacker;
+        if (instance.hasComponent('minecraft:is_stunned') || instance.hasComponent('minecraft:behavior.knockback_roar'))
+            return;
+        const choices = Array.isArray(reaction.reaction_choices) ? reaction.reaction_choices.filter(isRecord) : [];
+        const weightOf = (choice: Readonly<Record<string, unknown>>): number =>
+            typeof choice.weight === 'number' && choice.weight > 0 ? choice.weight : 0;
+        let roll = this.world.random.nextFloat() * choices.reduce((total, choice) => total + weightOf(choice), 0);
+        const choice = choices.find((candidate) => (roll -= weightOf(candidate)) < 0);
+        const value = choice?.value;
+        if (isRecord(value) && typeof value.event === 'string') {
+            // Stunned, and the defender pushes off it, Java's `Entity.push(Entity)`.
+            const target = parseEventTarget(value.target, (code, message) =>
+                this.report(`${attacker.identifier}: ${code}: ${message}`)
+            );
+            instance.raise(value.event, target, 'minecraft:ravager_blocked');
+            const impulse = entityPushImpulse(
+                attacker.position.x - defender.position.x,
+                attacker.position.z - defender.position.z
+            );
+            if (impulse === undefined) return;
+            if (this.isPushable(defender)) defender.body.push({ x: -impulse.x, y: 0, z: -impulse.z });
+            if (this.isPushable(attacker)) attacker.body.push(impulse);
+            return;
+        }
+        defender.body.push(strongKnockback(attacker.position, defender.position));
+    }
+
+    /** `LivingEntity.blockedByItem`'s `defender.knockback(0.5, defender - attacker)`. */
+    private shoveTowardBlocked(attacker: EntityPosition, defender: DataEntity): void {
+        this.knockTo(
+            defender,
+            livingKnockback({
+                velocity: defender.body.velocity,
+                onGround: defender.body.conditions.has('on_ground'),
+                resistance: defender.facts.knockbackResistance,
+                power: BLOCKED_KNOCKBACK,
+                toward: { x: defender.position.x - attacker.x, z: defender.position.z - attacker.z },
+                tieBreak: defender.id % 8
+            })
+        );
+    }
+
+    /**
+     * Spends durability of what a player holds in one hand: its inventory's, through the host, or
+     * its entity's equipment, where a stack worn through breaks.
+     */
+    private wearHand(entity: DataEntity, hand: keyof PlayerHands, amount: number): void {
+        if (this.host.wearHeldItem !== undefined && this.host.handsOf?.(entity.id) !== undefined) {
+            this.host.wearHeldItem(entity.id, hand, amount);
+            return;
+        }
+        const held = entity.body.equipment[hand];
+        if (held === undefined) return;
+        const spent = (held.damage ?? 0) + amount;
+        const durability = this.content().items.types.get(held.identifier)?.params(maxDamage) ?? 0;
+        entity.body.setEquipment(
+            durability > 0 && spent >= durability
+                ? withoutEquipmentSlot(entity.body.equipment, hand)
+                : { ...entity.body.equipment, [hand]: { ...held, damage: spent } }
+        );
+    }
+
+    /** Disables a player's shield until a tick, with an undo as {@link EntityRuntime.setHitGrace} has. */
+    private setShieldDisabled(id: number, until: number): void {
+        const before = this.shieldsDisabled.get(id);
+        this.shieldsDisabled.set(id, until);
+        this.store.undoWith(() => {
+            if (before === undefined) this.shieldsDisabled.delete(id);
+            else this.shieldsDisabled.set(id, before);
+        });
     }
 
     /** Notifies combat-regeneration components watching the target that just died. */
@@ -7689,18 +7943,8 @@ export class EntityRuntime implements EntityScene {
             pushableFirst ??= this.isPushable(first);
             const pushableSecond = this.isPushable(second);
             if (!pushableFirst && !pushableSecond) continue;
-            const largestDifference = Math.max(Math.abs(dx), Math.abs(dz));
-            // Java's Entity.push skips pairs whose horizontal centers are within 0.01 blocks.
-            if (largestDifference < 0.01) continue;
-
-            const direction = { x: dx, z: dz };
-            const root = Math.sqrt(Math.max(Math.abs(direction.x), Math.abs(direction.z)));
-            const scale = Math.min(1, 1 / root);
-            const impulse = {
-                x: (direction.x / root) * scale * 0.05,
-                y: 0,
-                z: (direction.z / root) * scale * 0.05
-            };
+            const impulse = entityPushImpulse(dx, dz);
+            if (impulse === undefined) continue;
             if (pushableFirst) first.body.push({ x: -impulse.x, y: 0, z: -impulse.z });
             if (pushableSecond) second.body.push(impulse);
         }

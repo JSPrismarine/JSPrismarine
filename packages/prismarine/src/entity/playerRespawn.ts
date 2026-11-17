@@ -27,6 +27,7 @@ export const respawnVitals = (player: SurvivalPlayer): void => {
     refillBreath(player);
     components.set('movement.sprinting', false);
     components.set('movement.sneaking', false);
+    components.set('movement.sneakingSince', null);
     components.set('movement.sleeping', false);
     components.set('abilities.flying', false);
 };
