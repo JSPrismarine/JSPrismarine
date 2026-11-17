@@ -53,6 +53,27 @@ describe('withJavaComponentRules', () => {
         expect(data).toEqual(entityFile('minecraft:tnt_minecart', { 'minecraft:inactive': {} }));
     });
 
+    it("keeps a trader llama off its lead wild, where the pack's sensor tames it", () => {
+        const persistence = {
+            filters: { test: 'is_leashed', value: false },
+            event: 'minecraft:remove_persistence'
+        };
+        const tame = { filters: { test: 'is_leashed', value: false }, event: 'minecraft:on_tame' };
+        const data = withJavaComponentRules(
+            entityFile('minecraft:trader_llama', {
+                'minecraft:llama_wandering_trader': {
+                    'minecraft:environment_sensor': { triggers: [tame, persistence] }
+                }
+            })
+        );
+
+        expect(data).toEqual(
+            entityFile('minecraft:trader_llama', {
+                'minecraft:llama_wandering_trader': { 'minecraft:environment_sensor': { triggers: [persistence] } }
+            })
+        );
+    });
+
     it("takes the creaking's freezing immunity out, which Java's creaking does not have", () => {
         const data = withJavaComponentRules(
             entityFile('minecraft:creaking', {}, { 'minecraft:freezing_immune': {}, 'minecraft:health': { value: 1 } })

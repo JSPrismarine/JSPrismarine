@@ -69,6 +69,12 @@ const BOAT_SINKS_BY_JAVA_COUNT: JavaComponentRule = {
     rewrite: (body, group) => (group === 'minecraft:above_bubble_column_down' ? undefined : body)
 };
 
+/** An environment sensor without the triggers that raise one event. */
+const withoutTriggerFor = (body: Record<string, unknown>, event: string): Record<string, unknown> => {
+    const triggers: readonly unknown[] = Array.isArray(body.triggers) ? body.triggers : [body.triggers];
+    return { ...body, triggers: triggers.filter((trigger) => !(isRecord(trigger) && trigger.event === event)) };
+};
+
 const WEAPON_BY_WEAPON_ALONE: JavaComponentRule = {
     component: 'minecraft:environment_sensor',
     rewrite: withoutWaterWeaponSwap
@@ -138,6 +144,14 @@ export const JAVA_COMPONENT_RULES: Readonly<Record<string, readonly JavaComponen
     // full puff deals 2.
     'minecraft:pufferfish': [
         { component: 'minecraft:area_attack', rewrite: (body) => ({ ...body, damage_per_tick: 3 }) }
+    ],
+    // `TraderLlama` never tames itself: one that leaves its trader's lead stays wild, for a player
+    // to tame by riding, where the pack's sensor tames it the moment the lead is gone.
+    'minecraft:trader_llama': [
+        {
+            component: 'minecraft:environment_sensor',
+            rewrite: (body) => withoutTriggerFor(body, 'minecraft:on_tame')
+        }
     ],
     'minecraft:skeleton': [WEAPON_BY_WEAPON_ALONE],
     'minecraft:stray': [WEAPON_BY_WEAPON_ALONE],
