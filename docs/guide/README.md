@@ -30,6 +30,7 @@ Start from what you are here to do.
 - [Worlds](running.md#worlds) and [world seeds](running.md#world-seeds): presets, dimensions and
   seeds.
 - [Log levels](log-levels.md): what each level prints and how to choose one.
+- [Error reference](../errors/README.md): what an error in the log means, by its code.
 
 ## Build add-ons and plugins
 

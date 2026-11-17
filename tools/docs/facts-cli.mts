@@ -45,9 +45,11 @@ if (missing.length) {
 }
 let unknown = 0;
 let stale = 0;
+const used = new Set<string>();
 for (const file of markdownFiles()) {
     const absolute = path.join(repoRoot, file);
     const source = readFileSync(absolute, 'utf8');
+    for (const [, name] of source.matchAll(/<!-- fact:([\w.-]+) -->/g)) used.add(name);
     const result = applyFacts(source, facts, { keepMarkers: true });
     for (const name of result.unknown) console.error(`${file}: unknown fact "${name}"`);
     unknown += result.unknown.length;
@@ -60,6 +62,16 @@ for (const file of markdownFiles()) {
             console.log(`${file}: ${name} is ${now}, the source says ${was}`);
     }
 }
+
+// Every error domain needs a page in the reference, since each of its errors links there.
+const pageless = [...facts.keys()].filter((name) => name.startsWith('errors.page.') && !used.has(name));
+for (const name of pageless) {
+    const domain = name.slice('errors.page.'.length);
+    console.error(
+        `docs/errors/${domain}.md is missing: its errors link there. Copy another domain's page and mark it with ${name}.`
+    );
+}
+if (pageless.length) process.exitCode = 1;
 
 if (!write && stale) console.log(`${stale} stale value(s); run \`pnpm run docs:facts\` to refresh them.`);
 if (unknown) {
