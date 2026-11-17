@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { defineErrors } from '@jsprismarine/errors/JSPrismarineError';
+
 import type { LogLevel } from './levels';
 import { Logger } from './logger';
 
@@ -223,5 +225,27 @@ describe('untrusted text in a message', () => {
         const [first, second] = written[0]!.split('\n');
         expect(first).toContain('signed "x"');
         expect(second?.startsWith('    [12:00:00 INFO]: Steve was made an operator')).toBe(true);
+    });
+});
+
+describe('a cataloged error', () => {
+    const TestErrors = defineErrors('test', { Broken: 'The {thing} broke' });
+
+    it('ends with its code and its entry in the error reference', () => {
+        const { logger, written } = makeLogger();
+
+        logger.error(new TestErrors.Broken({ thing: 'world' }));
+
+        expect(written[0]).toContain('The world broke');
+        expect(written[0]).toContain('More about TEST_BROKEN: https://jsprismarine.dev/errors/test.html#test-broken');
+    });
+
+    it('leaves a plain error as it was', () => {
+        const { logger, written } = makeLogger();
+
+        logger.error(new Error('plain'));
+
+        expect(written[0]).toContain('plain');
+        expect(written[0]).not.toContain('More about');
     });
 });
