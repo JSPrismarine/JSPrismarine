@@ -114,9 +114,12 @@ the script host library is not built, unless `JSP_SCRIPT_HOST_REQUIRE=1` is set,
 Linux x64.
 
 A scenario can list observations JSPrismarine makes differently on purpose in
-`jsprismarineDiffers`, each with the decision behind it. The row compares JSPrismarine's record
-with the golden after those observations are replaced. `module-resolution` uses it for the
-undeclared `import('@jsprismarine/server')`, which rejects on BDS and resolves on JSPrismarine
+`jsprismarineDiffers`, each with its reason and the decision record behind it. The row compares
+JSPrismarine's record with the golden after those observations are replaced. When that matches,
+the row still reports the replaced observations as an `intentional` gap with that reason and
+reference, so the allow list and the dashboard show the difference; any other difference is a
+defect. `module-resolution` uses it for the undeclared `import('@jsprismarine/server')`, which
+rejects on BDS and resolves on JSPrismarine
 ([ADR 0020](../../docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md)).
 
 A family with no captured scenario reports "not measured". A declared scenario with no golden

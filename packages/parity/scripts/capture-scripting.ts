@@ -41,6 +41,7 @@ import {
 } from '../src/scripting/record.ts';
 import type { ScenarioGolden } from '../src/scripting/record.ts';
 import {
+    checkReloadLanded,
     loadedPacks,
     readScenarioPackIdentity,
     SCRIPT_SCENARIOS,
@@ -209,6 +210,8 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         );
     }
 
+    const record = readScenarioRecord(server.lines, loadedPacks(scenario), scenario.runs);
+    checkReloadLanded(scenario, record);
     return {
         $comment: [
             `What the scripts of scenario \`${scenario.id}\` recorded on the pinned Bedrock Dedicated Server.`,
@@ -219,7 +222,7 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         family: scenario.family,
         scenario: scenario.id,
         server: { protocolVersion, serverVersion: pinnedServer.serverVersion },
-        ...readScenarioRecord(server.lines, loadedPacks(scenario), scenario.runs)
+        ...record
     };
 };
 

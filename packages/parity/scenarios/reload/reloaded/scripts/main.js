@@ -42,6 +42,7 @@ if (firstRun) {
     });
     system.runTimeout(() => record('ready for /reload'), 5);
     // Long after the reload lands, so it shows that a reload drops the tasks queued before it.
+    // The capture rejects a run that records it: the reload landed too late to show that.
     system.runTimeout(() => record('a task queued before the reload'), 40);
 } else {
     system.runTimeout(end, 60);
