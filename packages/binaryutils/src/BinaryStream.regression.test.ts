@@ -387,12 +387,24 @@ describe('Round-trip fuzz across every fixed-width accessor', () => {
     });
 
     it('still rejects the non-finite values the range check has always excluded', () => {
-        // Unchanged behavior: the bounds are finite doubles, so +-Infinity fall outside them
-        // and NaN fails both comparisons. Worth pinning, because the rewritten assertion uses
-        // `!(a && b)` precisely to keep the NaN case throwing.
+        // The bounds are finite doubles, so +-Infinity fall outside them for a double, and NaN
+        // fails both comparisons. Worth pinning, because the rewritten assertion uses `!(a && b)`
+        // precisely to keep the NaN case throwing.
         for (const v of [Infinity, -Infinity, NaN]) {
             expect(() => new BinaryStream().writeDouble(v)).toThrow(/Value out of bounds/);
-            expect(() => new BinaryStream().writeFloat(v)).toThrow(/Value out of bounds/);
+        }
+        expect(() => new BinaryStream().writeFloat(NaN)).toThrow(/Value out of bounds/);
+        expect(() => new BinaryStream().writeFloatLE(NaN)).toThrow(/Value out of bounds/);
+    });
+
+    it('writes a float infinity, which Bedrock stores for a vector part a float cannot hold', () => {
+        for (const v of [Infinity, -Infinity]) {
+            const big = new BinaryStream();
+            big.writeFloat(v);
+            expect(new BinaryStream(big.getWriteBuffer()).readFloat()).toBe(v);
+            const little = new BinaryStream();
+            little.writeFloatLE(v);
+            expect(new BinaryStream(little.getWriteBuffer()).readFloatLE()).toBe(v);
         }
     });
 });

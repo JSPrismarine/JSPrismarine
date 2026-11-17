@@ -38,6 +38,7 @@ import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { RemoveObjectivePacket, SetDisplayObjectivePacket, SetScorePacket } from '@jsprismarine/protocol';
+import { Scoreboard } from '../../world/Scoreboard';
 import { Dimensions } from '../../world/DimensionType';
 import type GameRuleManager from '../../world/GameRuleManager';
 import type { Level } from '../../world/Level';
@@ -181,7 +182,9 @@ const buildFixture = (): Fixture => {
 
     // Two stems, so `/execute in the_nether` parses; the Nether's world is ready for a move but,
     // as a lazy dimension's is, not among the loaded worlds.
+    const scoreboard = new Scoreboard();
     const level = stub<Level>({
+        getScoreboard: () => scoreboard,
         getStems: () =>
             new Map<string, LevelStem>([
                 [Dimensions.Overworld.id, { type: Dimensions.Overworld.id, generator: DEBUG }],
@@ -983,8 +986,8 @@ describe('the server command host', () => {
 
         describe('reading a score of an objective nobody created', () => {
             it('names the objective instead of answering', () => {
-                // Each call builds its own board, so this one is as empty as
-                // a server where nobody ran `/scoreboard objectives add`.
+                // Each fixture's level has its own board, so this one is as
+                // empty as a server where nobody ran `/scoreboard objectives add`.
                 expect(() => serverCommandHost(fixture.server).scoreboard.getScore('Steve', 'kills')).toThrow(
                     'There is no scoreboard objective called kills'
                 );

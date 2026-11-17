@@ -22,6 +22,8 @@ import type {
 } from '@jsprismarine/script-host/host/world';
 
 import type { ChatManager } from '../chat/ChatManager';
+import { Scoreboard } from '../world/Scoreboard';
+import { scriptScoreboard } from './scriptScoreboard';
 import type { WeatherChange, WorldWeather } from '../world/Weather';
 
 /** What the scripts read and write of a level's entities, blocks, items and commands. */
@@ -47,6 +49,10 @@ export type ScriptLevelAccess = Pick<
     | 'simulatedPlayers'
     | 'placeStructure'
     | 'setGameMode'
+    | 'dynamicProperties'
+    | 'setDynamicProperties'
+    | 'clearDynamicProperties'
+    | 'scoreboard'
 >;
 
 /** A level the scripts reach nothing of: no entities, no loaded blocks, no types and no commands. */
@@ -67,7 +73,19 @@ export const NO_LEVEL_ACCESS: ScriptLevelAccess = {
     setBlock: () => {},
     resolveBlock: () => undefined,
     itemType: () => undefined,
-    runCommand: (command) => ({ error: `Unknown command: ${command}` })
+    runCommand: (command) => ({ error: `Unknown command: ${command}` }),
+    // No entity is there, and the world's own properties and scores are not kept.
+    dynamicProperties: (owner) => (owner === 'world' ? new Map() : undefined),
+    setDynamicProperties: () => {},
+    clearDynamicProperties: () => {},
+    /** A new, empty scoreboard each time it is read, so no two users of this share one. */
+    get scoreboard() {
+        return scriptScoreboard(
+            new Scoreboard(),
+            () => undefined,
+            () => undefined
+        );
+    }
 };
 
 /** A player of the level, as the scripts reach one. */
@@ -262,6 +280,28 @@ export class LevelScriptWorld implements ScriptWorld {
     /** Looks an item type up. */
     public itemType(typeId: string): ReturnType<ScriptWorld['itemType']> {
         return this.access.itemType(typeId);
+    }
+
+    /** One pack's dynamic properties of the level or of an entity. */
+    public dynamicProperties(
+        ...args: Parameters<ScriptWorld['dynamicProperties']>
+    ): ReturnType<ScriptWorld['dynamicProperties']> {
+        return this.access.dynamicProperties(...args);
+    }
+
+    /** Writes some of one pack's dynamic properties of the level or of an entity. */
+    public setDynamicProperties(...args: Parameters<ScriptWorld['setDynamicProperties']>): void {
+        this.access.setDynamicProperties(...args);
+    }
+
+    /** Deletes one pack's dynamic properties of the level or of an entity. */
+    public clearDynamicProperties(...args: Parameters<ScriptWorld['clearDynamicProperties']>): void {
+        this.access.clearDynamicProperties(...args);
+    }
+
+    /** The level's scoreboard, which `/scoreboard` shares. */
+    public get scoreboard(): ScriptWorld['scoreboard'] {
+        return this.access.scoreboard;
     }
 
     /**

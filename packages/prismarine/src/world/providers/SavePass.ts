@@ -1,7 +1,18 @@
 import type { WorldPlayerData } from '../../config/JsonConfigTypes';
 import type Chunk from '../chunk/Chunk';
+import type { DynamicProperties } from '../dynamicProperties';
+import type { SavedScoreboard } from '../Scoreboard';
 import type { WorldPersistenceData } from '../WorldPersistence';
 import type { ChunkSaveContext } from './ChunkSaveContext';
+
+/**
+ * The level-wide records Bedrock keeps in its own form: the world's script dynamic properties and
+ * the scoreboard.
+ */
+export interface LevelRecords {
+    readonly dynamicProperties: DynamicProperties;
+    readonly scoreboard: SavedScoreboard;
+}
 
 /** What one save pass wrote, in keys and bytes; see {@link ProviderSavePass.stats}. */
 export interface SavePassStats {
@@ -50,6 +61,8 @@ export interface ProviderSavePass {
     putPlayer(key: string, record: WorldPlayerData): boolean;
     /** Holds the level record, merged over the one the save holds. */
     putLevelRecord(data: WorldPersistenceData): void;
+    /** Holds the level-wide records, in place of the ones the save holds. */
+    putLevelRecords(records: LevelRecords): void;
     /** How many sub chunks are still to encode. */
     readonly pendingEncodes: number;
     /**

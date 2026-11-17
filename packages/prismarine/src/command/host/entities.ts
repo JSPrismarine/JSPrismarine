@@ -29,6 +29,7 @@ import { stemTarget } from '../../world/portal/DimensionTravel';
 import type { World } from '../../world/World';
 import { isSummonable } from '../vanillaCommands';
 import type { Scoreboard } from './scoreboard';
+import type { Scoreboard } from '../../world/Scoreboard';
 import { scoreFactOf } from './scoreboard';
 import type { CommandPlayer } from './support';
 import {
@@ -119,7 +120,7 @@ const familiesOf = (entity: StoreActor): readonly string[] => entity.entity.inst
  * The facts an `EntityRef` does not carry, as far as this server can answer
  * them.
  */
-const selectorFacts = (server: Server, scoreboard: Scoreboard): Partial<SelectorFacts> => ({
+const selectorFacts = (server: Server, scoreboard: () => Scoreboard): Partial<SelectorFacts> => ({
     gameMode: (ref) => {
         const player = resolvePlayer(server, ref);
         return player === undefined ? undefined : gameModeNameOf(player);
@@ -208,7 +209,7 @@ const spawnIdentifierOf = (identifier: string): string => {
  * @param server - The live server every verb reads and writes through.
  * @param scoreboard - The scoreboard a selector's `scores=` reads.
  */
-export const entityCommandHost = (server: Server, scoreboard: Scoreboard): EntityCommandHost => {
+export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard): EntityCommandHost => {
     const refsOf = (entities: readonly StoreActor[]): EntityRef[] => entities.map(entityRefOf);
 
     /**

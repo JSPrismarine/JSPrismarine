@@ -3,7 +3,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type { WorldPlayerData } from '../config/JsonConfigTypes';
 import type BaseProvider from './providers/BaseProvider';
 import type { LevelDatInputs } from './providers/Provider';
-import type { ProviderSavePass, SavePassStats } from './providers/SavePass';
+import type { LevelRecords, ProviderSavePass, SavePassStats } from './providers/SavePass';
 import type { WorldPersistenceData } from './WorldPersistence';
 
 /** Two minutes at the server's twenty ticks per second. */
@@ -42,6 +42,8 @@ export interface SavedWorld {
 export interface LevelDataAtCut {
     readonly record: WorldPersistenceData;
     readonly levelDat: LevelDatInputs;
+    /** The level-wide records Bedrock keeps in its own form, the dynamic properties and the scoreboard. */
+    readonly records?: LevelRecords;
 }
 
 /** What {@link LevelSave} needs from the level that owns it. */
@@ -266,6 +268,7 @@ export class LevelSave {
             for (const world of worlds) world.cutSave(pass, players, requireSuccess);
             const levelData = this.options.levelData?.();
             if (levelData !== undefined) pass.putLevelRecord(levelData.record);
+            if (levelData?.records !== undefined) pass.putLevelRecords(levelData.records);
 
             const elsewhere = new Map<string, WorldPlayerData>();
             for (const [key, record] of players) if (!pass.putPlayer(key, record)) elsewhere.set(key, record);
