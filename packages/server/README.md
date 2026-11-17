@@ -9,8 +9,8 @@ Run `prismarine` in a terminal on Node 26.9 or newer (or 26.4 with `--experiment
 loads `@jsprismarine/console` and shows the UI. Anywhere else it runs the server in-process with
 the plain console, where each stdin line is a command and each log record is a stdout line.
 `--no-tui` or `JSP_NO_TUI=1` forces the plain console, `--headless` attaches no console at all,
-and `--watch` restarts the server when workspace source or loaded content pack data changes
-(`pnpm run dev` passes it). The flags and keys are documented in
+and `--watch` restarts the server when workspace source or loaded content pack data changes, and
+runs `/reload` when a loaded pack's script changes (`pnpm run dev` passes it). The flags and keys are documented in
 [Running JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/guide/running.md#console).
 
 ## Native TypeScript loader prototype

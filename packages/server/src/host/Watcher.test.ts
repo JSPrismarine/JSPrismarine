@@ -83,19 +83,21 @@ const startWatcher = async (
     const fs = fakeWatch();
     const events: SupervisorEvent[] = [];
     const requestRestart = vi.fn<(reason: string) => void>();
+    const requestScriptReload = vi.fn<(reason: string) => void>();
     const watcher = new Watcher({
         packagesDir,
         contentPackPaths,
         built,
         onEvent: (event) => events.push(event),
         requestRestart,
+        requestScriptReload,
         generate,
         watch: fs.watch,
         debounceMs: DEBOUNCE_MS
     });
     watchers.push(watcher);
     const started = watcher.start();
-    return { events, requestRestart, watcher, fs, started };
+    return { events, requestRestart, requestScriptReload, watcher, fs, started };
 };
 
 const advanceDebounce = () => vi.advanceTimersByTimeAsync(DEBOUNCE_MS * 3);
@@ -244,6 +246,28 @@ describe('Watcher', () => {
         const reason = path.relative(path.dirname(packagesDir), path.join(packDir, 'blocks', 'marble.block.json'));
         expect(requestRestart).toHaveBeenCalledOnce();
         expect(requestRestart).toHaveBeenCalledWith(reason);
+        expect(events).toContainEqual({ type: 'supervisor.changed', path: reason });
+    });
+
+    it('reloads the scripts, once and without a restart, when a pack script changes', async () => {
+        const packagesDir = makePackages();
+        const packDir = path.join(path.dirname(packagesDir), 'world-packs', 'scripted');
+        mkdirSync(path.join(packDir, 'scripts'), { recursive: true });
+        const { events, requestRestart, requestScriptReload, fs, started } = await startWatcher(
+            packagesDir,
+            undefined,
+            [packDir]
+        );
+        await started;
+
+        fs.change(packDir, path.join('scripts', 'main.js'));
+        fs.change(packDir, path.join('scripts', 'helper.js'));
+        await advanceDebounce();
+
+        const reason = path.relative(path.dirname(packagesDir), path.join(packDir, 'scripts', 'main.js'));
+        expect(requestScriptReload).toHaveBeenCalledOnce();
+        expect(requestScriptReload).toHaveBeenCalledWith(reason);
+        expect(requestRestart).not.toHaveBeenCalled();
         expect(events).toContainEqual({ type: 'supervisor.changed', path: reason });
     });
 

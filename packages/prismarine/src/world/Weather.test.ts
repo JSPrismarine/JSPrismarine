@@ -186,4 +186,64 @@ describe('WorldWeather', () => {
             expect(weather.current()).toBe('clear');
         });
     });
+
+    describe('guards and listeners', () => {
+        it('lets a guard veto a change before anything is sent', () => {
+            const { weather, sent } = weatherWorld();
+            const seen: unknown[] = [];
+            weather.addGuard((change) => {
+                seen.push(change);
+                return { veto: true };
+            });
+
+            weather.set('rain', 600);
+
+            expect(seen).toEqual([{ previous: 'clear', next: 'rain', duration: 600 }]);
+            expect(weather.current()).toBe('clear');
+            expect(sent).toEqual([]);
+        });
+
+        it('applies the weather and duration a guard replaced, and tells the listeners', () => {
+            const { weather } = weatherWorld();
+            const changes: unknown[] = [];
+            weather.onChange((change) => changes.push(change));
+            weather.addGuard((change) => ({ veto: false, change: { ...change, next: 'thunder', duration: 40 } }));
+
+            weather.set('rain', 600);
+
+            expect(weather.current()).toBe('thunder');
+            expect(weather.saved().thunderTime).toBe(40);
+            expect(changes).toEqual([{ previous: 'clear', current: 'thunder' }]);
+        });
+
+        it('runs no guard and tells no listener when the weather stays what it is', () => {
+            const { weather } = weatherWorld();
+            weather.set('rain', 600);
+            let guarded = 0;
+            const changes: unknown[] = [];
+            weather.addGuard((change) => {
+                guarded += 1;
+                return { veto: false, change };
+            });
+            weather.onChange((change) => changes.push(change));
+
+            weather.set('rain', 900);
+
+            expect(guarded).toBe(0);
+            expect(changes).toEqual([]);
+            expect(weather.saved().rainTime).toBe(900);
+        });
+
+        it('tells the listeners of a change the cycle made', () => {
+            const { weather } = weatherWorld();
+            const changes: unknown[] = [];
+            weather.onChange((change) => changes.push(change));
+
+            tick(weather, RAIN_DELAY.min + 1);
+
+            // The shortest draws start the storm with the rain.
+            expect(changes).toEqual([{ previous: 'clear', current: weather.current() }]);
+            expect(weather.current()).not.toBe('clear');
+        });
+    });
 });
