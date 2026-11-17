@@ -197,6 +197,21 @@ describe('command', () => {
             await expect(commandManager.dispatchCommand(console, console, '/gamerule fall_damage')).resolves.toBe(true);
         });
 
+        it("runs a script's command at once, and returns its success count or its error", async () => {
+            const { commandManager, rules } = managerWithPermissionSpy();
+            await commandManager.enable();
+
+            expect(
+                commandManager.runScriptCommand('gamerule fall_damage false', { dimension: 'minecraft:overworld' })
+            ).toEqual({
+                successCount: 1
+            });
+            expect(rules.get('fallDamage')?.[0]).toBe(false);
+            expect(commandManager.runScriptCommand('nope', { dimension: 'minecraft:overworld' })).toEqual({
+                error: expect.stringContaining('Unknown command')
+            });
+        });
+
         it('should refuse an unknown command without throwing at the caller', async () => {
             const commandManager = new CommandManager(server);
             await commandManager.enable();

@@ -123,6 +123,11 @@ export class CommandManager implements Service {
         );
     }
 
+    /** The host every command's verbs read and write the server through. */
+    public getHost(): CommandHost {
+        return this.host;
+    }
+
     /** Captures the persistent command random streams for a replay baseline. */
     public saveRandomSequenceState(): RandomSequencesState {
         return this.randomSequences.saveState();
@@ -634,6 +639,46 @@ export class CommandManager implements Service {
     ): { readonly ran: boolean; readonly settled: Promise<void> } {
         const { ran, finished } = this.startCommand(sender, target, input);
         return { ran, settled: finished.then(() => undefined) };
+    }
+
+    /**
+     * Runs a command for a behavior pack script, as `Dimension.runCommand` and
+     * `Entity.runCommand` do: synchronously, at the game directors' level, with its feedback
+     * dropped, as BDS runs a script's command. Work its verbs start finishes later, as for any
+     * command.
+     *
+     * @param input - The command without its slash.
+     * @param source - The entity it runs as, `@s`, or the dimension it runs in.
+     * @returns How many times it succeeded, or the message of the error that stopped it.
+     */
+    public runScriptCommand(
+        input: string,
+        source: { readonly entity: ReferencedEntity } | { readonly dimension: string }
+    ): { readonly successCount: number } | { readonly error: string } {
+        const errors: string[] = [];
+        const commandSource = createCommandSource({
+            host: this.host,
+            ...('entity' in source ? { entity: entityRefOf(source.entity) } : { dimension: source.dimension }),
+            permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
+            silent: true,
+            dialect: 'bedrock',
+            onError: (message) => errors.push(message)
+        });
+        try {
+            let results: unknown;
+            const started = collectAsyncCommands(() => {
+                results = this.vanillaRegistry().getDispatcher().execute(input, commandSource);
+            });
+            for (const work of started) void work.catch((error: unknown) => this.server.getLogger().error(error));
+            // Each context the command ran in and returned from is a success, whatever number it
+            // returned: `/time query` succeeds once with the time. A command that fails throws.
+            const total = Array.isArray(results) ? results.filter((value) => typeof value === 'number').length : 0;
+            const [error] = errors;
+            return total === 0 && error !== undefined ? { error } : { successCount: total };
+        } catch (error: unknown) {
+            if (error instanceof CommandSyntaxException) return { error: error.getMessage() };
+            return { error: error instanceof globalThis.Error ? error.message : String(error) };
+        }
     }
 
     /**
