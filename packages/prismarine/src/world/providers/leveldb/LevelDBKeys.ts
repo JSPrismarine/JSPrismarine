@@ -1,3 +1,5 @@
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
+
 /**
  * The keys a Bedrock world's LevelDB is addressed by.
  *
@@ -136,7 +138,7 @@ export const encodeDigestKey = (x: number, z: number, dimension: number): Buffer
 /** The key an actor's NBT lives under, given the 8 byte unique id from its chunk's digest. */
 export const encodeActorKey = (uniqueId: Buffer): Buffer => {
     if (uniqueId.byteLength !== 8) {
-        throw new RangeError(`An actor id is 8 bytes, got ${uniqueId.byteLength}`);
+        throw new PrismarineWorldErrors.InvalidActorId({ byteLength: uniqueId.byteLength });
     }
 
     return Buffer.concat([ACTOR_PREFIX, uniqueId]);
@@ -145,7 +147,7 @@ export const encodeActorKey = (uniqueId: Buffer): Buffer => {
 /** The 8 byte ids packed into a `digp` value. */
 export const decodeDigest = (value: Buffer): Buffer[] => {
     if (value.byteLength % 8 !== 0) {
-        throw new RangeError(`An actor digest is a whole number of 8 byte ids, got ${value.byteLength} bytes`);
+        throw new PrismarineWorldErrors.InvalidActorDigest({ byteLength: value.byteLength });
     }
 
     return Array.from({ length: value.byteLength / 8 }, (_, i) => value.subarray(i * 8, i * 8 + 8));

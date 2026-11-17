@@ -10,6 +10,7 @@ import type { DimensionType } from '../../DimensionType';
 import type { Generator, SurfaceProbe } from '../../Generator';
 import type { GeneratorFactory } from '../../GeneratorFactories';
 import { bedrockBiomeIdOf } from '../datadriven/javaTranslation';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** The kind id of Java's debug world, the grid of every block state. */
 export const DEBUG_GENERATOR_KIND = 'minecraft:debug';
@@ -212,9 +213,14 @@ export const debugGeneratorFactory: GeneratorFactory = {
     build(context) {
         const dimension = context.dimension;
         if (DEBUG_FLOOR_Y < dimension.minY || DEBUG_GRID_Y > maxY(dimension)) {
-            throw new Error(
-                `${DEBUG_GENERATOR_KIND} lays its grid at y ${DEBUG_FLOOR_Y} to ${DEBUG_GRID_Y}, outside the ${dimension.id} stem's y ${dimension.minY} to ${maxY(dimension)}`
-            );
+            throw new PrismarineGenerationErrors.DebugGridOutOfRange({
+                debugGeneratorKind: DEBUG_GENERATOR_KIND,
+                debugFloorY: DEBUG_FLOOR_Y,
+                debugGridY: DEBUG_GRID_Y,
+                id: dimension.id,
+                minY: dimension.minY,
+                maxY: maxY(dimension)
+            });
         }
 
         return new DebugGenerator({

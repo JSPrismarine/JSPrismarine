@@ -9,6 +9,7 @@ import type { ClimateEntry, ClimateParameterPoint } from '../biome/Climate';
 import { ClimateParameterList, SharedClimateParameterList, parseClimateParameterPoint } from '../biome/Climate';
 import { normalizeIdentifier } from '../identifier';
 import { asArray, asObject, inRange, integer, optional } from '../json';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** One inline entry of a `multi_noise` biome source's `biomes` list. */
 export interface MultiNoiseBiomeEntry {
@@ -39,9 +40,7 @@ const CHECKERBOARD_SCALE_MAX = 62;
 const biomeList = (value: unknown, path: string): readonly string[] => {
     if (typeof value === 'string') {
         if (value.startsWith('#')) {
-            throw new TypeError(
-                `${path}: biome tags are not resolved here, list the biomes instead, got ${JSON.stringify(value)}`
-            );
+            throw new WorldgenErrors.BiomeTagNotResolved({ path, value: JSON.stringify(value) });
         }
         return [normalizeIdentifier(value)];
     }
@@ -83,7 +82,7 @@ export const parseBiomeSourceDefinition = (json: unknown, path = '<biome_source>
         case 'minecraft:the_end':
             return { type };
         default:
-            throw new TypeError(`${path}: unknown biome source type ${JSON.stringify(type)}`);
+            throw new WorldgenErrors.UnknownBiomeSourceType({ path, type: JSON.stringify(type) });
     }
 };
 
@@ -123,9 +122,10 @@ export const parseBiomeSource = (
                     }
                 }
                 if (list === undefined) {
-                    throw new TypeError(
-                        `${path}.preset: no multi_noise_biome_source_parameter_list named ${JSON.stringify(definition.preset)}`
-                    );
+                    throw new WorldgenErrors.UnknownBiomeParameterPreset({
+                        path,
+                        preset: JSON.stringify(definition.preset)
+                    });
                 }
                 return MultiNoiseBiomeSource.fromJson(list, definition.preset);
             }
@@ -144,7 +144,7 @@ export const parseBiomeSource = (
         default: {
             // A definition read from untyped JSON can carry a type the union does not list.
             const unknown: { readonly type: string } = definition;
-            throw new TypeError(`${path}: unknown biome source type ${JSON.stringify(unknown.type)}`);
+            throw new WorldgenErrors.UnknownBiomeSourceType({ path, type: JSON.stringify(unknown.type) });
         }
     }
 };

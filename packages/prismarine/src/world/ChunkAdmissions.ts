@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 
 import type { ChunkEntry } from './changelog/ChangeEntry';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * The most chunk completions one input step admits. A count, so a backlog costs a slow host the
@@ -246,7 +247,7 @@ export class ChunkAdmissions implements ChunkAdmissionScheduler {
                 // A world holds one completion per chunk and direction; a second means the first
                 // is stale, and applying it would undo what the second is for.
                 this.remove(previous);
-                previous.reject(new Error(`A newer completion replaced ${key} before it was admitted`));
+                previous.reject(new PrismarineWorldErrors.CompletionReplaced({ key }));
             }
             this.waiting.get(held.priority)!.push(held);
             this.keyed.set(key, held);

@@ -6,8 +6,9 @@ import { maxStackSize } from './components/universal';
 import type { ItemType } from './hooks';
 import type { ItemRegistry } from './itemTypes';
 import type { ProviderContext } from './numberProvider';
-import { DEFAULT_PROVIDER_CONTEXT, NumberProviderError } from './numberProvider';
+import { DEFAULT_PROVIDER_CONTEXT } from './numberProvider';
 import { evaluateNumberProvider } from './numberProvider';
+import { NumberProviderError } from '@jsprismarine/errors/items';
 
 /**
  * The burn time of one item type in ticks, zero when the item is not a fuel.

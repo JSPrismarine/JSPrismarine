@@ -2,6 +2,7 @@ import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
 import Vec2 from './Vec2';
 import Vec3 from './Vec3';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The docs' `EasingType`: the uint8 `type` of a set instruction's `ease`. Lowercasing a member
@@ -284,7 +285,7 @@ export default class CameraInstruction extends NetworkStructure {
     private static readEasingFunction(stream: NetworkBinaryStream): EasingFunction {
         const name = stream.readString();
         if (!isEasingFunction(name)) {
-            throw new Error(`Unknown easing_function "${name}"`);
+            throw new ProtocolWireErrors.UnknownEasingFunction({ name });
         }
         return name;
     }

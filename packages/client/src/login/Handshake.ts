@@ -1,6 +1,7 @@
 import { createHash, createPrivateKey, createPublicKey, diffieHellman } from 'node:crypto';
 
 import { decodeJwt, decodeProtectedHeader } from 'jose';
+import { ClientErrors } from '@jsprismarine/errors/client';
 
 /**
  * The key both ends of a connection arrive at without either sending it.
@@ -33,15 +34,15 @@ export const readHandshake = (jwt: string): { publicKeyDer: string; salt: Buffer
         header = decodeProtectedHeader(jwt);
         claims = decodeJwt(jwt);
     } catch {
-        throw new Error('A handshake token has a header and a payload separated by dots');
+        throw new ClientErrors.HandshakeTokenNotJwt();
     }
 
     // `x5u` is the header field carrying the sender's public key, as base64 DER rather than a JWK.
     const x5u = stringField(header, 'x5u');
-    if (x5u === undefined) throw new Error('The handshake token carries no `x5u` public key');
+    if (x5u === undefined) throw new ClientErrors.HandshakeTokenHasNoKey();
 
     const salt = stringField(claims, 'salt');
-    if (salt === undefined) throw new Error('The handshake token carries no `salt`');
+    if (salt === undefined) throw new ClientErrors.HandshakeTokenHasNoSalt();
 
     // Base64 without padding is what the claim carries; Node wants either, but only if it is
     // told which, and `base64` rejects nothing so the unpadded form decodes cleanly.

@@ -11,6 +11,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** Most bytes an actor flag bit set needs: seven flag bits per byte, `ActorFlags.COUNT` flags. */
 const MAX_FLAG_BYTES = Math.ceil(ActorFlags.COUNT / 7);
@@ -38,7 +39,7 @@ const actorFlagBits = t.custom<bigint>(
             if ((byte & 0x80) === 0) return bits;
         }
 
-        throw new Error(`Actor flag bit set runs past ${MAX_FLAG_BYTES} bytes`);
+        throw new ProtocolWireErrors.ActorFlagsTooLong({ maxFlagBytes: MAX_FLAG_BYTES });
     }
 );
 

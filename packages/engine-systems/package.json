@@ -64,6 +64,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/engine-systems",
     "dependencies": {
         "@jsprismarine/blocks": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/mapping": "workspace:*"
     },
     "devDependencies": {

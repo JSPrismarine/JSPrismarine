@@ -58,6 +58,7 @@ import {
 } from './support';
 import javaCommandTreeJson from '../tables/javaCommands.json';
 import type { CommandRegistry } from '../tree';
+import { CommandsErrors } from '@jsprismarine/errors/commands';
 
 type CommandNode<S> = NonNullable<ReturnType<ReturnType<CommandRegistry<S>['getRoot']>['getChild']>>;
 
@@ -794,7 +795,7 @@ const buildDataNode = (
     }
 
     if (data.type !== 'argument' || data.parser === undefined) {
-        throw new Error(`Java command node '${name}' has no argument parser.`);
+        throw new CommandsErrors.JavaCommandNodeHasNoArgumentParser({ name });
     }
     const builder = argument<CommandSource, unknown>(
         name,
@@ -815,7 +816,7 @@ const resolveRedirect = (
     let target: CommandNode<CommandSource> = registry.getRoot();
     for (const part of path) {
         const child = target.getChild(part);
-        if (child === undefined) throw new Error(`Java command redirect '${path.join(' ')}' is not registered.`);
+        if (child === undefined) throw new CommandsErrors.JavaCommandRedirectIsNotRegistered({ path: path.join(' ') });
         target = child;
     }
     return target;

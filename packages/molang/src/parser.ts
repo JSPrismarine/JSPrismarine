@@ -1,7 +1,8 @@
 import type { BinaryOperator, ExpressionNode, ProgramNode, ReferenceNode, StatementNode, TernaryNode } from './ast';
 import type { Token } from './lexer';
-import { MolangSyntaxError, tokenize } from './lexer';
+import { tokenize } from './lexer';
 import type { MolangVersionRules } from './version';
+import { MolangErrors } from '@jsprismarine/errors/molang';
 
 const DOMAIN_ALIASES = {
     q: 'query',
@@ -80,9 +81,9 @@ class Parser {
             else break;
         }
         if (this.index < this.tokens.length) {
-            throw new MolangSyntaxError(`unexpected token ${this.peek()!.value}`, this.peek()!.start);
+            throw new MolangErrors.UnexpectedTokenAtOffset({ value: this.peek()!.value, offset: this.peek()!.start });
         }
-        if (statements.length === 0) throw new MolangSyntaxError('empty expression', 0);
+        if (statements.length === 0) throw new MolangErrors.EmptyExpressionAtOffset({ offset: 0 });
         return { kind: 'program', complex, statements };
     }
 
@@ -119,7 +120,7 @@ class Parser {
             }
             if (token.value === '=' && ASSIGN_PRECEDENCE >= minPrecedence) {
                 if (left.kind !== 'reference' || (left.domain !== 'variable' && left.domain !== 'temp')) {
-                    throw new MolangSyntaxError('only variable.* and temp.* can be assigned', token.start);
+                    throw new MolangErrors.OnlyVariableAndTempCanBeAssigned({ offset: token.start });
                 }
                 this.index++;
                 left = { kind: 'assign', target: left, value: this.parseExpression(ASSIGN_PRECEDENCE) };
@@ -152,7 +153,7 @@ class Parser {
 
     private parsePrefix(): ExpressionNode {
         const token = this.peek();
-        if (!token) throw new MolangSyntaxError('unexpected end of expression', this.source.length);
+        if (!token) throw new MolangErrors.UnexpectedEndOfExpressionAtOffset({ offset: this.source.length });
         if (token.kind === 'number') {
             this.index++;
             return { kind: 'number', value: Number.parseFloat(token.value) };
@@ -205,7 +206,7 @@ class Parser {
                     return { kind: 'for_each', variable, array, body };
                 }
                 default:
-                    throw new MolangSyntaxError(`unexpected keyword ${token.value}`, token.start);
+                    throw new MolangErrors.UnexpectedKeywordAtOffset({ value: token.value, offset: token.start });
             }
         }
         if (token.kind === 'identifier') {
@@ -222,7 +223,7 @@ class Parser {
             }
             return reference;
         }
-        throw new MolangSyntaxError(`unexpected token ${token.value}`, token.start);
+        throw new MolangErrors.UnexpectedTokenAtOffset({ value: token.value, offset: token.start });
     }
 
     private parseBlock(): ExpressionNode {
@@ -241,13 +242,13 @@ class Parser {
     private parseReference(): ReferenceNode {
         const token = this.peek();
         if (!token || token.kind !== 'identifier') {
-            throw new MolangSyntaxError('expected an identifier', token?.start ?? this.source.length);
+            throw new MolangErrors.ExpectedIdentifierAtOffset({ offset: token?.start ?? this.source.length });
         }
         this.index++;
         const [head = '', ...path] = token.value.split('.');
         const aliases: Readonly<Partial<Record<string, Domain>>> = DOMAIN_ALIASES;
         const domain = aliases[head];
-        if (!domain) throw new MolangSyntaxError(`unknown scope ${head}`, token.start);
+        if (!domain) throw new MolangErrors.UnknownScopeAtOffset({ head, offset: token.start });
         return { kind: 'reference', domain, path };
     }
 
@@ -267,10 +268,9 @@ class Parser {
     private expect(value: string): void {
         if (!this.take(value)) {
             const token = this.peek();
-            throw new MolangSyntaxError(
-                `expected ${value}${token ? `, found ${token.value}` : ''}`,
-                token?.start ?? this.source.length
-            );
+            throw token
+                ? new MolangErrors.ExpectedFoundAtOffset({ expected: value, found: token.value, offset: token.start })
+                : new MolangErrors.ExpectedAtOffset({ expected: value, offset: this.source.length });
         }
     }
 }

@@ -5,6 +5,7 @@ import { layoutAt } from '../wire/WireLayout';
 import type { PayloadOf } from '../wire/define';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 type WirePayload = PayloadOf<typeof networkChunkPublisherUpdatePacket>;
 
@@ -55,8 +56,7 @@ export default class NetworkChunkPublisherUpdatePacket extends NetworkPacket<Net
         const savedChunks = data.savedChunks.map((chunk) => {
             const x = chunk.x;
             const z = chunk.z;
-            if (typeof x !== 'number' || typeof z !== 'number')
-                throw new TypeError('A chunk coordinate pair must have numeric x and z fields');
+            if (typeof x !== 'number' || typeof z !== 'number') throw new ProtocolCodecErrors.InvalidChunkCoordinates();
             return { x, z };
         });
         return { ...data, savedChunks };

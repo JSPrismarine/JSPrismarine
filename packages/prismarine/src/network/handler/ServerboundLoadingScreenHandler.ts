@@ -2,6 +2,7 @@ import type ServerboundLoadingScreenPacket from '@jsprismarine/protocol/packet/S
 import { ServerboundLoadingScreenPacketType } from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * The client reporting a loading screen edge.
@@ -24,7 +25,7 @@ export default class ServerboundLoadingScreenHandler implements InputLaneHandler
      */
     public handle(packet: ServerboundLoadingScreenPacket, { session, log, step }: InputContext): undefined {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a ServerboundLoadingScreenPacket without a payload');
+        if (data === null) throw new PrismarineNetworkErrors.LoadingScreenNotDecoded();
         const closed = data.loadingScreenType === ServerboundLoadingScreenPacketType.EndLoadingScreen;
         const edge =
             data.loadingScreenType === ServerboundLoadingScreenPacketType.StartLoadingScreen

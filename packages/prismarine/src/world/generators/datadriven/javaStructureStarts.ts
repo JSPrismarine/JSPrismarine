@@ -41,6 +41,7 @@ import {
 } from './javaStructureWorld';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { isRecord } from '../../../utils/isRecord';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** How far Java looks for a start that reaches into the chunk being generated. */
 const REFERENCE_RADIUS = 8;
@@ -289,7 +290,7 @@ export class StructureStartSource {
     public plansForCandidates(candidates: readonly StructureStartCandidate[]): readonly StructureStartPlanEntry[] {
         return candidates.map((candidate) => {
             const named = this.setsById.get(candidate.set);
-            if (named === undefined) throw new TypeError(`Unknown structure set ${candidate.set}.`);
+            if (named === undefined) throw new PrismarineGenerationErrors.UnknownStructureSet({ set: candidate.set });
             const start = this.startAt(named, candidate.chunkX, candidate.chunkZ);
             const entry: StructureStartPlanEntry = {
                 ...candidate,
@@ -313,10 +314,11 @@ export class StructureStartSource {
                     entry.start.chunkX !== entry.chunkX ||
                     entry.start.chunkZ !== entry.chunkZ)
             ) {
-                throw new TypeError(`The structure-start plan does not match ${key}.`);
+                throw new PrismarineGenerationErrors.StructureStartMismatch({ key });
             }
             if (this.starts.has(key)) continue;
-            if (!this.setsById.has(entry.set)) throw new TypeError(`Unknown structure set ${entry.set}.`);
+            if (!this.setsById.has(entry.set))
+                throw new PrismarineGenerationErrors.UnknownStructureSet({ set: entry.set });
             // structuredClone does not preserve Object.freeze. Re-freeze each worker message
             // before decoded pieces retain references to its nested layout fields.
             freezeStructurePlanData(entry);

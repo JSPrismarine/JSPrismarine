@@ -16,6 +16,7 @@ import { bedrockDimensionOverlay, javaDimensionTypeOf } from '@jsprismarine/mapp
 import type { DimensionTypeDefinition } from '@jsprismarine/worldgen';
 
 import { VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * How tall a dimension is, where its floor sits, and what the client and the save call it.
@@ -94,9 +95,11 @@ export const dimensionTypeOf = (
     }
 
     if (customId === undefined || customId < FIRST_CUSTOM_DIMENSION_ID) {
-        throw new RangeError(
-            `${javaId} has no Bedrock dimension overlay and needs a custom id of ${FIRST_CUSTOM_DIMENSION_ID} or more, got ${customId}`
-        );
+        throw new PrismarineWorldErrors.CustomDimensionIdTooLow({
+            javaId,
+            firstCustomDimensionId: FIRST_CUSTOM_DIMENSION_ID,
+            customId
+        });
     }
     const minY = Math.max(definition.minY, BEDROCK_MIN_Y);
     const top = Math.min(definition.minY + definition.height, BEDROCK_MAX_Y);

@@ -27,6 +27,7 @@ import type { Definitions, WorldgenRegistryKind } from '@jsprismarine/packs';
 import { load } from '@jsprismarine/packs';
 import type { JavaWorldgenSources } from './javaWorldgenSources';
 import { JAVA_WORLDGEN_ENV, findJavaWorldgenSources } from './javaWorldgenSources';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** One registry's documents, keyed by namespaced identifier. */
 export type JavaRegistry = ReadonlyMap<string, unknown>;
@@ -192,12 +193,10 @@ export const loadJavaWorldgenRegistries = (sources: JavaWorldgenSources): JavaWo
 export const requireJavaWorldgenSources = (): JavaWorldgenSources => {
     const sources = findJavaWorldgenSources();
     if (sources === undefined) {
-        throw new Error(
-            'The noise generator needs Java Edition 26.3 world generation data. Run ' +
-                '`pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and ' +
-                '`pnpm --filter @jsprismarine/bedrock-data run datagen:java`, or set ' +
-                `${JAVA_WORLDGEN_ENV.datapack} and ${JAVA_WORLDGEN_ENV.reports}.`
-        );
+        throw new PrismarineGenerationErrors.MissingJavaWorldgenData({
+            datapack: JAVA_WORLDGEN_ENV.datapack,
+            reports: JAVA_WORLDGEN_ENV.reports
+        });
     }
     return sources;
 };

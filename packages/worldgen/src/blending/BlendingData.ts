@@ -12,6 +12,7 @@
  * the blocks, and the column of stored biomes.
  */
 import { f32, floorDiv } from '../math';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** Java's `Float.MAX_VALUE`, which marks a height or density the record has no value for. */
 export const BLENDING_NO_VALUE = 3.4028234663852886e38;
@@ -173,7 +174,9 @@ export class BlendingData {
         const heights = new Float32Array(BLENDING_CELL_COLUMN_COUNT).fill(BLENDING_NO_VALUE);
         if (packed.heights !== undefined) {
             if (packed.heights.length !== BLENDING_CELL_COLUMN_COUNT) {
-                throw new RangeError(`heights has to be of length ${BLENDING_CELL_COLUMN_COUNT}`);
+                throw new WorldgenErrors.BlendingHeightsWrongLength({
+                    blendingCellColumnCount: BLENDING_CELL_COLUMN_COUNT
+                });
             }
             heights.set(packed.heights);
         }

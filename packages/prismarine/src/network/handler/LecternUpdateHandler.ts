@@ -3,6 +3,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type { SessionContext } from './HandlerContext';
 import type { ReadLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** The one block whose screen sends this packet. */
 const LECTERNS: ReadonlySet<string> = new Set(['minecraft:lectern']);
@@ -23,7 +24,7 @@ export default class LecternUpdateHandler implements ReadLaneHandler<LecternUpda
     /** Checks the position names a lectern in reach, then logs the page and position. */
     public handle(packet: LecternUpdatePacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a LecternUpdatePacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.LecternUpdateNotDecoded();
 
         const position = new BlockPosition(data.position.x, data.position.y, data.position.z);
         const where = `${position.getX()}, ${position.getY()}, ${position.getZ()}`;

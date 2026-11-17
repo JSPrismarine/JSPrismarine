@@ -60,6 +60,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/nethernet",
     "dependencies": {
         "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/native-network": "workspace:*",
         "jose": "6.2.17"

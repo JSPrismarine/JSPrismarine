@@ -1,3 +1,5 @@
+import { StructuresErrors } from '@jsprismarine/errors/structures';
+
 /**
  * The random source structure placement and the processors draw from.
  *
@@ -42,7 +44,7 @@ class LegacyRandomSource implements RandomSource {
 
     public nextInt(bound?: number): number {
         if (bound === undefined) return this.next(32);
-        if (!Number.isInteger(bound) || bound <= 0) throw new RangeError(`bound must be positive, got ${bound}`);
+        if (!Number.isInteger(bound) || bound <= 0) throw new StructuresErrors.BoundMustBePositive({ bound });
         if ((bound & -bound) === bound) return Number((BigInt(bound) * BigInt(this.next(31))) >> 31n);
 
         for (;;) {

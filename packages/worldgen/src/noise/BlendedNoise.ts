@@ -3,6 +3,7 @@ import type { RandomSource } from '../random/RandomSource';
 import type { NoiseStack } from './NoiseStack';
 import { NoiseStackBuilder } from './NoiseStack';
 import { SmearedPerlinNoise } from './SmearedPerlinNoise';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 const BASE_SCALE = 684.412;
 const LIMIT_FACTOR = f32(0.99998474);
@@ -38,7 +39,7 @@ export const createFbm = (
     smearScaleY: number,
     valueFactor: number
 ): NoiseStack => {
-    if (firstOctave > 0) throw new RangeError('firstOctave>0');
+    if (firstOctave > 0) throw new WorldgenErrors.PositiveFirstOctave();
 
     const octaves = -firstOctave + 1;
     let factor = 1;

@@ -14,6 +14,7 @@ import { itemStackDescriptor } from '../structureTypes';
 import { signedAudioContent } from './added2225';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * `MusicPlaybackState`. The schema gives the field no `Enum-as-Value` option, so the member name
@@ -38,7 +39,7 @@ const musicPlaybackState = t.custom<MusicPlaybackState>(
     (s) => {
         const value = t.string.read(s);
         if (!isMusicPlaybackState(value)) {
-            throw new Error(`Unknown MusicPlaybackState "${value}"`);
+            throw new ProtocolWireErrors.UnknownMusicPlaybackState({ value });
         }
         return value;
     }

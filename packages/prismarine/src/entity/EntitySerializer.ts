@@ -14,6 +14,7 @@ import type { StatusEffect } from './StatusEffect';
 import { bedrockMobEffectIdentifier, bedrockMobEffectId } from './StatusEffect';
 import type { DataEntityRecord } from './data/persistence';
 import { dataEntityRecordIn, writeDataEntityRecord } from './data/persistence';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 const TNT_IDENTIFIER = 'minecraft:tnt';
 
@@ -270,7 +271,7 @@ const activeEffectsIn = (nbt: NBTTagCompound): StatusEffect[] => {
 /** Writes the fields Bedrock stores for one active status effect. */
 const statusEffectNbt = (effect: StatusEffect): NBTTagCompound => {
     const id = bedrockMobEffectId(effect.id);
-    if (id === undefined) throw new Error(`Cannot serialize unsupported mob effect '${effect.id}'`);
+    if (id === undefined) throw new PrismarineEntityErrors.UnsupportedMobEffect({ id: effect.id });
 
     const entry = new NBTTagCompound('');
     entry.addValue('Id', new Types.ByteVal(id));

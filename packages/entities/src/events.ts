@@ -1,6 +1,7 @@
 import type { Filter } from '@jsprismarine/packs';
-import { FilterParseError, parseFilter } from '@jsprismarine/packs';
+import { parseFilter } from '@jsprismarine/packs';
 import { isRecord } from './components/schemas';
+import { FilterParseError } from '@jsprismarine/errors/packs';
 
 /**
  * The event grammar. An event is a node, and a node nests indefinitely through

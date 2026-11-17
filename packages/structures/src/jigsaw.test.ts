@@ -19,7 +19,8 @@ import {
 } from './jigsaw';
 import { createLegacyRandom } from './random';
 import type { BedrockBlockState, BedrockStructureTemplate, BedrockTemplateBlock } from './types';
-import { NO_BLOCK, StructureFormatError } from './types';
+import { NO_BLOCK } from './types';
+import { StructureFormatError } from '@jsprismarine/errors/structures';
 
 const bedrockOf = (javaId: string, properties: Record<string, string> = {}): BedrockBlockState => {
     const result = javaBlockStateToBedrock(javaId, properties);

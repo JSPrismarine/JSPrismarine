@@ -16,6 +16,7 @@ import { UdpDatagramSource } from './DatagramSource';
 import type { DatagramSource } from './DatagramSource';
 import { validateSocketBufferOptions } from './SocketBuffers';
 import type { SocketBufferOptions } from './SocketBuffers';
+import { asError } from '@jsprismarine/errors/common';
 
 /** Whether connected datagrams are copied into one buffer or sent as header/content parts. */
 export type DatagramSendMode = 'copy' | 'scatter-gather';
@@ -109,7 +110,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
                     this.emit('listening', bound);
                 },
                 (error: unknown) => {
-                    const failure = error instanceof Error ? error : new Error(String(error));
+                    const failure = asError(error);
                     this.logger.error(
                         `Failed to bind ${address}:${port}, error=${failure.message}`,
                         'RakNet/ServerSocket/Start'

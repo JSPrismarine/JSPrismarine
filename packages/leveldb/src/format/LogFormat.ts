@@ -1,6 +1,6 @@
 import { crc32cUpdate, mask, unmask } from '../util/Crc32c';
 import { ByteWriter } from '../util/ByteWriter';
-import { CorruptionError } from '../Errors';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /**
  * The record log, used for both the write-ahead log and the manifest.
@@ -146,7 +146,7 @@ export function* readLogRecords(
     const report =
         onCorruption ??
         ((corruption: LogCorruption): void => {
-            throw new CorruptionError(`Log is damaged: ${corruption.reason} (${corruption.bytes} bytes)`);
+            throw new LeveldbErrors.LogDamaged({ reason: corruption.reason, bytes: corruption.bytes });
         });
 
     let pending: Buffer[] = [];

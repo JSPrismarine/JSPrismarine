@@ -10,6 +10,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The book edit operation, numbered as the packet's `oneOf` selector. */
 export enum BookEditAction {
@@ -88,7 +89,7 @@ const bookEditOperation = t.custom<BookEditOperation>(
                     xuid: t.string.read(s)
                 };
             default:
-                throw new Error(`Unknown book edit action ${action}`);
+                throw new ProtocolWireErrors.UnknownBookEditAction({ action });
         }
     }
 );

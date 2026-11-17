@@ -78,6 +78,7 @@
         "vscode-languageserver-textdocument": "1.0.16"
     },
     "dependencies": {
+        "@jsprismarine/errors": "workspace:*",
         "ajv": "8.20.0"
     },
     "peerDependencies": {

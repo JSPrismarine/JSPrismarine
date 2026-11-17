@@ -2,6 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import NetworkBinaryStream from './NetworkBinaryStream';
 import type { ProtocolContext } from './ProtocolContext';
 import { netIdFor, protocolVersion } from './wire/versions/v2193';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 const PACKET_ID_MASK = 0x3ff;
 
@@ -124,7 +125,7 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
      */
     public decode(context?: ProtocolContext): void {
         const buffer = this.getReadBuffer();
-        if (buffer === null) throw new Error(`Cannot decode ${this.getName()} without a read buffer`);
+        if (buffer === null) throw new ProtocolCodecErrors.NoReadBuffer({ name: this.getName() });
 
         const stream = new NetworkBinaryStream(buffer);
         this.deserialize(stream, context);
@@ -163,8 +164,7 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
      * @returns The serialized network packet as a Buffer.
      */
     public serialize(stream: NetworkBinaryStream, context?: ProtocolContext): Buffer {
-        if (this.packetData === null)
-            throw new Error(`Cannot serialize packet without data, PID: ${this.getId().toString(16)}`);
+        if (this.packetData === null) throw new ProtocolCodecErrors.PacketHasNoData({ id: this.getId().toString(16) });
         if (context !== undefined) this.codecProtocol = context.protocolVersion;
         stream.writeUnsignedVarInt(this.headerValue());
         this.serializePayload(stream, this.packetData, context);
@@ -197,7 +197,7 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
         try {
             this.packetData = this.deserializePayload(stream, context);
         } catch (e: unknown) {
-            throw new Error(`Error deserializing packet payload: ${e}`);
+            throw new ProtocolCodecErrors.PayloadNotDecodable({ e });
         }
         return this.packetData;
     }
@@ -234,7 +234,7 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
     private applyHeader(header: number): void {
         const pid = header & NetworkPacket.PID_MASK;
         const expected = this.getId();
-        if (pid !== expected) throw new Error(`NetworkPacket ID mismatch: expected ${expected}, got ${pid}`);
+        if (pid !== expected) throw new ProtocolCodecErrors.PacketIdMismatch({ expected, pid });
 
         this.senderSubClientId = (header >> NetworkPacket.SENDER_SUB_CLIENT_SHIFT) & NetworkPacket.SUB_CLIENT_MASK;
         this.targetSubClientId = (header >> NetworkPacket.TARGET_SUB_CLIENT_SHIFT) & NetworkPacket.SUB_CLIENT_MASK;
@@ -246,7 +246,7 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
         if (tableId !== undefined) return tableId;
 
         const id: unknown = Reflect.get(this, 'id');
-        if (typeof id !== 'number') throw new Error(`Packet ${this.getName()} has no default network id`);
+        if (typeof id !== 'number') throw new ProtocolCodecErrors.PacketHasNoDefaultNetworkId({ name: this.getName() });
         return id;
     }
 }

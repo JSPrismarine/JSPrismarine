@@ -74,6 +74,7 @@ import { withJavaLlamaStrength } from '../entity/javaLlamaStrength';
 import { withJavaSkeletonHorseSaddle } from '../entity/javaSkeletonHorseSaddle';
 import { withJavaCamelHuskLead } from '../entity/javaCamelHuskLead';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
+import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 
 /** The resolved block domain. */
 export interface ServerContentBlocks {
@@ -341,7 +342,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     // it until a hook runs, which is after this function has returned.
     let built: ServerContent | undefined;
     const world = contentWorldViews(options.world ?? unwiredWorldSource({ seed: options.seed }), () => {
-        if (!built) throw new Error('the content world was read before the content finished building');
+        if (!built) throw new PrismarineContentErrors.ContentWorldReadDuringBuild();
         return built;
     });
 

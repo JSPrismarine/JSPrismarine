@@ -3,6 +3,7 @@ import type { CommandRequestPacket } from '@jsprismarine/protocol';
 import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * A slash command a client typed.
@@ -23,7 +24,7 @@ export default class CommandRequestHandler implements InputLaneHandler<CommandRe
     /** Dispatches the command as the player who sent it and answers with its outcome. */
     public handle(packet: CommandRequestPacket, { session, log, services, step }: InputContext): undefined {
         const request = packet.getPacketData();
-        if (request === null) throw new Error('CommandRequestPacket has no decoded payload');
+        if (request === null) throw new PrismarineNetworkErrors.CommandRequestNotDecoded();
         const origin = request.commandOriginData;
 
         if (origin.type !== CommandOriginType.Player) {

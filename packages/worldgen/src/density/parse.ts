@@ -9,6 +9,7 @@ import type {
     TilingMode,
     UnaryDensityType
 } from './DensityFunction';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** Resolves a `worldgen/density_function` reference to its parsed tree. */
 export type DensityFunctionResolver = (id: string) => DensityFunctionNode;
@@ -34,13 +35,14 @@ const AXES = new Set<string>(['x', 'y', 'z']);
 const TILING_MODES = new Set<string>(['clamp_to_edge', 'repeat', 'mirrored_repeat']);
 const METRICS = new Set<string>(['euclidean', 'euclidean_squared', 'manhattan', 'chebyshev']);
 
-const fail = (path: string, message: string): never => {
-    throw new TypeError(`${path}: ${message}`);
+/** Throws a parse error from an expression, such as the right side of `??`. */
+const fail = (error: Error): never => {
+    throw error;
 };
 
 const asObject = (value: unknown, path: string): Record<string, unknown> => {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        return fail(path, `expected an object, got ${JSON.stringify(value)}`);
+        return fail(new WorldgenErrors.ExpectedObject({ path, source: JSON.stringify(value) }));
     }
     // A parsed JSON document is `unknown`; every field read below is checked.
     return value as Record<string, unknown>;
@@ -49,20 +51,22 @@ const asObject = (value: unknown, path: string): Record<string, unknown> => {
 const number = (value: unknown, path: string, fallback?: number): number => {
     if (value === undefined && fallback !== undefined) return fallback;
     if (typeof value !== 'number' || !Number.isFinite(value)) {
-        return fail(path, `expected a finite number, got ${JSON.stringify(value)}`);
+        return fail(new WorldgenErrors.ExpectedFiniteNumber({ path, value: JSON.stringify(value) }));
     }
     return value;
 };
 
 const integer = (value: unknown, path: string, fallback?: number): number => {
     const parsed = number(value, path, fallback);
-    if (!Number.isInteger(parsed)) return fail(path, `expected an integer, got ${parsed}`);
+    if (!Number.isInteger(parsed)) return fail(new WorldgenErrors.ExpectedInteger({ path, value: parsed }));
     return parsed;
 };
 
 const enumValue = <T extends string>(value: unknown, allowed: ReadonlySet<string>, path: string): T => {
     if (typeof value !== 'string' || !allowed.has(value)) {
-        return fail(path, `expected one of ${[...allowed].join(', ')}, got ${JSON.stringify(value)}`);
+        return fail(
+            new WorldgenErrors.ExpectedOne({ path, allowed: [...allowed].join(', '), text: JSON.stringify(value) })
+        );
     }
     // The membership check above narrows the string to the union the caller declared.
     return value as T;
@@ -77,7 +81,7 @@ const parseSpline = (
     const raw = asObject(source, path);
     const points = raw['points'];
     if (!Array.isArray(points) || points.length === 0) {
-        return fail(`${path}.points`, 'expected a non-empty array');
+        return fail(new WorldgenErrors.EmptySplinePoints({ path }));
     }
 
     const locations: number[] = [];
@@ -88,7 +92,7 @@ const parseSpline = (
         const point = asObject(entry, pointPath);
         const location = number(point['location'], `${pointPath}.location`);
         if (locations.length > 0 && location <= (locations[locations.length - 1] ?? 0)) {
-            return fail(pointPath, 'spline points must be in ascending location order');
+            return fail(new WorldgenErrors.SplinePointsOutOfOrder({ pointPath }));
         }
         locations.push(location);
         values.push(parseSpline(point['value'], `${pointPath}.value`, parse));
@@ -121,7 +125,7 @@ export const parseDensityFunction = (
     path = '<root>'
 ): DensityFunctionNode => {
     if (typeof source === 'number') {
-        if (!Number.isFinite(source)) return fail(path, `expected a finite number, got ${source}`);
+        if (!Number.isFinite(source)) return fail(new WorldgenErrors.ExpectedFiniteNumber({ path, value: source }));
         return { type: 'constant', value: source };
     }
     if (typeof source === 'string') return resolve(normalizeIdentifier(source));
@@ -201,7 +205,8 @@ export const parseDensityFunction = (
             };
         case 'distance_to_point': {
             const point = raw['point'];
-            if (!Array.isArray(point) || point.length !== 3) return fail(`${path}.point`, 'expected three coordinates');
+            if (!Array.isArray(point) || point.length !== 3)
+                return fail(new WorldgenErrors.ExpectedThreeCoordinates({ path }));
             return {
                 type: 'distance_to_point',
                 point: [
@@ -218,7 +223,7 @@ export const parseDensityFunction = (
         case 'clamp': {
             const min = number(raw['min'], `${path}.min`);
             const max = number(raw['max'], `${path}.max`);
-            if (max < min) return fail(path, `min (${min}) must be less than or equal to max (${max})`);
+            if (max < min) return fail(new WorldgenErrors.MinAboveMax({ path, min, max }));
             return { type: 'clamp', input: parse(raw['input'], `${path}.input`), min, max };
         }
         case 'find_top_surface':
@@ -239,20 +244,24 @@ export const parseDensityFunction = (
         case 'interval_select': {
             const thresholdSource = raw['thresholds'];
             const functionSource = raw['functions'];
-            if (!Array.isArray(thresholdSource)) return fail(`${path}.thresholds`, 'expected an array');
+            if (!Array.isArray(thresholdSource)) return fail(new WorldgenErrors.ThresholdsNotList({ path }));
             if (!Array.isArray(functionSource) || functionSource.length < 2) {
-                return fail(`${path}.functions`, 'expected at least two functions');
+                return fail(new WorldgenErrors.IntervalSelectNeedsTwoFunctions({ path }));
             }
             if (thresholdSource.length !== functionSource.length - 1) {
                 return fail(
-                    path,
-                    `expected ${functionSource.length - 1} thresholds for ${functionSource.length} functions, got ${thresholdSource.length}`
+                    new WorldgenErrors.ThresholdCountMismatch({
+                        path,
+                        value: functionSource.length - 1,
+                        functionSourceCount: functionSource.length,
+                        thresholdSourceCount: thresholdSource.length
+                    })
                 );
             }
             const thresholds = thresholdSource.map((entry, index) => number(entry, `${path}.thresholds[${index}]`));
             for (let i = 1; i < thresholds.length; i++) {
                 if ((thresholds[i] ?? 0) < (thresholds[i - 1] ?? 0)) {
-                    return fail(`${path}.thresholds`, 'threshold values must be ordered from smallest to largest');
+                    return fail(new WorldgenErrors.ThresholdsOutOfOrder({ path }));
                 }
             }
             return {
@@ -294,6 +303,6 @@ export const parseDensityFunction = (
         case 'spline':
             return { type: 'spline', spline: parseSpline(raw['spline'], `${path}.spline`, parse) };
         default:
-            return fail(path, `unknown density function type minecraft:${type}`);
+            return fail(new WorldgenErrors.UnknownDensityFunctionType({ path, type }));
     }
 };

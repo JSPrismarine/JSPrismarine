@@ -1,5 +1,6 @@
 import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * The alternatives of a `Data Store Update`'s `Data` one-of, numbered by their position in
@@ -123,9 +124,11 @@ export default class DataStoreUpdate extends NetworkStructure implements DataSto
                 this.data = { type, value: stream.readString() };
                 break;
             default:
-                throw new Error(
-                    `Data store update ${this.dataStoreName}/${this.property} has an unknown data type ${type}`
-                );
+                throw new ProtocolCodecErrors.UnknownDataStoreValueType({
+                    dataStoreName: this.dataStoreName,
+                    property: this.property,
+                    type
+                });
         }
         this.propertyUpdateCount = stream.readUnsignedIntLE();
         this.pathUpdateCount = stream.readUnsignedIntLE();

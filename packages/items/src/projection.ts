@@ -36,9 +36,10 @@ import {
 import { attributeModifiers, maxStackSize, useEffects } from './components/universal';
 import type { ItemType } from './hooks';
 import type { ProviderContext } from './numberProvider';
-import { DEFAULT_PROVIDER_CONTEXT, NumberProviderError, evaluateNumberProvider } from './numberProvider';
+import { DEFAULT_PROVIDER_CONTEXT, evaluateNumberProvider } from './numberProvider';
 import type { HolderSet } from './schema';
 import { isRecord } from './isRecord';
+import { NumberProviderError } from '@jsprismarine/errors/items';
 
 /**
  * The flat `item_properties` compound, with the nineteen keys a Bedrock

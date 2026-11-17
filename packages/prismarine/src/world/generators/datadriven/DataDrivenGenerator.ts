@@ -155,6 +155,7 @@ import type { TerrainPipelineSetup } from './terrainPipeline';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 import type { ChunkCompletionScheduler } from '../../ChunkCompletionQueue';
 import { isRecord } from '../../../utils/isRecord';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** Re-runs each proven skip through scalar density and aquifer sampling when debugging. */
 const VERIFY_SKIPPED_WORLDGEN_CELLS = process.env['JSP_VERIFY_WORLDGEN_CELL_SKIPS'] === '1';
@@ -802,7 +803,7 @@ const isStructureStartPlanEntry = (value: unknown): value is StructureStartPlanE
 /** Narrows a planner-worker response at the structured-clone boundary. */
 const structureStartPlansFromWorker = (value: unknown): readonly StructureStartPlanEntry[] => {
     if (!Array.isArray(value) || !value.every(isStructureStartPlanEntry)) {
-        throw new TypeError('A structure-start worker returned an invalid plan list.');
+        throw new PrismarineGenerationErrors.InvalidStructureStartList();
     }
 
     // The guards above verify the plan envelope. Piece data stays opaque to this boundary and is
@@ -928,7 +929,7 @@ export class DataDrivenGenerator implements Generator {
         const registries = options.registries;
         this.sharedTerrainTileStore = options.sharedTerrainTileStore;
         if (options.sharedTerrainRegistryFingerprint !== undefined && this.sharedTerrainTileStore === undefined) {
-            throw new TypeError('A shared terrain registry fingerprint requires a shared terrain tile store');
+            throw new PrismarineGenerationErrors.FingerprintWithoutSharedCache();
         }
         this.terrainRegistryFingerprint =
             options.sharedTerrainRegistryFingerprint ??
@@ -944,7 +945,7 @@ export class DataDrivenGenerator implements Generator {
             options.terrainTileBuildStats !== undefined &&
             options.terrainTileBuildStats.byteLength < Int32Array.BYTES_PER_ELEMENT
         ) {
-            throw new RangeError('Terrain tile build stats need one Int32 counter');
+            throw new PrismarineGenerationErrors.InvalidTerrainStatsBuffer();
         }
         this.terrainTileBuildStats =
             options.terrainTileBuildStats === undefined
@@ -952,7 +953,7 @@ export class DataDrivenGenerator implements Generator {
                 : new Int32Array(options.terrainTileBuildStats, 0, 1);
         if (options.persistentProtoCache !== undefined) {
             if (options.structureBuilders !== undefined) {
-                throw new TypeError('Persistent terrain caching does not support custom structure builders');
+                throw new PrismarineGenerationErrors.DiskCacheWithCustomStructures();
             }
             if (
                 (options.terrain !== undefined &&
@@ -962,16 +963,16 @@ export class DataDrivenGenerator implements Generator {
                 (options.chunks !== undefined &&
                     (options.chunks.pipeline !== defaultChunkPipeline() || options.chunks.worker !== undefined))
             ) {
-                throw new TypeError('Persistent terrain caching does not support custom worker pipelines');
+                throw new PrismarineGenerationErrors.DiskCacheWithCustomPipeline();
             }
 
             if (templateFingerprint === undefined) {
-                throw new TypeError('Persistent terrain caching requires a template source worldgenFingerprint');
+                throw new PrismarineGenerationErrors.DiskCacheNeedsTemplateFingerprint();
             }
 
             const registryFingerprint = this.terrainRegistryFingerprint;
             if (registryFingerprint === undefined)
-                throw new Error('Persistent terrain cache has no registry fingerprint');
+                throw new PrismarineGenerationErrors.DiskCacheWithoutRegistryFingerprint();
 
             this.terrainProtoCache = new TerrainProtoCache(options.persistentProtoCache);
             this.terrainProtoCacheFingerprints = {
@@ -982,19 +983,19 @@ export class DataDrivenGenerator implements Generator {
         if (this.sharedTerrainTileStore !== undefined) {
             const isSharedTerrainWorker = options.sharedTerrainRegistryFingerprint !== undefined;
             if (options.structureBuilders !== undefined) {
-                throw new TypeError('Shared terrain caching does not support custom structure builders');
+                throw new PrismarineGenerationErrors.SharedCacheWithCustomStructures();
             }
             if (templateFingerprint === undefined) {
-                throw new TypeError('Shared terrain caching requires a template source worldgenFingerprint');
+                throw new PrismarineGenerationErrors.SharedCacheNeedsTemplateFingerprint();
             }
             // The worker attaches to the parent's store but does not create a nested chunk pool.
             if (!isSharedTerrainWorker) {
                 const chunks = options.chunks;
                 if (chunks === undefined || options.stages !== undefined) {
-                    throw new TypeError('Shared terrain caching requires the whole-chunk worker pool');
+                    throw new PrismarineGenerationErrors.SharedCacheWithoutWholeChunkPool();
                 }
                 if (chunks.pipeline !== defaultChunkPipeline() || chunks.worker !== undefined) {
-                    throw new TypeError('Shared terrain caching does not support custom worker pipelines');
+                    throw new PrismarineGenerationErrors.SharedCacheWithCustomPipeline();
                 }
             }
         }
@@ -1028,7 +1029,7 @@ export class DataDrivenGenerator implements Generator {
             { materialRules: registries.materialRules, materialConditions: registries.materialConditions },
             (reference, path) => {
                 if (typeof reference !== 'string') {
-                    throw new TypeError(`${path}: an ore vein rule names a density function by identifier`);
+                    throw new PrismarineGenerationErrors.OreVeinDensityReference({ path });
                 }
 
                 return this.worldgen.densityFunction(reference);
@@ -1111,7 +1112,7 @@ export class DataDrivenGenerator implements Generator {
             if (store === undefined) return {};
             const registryFingerprint = this.terrainRegistryFingerprint;
             if (registryFingerprint === undefined)
-                throw new Error('The shared terrain tile store has no registry fingerprint');
+                throw new PrismarineGenerationErrors.SharedCacheWithoutRegistryFingerprint();
             return {
                 sharedTerrainTileStoreBuffer: store.buffer,
                 sharedTerrainRegistryFingerprint: registryFingerprint
@@ -1580,7 +1581,9 @@ export class DataDrivenGenerator implements Generator {
         structureStartPlans: readonly StructureStartPlanEntry[] = []
     ): readonly RegionChunkPatch[] {
         if (terrain.length !== FEATURE_VIEW_TILES.length) {
-            throw new RangeError(`A feature task needs ${FEATURE_VIEW_TILES.length} terrain tiles.`);
+            throw new PrismarineGenerationErrors.FeatureTaskTileCountMismatch({
+                tileCount: FEATURE_VIEW_TILES.length
+            });
         }
 
         const pipeline = this.pipelineFor(key, seed);
@@ -2064,7 +2067,7 @@ export class DataDrivenGenerator implements Generator {
     /** Everything a persistent tile's identity holds except its position. */
     private persistentKeyStem(pipeline: SeededPipeline): string {
         const fingerprints = this.terrainProtoCacheFingerprints;
-        if (fingerprints === undefined) throw new Error('The terrain proto cache has no worldgen fingerprints');
+        if (fingerprints === undefined) throw new PrismarineGenerationErrors.TerrainCacheWithoutFingerprints();
 
         return fingerprintWorldgenInput({
             seed: pipeline.randomState.seed.toString(),
@@ -2090,10 +2093,10 @@ export class DataDrivenGenerator implements Generator {
     private sharedKeyStem(pipeline: SeededPipeline): string {
         const registryFingerprint = this.terrainRegistryFingerprint;
         if (registryFingerprint === undefined)
-            throw new Error('The shared terrain tile store has no registry fingerprint');
+            throw new PrismarineGenerationErrors.SharedCacheWithoutRegistryFingerprint();
         const templateFingerprint = this.terrainTemplateFingerprint;
         if (templateFingerprint === undefined)
-            throw new Error('The shared terrain tile store has no template fingerprint');
+            throw new PrismarineGenerationErrors.SharedCacheWithoutTemplateFingerprint();
 
         return fingerprintWorldgenInput({
             generator: 'java-data-driven',
@@ -2401,7 +2404,7 @@ export class DataDrivenGenerator implements Generator {
     private mergedHere(cx: number, cz: number, staged: GenerationChunk, pipeline: SeededPipeline): GenerationRegion {
         const inputs = staged.mergeInputs;
         if (inputs === undefined) {
-            throw new Error(`The chunk at ${cx}, ${cz} reached full without leaving its merge inputs.`);
+            throw new PrismarineGenerationErrors.MissingMergeInputs({ cx, cz });
         }
         return this.mergeFull(cx, cz, staged.terrain, inputs, pipeline);
     }
@@ -3031,7 +3034,7 @@ export class DataDrivenGenerator implements Generator {
         }
 
         if (!isBedrockSections(result.payload)) {
-            throw new TypeError(`The block pass for the chunk at ${cx}, ${cz} came back in an unexpected shape.`);
+            throw new PrismarineGenerationErrors.InvalidBlockPassResult({ cx, cz });
         }
         return result.payload;
     }
@@ -3087,7 +3090,7 @@ export class DataDrivenGenerator implements Generator {
         }
 
         if (!isMergedChunkParts(result.payload)) {
-            throw new TypeError(`The merge for the chunk at ${cx}, ${cz} came back in an unexpected shape.`);
+            throw new PrismarineGenerationErrors.InvalidMergeResult({ cx, cz });
         }
         return result.payload;
     }
@@ -3286,7 +3289,7 @@ export class DataDrivenGenerator implements Generator {
             const sectionIds =
                 packed === undefined ? biomeRegion.biomeSection(section) : this.biomeSectionOf(packed, section);
             if (sectionIds === undefined) {
-                throw new Error(`The chunk at ${cx}, ${cz} has no biome IDs for section ${section}`);
+                throw new PrismarineGenerationErrors.MissingSectionBiomes({ cx, cz, section });
             }
             biomes.setSection(floor + section, sectionIds);
         }
@@ -3302,7 +3305,7 @@ export class DataDrivenGenerator implements Generator {
     private chunkDimensionOf(pipeline: SeededPipeline): DimensionType {
         const dimension = this.chunkDimensions.get(pipeline.dimension.id);
         if (dimension === undefined) {
-            throw new Error(`No view of ${pipeline.dimension.id} was built on this thread, so its chunks have no type`);
+            throw new PrismarineGenerationErrors.DimensionNotLoadedOnThread({ id: pipeline.dimension.id });
         }
         return dimension;
     }

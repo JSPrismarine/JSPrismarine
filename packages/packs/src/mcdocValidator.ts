@@ -15,6 +15,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import type { DiagnosticSeverity } from './diagnostics';
 import type { DefinitionValidator, ValidationFinding } from './validation';
+import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /**
  * Schema validation for the Java half of the pack stack, against
@@ -158,7 +159,7 @@ export const createMcdocValidator = async (options: McdocValidatorOptions): Prom
     jeJsonChecker.register(meta);
 
     const files = await mcdocFilesUnder(options.root);
-    if (files.length === 0) throw new Error(`no .mcdoc files under ${options.root}`);
+    if (files.length === 0) throw new PacksErrors.NoMcdocFiles({ root: options.root });
     const uris = files.map((file) => pathToFileURL(file).toString());
 
     const uriContext = core.UriBinderContext.create(project);
@@ -170,7 +171,7 @@ export const createMcdocValidator = async (options: McdocValidatorOptions): Prom
         const text = await readFile(file, 'utf8');
         const doc = TextDocument.create(uris[index]!, 'mcdoc', 0, text);
         const parser = meta.getParserForLanguageId('mcdoc');
-        if (!parser) throw new Error('the mcdoc language is not registered');
+        if (!parser) throw new PacksErrors.McdocLanguageIsNotRegistered();
         const node = core.file(parser)(new core.Source(text), core.ParserContext.create(project, { doc }));
         const binderContext = core.BinderContext.create(project, { doc });
         await binderContext.symbols.contributeAsAsync('binder', async () => {

@@ -9,8 +9,8 @@
  * spread on three and a frequency below one on three.
  */
 import { createLegacyRandom, largeFeatureSeed, largeFeatureWithSaltSeed } from './random';
-import { StructureFormatError } from './types';
 import { isRecord } from './isRecord';
+import { StructuresErrors } from '@jsprismarine/errors/structures';
 
 /** A chunk position, in chunk coordinates. */
 export interface ChunkPosition {
@@ -111,7 +111,7 @@ const commonOf = (definition: Record<string, unknown>): CommonPlacement => {
  * @throws {StructureFormatError} When the type is not one of the three Java registers.
  */
 export const parseStructurePlacement = (definition: unknown): StructurePlacement => {
-    if (!isRecord(definition)) throw new StructureFormatError('structure placement: expected an object');
+    if (!isRecord(definition)) throw new StructuresErrors.StructurePlacementExpectedObject();
     const common = commonOf(definition);
 
     switch (definition.type) {
@@ -137,7 +137,7 @@ export const parseStructurePlacement = (definition: unknown): StructurePlacement
         case 'minecraft:dimension_origin':
             return { type: 'minecraft:dimension_origin', ...common };
         default:
-            throw new StructureFormatError(`structure placement: unknown type ${String(definition.type)}`);
+            throw new StructuresErrors.StructurePlacementUnknownType({ type: String(definition.type) });
     }
 };
 
@@ -147,14 +147,14 @@ export const parseStructurePlacement = (definition: unknown): StructurePlacement
  * @throws {StructureFormatError} When the file has no placement or no structure list.
  */
 export const parseStructureSet = (definition: unknown): StructureSet => {
-    if (!isRecord(definition)) throw new StructureFormatError('structure set: expected an object');
-    if (!Array.isArray(definition.structures)) throw new StructureFormatError('structure set: no structures');
+    if (!isRecord(definition)) throw new StructuresErrors.StructureSetExpectedObject();
+    if (!Array.isArray(definition.structures)) throw new StructuresErrors.StructureSetNoStructures();
 
     return {
         placement: parseStructurePlacement(definition.placement),
         structures: definition.structures.map((entry) => {
             if (!isRecord(entry) || typeof entry.structure !== 'string') {
-                throw new StructureFormatError('structure set: an entry names no structure');
+                throw new StructuresErrors.StructureSetEntryNamesNoStructure();
             }
             return { structure: entry.structure, weight: numberAt(entry, 'weight', 1) };
         })

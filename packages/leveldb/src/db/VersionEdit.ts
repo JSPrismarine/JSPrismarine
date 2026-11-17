@@ -1,6 +1,6 @@
 import { ByteReader } from '../util/ByteReader';
 import { ByteWriter } from '../util/ByteWriter';
-import { CorruptionError } from '../Errors';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /**
  * One file in one level, as the manifest records it. `smallest` and `largest` are internal keys.
@@ -118,7 +118,7 @@ export const decodeVersionEdit = (encoded: Buffer): VersionEdit => {
             }
 
             default:
-                throw new CorruptionError(`Manifest record has unknown tag ${tag}`);
+                throw new LeveldbErrors.ManifestRecordHasUnknownTag({ tag });
         }
     }
 

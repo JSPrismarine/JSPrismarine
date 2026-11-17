@@ -14,6 +14,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The two JWT strings of a connection request, carried as text and not interpreted. */
 export interface ConnectionRequest {
@@ -49,7 +50,7 @@ export const connectionRequest = t.custom<ConnectionRequest>(
 
         if (!request.feof()) {
             const unread = request.readRemaining().byteLength;
-            throw new Error(`The connection request has ${unread} unread bytes after the client data`);
+            throw new ProtocolWireErrors.ConnectionRequestHasTrailingBytes({ unread });
         }
 
         return { chainData, clientData };

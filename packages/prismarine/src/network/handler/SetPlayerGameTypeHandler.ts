@@ -4,6 +4,7 @@ import type SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlaye
 import { isGametype } from '../../isGametype';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** The sender as this handler sees it: what the permission check reads, and the change. */
 interface GamemodePlayer {
@@ -27,7 +28,7 @@ export default class SetPlayerGameTypeHandler implements InputLaneHandler<SetPla
     /** Applies the requested game type, or resends the current one when the request is refused. */
     public handle(packet: SetPlayerGameTypePacket, { session, services, step }: InputContext): undefined {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle SetPlayerGameTypePacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.SetGameTypeNotDecoded();
 
         const player: GamemodePlayer = session;
         const allowed = services.permissions.can(player).execute('minecraft.command.gamemode');

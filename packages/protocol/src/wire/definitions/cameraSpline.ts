@@ -10,6 +10,7 @@ import * as t from '../fieldTypes';
 import type { EasingFunction } from '../../structure/CameraInstruction';
 import type { PayloadOf } from '../define';
 import type { Vec3Like, WireType } from '../fieldTypes';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * `easing_function`: a string naming one of the enum's 32 values; decoding rejects any other name.
@@ -21,7 +22,7 @@ const easing: WireType<EasingFunction | null> = t.custom(
     (s) => {
         const name = t.optional(t.string).read(s);
         if (name !== null && !isEasingFunction(name)) {
-            throw new Error(`Unknown easing_function "${name}"`);
+            throw new ProtocolWireErrors.UnknownEasingFunction({ name });
         }
         return name;
     }

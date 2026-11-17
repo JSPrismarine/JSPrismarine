@@ -2,6 +2,7 @@ import type { BlockState } from '../../block/state/BlockState';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** Marks the one decoder path that has exclusive ownership of its index buffer. */
 const OWNED_INDICES = Symbol('BlockStorage owned indices');
@@ -75,7 +76,7 @@ const MAX_PALETTE_SIZE = 65536;
 const writeNetworkPalette = (stream: BinaryStream, bitsPerBlock: number, palette: readonly number[]): void => {
     if (bitsPerBlock === 0) {
         const [runtimeId] = palette;
-        if (runtimeId === undefined) throw new RangeError('A zero-bit storage needs its runtime id');
+        if (runtimeId === undefined) throw new PrismarineWorldErrors.EmptySingleBlockStorage();
         stream.writeVarInt(runtimeId);
         return;
     }
@@ -232,7 +233,7 @@ export default class BlockStorage implements ReadonlyBlockStorage {
         const runtimeId = this.palette[paletteIndex]!;
         const state = BlockRuntimeIds.getState(runtimeId);
         if (!state) {
-            throw new Error(`Chunk holds runtime id ${runtimeId}, which no registered block produces`);
+            throw new PrismarineWorldErrors.UnknownRuntimeId({ runtimeId });
         }
 
         return state;
@@ -468,7 +469,7 @@ export default class BlockStorage implements ReadonlyBlockStorage {
         if (existing !== undefined) return existing;
 
         if (this.palette.length >= MAX_PALETTE_SIZE) {
-            throw new RangeError(`A sub chunk palette holds at most ${MAX_PALETTE_SIZE} entries`);
+            throw new PrismarineWorldErrors.SubChunkPaletteFull({ maxPaletteSize: MAX_PALETTE_SIZE });
         }
 
         const index = this.palette.push(runtimeId) - 1;
@@ -528,7 +529,7 @@ export default class BlockStorage implements ReadonlyBlockStorage {
             if (compactIndex === undefined) {
                 const runtimeId = this.palette[originalIndex];
                 if (runtimeId === undefined) {
-                    throw new RangeError(`Sub chunk block refers to missing palette index ${originalIndex}`);
+                    throw new PrismarineWorldErrors.BlockOutOfPalette({ originalIndex });
                 }
 
                 compactIndex = compactPalette.length;
@@ -605,7 +606,7 @@ export default class BlockStorage implements ReadonlyBlockStorage {
             if (compactIndex === undefined) {
                 const runtimeId = this.palette[originalIndex];
                 if (runtimeId === undefined) {
-                    throw new RangeError(`Sub chunk block refers to missing palette index ${originalIndex}`);
+                    throw new PrismarineWorldErrors.BlockOutOfPalette({ originalIndex });
                 }
 
                 compactIndex = compactPalette.length;

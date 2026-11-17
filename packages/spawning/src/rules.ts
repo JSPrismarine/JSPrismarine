@@ -1,6 +1,7 @@
 import type { Diagnostic } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
-import { FilterParseError, parseFilter } from '@jsprismarine/packs';
+import { parseFilter } from '@jsprismarine/packs';
+import { FilterParseError } from '@jsprismarine/errors/packs';
 
 /**
  * The spawn rule grammar.

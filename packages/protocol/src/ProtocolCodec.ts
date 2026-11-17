@@ -3,6 +3,7 @@ import * as Packets from './packet';
 
 import type { ProtocolContext, ProtocolItemData } from './ProtocolContext';
 import type { ProtocolVersionDefinition } from './ProtocolVersion';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /** A constructible packet class exported by the protocol package. */
 export type ProtocolPacketClass = new (...args: never[]) => NetworkPacket<unknown>;
@@ -68,17 +69,21 @@ const isProtocolPacketClass = (value: unknown): value is ProtocolPacketClass =>
  */
 export const createProtocolCodec = ({ definition, context }: ProtocolCodecOptions): ProtocolCodec => {
     if (context.protocolVersion !== definition.protocolVersion) {
-        throw new Error(
-            `Protocol context ${context.protocolVersion} does not match codec ${definition.protocolVersion}!`
-        );
+        throw new ProtocolCodecErrors.ContextCodecMismatch({
+            protocolVersion: context.protocolVersion,
+            definitionProtocolVersion: definition.protocolVersion
+        });
     }
 
     const itemData = context.itemData;
     if (itemData === undefined) {
-        throw new Error(`Protocol ${definition.protocolVersion} requires versioned item data!`);
+        throw new ProtocolCodecErrors.MissingItemData({ protocolVersion: definition.protocolVersion });
     }
     if (itemData.protocolVersion !== definition.protocolVersion) {
-        throw new Error(`Item data ${itemData.protocolVersion} does not match codec ${definition.protocolVersion}!`);
+        throw new ProtocolCodecErrors.ItemDataCodecMismatch({
+            protocolVersion: itemData.protocolVersion,
+            definitionProtocolVersion: definition.protocolVersion
+        });
     }
 
     const packetsById = new Map<number, ProtocolPacketClass>();
@@ -88,7 +93,10 @@ export const createProtocolCodec = ({ definition, context }: ProtocolCodecOption
 
         const registered = packetsById.get(id);
         if (registered !== undefined && registered !== value) {
-            throw new Error(`Protocol ${definition.protocolVersion} assigns packet id ${id} to multiple classes!`);
+            throw new ProtocolCodecErrors.DuplicatePacketId({
+                protocolVersion: definition.protocolVersion,
+                id
+            });
         }
         packetsById.set(id, value);
     }

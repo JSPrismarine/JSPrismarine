@@ -16,6 +16,7 @@ import * as t from '../fieldTypes';
 import { SINCE_2207_SUB_CHUNK_RESULTS, UNTIL_2207_SUB_CHUNK_RESULTS } from '../wireGates';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The semantic `SubChunkRequestResult` values used by the server and clients.
@@ -113,10 +114,10 @@ const resultAt = (shift: 0 | 1) =>
                 result < SubChunkRequestResult.UNDEFINED ||
                 result > SubChunkRequestResult.SUCCESS_ALL_AIR
             ) {
-                throw new RangeError(`Unknown sub chunk request result ${result}`);
+                throw new ProtocolWireErrors.UnknownSubChunkRequestResult({ result });
             }
             if (result - shift < 0) {
-                throw new RangeError('SubChunkRequestResult.UNDEFINED is unavailable before protocol 2207');
+                throw new ProtocolWireErrors.UndefinedSubChunkResultUnsupported();
             }
             stream.writeByte(result - shift);
         },
@@ -124,7 +125,7 @@ const resultAt = (shift: 0 | 1) =>
             const wireResult = stream.readByte();
             const result: SubChunkRequestResult = wireResult + shift;
             if (result > SubChunkRequestResult.SUCCESS_ALL_AIR) {
-                throw new RangeError(`Unknown sub chunk request result ${wireResult}`);
+                throw new ProtocolWireErrors.UnknownSubChunkRequestResult({ result: wireResult });
             }
             return result;
         }

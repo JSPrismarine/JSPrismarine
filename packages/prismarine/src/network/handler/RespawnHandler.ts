@@ -2,6 +2,7 @@ import type RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * The client's half of the respawn exchange.
@@ -41,7 +42,7 @@ export default class RespawnHandler implements InputLaneHandler<RespawnPacket> {
     public handle(packet: RespawnPacket, { session, log, step }: InputContext): undefined {
         const player = session.getPlayer();
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle RespawnPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.RespawnNotDecoded();
 
         // `Player Runtime Id` names the player respawning, and a client only respawns itself.
         if (data.runtimeEntityId !== session.runtimeId) {

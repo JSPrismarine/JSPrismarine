@@ -1,10 +1,11 @@
 import type { ComponentFactory, ComponentSchema, ParseResult } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { Filter } from '@jsprismarine/packs';
-import { FilterParseError, parseFilter } from '@jsprismarine/packs';
+import { parseFilter } from '@jsprismarine/packs';
 
 import type { AttributeName } from '../attributes';
 import type { EntityHooks } from '../hooks';
+import { FilterParseError } from '@jsprismarine/errors/packs';
 
 /**
  * The shapes entity component values take, and the factory helpers that turn

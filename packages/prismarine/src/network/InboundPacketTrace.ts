@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** One accepted client packet, before its handler changes server state. */
 export interface InboundPacketRecord {
@@ -40,7 +41,10 @@ export class InboundPacketTrace implements InboundPacketRecorder {
     /** Adds a private copy of the accepted packet bytes to this trace. */
     public record(packet: InboundPacketRecord): void {
         if (packet.order !== this.captured.length) {
-            throw new Error(`Inbound packet trace expected order ${this.captured.length}, got ${packet.order}`);
+            throw new PrismarineNetworkErrors.TraceOutOfOrder({
+                capturedCount: this.captured.length,
+                order: packet.order
+            });
         }
         this.captured.push({ ...packet, payload: Buffer.from(packet.payload) });
     }
@@ -109,7 +113,7 @@ export class InboundPacketTrace implements InboundPacketRecorder {
         try {
             value = JSON.parse(Buffer.from(bytes).toString('utf8'));
         } catch {
-            throw new Error('Invalid inbound packet trace JSON');
+            throw new PrismarineNetworkErrors.TraceNotJson();
         }
 
         if (
@@ -117,9 +121,9 @@ export class InboundPacketTrace implements InboundPacketRecorder {
             value['format'] !== TRACE_FORMAT ||
             (value['version'] !== TRACE_VERSION && value['version'] !== LEGACY_TRACE_VERSION)
         ) {
-            throw new Error('Unsupported inbound packet trace format or version');
+            throw new PrismarineNetworkErrors.UnsupportedTraceFormat();
         }
-        if (!Array.isArray(value['records'])) throw new Error('Invalid inbound packet trace records');
+        if (!Array.isArray(value['records'])) throw new PrismarineNetworkErrors.InvalidTraceRecords();
 
         const trace = new InboundPacketTrace();
         for (const [index, valueRecord] of value['records'].entries()) {
@@ -142,7 +146,7 @@ export class InboundPacketTrace implements InboundPacketRecorder {
                 typeof valueRecord['payload'] !== 'string' ||
                 !isCanonicalBase64(valueRecord['payload'])
             ) {
-                throw new Error('Invalid inbound packet trace record');
+                throw new PrismarineNetworkErrors.InvalidTraceRecord();
             }
 
             trace.record({

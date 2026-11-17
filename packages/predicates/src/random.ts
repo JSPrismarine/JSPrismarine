@@ -1,3 +1,5 @@
+import { PredicatesErrors } from '@jsprismarine/errors/predicates';
+
 /**
  * The only source of randomness the evaluator uses. Injecting it is what makes
  * a loot roll, a `random_chance` check or a `uniform` provider reproducible in
@@ -43,7 +45,7 @@ const toInt = (value: number, bound: number): number => {
  * `nextInt` scales the same float into the bound.
  */
 export const scriptedRandom = (values: readonly number[]): RandomSource => {
-    if (values.length === 0) throw new Error('scriptedRandom needs at least one value');
+    if (values.length === 0) throw new PredicatesErrors.ScriptedrandomNeedsAtLeastOneValue();
 
     let cursor = 0;
     const next = (): number => {
@@ -87,7 +89,7 @@ export const seededRandom = (seed: number): StatefulRandomSource => {
                 !('algorithm' in saved) ||
                 !('state' in saved)
             ) {
-                throw new TypeError('Invalid mulberry32 random state');
+                throw new PredicatesErrors.InvalidMulberry32RandomState();
             }
             if (
                 saved.version !== 1 ||
@@ -97,7 +99,7 @@ export const seededRandom = (seed: number): StatefulRandomSource => {
                 saved.state < 0 ||
                 saved.state > 0xffffffff
             ) {
-                throw new TypeError('Invalid mulberry32 random state');
+                throw new PredicatesErrors.InvalidMulberry32RandomState();
             }
             state = saved.state;
         }

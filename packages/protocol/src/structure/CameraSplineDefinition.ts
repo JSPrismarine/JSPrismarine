@@ -4,6 +4,7 @@ import Vec3 from './Vec3';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 import type { EasingFunction } from './CameraInstruction';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The `spline_type` names: how the camera interpolates between control points. */
 export enum CameraSplineType {
@@ -91,7 +92,7 @@ export default class CameraSplineDefinition extends NetworkStructure {
             return undefined;
         }
         if (!isEasingFunction(name)) {
-            throw new Error(`Unknown easing_function "${name}"`);
+            throw new ProtocolWireErrors.UnknownEasingFunction({ name });
         }
         return name;
     }

@@ -20,6 +20,7 @@ import type { DataEntity } from './DataEntity';
 import type { PaintingVariant } from './paintings';
 import { bedrockPaintingMotif, paintingState, variantArea } from './paintings';
 import { blockPositionOf } from './position';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /** The host component that makes a data entity hang, and holds its numbers. */
 export const HANGING_COMPONENT = 'jsprismarine:hanging';
@@ -103,11 +104,15 @@ export interface HangingTuning {
  */
 export const hangingTuningOf = (entity: DataEntity): HangingTuning => {
     const params = entity.instance.componentParams(HANGING_COMPONENT);
-    if (!isRecord(params)) throw new TypeError(`${entity.identifier} has no ${HANGING_COMPONENT} component`);
+    if (!isRecord(params))
+        throw new PrismarineEntityErrors.MissingItemComponent({
+            identifier: entity.identifier,
+            itemComponent: HANGING_COMPONENT
+        });
     const support = params['support'];
     const checkInterval = params['check_interval'];
     if ((support !== 'wall' && support !== 'fence') || typeof checkInterval !== 'number')
-        throw new TypeError(`${HANGING_COMPONENT} needs a support of wall or fence and a check_interval`);
+        throw new PrismarineEntityErrors.InvalidHangingComponent({ hangingComponent: HANGING_COMPONENT });
     const drop = params['drop'];
     const breakSound = params['break_sound'];
     return {

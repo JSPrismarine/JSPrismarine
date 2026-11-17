@@ -1,5 +1,6 @@
 import { f32 } from '../math';
 import { asObject, number } from '../json';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /**
  * The factor Java multiplies a climate coordinate by before truncating it to an integer.
@@ -73,7 +74,7 @@ export interface ClimateTargetPoint {
 
 /** Builds a quantized range from two unquantized floats. */
 export const climateSpan = (min: number, max: number): ClimateParameter => {
-    if (min > max) throw new RangeError(`min > max: ${min} ${max}`);
+    if (min > max) throw new WorldgenErrors.ClimateMinAboveMax({ min, max });
     return { min: quantizeClimateCoord(min), max: quantizeClimateCoord(max) };
 };
 
@@ -149,7 +150,7 @@ abstract class TreeNode<T> {
         this.axisCenters = new Float64Array(CLIMATE_PARAMETER_COUNT);
         for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
             const parameter = parameterSpace[axis];
-            if (parameter === undefined) throw new Error(`Climate tree node is missing axis ${axis}`);
+            if (parameter === undefined) throw new WorldgenErrors.ClimateTreeNodeIsMissingAxis({ axis });
             this.axisCenters[axis] = Math.trunc((parameter.min + parameter.max) / 2);
         }
     }
@@ -330,7 +331,7 @@ const closestLeaf = (
         const childEnd = (tree.childStarts[node] ?? 0) + childCount;
         if (nextChild >= childEnd) {
             returnedLeaf = stack.closestLeaves[depth] ?? -1;
-            if (returnedLeaf < 0) throw new Error('A climate search subtree produced no leaf');
+            if (returnedLeaf < 0) throw new WorldgenErrors.ClimateSearchFoundNoLeaf();
             continue;
         }
 
@@ -413,12 +414,12 @@ const flattenTree = <T>(root: TreeNode<T>): FlatClimateTree<T> => {
 
     for (let nodeIndex = 0; nodeIndex < nodes.length; nodeIndex++) {
         const node = nodes[nodeIndex];
-        if (node === undefined) throw new Error('Climate tree flattening lost a node');
+        if (node === undefined) throw new WorldgenErrors.ClimateTreeLostNode();
 
         const boundsOffset = nodeIndex * CLIMATE_PARAMETER_COUNT * 2;
         for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
             const parameter = node.parameterSpace[axis];
-            if (parameter === undefined) throw new Error(`Climate tree node is missing axis ${axis}`);
+            if (parameter === undefined) throw new WorldgenErrors.ClimateTreeNodeIsMissingAxis({ axis });
             bounds[boundsOffset + axis * 2] = parameter.min;
             bounds[boundsOffset + axis * 2 + 1] = parameter.max;
         }
@@ -428,7 +429,7 @@ const flattenTree = <T>(root: TreeNode<T>): FlatClimateTree<T> => {
             childCounts[nodeIndex] = node.children.length;
             for (const child of node.children) {
                 const childIndex = indices.get(child);
-                if (childIndex === undefined) throw new Error('Climate tree flattening lost a child index');
+                if (childIndex === undefined) throw new WorldgenErrors.ClimateTreeLostChild();
                 children[childCursor] = childIndex;
                 childCursor++;
             }
@@ -444,9 +445,9 @@ const flattenTree = <T>(root: TreeNode<T>): FlatClimateTree<T> => {
     for (let nodeIndex = nodes.length - 1; nodeIndex >= 0; nodeIndex--) {
         if ((valueIndices[nodeIndex] ?? -1) >= 0) continue;
         const firstChild = children[childStarts[nodeIndex] ?? 0];
-        if (firstChild === undefined) throw new Error('Climate tree subtree has no first child');
+        if (firstChild === undefined) throw new WorldgenErrors.ClimateSubtreeHasNoChild();
         const rank = firstLeafRanks[firstChild];
-        if (rank === undefined) throw new Error('Climate tree subtree lost its first leaf rank');
+        if (rank === undefined) throw new WorldgenErrors.ClimateSubtreeLostLeaf();
         firstLeafRanks[nodeIndex] = rank;
     }
 
@@ -454,7 +455,7 @@ const flattenTree = <T>(root: TreeNode<T>): FlatClimateTree<T> => {
 };
 
 const buildParameterSpace = <T>(children: readonly TreeNode<T>[]): ClimateParameter[] => {
-    if (children.length === 0) throw new RangeError('A search tree node needs at least one child');
+    if (children.length === 0) throw new WorldgenErrors.EmptyClimateTreeNode();
     const bounds: (ClimateParameter | undefined)[] = new Array(CLIMATE_PARAMETER_COUNT).fill(undefined);
     for (const child of children) {
         for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
@@ -502,7 +503,7 @@ const nodeCost = (space: readonly ClimateParameter[]): number => {
 };
 
 const buildTree = <T>(children: TreeNode<T>[], childrenPerNode: number): TreeNode<T> => {
-    if (children.length === 0) throw new RangeError('A search tree node needs at least one child');
+    if (children.length === 0) throw new WorldgenErrors.EmptyClimateTreeNode();
     if (children.length === 1) return children[0] as TreeNode<T>;
     if (children.length <= childrenPerNode) {
         children.sort((left, right) => {
@@ -569,7 +570,7 @@ export class ClimateParameterList<T> implements ClimateParameterIndex<T> {
         public readonly entries: readonly ClimateEntry<T>[],
         childrenPerNode = CLIMATE_CHILDREN_PER_NODE
     ) {
-        if (entries.length === 0) throw new RangeError('A climate parameter list needs at least one entry');
+        if (entries.length === 0) throw new WorldgenErrors.EmptyClimateParameterList();
         const leaves = entries.map((entry) => new TreeLeaf(entry.point, entry.value));
         const tree = flattenTree(buildTree<T>(leaves, childrenPerNode));
         this.tree = tree;
@@ -617,7 +618,7 @@ export class ClimateParameterList<T> implements ClimateParameterIndex<T> {
      */
     public toSharedArrayBuffer(this: ClimateParameterList<string>): SharedArrayBuffer {
         if (typeof SharedArrayBuffer === 'undefined') {
-            throw new Error('SharedArrayBuffer is not available in this runtime');
+            throw new WorldgenErrors.SharedArrayBufferUnavailable();
         }
 
         const entryCount = this.entries.length;
@@ -626,22 +627,22 @@ export class ClimateParameterList<T> implements ClimateParameterIndex<T> {
         const valueIds = new Map(distinctValues.map((value, index) => [value, index]));
         const treeValueIndices = Uint32Array.from(this.values, (value) => {
             const valueIndex = valueIds.get(value);
-            if (valueIndex === undefined) throw new Error('Climate tree contains a value absent from its entries');
+            if (valueIndex === undefined) throw new WorldgenErrors.ClimateTreeValueUnknown();
             return valueIndex;
         });
         const entryValueIndices = Uint32Array.from(this.entries, ({ value }) => {
             const valueIndex = valueIds.get(value);
-            if (valueIndex === undefined) throw new Error('Climate entry contains a value absent from its table');
+            if (valueIndex === undefined) throw new WorldgenErrors.ClimateEntryValueUnknown();
             return valueIndex;
         });
         const entryBounds = new Float64Array(entryCount * CLIMATE_PARAMETER_COUNT * 2);
         for (let index = 0; index < entryCount; index++) {
             const entry = this.entries[index];
-            if (entry === undefined) throw new Error(`Climate table is missing entry ${index}`);
+            if (entry === undefined) throw new WorldgenErrors.ClimateTableIsMissingEntry({ index });
             const parameters = parameterSpaceOf(entry.point);
             for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
                 const parameter = parameters[axis];
-                if (parameter === undefined) throw new Error(`Climate entry ${index} is missing axis ${axis}`);
+                if (parameter === undefined) throw new WorldgenErrors.ClimateEntryIsMissingAxis({ index, axis });
                 const offset = index * CLIMATE_PARAMETER_COUNT * 2 + axis * 2;
                 entryBounds[offset] = parameter.min;
                 entryBounds[offset + 1] = parameter.max;
@@ -704,14 +705,14 @@ export class SharedClimateParameterList implements ClimateParameterIndex<string>
      */
     public constructor(buffer: SharedArrayBuffer) {
         if (buffer.byteLength < SHARED_CLIMATE_HEADER_BYTES) {
-            throw new TypeError('Shared climate table is shorter than its header');
+            throw new WorldgenErrors.SharedClimateTableIsShorter();
         }
 
         const header = new DataView(buffer);
         if (header.getUint32(0, true) !== SHARED_CLIMATE_MAGIC)
-            throw new TypeError('Shared climate table has bad magic');
+            throw new WorldgenErrors.SharedClimateTableHasBadMagic();
         if (header.getUint32(4, true) !== SHARED_CLIMATE_VERSION) {
-            throw new TypeError(`Shared climate table version ${header.getUint32(4, true)} is unsupported`);
+            throw new WorldgenErrors.SharedClimateTableVersionIsUnsupported({ uint32: header.getUint32(4, true) });
         }
 
         const nodeCount = header.getUint32(8, true);
@@ -721,7 +722,7 @@ export class SharedClimateParameterList implements ClimateParameterIndex<string>
         const encodedValuesLength = header.getUint32(24, true);
         const totalBytes = header.getUint32(28, true);
         if (nodeCount === 0 || entryCount === 0 || valueCount === 0 || maxDepth === 0) {
-            throw new TypeError('Shared climate table has empty dimensions');
+            throw new WorldgenErrors.SharedClimateTableHasEmptyDimensions();
         }
         const offsets = sharedClimateOffsets(nodeCount, entryCount);
         if (
@@ -736,7 +737,7 @@ export class SharedClimateParameterList implements ClimateParameterIndex<string>
             totalBytes !== offsets.byteLength + encodedValuesLength ||
             totalBytes !== buffer.byteLength
         ) {
-            throw new TypeError('Shared climate table has inconsistent lengths or offsets');
+            throw new WorldgenErrors.SharedClimateTableHasInconsistentLengths();
         }
 
         const entryValueOffset =
@@ -748,9 +749,9 @@ export class SharedClimateParameterList implements ClimateParameterIndex<string>
             !Array.isArray(decodedValues) ||
             !decodedValues.every((value): value is string => typeof value === 'string')
         ) {
-            throw new TypeError('Shared climate table contains an invalid value dictionary');
+            throw new WorldgenErrors.SharedClimateTableInvalidValues();
         }
-        if (decodedValues.length !== valueCount) throw new TypeError('Shared climate table value count does not match');
+        if (decodedValues.length !== valueCount) throw new WorldgenErrors.SharedClimateTableValueCount();
 
         // SharedArrayBuffer has no read-only mode; only the per-instance search stack is mutable.
         this.tree = {
@@ -809,7 +810,7 @@ export class SharedClimateParameterList implements ClimateParameterIndex<string>
 
     private valueAt(index: number): string {
         const value = this.values[index];
-        if (value === undefined) throw new TypeError(`Shared climate table has no value at index ${index}`);
+        if (value === undefined) throw new WorldgenErrors.SharedClimateTableHasNoValue({ index });
         return value;
     }
 }
@@ -853,7 +854,7 @@ const parseParameter = (source: unknown, path: string): ClimateParameter => {
     if (typeof source === 'number') return climatePoint(source);
     if (Array.isArray(source)) {
         if (source.length !== 2) {
-            throw new TypeError(`${path}: expected [min, max], got ${JSON.stringify(source)}`);
+            throw new WorldgenErrors.ExpectedClimateRange({ path, source: JSON.stringify(source) });
         }
         return climateSpan(number(source[0], `${path}[0]`), number(source[1], `${path}[1]`));
     }

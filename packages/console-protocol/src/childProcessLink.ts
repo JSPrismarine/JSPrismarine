@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import type { LinkOptions, MessageLink } from './link';
+import { ConsoleProtocolErrors } from '@jsprismarine/errors/console-protocol';
 
 /**
  * The parts of `process` the server-side link uses. `process` satisfies it when Node started
@@ -50,9 +51,7 @@ export interface ChildProcessLink<In, Out> extends MessageLink<In, Out> {
 export function childProcessLink<In, Out>(options: ChildProcessLinkOptions<In>): ChildProcessLink<In, Out> {
     const { validate, proc = process } = options;
     if (typeof proc.send !== 'function') {
-        throw new Error(
-            'childProcessLink needs an IPC channel; start the process with child_process.fork or a stdio entry of "ipc".'
-        );
+        throw new ConsoleProtocolErrors.NoIpcChannel();
     }
     const ipcSend = proc.send.bind(proc);
     const events = new EventEmitter<{ message: [In]; close: [] }>();

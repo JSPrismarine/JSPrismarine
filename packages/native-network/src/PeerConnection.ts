@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events';
 
 import { NativeEvent, cString } from './NativeNetwork';
 import type { NativeEventRecord, NativeNetwork } from './NativeNetwork';
+import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 /** libdatachannel's `rtcState`, a peer connection's state. */
 export type PeerConnectionState = 'new' | 'connecting' | 'connected' | 'disconnected' | 'failed' | 'closed';
@@ -65,7 +66,7 @@ export interface LocalCandidate {
 }
 
 const ok = (result: number, what: string): number => {
-    if (result < 0) throw new Error(`${what} failed (libdatachannel error ${result})`);
+    if (result < 0) throw new NativeNetworkErrors.LibdatachannelCallFailed({ what, result });
     return result;
 };
 
@@ -145,7 +146,10 @@ export class DataChannel extends EventEmitter {
                 this.emit('close');
                 return;
             case NativeEvent.error:
-                this.emit('error', new Error(event.payload.toString('utf8')));
+                this.emit(
+                    'error',
+                    new NativeNetworkErrors.PeerConnectionFailed({ message: event.payload.toString('utf8') })
+                );
                 return;
             case NativeEvent.message:
                 this.emit('message', event.payload, event.value === 1);

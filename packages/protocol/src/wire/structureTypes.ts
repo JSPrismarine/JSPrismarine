@@ -35,6 +35,7 @@ import type { WireType } from './fieldTypes';
 import type { ItemStackDescriptorData } from './structures/ItemStackDescriptor';
 import type { PassengerOfBlock } from './structures/PassengerOfBlock';
 import type { SkinWireLayout } from './structures/skin/Skin';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** `mce::UUID`: two 64-bit halves, little endian, most significant first. */
 export const uuid: WireType<UUID> = custom(
@@ -129,7 +130,7 @@ export const serializedSkin = (layout: SkinWireLayout): WireType<Skin | null> =>
     custom(
         layout.carriesPlayFabId ? 'SerializedSkin' : 'SerializedSkin[no PlayFabId]',
         (stream, value) => {
-            if (value === null) throw new TypeError('A skin field cannot be written without a skin');
+            if (value === null) throw new ProtocolWireErrors.MissingSkin();
             value.networkSerialize(stream, layout);
         },
         (stream) => Skin.networkDeserialize(stream, layout)

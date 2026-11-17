@@ -23,6 +23,7 @@ import { isStoredItemStack } from '../../inventory/persistence';
 import type { DataEntity } from './DataEntity';
 import { isStackState, stackRecord } from './droppedItems';
 import type { SpawnOptions } from './scene';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /** The type of every eye of ender in flight. */
 export const EYE_OF_ENDER_SIGNAL = 'minecraft:eye_of_ender_signal';
@@ -98,14 +99,20 @@ const tunings = new WeakMap<object, EyeTuning>();
 export const eyeTuningOf = (entity: DataEntity): EyeTuning => {
     const params = entity.instance.componentParams(EYE_OF_ENDER_SIGNAL_COMPONENT);
     if (!isRecord(params))
-        throw new TypeError(`${entity.identifier} has no ${EYE_OF_ENDER_SIGNAL_COMPONENT} component`);
+        throw new PrismarineEntityErrors.MissingItemComponent({
+            identifier: entity.identifier,
+            itemComponent: EYE_OF_ENDER_SIGNAL_COMPONENT
+        });
     const cached = tunings.get(params);
     if (cached !== undefined) return cached;
 
     const number = (key: string): number => {
         const value = params[key];
         if (typeof value !== 'number')
-            throw new TypeError(`${EYE_OF_ENDER_SIGNAL_COMPONENT} needs a number for ${key}`);
+            throw new PrismarineEntityErrors.ItemComponentFieldNotNumber({
+                itemComponent: EYE_OF_ENDER_SIGNAL_COMPONENT,
+                key
+            });
         return value;
     };
     const read: EyeTuning = {

@@ -64,10 +64,12 @@ client data, and supply only the identity and the chain.
 
 `verifyLogin` checks a login's two signatures: Minecraft services signed the multiplayer token,
 which names the account and the client's key, and that key signed the client data. It fails closed
-and throws `LoginRefused`, whose message is safe to show the player.
+and throws `LoginRefused`, whose message is safe to show the player. Its `detail` says what went
+wrong, for the server log.
 
 ```typescript
-import { LoginRefused, verifyLogin } from '@jsprismarine/auth/server';
+import { verifyLogin } from '@jsprismarine/auth/server';
+import { LoginRefused } from '@jsprismarine/errors/auth';
 
 try {
     const { xuid, displayName } = await verifyLogin(login);

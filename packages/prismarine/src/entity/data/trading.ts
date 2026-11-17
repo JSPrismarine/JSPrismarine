@@ -23,7 +23,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import type { TradeSource } from '../../network/PlayerSession';
 import type { PlainData } from '../../world/changelog/PlainData';
 import { plainOf } from '../../world/changelog/PlainData';
-import { LoggedFieldError } from './entityFields';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /**
  * The entity field a trader's offers are logged under: its {@link MerchantSnapshot} in the form a
@@ -38,7 +38,7 @@ export const MERCHANT_FIELD = 'merchant';
 export const merchantFieldOf = (snapshot: MerchantSnapshot | undefined): PlainData => {
     if (snapshot === undefined) return null;
     const plain = plainOf(JSON.parse(JSON.stringify(snapshot)));
-    if (plain === undefined) throw new LoggedFieldError('a merchant snapshot has no plain form');
+    if (plain === undefined) throw new PrismarineEntityErrors.MerchantHasNoPlainForm();
     return plain;
 };
 
@@ -52,7 +52,7 @@ export const merchantIn = (value: PlainData): MerchantSnapshot | undefined => {
 };
 
 const wrongMerchant = (value: PlainData): never => {
-    throw new LoggedFieldError(`merchant cannot hold ${JSON.stringify(value)}`);
+    throw new PrismarineEntityErrors.InvalidSavedMerchant({ value: JSON.stringify(value) });
 };
 
 /**

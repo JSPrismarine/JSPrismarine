@@ -6,7 +6,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { LoginCredentials } from './IAuthProvider';
 import type { LoginKeySource } from './LoginVerifier';
-import { LoginRefused, MojangKeys, verifyLogin } from './LoginVerifier';
+import { LoginRefused } from '@jsprismarine/errors/auth';
+import { MojangKeys, verifyLogin } from './LoginVerifier';
 import { TOKEN_ISSUER } from './protocol';
 
 const NOW = 1_800_000_000_000;

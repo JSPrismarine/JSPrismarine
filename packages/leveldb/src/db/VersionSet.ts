@@ -1,7 +1,7 @@
 import { compareBytewise } from '../util/Comparator';
 import { compareInternalKeys, extractUserKey } from '../format/InternalKey';
-import { CorruptionError } from '../Errors';
 import type { FileMetaData, VersionEdit } from './VersionEdit';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /** Upstream's limit. Levels beyond this do not exist in any database the game writes. */
 export const MAX_LEVELS = 7;
@@ -56,7 +56,7 @@ export class VersionSet {
         }
 
         for (const [level, file] of edit.newFiles ?? []) {
-            if (level < 0 || level >= MAX_LEVELS) throw new CorruptionError(`Manifest names level ${level}`);
+            if (level < 0 || level >= MAX_LEVELS) throw new LeveldbErrors.ManifestLevelOutOfRange({ level });
 
             this.levels[level]!.push(file);
             if (file.number >= this.nextFileNumber) this.nextFileNumber = file.number + 1;
@@ -80,9 +80,11 @@ export class VersionSet {
             const files = this.levels[level]!;
             for (let i = 1; i < files.length; i++) {
                 if (compareInternalKeys(files[i - 1]!.largest, files[i]!.smallest) >= 0) {
-                    throw new CorruptionError(
-                        `Level ${level} files ${files[i - 1]!.number} and ${files[i]!.number} overlap`
-                    );
+                    throw new LeveldbErrors.OverlappingLevelFiles({
+                        level,
+                        number: files[i - 1]!.number,
+                        iNumber: files[i]!.number
+                    });
                 }
             }
         }

@@ -43,6 +43,7 @@ import type { PackedRegionChunkPatch } from './featurePatchWire';
 import { isPackedPatch, packFeaturePatches } from './featurePatchWire';
 import type { PaletteTranslation } from './mergedChunk';
 import { isPaletteTranslation } from './mergedChunk';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /**
  * What a worker is handed once, to build its generator from.
@@ -119,11 +120,11 @@ export interface MergedChunkTaskInput extends ChunkTaskInput {
 }
 
 /** Raised when the pool hands a worker a task it has no body for. */
-export class UnsupportedChunkStatusError extends Error {
+export class UnsupportedChunkStatusError extends PrismarineGenerationErrors.UnsupportedChunkStatus {
     public override name = 'UnsupportedChunkStatusError';
 
     public constructor(status: string) {
-        super(`A generation worker has no body for ${status}.`);
+        super({ status });
     }
 }
 
@@ -288,7 +289,7 @@ const isFeatureInput = (value: unknown): value is FeatureTaskInput =>
  * @throws TypeError when the setup is not a generation pipeline's.
  */
 export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
-    if (!isSetup(setup)) throw new TypeError('A generation worker needs a registry bundle in shared memory.');
+    if (!isSetup(setup)) throw new PrismarineGenerationErrors.WorkerWithoutRegistryBundle();
 
     const registries = readRegistryBundle(setup.registryBundle, setup.sharedClimateParameters);
     const generator = new DataDrivenGenerator({
@@ -316,9 +317,10 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
         async run(task: GenerationTask): Promise<GenerationResult> {
             if (task.status === 'structure_starts') {
                 if (!isStructureStartTaskInput(task.input)) {
-                    throw new TypeError(
-                        `The structure-start task at ${task.chunkX}, ${task.chunkZ} carries no candidate list, seed and pipeline key.`
-                    );
+                    throw new PrismarineGenerationErrors.IncompleteStructureStartTask({
+                        chunkX: task.chunkX,
+                        chunkZ: task.chunkZ
+                    });
                 }
 
                 return {
@@ -333,9 +335,10 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
 
             if (task.status === 'terrain') {
                 if (!isTerrainInput(task.input)) {
-                    throw new TypeError(
-                        `The terrain task at ${task.chunkX}, ${task.chunkZ} carries no seed and pipeline key.`
-                    );
+                    throw new PrismarineGenerationErrors.IncompleteTerrainTask({
+                        chunkX: task.chunkX,
+                        chunkZ: task.chunkZ
+                    });
                 }
 
                 const tile = await generator.buildTerrainTile(
@@ -352,9 +355,10 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
 
             if (task.status === 'features') {
                 if (!isFeatureInput(task.input)) {
-                    throw new TypeError(
-                        `The feature task at ${task.chunkX}, ${task.chunkZ} carries no terrain view, seed and pipeline key.`
-                    );
+                    throw new PrismarineGenerationErrors.IncompleteFeatureTask({
+                        chunkX: task.chunkX,
+                        chunkZ: task.chunkZ
+                    });
                 }
 
                 return packFeaturePatches(
@@ -385,9 +389,10 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
 
             if (task.status === 'full') {
                 if (!isFullChunkInput(task.input)) {
-                    throw new TypeError(
-                        `The chunk task at ${task.chunkX}, ${task.chunkZ} carries no seed, pipeline key and valid start plans.`
-                    );
+                    throw new PrismarineGenerationErrors.IncompleteChunkTask({
+                        chunkX: task.chunkX,
+                        chunkZ: task.chunkZ
+                    });
                 }
 
                 const tile = await generator.buildFullTile(

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { byte, compound, doubleTriple, encodeBigEndian, int, intTriple, list, str } from '../test/nbtFixtures';
 import { PALETTE_KEY_RENAME_DATA_VERSION, readJavaStructureTemplate } from './javaTemplate';
-import { StructureFormatError } from './types';
+import { StructureFormatError } from '@jsprismarine/errors/structures';
 
 const oldSpellingTemplate = () =>
     compound({

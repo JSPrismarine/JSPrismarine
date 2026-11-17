@@ -48,6 +48,7 @@ import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
 import type { TickHeader } from '../../world/changelog/TickHeader';
 import { plainOf, samePlain } from '../../world/changelog/PlainData';
 import type { DataEntity } from './DataEntity';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /**
  * How many updates in a row an entity may fail before the store removes it. One failure can
@@ -290,7 +291,8 @@ export class EntityStore {
         try {
             for (const entry of entries) {
                 if (entry.kind !== 'field' && entry.kind !== 'membership') continue;
-                if (!this.writers.some((write) => write(entry))) throw new Error(`No writer knows ${addressed(entry)}`);
+                if (!this.writers.some((write) => write(entry)))
+                    throw new PrismarineEntityErrors.NoEntityWriter({ addressed: addressed(entry) });
             }
         } finally {
             this.reverting = false;
@@ -512,7 +514,7 @@ export class EntityStore {
         try {
             removed = this.log.revertSpan(unit.span, (inverse) => {
                 if (!this.writers.some((write) => write(inverse)))
-                    throw new Error(`No writer knows ${addressed(inverse)}`);
+                    throw new PrismarineEntityErrors.NoEntityWriter({ addressed: addressed(inverse) });
             });
             failing = 'An undo failed';
             for (let index = unit.undos.length - 1; index >= 0; index -= 1) unit.undos[index]?.();
@@ -577,6 +579,6 @@ const addressed = (entry: StateEntry): string => {
 const plainValue = (value: unknown): PlainData => {
     if (value === undefined) return null;
     const plain = plainOf(value);
-    if (plain === undefined) throw new TypeError(`A logged value has no plain form: ${String(value)}`);
+    if (plain === undefined) throw new PrismarineEntityErrors.ValueHasNoPlainForm({ value: String(value) });
     return plain;
 };

@@ -8,6 +8,8 @@
  * index of a feature depends on the whole dimension's biome list rather than on the chunk.
  */
 
+import { FeaturesErrors } from '@jsprismarine/errors/features';
+
 /** One feature of one step, the node the sort walks. Java's `FeatureSorter.FeatureData`. */
 interface FeatureNode {
     /** The decoration step the biome listed the feature in. */
@@ -99,7 +101,7 @@ export const sortFeaturesPerStep = (
     for (const root of roots) {
         if (finished.has(root)) continue;
         if (visit(root)) {
-            throw new Error(`Feature order cycle found, reached again at ${root.reference}`);
+            throw new FeaturesErrors.FeatureOrderCycle({ reference: root.reference });
         }
     }
 

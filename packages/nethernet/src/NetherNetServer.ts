@@ -13,6 +13,7 @@ import type { DiscoveryPacket } from './protocol/Discovery';
 import { ErrorCode, SignalStructure, SignalType } from './protocol/Signal';
 import { randomUint64 } from './randomUint64';
 import type { DriverChannel, PeerConfig, WebRtcDriver } from './WebRtcDriver';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /**
  * How long a peer may take from its answer to opening both channels and connecting. Ten seconds
@@ -218,7 +219,7 @@ export class NetherNetServer extends EventEmitter {
      * @throws {Error} When the port cannot be bound.
      */
     public async listen(): Promise<void> {
-        if (this.closed) throw new Error('The NetherNet server is closed');
+        if (this.closed) throw new NethernetErrors.ServerIsClosed();
         const socket = dgram.createSocket({ type: 'udp4', reuseAddr: false });
         this.socket = socket;
         socket.on('message', (datagram, from) => this.handleDiscovery(datagram, from));

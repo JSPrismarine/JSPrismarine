@@ -25,6 +25,7 @@ import type { StructureBuildContext, StructureBuilder, StructureLayout } from '.
 import type { DataMarker } from './javaStructureTemplatePiece';
 import { registerTemplatePieceMarkerHandler, TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
 import type { StructureLevel, StructurePiece, StructureWriter } from './javaStructureWorld';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** Where in its chunk a mansion starts, Java's `START_OFFSET_IN_CHUNK`. */
 const START_OFFSET_IN_CHUNK = 7;
@@ -1281,7 +1282,7 @@ export const buildWoodlandMansion: StructureBuilder = (context): StructureLayout
 
 registerTemplatePieceMarkerHandler('woodland-mansion', (marker, writer, random, data) => {
     if (data !== 'none' && data !== 'clockwise_90' && data !== 'clockwise_180' && data !== 'counterclockwise_90') {
-        throw new TypeError('The woodland-mansion marker action needs a rotation.');
+        throw new PrismarineGenerationErrors.MansionMarkerWithoutRotation();
     }
     fillMarker(marker, writer, random, data);
 });

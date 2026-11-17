@@ -38,6 +38,7 @@ import type {
     WireUUID
 } from '../../packet/StartGamePacket';
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** One `GameRule`: name, editability, a varuint type selector, then the typed value. */
 const gameRule = t.custom<GameRule>(
@@ -78,7 +79,7 @@ const gameRule = t.custom<GameRule>(
             case GameRuleType.NONE:
                 break;
             default:
-                throw new Error(`Game rule ${name} has an unknown value type ${type}`);
+                throw new ProtocolWireErrors.UnknownGameRuleType({ name, type });
         }
 
         return { name, editable, type, value };

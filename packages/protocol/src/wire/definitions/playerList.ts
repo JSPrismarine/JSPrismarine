@@ -34,6 +34,7 @@ import { SINCE_2225, UNTIL_2225 } from '../wireGates';
 
 import type { PayloadOf } from '../define';
 import type { SkinWireLayout } from '../structures/skin/Skin';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The Action and the entries it shapes, as one value. */
 export interface PlayerListBody {
@@ -51,7 +52,7 @@ const playerListBody = (layout: SkinWireLayout) =>
     t.custom<PlayerListBody | null>(
         layout.carriesPlayFabId ? 'PlayerListBody' : 'PlayerListBody[PlayFabId on entry]',
         (stream, value) => {
-            if (value === null) throw new TypeError('A player list cannot be written without its entries');
+            if (value === null) throw new ProtocolWireErrors.MissingPlayerListEntries();
 
             const adding = value.type === PlayerListAction.TYPE_ADD;
             stream.writeUnsignedVarInt(value.entries.length);

@@ -13,6 +13,7 @@ import { layoutAt } from '../wire/WireLayout';
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 import type { AvailableCommandsPayload } from '../wire/definitions/availableCommands';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * The name protocol 2193 writes a command's `Permission Level` under.
@@ -295,7 +296,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
             const values = indices.map((index) => {
                 const value = enumValues[index];
                 if (value === undefined)
-                    throw new Error(`Enum ${formatWireValue(name)} points at missing enum value ${index}`);
+                    throw new ProtocolCodecErrors.MissingEnumValue({
+                        wireValue: formatWireValue(name),
+                        index
+                    });
                 return value;
             });
             return Object.assign(new CommandEnum(), { name, values, soft: false });
@@ -307,7 +311,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                 const values = pairs.map(({ first }) => {
                     const value = chainedValues[first];
                     if (value === undefined)
-                        throw new Error(`Subcommand ${formatWireValue(name)} points at missing value ${first}`);
+                        throw new ProtocolCodecErrors.MissingSubcommandValue({
+                            wireValue: formatWireValue(name),
+                            first
+                        });
                     return value;
                 });
                 return Object.assign(new CommandChainedSubcommand(), { name, values });
@@ -328,9 +335,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
             data.chainedSubcommands = command.chainedSubcommandIndexes.map((index) => {
                 const table = chainedSubcommands[index];
                 if (table === undefined) {
-                    throw new Error(
-                        `Command ${formatWireValue(data.commandName)} points at missing subcommand table ${index}`
-                    );
+                    throw new ProtocolCodecErrors.MissingCommandSubcommandTable({
+                        wireValue: formatWireValue(data.commandName),
+                        index
+                    });
                 }
                 return table;
             });
@@ -344,9 +352,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                     if (type & CommandParameterTypeFlag.Chained) {
                         const table = chainedSubcommands[index];
                         if (table === undefined) {
-                            throw new Error(
-                                `Parameter ${formatWireValue(paramName)} points at missing subcommand table ${index}`
-                            );
+                            throw new ProtocolCodecErrors.MissingParameterSubcommandTable({
+                                wireValue: formatWireValue(paramName),
+                                index
+                            });
                         }
                         parameter.chainedSubcommand = table;
                         // The encoder re-adds the flag from `chainedSubcommand`.
@@ -357,9 +366,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                         if (options & CommandParameterFlags.ENUM_AS_CHAINED_COMMAND) {
                             const table = chainedSubcommands[index];
                             if (table === undefined) {
-                                throw new Error(
-                                    `Parameter ${formatWireValue(paramName)} points at missing subcommand table ${index}`
-                                );
+                                throw new ProtocolCodecErrors.MissingParameterSubcommandTable({
+                                    wireValue: formatWireValue(paramName),
+                                    index
+                                });
                             }
                             parameter.chainedSubcommand = table;
                             // The encoder re-adds the flag from `chainedSubcommand`.
@@ -367,26 +377,29 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
                         } else {
                             const found = enums[index];
                             if (found === undefined) {
-                                throw new Error(
-                                    `Parameter ${formatWireValue(paramName)} points at missing enum ${index}`
-                                );
+                                throw new ProtocolCodecErrors.MissingParameterEnum({
+                                    wireValue: formatWireValue(paramName),
+                                    index
+                                });
                             }
                             parameter.enum = found;
                         }
                     } else if (type & CommandParameterTypeFlag.Postfix) {
                         const postfix = postfixes[index];
                         if (postfix === undefined) {
-                            throw new Error(
-                                `Parameter ${formatWireValue(paramName)} points at missing postfix ${index}`
-                            );
+                            throw new ProtocolCodecErrors.MissingParameterPostfix({
+                                wireValue: formatWireValue(paramName),
+                                index
+                            });
                         }
                         parameter.postfix = postfix;
                     } else {
                         const word = Object.values(CommandParameterType).find((value) => value === type);
                         if (word === undefined) {
-                            throw new Error(
-                                `Parameter ${formatWireValue(paramName)} carries unknown parse symbol ${type}`
-                            );
+                            throw new ProtocolCodecErrors.UnknownParameterType({
+                                wireValue: formatWireValue(paramName),
+                                type
+                            });
                         }
                         parameter.paramType = word;
                     }
@@ -404,9 +417,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
         for (const { parameter, index } of pendingSoftEnums) {
             const found = this.softEnums[index];
             if (found === undefined) {
-                throw new Error(
-                    `Parameter ${formatWireValue(parameter.paramName)} points at missing soft enum ${index}`
-                );
+                throw new ProtocolCodecErrors.MissingParameterSoftEnum({
+                    wireValue: formatWireValue(parameter.paramName),
+                    index
+                });
             }
             parameter.enum = found;
         }
@@ -430,7 +444,7 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
             const constrained = enums[enumSymbol];
             const value = enumValues[enumValueSymbol];
             if (constrained === undefined || value === undefined) {
-                throw new Error(`A constraint points at missing enum ${enumSymbol} or value ${enumValueSymbol}`);
+                throw new ProtocolCodecErrors.MissingConstraintEnum({ enumSymbol, enumValueSymbol });
             }
             return new CommandEnumConstraint(constrained, offsetOf(constrained, value), constraintIndices);
         });

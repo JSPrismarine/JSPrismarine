@@ -25,6 +25,7 @@ import {
 } from './javaStructureTemplatePiece';
 import { TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
 import type { StructurePiece } from './javaStructureWorld';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** Java's `Util.getRandom`: one entry of an array, by a single draw. */
 const randomOf = <T>(values: readonly T[], random: RandomSource): T => values[random.nextInt(values.length)]!;
@@ -400,11 +401,11 @@ registerTemplatePieceMarkerHandler('igloo', (marker, writer) => {
 
 registerTemplatePiecePostPlacementHandler('igloo-snow-cap', (_piece, writer, _random, data) => {
     if (!Array.isArray(data) || data.length !== 3 || !data.every((value) => typeof value === 'number')) {
-        throw new TypeError('The igloo snow-cap action needs an x, y, z position.');
+        throw new PrismarineGenerationErrors.IglooMarkerWithoutPosition();
     }
     const [x, y, z] = data;
     if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
-        throw new TypeError('The igloo snow-cap action needs an x, y, z position.');
+        throw new PrismarineGenerationErrors.IglooMarkerWithoutPosition();
     }
     const below = writer.blockAt(x, y - 1, z);
     if (below.name !== 'minecraft:air' && below.name !== 'minecraft:ladder') {
@@ -415,7 +416,7 @@ registerTemplatePiecePostPlacementHandler('igloo-snow-cap', (_piece, writer, _ra
 registerTemplatePieceMarkerHandler('ocean-ruin', (marker, writer, _random, data) => {
     if (marker.value !== 'chest') return;
     if (typeof data !== 'object' || data === null || !('large' in data) || typeof data.large !== 'boolean') {
-        throw new TypeError('The ocean-ruin marker action needs its large flag.');
+        throw new PrismarineGenerationErrors.OceanRuinMarkerWithoutSize();
     }
 
     writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {

@@ -5,10 +5,12 @@ import { sessionEncryption } from '../SessionEncryption';
 import type LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
 import { identityFromXUID, parseLoginIdentity } from '../LoginIdentity';
-import { LoginRefused, verifyLogin } from '@jsprismarine/auth/server';
+import { verifyLogin } from '@jsprismarine/auth/server';
+import { AuthErrors, LoginRefused } from '@jsprismarine/errors/auth';
 import type { ConnectionContext, ConnectionHandler, LoginIdentity } from './ConnectionContext';
 import { accountOf } from './ConnectionContext';
 import type { HandlerLog } from './HandlerContext';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** What a login replacing another session of the same account tells the one it replaces. */
 const REPLACED = 'Logged in from another location';
@@ -55,7 +57,7 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
     public async handle(packet: LoginPacket, context: ConnectionContext): Promise<void> {
         const { connection, log, config, login: services } = context;
         const login = packet.getPacketData();
-        if (login === null) throw new Error('Cannot handle LoginPacket without packet data');
+        if (login === null) throw new PrismarineNetworkErrors.LoginNotDecoded();
 
         // A failed status is followed by a disconnect, as the docs have it: the status picks
         // the client's "Outdated client" or "Outdated server" screen, and the disconnect
@@ -106,10 +108,7 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
                 // 1.26.60 refuses such a login the same way (NotAuthenticated), so this is not
                 // an extra check a retail client could fail.
                 if (!(await connection.provesIdentityKey(verified.identityPublicKey))) {
-                    throw new LoginRefused(
-                        'You must be logged in with Xbox Live to join.',
-                        "the connection's identity does not prove the login's key"
-                    );
+                    throw new AuthErrors.XboxLoginRequired({ cause: new AuthErrors.IdentityDoesNotProveLoginKey() });
                 }
                 identity = {
                     ...identity,

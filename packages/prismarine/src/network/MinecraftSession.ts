@@ -19,6 +19,7 @@ import path from 'node:path';
 import { PacketLogFilter } from './PacketLogFilter';
 import { writePacketDump } from './packetDumpFile';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * The packet class names a debugging variable lists, comma-separated.
@@ -501,7 +502,7 @@ export default class MinecraftSession {
             const prepared = encoded.packets[0];
             const packetBuffer = encoded.buffers[0];
             if (prepared === undefined || packetBuffer === undefined)
-                throw new Error('Packet encoding returned no bytes');
+                throw new PrismarineNetworkErrors.EmptyPacketEncoding();
             encodedPacket = prepared;
             buffer = packetBuffer;
         } catch (error: unknown) {
@@ -631,7 +632,7 @@ export default class MinecraftSession {
         const encoded = encodePacketsForCodec([packet], this.codec);
         const prepared = encoded.packets[0];
         const buffer = encoded.buffers[0];
-        if (prepared === undefined || buffer === undefined) throw new Error('Packet encoding returned no bytes');
+        if (prepared === undefined || buffer === undefined) throw new PrismarineNetworkErrors.EmptyPacketEncoding();
         if (
             this.queuedPackets.length > 0 &&
             (this.queuedBatchOptions === undefined ||
@@ -661,7 +662,7 @@ export default class MinecraftSession {
             // The caller has already reserved this packet's place by flushing the prior queue.
             // A mismatch here means a concurrent send crossed that boundary, so fail loudly
             // rather than put packets with different wire compression formats together.
-            throw new Error('Outbound packet compression changed while a queue flush was pending');
+            throw new PrismarineNetworkErrors.CompressionChangedDuringFlush();
         }
         let resolve = (): void => {};
         let reject = (_error: unknown): void => {};
@@ -844,7 +845,7 @@ export const broadcastSharedBatches = (
             });
             if (batch instanceof Promise) {
                 const failedPacket = packetList[0];
-                if (failedPacket === undefined) throw new Error('A large shared batch has no packet to report');
+                if (failedPacket === undefined) throw new PrismarineNetworkErrors.EmptySharedBatch();
                 for (const session of group) sends.push(session.sendSharedBatchAsync(batch, failedPacket));
             } else {
                 for (const session of group) {

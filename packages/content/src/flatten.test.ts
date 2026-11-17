@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { flatten, FlattenError } from './flatten';
+import { flatten } from './flatten';
+import { FlattenError } from '@jsprismarine/errors/content';
 
 interface BlockType {
     runtimeId: number;

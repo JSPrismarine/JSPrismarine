@@ -12,6 +12,7 @@ import SuggestionsBuilder from './suggestion/SuggestionsBuilder';
 import type CommandNode from './tree/CommandNode';
 import type LiteralCommandNode from './tree/LiteralCommandNode';
 import RootCommandNode from './tree/RootCommandNode';
+import { asError } from '@jsprismarine/errors/common';
 
 const ARGUMENT_SEPARATOR = ' ';
 const USAGE_OPTIONAL_OPEN = '[';
@@ -163,7 +164,7 @@ export default class CommandDispatcher<S> {
                 if (errors == null) {
                     errors = new Map();
                 }
-                errors.set(child, ex instanceof Error ? ex : new Error(String(ex)));
+                errors.set(child, asError(ex));
                 reader.setCursor(cursor);
                 continue;
             }

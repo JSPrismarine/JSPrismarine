@@ -1,6 +1,7 @@
 import type BlockPickRequestPacket from '@jsprismarine/protocol/packet/BlockPickRequestPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * A block pick.
@@ -17,7 +18,7 @@ export default class BlockPickRequestHandler implements ConnectionLaneHandler<Bl
     /** Logs the picked position. */
     public handle(packet: BlockPickRequestPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a BlockPickRequestPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.BlockPickRequestNotDecoded();
         const { position } = data;
 
         log.debug(

@@ -11,6 +11,7 @@ import LongVal from './types/LongVal';
 import NumberVal from './types/NumberVal';
 import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';
+import { NbtErrors } from '@jsprismarine/errors/nbt';
 
 type NumberTag = ByteVal | ShortVal | NumberVal | FloatVal | DoubleVal;
 
@@ -52,7 +53,7 @@ export default class NBTTagCompound {
 
     public addValue(name: string, value: any): void {
         if (value instanceof NBTTagCompound && name !== value.getName()) {
-            throw new Error(`Failed to add NBTTagCompound with name ${value.getName()} given name ${name}`);
+            throw new NbtErrors.CompoundNameMismatch({ name: value.getName(), name2: name });
         }
 
         this.children.set(name, value);

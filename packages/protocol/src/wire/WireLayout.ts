@@ -21,6 +21,7 @@ import { isGated, isVersioned } from './define';
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type { FieldSpec, PacketDefinition, PayloadOf } from './define';
 import type { WireType } from './fieldTypes';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** One resolved field: its payload key and its wire type. */
 interface ResolvedField {
@@ -109,7 +110,7 @@ const resolve = (definition: PacketDefinition, protocolVersion: number, useCompi
         if (isVersioned(spec)) {
             const variant = spec.variants.find(([gate]) => gate.includedAt(protocolVersion));
             if (variant === undefined) {
-                throw new Error(`${definition.name}.${key} has no layout at protocol ${protocolVersion}`);
+                throw new ProtocolWireErrors.NoLayoutAtProtocol({ name: definition.name, key, protocolVersion });
             }
             fields.push({ key, of: variant[1] });
         } else if (!isGated(spec)) {

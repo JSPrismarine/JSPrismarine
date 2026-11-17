@@ -1,6 +1,7 @@
 import type PurchaseReceiptPacket from '@jsprismarine/protocol/packet/PurchaseReceiptPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * The receipts a client sends for the store offers it owns.
@@ -17,7 +18,7 @@ export default class PurchaseReceiptHandler implements ConnectionLaneHandler<Pur
     /** Logs how many receipts arrived. */
     public handle(packet: PurchaseReceiptPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a PurchaseReceiptPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.PurchaseReceiptNotDecoded();
 
         log.debug(
             `${session.identity.name} sent ${data.purchaseReceipts.length} purchase receipts, which the server does not verify`,

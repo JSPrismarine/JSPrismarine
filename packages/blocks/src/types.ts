@@ -18,6 +18,7 @@ import { componentsForPermutation, permutationsFor } from './permutations';
 import type { BlockStateDefinition } from './state';
 import { BlockPalette, BlockStateModel, vanillaBlockPalette } from './state';
 import { TRAIT_STATES, traitStateDomains } from './traits';
+import { BlocksErrors } from '@jsprismarine/errors/blocks';
 
 /** The load-time flags a block type answers by name. */
 export interface BlockFlags {
@@ -177,13 +178,11 @@ export interface BlockResolveOptions {
 }
 
 /** Error thrown by a strict resolve; `diagnostics` holds the full report. */
-export class BlockLoadError extends Error {
+export class BlockLoadError extends BlocksErrors.BlocksDidNotResolveCleanly {
     public override name = 'BlockLoadError';
 
     public constructor(public readonly diagnostics: readonly Diagnostic[]) {
-        super(
-            `the blocks did not resolve cleanly: ${diagnostics.length} diagnostic(s), first: ${diagnostics[0]?.message}`
-        );
+        super({ count: diagnostics.length, first: diagnostics[0]?.message });
     }
 }
 

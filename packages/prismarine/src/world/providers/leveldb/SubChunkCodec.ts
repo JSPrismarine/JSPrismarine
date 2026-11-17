@@ -4,6 +4,7 @@ import BlockStorage from '../../chunk/BlockStorage';
 import SubChunk, { isSubChunkVersion } from '../../chunk/SubChunk';
 import type { ReadonlySubChunk, SubChunkVersion } from '../../chunk/SubChunk';
 import { decodePersistentStorage, encodePersistentStorage } from './PersistentBlockStorage';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * A `SubChunkPrefix` record's value.
@@ -38,7 +39,7 @@ export const encodeSubChunk = (subChunk: ReadonlySubChunk, index: number, versio
 
     if (version === 1) {
         if (storages.length > 1) {
-            throw new Error('Sub chunk version 1 holds a single layer, so a second one would be lost');
+            throw new PrismarineWorldErrors.SecondLayerInVersionOne();
         }
     } else {
         stream.writeByte(storages.length);
@@ -57,7 +58,7 @@ export const decodeSubChunk = (value: Buffer): DecodedSubChunk => {
     const version = stream.readByte();
 
     if (!isSubChunkVersion(version)) {
-        throw new Error(`Unsupported sub chunk version ${version}`);
+        throw new PrismarineWorldErrors.UnsupportedSubChunkVersion({ version });
     }
 
     const storageCount = version === 1 ? 1 : stream.readByte();

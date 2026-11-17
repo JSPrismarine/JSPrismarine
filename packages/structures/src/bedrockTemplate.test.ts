@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { byte, compound, encodeLittleEndian, int, intTriple, list, str } from '../test/nbtFixtures';
 import { mcStructureIndex, mcStructurePosition, readMcStructure } from './bedrockTemplate';
-import { NO_BLOCK, StructureFormatError } from './types';
+import { NO_BLOCK } from './types';
+import { StructureFormatError } from '@jsprismarine/errors/structures';
 
 /**
  * A 2 by 2 by 2 template: tuff at the bottom corner, a waterlogged sulfur

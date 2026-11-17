@@ -1,3 +1,4 @@
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 /**
  * The ten chunk statuses Java Edition 26.3 registers, in registration order.
  *
@@ -29,12 +30,12 @@ export type ChunkStatus = (typeof CHUNK_STATUSES)[number];
 export type ChunkStorageKind = 'proto_chunk' | 'level_chunk';
 
 /** Raised when a value that is not one of {@link CHUNK_STATUSES} is read as a status. */
-export class UnknownChunkStatusError extends Error {
+export class UnknownChunkStatusError extends ChunkgenErrors.UnknownChunkStatus {
     public override name = 'UnknownChunkStatusError';
 
     /** @param subject - The rejected value, quoted back to the caller in the message. */
     public constructor(public readonly subject: unknown) {
-        super(`${JSON.stringify(subject)} is not a chunk status. The ten are ${CHUNK_STATUSES.join(', ')}.`);
+        super({ subject: JSON.stringify(subject), statuses: CHUNK_STATUSES.join(', ') });
     }
 }
 

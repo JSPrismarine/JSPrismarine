@@ -4,9 +4,10 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { BASE_URL_ENV, SKIP_DOWNLOAD_ENV, installBuild, installedLibraryPath } from './install';
-import { LIBRARY_ENV, NativeLibraryError, locateLibrary } from './library';
+import { LIBRARY_ENV, locateLibrary } from './library';
 import { sha256 } from './manifest';
 import type { NativeManifest } from './manifest';
+import { NativeLibraryError } from '@jsprismarine/errors/native-network';
 
 const PLATFORM = 'linux-x64-gnu';
 const OTHER = 'win32-arm64';

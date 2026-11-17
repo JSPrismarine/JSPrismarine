@@ -4,6 +4,7 @@ import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 
 import { createDevToolsFrontendUrl } from './DevTools';
+import { ServerErrors } from '@jsprismarine/errors/server';
 
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const MAX_FRAME_SIZE = 64 * 1024 * 1024;
@@ -63,7 +64,7 @@ const decodeFrame = (input: Buffer): { frame: WebSocketFrame; rest: Buffer } | u
     if (input.length < 2) return undefined;
     const first = input[0]!;
     const second = input[1]!;
-    if ((first & 0x70) !== 0) throw new Error('Unsupported WebSocket extension');
+    if ((first & 0x70) !== 0) throw new ServerErrors.UnsupportedWebsocketExtension();
 
     let length = second & 0x7f;
     let offset = 2;
@@ -74,12 +75,12 @@ const decodeFrame = (input: Buffer): { frame: WebSocketFrame; rest: Buffer } | u
     } else if (length === 127) {
         if (input.length < offset + 8) return undefined;
         const extended = input.readBigUInt64BE(offset);
-        if (extended > BigInt(MAX_FRAME_SIZE)) throw new Error('WebSocket frame is too large');
+        if (extended > BigInt(MAX_FRAME_SIZE)) throw new ServerErrors.WebsocketFrameTooLarge();
         length = Number(extended);
         offset += 8;
     }
     const masked = (second & 0x80) !== 0;
-    if (!masked) throw new Error('Client WebSocket frames must be masked');
+    if (!masked) throw new ServerErrors.UnmaskedWebsocketFrame();
     if (input.length < offset + 4 + length) return undefined;
 
     const mask = input.subarray(offset, offset + 4);
@@ -142,7 +143,7 @@ export class DevToolsRelay {
                 this.server.off('error', onError);
                 const address = this.server.address();
                 if (!address || typeof address === 'string') {
-                    reject(new Error('DevTools relay did not provide a TCP address'));
+                    reject(new ServerErrors.RelayHasNoAddress());
                     return;
                 }
                 this.port = address.port;
@@ -153,7 +154,7 @@ export class DevToolsRelay {
 
     /** The stable loopback WebSocket address for this relay. */
     public get endpointUrl(): string {
-        if (this.port === undefined) throw new Error('DevTools relay has not started');
+        if (this.port === undefined) throw new ServerErrors.RelayNotStarted();
         return `ws://127.0.0.1:${this.port}/${this.token}`;
     }
 
@@ -172,7 +173,7 @@ export class DevToolsRelay {
         if (endpointUrl !== undefined) {
             const target = new URL(endpointUrl);
             if (target.protocol !== 'ws:' || target.hostname !== '127.0.0.1') {
-                throw new Error('DevTools relay targets must be Node inspector sockets on 127.0.0.1');
+                throw new ServerErrors.InvalidRelayTarget();
             }
         }
         this.targetUrl = endpointUrl;

@@ -1,5 +1,6 @@
 import { binarySearch, f32, lerpF } from '../math';
 import type { SampleContext } from './SampleContext';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** A compiled cubic spline, sampled the same way a density function is. */
 export type CompiledSpline = (context: SampleContext, x: number, y: number, z: number) => number;
@@ -31,7 +32,7 @@ export const compileMultipointSpline = (spline: MultipointSpline): CompiledSplin
     const lastIndex = locations.length - 1;
     const first = values[0];
     const last = values[lastIndex];
-    if (!first || !last) throw new RangeError('A multipoint spline needs at least one point');
+    if (!first || !last) throw new WorldgenErrors.SplineHasNoPoints();
 
     const linearExtend = (input: number, value: number, index: number): number => {
         const derivative = derivatives[index] ?? 0;

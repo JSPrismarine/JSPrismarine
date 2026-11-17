@@ -20,6 +20,7 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 import { nbtBytesOf, nbtOfBytes } from '../nbtBytes';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** The field that holds everything of a block entity but its stacks. */
 export const BLOCK_ENTITY_DATA = 'data';
@@ -42,7 +43,7 @@ export type BlockEntityValue = Uint8Array | null;
  */
 export const blockEntityValueOf = (value: unknown): BlockEntityValue => {
     if (value === null || value instanceof Uint8Array) return value;
-    throw new TypeError(`A logged block entity field holds ${String(value)}`);
+    throw new PrismarineServerErrors.InvalidLoggedBlockEntityValue({ value: String(value) });
 };
 
 /** One field of a block entity that a write changed. */
@@ -117,7 +118,7 @@ export const blockEntityChanges = (
 const slotNamed = (field: string): number | undefined => {
     if (!field.startsWith(SLOT_PREFIX)) return undefined;
     const slot = Number(field.slice(SLOT_PREFIX.length));
-    if (!Number.isInteger(slot)) throw new TypeError(`A block entity has no field ${field}`);
+    if (!Number.isInteger(slot)) throw new PrismarineServerErrors.UnknownBlockEntityField({ field });
     return slot;
 };
 
@@ -140,7 +141,7 @@ export const withBlockEntityField = (
 ): NBTTagCompound | null => {
     const slot = slotNamed(field);
     if (slot === undefined) {
-        if (field !== BLOCK_ENTITY_DATA) throw new TypeError(`A block entity has no field ${field}`);
+        if (field !== BLOCK_ENTITY_DATA) throw new PrismarineServerErrors.UnknownBlockEntityField({ field });
         if (value === null) return null;
         const tags = nbtOfBytes(value);
         // The stacks are fields of their own, so `data` takes whatever stands in the slots now.
@@ -154,7 +155,7 @@ export const withBlockEntityField = (
         return tags;
     }
 
-    if (current === null) throw new TypeError(`No block entity at ${at.x}, ${at.y}, ${at.z} holds slot ${slot}`);
+    if (current === null) throw new PrismarineServerErrors.NoContainerForSlot({ x: at.x, y: at.y, z: at.z, slot });
     const standing = slotsOf(current.getList(ITEMS, false));
     // A list that does not split is whole in `data`, which a change to one writes ahead of
     // emptying the slots the list had, so a replay forward keeps it rather than emptying it.

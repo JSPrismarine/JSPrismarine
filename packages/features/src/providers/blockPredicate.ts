@@ -6,6 +6,7 @@ import { isOutsideBuildHeight, offset as offsetPos } from '../world/FeatureWorld
 import { parseBlockState } from './blockStateProvider';
 import type { VerticalAnchor } from './heightProvider';
 import { parseVerticalAnchor, resolveAnchor } from './heightProvider';
+import { FeaturesErrors } from '@jsprismarine/errors/features';
 
 /**
  * A test on one world position, Java's `BlockPredicate`.
@@ -43,7 +44,7 @@ const ZERO_OFFSET: readonly [number, number, number] = [0, 0, 0];
 const parseOffset = (source: unknown, path: string): readonly [number, number, number] => {
     if (source === undefined) return ZERO_OFFSET;
     const values = asArray(source, path);
-    if (values.length !== 3) return fail(path, `expected three integers, got ${values.length}`);
+    if (values.length !== 3) return fail(new FeaturesErrors.WrongIntegerCount({ path, valuesCount: values.length }));
     return [asInteger(values[0], `${path}[0]`), asInteger(values[1], `${path}[1]`), asInteger(values[2], `${path}[2]`)];
 };
 
@@ -60,7 +61,7 @@ const parseFluidName = (value: unknown, path: string): FluidKind => {
     if (resolved === 'minecraft:empty' || resolved === 'minecraft:water' || resolved === 'minecraft:lava') {
         return FLUID_NAMES[resolved];
     }
-    return fail(path, `unknown fluid ${JSON.stringify(name)}`);
+    return fail(new FeaturesErrors.UnknownFluid({ path, name: JSON.stringify(name) }));
 };
 
 const parseNameList = (source: unknown, path: string): readonly string[] => {
@@ -204,7 +205,7 @@ export const parseBlockPredicate = (source: unknown, path: string): BlockPredica
         }
 
         default:
-            return fail(path, `unknown block predicate type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownBlockPredicateType({ path, type: JSON.stringify(type) }));
     }
 };
 
@@ -220,5 +221,5 @@ export const parseDirection = (value: unknown, path: string): Direction => {
         // The membership test narrows the string to the Direction union.
         return value as Direction;
     }
-    return fail(path, `expected a direction, got ${JSON.stringify(value)}`);
+    return fail(new FeaturesErrors.ExpectedDirection({ path, source: JSON.stringify(value) }));
 };

@@ -1,6 +1,7 @@
 /** Coalesces structure-start requests before a shard worker builds their layouts. */
 import type { StructureStartCandidate, StructureStartPlanEntry } from './javaStructureStarts';
 import { freezeStructurePlanData } from './javaStructureWorld';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 const CACHE_LIMIT = 8192;
 
@@ -76,7 +77,9 @@ export class StructureStartPlanBroker {
                 for (const { key, candidate } of group) {
                     const plan = byKey.get(key);
                     if (plan === undefined) {
-                        throw new Error(`The structure-start owner omitted ${structureStartKeyOf(candidate)}.`);
+                        throw new PrismarineGenerationErrors.StructureStartOmitted({
+                            structureStartKeyOf: structureStartKeyOf(candidate)
+                        });
                     }
                 }
                 for (const { key } of group) {
@@ -105,7 +108,7 @@ export class StructureStartPlanBroker {
         return Promise.all(
             [...unique.keys()].map((key) => {
                 const pending = waiters.get(key);
-                if (pending === undefined) throw new Error(`The structure-start request lost ${key}.`);
+                if (pending === undefined) throw new PrismarineGenerationErrors.StructureStartRequestLost({ key });
                 return pending.promise;
             })
         );

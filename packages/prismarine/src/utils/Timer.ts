@@ -1,3 +1,5 @@
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
+
 /**
  * Timer/Performance measurement utility.
  */
@@ -41,7 +43,7 @@ export default class Timer {
      * @returns The total duration in ms as a `float`
      */
     public getResult(): number {
-        if (!this.endTime) throw new Error(`You need to stop the timer before getting the result.`);
+        if (!this.endTime) throw new PrismarineServerErrors.TimerStillRunning();
 
         return Number.parseFloat(((this.endTime[0] * 1e9 + this.endTime[1]) / 1_000_000).toFixed(3));
     }

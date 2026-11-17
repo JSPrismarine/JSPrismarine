@@ -32,6 +32,8 @@ import type { HostCommand, HostEvent } from './hostProtocol';
 import { encodeShared } from './hostProtocol';
 import { encodeReusable, REUSABLE_CAPACITY, ReusableCache } from './reusableInput';
 import { GENERATION_HOST_ROLE } from './hostRole';
+import { asError } from '@jsprismarine/errors/common';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /**
  * Defined by an executable build whose entry hands {@link GENERATION_HOST_ROLE} to
@@ -302,7 +304,7 @@ export class HostedGenerationPool implements GenerationTransport {
                 }
             } catch (error) {
                 this.giveUp(`the generation host could not be started: ${String(error)}`);
-                reject(error instanceof Error ? error : new Error(String(error)));
+                reject(asError(error));
                 return;
             }
 
@@ -331,7 +333,7 @@ export class HostedGenerationPool implements GenerationTransport {
                 if (!settled) {
                     settled = true;
                     this.giveUp(`the generation host exited during startup (code ${code}, signal ${signal})`);
-                    reject(new Error('The generation host exited during startup'));
+                    reject(new ChunkgenErrors.HostExitedDuringStartup());
                     return;
                 }
                 this.restartAfterExit(`code ${code}, signal ${signal}`);
@@ -411,7 +413,7 @@ export class HostedGenerationPool implements GenerationTransport {
                 ? new GenerationCanceledError(entry.task.chunkX, entry.task.chunkZ)
                 : event.error.name === 'GenerationPoolClosedError'
                   ? new GenerationPoolClosedError(entry.task.chunkX, entry.task.chunkZ)
-                  : new Error(event.error.message);
+                  : new ChunkgenErrors.WorkerFailed({ message: event.error.message });
         error.name = event.error.name;
         if (event.error.stack !== undefined) error.stack = event.error.stack;
         entry.reject(error);

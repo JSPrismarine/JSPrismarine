@@ -21,6 +21,8 @@
  * `docs/research/commands-functions-and-datapack-execution.md` section 6.
  */
 
+import { CommandsErrors } from '@jsprismarine/errors/commands';
+
 /** Which edition's grammar a selector string is written in. */
 export type SelectorDialect = 'java' | 'bedrock';
 
@@ -154,18 +156,6 @@ export interface SelectorParseResult {
     readonly notes: readonly SelectorNote[];
 }
 
-/** Thrown when a selector string does not parse in the requested dialect. */
-export class SelectorSyntaxError extends Error {
-    /** The zero-based offset in the input where parsing stopped. */
-    public readonly position: number;
-
-    public constructor(message: string, position: number) {
-        super(`${message} at position ${position}`);
-        this.name = 'SelectorSyntaxError';
-        this.position = position;
-    }
-}
-
 /** The six base selectors Java's `EntitySelectorParser` declares. */
 export const JAVA_BASE_SELECTORS: readonly SelectorBase[] = ['@a', '@e', '@n', '@p', '@r', '@s'];
 
@@ -292,7 +282,7 @@ class SelectorReader {
     public expect(character: string): void {
         this.skipWhitespace();
         if (this.peek() !== character) {
-            throw new SelectorSyntaxError(`Expected '${character}'`, this.cursor);
+            throw new CommandsErrors.ExpectedAtPosition({ character, position: this.cursor });
         }
         this.cursor += 1;
     }
@@ -312,11 +302,11 @@ class SelectorReader {
         this.cursor += 1;
         let value = '';
         while (true) {
-            if (this.atEnd()) throw new SelectorSyntaxError('Unterminated quoted string', this.cursor);
+            if (this.atEnd()) throw new CommandsErrors.UnterminatedQuotedStringAtPosition({ position: this.cursor });
             const character = this.input[this.cursor]!;
             this.cursor += 1;
             if (character === '\\') {
-                if (this.atEnd()) throw new SelectorSyntaxError('Unterminated escape', this.cursor);
+                if (this.atEnd()) throw new CommandsErrors.UnterminatedEscapeAtPosition({ position: this.cursor });
                 value += this.input[this.cursor];
                 this.cursor += 1;
                 continue;
@@ -344,21 +334,21 @@ class SelectorReader {
                 if (depth === 0) return this.input.slice(start, this.cursor);
             }
         }
-        throw new SelectorSyntaxError(`Unterminated '${open}'`, start);
+        throw new CommandsErrors.UnterminatedAtPosition({ open, position: start });
     }
 }
 
 const parseNumber = (text: string, position: number): number => {
     const value = Number(text);
     if (text.length === 0 || !Number.isFinite(value)) {
-        throw new SelectorSyntaxError(`'${text}' is not a number`, position);
+        throw new CommandsErrors.NotNumber({ text, position });
     }
     return value;
 };
 
 const parseInteger = (text: string, position: number): number => {
     const value = parseNumber(text, position);
-    if (!Number.isInteger(value)) throw new SelectorSyntaxError(`'${text}' is not an integer`, position);
+    if (!Number.isInteger(value)) throw new CommandsErrors.NotInteger({ text, position });
     return value;
 };
 
@@ -371,7 +361,7 @@ const parseRange = (text: string, position: number): SelectorRange => {
     const low = text.slice(0, separator);
     const high = text.slice(separator + 2);
     if (low.length === 0 && high.length === 0) {
-        throw new SelectorSyntaxError('A range needs at least one bound', position);
+        throw new CommandsErrors.RangeNeedsAtLeastOneBound({ position });
     }
     return {
         ...(low.length > 0 ? { min: parseNumber(low, position) } : {}),
@@ -399,7 +389,7 @@ const splitObject = (source: string, position: number): { key: string; value: st
         current = '';
         if (text.length === 0) return;
         const equals = text.indexOf('=');
-        if (equals < 0) throw new SelectorSyntaxError(`'${text}' is not a key=value pair`, position);
+        if (equals < 0) throw new CommandsErrors.NotKeyValuePair({ text, position });
         const value = text.slice(equals + 1).trim();
         const negated = value.startsWith('!');
         entries.push({
@@ -512,7 +502,7 @@ const applyArgument = (
 
     if (!known.includes(key)) {
         if (!other.includes(key)) {
-            throw new SelectorSyntaxError(`Unknown selector argument '${key}'`, position);
+            throw new CommandsErrors.UnknownSelectorArgumentAtPosition({ key, position });
         }
         notes.push({
             argument: key,
@@ -558,7 +548,7 @@ const applyArgument = (
         case 'distance': {
             const range = parseRange(value, position);
             if ((range.min ?? 0) < 0 || (range.max ?? 0) < 0) {
-                throw new SelectorSyntaxError('distance cannot be negative', position);
+                throw new CommandsErrors.DistanceCannotBeNegativeAtPosition({ position });
             }
             model.distance = range;
             return;
@@ -572,7 +562,7 @@ const applyArgument = (
         case 'level': {
             const range = parseRange(value, position);
             if ((range.min ?? 0) < 0 || (range.max ?? 0) < 0) {
-                throw new SelectorSyntaxError('level cannot be negative', position);
+                throw new CommandsErrors.LevelCannotBeNegativeAtPosition({ position });
             }
             model.level = range;
             return;
@@ -603,20 +593,20 @@ const applyArgument = (
             return;
         case 'limit': {
             const limit = parseInteger(value, position);
-            if (limit < 1) throw new SelectorSyntaxError('limit must be at least 1', position);
+            if (limit < 1) throw new CommandsErrors.SelectorLimitBelowOne({ position });
             model.limit = limit;
             return;
         }
         case 'c': {
             // Bedrock folds Java's `limit` and `sort` into one signed count.
             const count = parseInteger(value, position);
-            if (count === 0) throw new SelectorSyntaxError('c cannot be 0', position);
+            if (count === 0) throw new CommandsErrors.SelectorCountIsZero({ position });
             model.limit = Math.abs(count);
             model.sort = count < 0 ? 'furthest' : 'nearest';
             return;
         }
         case 'sort':
-            if (!isSort(value)) throw new SelectorSyntaxError(`Unknown sort '${value}'`, position);
+            if (!isSort(value)) throw new CommandsErrors.UnknownSortAtPosition({ value, position });
             model.sort = value;
             return;
         case 'gamemode':
@@ -624,7 +614,7 @@ const applyArgument = (
             return;
         case 'm': {
             const gamemode = BEDROCK_GAMEMODE_ALIASES[value.toLowerCase()];
-            if (gamemode === undefined) throw new SelectorSyntaxError(`Unknown gamemode '${value}'`, position);
+            if (gamemode === undefined) throw new CommandsErrors.UnknownGamemodeAtPosition({ value, position });
             model.gamemode.push({ value: gamemode, negated });
             return;
         }
@@ -698,7 +688,7 @@ const applyArgument = (
             }
             return;
         default:
-            throw new SelectorSyntaxError(`Unknown selector argument '${key}'`, position);
+            throw new CommandsErrors.UnknownSelectorArgumentAtPosition({ key, position });
     }
 };
 
@@ -725,7 +715,7 @@ const splitList = (source: string, position: number): { text: string; negated: b
         current += character;
     }
     push();
-    if (elements.length === 0) throw new SelectorSyntaxError('Empty hasitem list', position);
+    if (elements.length === 0) throw new CommandsErrors.EmptyHasitemListAtPosition({ position });
     return elements;
 };
 
@@ -743,9 +733,9 @@ const parseItemTest = (source: string, negated: boolean, position: number): Sele
         else if (entry.key === 'quantity') quantity = parseRange(value, position);
         else if (entry.key === 'location') location = value;
         else if (entry.key === 'slot') slot = parseRange(value, position);
-        else throw new SelectorSyntaxError(`Unknown hasitem field '${entry.key}'`, position);
+        else throw new CommandsErrors.UnknownHasitemFieldAtPosition({ key: entry.key, position });
     }
-    if (item === undefined) throw new SelectorSyntaxError('hasitem needs an item', position);
+    if (item === undefined) throw new CommandsErrors.HasitemNeedsItemAtPosition({ position });
     return {
         item,
         negated,
@@ -785,7 +775,7 @@ export const parseSelector = (input: string, dialect: SelectorDialect): Selector
 
     if (reader.peek() !== '@') {
         const literal = reader.readValue();
-        if (literal.length === 0) throw new SelectorSyntaxError('Expected a selector', reader.cursor);
+        if (literal.length === 0) throw new CommandsErrors.ExpectedSelectorAtPosition({ position: reader.cursor });
         const model = emptyModel('@p');
         model.literal = literal;
         model.limit = 1;
@@ -800,12 +790,12 @@ export const parseSelector = (input: string, dialect: SelectorDialect): Selector
         .find((candidate) => input.startsWith(candidate, reader.cursor));
     if (matched === undefined) {
         if (input.startsWith('@initiator', reader.cursor)) {
-            throw new SelectorSyntaxError("'@initiator' is a Bedrock base selector", reader.cursor);
+            throw new CommandsErrors.BedrockOnlyBaseSelector({ position: reader.cursor });
         }
-        throw new SelectorSyntaxError(
-            `Unknown base selector '${input.slice(reader.cursor, reader.cursor + 2)}'`,
-            reader.cursor
-        );
+        throw new CommandsErrors.UnknownBaseSelectorAtPosition({
+            input: input.slice(reader.cursor, reader.cursor + 2),
+            position: reader.cursor
+        });
     }
     reader.cursor += matched.length;
 
@@ -823,7 +813,7 @@ export const parseSelector = (input: string, dialect: SelectorDialect): Selector
         reader.skipWhitespace();
         const keyAt = reader.cursor;
         const key = reader.readValue();
-        if (key.length === 0) throw new SelectorSyntaxError('Expected a selector argument name', keyAt);
+        if (key.length === 0) throw new CommandsErrors.ExpectedSelectorArgumentNameAtPosition({ position: keyAt });
         reader.expect('=');
         reader.skipWhitespace();
 

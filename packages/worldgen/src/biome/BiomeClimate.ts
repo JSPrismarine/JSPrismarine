@@ -2,6 +2,7 @@ import { f32 } from '../math';
 import { NoiseStackBuilder } from '../noise/NoiseStack';
 import { SimplexNoise } from '../noise/SimplexNoise';
 import { LegacyRandomSource } from '../random/LegacyRandomSource';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** How a biome bends its base temperature with position. */
 export type TemperatureModifier = 'none' | 'frozen';
@@ -25,19 +26,17 @@ export type BiomeClimateLookup = (biome: string) => BiomeClimate;
  */
 export const parseBiomeClimate = (source: unknown, path = '<biome>'): BiomeClimate => {
     if (typeof source !== 'object' || source === null || Array.isArray(source)) {
-        throw new TypeError(`${path}: expected an object, got ${JSON.stringify(source)}`);
+        throw new WorldgenErrors.ExpectedObject({ path, source: JSON.stringify(source) });
     }
     // A parsed JSON document is `unknown`; both fields are checked here.
     const raw = source as Record<string, unknown>;
     const temperature = raw['temperature'];
     if (typeof temperature !== 'number' || !Number.isFinite(temperature)) {
-        throw new TypeError(`${path}.temperature: expected a finite number, got ${JSON.stringify(temperature)}`);
+        throw new WorldgenErrors.InvalidTemperature({ path, temperature: JSON.stringify(temperature) });
     }
     const modifier = raw['temperature_modifier'] ?? 'none';
     if (modifier !== 'none' && modifier !== 'frozen') {
-        throw new TypeError(
-            `${path}.temperature_modifier: expected "none" or "frozen", got ${JSON.stringify(modifier)}`
-        );
+        throw new WorldgenErrors.InvalidTemperatureModifier({ path, modifier: JSON.stringify(modifier) });
     }
     return { baseTemperature: f32(temperature), temperatureModifier: modifier };
 };

@@ -36,6 +36,7 @@ import { readZip } from '@jsprismarine/packs';
 import { decodeDataBundle } from './dataBundle';
 import { EMBEDDED_DATA_BUNDLE, EMBEDDED_DATA_MANIFEST, EMBEDDED_NATIVE_LIBRARY, hasEmbeddedData } from './embeddedData';
 import { userCacheDir } from './userCache';
+import { ServerErrors } from '@jsprismarine/errors/server';
 
 /** The SEA asset keys `scripts/package-sea.mts` writes. */
 export const SEA_ASSETS = {
@@ -152,7 +153,7 @@ export const downloadVerified = async (
     // The CDN resets connections from non-browser user agents.
     const response = await fetch(pin.url, { headers: { 'user-agent': 'Mozilla/5.0 (JSPrismarine)' } });
     if (!response.ok || response.body === null)
-        throw new Error(`the download failed with HTTP ${response.status} ${response.statusText}`);
+        throw new ServerErrors.DownloadFailed({ status: response.status, statusText: response.statusText });
 
     const total = Number(response.headers.get('content-length')) || pin.sizeInBytes;
     const chunks: Uint8Array[] = [];
@@ -173,8 +174,7 @@ export const downloadVerified = async (
     }
 
     const digest = hash.digest('hex');
-    if (digest !== pin.sha256)
-        throw new Error(`the download's sha256 ${digest} does not match the pinned ${pin.sha256}`);
+    if (digest !== pin.sha256) throw new ServerErrors.DownloadDigestMismatch({ digest, sha256: pin.sha256 });
 
     return readZip(Buffer.concat(chunks));
 };
@@ -218,10 +218,8 @@ const downloadBehaviorPacks = async (
         entries = await downloadVerified(pin, log);
     } catch (error) {
         const cause = error instanceof Error ? error.message : String(error);
-        throw new Error(
-            `Could not fetch the vanilla Bedrock behavior pack from ${pin.url}: ${cause}. ` +
-                `The server needs it to define blocks and entities. Check the network and retry, or set ` +
-                `${BDS_OVERRIDE} to a local Bedrock Dedicated Server behavior_packs folder.`,
+        throw new ServerErrors.BehaviorPackDownloadFailed(
+            { url: pin.url, value: cause, bdsOverride: BDS_OVERRIDE },
             { cause: error }
         );
     }
@@ -237,7 +235,7 @@ const downloadBehaviorPacks = async (
 
     if (written === 0) {
         rmSync(staging, { recursive: true, force: true });
-        throw new Error(`the Bedrock Dedicated Server zip at ${pin.url} holds no behavior_packs/`);
+        throw new ServerErrors.BdsArchiveHasNoBehaviorPacks({ url: pin.url });
     }
     writeFileSync(path.join(staging, PIN_MARKER), `${JSON.stringify({ sha256: pin.sha256 }, null, 4)}\n`);
 

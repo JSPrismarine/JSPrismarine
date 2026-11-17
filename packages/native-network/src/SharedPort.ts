@@ -1,5 +1,6 @@
 import { cString } from './NativeNetwork';
 import type { NativeNetwork } from './NativeNetwork';
+import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 /** The bytes the native side puts before each datagram in a ring: family, reserved, port, address. */
 export const DATAGRAM_HEADER_BYTES = 20;
@@ -67,7 +68,7 @@ export class SharedPort {
     public static open(network: NativeNetwork, port: number, bindAddress = ''): SharedPort {
         const handle = network.symbols.jsp_mux_open(cString(bindAddress), port);
         if (handle < 0) {
-            throw new Error(`UDP port ${port} cannot be bound for RakNet and NetherNet together (error ${handle})`);
+            throw new NativeNetworkErrors.SharedUdpPortNotBound({ port, handle });
         }
         return new SharedPort(network, handle, port);
     }
@@ -95,7 +96,7 @@ export class SharedPort {
             rings.outbound.byteLength,
             wakePort
         );
-        if (result < 0) throw new Error(`Attaching RakNet's IPv${family} rings failed (error ${result})`);
+        if (result < 0) throw new NativeNetworkErrors.RaknetRingsNotAttached({ family, result });
         // Held here as well, so the memory outlives every native write to it.
         this.attached.set(family, rings);
         return result;

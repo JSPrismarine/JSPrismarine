@@ -1,4 +1,5 @@
 import { isRecord } from './isRecord';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /**
  * What a NetherNet client is told about a server before it joins: the LAN advertisement on UDP
@@ -38,15 +39,15 @@ export const joinStatusJson = (status: NetherNetStatus): string =>
  */
 export const decodeJoinStatus = (body: string): NetherNetStatus => {
     const parsed: unknown = JSON.parse(body);
-    if (!isRecord(parsed)) throw new Error('The join status is not an object');
+    if (!isRecord(parsed)) throw new NethernetErrors.JoinStatusIsNotObject();
     const text = (key: string): string => {
         const value = parsed[key];
-        if (typeof value !== 'string') throw new Error(`The join status has no string ${key}`);
+        if (typeof value !== 'string') throw new NethernetErrors.JoinStatusHasNoString({ key });
         return value;
     };
     const number = (key: string): number => {
         const value = parsed[key];
-        if (typeof value !== 'number') throw new Error(`The join status has no number ${key}`);
+        if (typeof value !== 'number') throw new NethernetErrors.JoinStatusHasNoNumber({ key });
         return value;
     };
     return {

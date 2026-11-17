@@ -11,6 +11,7 @@ import { advertisedCodec, codecForProtocol, latestCodec, registeredCodecs } from
 import type ClientConnection from '../ClientConnection';
 import type { ConnectionContext, ConnectionHandler } from './ConnectionContext';
 import type { HandlerLog } from './HandlerContext';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 export default class RequestNetworkSettingsHandler implements ConnectionHandler<RequestNetworkSettingsPacket> {
     public static PacketName = 'RequestNetworkSettingsPacket';
@@ -22,7 +23,7 @@ export default class RequestNetworkSettingsHandler implements ConnectionHandler<
         { connection, log, config }: ConnectionContext
     ): Promise<void> {
         const request = packet.getPacketData();
-        if (request === null) throw new Error('RequestNetworkSettingsPacket has no payload');
+        if (request === null) throw new PrismarineNetworkErrors.NetworkSettingsRequestNotDecoded();
 
         // The one negotiation point: the client's first packet names its protocol version,
         // and either the registry has a codec for it or the connection ends here.

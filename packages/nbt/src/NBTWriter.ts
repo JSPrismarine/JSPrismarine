@@ -9,6 +9,7 @@ import NBTTagCompound from './NBTTagCompound';
 import NumberVal from './types/NumberVal';
 import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';
+import { NbtErrors } from '@jsprismarine/errors/nbt';
 
 export default class NBTWriter {
     private readonly order: ByteOrder;
@@ -178,7 +179,7 @@ export default class NBTWriter {
                         this.writeIntegerArrayValue(rawValue);
                         break;
                     default:
-                        throw new Error('Invalid NBTTagType');
+                        throw new NbtErrors.UnknownListType();
                 }
             }
         } else {
@@ -231,7 +232,7 @@ export default class NBTWriter {
                     this.writeIntegerArrayValue(value);
                     break;
                 default:
-                    throw new Error('Invalid NBTTagType');
+                    throw new NbtErrors.UnknownListType();
             }
         }
 
@@ -273,6 +274,6 @@ export default class NBTWriter {
             return NBTDefinitions.TAG_INT_ARRAY;
         }
 
-        throw new TypeError(`Invalid NBT Data: Cannot deduce NBT type of class ${value.constructor.name} (${value})`);
+        throw new NbtErrors.UnknownValueType({ name: value.constructor.name, value });
     }
 }

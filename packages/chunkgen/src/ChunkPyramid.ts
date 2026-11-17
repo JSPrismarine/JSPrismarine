@@ -2,6 +2,7 @@ import type { ChunkStatus } from './ChunkStatus';
 import { CHUNK_STATUSES } from './ChunkStatus';
 import type { ChunkStep } from './ChunkStep';
 import { ChunkStepBuilder } from './ChunkStep';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /** Declares one rung: the requirements the jar's builder adds, and the block write radius. */
 type StepDeclaration = (builder: ChunkStepBuilder) => ChunkStepBuilder;
@@ -60,7 +61,7 @@ export class ChunkPyramid {
     public stepTo(status: ChunkStatus): ChunkStep {
         const step = this.steps.get(status);
         // Unreachable while `status` is a `ChunkStatus`: the constructor builds all ten.
-        if (step === undefined) throw new Error(`The pyramid has no step to ${status}.`);
+        if (step === undefined) throw new ChunkgenErrors.PyramidHasNoStep({ status });
         return step;
     }
 

@@ -1,3 +1,5 @@
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
+
 /**
  * A y level expressed relative to the dimension rather than as an absolute number.
  *
@@ -51,7 +53,7 @@ export const resolveAnchorY = (anchor: VerticalAnchor, context: WorldGenerationC
 
 const integer = (value: unknown, path: string): number => {
     if (typeof value !== 'number' || !Number.isInteger(value)) {
-        throw new TypeError(`${path}: expected an integer, got ${JSON.stringify(value)}`);
+        throw new WorldgenErrors.ExpectedInteger({ path, value: JSON.stringify(value) });
     }
     return value;
 };
@@ -63,7 +65,7 @@ const integer = (value: unknown, path: string): number => {
  */
 export const parseVerticalAnchor = (source: unknown, path = '<vertical_anchor>'): VerticalAnchor => {
     if (typeof source !== 'object' || source === null || Array.isArray(source)) {
-        throw new TypeError(`${path}: expected an object, got ${JSON.stringify(source)}`);
+        throw new WorldgenErrors.ExpectedObject({ path, source: JSON.stringify(source) });
     }
     // A parsed JSON document is `unknown`; each candidate key is checked below.
     const raw = source as Record<string, unknown>;
@@ -78,8 +80,5 @@ export const parseVerticalAnchor = (source: unknown, path = '<vertical_anchor>')
             offset: integer(raw['relative_to_sea_level'], `${path}.relative_to_sea_level`)
         };
     }
-    throw new TypeError(
-        `${path}: expected one of absolute, above_bottom, below_top or relative_to_sea_level, got ` +
-            JSON.stringify(source)
-    );
+    throw new WorldgenErrors.ExpectedVerticalAnchor({ path, source: JSON.stringify(source) });
 };

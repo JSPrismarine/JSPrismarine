@@ -1,4 +1,4 @@
-import { ContentError } from './errors';
+import { ContentErrors } from '@jsprismarine/errors/content';
 
 /**
  * The typed arrays a flattened column can use, with whether the kind holds
@@ -74,11 +74,6 @@ export type FlatTable<C extends Columns<never>> = {
     readonly [K in keyof C]: ColumnArray<C[K]['kind']>;
 };
 
-/** Error thrown when a table cannot be flattened. */
-export class FlattenError extends ContentError {
-    public override name = 'FlattenError';
-}
-
 /** The inclusive value range a column kind holds. */
 const rangeOf = (kind: ColumnKind): readonly [number, number] => {
     const { array, integer, signed } = COLUMN_KINDS[kind];
@@ -90,13 +85,13 @@ const rangeOf = (kind: ColumnKind): readonly [number, number] => {
 const check = (kind: ColumnKind, column: string, id: number, value: number): void => {
     const [min, max] = rangeOf(kind);
     if (!Number.isFinite(value)) {
-        throw new FlattenError(`column ${column} got ${value} at id ${id}, which a ${kind} array cannot hold`);
+        throw new ContentErrors.ColumnValueUnstorable({ column, value, id, kind });
     }
     if (COLUMN_KINDS[kind].integer && !Number.isInteger(value)) {
-        throw new FlattenError(`column ${column} got ${value} at id ${id}, which a ${kind} array would truncate`);
+        throw new ContentErrors.ColumnValueTruncated({ column, value, id, kind });
     }
     if (value < min || value > max) {
-        throw new FlattenError(`column ${column} got ${value} at id ${id}, outside the ${kind} range ${min} to ${max}`);
+        throw new ContentErrors.ColumnValueOutOfRange({ column, value, id, kind, min, max });
     }
 };
 
@@ -127,9 +122,9 @@ export const flatten = <T, C extends Columns<T>>(sources: Iterable<T>, spec: Fla
     for (const source of sources) {
         const id = spec.id(source);
         if (!Number.isInteger(id) || id < 0 || id >= spec.length) {
-            throw new FlattenError(`a source claims id ${id}, outside the 0 to ${spec.length - 1} range`);
+            throw new ContentErrors.SourceIdOutOfRange({ id, value: spec.length - 1 });
         }
-        if (placed.has(id)) throw new FlattenError(`two sources claim id ${id}`);
+        if (placed.has(id)) throw new ContentErrors.DuplicateSourceId({ id });
         placed.add(id);
 
         for (const name of names) {
@@ -174,7 +169,7 @@ export const flatten = <T, C extends Columns<T>>(sources: Iterable<T>, spec: Fla
     if (missing.length > 0) {
         const shown = missing.slice(0, 10).join(', ');
         const rest = missing.length > 10 ? `, and ${missing.length - 10} more` : '';
-        throw new FlattenError(`no value and no reviewed exception for ${shown}${rest}`);
+        throw new ContentErrors.MissingColumnValues({ shown, rest });
     }
 
     const unused = exceptions.filter((exception) => !used.has(exception));
@@ -182,7 +177,7 @@ export const flatten = <T, C extends Columns<T>>(sources: Iterable<T>, spec: Fla
         const shown = unused
             .map((exception) => `${exception.column ?? '*'}[${exception.id}] (${exception.reason})`)
             .join(', ');
-        throw new FlattenError(`reviewed exceptions matched nothing and should be removed: ${shown}`);
+        throw new ContentErrors.StaleReviewedExceptions({ shown });
     }
 
     // Each array was built from its own column's kind, which the mapped return

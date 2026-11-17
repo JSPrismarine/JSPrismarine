@@ -19,6 +19,7 @@ import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { UnlockedRecipes, changeRecipes } from './recipes';
 import { carryOut, entityRefOf, playerSessionOf, resolveEntity, sessionsOf } from './support';
+import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
 /**
  * How the client renders each of the four message kinds a command sends.
@@ -152,7 +153,7 @@ export const serverSideCommandHost = (
             // A failed shutdown fails the command, so the sender is told and the process entry
             // exits with a code that says so.
             const shutdown = server.shutdown({ stayAlive: true }).then((stopped) => {
-                if (!stopped) throw new Error('The server did not shut down cleanly');
+                if (!stopped) throw new PrismarineCommandErrors.UncleanShutdown();
             });
             onStopRequested(shutdown);
             return carryOut(shutdown, undefined);

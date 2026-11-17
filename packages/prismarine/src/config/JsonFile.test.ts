@@ -4,8 +4,9 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import pkg from '../../package.json' with { type: 'json' };
-import { ConfigSyntaxError, parseConfigDocument } from './ConfigDocument';
+import { parseConfigDocument } from './ConfigDocument';
 import { readJsonFile, removeListEntries, toJsonFileContents, upsertListEntry, writeJsonFile } from './JsonFile';
+import { ConfigSyntaxError } from '@jsprismarine/errors/prismarine/server';
 
 const hasName = (name: string) => (entry: unknown) =>
     typeof entry === 'object' && entry !== null && 'name' in entry && entry.name === name;

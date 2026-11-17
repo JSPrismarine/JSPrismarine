@@ -1,4 +1,5 @@
 import { inflateRawSync } from 'node:zlib';
+import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /**
  * A minimal zip reader for `.mcpack` and `.mcaddon` containers. It reads the
@@ -57,11 +58,6 @@ interface ZipEntry {
     readonly localOffset: number;
 }
 
-/** Error thrown when bytes are not a readable zip archive. */
-export class ZipError extends Error {
-    public override name = 'ZipError';
-}
-
 /** Whether the bytes start with a zip local file header. */
 export const isZip = (bytes: Uint8Array): boolean =>
     bytes.length >= 4 &&
@@ -94,8 +90,7 @@ export const readZip = (bytes: Uint8Array, limits: ZipLimits = {}): Map<string, 
 
     let cursor = centralOffset;
     for (let i = 0; i < count; i++) {
-        if (view.getUint32(cursor, true) !== CENTRAL_SIGNATURE)
-            throw new ZipError('malformed zip: bad central directory entry signature');
+        if (view.getUint32(cursor, true) !== CENTRAL_SIGNATURE) throw new PacksErrors.ZipBadCentralDirectoryEntry();
 
         const method = view.getUint16(cursor + 10, true);
         const compressedSize = view.getUint32(cursor + 20, true);
@@ -116,10 +111,17 @@ export const readZip = (bytes: Uint8Array, limits: ZipLimits = {}): Map<string, 
     const files = new Map<string, Uint8Array>();
     for (const entry of entries) {
         if (entry.size > maxEntryBytes) {
-            throw new ZipError(`${entry.name} expands to ${entry.size} bytes, past the ${maxEntryBytes} allowed`);
+            throw new PacksErrors.ZipEntryTooLarge({
+                name: entry.name,
+                entryCount: entry.size,
+                maxEntryBytes
+            });
         }
         if (entry.size > budget.remaining) {
-            throw new ZipError(`${entry.name} expands past the ${budget.remaining} bytes left of the archive budget`);
+            throw new PacksErrors.ZipArchiveTooLarge({
+                name: entry.name,
+                remaining: budget.remaining
+            });
         }
         budget.remaining -= entry.size;
         files.set(entry.name, readEntryData(bytes, view, entry));
@@ -131,7 +133,7 @@ export const readZip = (bytes: Uint8Array, limits: ZipLimits = {}): Map<string, 
 /** Where an entry's data starts, read from its local header. */
 const dataStartOf = (view: DataView, { localOffset, name }: ZipEntry): number => {
     if (localOffset + 30 > view.byteLength || view.getUint32(localOffset, true) !== LOCAL_SIGNATURE)
-        throw new ZipError(`malformed zip: bad local header for ${name}`);
+        throw new PacksErrors.ZipBadLocalHeader({ name });
 
     return localOffset + 30 + view.getUint16(localOffset + 26, true) + view.getUint16(localOffset + 28, true);
 };
@@ -147,8 +149,8 @@ const rejectOverlaps = (bytes: Uint8Array, view: DataView, entries: readonly Zip
 
     let previousEnd = 0;
     for (const { entry, start, end } of spans) {
-        if (end > bytes.byteLength) throw new ZipError(`malformed zip: ${entry.name} runs past the end of the archive`);
-        if (start < previousEnd) throw new ZipError(`malformed zip: ${entry.name} overlaps another entry`);
+        if (end > bytes.byteLength) throw new PacksErrors.ZipEntryTruncated({ name: entry.name });
+        if (start < previousEnd) throw new PacksErrors.ZipEntriesOverlap({ name: entry.name });
         previousEnd = end;
     }
 };
@@ -162,7 +164,7 @@ const findEndOfCentralDirectory = (view: DataView): number => {
     for (let i = view.byteLength - EOCD_MIN_SIZE; i >= start; i--) {
         if (view.getUint32(i, true) === EOCD_SIGNATURE) return i;
     }
-    throw new ZipError('not a zip: no end-of-central-directory record');
+    throw new PacksErrors.NotZip();
 };
 
 /**
@@ -175,20 +177,23 @@ const readEntryData = (bytes: Uint8Array, view: DataView, entry: ZipEntry): Uint
     const data = bytes.subarray(dataStart, dataStart + compressedSize);
 
     if (method === 0) {
-        if (compressedSize !== size) throw new ZipError(`malformed zip: stored ${name} has two sizes`);
+        if (compressedSize !== size) throw new PacksErrors.ZipStoredEntrySizesDiffer({ name });
         return data;
     }
-    if (method !== 8) throw new ZipError(`unsupported zip compression method ${method} for ${name}`);
+    if (method !== 8) throw new PacksErrors.UnsupportedZipCompressionMethod({ method, name });
 
     let inflated: Buffer;
     try {
         // One byte past the declared size, so an entry that would grow beyond it stops there.
         inflated = inflateRawSync(data, { maxOutputLength: size + 1 });
     } catch (error: unknown) {
-        throw new ZipError(`could not inflate ${name}: ${error instanceof Error ? error.message : String(error)}`);
+        throw new PacksErrors.ZipEntryNotInflatable({
+            name,
+            value: error instanceof Error ? error.message : String(error)
+        });
     }
     if (inflated.byteLength !== size) {
-        throw new ZipError(`malformed zip: ${name} inflates to more or less than its declared ${size} bytes`);
+        throw new PacksErrors.ZipEntrySizeMismatch({ name, size });
     }
     return new Uint8Array(inflated.buffer, inflated.byteOffset, inflated.byteLength);
 };

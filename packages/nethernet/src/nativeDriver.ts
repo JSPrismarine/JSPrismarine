@@ -3,6 +3,7 @@ import type { DataChannel } from '@jsprismarine/native-network';
 
 import { candidateAddress } from './WebRtcDriver';
 import type { DriverChannel, DriverPeer, PeerConfig, PeerState, WebRtcDriver } from './WebRtcDriver';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /** A {@link DataChannel} of the native library as a {@link DriverChannel}. */
 const channelOf = (channel: DataChannel): DriverChannel => ({
@@ -52,13 +53,13 @@ const peerOf = (peer: PeerConnection, explain: Explain): DriverPeer => {
         const settle = (): void => {
             if (peer.iceGatheringState !== 'complete') return;
             const sdp = peer.currentLocalSdp();
-            if (sdp === undefined) reject(new Error('The peer gathered its candidates but has no description'));
+            if (sdp === undefined) reject(new NethernetErrors.PeerHasNoDescription());
             else resolve(sdp);
         };
         peer.on('gatheringstatechange', settle);
         peer.on('connectionstatechange', (state: PeerState) => {
             if (state === 'closed' || state === 'failed')
-                reject(new Error(`The peer ${state} before it had a description`));
+                reject(new NethernetErrors.PeerEndedBeforeDescription({ state }));
         });
     });
     // A peer closed before anyone asked for its description must not leave a rejection unhandled.
@@ -122,7 +123,10 @@ export const nativeDriver = (network: NativeNetwork, options: NativeDriverOption
             claimed = undefined;
         }
         if (lines.length === 0 || !(error instanceof Error)) return error;
-        return new Error(`${error.message}: ${lines.join('; ')}`, { cause: error });
+        return new NethernetErrors.NativeCallFailed(
+            { message: error.message, log: lines.join('; ') },
+            { cause: error }
+        );
     };
     const explain: Explain = (call) => {
         try {
@@ -149,11 +153,6 @@ export const nativeDriver = (network: NativeNetwork, options: NativeDriverOption
     };
 };
 
-/** The native library could not be loaded, so NetherNet cannot run here. */
-export class NetherNetUnavailableError extends Error {
-    public override readonly name = 'NetherNetUnavailableError';
-}
-
 /**
  * Loads the native library and returns its driver.
  * @param options - Where the library's log lines go.
@@ -164,10 +163,12 @@ export const loadNativeDriver = async (options: NativeDriverOptions = {}): Promi
     try {
         return nativeDriver(await NativeNetwork.load(), options);
     } catch (error: unknown) {
-        throw new NetherNetUnavailableError(
-            `NetherNet's native library cannot load on ${process.platform}-${process.arch}: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
+        throw new NethernetErrors.NativeLibraryCannotLoad(
+            {
+                platform: process.platform,
+                arch: process.arch,
+                value: error instanceof Error ? error.message : String(error)
+            },
             { cause: error }
         );
     }

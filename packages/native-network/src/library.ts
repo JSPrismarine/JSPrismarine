@@ -8,6 +8,7 @@ import { bundledManifest, sha256 } from './manifest';
 import type { NativeManifest } from './manifest';
 import { hasNativeSources } from './nativeHash';
 import { platformKey } from './platform';
+import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 /** The environment variable that names a library file to load in place of the installed build. */
 export const LIBRARY_ENV = 'JSP_NATIVE_NETWORK_LIBRARY';
@@ -17,11 +18,6 @@ export const PACKAGE_NAME = '@jsprismarine/native-network';
 
 /** The package's root: one level above this file in both `src/` and `dist/`. */
 export const packageRoot = (): string => resolve(dirname(fileURLToPath(import.meta.url)), '..');
-
-/** Why the library cannot be loaded, with the platform and what to do about it in the message. */
-export class NativeLibraryError extends Error {
-    public override readonly name = 'NativeLibraryError';
-}
 
 /** How {@link locateLibrary} looks; tests replace each part. */
 export interface LocateOptions {
@@ -83,11 +79,15 @@ export const verifyLibrary = (path: string, platform: string, manifest: NativeMa
     const digest = sha256(readFileSync(path));
     const published = manifest.platforms[platform]?.shared.sha256;
     if (digest === published || digest === localBuildDigest(path)) return;
-    throw new NativeLibraryError(
-        published === undefined
-            ? `${path} has SHA-256 ${digest}, and ${PACKAGE_NAME} publishes no build for ${platform} to check it against`
-            : `${path} has SHA-256 ${digest}, not the ${published} ${PACKAGE_NAME} publishes for ${platform}`
-    );
+    throw published === undefined
+        ? new NativeNetworkErrors.NoPublishedBuildToCheck({ path, digest, packageName: PACKAGE_NAME, platform })
+        : new NativeNetworkErrors.DigestDoesNotMatchPublishedBuild({
+              path,
+              digest,
+              published,
+              packageName: PACKAGE_NAME,
+              platform
+          });
 };
 
 /**
@@ -107,7 +107,7 @@ export const locateLibrary = (options: LocateOptions = {}): string => {
     const override = env[LIBRARY_ENV];
     if (override !== undefined && override !== '') {
         if (!existsSync(override)) {
-            throw new NativeLibraryError(`${LIBRARY_ENV} names ${override}, which does not exist`);
+            throw new NativeNetworkErrors.LibraryOverrideMissing({ libraryEnv: LIBRARY_ENV, override });
         }
         verifyLibrary(resolve(override), platform, manifest);
         return resolve(override);
@@ -119,10 +119,10 @@ export const locateLibrary = (options: LocateOptions = {}): string => {
         return installed;
     }
     if (manifest.build !== '' && manifest.platforms[platform] === undefined) {
-        throw new NativeLibraryError(`${PACKAGE_NAME} publishes no build for ${platform}.`);
+        throw new NativeNetworkErrors.NoBuildForPlatform({ packageName: PACKAGE_NAME, platform });
     }
     const advice = hasNativeSources(packageDir)
         ? `In a checkout, \`pnpm --filter ${PACKAGE_NAME} run build:native\` builds it, or \`pnpm install\` downloads the published one when the native sources match it.`
         : approvalAdvice(platform);
-    throw new NativeLibraryError(`${PACKAGE_NAME} has no build for ${platform} at ${installed}. ${advice}`);
+    throw new NativeNetworkErrors.LibraryNotInstalled({ packageName: PACKAGE_NAME, platform, installed, advice });
 };

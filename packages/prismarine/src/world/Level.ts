@@ -50,6 +50,7 @@ import { byRuntimeId } from './runtimeIdOrder';
 import type { RaidRecord } from './raid/RaidManager';
 import type { DragonFightState, LegacyWorldEntity, SavedRaid, WorldPersistenceData } from './WorldPersistence';
 import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from './WorldPersistence';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** What older versions wrote beside the save before the provider kept the level's state. */
 const LEGACY_LEVEL_DATA_FILE_NAME = 'level.json';
@@ -250,9 +251,10 @@ export class Level {
         this.onWorldBuilt = options.onWorldBuilt;
 
         if (!this.stems.has(OVERWORLD_STEM_ID)) {
-            throw new Error(
-                `Level ${this.name} has no ${OVERWORLD_STEM_ID} stem; Bedrock's spawn and clock live there`
-            );
+            throw new PrismarineWorldErrors.LevelHasNoOverworld({
+                name: this.name,
+                overworldStemId: OVERWORLD_STEM_ID
+            });
         }
         this.dimensionTypes = Level.resolveDimensionTypes(this.name, this.stems, options.dimensionTypes);
 
@@ -304,17 +306,18 @@ export class Level {
         for (const [id, stem] of stems) {
             const earlier = boundBy.get(stem.type);
             if (earlier !== undefined) {
-                throw new Error(
-                    `The ${earlier} and ${id} stems of level ${name} both bind the dimension type ${stem.type}; a type backs one dimension per level`
-                );
+                throw new PrismarineWorldErrors.DimensionsShareType({
+                    earlier,
+                    id,
+                    name,
+                    type: stem.type
+                });
             }
             boundBy.set(stem.type, id);
 
             const definition = definitions.get(stem.type);
             if (definition === undefined) {
-                throw new Error(
-                    `The ${id} stem of level ${name} names the dimension type ${stem.type}, which is not loaded`
-                );
+                throw new PrismarineWorldErrors.UnknownDimensionType({ id, name, type: stem.type });
             }
 
             const type = dimensionTypeOf(definition, stem.type, nextCustomId);
@@ -365,7 +368,8 @@ export class Level {
     public dimensionTypeOf(dimensionId: string): DimensionType {
         const stem = this.stemOf(dimensionId);
         const type = this.dimensionTypes.get(stem.type);
-        if (type === undefined) throw new Error(`The ${dimensionId} stem of level ${this.name} has no resolved type`);
+        if (type === undefined)
+            throw new PrismarineWorldErrors.UnresolvedDimensionType({ dimensionId, name: this.name });
         return type;
     }
 
@@ -393,8 +397,7 @@ export class Level {
         }
 
         const opened = this.opened;
-        if (opened === undefined)
-            throw new Error(`Level ${this.name} is not enabled, so it cannot build ${dimensionId}`);
+        if (opened === undefined) throw new PrismarineWorldErrors.LevelNotOpened({ name: this.name, dimensionId });
 
         const world = this.build(dimensionId);
         const entry: BuiltWorld = {
@@ -531,9 +534,11 @@ export class Level {
     private stemOf(dimensionId: string): LevelStem {
         const stem = this.stems.get(dimensionId);
         if (stem === undefined) {
-            throw new Error(
-                `Level ${this.name} has no ${dimensionId} dimension. It has: ${[...this.stems.keys()].join(', ')}`
-            );
+            throw new PrismarineWorldErrors.UnknownLevelDimension({
+                name: this.name,
+                dimensionId,
+                stems: [...this.stems.keys()].join(', ')
+            });
         }
         return stem;
     }
@@ -681,7 +686,9 @@ export class Level {
     public async captureReplayInitialState(): Promise<ReplayInitialStateManifest> {
         const capture = this.provider.captureReplaySnapshot;
         if (capture === undefined) {
-            throw new Error(`Provider '${this.provider.constructor.name}' cannot capture replay snapshots`);
+            throw new PrismarineWorldErrors.ProviderCannotCaptureReplay({
+                name: this.provider.constructor.name
+            });
         }
 
         // Replay checkpoints cannot accept the ordinary save path's swallowed write failures, the
@@ -762,7 +769,7 @@ export class Level {
             JSON.stringify(manifest.loadedWorldDigests) !== JSON.stringify(this.replayWorldDigests())
         ) {
             for (const [world, chunks] of before) world.restoreSettlingChunks(chunks);
-            throw new Error("Replay manifest does not match this level's current initial state");
+            throw new PrismarineWorldErrors.ReplayLevelMismatch();
         }
 
         this.server.restoreReplayRandomState(manifest.randomState);

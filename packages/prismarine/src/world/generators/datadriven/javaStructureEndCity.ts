@@ -26,6 +26,7 @@ import type { StructureBuildContext, StructureBuilder, StructureLayout } from '.
 import type { DataMarker } from './javaStructureTemplatePiece';
 import { registerTemplatePieceMarkerHandler, TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
 import type { StructureLevel, StructureWriter } from './javaStructureWorld';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** Where in its chunk a city starts, Java's `START_OFFSET_IN_CHUNK`. */
 const START_OFFSET_IN_CHUNK = 7;
@@ -471,7 +472,7 @@ const elytraFrame = (): NBTTagCompound => {
 
 registerTemplatePieceMarkerHandler('end-city', (marker, writer, _random, data) => {
     if (data !== 'none' && data !== 'clockwise_90' && data !== 'clockwise_180' && data !== 'counterclockwise_90') {
-        throw new TypeError('The end-city marker action needs a rotation.');
+        throw new PrismarineGenerationErrors.EndCityMarkerWithoutRotation();
     }
     fillMarker(marker, writer, data);
 });

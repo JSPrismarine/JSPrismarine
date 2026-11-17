@@ -3,6 +3,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type { SessionContext } from './HandlerContext';
 import type { ReadLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** The three anvils, from new to one hit from breaking. */
 const ANVILS: ReadonlySet<string> = new Set(['minecraft:anvil', 'minecraft:chipped_anvil', 'minecraft:damaged_anvil']);
@@ -23,7 +24,7 @@ export default class AnvilDamageHandler implements ReadLaneHandler<AnvilDamagePa
     /** Checks the position names an anvil in reach, then logs it. */
     public handle(packet: AnvilDamagePacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle an AnvilDamagePacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.AnvilDamageNotDecoded();
 
         const { blockPosition: protocolPosition } = data;
         const blockPosition = new BlockPosition(protocolPosition.x, protocolPosition.y, protocolPosition.z);

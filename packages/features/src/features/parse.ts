@@ -14,6 +14,7 @@ import type { FeatureParsers } from './parseContext';
 import { parseSimpleFeature } from './simple';
 import { parseStructuralFeature } from './structural';
 import { parseTreeFeature } from './tree';
+import { FeaturesErrors } from '@jsprismarine/errors/features';
 
 /**
  * Resolves `worldgen/feature` and `worldgen/placed_feature` identifiers.
@@ -62,10 +63,10 @@ export class FeatureLoader {
         const full = normalizeIdentifier(id, 'feature');
         const cached = this.features.get(full);
         if (cached !== undefined) return cached;
-        if (this.inProgress.has(full)) return fail(full, 'feature reference cycle');
+        if (this.inProgress.has(full)) return fail(new FeaturesErrors.FeatureReferenceCycle({ full }));
 
         const source = this.registry.feature(full);
-        if (source === undefined) return fail(full, 'no such configured feature');
+        if (source === undefined) return fail(new FeaturesErrors.NoSuchConfiguredFeature({ full }));
         this.inProgress.add(full);
         try {
             const parsed = this.readFeature(source, full);
@@ -83,7 +84,8 @@ export class FeatureLoader {
         if (cached !== undefined) return cached;
 
         const source = this.registry.blockStateProvider?.(full);
-        if (source === undefined) return fail(path, `no such block state provider ${JSON.stringify(full)}`);
+        if (source === undefined)
+            return fail(new FeaturesErrors.NoSuchBlockStateProvider({ path, full: JSON.stringify(full) }));
         const parsed = parseBlockStateProvider(source, full, (nested, nestedPath) => this.provider(nested, nestedPath));
         this.providers.set(full, parsed);
         return parsed;
@@ -96,7 +98,7 @@ export class FeatureLoader {
         if (cached !== undefined) return cached;
 
         const source = this.registry.placedFeature(full);
-        if (source === undefined) return fail(full, 'no such placed feature');
+        if (source === undefined) return fail(new FeaturesErrors.NoSuchPlacedFeature({ full }));
         const parsed = parsePlacedFeature(source, full, (value, path) => this.readFeature(value, path));
         this.placed.set(full, parsed);
         return parsed;
@@ -108,7 +110,7 @@ export class FeatureLoader {
         const raw = asObject(source, path);
         const type = typeNameOf(raw['type'], path);
         if (!(FEATURE_TYPES as readonly string[]).includes(type)) {
-            return fail(path, `unknown feature type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownFeatureType({ path, type: JSON.stringify(type) }));
         }
 
         const parsed =
@@ -121,7 +123,7 @@ export class FeatureLoader {
             // Every name in FEATURE_TYPES is handled by one of the five readers, so reaching
             // here means a type was registered without a reader rather than that the data is
             // wrong. Failing loudly keeps that from becoming a silently missing feature.
-            return fail(path, `feature type ${JSON.stringify(type)} is registered but has no reader`);
+            return fail(new FeaturesErrors.FeatureTypeHasNoReader({ path, type: JSON.stringify(type) }));
         }
         return parsed;
     }
@@ -145,12 +147,12 @@ const readDirection = (source: unknown, path: string): Direction => {
         // The membership test narrows the string to the Direction union.
         return source as Direction;
     }
-    return fail(path, `expected a direction, got ${JSON.stringify(source)}`);
+    return fail(new FeaturesErrors.ExpectedDirection({ path, source: JSON.stringify(source) }));
 };
 
 const readVerticalDirection = (source: unknown, path: string): VerticalDirection => {
     if (source === 'up' || source === 'down') return source;
-    return fail(path, `expected up or down, got ${JSON.stringify(source)}`);
+    return fail(new FeaturesErrors.ExpectedUpOrDown({ path, source: JSON.stringify(source) }));
 };
 
 /**

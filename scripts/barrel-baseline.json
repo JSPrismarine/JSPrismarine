@@ -31,7 +31,7 @@
     },
     "packages/blocks/src/index.ts": {
         "noBarrelFile": 1,
-        "noReExportAll": 15
+        "noReExportAll": 14
     },
     "packages/blocks/src/tables/blockGeometry.ts": {
         "noBarrelFile": 1
@@ -75,7 +75,7 @@
     },
     "packages/content/src/index.ts": {
         "noBarrelFile": 1,
-        "noReExportAll": 11
+        "noReExportAll": 10
     },
     "packages/enchantments/src/index.ts": {
         "noBarrelFile": 1,

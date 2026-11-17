@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 
-import { PlayerNotFoundError } from '@jsprismarine/errors';
 import Console from '../Console';
 import type Server from '../Server';
 import type { Service } from '../utils/Service';
@@ -12,6 +11,7 @@ import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from 
 import { withCwd } from '../utils/cwd';
 import { isStringList } from '../utils/isStringList';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const isOpEntry = (value: unknown): value is OpEntry =>
@@ -60,7 +60,7 @@ export type PermissionHolder = Pick<PlayerIdentity, 'uuid'>;
  */
 export function canExecute(executer?: PermissionSubject) {
     const execute = (permission?: string) => {
-        if (!executer) throw new Error(`Executer can't be undefined or null`);
+        if (!executer) throw new PrismarineServerErrors.MissingExecutor();
 
         if (!permission) return true;
         if (executer instanceof Console) return true;
@@ -197,7 +197,8 @@ export class PermissionManager implements Service {
 
             const document = await readJsonFile(file, '{}');
             const permissions = document.get([]);
-            if (!isRecord(permissions)) throw new Error(`${PERMISSION_FILE_NAME} must hold an object`);
+            if (!isRecord(permissions))
+                throw new PrismarineServerErrors.PermissionsNotObject({ permissionFileName: PERMISSION_FILE_NAME });
 
             this.defaultPermissions = isStringList(permissions.defaultPermissions)
                 ? permissions.defaultPermissions
@@ -212,7 +213,7 @@ export class PermissionManager implements Service {
             }
         } catch (error: unknown) {
             this.server.getLogger().error(error);
-            throw new Error(`Invalid ${PERMISSION_FILE_NAME} file.`);
+            throw new PrismarineServerErrors.InvalidPermissionsEntry({ permissionFileName: PERMISSION_FILE_NAME });
         }
     }
 
@@ -248,13 +249,13 @@ export class PermissionManager implements Service {
             }
 
             const ops = (await readJsonFile(file, '[]')).get([]);
-            if (!Array.isArray(ops)) throw new Error(`${OPS_FILE_NAME} must hold a list of operators`);
+            if (!Array.isArray(ops)) throw new PrismarineServerErrors.OpsNotList({ opsFileName: OPS_FILE_NAME });
             for (const op of ops) {
                 if (isOpEntry(op)) this.ops.add(op.uuid);
             }
         } catch (error: unknown) {
             this.server.getLogger().error(error);
-            throw new Error(`Invalid ${OPS_FILE_NAME} file.`);
+            throw new PrismarineServerErrors.InvalidPermissionsEntry({ permissionFileName: OPS_FILE_NAME });
         }
     }
 
@@ -342,7 +343,7 @@ export class PermissionManager implements Service {
      */
     public async setOp(username: string, op: boolean): Promise<boolean> {
         const target = this.server.getSessionManager().findSession({ name: username }); // TODO: by name not exact
-        if (!target) throw new PlayerNotFoundError(username);
+        if (!target) throw new PrismarineServerErrors.PlayerNotFound({ username });
         if (!this.toggleOp(target, op)) return false;
 
         try {

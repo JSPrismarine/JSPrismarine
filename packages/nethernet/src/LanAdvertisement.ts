@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import type { NetherNetStatus } from './NetherNetStatus';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /** The advertisement layout Bedrock Dedicated Server 1.26.51 answers LAN discovery with. */
 export const LAN_ADVERTISEMENT_VERSION = 7;
@@ -70,7 +71,7 @@ export const decodeLanAdvertisement = (buffer: Buffer): LanAdvertisement => {
     const stream = new BinaryStream(buffer);
     const version = stream.readByte();
     if (version !== LAN_ADVERTISEMENT_VERSION) {
-        throw new Error(`Unsupported LAN advertisement version ${version}`);
+        throw new NethernetErrors.UnsupportedLanAdvertisementVersion({ version });
     }
     return {
         motd: stream.readVarString(),

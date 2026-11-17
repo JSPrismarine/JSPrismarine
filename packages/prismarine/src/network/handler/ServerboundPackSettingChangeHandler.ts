@@ -1,6 +1,7 @@
 import type ServerboundPackSettingChangePacket from '@jsprismarine/protocol/packet/ServerboundPackSettingChangePacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * A pack setting change.
@@ -16,7 +17,7 @@ export default class ServerboundPackSettingChangeHandler implements ConnectionLa
     /** Logs the pack, the setting, and the new value. */
     public handle(packet: ServerboundPackSettingChangePacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a ServerboundPackSettingChangePacket without a payload');
+        if (data === null) throw new PrismarineNetworkErrors.PackSettingChangeNotDecoded();
         log.debug(
             `${session.identity.name} set ${data.packSettingName} of pack ${data.packId.toString()} to ${JSON.stringify(data.packSettingValue)}, which the server does not store`,
             'ServerboundPackSettingChangeHandler/handle'

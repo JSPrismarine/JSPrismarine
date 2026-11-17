@@ -20,6 +20,7 @@ import {
 import { behavior } from './builder.js';
 import type { BehaviorControl, BehaviorHooks, MemoryConditions } from './control.js';
 import { Behavior, conditions, OneShot } from './control.js';
+import { EntityBrainsErrors } from '@jsprismarine/errors/entity-brains';
 
 /** A number drawn uniformly from an inclusive integer range. Java's `UniformInt`. */
 export interface UniformInt {
@@ -337,7 +338,7 @@ export function setEntityLookTargetSometimes(
     predicate: EntityPredicate = () => true
 ): OneShot {
     if (interval.min <= 1) {
-        throw new Error(`SetEntityLookTargetSometimes needs an interval above 1, got ${interval.min}`);
+        throw new EntityBrainsErrors.LookIntervalTooShort({ min: interval.min });
     }
     const maxDistSqr = maxDist * maxDist;
     let ticksUntilNextStart = 0;
@@ -378,7 +379,7 @@ export function randomLookAround(
     maxPitch: number
 ): BehaviorControl {
     if (minPitch > maxPitch) {
-        throw new Error(`Minimum pitch is larger than maximum pitch! ${minPitch} > ${maxPitch}`);
+        throw new EntityBrainsErrors.MinPitchAboveMax({ minPitch, maxPitch });
     }
     const pitchRange = maxPitch - minPitch;
     const hooks: BehaviorHooks = {

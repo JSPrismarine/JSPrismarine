@@ -3,6 +3,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 import BlockStorage from '../../chunk/BlockStorage';
 import type { ReadonlyBlockStorage } from '../../chunk/BlockStorage';
 import { decodePaletteEntry, encodePaletteEntry } from './PersistentPalette';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * A sub chunk's 4096 blocks, in the form a Bedrock world stores them.
@@ -65,12 +66,12 @@ export const encodePersistentStorage = (storage: ReadonlyBlockStorage, stream: B
 export const decodePersistentStorage = (stream: BinaryStream): BlockStorage => {
     const header = stream.readByte();
     if ((header & 1) !== 0) {
-        throw new Error('Sub chunk storage is marked as holding runtime ids, which never appears on disk');
+        throw new PrismarineWorldErrors.RuntimeIdStorageOnDisk();
     }
 
     const bitsPerBlock = header >> 1;
     if (!VALID_BITS_PER_BLOCK.includes(bitsPerBlock)) {
-        throw new Error(`Sub chunk storage declares ${bitsPerBlock} bits per block`);
+        throw new PrismarineWorldErrors.InvalidSubChunkWidth({ bitsPerBlock });
     }
 
     const indices = new Uint16Array(BLOCKS_PER_SUBCHUNK);
@@ -90,14 +91,14 @@ export const decodePersistentStorage = (stream: BinaryStream): BlockStorage => {
     }
 
     const paletteSize = stream.readIntLE();
-    if (paletteSize <= 0) throw new Error(`Sub chunk storage declares a palette of ${paletteSize} entries`);
+    if (paletteSize <= 0) throw new PrismarineWorldErrors.InvalidSubChunkPaletteSize({ paletteSize });
 
     const palette = Array.from({ length: paletteSize }, () => decodePaletteEntry(stream));
 
     for (let index = 0; index < BLOCKS_PER_SUBCHUNK; index++) {
         const paletteIndex = indices[index]!;
         if (paletteIndex >= paletteSize) {
-            throw new Error(`Block ${index} refers to palette entry ${paletteIndex} of ${paletteSize}`);
+            throw new PrismarineWorldErrors.SavedBlockOutOfPalette({ index, paletteIndex, paletteSize });
         }
     }
 

@@ -1,6 +1,7 @@
 import zlib from 'node:zlib';
 
 import { snappyDecompress } from './Snappy';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /**
  * The compression byte that trails every table block.
@@ -37,7 +38,7 @@ export const decompress = (type: CompressionType, data: Buffer): Buffer => {
         case CompressionType.ZlibRaw:
             return zlib.inflateRawSync(data);
         default:
-            throw new Error(`Unknown block compression type ${type}`);
+            throw new LeveldbErrors.UnknownBlockCompressionType({ type });
     }
 };
 
@@ -56,7 +57,7 @@ export const compress = (
     if (type === CompressionType.None) return { type, data };
 
     if (type === CompressionType.Snappy) {
-        throw new Error('Snappy compression is not implemented; blocks are written as ZlibRaw');
+        throw new LeveldbErrors.SnappyCompressionUnsupported();
     }
 
     const options = { level };

@@ -1,4 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /**
  * Reads one coordinate written as a plain number.
@@ -12,7 +13,7 @@ import type { Vector3 } from '@jsprismarine/math';
  */
 const readNumber = (input: string, original = input): number => {
     const value = input.trim() === '' ? Number.NaN : Number(input);
-    if (!Number.isFinite(value)) throw new Error(`Expected a coordinate, got "${original}"`);
+    if (!Number.isFinite(value)) throw new PrismarineServerErrors.ExpectedCoordinate({ original });
     return value;
 };
 
@@ -54,7 +55,7 @@ const ParseTildeCaretNotation = ({
             // FIXME: `^` should be relative to where the source is looking, not to the origin.
             return offset;
         default:
-            throw new Error(`invalid input`);
+            throw new PrismarineServerErrors.MixedCaretNotation();
     }
 };
 

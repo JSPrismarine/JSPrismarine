@@ -2,6 +2,7 @@ import type CommandBlockUpdatePacket from '@jsprismarine/protocol/packet/Command
 import { CommandBlockMode } from '@jsprismarine/protocol/packet/CommandBlockUpdatePacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * A command block edit.
@@ -17,7 +18,7 @@ export default class CommandBlockUpdateHandler implements ConnectionLaneHandler<
     /** Logs the target and the command. */
     public handle(packet: CommandBlockUpdatePacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a CommandBlockUpdatePacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.CommandBlockUpdateNotDecoded();
 
         const { target } = data;
         const where = target.isBlock

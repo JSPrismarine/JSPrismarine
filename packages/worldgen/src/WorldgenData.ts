@@ -4,6 +4,7 @@ import { normalizeIdentifier } from './identifier';
 import { NormalNoise, parseNoiseParameters } from './noise/NormalNoise';
 import type { NoiseGeneratorSettings } from './settings/NoiseGeneratorSettings';
 import { parseNoiseGeneratorSettings } from './settings/NoiseGeneratorSettings';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** The raw JSON documents of the three worldgen registries this package reads. */
 export interface WorldgenDataSource {
@@ -56,13 +57,14 @@ export class WorldgenData {
         const cached = this.densityFunctionCache.get(id);
         if (cached) return cached;
         if (this.resolving.has(id)) {
-            throw new RangeError(
-                `Density function ${id} references itself through ${[...this.resolving].join(' -> ')}`
-            );
+            throw new WorldgenErrors.DensityFunctionCycle({
+                id,
+                resolving: [...this.resolving].join(' -> ')
+            });
         }
 
         const raw = this.source.densityFunctions.get(id);
-        if (raw === undefined) throw new RangeError(`No density function is registered as ${id}`);
+        if (raw === undefined) throw new WorldgenErrors.NoDensityFunctionIsRegistered({ id });
 
         this.resolving.add(id);
         try {
@@ -84,7 +86,7 @@ export class WorldgenData {
         const cached = this.noiseCache.get(id);
         if (cached) return cached;
         const raw = this.source.noises.get(id);
-        if (raw === undefined) throw new RangeError(`No noise is registered as ${id}`);
+        if (raw === undefined) throw new WorldgenErrors.NoNoiseIsRegistered({ id });
         const parsed = new NormalNoise(parseNoiseParameters(raw));
         this.noiseCache.set(id, parsed);
         return parsed;
@@ -100,7 +102,7 @@ export class WorldgenData {
         const cached = this.settingsCache.get(id);
         if (cached) return cached;
         const raw = this.source.noiseSettings.get(id);
-        if (raw === undefined) throw new RangeError(`No noise settings are registered as ${id}`);
+        if (raw === undefined) throw new WorldgenErrors.NoNoiseSettingsAreRegistered({ id });
         const parsed = parseNoiseGeneratorSettings(raw, (child) => this.densityFunction(child), id);
         this.settingsCache.set(id, parsed);
         return parsed;

@@ -3,6 +3,7 @@ import type { RandomSource } from '../random/RandomSource';
 import type { NoiseStack } from './NoiseStack';
 import { NoiseStackBuilder } from './NoiseStack';
 import { PerlinNoise } from './PerlinNoise';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** How many random draws one skipped octave consumes, so the stream stays aligned. */
 const OCTAVE_DRAWS = 262;
@@ -38,7 +39,7 @@ export const createLegacyNetherFbm = (
     }
 
     if (zeroOctaveIndex < octaves - 1) {
-        throw new RangeError('Positive octaves are not supported by the legacy nether noise');
+        throw new WorldgenErrors.LegacyNoisePositiveOctave();
     }
 
     let factor = 2 ** -zeroOctaveIndex;

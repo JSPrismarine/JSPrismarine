@@ -14,6 +14,7 @@ import { Attribute } from '../structures/Attribute';
 import { metadata, passengerOfBlockField, syncedProperties, vector3 } from '../structureTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The `ActorLinkType` values an {@link ActorLink} is sent with.
@@ -66,7 +67,7 @@ export const actorLink = t.custom<ActorLink>(
 
         const type = stream.readByte();
         if (!isActorLinkType(type)) {
-            throw new Error(`Actor link ${targetA} -> ${targetB} carries unknown link type ${type}`);
+            throw new ProtocolWireErrors.UnknownActorLinkType({ targetA, targetB, type });
         }
 
         return {

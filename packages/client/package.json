@@ -72,6 +72,7 @@
     },
     "dependencies": {
         "@jsprismarine/auth": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/math": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",

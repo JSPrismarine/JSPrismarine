@@ -1,3 +1,5 @@
+import { LightingErrors } from '@jsprismarine/errors/lighting';
+
 /** The edge length of a chunk section in blocks. */
 export const SECTION_SIZE = 16;
 
@@ -11,7 +13,7 @@ const BYTE_LENGTH = SECTION_VOLUME / 2;
 
 const indexOf = (x: number, y: number, z: number): number => {
     if (x < 0 || x >= SECTION_SIZE || y < 0 || y >= SECTION_SIZE || z < 0 || z >= SECTION_SIZE) {
-        throw new RangeError(`Light coordinates (${x}, ${z}, ${y}) fall outside the section`);
+        throw new LightingErrors.LightOutsideSection({ x, z, y });
     }
 
     return (x << 8) | (z << 4) | y;
@@ -67,7 +69,7 @@ export class LightSection {
      */
     public set(x: number, y: number, z: number, level: number): void {
         if (level < 0 || level > MAX_LIGHT_LEVEL || !Number.isInteger(level)) {
-            throw new RangeError(`Light level ${level} is not an integer between 0 and ${MAX_LIGHT_LEVEL}`);
+            throw new LightingErrors.InvalidLightLevel({ level, maxLightLevel: MAX_LIGHT_LEVEL });
         }
 
         const index = indexOf(x, y, z);

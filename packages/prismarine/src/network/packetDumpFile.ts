@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * Makes sure `directory` is a private directory of this process's user, creating it when it is
@@ -17,12 +18,12 @@ export const ensurePrivateDirectory = (directory: string): void => {
 
     // `lstat`, not `stat`: a symbolic link is refused rather than followed.
     const stats = fs.lstatSync(directory);
-    if (!stats.isDirectory()) throw new Error(`${directory} is not a directory, or is a symbolic link`);
+    if (!stats.isDirectory()) throw new PrismarineNetworkErrors.DumpPathNotFolder({ directory });
 
     const uid = process.getuid?.();
     if (uid === undefined) return;
-    if (stats.uid !== uid) throw new Error(`${directory} belongs to another user`);
-    if ((stats.mode & 0o022) !== 0) throw new Error(`${directory} can be written by other users`);
+    if (stats.uid !== uid) throw new PrismarineNetworkErrors.DumpFolderOwnedByOtherUser({ directory });
+    if ((stats.mode & 0o022) !== 0) throw new PrismarineNetworkErrors.DumpFolderWritableByOthers({ directory });
 };
 
 /**

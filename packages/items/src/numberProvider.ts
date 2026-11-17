@@ -9,6 +9,7 @@
  * item component reaches into the item type table; this module evaluates one.
  */
 import { itemTypesTable } from './tables';
+import { ItemsErrors } from '@jsprismarine/errors/items';
 
 /**
  * Which of the conditions a provider branches on hold.
@@ -31,11 +32,6 @@ export const DEFAULT_PROVIDER_CONTEXT: ProviderContext = { condition: () => fals
 export const FAST_COOKING_CONTEXT: ProviderContext = {
     condition: (condition) => condition === 'minecraft:block/fast_cooking'
 };
-
-/** Error thrown when a provider definition is missing or has a node kind this module does not know. */
-export class NumberProviderError extends Error {
-    public override name = 'NumberProviderError';
-}
 
 const asRecord = (node: unknown): Record<string, unknown> | undefined =>
     typeof node === 'object' && node !== null && !Array.isArray(node) ? { ...node } : undefined;
@@ -61,17 +57,17 @@ export const evaluateNumberProvider = (
     if (typeof node === 'number') return node;
 
     if (typeof node === 'string') {
-        if (!(node in providers)) throw new NumberProviderError(`no context provider is known as ${node}`);
+        if (!(node in providers)) throw new ItemsErrors.NoContextProviderIsKnown({ node });
         return evaluateNumberProvider(providers[node], context, providers);
     }
 
     const record = asRecord(node);
-    if (record === undefined) throw new NumberProviderError(`${JSON.stringify(node)} is not a number provider`);
+    if (record === undefined) throw new ItemsErrors.IsNotNumberProvider({ node: JSON.stringify(node) });
 
     switch (record.type) {
         case 'minecraft:div': {
             const right = evaluateNumberProvider(record.right, context, providers);
-            if (right === 0) throw new NumberProviderError('a div provider divides by zero');
+            if (right === 0) throw new ItemsErrors.DivProviderDividesByZero();
             return evaluateNumberProvider(record.left, context, providers) / right;
         }
         case 'minecraft:conditional': {
@@ -99,10 +95,10 @@ export const evaluateNumberProvider = (
                 total += weight;
                 weighted += weight * evaluateNumberProvider(option.data, context, providers);
             }
-            if (total === 0) throw new NumberProviderError('a weighted list provider has no weight');
+            if (total === 0) throw new ItemsErrors.WeightedListProviderHasNoWeight();
             return weighted / total;
         }
         default:
-            throw new NumberProviderError(`unknown number provider kind ${String(record.type)}`);
+            throw new ItemsErrors.UnknownNumberProviderKind({ type: String(record.type) });
     }
 };

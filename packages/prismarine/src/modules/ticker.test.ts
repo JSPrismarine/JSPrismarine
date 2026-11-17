@@ -14,6 +14,7 @@ import type { TickerServer, TickerWorld } from './ticker';
 import { tickerToken } from './tokens';
 import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { insideTick } from '../world/TickContext';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** One tick period of the loop under test, in milliseconds. */
 const TICK_MS = 50;
@@ -670,7 +671,7 @@ describe('modules/ticker', () => {
                 })
             });
             harness.ticker.advance();
-            expect(refused).toEqual([new Error('Cannot advance the ticker while a manual tick is in flight')]);
+            expect(refused).toEqual([new PrismarineServerErrors.NestedManualTick()]);
             expect(harness.ticker.getTick()).toBe(1);
 
             const running = buildHarness();

@@ -1,8 +1,9 @@
 import type { DiagnosticSeverity } from './diagnostics';
-import { parseFilter, FilterParseError } from './filters';
+import { parseFilter } from './filters';
 import type { JavaRegistryId } from './javaRegistries';
 import type { RegistryId } from './registries';
 import { isRecord } from './isRecord';
+import { FilterParseError } from '@jsprismarine/errors/packs';
 
 /** One finding a validator reports about a single definition file. */
 export interface ValidationFinding {

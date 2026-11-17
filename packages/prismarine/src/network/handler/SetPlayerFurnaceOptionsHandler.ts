@@ -6,6 +6,7 @@ import {
 } from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * Takes the player's furnace screen layout.
@@ -27,7 +28,7 @@ export default class SetPlayerFurnaceOptionsHandler implements ConnectionLaneHan
     /** Checks the three enum fields, then logs the layout. */
     public handle(packet: SetPlayerFurnaceOptionsPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a SetPlayerFurnaceOptionsPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.FurnaceOptionsNotDecoded();
 
         const name = session.identity.name;
         const { furnaceType, options } = data;

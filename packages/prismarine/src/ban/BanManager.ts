@@ -5,6 +5,7 @@ import type { BannedPlayerEntry } from '../config/JsonConfigTypes';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
 import { withCwd } from '../utils/cwd';
 import type { PlayerIdentity } from '../playerIdentity';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 export type { BannedPlayerEntry } from '../config/JsonConfigTypes';
 
@@ -63,7 +64,7 @@ export default class BanManager {
             }
 
             const banned = (await readJsonFile(dir, '[]')).get([]);
-            if (!Array.isArray(banned)) throw new Error(`${FILE_NAME} must hold a list of banned players`);
+            if (!Array.isArray(banned)) throw new PrismarineServerErrors.BanListNotList({ fileName: FILE_NAME });
             for (const entry of banned) {
                 if (!isBannedPlayerEntry(entry)) continue;
                 this.banned.set(entry.name, { reason: entry.reason ?? '' });

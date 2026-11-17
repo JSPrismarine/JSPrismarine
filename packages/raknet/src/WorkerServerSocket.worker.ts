@@ -13,6 +13,7 @@ import WorkerEventQueue from './WorkerEventQueue';
 import { ServerName } from './utils/ServerName';
 import type { ServerNameSnapshot } from './utils/ServerName';
 import type { SocketBufferOptions } from './SocketBuffers';
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
 
 const EVENT_CONNECTED = 1;
 const EVENT_FRAME = 2;
@@ -75,8 +76,8 @@ const isWorkerOptions = (value: unknown): value is WorkerServerOptions =>
             typeof value.sharedPort.port === 'number'));
 
 const options = workerData;
-if (!isWorkerOptions(options)) throw new TypeError('RakNet worker received invalid startup data');
-if (!parentPort) throw new Error('RakNet worker has no parent port');
+if (!isWorkerOptions(options)) throw new RaknetErrors.WorkerReceivedInvalidStartupData();
+if (!parentPort) throw new RaknetErrors.WorkerHasNoParentPort();
 
 const workerPort = parentPort;
 const inbound = new SharedByteRing(options.ringCapacity, options.outboundMemory);

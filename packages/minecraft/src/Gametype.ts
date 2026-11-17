@@ -1,4 +1,4 @@
-import { GametypeInvalidError } from '@jsprismarine/errors';
+import { MinecraftErrors } from '@jsprismarine/errors/minecraft';
 
 import { Gametype } from './generated/Gametype';
 
@@ -18,7 +18,7 @@ export type GametypeName = 'Survival' | 'Creative' | 'Adventure' | 'Spectator';
  * Get Gametype name.
  * @param {Gametype} mode - The Gametype to get the name of.
  * @returns {GametypeName} The Gametype name.
- * @throws {GametypeInvalidError} Thrown if the Gametype is invalid.
+ * @throws {MinecraftErrors.GametypeInvalid} Thrown if the Gametype is invalid.
  * @group Gametype
  * @example
  * ```typescript
@@ -37,7 +37,7 @@ export function getGametypeName(mode: Gametype): GametypeName {
         case Gametype.SPECTATOR:
             return 'Spectator';
         default:
-            throw new GametypeInvalidError();
+            throw new MinecraftErrors.GametypeInvalid({ gametype: mode });
     }
 }
 
@@ -45,7 +45,7 @@ export function getGametypeName(mode: Gametype): GametypeName {
  * Get Gametype from name.
  * @param {GametypeName | string | number} mode - The Gametype to get the ID of.
  * @returns {Gametype} The Gametype ID.
- * @throws {GametypeInvalidError} Thrown if the Gametype is invalid.
+ * @throws {MinecraftErrors.GametypeInvalid} Thrown if the Gametype is invalid.
  * @group Gametype
  * @example
  * ```typescript
@@ -70,6 +70,6 @@ export function getGametypeId(mode: GametypeName | string | number): Gametype {
         case type === '6':
             return Gametype.SPECTATOR;
         default:
-            throw new GametypeInvalidError(mode.toString());
+            throw new MinecraftErrors.GametypeInvalid({ gametype: mode });
     }
 }

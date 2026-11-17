@@ -53,6 +53,7 @@ import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import { allSent } from './allSent';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * The actor type a sound is attributed to, where vanilla sends something other than nothing.
@@ -545,7 +546,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             for (const group of groups.values()) {
                 const visibleChanges = group.indices.map((index) => {
                     const change = changes[index];
-                    if (change === undefined) throw new Error(`Missing block change at flush index ${index}`);
+                    if (change === undefined) throw new PrismarineNetworkErrors.MissingBlockChange({ index });
                     return change;
                 });
                 // Viewers can see different sets of chunks while sharing some of them. Cache
@@ -560,7 +561,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                         const preparedPacket = prepared.packets[0];
                         const buffer = prepared.buffers[0];
                         if (preparedPacket === undefined || buffer === undefined)
-                            throw new Error('Missing encoded block packet');
+                            throw new PrismarineNetworkErrors.MissingEncodedBlockPacket();
                         encoded = { packet: preparedPacket, buffer };
                         encodedPackets.set(key, encoded);
                     }
@@ -578,7 +579,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 });
                 if (batch instanceof Promise) {
                     const failedPacket = packets[0];
-                    if (failedPacket === undefined) throw new Error('A block-change batch has no packet to report');
+                    if (failedPacket === undefined) throw new PrismarineNetworkErrors.EmptyBlockChangeBatch();
                     for (const session of group.sessions) {
                         sends.push(session.getConnection().sendSharedBatchAsync(batch, failedPacket));
                     }
@@ -630,7 +631,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             }
 
             const firstChange = bucket[0];
-            if (firstChange === undefined) throw new Error('A block-change subchunk cannot be empty');
+            if (firstChange === undefined) throw new PrismarineNetworkErrors.EmptyBlockChangeSubChunk();
             packets.push({
                 key: `subchunk:${subChunkKey(firstChange.position)}:${bucket.map(blockChangeKey).join(';')}`,
                 packet: new UpdateSubChunkBlocksPacket({
@@ -980,7 +981,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 const packet = encoded.packets[index];
                 const buffer = encoded.buffers[index];
                 if (packet === undefined || buffer === undefined) {
-                    throw new Error(`Missing encoded movement for runtime id ${runtimeId}`);
+                    throw new PrismarineNetworkErrors.MissingEncodedMovement({ runtimeId });
                 }
                 packetByRuntimeId.set(runtimeId, { packet, buffer });
             }
@@ -1008,7 +1009,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                     for (const [runtimeId] of visibleMoves) {
                         const encodedMove = packetByRuntimeId.get(runtimeId);
                         if (encodedMove === undefined)
-                            throw new Error(`Missing movement bytes for runtime id ${runtimeId}`);
+                            throw new PrismarineNetworkErrors.MissingMovementBytes({ runtimeId });
                         packets.push(encodedMove.packet);
                         buffers.push(encodedMove.buffer);
                     }
@@ -1041,7 +1042,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
                 if (batch instanceof Promise) {
                     const failedPacket = group.packets[0];
-                    if (failedPacket === undefined) throw new Error('A movement batch has no packet to report');
+                    if (failedPacket === undefined) throw new PrismarineNetworkErrors.EmptyMovementBatch();
                     for (const connection of group.connections) {
                         sends.push(connection.sendSharedBatchAsync(batch, failedPacket));
                     }

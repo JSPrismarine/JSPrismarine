@@ -14,6 +14,7 @@ import type { PackFileFilter, PackFiles, PackStack } from './sources';
 import { expandSource } from './sources';
 import type { DefinitionValidator } from './validation';
 import { structuralValidator } from './validation';
+import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /** One winning definition after the stack is composed. */
 export interface Definition {
@@ -53,12 +54,12 @@ export interface LoadResult {
 }
 
 /** Error thrown by a strict load; `diagnostics` holds the full report, warnings included. */
-export class PackLoadError extends Error {
+export class PackLoadError extends PacksErrors.PackStackDidNotLoadCleanly {
     public override name = 'PackLoadError';
 
     public constructor(public readonly diagnostics: readonly Diagnostic[]) {
         const errors = diagnostics.filter((diagnostic) => diagnostic.severity === 'error');
-        super(`the pack stack did not load cleanly: ${errors.length} error(s), first: ${errors[0]?.message}`);
+        super({ count: errors.length, first: errors[0]?.message });
     }
 }
 
@@ -231,7 +232,7 @@ const loadUncached = (stack: PackStack, validator: DefinitionValidator): LoadRes
 
 const loadCachedPrefix = (stack: PackStack, validator: DefinitionValidator, cache: PrefixCacheOptions): LoadResult => {
     if (!Number.isSafeInteger(cache.prefixLength) || cache.prefixLength < 1 || cache.prefixLength > stack.length) {
-        throw new RangeError(`cache prefix length ${cache.prefixLength} is outside the pack stack`);
+        throw new PacksErrors.CachePrefixOutOfRange({ prefixLength: cache.prefixLength });
     }
 
     const prefix = stack.slice(0, cache.prefixLength);

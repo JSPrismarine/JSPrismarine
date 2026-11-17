@@ -13,6 +13,7 @@ import type { Item } from '../item/Item';
 import type { ServerContent } from '../content/ServerContent';
 import type { PlainData, PlainRecord } from '../world/changelog/PlainData';
 import { isPlainRecord, plainOf } from '../world/changelog/PlainData';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** What a slot holds in the change log: the stack's saved form, or null for an empty slot. */
 export type SlotValue = PlainRecord | null;
@@ -34,7 +35,7 @@ const plainSlot = (stored: ReturnType<typeof storedItem>): SlotValue => {
     if (stored === null) return null;
     const plain = plainOf(stored);
     if (plain === undefined || !isPlainRecord(plain))
-        throw new TypeError(`A stored stack has no plain form: ${stored.name}`);
+        throw new PrismarineServerErrors.StackHasNoPlainForm({ name: stored.name });
     return plain;
 };
 
@@ -53,6 +54,6 @@ export const slotValueOfItem = (item: Item | null): SlotValue => (item === null 
  */
 export const itemOfSlotValue = (value: PlainData, content?: ServerContent): Item | null => {
     if (value === null) return null;
-    if (!isStoredItemStack(value)) throw new TypeError(`A logged slot cannot hold ${JSON.stringify(value)}`);
+    if (!isStoredItemStack(value)) throw new PrismarineServerErrors.InvalidLoggedSlot({ value: JSON.stringify(value) });
     return restoredItem(value, content);
 };

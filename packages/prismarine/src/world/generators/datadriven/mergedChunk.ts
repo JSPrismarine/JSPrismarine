@@ -16,6 +16,7 @@ import type { BedrockSection } from './bedrockSections';
 import { isBedrockSections } from './bedrockSections';
 import type { RegionBlock, RegionBlockEntity, RegionEntitySpawn, RegionFluidTick } from './GenerationRegion';
 import { isOptionalFluidTickList, paletteKeyOf } from './GenerationRegion';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** The Bedrock form of every palette entry a merge can produce, keyed by {@link paletteKeyOf}. */
 export interface PaletteTranslation {
@@ -82,7 +83,7 @@ export const translateSlots = (
     for (const [slot, block] of palette.entries()) {
         const key = paletteKeyOf(block);
         const index = indexOf.get(key);
-        if (index === undefined) throw new RangeError(`The merge produced ${key}, which its translation does not hold`);
+        if (index === undefined) throw new PrismarineGenerationErrors.UntranslatedMergeBlock({ key });
         runtimeIds[slot] = translation.runtimeIds[index]!;
         waterSlots[slot] = translation.water[index]!;
     }

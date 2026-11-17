@@ -4,6 +4,7 @@ import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
 import BlockPos from './BlockPos';
 import Vec3 from './Vec3';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * A typed entity data value. The `type` tag decides which encoding `value` uses on the wire,
@@ -110,7 +111,7 @@ export class DataItem extends NetworkStructure {
         const selector = stream.readUnsignedVarInt();
         const type: DataItemType = stream.readByte();
         if (selector !== type) {
-            throw new Error(`Data item ${this.id} selects payload ${selector} but carries type ${type}`);
+            throw new ProtocolCodecErrors.DataItemPayloadMismatch({ id: this.id, selector, type });
         }
 
         switch (type) {
@@ -142,7 +143,7 @@ export class DataItem extends NetworkStructure {
                 this.entry = { type, value: Vec3.deserialize(stream) };
                 break;
             default:
-                throw new Error(`Data item ${this.id} has an unknown type ${type}`);
+                throw new ProtocolCodecErrors.UnknownDataItemPayload({ id: this.id, type });
         }
     }
 }

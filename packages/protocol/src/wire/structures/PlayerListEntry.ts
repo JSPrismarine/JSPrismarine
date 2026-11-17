@@ -7,6 +7,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 import type Skin from './skin/Skin';
 import type { SkinWireLayout } from './skin/Skin';
 import type UUID from './UUID';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The fields of one player list entry. A Remove entry needs only `uuid`. */
 export interface PlayerListData {
@@ -85,7 +86,7 @@ export class PlayerListEntry {
     public networkSerialize(stream: BinaryStream, layout: SkinWireLayout = SKIN_WIRE_2193): void {
         const skin = this.getSkin();
         if (skin === null) {
-            throw new Error(`Player list entry ${this.getUUID().toString()} has no skin, so it cannot be added`);
+            throw new ProtocolWireErrors.PlayerListEntryHasNoSkin({ uUID: this.getUUID().toString() });
         }
 
         stream.writeVarLong(this.getRuntimeId() ?? 0n);

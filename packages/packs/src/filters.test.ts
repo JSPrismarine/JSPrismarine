@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { FilterParseError, parseFilter } from './filters';
+import { parseFilter } from './filters';
+import { FilterParseError } from '@jsprismarine/errors/packs';
 
 describe('parseFilter', () => {
     it('parses the string form with defaults filled in', () => {

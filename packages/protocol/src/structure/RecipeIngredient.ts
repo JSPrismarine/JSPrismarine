@@ -1,5 +1,6 @@
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 import NetworkStructure from '../NetworkStructure';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * Which alternative of the `Item Descriptor` variant is on the wire.
@@ -132,7 +133,7 @@ export default class RecipeIngredient extends NetworkStructure {
         }
 
         if (variant !== VARIANT_DEFAULT) {
-            throw new Error(`Unknown recipe ingredient descriptor variant ${variant}`);
+            throw new ProtocolWireErrors.UnknownRecipeIngredientDescriptorVariant({ variant });
         }
 
         const name = stream.readString();
@@ -151,7 +152,7 @@ export default class RecipeIngredient extends NetworkStructure {
                 break;
 
             default:
-                throw new Error(`Unknown recipe ingredient descriptor ${name}`);
+                throw new ProtocolWireErrors.UnknownRecipeIngredientDescriptor({ name });
         }
 
         this.count = stream.readVarInt();

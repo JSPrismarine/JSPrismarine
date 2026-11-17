@@ -136,6 +136,7 @@ import ChunkBatchCache from './ChunkBatchCache';
 import { ClientBlobCache } from './ClientBlobCache';
 import type { CachedChunkDelivery } from '../world/ChunkScheduler';
 import { TextPacketType } from '@jsprismarine/protocol';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * Chunks queued before a flush, and the reason this group is small.
@@ -1469,9 +1470,10 @@ export default class PlayerSession {
         while (epoch === this.chunkEpoch) {
             const queued = this.prepareQueuedChunk(chunk);
             if (queued.memoryBytes > this.queuedChunkBytesLimit) {
-                throw new RangeError(
-                    `Chunk payload ${queued.memoryBytes} exceeds the ${this.queuedChunkBytesLimit}-byte queue limit`
-                );
+                throw new PrismarineNetworkErrors.ChunkTooLargeForQueue({
+                    memoryBytes: queued.memoryBytes,
+                    queuedChunkBytesLimit: this.queuedChunkBytesLimit
+                });
             }
             if (this.hasChunkQueueCapacity(queued.memoryBytes)) {
                 this.queueChunkNow(queued);
@@ -2991,7 +2993,7 @@ export default class PlayerSession {
             needsTranslation = false,
             type = TextPacketType.Raw
         } = typeof delivery === 'string' ? { message: delivery } : delivery;
-        if (!message) throw new Error('A message is required');
+        if (!message) throw new PrismarineNetworkErrors.EmptyMessage();
 
         // `Filtered Message` is the text after chat filtering. A dedicated server leaves it
         // empty for its own messages; repeating the message there doubled the payload.
@@ -3311,7 +3313,10 @@ export default class PlayerSession {
     public getPlayer(): SessionPlayer {
         const player = this.players.of(Number(this.runtimeId));
         if (player === undefined) {
-            throw new Error(`${this.identity.name} (entity ${this.runtimeId}) has left: its session has no player`);
+            throw new PrismarineNetworkErrors.PlayerHasLeft({
+                name: this.identity.name,
+                runtimeId: this.runtimeId
+            });
         }
         return player;
     }
@@ -3773,7 +3778,7 @@ export default class PlayerSession {
         // Built and ready: the search reads ready worlds only.
         const own = answer.spawn === 'own' ? level.readyWorld(answer.dimension) : undefined;
         if (answer.spawn === 'own' && own === undefined)
-            throw new Error(`The respawn search answered ${answer.dimension}, which is not ready`);
+            throw new PrismarineNetworkErrors.RespawnDimensionNotReady({ dimension: answer.dimension });
         return {
             world: own ?? this.server.getWorldManager().getDefaultWorld(),
             announced: Vector3.fromObject(answer.announced),

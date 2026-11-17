@@ -5,16 +5,17 @@ import { writeFile } from 'node:fs/promises';
 import Client from '../Client';
 import Fleet from '../bot/Fleet';
 import { formatReport } from '../bot/Metrics';
-import { UsageError, parseCount, parseDuration, parseNetwork, parsePercent, parseRate } from './Cli';
+import { parseCount, parseDuration, parseNetwork, parsePercent, parseRate } from './Cli';
 import { conditionLink } from '../net/LinkConditions';
 
 import type { CliIo, Values } from './Cli';
+import { ClientErrors } from '@jsprismarine/errors/client';
 
 const DEFAULT_PORT = 19132;
 
 const requireString = (values: Values, flag: string): string => {
     const value = values[flag];
-    if (typeof value !== 'string' || value.length === 0) throw new UsageError(`--${flag} is required`);
+    if (typeof value !== 'string' || value.length === 0) throw new ClientErrors.MissingOption({ flag });
 
     return value;
 };
@@ -162,7 +163,7 @@ export const runBot = async (values: Values, io: CliIo): Promise<number> => over
 const bot = async (values: Values, io: CliIo): Promise<number> => {
     const host = requireString(values, 'host');
     const count = parseCount(requireString(values, 'count'), '--count');
-    if (count === 0) throw new UsageError('--count must be at least 1');
+    if (count === 0) throw new ClientErrors.CountBelowOne();
 
     const behaviors = (optionalString(values, 'behavior') ?? '')
         .split(',')

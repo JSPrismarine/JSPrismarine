@@ -13,7 +13,6 @@ import {
 } from './db/Storage';
 import type { TableFile } from './db/Storage';
 import { BYTEWISE_COMPARATOR, compareBytewise } from './util/Comparator';
-import { CorruptionError } from './Errors';
 import {
     CURRENT_FILE_NAME,
     FileKind,
@@ -51,6 +50,8 @@ import type {
     WorkerTableMetadata,
     WorkerTableOptions
 } from './db/TableWorkerProtocol';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
+import { asError } from '@jsprismarine/errors/common';
 
 /** The worker asset name defined by `scripts/package-sea.mts` for Node SEA builds. */
 declare const JSP_SEA_TABLE_BUILDER_WORKER: string | undefined;
@@ -154,11 +155,11 @@ export class Database {
         const exists = fs.existsSync(path.join(this.directory, CURRENT_FILE_NAME));
 
         if (exists && this.options.errorIfExists) {
-            throw new Error(`A database already exists at ${this.directory}`);
+            throw new LeveldbErrors.DatabaseAlreadyExists({ directory: this.directory });
         }
 
         if (!exists && !this.options.createIfMissing && !this.options.readOnly) {
-            throw new Error(`No database at ${this.directory}`);
+            throw new LeveldbErrors.NoDatabase({ directory: this.directory });
         }
 
         if (!this.options.readOnly) {
@@ -191,10 +192,10 @@ export class Database {
 
     private readManifest(): void {
         const current = fs.readFileSync(path.join(this.directory, CURRENT_FILE_NAME), 'utf8').trim();
-        if (current.length === 0) throw new CorruptionError('CURRENT is empty');
+        if (current.length === 0) throw new LeveldbErrors.CurrentIsEmpty();
 
         const manifest = path.join(this.directory, current);
-        if (!fs.existsSync(manifest)) throw new CorruptionError(`CURRENT names ${current}, which does not exist`);
+        if (!fs.existsSync(manifest)) throw new LeveldbErrors.CurrentNamesMissingManifest({ current });
 
         let sawComparator = false;
         for (const record of readLogRecords(fs.readFileSync(manifest))) {
@@ -202,9 +203,9 @@ export class Database {
 
             if (edit.comparator !== undefined) {
                 if (edit.comparator !== BYTEWISE_COMPARATOR) {
-                    throw new CorruptionError(
-                        `Database uses the ${edit.comparator} comparator, whose ordering is unknown here`
-                    );
+                    throw new LeveldbErrors.UnknownComparator({
+                        comparator: edit.comparator
+                    });
                 }
 
                 sawComparator = true;
@@ -213,7 +214,7 @@ export class Database {
             this.versions.applyEdit(edit);
         }
 
-        if (!sawComparator) throw new CorruptionError('Manifest never names a comparator');
+        if (!sawComparator) throw new LeveldbErrors.ManifestNeverNamesComparator();
 
         this.versions.assertSortedRuns();
     }
@@ -302,12 +303,12 @@ export class Database {
     }
 
     private assertOpen(): void {
-        if (this.closed) throw new Error('Database is closed');
+        if (this.closed) throw new LeveldbErrors.DatabaseIsClosed();
     }
 
     private assertWritable(): void {
         this.assertOpen();
-        if (this.options.readOnly) throw new Error('Database was opened read-only');
+        if (this.options.readOnly) throw new LeveldbErrors.DatabaseIsReadOnly();
     }
 
     // ---------------------------------------------------------------- reads
@@ -452,7 +453,7 @@ export class Database {
 
     private runTableWorker(task: TableWorkerTask): Promise<TableWorkerResult> {
         if (this.tableWorkerRequest !== null) {
-            throw new Error('The database already has a table worker request in flight');
+            throw new LeveldbErrors.TableWorkerBusy();
         }
 
         const worker = this.getTableWorker();
@@ -464,7 +465,7 @@ export class Database {
             } catch (error) {
                 this.tableWorkerRequest = null;
                 worker.unref();
-                reject(error instanceof Error ? error : new Error(String(error)));
+                reject(asError(error));
             }
         });
     }
@@ -496,16 +497,14 @@ export class Database {
 
             this.tableWorkerRequest = null;
             worker.unref();
-            if ('error' in reply) request.reject(new Error(reply.error));
+            if ('error' in reply) request.reject(new LeveldbErrors.TableWorkerFailed({ message: reply.error }));
             else request.resolve(reply.result);
         });
 
-        worker.on('error', (error: unknown) =>
-            this.failTableWorker(worker, error instanceof Error ? error : new Error(String(error)))
-        );
+        worker.on('error', (error: unknown) => this.failTableWorker(worker, asError(error)));
         worker.on('exit', (code) => {
             if (this.tableWorker === worker) this.tableWorker = null;
-            this.failTableWorker(worker, new Error(`Table worker exited before replying with code ${code}`));
+            this.failTableWorker(worker, new LeveldbErrors.TableWorkerExited({ code }));
         });
 
         return worker;
@@ -514,7 +513,7 @@ export class Database {
     private singleExecutableTableWorkerUrl(asset: string): URL {
         // `createRequire` resolves dynamic built-ins without preserving their imported type.
         const sea = createRequire(process.execPath)('node:sea') as typeof import('node:sea');
-        if (!sea.isSea()) throw new Error('The embedded LevelDB table worker requires a Node single executable');
+        if (!sea.isSea()) throw new LeveldbErrors.EmbeddedTableWorkerOutsideExecutable();
 
         const source = Buffer.from(sea.getAsset(asset)).toString('base64');
         return new URL(`data:text/javascript;base64,${source}`);
@@ -569,7 +568,7 @@ export class Database {
     public write(batch: WriteBatch, options: WriteOptions = {}): void {
         this.assertCanWrite();
         if (batch.count === 0) return;
-        if (this.log!.busy) throw new Error('A commit is still appending; queue this write behind it with commit');
+        if (this.log!.busy) throw new LeveldbErrors.CommitInProgress();
 
         // The log first, always. A batch that reached memory but not the log is a batch a crash
         // loses silently, and callers have no way to know which writes made it.
@@ -614,7 +613,7 @@ export class Database {
             // append rejects too, and left unobserved it would be an unhandled rejection.
             await Promise.all(synced === undefined ? [appended] : [appended, synced]);
         } catch (error) {
-            this.commitFailure ??= error instanceof Error ? error : new Error(String(error));
+            this.commitFailure ??= asError(error);
             throw error;
         }
     }
@@ -630,12 +629,12 @@ export class Database {
     private assertCanWrite(): void {
         this.assertWritable();
         if (this.commitFailure !== null) {
-            throw new Error('A commit failed to reach the log, so the database refuses further writes', {
+            throw new LeveldbErrors.WritesRefusedAfterCommitFailure({
                 cause: this.commitFailure
             });
         }
         if (this.manifestFailure !== null) {
-            throw new Error('The manifest could not record a change, so the database refuses further writes', {
+            throw new LeveldbErrors.WritesRefusedAfterManifestFailure({
                 cause: this.manifestFailure
             });
         }
@@ -671,7 +670,7 @@ export class Database {
         // A flush or compaction would allocate table numbers the manifest may already name.
         if (this.manifestFailure !== null) {
             return Promise.reject(
-                new Error('The manifest could not record a change, so the database refuses to flush', {
+                new LeveldbErrors.FlushRefusedAfterManifestFailure({
                     cause: this.manifestFailure
                 })
             );
@@ -710,7 +709,7 @@ export class Database {
         }
 
         void this.flush().catch((error: unknown) => {
-            this.backgroundFlushError = error instanceof Error ? error : new Error(String(error));
+            this.backgroundFlushError = asError(error);
         });
     }
 
@@ -739,7 +738,7 @@ export class Database {
                 largest: bounds.largest,
                 options: this.workerTableOptions()
             });
-            if (result.kind !== 'built') throw new Error('Table worker returned a compaction result for a flush');
+            if (result.kind !== 'built') throw new LeveldbErrors.TableWorkerAnsweredFlushWithCompaction();
             this.bytesWritten += result.file.size;
 
             // A commit made since the memtable froze appends to this log. It has to land before
@@ -835,7 +834,7 @@ export class Database {
             maxFileSize: this.options.maxFileSize,
             options: this.workerTableOptions()
         });
-        if (result.kind !== 'compacted') throw new Error('Table worker returned a flush result for compaction');
+        if (result.kind !== 'compacted') throw new LeveldbErrors.TableWorkerAnsweredCompactionWithFlush();
         for (const [, file] of result.outputs) this.bytesWritten += file.size;
 
         try {
@@ -930,8 +929,7 @@ export class Database {
                 } catch (rollbackError) {
                     // CURRENT may name an edit that did land, so its tables have to stay, and
                     // nothing more can be recorded. Upstream stops writing the same way.
-                    this.manifestFailure ??=
-                        rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError));
+                    this.manifestFailure ??= asError(rollbackError);
                 }
                 throw error;
             }
@@ -987,7 +985,7 @@ export class Database {
         } catch (error) {
             // CURRENT may already name the new manifest, and with it tables the caller would
             // otherwise delete as never installed. Keep them, and record nothing more.
-            this.manifestFailure ??= error instanceof Error ? error : new Error(String(error));
+            this.manifestFailure ??= asError(error);
             throw error;
         }
 

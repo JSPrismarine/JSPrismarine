@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { BindContext, ComponentFactory } from './components';
 import { accepted, anyValue, ComponentRegistry, rejected } from './components';
 import type { Definition } from './definitions';
-import { ContentError } from './errors';
+import { ContentError } from '@jsprismarine/errors/content';
 
 interface BlockHooks {
     onPlace: (position: number) => void;

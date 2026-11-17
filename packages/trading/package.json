@@ -65,6 +65,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/trading",
     "dependencies": {
         "@jsprismarine/entities": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
         "@jsprismarine/predicates": "workspace:*"
     },

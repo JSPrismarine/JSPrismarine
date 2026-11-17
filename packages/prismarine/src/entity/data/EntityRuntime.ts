@@ -270,7 +270,6 @@ import {
     identityIn,
     isBodyField,
     linkIn,
-    LoggedFieldError,
     propertyIn,
     statusEffectsIn,
     stringsIn
@@ -338,6 +337,7 @@ import type { PlayerMining } from '../playerComponents';
 import type { PlayerShownForm } from '../playerShown';
 import { cancelMeal } from '../playerMeal';
 import type { StorePlayer } from '../storePlayer';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /** The interval between projectile samples, small enough not to skip a target. */
 const PROJECTILE_SWEEP_STEP = 0.25;
@@ -1610,7 +1610,7 @@ export class EntityRuntime implements EntityScene {
         // The JSON round trip is the one the save makes, so the form holds what a save holds.
         const written = plainOf(JSON.parse(JSON.stringify(record)));
         if (written === undefined || !isPlainRecord(written))
-            throw new LoggedFieldError(`${entity.identifier} ${entity.id} has no plain record`);
+            throw new PrismarineEntityErrors.EntityHasNoPlainRecord({ identifier: entity.identifier, id: entity.id });
         return {
             id: entity.id,
             position: { x: body.position.x, y: body.position.y, z: body.position.z },
@@ -1645,10 +1645,11 @@ export class EntityRuntime implements EntityScene {
         const restored = record === undefined ? undefined : dataEntityRecordFrom(record);
         const at = bodyFieldValue('position', position ?? null);
         if (typeof id !== 'number' || restored === undefined)
-            throw new LoggedFieldError('a membership entry carries no record to add the entity back from');
+            throw new PrismarineEntityErrors.MembershipEntryHasNoRecord();
         const prepare = clientOwnsMovement(restored.identifier) ? this.onPlayerReentered : undefined;
         const entity = this.restore(restored, at, id, prepare);
-        if (entity === undefined) throw new LoggedFieldError(`${restored.identifier} ${id} could not be added back`);
+        if (entity === undefined)
+            throw new PrismarineEntityErrors.EntityNotRestored({ identifier: restored.identifier, id });
         entity.body.restore('velocity', bodyFieldValue('velocity', velocity ?? null));
         entity.body.tags.replace(stringsIn('tags', tags ?? []));
         entity.body.statusEffects.replace(statusEffectsIn(statusEffects ?? []).map((effect) => [effect.id, effect]));
@@ -1762,7 +1763,7 @@ export class EntityRuntime implements EntityScene {
                 return;
             }
         }
-        throw new LoggedFieldError(`no writer for ${field}`);
+        throw new PrismarineEntityErrors.NoFieldWriter({ field });
     }
 
     /** Points a leashed entity's lead at a holder, or cuts it, and logs the change. */

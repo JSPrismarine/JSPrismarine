@@ -19,7 +19,8 @@ import type {
     TemplateEntity,
     TemplatePosition
 } from './types';
-import { NO_BLOCK, StructureFormatError } from './types';
+import { NO_BLOCK } from './types';
+import { StructuresErrors } from '@jsprismarine/errors/structures';
 
 /** The only `format_version` Mojang has published for `.mcstructure` files. */
 export const MCSTRUCTURE_FORMAT_VERSION = 1;
@@ -42,11 +43,11 @@ export const mcStructurePosition = (size: TemplatePosition, index: number): Temp
 const readLayer = (structure: NBTTagCompound, layer: number): number[] | undefined => {
     const entry = listAt(structure, 'block_indices')[layer];
     if (entry === undefined) return undefined;
-    if (!(entry instanceof Set)) throw new StructureFormatError('mcstructure: block_indices layer is not a list');
+    if (!(entry instanceof Set)) throw new StructuresErrors.McstructureBlockLayerNotList();
 
     const indices = numbersOf([...entry]);
     if (indices.length !== entry.size) {
-        throw new StructureFormatError('mcstructure: block_indices holds a non-numeric entry');
+        throw new StructuresErrors.McstructureBlockIndexNotNumeric();
     }
     return indices;
 };
@@ -54,13 +55,13 @@ const readLayer = (structure: NBTTagCompound, layer: number): number[] | undefin
 const readPalette = (structure: NBTTagCompound): { palette: BedrockBlockState[]; versions: number[] } => {
     const palettes = compoundAt(structure, 'palette');
     const chosen = palettes === undefined ? undefined : compoundAt(palettes, 'default');
-    if (chosen === undefined) throw new StructureFormatError('mcstructure: no default palette');
+    if (chosen === undefined) throw new StructuresErrors.McstructureNoDefaultPalette();
 
     const palette: BedrockBlockState[] = [];
     const versions: number[] = [];
     for (const entry of compoundListAt(chosen, 'block_palette')) {
         const name = stringAt(entry, 'name');
-        if (name === undefined) throw new StructureFormatError('mcstructure: palette entry has no name');
+        if (name === undefined) throw new StructuresErrors.McstructurePaletteEntryHasNoName();
         palette.push({ name, states: stateRecord(compoundAt(entry, 'states')) });
         versions.push(numberAt(entry, 'version') ?? 0);
     }
@@ -116,17 +117,19 @@ export const readMcStructure = (bytes: Uint8Array): BedrockStructureTemplate => 
     try {
         root = NBTTagCompound.readFromStream(new BinaryStream(buffer), ByteOrder.LITTLE_ENDIAN);
     } catch (error) {
-        throw new StructureFormatError(`mcstructure: ${error instanceof Error ? error.message : String(error)}`);
+        throw new StructuresErrors.McstructureUnreadable({
+            value: error instanceof Error ? error.message : String(error)
+        });
     }
 
     const formatVersion = numberAt(root, 'format_version');
     if (formatVersion !== undefined && formatVersion !== MCSTRUCTURE_FORMAT_VERSION) {
-        throw new StructureFormatError(`mcstructure: unsupported format_version ${formatVersion}`);
+        throw new StructuresErrors.McstructureUnsupportedFormatVersion({ formatVersion });
     }
 
     const size = tripleAt(root, 'size', 'mcstructure');
     const structure = compoundAt(root, 'structure');
-    if (structure === undefined) throw new StructureFormatError('mcstructure: no structure compound');
+    if (structure === undefined) throw new StructuresErrors.McstructureNoStructureCompound();
 
     const worldOrigin: TemplatePosition =
         numberListAt(root, 'structure_world_origin').length === 3
@@ -134,14 +137,15 @@ export const readMcStructure = (bytes: Uint8Array): BedrockStructureTemplate => 
             : [0, 0, 0];
 
     const primary = readLayer(structure, 0);
-    if (primary === undefined) throw new StructureFormatError('mcstructure: no block_indices');
+    if (primary === undefined) throw new StructuresErrors.McstructureNoBlockIndices();
     const secondary = readLayer(structure, 1);
 
     const expected = size[0] * size[1] * size[2];
     if (primary.length !== expected) {
-        throw new StructureFormatError(
-            `mcstructure: block_indices holds ${primary.length} entries for a ${size.join('x')} template`
-        );
+        throw new StructuresErrors.McstructureBlockCountMismatch({
+            primaryCount: primary.length,
+            size: size.join('x')
+        });
     }
 
     const { palette, versions } = readPalette(structure);

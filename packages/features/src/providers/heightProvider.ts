@@ -5,6 +5,7 @@ import type { Weighted } from '../placement/WorldgenRandom';
 import { nextIntBetween, randomBetweenInclusive, randomWeighted } from '../placement/WorldgenRandom';
 import { typeNameOf } from '../registry';
 import { parseWeightedList } from './valueProviders';
+import { FeaturesErrors } from '@jsprismarine/errors/features';
 
 /**
  * What a height provider needs from the dimension to turn an anchor into a y.
@@ -61,7 +62,7 @@ export const parseVerticalAnchor = (source: unknown, path: string): VerticalAnch
             offset: asInteger(raw['relative_to_sea_level'], `${path}.relative_to_sea_level`)
         };
     }
-    return fail(path, 'expected one of absolute, above_bottom, below_top or relative_to_sea_level');
+    return fail(new FeaturesErrors.ExpectedVerticalAnchor({ path }));
 };
 
 /**
@@ -190,6 +191,6 @@ export const parseHeightProvider = (source: unknown, path: string): HeightProvid
                 )
             );
         default:
-            return fail(path, `unknown height provider type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownHeightProviderType({ path, type: JSON.stringify(type) }));
     }
 };

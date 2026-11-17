@@ -27,6 +27,7 @@ import type { ItemStackData } from '../../structure/ItemStack';
 import type { IngredientDescriptor, RecipeIngredientData } from '../../structure/RecipeIngredient';
 import type { PayloadOf } from '../define';
 import type { WireType } from '../fieldTypes';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The docs' `RecipeUnlockingContext`: what has to be true before a recipe shows up in the book. */
 export enum RecipeUnlockingContext {
@@ -172,7 +173,7 @@ export const recipeUuidFor = (id: string): Buffer => crypto.createHash('md5').up
 const uuid: WireType<Buffer> = t.custom(
     'mce::UUID',
     (stream, value) => {
-        if (value.byteLength !== 16) throw new Error(`A recipe UUID is sixteen bytes, got ${value.byteLength}`);
+        if (value.byteLength !== 16) throw new ProtocolWireErrors.InvalidRecipeUuid({ byteLength: value.byteLength });
         t.lu64.write(stream, value.readBigUInt64BE(0));
         t.lu64.write(stream, value.readBigUInt64BE(8));
     },
@@ -245,7 +246,7 @@ const recipeIngredient: WireType<RecipeIngredientData> = t.custom(
         }
 
         if (variant !== VARIANT_DEFAULT) {
-            throw new Error(`Unknown recipe ingredient descriptor variant ${variant}`);
+            throw new ProtocolWireErrors.UnknownRecipeIngredientDescriptorVariant({ variant });
         }
 
         let descriptor: IngredientDescriptor;
@@ -265,7 +266,7 @@ const recipeIngredient: WireType<RecipeIngredientData> = t.custom(
                 break;
 
             default:
-                throw new Error(`Unknown recipe ingredient descriptor ${name}`);
+                throw new ProtocolWireErrors.UnknownRecipeIngredientDescriptor({ name });
         }
 
         return { descriptor, count: t.varint32.read(stream) };

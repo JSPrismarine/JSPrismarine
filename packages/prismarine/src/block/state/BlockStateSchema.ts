@@ -3,6 +3,7 @@ import { vanillaBlockPalette } from '@jsprismarine/blocks';
 
 import { BlockState } from './BlockState';
 import type { BlockStatePropertyType, BlockStateValue } from './BlockState';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** One property: how it is written, what it accepts, and what it is when unspecified. */
 export interface BlockStateProperty {
@@ -84,16 +85,24 @@ export class BlockStateSchema {
         for (const [key, value] of Object.entries(properties)) {
             const property = this.properties[key];
             if (!property) {
-                throw new Error(
-                    `Block ${this.name} has no property ${key} (has: ${Object.keys(this.properties).join(', ') || 'none'})`
-                );
+                const properties = Object.keys(this.properties);
+                throw properties.length === 0
+                    ? new PrismarineServerErrors.BlockHasNoProperties({ name: this.name, key })
+                    : new PrismarineServerErrors.UnknownBlockProperty({
+                          name: this.name,
+                          key,
+                          properties: properties.join(', ')
+                      });
             }
 
             const normalized = property.type === 'byte' && typeof value === 'boolean' ? Number(value) : value;
             if (!property.values.includes(normalized)) {
-                throw new Error(
-                    `Property ${this.name}.${key} does not accept ${String(value)} (accepts: ${property.values.join(', ')})`
-                );
+                throw new PrismarineServerErrors.InvalidBlockPropertyValue({
+                    name: this.name,
+                    key,
+                    value: String(value),
+                    values: property.values.join(', ')
+                });
             }
         }
 

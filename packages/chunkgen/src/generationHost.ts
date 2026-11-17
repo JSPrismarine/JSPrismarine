@@ -14,6 +14,8 @@ import type { HostCommand, HostEvent, HostPoolOptions } from './hostProtocol';
 import { decodeShared } from './hostProtocol';
 import { decodeReusable, REUSABLE_CAPACITY, ReusableCache } from './reusableInput';
 import type { ReusableSlot } from './reusableInput';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
+import { asError } from '@jsprismarine/errors/common';
 
 const send = (event: HostEvent): void => {
     process.send?.(event);
@@ -42,7 +44,8 @@ const run = (
 ): void => {
     const current = pool;
     if (current === undefined) {
-        send({ type: 'result', id, ok: false, error: { name: 'Error', message: 'The generation host has no pool' } });
+        const { name, message } = new ChunkgenErrors.GenerationHostHasNoPool();
+        send({ type: 'result', id, ok: false, error: { name, message } });
         return;
     }
 
@@ -53,7 +56,7 @@ const run = (
         try {
             task = { ...sent, input: decodeReusable(sent.input, reusable, kept) };
         } catch (error) {
-            const thrown = error instanceof Error ? error : new Error(String(error));
+            const thrown = asError(error);
             send({ type: 'result', id, ok: false, error: { name: thrown.name, message: thrown.message } });
             return;
         }
@@ -74,7 +77,7 @@ const run = (
             });
         },
         (error: unknown) => {
-            const thrown = error instanceof Error ? error : new Error(String(error));
+            const thrown = asError(error);
             send({
                 type: 'result',
                 id,

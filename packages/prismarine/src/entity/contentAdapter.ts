@@ -35,6 +35,7 @@ import type {
 } from '../content/world/adapter';
 import type { DataEntity } from './data/DataEntity';
 import type { EntityRuntime } from './data/EntityRuntime';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /** The three groups of `ServerWorldAdapter` the entity subsystem owns. */
 export interface EntityContentGroups {
@@ -163,7 +164,7 @@ const aiAccessOf = (runtime: EntityRuntime): ContentAiAccess => ({
         // An instance the runtime never placed has no body to drive, and `EntityActuator` has
         // no member that can honestly answer for one. Saying so beats moving something that is
         // not in the world.
-        throw new Error(`${instance.type.identifier} is not in this dimension's entity index, so it has no actuator`);
+        throw new PrismarineEntityErrors.EntityNotInDimension({ identifier: instance.type.identifier });
     },
     brainWorld: (): BrainWorld => runtime.brainWorld()
 });

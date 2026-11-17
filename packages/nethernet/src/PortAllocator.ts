@@ -1,4 +1,5 @@
 import type { PortRange } from './udpPorts';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /** One port of a range and how many peers it serves now. */
 export interface PortLoad {
@@ -50,7 +51,7 @@ export class PortAllocator {
         const port = this.strategy.select(this.loads());
         const peers = this.peers.get(port);
         if (peers === undefined)
-            throw new RangeError(`The strategy picked ${port}, outside ${this.range.start}-${this.range.end}`);
+            throw new NethernetErrors.PortStrategyOutOfRange({ port, start: this.range.start, end: this.range.end });
         this.peers.set(port, peers + 1);
         return port;
     }

@@ -2,6 +2,7 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { promisify } from 'node:util';
 import { constants as zlibConstants, deflateRaw, deflateRawSync, inflateRaw, inflateRawSync } from 'node:zlib';
 import { snappyCompress, snappyDecompress } from './Snappy';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 const deflateRawAsync = promisify(deflateRaw);
 const inflateRawAsync = promisify(inflateRaw);
@@ -146,7 +147,7 @@ export class CompressionCodec {
      */
     public compressFullFlush(payload: Buffer): Buffer {
         if (this.settings.algorithm !== PacketCompressionAlgorithm.ZLIB) {
-            throw new Error('Full-flush fragments require zlib compression');
+            throw new ProtocolCodecErrors.FragmentWithoutZlib();
         }
 
         return deflateRawSync(payload, { level: this.level, finishFlush: zlibConstants.Z_FULL_FLUSH });
@@ -159,7 +160,7 @@ export class CompressionCodec {
      */
     public async compressFullFlushAsync(payload: Buffer): Promise<Buffer> {
         if (this.settings.algorithm !== PacketCompressionAlgorithm.ZLIB) {
-            throw new Error('Full-flush fragments require zlib compression');
+            throw new ProtocolCodecErrors.FragmentWithoutZlib();
         }
 
         return deflateRawAsync(payload, { level: this.level, finishFlush: zlibConstants.Z_FULL_FLUSH });
@@ -178,7 +179,7 @@ export class CompressionCodec {
             case PacketCompressionAlgorithm.SNAPPY:
                 return snappyDecompress(payload, maxOutputLength);
             default:
-                throw new Error(`Unsupported compression algorithm: ${algorithm}`);
+                throw new ProtocolCodecErrors.UnsupportedCompressionAlgorithm({ algorithm });
         }
     }
 
@@ -195,7 +196,7 @@ export class CompressionCodec {
             case PacketCompressionAlgorithm.SNAPPY:
                 return snappyDecompress(payload, maxOutputLength);
             default:
-                throw new Error(`Unsupported compression algorithm: ${algorithm}`);
+                throw new ProtocolCodecErrors.UnsupportedCompressionAlgorithm({ algorithm });
         }
     }
 

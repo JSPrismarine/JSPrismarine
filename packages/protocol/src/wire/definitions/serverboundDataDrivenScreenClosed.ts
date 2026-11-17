@@ -10,6 +10,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * The docs' `DataDrivenScreenClosedReason`. The schema gives the field no `Enum-as-Value`
@@ -41,7 +42,7 @@ const closeReason = t.custom<DataDrivenScreenClosedReason>(
     (s) => {
         const value = t.string.read(s);
         if (!isCloseReason(value)) {
-            throw new Error(`Unknown DataDrivenScreenClosedReason "${value}"`);
+            throw new ProtocolWireErrors.UnknownScreenCloseReason({ value });
         }
         return value;
     }

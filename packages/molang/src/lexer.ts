@@ -1,3 +1,5 @@
+import { MolangErrors } from '@jsprismarine/errors/molang';
+
 /** Keywords the parser treats specially. Everything else that looks like a word is an identifier. */
 export const KEYWORDS = ['return', 'loop', 'for_each', 'break', 'continue', 'this', 'true', 'false'] as const;
 
@@ -13,18 +15,6 @@ export interface Token {
     value: string;
     /** Offset of the token's first character in the source text. */
     start: number;
-}
-
-/** Raised when the source text cannot be tokenized or parsed. */
-export class MolangSyntaxError extends Error {
-    public constructor(
-        message: string,
-        /** Offset in the source text where the error was found. */
-        public readonly offset: number
-    ) {
-        super(`${message} at offset ${offset}`);
-        this.name = 'MolangSyntaxError';
-    }
 }
 
 const TWO_CHAR_OPERATORS = ['&&', '||', '==', '!=', '<=', '>=', '??', '->'] as const;
@@ -64,7 +54,7 @@ export function tokenize(source: string): Token[] {
         }
         if (char === "'") {
             const end = source.indexOf("'", index + 1);
-            if (end < 0) throw new MolangSyntaxError('unterminated string', start);
+            if (end < 0) throw new MolangErrors.UnterminatedStringAtOffset({ offset: start });
             tokens.push({ kind: 'string', value: source.slice(index + 1, end), start });
             index = end + 1;
             continue;
@@ -90,7 +80,7 @@ export function tokenize(source: string): Token[] {
             index++;
             continue;
         }
-        throw new MolangSyntaxError(`unexpected character ${JSON.stringify(char)}`, start);
+        throw new MolangErrors.UnexpectedCharacterAtOffset({ char: JSON.stringify(char), offset: start });
     }
     return tokens;
 }

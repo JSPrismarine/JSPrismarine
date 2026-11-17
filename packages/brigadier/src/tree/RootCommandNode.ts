@@ -5,6 +5,7 @@ import type CommandContextBuilder from '../context/CommandContextBuilder';
 import Suggestions from '../suggestion/Suggestions';
 import type SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
 import CommandNode from './CommandNode';
+import { BrigadierErrors } from '@jsprismarine/errors/brigadier';
 
 export default class RootCommandNode<S> extends CommandNode<S> {
     public constructor() {
@@ -47,7 +48,7 @@ export default class RootCommandNode<S> extends CommandNode<S> {
     }
 
     public createBuilder(): ArgumentBuilder<S, any> {
-        throw new Error('Cannot convert root into a builder');
+        throw new BrigadierErrors.CannotConvertRootIntoBuilder();
     }
 
     public getSortedKey(): string {

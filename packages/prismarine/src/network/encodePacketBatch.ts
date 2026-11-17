@@ -3,6 +3,7 @@ import { BatchCodec, DEFAULT_COMPRESSION_LEVEL } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
 import type { ProtocolCodec } from '@jsprismarine/protocol';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** Options the server supplies when framing already-encoded Minecraft packets. */
 export interface PacketBatchOptions {
@@ -197,9 +198,10 @@ export const encodePacketBatchFromBuffers = (
     options: PacketBatchOptions = {}
 ): EncodedPacketBatch => {
     if (packets.length !== packetBuffers.length) {
-        throw new RangeError(
-            `Packet and buffer counts differ: ${packets.length} packets, ${packetBuffers.length} buffers`
-        );
+        throw new PrismarineNetworkErrors.BufferCountMismatch({
+            packetsCount: packets.length,
+            packetBuffersCount: packetBuffers.length
+        });
     }
 
     const batchCodec = batchCodecFor(options);
@@ -227,9 +229,10 @@ export const encodePacketBatchFromBuffersBySize = (
     options: PacketBatchOptions = {}
 ): EncodedPacketBatch | Promise<EncodedPacketBatch> => {
     if (packets.length !== packetBuffers.length) {
-        throw new RangeError(
-            `Packet and buffer counts differ: ${packets.length} packets, ${packetBuffers.length} buffers`
-        );
+        throw new PrismarineNetworkErrors.BufferCountMismatch({
+            packetsCount: packets.length,
+            packetBuffersCount: packetBuffers.length
+        });
     }
 
     const batchCodec = batchCodecFor(options);
@@ -391,7 +394,7 @@ const canUseFullFlushFragments = (options: PacketBatchOptions): boolean =>
 
 const requiredFragmentCodec = (options: PacketBatchOptions): ProtocolCodec => {
     if (options.fragmentCodec === undefined) {
-        throw new Error('Full-flush fragments require a protocol codec cache key');
+        throw new PrismarineNetworkErrors.FragmentWithoutCodecKey();
     }
     return options.fragmentCodec;
 };
@@ -399,7 +402,10 @@ const requiredFragmentCodec = (options: PacketBatchOptions): ProtocolCodec => {
 const fragmentKeysFor = (buffers: readonly Buffer[], options: PacketBatchOptions): readonly Buffer[] => {
     const keys = options.fragmentKeys ?? buffers;
     if (keys.length !== buffers.length) {
-        throw new RangeError(`Packet and fragment-key counts differ: ${buffers.length} packets, ${keys.length} keys`);
+        throw new PrismarineNetworkErrors.FragmentKeyCountMismatch({
+            buffersCount: buffers.length,
+            keysCount: keys.length
+        });
     }
     return keys;
 };
@@ -407,9 +413,10 @@ const fragmentKeysFor = (buffers: readonly Buffer[], options: PacketBatchOptions
 const fragmentDiscriminatorsFor = (buffers: readonly Buffer[], options: PacketBatchOptions): readonly string[] => {
     const discriminators = options.fragmentKeyDiscriminators ?? buffers.map(() => '');
     if (discriminators.length !== buffers.length) {
-        throw new RangeError(
-            `Packet and fragment-discriminator counts differ: ${buffers.length} packets, ${discriminators.length} discriminators`
-        );
+        throw new PrismarineNetworkErrors.DiscriminatorCountMismatch({
+            buffersCount: buffers.length,
+            discriminatorsCount: discriminators.length
+        });
     }
     return discriminators;
 };

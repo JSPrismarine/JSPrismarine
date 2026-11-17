@@ -6,11 +6,6 @@ export type TemplatePosition = readonly [x: number, y: number, z: number];
 /** A fractional position, as entity coordinates are stored. */
 export type EntityPosition = readonly [x: number, y: number, z: number];
 
-/** Raised when bytes are not a readable structure template. */
-export class StructureFormatError extends Error {
-    public override name = 'StructureFormatError';
-}
-
 /** One Java Edition block state: a namespaced identifier and its property values. */
 export interface JavaBlockState {
     /** The namespaced Java block identifier, for example `minecraft:oak_stairs`. */

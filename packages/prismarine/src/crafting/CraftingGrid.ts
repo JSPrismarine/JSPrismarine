@@ -1,4 +1,5 @@
 import type { Item } from '../item/Item';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /**
  * What a station has been given, as a rectangle.
@@ -16,7 +17,12 @@ export class CraftingGrid {
         slots: ReadonlyArray<Item | null>
     ) {
         if (slots.length !== width * height) {
-            throw new Error(`A ${width}x${height} grid needs ${width * height} slots, was given ${slots.length}`);
+            throw new PrismarineServerErrors.CraftingGridSizeMismatch({
+                width,
+                height,
+                value: width * height,
+                slotsCount: slots.length
+            });
         }
 
         this.slots = slots;

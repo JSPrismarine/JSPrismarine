@@ -16,6 +16,7 @@ import { isRecord } from '@jsprismarine/entities';
 import { defineComponentState, stateField } from '@jsprismarine/entities/componentState';
 
 import type { DataEntity } from './DataEntity';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /** The type of every set of evoker fangs. */
 export const EVOKER_FANGS = 'minecraft:evocation_fang';
@@ -54,13 +55,21 @@ const tunings = new WeakMap<object, FangsTuning>();
  */
 export const fangsTuningOf = (entity: DataEntity): FangsTuning => {
     const params = entity.instance.componentParams(EVOKER_FANGS_COMPONENT);
-    if (!isRecord(params)) throw new TypeError(`${entity.identifier} has no ${EVOKER_FANGS_COMPONENT} component`);
+    if (!isRecord(params))
+        throw new PrismarineEntityErrors.MissingItemComponent({
+            identifier: entity.identifier,
+            itemComponent: EVOKER_FANGS_COMPONENT
+        });
     const cached = tunings.get(params);
     if (cached !== undefined) return cached;
 
     const number = (key: string): number => {
         const value = params[key];
-        if (typeof value !== 'number') throw new TypeError(`${EVOKER_FANGS_COMPONENT} needs a number for ${key}`);
+        if (typeof value !== 'number')
+            throw new PrismarineEntityErrors.ItemComponentFieldNotNumber({
+                itemComponent: EVOKER_FANGS_COMPONENT,
+                key
+            });
         return value;
     };
     const read: FangsTuning = {

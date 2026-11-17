@@ -19,6 +19,7 @@ import type {
     LiquidReaction
 } from '@jsprismarine/blocks';
 import { blockProperties } from '@jsprismarine/blocks';
+import { BlockBehaviorsErrors } from '@jsprismarine/errors/block-behaviors';
 
 /** The state values a behavior writes when it places or rewrites a block. */
 export type BlockStates = Readonly<Record<string, BlockStateValue>>;
@@ -144,7 +145,7 @@ export type PushReaction = BlockProperties['pushReaction'];
 /** The values a block with no `jsprismarine:block_properties` component reads as. */
 export const DEFAULT_BLOCK_PROPERTIES: BlockProperties = (() => {
     const parsed = blockProperties.schema({});
-    if (!parsed.ok) throw new Error(`the block properties schema rejected its own defaults: ${parsed.message}`);
+    if (!parsed.ok) throw new BlockBehaviorsErrors.BlockPropertiesDefaultsRejected({ message: parsed.message });
     return parsed.value;
 })();
 

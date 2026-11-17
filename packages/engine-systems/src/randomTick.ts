@@ -20,6 +20,7 @@
 
 import { isRandomlyTicking } from './blockRules';
 import type { BlockPosition, BlockRef, WorldAccess } from './world';
+import { EngineSystemsErrors } from '@jsprismarine/errors/engine-systems';
 
 /** Java's `random_tick_speed` default, read from the game rule registry. */
 export const DEFAULT_RANDOM_TICK_SPEED = 3;
@@ -52,7 +53,7 @@ export class BlockRandomPositions {
     /** Restores a captured signed 32-bit state without drawing a position. */
     restore(state: number): void {
         if (!Number.isInteger(state) || state < -0x8000_0000 || state > 0x7fff_ffff) {
-            throw new RangeError('Random tick state must be a signed 32-bit integer');
+            throw new EngineSystemsErrors.InvalidRandomTickState();
         }
 
         this.state = state;

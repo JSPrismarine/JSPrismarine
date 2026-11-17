@@ -10,6 +10,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * `PartyDestinationCookieIntent`: why the server hands the client a cookie. The schema types
@@ -36,7 +37,7 @@ const intentName = t.custom<PartyDestinationCookieIntent>(
     (s, v) => t.string.write(s, v),
     (s) => {
         const name = t.string.read(s);
-        if (!isIntent(name)) throw new Error(`Unknown party destination cookie intent "${name}"`);
+        if (!isIntent(name)) throw new ProtocolWireErrors.UnknownPartyDestinationCookieIntent({ name });
         return name;
     }
 );

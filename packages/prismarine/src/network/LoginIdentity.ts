@@ -5,6 +5,7 @@ import { decodeJwt } from 'jose';
 import type { Login } from '@jsprismarine/protocol/packet/LoginPacket';
 import Device from '../utils/Device';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** The skin fields `Skin.fromJWT` reads, named from its parameter so the two cannot drift. */
 type SkinData = Parameters<typeof Skin.fromJWT>[0];
@@ -67,7 +68,7 @@ const claimsOf = <T>(token: string): T => {
     try {
         claims = decodeJwt(token);
     } catch {
-        throw new Error('The login token is not a JWT');
+        throw new PrismarineNetworkErrors.LoginTokenIsNotJwt();
     }
     return claims as T; // the caller names the claim shape the login protocol defines; nothing checks it here
 };

@@ -7,6 +7,7 @@ import type { WorldPlayerData } from '../config/JsonConfigTypes';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import type BaseProvider from './providers/BaseProvider';
 import { PLAYER_DATA_FOLDER, playerDataFileName } from './WorldPaths';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** What the service needs from the level that owns it. */
 export interface PlayerPersistenceOptions {
@@ -165,9 +166,7 @@ export class PlayerPersistence {
     private async write(key: string, record: WorldPlayerData, requireSuccess: boolean): Promise<void> {
         if (this.options.isClosed()) {
             if (requireSuccess) {
-                throw new Error(
-                    `Cannot save replay player data for ${key} after level ${this.options.levelName} closed`
-                );
+                throw new PrismarineWorldErrors.PlayerDataSaveAfterClose({ key, levelName: this.options.levelName });
             }
             this.options.logger().debug(`${key} left after ${this.options.levelName} closed`, 'Level/savePlayerData');
             return;
@@ -187,7 +186,7 @@ export class PlayerPersistence {
             if (owner !== undefined) {
                 const ownersFile = this.recordFile(owner);
                 if (fs.existsSync(ownersFile)) {
-                    throw new Error(`${file} holds ${owner}'s record, which also has ${ownersFile}`);
+                    throw new PrismarineWorldErrors.DuplicatePlayerRecord({ file, owner, ownersFile });
                 }
                 await fs.promises.rename(file, ownersFile);
             }
@@ -215,7 +214,7 @@ export class PlayerPersistence {
         const folder = path.resolve(this.options.folder, PLAYER_DATA_FOLDER);
         const file = path.resolve(folder, playerDataFileName(key));
         if (path.dirname(file) !== folder)
-            throw new Error(`Player data for ${JSON.stringify(key)} would leave ${folder}`);
+            throw new PrismarineWorldErrors.PlayerDataPathEscapes({ key: JSON.stringify(key), folder });
         return file;
     }
 

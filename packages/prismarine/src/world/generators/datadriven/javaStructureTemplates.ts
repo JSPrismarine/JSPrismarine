@@ -25,6 +25,7 @@ import { readJavaStructureTemplate } from '@jsprismarine/structures';
 
 import type { TemplateSource } from './javaTemplatePlacement';
 import type { JavaRegistry } from './javaWorldgenData';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** Points the loader at a local copy of one source. */
 export const JAVA_TEMPLATE_ENV = {
@@ -198,7 +199,7 @@ export const readTemplateJar = (jarPath: string): Map<string, Uint8Array> => {
     const outer = readZip(readFileSync(jarPath));
     const innerName = [...outer.keys()].find((name) => INNER_JAR.test(name));
     const inner = innerName === undefined ? undefined : outer.get(innerName);
-    if (inner === undefined) throw new Error(`${jarPath} holds no inner server jar`);
+    if (inner === undefined) throw new PrismarineGenerationErrors.NoInnerServerJar({ jarPath });
 
     const templates = new Map<string, Uint8Array>();
     for (const [name, bytes] of readZip(inner)) {

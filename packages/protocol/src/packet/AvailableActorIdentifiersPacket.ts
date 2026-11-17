@@ -3,6 +3,7 @@ import { layoutAt } from '../wire/WireLayout';
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 import type { ProtocolContext } from '../ProtocolContext';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * Every actor type the client may be asked to render, sent once at world start.
@@ -30,9 +31,7 @@ export default class AvailableActorIdentifiersPacket extends FieldNetworkPacket 
     public encodePayload(context?: ProtocolContext): void {
         const identifiers = this.identifiers ?? context?.entityIdentifiers;
         if (identifiers === undefined) {
-            throw new Error(
-                'AvailableActorIdentifiersPacket requires entity identifier data in the packet or protocol context'
-            );
+            throw new ProtocolCodecErrors.MissingActorIdentifiers();
         }
 
         layoutAt(availableActorIdentifiersPacket, this.codecProtocol).encode(this, { identifiers });

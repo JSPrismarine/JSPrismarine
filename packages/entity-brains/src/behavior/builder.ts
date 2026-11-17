@@ -28,6 +28,7 @@ import { MemorySlot } from '../memory.js';
 import type { BrainContext, BrainMob } from '../world.js';
 import type { BehaviorControl, Trigger } from './control.js';
 import { OneShot } from './control.js';
+import { EntityBrainsErrors } from '@jsprismarine/errors/entity-brains';
 
 /** The writes every accessor allows. Java's `MemoryAccessor`. */
 export interface MemoryWriter<Value> {
@@ -97,7 +98,10 @@ export class BehaviorBuilder<Accessors extends readonly unknown[]> {
                         ...writer(brain, memory),
                         get: () => {
                             if (value === undefined) {
-                                throw new Error(`${this.name} read an absent memory: ${memory.name}`);
+                                throw new EntityBrainsErrors.AbsentMemory({
+                                    name: this.name,
+                                    memoryName: memory.name
+                                });
                             }
                             return value;
                         }

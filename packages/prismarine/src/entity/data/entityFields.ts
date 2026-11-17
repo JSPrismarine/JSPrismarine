@@ -20,16 +20,13 @@ import { MOB_EQUIPMENT_SLOTS } from '../equipment';
 import type { StatusEffect } from '../StatusEffect';
 import type { LoggedBodyState, StatusEffectClock } from './DataEntity';
 import { containerSlotsOf, equipmentOf, positionOf } from './persistence';
-
-/** A logged value had a shape its field never holds. */
-export class LoggedFieldError extends TypeError {
-    public override readonly name = 'LoggedFieldError';
-}
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 const wrong = (field: string, value: PlainData): never => {
-    throw new LoggedFieldError(
-        `${field} cannot hold ${JSON.stringify(value, (_key, item) => (typeof item === 'bigint' ? `${item}n` : item))}`
-    );
+    throw new PrismarineEntityErrors.InvalidLoggedField({
+        field,
+        value: JSON.stringify(value, (_key, item) => (typeof item === 'bigint' ? `${item}n` : item))
+    });
 };
 
 /** Reads a logged number, naming `field` when the value is something else. */

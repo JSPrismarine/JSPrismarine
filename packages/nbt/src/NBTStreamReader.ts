@@ -7,6 +7,7 @@ import LongVal from './types/LongVal';
 import NumberVal from './types/NumberVal';
 import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';
+import { NbtErrors } from '@jsprismarine/errors/nbt';
 
 export default class NBTStreamReader {
     protected input: BinaryStream;
@@ -33,13 +34,13 @@ export default class NBTStreamReader {
     }
 
     protected readByteValue(): ByteVal {
-        this.expectInput(1, 'Invalid NBT Data: Expected byte');
+        this.expectInput(1, NbtErrors.ExpectedByte);
         return new ByteVal(this.input.readByte());
     }
 
     protected readStringValue(): StringVal {
         const length: number = this.useVarint ? this.input.readUnsignedVarInt() : this.readStringLength();
-        this.expectInput(length, 'Invalid NBT Data: Expected string bytes');
+        this.expectInput(length, NbtErrors.ExpectedString);
 
         const data: Buffer = this.input.read(length);
 
@@ -47,7 +48,7 @@ export default class NBTStreamReader {
     }
 
     protected readShortValue(): ShortVal {
-        this.expectInput(2, 'Invalid NBT Data: Expected short');
+        this.expectInput(2, NbtErrors.ExpectedShort);
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return new ShortVal(this.input.readShortLE());
@@ -58,7 +59,7 @@ export default class NBTStreamReader {
 
     /** The unsigned counterpart of {@link readShortValue}, for string byte counts only. */
     private readStringLength(): number {
-        this.expectInput(2, 'Invalid NBT Data: Expected string length');
+        this.expectInput(2, NbtErrors.ExpectedStringLength);
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return this.input.readUnsignedShortLE();
@@ -72,7 +73,7 @@ export default class NBTStreamReader {
             return new NumberVal(this.input.readVarInt());
         }
 
-        this.expectInput(4, 'Invalid NBT Data: Expected int');
+        this.expectInput(4, NbtErrors.ExpectedInt);
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return new NumberVal(this.input.readIntLE());
@@ -86,7 +87,7 @@ export default class NBTStreamReader {
             return new LongVal(this.input.readVarLong());
         }
 
-        this.expectInput(8, 'Invalid NBT Data: Expected long');
+        this.expectInput(8, NbtErrors.ExpectedLong);
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return new LongVal(this.input.readLongLE());
@@ -96,7 +97,7 @@ export default class NBTStreamReader {
     }
 
     protected readFloatValue(): FloatVal {
-        this.expectInput(4, 'Invalid NBT Data: Expected long');
+        this.expectInput(4, NbtErrors.ExpectedLong);
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return new FloatVal(this.input.readFloatLE());
@@ -106,7 +107,7 @@ export default class NBTStreamReader {
     }
 
     protected readDoubleValue(): DoubleVal {
-        this.expectInput(8, 'Invalid NBT Data: Expected double');
+        this.expectInput(8, NbtErrors.ExpectedDouble);
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return new DoubleVal(this.input.readDoubleLE());
@@ -116,14 +117,14 @@ export default class NBTStreamReader {
     }
 
     protected readByteArrayValue(): Buffer {
-        const size = this.readLength('Invalid NBT Data: Negative byte array length');
-        this.expectInput(size, 'Invalid NBT Data: Expected byte array data');
+        const size = this.readLength(NbtErrors.NegativeByteArrayLength);
+        this.expectInput(size, NbtErrors.ExpectedByteArray);
         return this.input.read(size);
     }
 
     protected readIntArrayValue(): number[] {
-        const size = this.readLength('Invalid NBT Data: Negative int array length');
-        this.expectInput(this.isUsingVarint() ? size : size * 4, 'Invalid NBT Data: Expected int array data');
+        const size = this.readLength(NbtErrors.NegativeIntArrayLength);
+        this.expectInput(this.isUsingVarint() ? size : size * 4, NbtErrors.ExpectedIntArray);
         const result: number[] = [];
         for (let i = 0; i < size; i++) {
             result.push(this.readIntValue().getValue());
@@ -137,13 +138,13 @@ export default class NBTStreamReader {
      * shape any NBT writer produces, and a negative size used to slip past the bounds and
      * allocation checks below and move the stream's read index backward.
      */
-    protected readLength(message: string): number {
+    protected readLength(error: new () => Error): number {
         const length = this.readIntValue().getValue();
-        if (length < 0) throw new Error(message);
+        if (length < 0) throw new error();
         return length;
     }
 
-    protected expectInput(remaining: number, message: string, alterAllocationLimit = true): void {
+    protected expectInput(remaining: number, error: new () => Error, alterAllocationLimit = true): void {
         if (alterAllocationLimit) {
             this.alterAllocationLimit(remaining);
         }
@@ -152,14 +153,14 @@ export default class NBTStreamReader {
         // to be rewound afterwards, and this runs once per tag in the payload.
         const length = this.input.getBuffer().byteLength - this.input.getReadIndex();
         if (length < remaining) {
-            throw new Error(message);
+            throw new error();
         }
     }
 
     public alterAllocationLimit(remaining: number): void {
         if (this.allocateLimit !== -1) {
             if (this.allocateLimit - remaining < 0) {
-                throw new Error('Could not allocate more bytes due to reaching the set limit');
+                throw new NbtErrors.AllocationLimitReached();
             } else {
                 this.allocateLimit -= remaining;
             }

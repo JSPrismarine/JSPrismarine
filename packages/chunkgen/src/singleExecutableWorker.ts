@@ -14,6 +14,8 @@ import { writeHeapSnapshot } from 'node:v8';
 import { parentPort, threadId, workerData } from 'node:worker_threads';
 
 import type { GenerationResult, GenerationTask, GenerationWorkerData, WorkerPipelineFactory } from './GenerationPool';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
+import { asError } from '@jsprismarine/errors/common';
 
 /** What the parent sends to this worker. */
 interface TaskMessage {
@@ -34,14 +36,11 @@ const isPipelineFactory = (value: unknown): value is WorkerPipelineFactory => ty
 
 /** Prevents generation output from depending on which isolate happens to build a chunk. */
 const refuseMathRandom = (): never => {
-    throw new Error(
-        'Math.random is seeded per V8 isolate, so a chunk that used it would depend on which ' +
-            'worker built it. Draw from the seed and the position instead.'
-    );
+    throw new ChunkgenErrors.MathRandomInGeneration();
 };
 
 const port = parentPort;
-if (port === null) throw new Error('The embedded generation worker needs a parent thread');
+if (port === null) throw new ChunkgenErrors.WorkerWithoutParentThread();
 
 // The pool is the only code that creates this worker and writes workerData.
 const data = workerData as GenerationWorkerData;
@@ -51,14 +50,14 @@ const startupStats = data.workerStartupStats === undefined ? undefined : new Big
 const startupSlot = startupStats === undefined ? undefined : Atomics.add(startupStats, 0, 1n) + 1n;
 let heapSnapshotWritten = false;
 if (heapStats !== undefined && heapSlot !== undefined && heapSlot >= heapStats.length) {
-    throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker heap stats buffer`);
+    throw new ChunkgenErrors.WorkerHasNoHeapStatsSlot({ threadId });
 }
 if (
     startupStats !== undefined &&
     startupSlot !== undefined &&
     startupSlot > BigInt(Math.floor((startupStats.length - 1) / 3))
 ) {
-    throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker startup stats buffer`);
+    throw new ChunkgenErrors.WorkerHasNoStartupStatsSlot({ threadId });
 }
 
 const loadPipeline = async () => {
@@ -66,8 +65,7 @@ const loadPipeline = async () => {
     if (data.pipeline.startsWith('sea-asset:')) {
         const asset = data.pipeline.slice('sea-asset:'.length);
         const sea = await import('node:sea');
-        if (!sea.isSea())
-            throw new Error(`Cannot load embedded generation pipeline ${asset} outside a single executable`);
+        if (!sea.isSea()) throw new ChunkgenErrors.EmbeddedPipelineOutsideExecutable({ asset });
         const source = sea.getAsset(asset);
         module = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
     } else {
@@ -75,7 +73,7 @@ const loadPipeline = async () => {
     }
 
     const factory = module.createGenerationPipeline;
-    if (!isPipelineFactory(factory)) throw new Error(`${data.pipeline} does not export createGenerationPipeline`);
+    if (!isPipelineFactory(factory)) throw new ChunkgenErrors.EmbeddedPipelineHasNoFactory({ pipeline: data.pipeline });
     Math.random = refuseMathRandom;
     return factory(data.setup);
 };
@@ -119,7 +117,7 @@ port.on('message', (message: TaskMessage) => {
             reply = { id: message.id, ok: true, result };
             port.postMessage(reply, [...result.transferList]);
         } catch (error) {
-            const thrown = error instanceof Error ? error : new Error(String(error));
+            const thrown = asError(error);
             reply = {
                 id: message.id,
                 ok: false,

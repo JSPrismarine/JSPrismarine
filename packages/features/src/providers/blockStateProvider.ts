@@ -13,6 +13,7 @@ import type { BlockPredicate } from './blockPredicate';
 import { parseBlockPredicate } from './blockPredicate';
 import type { IntProvider } from './valueProviders';
 import { parseIntProvider, parseWeightedList } from './valueProviders';
+import { FeaturesErrors } from '@jsprismarine/errors/features';
 
 const f32 = Math.fround;
 
@@ -59,7 +60,7 @@ export const simpleProvider = (state: BlockState): BlockStateProvider => provide
 
 /** Draws one of several states by weight. Costs one draw. */
 export const weightedProvider = (entries: readonly Weighted<BlockState>[]): BlockStateProvider => {
-    if (entries.length === 0) throw new RangeError('A weighted state provider needs at least one entry');
+    if (entries.length === 0) throw new FeaturesErrors.EmptyWeightedStateProvider();
     return provider('weighted', (_world, random) => randomWeighted(entries, random));
 };
 
@@ -70,7 +71,7 @@ export const weightedProvider = (entries: readonly Weighted<BlockState>[]): Bloc
  * patches instead of static.
  */
 export const noiseProvider = (noise: Noise, scale: number, states: readonly BlockState[]): BlockStateProvider => {
-    if (states.length === 0) throw new RangeError('A noise state provider needs at least one state');
+    if (states.length === 0) throw new FeaturesErrors.EmptyNoiseStateProvider();
     return provider('noise', (_world, _random, position) => stateFromNoise(states, sampleAt(noise, position, scale)));
 };
 
@@ -80,7 +81,7 @@ const sampleAt = (noise: Noise, position: BlockPos, scale: number): number =>
 const stateFromNoise = (states: readonly BlockState[], value: number): BlockState => {
     const placement = Math.min(Math.max(f32(f32(1 + value) / 2), 0), 0.9999);
     const picked = states[Math.trunc(placement * states.length)];
-    if (picked === undefined) throw new RangeError('Noise state index fell outside the state list');
+    if (picked === undefined) throw new FeaturesErrors.NoiseStateIndexOutOfRange();
     return picked;
 };
 
@@ -361,7 +362,7 @@ export const parseBlockStateProvider = (
             return copyPropertiesProvider(parseBlockStateProvider(raw['source'], `${path}.source`, resolve));
 
         default:
-            return fail(path, `unknown block state provider type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownBlockStateProviderType({ path, type: JSON.stringify(type) }));
     }
 };
 
@@ -370,5 +371,5 @@ const parseDirectionValue = (value: unknown, path: string): Direction => {
         // The membership test narrows the string to the Direction union.
         return value as Direction;
     }
-    return fail(path, `expected a direction, got ${JSON.stringify(value)}`);
+    return fail(new FeaturesErrors.ExpectedDirection({ path, source: JSON.stringify(value) }));
 };

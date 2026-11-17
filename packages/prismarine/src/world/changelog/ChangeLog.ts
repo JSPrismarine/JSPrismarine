@@ -1,6 +1,7 @@
 import type { ChangeEntry, StateEntry } from './ChangeEntry';
 import { inverseOf } from './ChangeEntry';
 import type { TickHeader } from './TickHeader';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * Where an entry sits in the history: the tick that appended it and its position in that tick.
@@ -25,11 +26,6 @@ export type SealedTick = {
     /** What the world's own clocks and in-flight work were as the tick sealed, when the world gave it. */
     readonly header?: TickHeader;
 };
-
-/** A change log was used out of order, such as appending to a tick that is already sealed. */
-export class ChangeLogError extends Error {
-    public override readonly name = 'ChangeLogError';
-}
 
 /**
  * The entries one unit of work appended, from `startSpan` until `closeSpan` or `revertSpan`.
@@ -100,8 +96,9 @@ export class ChangeLog {
      * @throws {ChangeLogError} When a tick is still open or `tick` is not later than the last.
      */
     public begin(tick: number): void {
-        if (this.current) throw new ChangeLogError(`Tick ${this.current.tick} is still open`);
-        if (tick <= this.lastBegun) throw new ChangeLogError(`Tick ${tick} does not follow tick ${this.lastBegun}`);
+        if (this.current) throw new PrismarineWorldErrors.TickIsStillOpen({ tick: this.current.tick });
+        if (tick <= this.lastBegun)
+            throw new PrismarineWorldErrors.TickOutOfSequence({ tick, lastBegun: this.lastBegun });
         this.retire();
         this.lastBegun = tick;
         this.current = { tick, entries: [] };
@@ -130,7 +127,10 @@ export class ChangeLog {
     public seal(header?: TickHeader): SealedTick {
         const current = this.open('seal');
         if (this.spans.length > 0)
-            throw new ChangeLogError(`Cannot seal tick ${current.tick}: ${this.spans.length} span(s) still open`);
+            throw new PrismarineWorldErrors.SealWithOpenSpans({
+                tick: current.tick,
+                spansCount: this.spans.length
+            });
         this.current = null;
         const sealed: SealedTick = header === undefined ? current : { ...current, header };
         this.retained = sealed;
@@ -158,7 +158,7 @@ export class ChangeLog {
      */
     public closeSpan(span: Span): void {
         this.refuseWhileReverting('close a span');
-        if (this.spans.at(-1) !== span) throw new ChangeLogError('Only the innermost open span can be closed');
+        if (this.spans.at(-1) !== span) throw new PrismarineWorldErrors.SpanClosedOutOfOrder();
         this.spans.pop();
     }
 
@@ -181,13 +181,11 @@ export class ChangeLog {
     public revertSpan(span: Span, apply: InverseApplier): readonly ChangeEntry[] {
         this.refuseWhileReverting('revert a span');
         const depth = this.spans.lastIndexOf(span);
-        if (depth === -1) throw new ChangeLogError('Only an open span can be reverted');
+        if (depth === -1) throw new PrismarineWorldErrors.RevertClosedSpan();
         const current = this.open('revert a span in');
         for (let sequence = span.start; sequence < current.entries.length; sequence++) {
             if (current.entries[sequence]?.kind === 'chunk')
-                throw new ChangeLogError(
-                    `Cannot revert a span past the chunk entry at tick ${current.tick}, sequence ${sequence}`
-                );
+                throw new PrismarineWorldErrors.RevertPastChunkEntry({ tick: current.tick, sequence });
         }
 
         const removed = current.entries.splice(span.start);
@@ -217,12 +215,12 @@ export class ChangeLog {
     private open(action: string): OpenTick {
         if (this.current) return this.current;
         if (this.retained?.tick === this.lastBegun)
-            throw new ChangeLogError(`Cannot ${action} tick ${this.lastBegun}: it is sealed`);
-        throw new ChangeLogError(`Cannot ${action} a tick: none is open`);
+            throw new PrismarineWorldErrors.TickSealed({ action, lastBegun: this.lastBegun });
+        throw new PrismarineWorldErrors.NoOpenTick({ action });
     }
 
     private refuseWhileReverting(action: string): void {
-        if (this.reverting) throw new ChangeLogError(`Cannot ${action} while a span is being reverted`);
+        if (this.reverting) throw new PrismarineWorldErrors.ChangeDuringRevert({ action });
     }
 
     private retire(): void {

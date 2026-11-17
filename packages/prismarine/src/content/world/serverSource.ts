@@ -31,6 +31,7 @@ import { worldKeyOf, worldOfKey } from '../../world/worldKey';
 import type { ServerItemActorPort } from '../../item/actorPort';
 import type { ContentEffectSink, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import type { ContentLookup } from './views';
+import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 
 /** What {@link serverWorldSource} is built over. */
 export interface ServerWorldSourceOptions {
@@ -82,7 +83,7 @@ export interface ServerWorldSourceOptions {
 const worldEffectSink = (world: () => World | undefined, dimension: string): ContentEffectSink => {
     const live = (): World => {
         const loaded = world();
-        if (loaded === undefined) throw new Error(`no ${dimension} world is loaded, so nothing can be played in it`);
+        if (loaded === undefined) throw new PrismarineContentErrors.NoWorldToPlayIn({ dimension });
         return loaded;
     };
 
@@ -366,12 +367,12 @@ export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorl
                 .map(([key, wiring]) => {
                     const random = wiring.adapter.random;
                     if (!isStatefulRandomSource(random)) {
-                        throw new Error(`The ${key} content random source cannot be saved for replay`);
+                        throw new PrismarineContentErrors.RandomSourceNotSavable({ key });
                     }
                     return [key, random.saveState()] as const;
                 }),
         restoreRandomStates: (states: unknown) => {
-            if (!Array.isArray(states)) throw new TypeError('Invalid content random states');
+            if (!Array.isArray(states)) throw new PrismarineContentErrors.InvalidContentRandomStates();
 
             const entries = new Map<string, unknown>();
             for (const entry of states) {
@@ -381,14 +382,14 @@ export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorl
                     typeof entry[0] !== 'string' ||
                     entries.has(entry[0])
                 ) {
-                    throw new TypeError('Invalid content random state entry');
+                    throw new PrismarineContentErrors.InvalidContentRandomStateEntry();
                 }
                 entries.set(entry[0], entry[1]);
             }
 
             const missing = [...wirings.keys()].filter((key) => !entries.has(key));
             if (missing.length > 0) {
-                throw new Error(`Replay state has no content random stream for: ${missing.join(', ')}`);
+                throw new PrismarineContentErrors.ReplayMissingRandomStreams({ missing: missing.join(', ') });
             }
             // Validate every saved counter before constructing adapters or changing a live stream.
             for (const state of entries.values()) {
@@ -397,7 +398,7 @@ export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorl
             }
 
             if (options.random !== undefined && !isStatefulRandomSource(options.random)) {
-                throw new Error('The configured content random source cannot be restored for replay');
+                throw new PrismarineContentErrors.ConfiguredRandomNotRestorable();
             }
 
             for (const key of entries.keys()) {
@@ -408,7 +409,7 @@ export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorl
             const prepared = [...entries].map(([key, state]) => {
                 const random = wirings.get(key)!.adapter.random;
                 if (!isStatefulRandomSource(random)) {
-                    throw new Error(`The ${key} content random source cannot be restored for replay`);
+                    throw new PrismarineContentErrors.RandomSourceNotRestorable({ key });
                 }
                 const candidate = seededRandom(0);
                 candidate.restoreState(state);

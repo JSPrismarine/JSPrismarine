@@ -2,6 +2,7 @@ import { createHash, createPublicKey, diffieHellman, generateKeyPairSync, random
 
 import { EncryptionCodec } from '@jsprismarine/protocol';
 import { BEDROCK_CURVE, compactEs384 } from '@jsprismarine/nethernet';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** Bytes of salt the server mixes into the key. */
 const SALT_BYTES = 16;
@@ -32,7 +33,7 @@ export class SessionEncryption {
     public async begin(clientPublicKey: string): Promise<SessionEncryptionHandshake> {
         const peer = createPublicKey({ key: Buffer.from(clientPublicKey, 'base64'), format: 'der', type: 'spki' });
         if (peer.asymmetricKeyType !== 'ec' || peer.asymmetricKeyDetails?.namedCurve !== BEDROCK_CURVE) {
-            throw new Error(`The client identity key is not a ${BEDROCK_CURVE} public key`);
+            throw new PrismarineNetworkErrors.InvalidClientIdentityKey({ bedrockCurve: BEDROCK_CURVE });
         }
 
         const salt = randomBytes(SALT_BYTES);

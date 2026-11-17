@@ -4,7 +4,7 @@ import type { Behavior } from './behaviors';
 import { BehaviorRegistry } from './behaviors';
 import type { BindContext } from './components';
 import type { Definition } from './definitions';
-import { ContentError } from './errors';
+import { ContentError } from '@jsprismarine/errors/content';
 
 interface BlockHooks {
     onPlace: (position: number) => void;

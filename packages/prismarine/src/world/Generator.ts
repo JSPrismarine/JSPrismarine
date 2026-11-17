@@ -3,6 +3,7 @@ import type { GenerationPriority, GenerationStatsSnapshot } from '@jsprismarine/
 import type { WorldConfig } from './World';
 import type Chunk from './chunk/Chunk';
 import type { StoredChunkReader } from './providers/Provider';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * How a generator refuses a chunk once {@link Generator.stopGenerating} has been called.
@@ -11,13 +12,13 @@ import type { StoredChunkReader } from './providers/Provider';
  * generated. Those are the same `Error` otherwise, and the start region has to report one and
  * re-throw the other.
  */
-export class GenerationStopped extends Error {
+export class GenerationStopped extends PrismarineWorldErrors.GenerationStopped {
     /**
      * @param cx - Chunk x of the request that was refused.
      * @param cz - Chunk z of the request that was refused.
      */
     public constructor(cx: number, cz: number) {
-        super(`Chunk ${cx},${cz} was not generated: the generator has stopped`);
+        super({ cx, cz });
         this.name = 'GenerationStopped';
     }
 }

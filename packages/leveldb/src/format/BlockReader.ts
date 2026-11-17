@@ -1,7 +1,7 @@
 import { ByteReader } from '../util/ByteReader';
-import { CorruptionError } from '../Errors';
 import { compareBytewise } from '../util/Comparator';
 import { compareInternalKeys } from './InternalKey';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 export interface BlockEntry {
     key: Buffer;
@@ -24,7 +24,7 @@ export class BlockReader {
     private seekScratch: Buffer | null = null;
 
     public constructor(data: Buffer, comparator: (a: Buffer, b: Buffer) => number) {
-        if (data.byteLength < 4) throw new CorruptionError('Block is too short to hold a restart count');
+        if (data.byteLength < 4) throw new LeveldbErrors.BlockTooShort();
 
         this.data = data;
         this.compare = comparator;
@@ -40,7 +40,7 @@ export class BlockReader {
         this.restartOffset = data.byteLength - 4 - this.restartCount * 4;
 
         if (this.restartOffset < 0) {
-            throw new CorruptionError(`Block declares ${this.restartCount} restart points it cannot hold`);
+            throw new LeveldbErrors.BlockRestartCountTooLarge({ restartCount: this.restartCount });
         }
     }
 
@@ -62,7 +62,7 @@ export class BlockReader {
         const valueLength = reader.varint32();
 
         if (shared > previousKey.byteLength) {
-            throw new CorruptionError(`Entry shares ${shared} bytes with a ${previousKey.byteLength} byte key`);
+            throw new LeveldbErrors.EntrySharesTooManyKeyBytes({ shared, byteLength: previousKey.byteLength });
         }
 
         const keySuffix = reader.bytes(nonShared);
@@ -136,13 +136,13 @@ export class BlockReader {
         const readVarint32 = (): number => {
             let result = 0;
             for (let shift = 0; shift <= 28; shift += 7) {
-                if (cursor >= this.restartOffset) throw new CorruptionError('Entry varint runs past its block');
+                if (cursor >= this.restartOffset) throw new LeveldbErrors.EntryVarintRunsPastBlock();
                 const byte = this.data.readUInt8(cursor++);
                 result = (result | ((byte & 0x7f) << shift)) >>> 0;
                 if ((byte & 0x80) === 0) return result;
             }
 
-            throw new CorruptionError('Entry varint does not terminate within 5 bytes');
+            throw new LeveldbErrors.EntryVarintUnterminated();
         };
 
         let low = 0;
@@ -155,7 +155,7 @@ export class BlockReader {
             const nonShared = readVarint32();
             const valueLength = readVarint32();
             if (shared !== 0 || cursor + nonShared + valueLength > this.restartOffset) {
-                throw new CorruptionError('Restart key is malformed');
+                throw new LeveldbErrors.RestartKeyIsMalformed();
             }
 
             const comparison = this.compareKeyRange(this.data, cursor, nonShared, target);
@@ -170,7 +170,7 @@ export class BlockReader {
             const nonShared = readVarint32();
             const valueLength = readVarint32();
             if (shared > previousLength || cursor + nonShared + valueLength > this.restartOffset) {
-                throw new CorruptionError('Entry runs past its block or shares too many key bytes');
+                throw new LeveldbErrors.EntryRunsPastBlock();
             }
 
             const keyLength = shared + nonShared;

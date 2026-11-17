@@ -3,12 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { findJavaWorldgenSources } from './javaWorldgenSources';
 import { loadJavaWorldgenRegistries } from './javaWorldgenData';
-import {
-    buildRegistryBundle,
-    readRegistryBundle,
-    RegistryBundleFormatError,
-    shareRegistryBundle
-} from './registryBundle';
+import { buildRegistryBundle, readRegistryBundle, shareRegistryBundle } from './registryBundle';
+import { RegistryBundleFormatError } from '@jsprismarine/errors/prismarine/generation';
 
 const sources = findJavaWorldgenSources();
 

@@ -6,6 +6,7 @@ import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import type { BiomeSection } from '../../chunk/ChunkBiomes';
 import { subChunkCount } from '../../Dimension';
 import type { DimensionType } from '../../DimensionType';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * The `Data3D` record: a heightmap, then one biome palette per sub chunk.
@@ -65,14 +66,14 @@ const readPalette = (stream: BinaryStream, below: BiomeSection | null): BiomeSec
 
     const bitsPerBlock = header >> 1;
     if (!VALID_BITS_PER_BLOCK.includes(bitsPerBlock)) {
-        throw new Error(`Biome palette declares ${bitsPerBlock} bits per block`);
+        throw new PrismarineWorldErrors.InvalidBiomePaletteWidth({ bitsPerBlock });
     }
 
     // Zero bits per block is a whole sub chunk of one biome, and no index data at all. Five out
     // of six sections of a real world are this, so it never spells 4096 copies of one number out.
     if (bitsPerBlock === 0) {
         const uniformSize = stream.readIntLE();
-        if (uniformSize <= 0) throw new Error(`Biome palette declares ${uniformSize} entries`);
+        if (uniformSize <= 0) throw new PrismarineWorldErrors.InvalidBiomePaletteCount({ uniformSize });
 
         const first = stream.readIntLE();
         for (let i = 1; i < uniformSize; i++) stream.readIntLE();
@@ -94,7 +95,7 @@ const readPalette = (stream: BinaryStream, below: BiomeSection | null): BiomeSec
     }
 
     const paletteSize = stream.readIntLE();
-    if (paletteSize <= 0) throw new Error(`Biome palette declares ${paletteSize} entries`);
+    if (paletteSize <= 0) throw new PrismarineWorldErrors.InvalidBiomePaletteCount({ uniformSize: paletteSize });
 
     const palette = Array.from({ length: paletteSize }, () => stream.readIntLE());
     const biomes = new Int32Array(BLOCKS_PER_SUBCHUNK);
@@ -102,7 +103,7 @@ const readPalette = (stream: BinaryStream, below: BiomeSection | null): BiomeSec
     for (let i = 0; i < BLOCKS_PER_SUBCHUNK; i++) {
         const paletteIndex = indices[i]!;
         if (paletteIndex >= paletteSize) {
-            throw new Error(`Biome ${i} refers to palette entry ${paletteIndex} of ${paletteSize}`);
+            throw new PrismarineWorldErrors.SavedBiomeOutOfPalette({ i, paletteIndex, paletteSize });
         }
 
         biomes[i] = palette[paletteIndex]!;

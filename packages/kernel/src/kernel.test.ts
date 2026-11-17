@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Kernel, KernelError } from './kernel';
+import { Kernel } from './kernel';
 import type { KernelLogger } from './logger';
 import type { Module } from './module';
 import { createToken } from './token';
+import { KernelError } from '@jsprismarine/errors/kernel';
 
 interface Named {
     name(): string;

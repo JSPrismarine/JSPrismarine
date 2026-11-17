@@ -1,5 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { World } from './World';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /**
  * Represents the coordinates of a Vector3 in a given World.
@@ -27,7 +28,7 @@ export class Position extends Vector3 {
         // `getWorld()` - which meant one could be built, stored and passed around freely,
         // and only failed at whichever unrelated read happened to touch it first. Refusing
         // to construct one names the caller that got it wrong.
-        if (!world) throw new Error('A Position requires the world it is in');
+        if (!world) throw new PrismarineWorldErrors.PositionWithoutWorld();
     }
 
     public toString(): string {

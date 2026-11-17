@@ -48,6 +48,7 @@ import {
     straightTrunkPlacer,
     upwardsBranchingTrunkPlacer
 } from './trunkPlacers';
+import { FeaturesErrors } from '@jsprismarine/errors/features';
 
 // --- Parsing -------------------------------------------------------------------------------
 
@@ -79,7 +80,7 @@ const parseFeatureSize = (source: unknown, path: string): FeatureSize => {
                 y < limit ? lowerSize : y >= treeHeight - upperLimit ? upperSize : middleSize
         };
     }
-    return fail(path, `unknown feature size type ${JSON.stringify(type)}`);
+    return fail(new FeaturesErrors.UnknownFeatureSizeType({ path, type: JSON.stringify(type) }));
 };
 
 /** Parses a `trunk_placer` body into the matching placer. */
@@ -142,7 +143,7 @@ export const parseTrunkPlacer = (source: unknown, path: string): TrunkPlacer => 
             );
         }
         default:
-            return fail(path, `unknown trunk placer type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownTrunkPlacerType({ path, type: JSON.stringify(type) }));
     }
 };
 
@@ -203,14 +204,15 @@ const parseFoliagePlacer = (source: unknown, path: string): FoliagePlacer => {
                 asNumber(raw['side_hole_chance'], `${path}.side_hole_chance`)
             );
         default:
-            return fail(path, `unknown foliage placer type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownFoliagePlacerType({ path, type: JSON.stringify(type) }));
     }
 };
 
 const parseRootPlacer = (source: unknown, path: string, parsers: FeatureParsers): RootPlacer => {
     const raw = asObject(source, path);
     const type = typeNameOf(raw['type'], path);
-    if (type !== 'mangrove_root_placer') return fail(path, `unknown root placer type ${JSON.stringify(type)}`);
+    if (type !== 'mangrove_root_placer')
+        return fail(new FeaturesErrors.UnknownRootPlacerType({ path, type: JSON.stringify(type) }));
     const aboveRoot = raw['above_root_placement'];
     const above = aboveRoot === undefined ? undefined : asObject(aboveRoot, `${path}.above_root_placement`);
     const mangrove = asObject(raw['mangrove_root_placement'], `${path}.mangrove_root_placement`);
@@ -292,7 +294,7 @@ export const parseTreeDecorator = (source: unknown, path: string, parsers: Featu
                 parsers.blockStateProvider(raw['block_state_provider'], `${path}.block_state_provider`)
             );
         default:
-            return fail(path, `unknown tree decorator type ${JSON.stringify(type)}`);
+            return fail(new FeaturesErrors.UnknownTreeDecoratorType({ path, type: JSON.stringify(type) }));
     }
 };
 

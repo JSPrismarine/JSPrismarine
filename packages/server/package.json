@@ -80,6 +80,7 @@
         "@jsprismarine/chunkgen": "workspace:*",
         "@jsprismarine/color-parser": "workspace:*",
         "@jsprismarine/console-protocol": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/native-network": "workspace:*",

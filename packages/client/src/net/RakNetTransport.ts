@@ -5,6 +5,7 @@ import { SendPriority } from './ITransport';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { RakNetSession } from '@jsprismarine/raknet';
+import { ClientErrors } from '@jsprismarine/errors/client';
 
 export interface RakNetTransportOptions {
     readonly host: string;
@@ -63,7 +64,7 @@ export default class RakNetTransport extends EventEmitter implements ITransport 
     }
 
     public send(payload: Buffer, priority: SendPriority = SendPriority.NORMAL): void {
-        if (this.session === null) throw new Error('Cannot send on a transport that is not connected');
+        if (this.session === null) throw new ClientErrors.TransportNotConnected();
 
         const frame = new Protocol.Frame();
         // Reliable ordered on channel 0, which is what Minecraft uses for everything: the

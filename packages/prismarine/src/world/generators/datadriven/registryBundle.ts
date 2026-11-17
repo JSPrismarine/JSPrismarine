@@ -25,6 +25,7 @@
  * | after the index | every document's UTF-8 JSON, end to end |
  */
 import type { JavaRegistry, JavaWorldgenRegistries } from './javaWorldgenData';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** `JPRB`, so a buffer that is not a bundle says so rather than being parsed as one. */
 const MAGIC = 0x4a505242;
@@ -78,15 +79,6 @@ type BundleEntry = readonly [id: string, byteOffset: number, byteLength: number]
 /** The index, itself UTF-8 JSON, sitting between the header and the documents. */
 interface BundleIndex {
     readonly registries: ReadonlyArray<readonly [registry: string, entries: readonly BundleEntry[]]>;
-}
-
-/** Raised when a buffer handed to {@link readRegistryBundle} is not a bundle this build reads. */
-export class RegistryBundleFormatError extends Error {
-    public override name = 'RegistryBundleFormatError';
-
-    public constructor(what: string) {
-        super(`This is not a world generation registry bundle this build reads: ${what}.`);
-    }
 }
 
 /**
@@ -161,18 +153,21 @@ export const readRegistryBundle = (
     bundle: ArrayBufferLike,
     sharedClimateParameters?: ReadonlyMap<string, SharedArrayBuffer>
 ): JavaWorldgenRegistries => {
-    if (bundle.byteLength < HEADER_BYTES) throw new RegistryBundleFormatError('it is shorter than a header');
+    if (bundle.byteLength < HEADER_BYTES) throw new PrismarineGenerationErrors.RegistryBundleTooShort();
 
     const header = new DataView(bundle);
-    if (header.getUint32(0, true) !== MAGIC) throw new RegistryBundleFormatError('it does not start with JPRB');
+    if (header.getUint32(0, true) !== MAGIC) throw new PrismarineGenerationErrors.RegistryBundleBadMagic();
 
     const version = header.getUint32(4, true);
     if (version !== FORMAT_VERSION) {
-        throw new RegistryBundleFormatError(`it is format version ${version} and this build reads ${FORMAT_VERSION}`);
+        throw new PrismarineGenerationErrors.RegistryBundleVersionMismatch({
+            version,
+            formatVersion: FORMAT_VERSION
+        });
     }
 
     const documentsAt = HEADER_BYTES + header.getUint32(8, true);
-    if (bundle.byteLength < documentsAt) throw new RegistryBundleFormatError('its index runs past the end');
+    if (bundle.byteLength < documentsAt) throw new PrismarineGenerationErrors.RegistryBundleIndexTruncated();
 
     const decoder = new TextDecoder();
     const all = new Uint8Array(bundle);
@@ -195,7 +190,9 @@ export const readRegistryBundle = (
         for (const [id, offset, length] of entries) {
             const from = documentsAt + offset;
             if (from + length > bundle.byteLength) {
-                throw new RegistryBundleFormatError(`the document ${id} runs past the end`);
+                throw new PrismarineGenerationErrors.RegistryBundleDocumentTruncated({
+                    id
+                });
             }
 
             documents.set(id, JSON.parse(decoder.decode(all.subarray(from, from + length))));

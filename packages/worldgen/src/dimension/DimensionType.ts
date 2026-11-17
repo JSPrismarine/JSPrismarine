@@ -1,6 +1,7 @@
 import type { IntProvider } from '../carver/providers';
 import { parseIntProvider } from '../carver/providers';
 import { asObject, boolean, inRange, integer, number, oneOf, optional, string, stringOrList } from '../json';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** The sky a dimension renders. Replaced the `effects` field in 25w45a. */
 export type DimensionSkybox = 'overworld' | 'none' | 'end';
@@ -82,10 +83,10 @@ export const parseDimensionType = (json: unknown, path = '<dimension_type>'): Di
 
     const minY = inRange(integer(raw['min_y'], `${path}.min_y`), `${path}.min_y`, MIN_Y_MIN, MIN_Y_MAX);
     const height = inRange(integer(raw['height'], `${path}.height`), `${path}.height`, HEIGHT_MIN, HEIGHT_MAX);
-    if (minY % 16 !== 0) throw new RangeError(`${path}.min_y has to be a multiple of 16, got ${minY}`);
-    if (height % 16 !== 0) throw new RangeError(`${path}.height has to be a multiple of 16, got ${height}`);
+    if (minY % 16 !== 0) throw new WorldgenErrors.MinYNotMultipleOf16({ path, minY });
+    if (height % 16 !== 0) throw new WorldgenErrors.HeightNotMultipleOf16({ path, height });
     if (minY + height > MAX_Y_EXCLUSIVE) {
-        throw new RangeError(`${path}: min_y + height has to be at most ${MAX_Y_EXCLUSIVE}, got ${minY + height}`);
+        throw new WorldgenErrors.DimensionTooTall({ path, maxYExclusive: MAX_Y_EXCLUSIVE, value: minY + height });
     }
     const logicalHeight = inRange(
         integer(raw['logical_height'], `${path}.logical_height`),
@@ -95,9 +96,12 @@ export const parseDimensionType = (json: unknown, path = '<dimension_type>'): Di
     );
     const coordinateScale = number(raw['coordinate_scale'], `${path}.coordinate_scale`);
     if (coordinateScale < COORDINATE_SCALE_MIN || coordinateScale > COORDINATE_SCALE_MAX) {
-        throw new RangeError(
-            `${path}.coordinate_scale has to be between ${COORDINATE_SCALE_MIN} and ${COORDINATE_SCALE_MAX}, got ${coordinateScale}`
-        );
+        throw new WorldgenErrors.CoordinateScaleOutOfRange({
+            path,
+            coordinateScaleMin: COORDINATE_SCALE_MIN,
+            coordinateScaleMax: COORDINATE_SCALE_MAX,
+            coordinateScale
+        });
     }
 
     const timelines = optional<readonly string[]>(raw['timelines'], [], (value) => {

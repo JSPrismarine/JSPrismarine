@@ -1,3 +1,4 @@
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 /**
  * The eight neighbors a feature pass can reach, in the order their writes are merged.
  *
@@ -36,33 +37,26 @@ export type FeaturePatchOffset = (typeof FEATURE_PATCH_ORDER)[number];
  * the caller routed a write that should have landed immediately, and a patch from further out means
  * a feature reached past the write radius the step table gives it.
  */
-export class FeaturePatchOutOfRangeError extends RangeError {
+export class FeaturePatchOutOfRangeError extends ChunkgenErrors.FeaturePatchOutOfRange {
     public override name = 'FeaturePatchOutOfRangeError';
 
     public constructor(
         public readonly dx: number,
         public readonly dz: number
     ) {
-        super(
-            `A feature pass offered a patch at offset ${dx}, ${dz}. The eight neighbors are the ` +
-                `only legal targets: a write into the chunk's own columns applies immediately, and ` +
-                `nothing past radius 1 is inside the write zone of the features step.`
-        );
+        super({ dx, dz });
     }
 }
 
 /** Raised when two feature passes of the same neighbor both offer this chunk a patch. */
-export class DuplicateFeaturePatchError extends Error {
+export class DuplicateFeaturePatchError extends ChunkgenErrors.DuplicateFeaturePatch {
     public override name = 'DuplicateFeaturePatchError';
 
     public constructor(
         public readonly dx: number,
         public readonly dz: number
     ) {
-        super(
-            `The neighbor at ${dx}, ${dz} has already handed over its feature patch. A chunk runs ` +
-                `the features step once, so a second patch from the same chunk means the step ran twice.`
-        );
+        super({ dx, dz });
     }
 }
 

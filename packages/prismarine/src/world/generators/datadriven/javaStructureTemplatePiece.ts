@@ -41,6 +41,7 @@ import { registerStructurePieceTransferCodec } from './javaStructureWorld';
 import { boxFromSize } from './javaStructureWorld';
 import type { TemplateSource } from './javaTemplatePlacement';
 import { isRecord } from '../../../utils/isRecord';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 const AIR = 'minecraft:air';
 const STRUCTURE_VOID = 'minecraft:structure_void';
@@ -164,7 +165,7 @@ const postPlacementHandlers = new Map<string, TemplatePiecePostPlacementHandler>
  * @param handler - Worker-local callback invoked at the original marker placement point.
  */
 export const registerTemplatePieceMarkerHandler = (type: string, handler: TemplatePieceActionHandler): void => {
-    if (markerHandlers.has(type)) throw new Error(`The template marker handler ${type} is already registered.`);
+    if (markerHandlers.has(type)) throw new PrismarineGenerationErrors.DuplicateTemplateMarker({ type });
     markerHandlers.set(type, handler);
 };
 
@@ -177,8 +178,7 @@ export const registerTemplatePiecePostPlacementHandler = (
     type: string,
     handler: TemplatePiecePostPlacementHandler
 ): void => {
-    if (postPlacementHandlers.has(type))
-        throw new Error(`The template post-placement handler ${type} is already registered.`);
+    if (postPlacementHandlers.has(type)) throw new PrismarineGenerationErrors.DuplicatePostPlacementStep({ type });
     postPlacementHandlers.set(type, handler);
 };
 
@@ -495,7 +495,9 @@ export class TemplatePiece implements StructurePiece {
                 if (markerAction !== undefined) {
                     const action = markerHandlers.get(markerAction.type);
                     if (action === undefined) {
-                        throw new TypeError(`No template marker handler is registered for ${markerAction.type}.`);
+                        throw new PrismarineGenerationErrors.UnknownTemplateMarker({
+                            type: markerAction.type
+                        });
                     }
                     action(worldMarker, writer, random, markerAction.data);
                 }
@@ -507,9 +509,9 @@ export class TemplatePiece implements StructurePiece {
         if (postPlacementAction !== undefined) {
             const action = postPlacementHandlers.get(postPlacementAction.type);
             if (action === undefined) {
-                throw new TypeError(
-                    `No template post-placement handler is registered for ${postPlacementAction.type}.`
-                );
+                throw new PrismarineGenerationErrors.UnknownPostPlacementStep({
+                    type: postPlacementAction.type
+                });
             }
             action(this, writer, random, postPlacementAction.data);
         }
@@ -523,7 +525,9 @@ export class TemplatePiece implements StructurePiece {
     public transferableOptions(): Omit<TemplatePieceOptions, 'store' | 'onDataMarker' | 'onPlaced'> {
         const { store: _store, onDataMarker, onPlaced, ...options } = this.options;
         if (onDataMarker !== undefined || onPlaced !== undefined) {
-            throw new TypeError(`Template ${this.options.template} uses a callback that has no transfer action.`);
+            throw new PrismarineGenerationErrors.UntransferableTemplateCallback({
+                template: this.options.template
+            });
         }
         return options;
     }
@@ -565,7 +569,7 @@ registerStructurePieceTransferCodec<TemplatePiece>({
     encode: (piece) => piece.transferableOptions(),
     decode: (data, context: StructurePieceTransferContext) => {
         if (!isRecord(data) || typeof data.template !== 'string' || !Array.isArray(data.position)) {
-            throw new TypeError('The template structure-piece plan is invalid.');
+            throw new PrismarineGenerationErrors.InvalidTemplatePiece();
         }
 
         // The plan was produced by transferableOptions and structured-cloned by the worker

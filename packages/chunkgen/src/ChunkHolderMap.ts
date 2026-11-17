@@ -1,5 +1,6 @@
 import { ChunkHolder } from './ChunkHolder';
 import type { StagedChunk } from './StagedChunk';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /**
  * The holders a generation run is working on, kept alive by reference count.
@@ -66,7 +67,7 @@ export class ChunkHolderMap<TChunk extends StagedChunk> {
         const key = keyOf(chunkX, chunkZ);
         const holder = this.holders.get(key);
         if (holder === undefined) {
-            throw new RangeError(`No holder at ${chunkX}, ${chunkZ} to release.`);
+            throw new ChunkgenErrors.NoHolderToRelease({ chunkX, chunkZ });
         }
 
         if (holder.release() > 0) return false;

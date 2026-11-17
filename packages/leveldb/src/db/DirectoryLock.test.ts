@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { DatabaseLockedError } from '../Errors';
+import { DatabaseLockedError } from '@jsprismarine/errors/leveldb';
 import { DirectoryLock } from './DirectoryLock';
 
 const directories: string[] = [];

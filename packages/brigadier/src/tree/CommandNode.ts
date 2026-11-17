@@ -9,6 +9,7 @@ import type StringReader from '../StringReader';
 import type Suggestions from '../suggestion/Suggestions';
 import type SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
 import isEqual from '../util/isEqual';
+import { BrigadierErrors } from '@jsprismarine/errors/brigadier';
 
 abstract class CommandNode<S> {
     private children: Map<string, CommandNode<S>> = new Map();
@@ -73,7 +74,7 @@ abstract class CommandNode<S> {
 
     public addChild(node: CommandNode<S>) {
         if (node.getNodeType() === 'root') {
-            throw new Error('Cannot add a RootCommandNode as a child to any other CommandNode');
+            throw new BrigadierErrors.RootNodeAsChild();
         }
 
         let child = this.children.get(node.getName());

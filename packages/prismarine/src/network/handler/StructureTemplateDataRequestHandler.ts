@@ -4,6 +4,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type { SessionContext } from './HandlerContext';
 import type { ReadLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** The one block whose screen sends this packet. */
 const STRUCTURE_BLOCKS: ReadonlySet<string> = new Set(['minecraft:structure_block']);
@@ -24,7 +25,7 @@ export default class StructureTemplateDataRequestHandler implements ReadLaneHand
     /** Checks the position names a structure block in reach, then logs the name and operation. */
     public handle(packet: StructureTemplateDataRequestPacket, { session, log }: SessionContext): void {
         const data = packet.getPacketData();
-        if (data === null) throw new Error('Cannot handle a StructureTemplateDataRequestPacket without decoded data');
+        if (data === null) throw new PrismarineNetworkErrors.StructureTemplateRequestNotDecoded();
 
         const structurePosition = new BlockPosition(
             data.structurePosition.x,

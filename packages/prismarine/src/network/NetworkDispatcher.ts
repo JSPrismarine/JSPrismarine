@@ -25,6 +25,7 @@ import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { ConnectionId } from './transport/ConnectionId';
 import type { Transport, TransportConnection } from './transport/Transport';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** A packet paired with the handler it will run, decoded once the phase gate lets it. */
 interface GatedPacket {
@@ -604,7 +605,10 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const phases: readonly SessionPhase[] = handler.phases;
         if (!phases.includes(connection.phase)) {
             if (expectedTick !== undefined) {
-                throw new Error(`Replay packet ${packet.getName()} was rejected in the ${connection.phase} phase`);
+                throw new PrismarineNetworkErrors.ReplayPacketRejected({
+                    name: packet.getName(),
+                    phase: connection.phase
+                });
             }
             this.logger.debug(`Dropped §b${packet.constructor.name}§r: not accepted in the ${connection.phase} phase`);
             return false;
@@ -613,7 +617,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         if (expectedTick !== undefined) {
             const currentTick = this.server.getTick();
             if (currentTick !== expectedTick) {
-                throw new Error(`Replay packet tick ${expectedTick} does not match server tick ${currentTick}`);
+                throw new PrismarineNetworkErrors.ReplayTickMismatch({ expectedTick, currentTick });
             }
         }
         return true;
@@ -630,7 +634,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
         const { packet } = gated;
         if (!this.decodePacket(packet, connection)) {
-            if (expectedTick !== undefined) throw new Error(`Replay bytes did not decode as ${packet.getName()}`);
+            if (expectedTick !== undefined)
+                throw new PrismarineNetworkErrors.ReplayPacketNotDecodable({ name: packet.getName() });
             return false;
         }
         this.logInbound(packet);
@@ -694,7 +699,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     ): void {
         if (!this.admitsDecoded(gated, connection, expectedTick)) return;
         const { packet, handler } = gated;
-        if (handler.lane !== 'input') throw new Error(`${packet.getName()} has no input-lane handler`);
+        if (handler.lane !== 'input') throw new PrismarineNetworkErrors.NoInputLaneHandler({ name: packet.getName() });
 
         const report = (error: unknown) => this.handlerError(packet, error);
         try {
@@ -790,23 +795,27 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      */
     public async replayInboundRecord(record: InboundPacketRecord, tickOffset = 0): Promise<void> {
         const connection = this.sessionManager.get(record.connectionId);
-        if (connection === null) throw new Error(`Replay connection ${record.connectionId} is not connected`);
+        if (connection === null)
+            throw new PrismarineNetworkErrors.ReplayConnectionNotOpen({ connectionId: record.connectionId });
 
         const expectedOrder = this.nextReplayOrder;
         if (record.order !== expectedOrder) {
-            throw new Error(`Replay expected inbound order ${expectedOrder}, got ${record.order}`);
+            throw new PrismarineNetworkErrors.ReplayOutOfOrder({ expectedOrder, order: record.order });
         }
 
         const expectedSequence = this.replaySequences.get(record.connectionId) ?? 0;
         if (record.sequence !== expectedSequence) {
-            throw new Error(
-                `Replay connection ${record.connectionId} expected packet ${expectedSequence}, got ${record.sequence}`
-            );
+            throw new PrismarineNetworkErrors.ReplayPacketOutOfSequence({
+                connectionId: record.connectionId,
+                expectedSequence,
+                sequence: record.sequence
+            });
         }
         if (connection.codec.protocolVersion !== record.protocolVersion) {
-            throw new Error(
-                `Replay protocol ${record.protocolVersion} does not match connection protocol ${connection.codec.protocolVersion}`
-            );
+            throw new PrismarineNetworkErrors.ReplayProtocolMismatch({
+                protocolVersion: record.protocolVersion,
+                connectionCodecProtocolVersion: connection.codec.protocolVersion
+            });
         }
         // Taken now rather than once the handler runs: the record after this one may come from
         // another connection, and an input-lane record does not run until its tick's input step.
@@ -818,7 +827,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         let routed: Routed | undefined;
         await this.inboundOf(connection).frames.append(async () => {
             if (this.sessionManager.get(record.connectionId) !== connection) {
-                throw new Error(`Replay connection ${record.connectionId} is no longer connected`);
+                throw new PrismarineNetworkErrors.ReplayConnectionClosed({
+                    connectionId: record.connectionId
+                });
             }
 
             // Traces store packet bytes, not transport batches; rebuild one frame so playback exercises
@@ -829,16 +840,20 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             ]);
             const packetPayloads = await this.splitBatch(frame, connection, false);
             if (packetPayloads.length !== 1) {
-                throw new Error(`Replay frame for ${record.packetName} contained ${packetPayloads.length} packets`);
+                throw new PrismarineNetworkErrors.ReplayFrameHasSeveralPackets({
+                    packetName: record.packetName,
+                    packetPayloadsCount: packetPayloads.length
+                });
             }
 
             const packet = this.buildPacket(packetPayloads[0]!, connection)[0];
             if (packet === undefined || packet.getName() !== record.packetName) {
-                throw new Error(`Replay bytes did not decode as ${record.packetName}`);
+                throw new PrismarineNetworkErrors.ReplayPacketNotDecodable({ name: record.packetName });
             }
 
             const gated = this.resolveHandler(packet);
-            if (gated.length !== 1) throw new Error(`Replay packet ${record.packetName} has no handler`);
+            if (gated.length !== 1)
+                throw new PrismarineNetworkErrors.ReplayPacketHasNoHandler({ packetName: record.packetName });
 
             // This input is already in the source trace; playback must not append it a second time.
             routed = this.route(gated[0]!, connection, false, record.tick + tickOffset);

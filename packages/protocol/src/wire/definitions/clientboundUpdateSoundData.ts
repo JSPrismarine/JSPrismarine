@@ -26,6 +26,7 @@ import { SINCE_2225, UNTIL_2225 } from '../wireGates';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * Which change a sound update carries. The value is the alternative index on the wire: the
@@ -117,7 +118,7 @@ const readUpdate = (stream: BinaryStream, withTypeByte: boolean): SoundDataUpdat
     const type: SoundDataUpdateType = stream.readUnsignedVarInt();
     if (withTypeByte) {
         const tag = stream.readByte();
-        if (tag !== type) throw new Error(`Sound data update selector ${type} does not match its type ${tag}`);
+        if (tag !== type) throw new ProtocolWireErrors.SoundDataTypeMismatch({ type, tag });
     }
     switch (type) {
         case SoundDataUpdateType.Stop:
@@ -133,7 +134,7 @@ const readUpdate = (stream: BinaryStream, withTypeByte: boolean): SoundDataUpdat
         case SoundDataUpdateType.SeekTo:
             return { type, seconds: stream.readFloatLE() };
         default:
-            throw new Error(`Unknown sound data update alternative ${type}`);
+            throw new ProtocolWireErrors.UnknownSoundDataUpdateAlternative({ type });
     }
 };
 

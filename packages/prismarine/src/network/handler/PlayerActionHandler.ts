@@ -11,6 +11,7 @@ import type { StorePlayer } from '../../entity/storePlayer';
 import type { World } from '../../world/World';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * The actions whose block position is read, so the one the client sends has to be checked.
@@ -190,7 +191,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                 const state = world.loadedBlockAt(x, y, z);
                 if (state === undefined) return;
                 const block = blockFromContent(state.name, services.content, state.states);
-                if (block === null) throw new Error(`No block named ${state.name}, held at ${x} ${y} ${z}`);
+                if (block === null) throw new PrismarineNetworkErrors.UnknownHeldBlock({ name: state.name, x, y, z });
 
                 // A block that gives way instantly has no progress to animate, and the
                 // 65535/0 the client would be handed is not a number this packet can carry.

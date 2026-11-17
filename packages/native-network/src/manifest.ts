@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import manifestJson from '../native/manifest.json' with { type: 'json' };
 import { isRecord } from './isRecord';
+import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 /** One published file: its name in the release, its size and its SHA-256. */
 export interface ManifestFile {
@@ -42,7 +43,7 @@ const isFile = (value: unknown): value is ManifestFile =>
  */
 export const parseManifest = (value: unknown): NativeManifest => {
     if (!isRecord(value) || typeof value.build !== 'string' || typeof value.baseUrl !== 'string') {
-        throw new Error('The native manifest needs `build` and `baseUrl` strings');
+        throw new NativeNetworkErrors.InvalidNativeManifest();
     }
     const platforms = isRecord(value.platforms) ? value.platforms : {};
     const checked: Record<string, ManifestPlatform> = {};
@@ -52,7 +53,7 @@ export const parseManifest = (value: unknown): NativeManifest => {
             !isFile(platform.shared) ||
             (platform.static !== undefined && !isFile(platform.static))
         ) {
-            throw new Error(`The native manifest's entry for ${key} is malformed`);
+            throw new NativeNetworkErrors.InvalidNativeManifestEntry({ key });
         }
         checked[key] = { shared: platform.shared, ...(isFile(platform.static) ? { static: platform.static } : {}) };
     }

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../.test/reportProgress';
-
-import { BlockError } from './errors';
 import { BlockPalette, BlockStateModel, vanillaBlockPalette } from './state';
+import { BlockError } from '@jsprismarine/errors/blocks';
 
 const stairs = () =>
     new BlockStateModel([

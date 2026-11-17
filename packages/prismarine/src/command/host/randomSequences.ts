@@ -15,6 +15,7 @@
 import { lootSequenceRandom } from '@jsprismarine/loot';
 import type { RandomSource } from '@jsprismarine/predicates';
 import type { LootRandomState, StatefulLootRandomSource } from '@jsprismarine/loot';
+import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
 /** Seed and continuation state for one command sequence. */
 export type RandomSequenceStreamState = readonly [seed: string, state: LootRandomState];
@@ -108,16 +109,17 @@ export class RandomSequences {
             state.worldSeed !== this.worldSeed().toString() ||
             !Array.isArray(state.streams)
         ) {
-            throw new TypeError('Invalid command random sequence state');
+            throw new PrismarineCommandErrors.InvalidCommandRandomSequenceState();
         }
 
         const unkeyed = state.unkeyed === null ? undefined : streamOf(state.unkeyed, undefined);
         const streams = new Map<string, { readonly seed: bigint; readonly random: StatefulLootRandomSource }>();
         for (const entry of state.streams) {
             if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== 'string' || entry[0].length === 0) {
-                throw new TypeError('Invalid named command random sequence state');
+                throw new PrismarineCommandErrors.InvalidNamedCommandRandomSequenceState();
             }
-            if (streams.has(entry[0])) throw new TypeError(`Duplicate command random sequence state: ${entry[0]}`);
+            if (streams.has(entry[0]))
+                throw new PrismarineCommandErrors.DuplicateCommandRandomSequenceState({ entry: entry[0] });
             streams.set(entry[0], streamOf(entry[1], entry[0]));
         }
 
@@ -151,9 +153,11 @@ const streamOf = (
     sequence: string | undefined
 ): { readonly seed: bigint; readonly random: StatefulLootRandomSource } => {
     if (!Array.isArray(value) || value.length !== 2 || typeof value[0] !== 'string') {
-        throw new TypeError(`Invalid${sequence === undefined ? '' : ` ${sequence}`} random stream state`);
+        throw sequence === undefined
+            ? new PrismarineCommandErrors.InvalidRandomStreamState()
+            : new PrismarineCommandErrors.InvalidNamedRandomStreamState({ sequence });
     }
-    if (!/^(0|-?[1-9]\d*)$/.test(value[0])) throw new TypeError('Invalid random sequence seed');
+    if (!/^(0|-?[1-9]\d*)$/.test(value[0])) throw new PrismarineCommandErrors.InvalidRandomSequenceSeed();
     const seed = BigInt(value[0]);
     const random = lootSequenceRandom(seed, sequence);
     random.restoreState(value[1]);

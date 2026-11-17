@@ -11,6 +11,7 @@ import { DEFAULT_FLUID_REPLACEMENT } from '../content/world/fluidReplacement';
 import type { FluidReplacement } from '../content/world/fluidReplacement';
 
 import { Difficulty, getGametypeName, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -364,9 +365,7 @@ export class Config {
         // `port` was this setting's name before it took Bedrock Dedicated Server's.
         if (config.has('port')) {
             if (config.has('server-port')) {
-                throw new Error(
-                    `${configFilePath()} has both port and server-port. port is the old name of server-port: remove it, and keep the port you want in server-port.`
-                );
+                throw new PrismarineServerErrors.PortAndServerPortBothSet({ configFilePath: configFilePath() });
             }
             config.rename('port', 'server-port');
         }
@@ -453,7 +452,13 @@ export class Config {
                     setImmediate(() => {
                         try {
                             if (this.configBuilder.set(key, value)) resolve();
-                            else reject(new Error(`Could not write ${key} to ${this.configBuilder.getPath()}`));
+                            else
+                                reject(
+                                    new PrismarineServerErrors.ConfigNotWritable({
+                                        key,
+                                        path: this.configBuilder.getPath()
+                                    })
+                                );
                         } catch (error: unknown) {
                             reject(error);
                         }

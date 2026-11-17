@@ -1,4 +1,5 @@
 import type { LogLevel, LogRecord, LogTransport } from '@jsprismarine/logger';
+import { ServerErrors } from '@jsprismarine/errors/server';
 
 const FRONTEND_URL =
     'https://chrome-devtools-frontend.appspot.com/serve_file/@b4907cc5d602ff470740b2eb6344b517edecb7b9/inspector.html';
@@ -38,8 +39,7 @@ export const createDevToolsFrontendUrl = (endpointUrl: string): string => {
  */
 const loadInspector = () => {
     const inspector = process.getBuiltinModule('node:inspector');
-    if (inspector === undefined)
-        throw new Error('DevTools needs the Node inspector, which this build does not include');
+    if (inspector === undefined) throw new ServerErrors.InspectorUnavailable();
     return inspector;
 };
 
@@ -91,7 +91,7 @@ export const openDevTools = (): DevToolsSession => {
     const existingUrl = inspector.url();
     const handle = existingUrl === undefined ? inspector.open(0, '127.0.0.1') : undefined;
     const endpoint = inspector.url();
-    if (endpoint === undefined) throw new Error('Node inspector did not provide a WebSocket URL');
+    if (endpoint === undefined) throw new ServerErrors.InspectorHasNoUrl();
 
     return {
         endpointUrl: endpoint,

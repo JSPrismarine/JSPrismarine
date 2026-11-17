@@ -16,6 +16,8 @@ import { BATCH_PACKET_ID } from '@jsprismarine/protocol';
 import { ClientRelay } from './ClientRelay';
 import type { ITransport, TransportEvents, TransportStats } from './ITransport';
 import { isLinkConditioned } from './LinkConditions';
+import { ClientErrors } from '@jsprismarine/errors/client';
+import { asError } from '@jsprismarine/errors/common';
 
 /** How long a join may take, signaling and WebRTC together, unless the caller says otherwise. */
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -84,7 +86,7 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
         const timeoutMs = this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
         const deadline = AbortSignal.timeout(timeoutMs);
         if ((await probeJoin(this.address, deadline)) === undefined) {
-            throw new Error(`${this.options.host}:${this.options.port} does not speak NetherNet`);
+            throw new ClientErrors.NotNethernetServer({ host: this.options.host, port: this.options.port });
         }
 
         const chosen = this.options.identity;
@@ -118,7 +120,7 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
                 signal: (signal) => {
                     if (signal.type !== SignalType.ConnectRequest) return;
                     this.signal(client, identity, signal.data, deadline).catch((error: unknown) =>
-                        fail(error instanceof Error ? error : new Error(String(error)))
+                        fail(asError(error))
                     );
                 }
             });
@@ -140,16 +142,14 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
             client.on('disconnect', (reason: string) => {
                 if (!this.connected) {
                     fail(
-                        new Error(
-                            reason === 'connecterror:14'
-                                ? `NetherNet connection did not open within ${timeoutMs} ms`
-                                : `NetherNet connection failed: ${reason}`
-                        )
+                        reason === 'connecterror:14'
+                            ? new ClientErrors.NethernetConnectionTimedOut({ timeoutMs })
+                            : new ClientErrors.NethernetConnectionFailed({ reason })
                     );
                 } else this.finish(reason);
             });
 
-            client.connect().catch((error: unknown) => fail(error instanceof Error ? error : new Error(String(error))));
+            client.connect().catch((error: unknown) => fail(asError(error)));
         });
     }
 
@@ -171,10 +171,9 @@ export default class NetherNetTransport extends EventEmitter implements ITranspo
      * priority changes nothing.
      */
     public send(payload: Buffer): void {
-        if (this.client === null || !this.connected)
-            throw new Error('Cannot send on a transport that is not connected');
+        if (this.client === null || !this.connected) throw new ClientErrors.TransportNotConnected();
         if (payload[0] !== BATCH_PACKET_ID) {
-            throw new Error(`A NetherNet frame must be a batch, got id 0x${payload[0]?.toString(16)}`);
+            throw new ClientErrors.NethernetFrameNotBatch({ payload: payload[0]?.toString(16) });
         }
 
         this.bytesSent += payload.byteLength;

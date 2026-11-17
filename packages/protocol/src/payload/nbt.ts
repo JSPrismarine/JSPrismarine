@@ -21,6 +21,7 @@
  */
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /** Everything {@link nbtCompound} accepts as a tag value. */
 export type NbtValue =
@@ -129,5 +130,5 @@ export const nbtToPlain = (value: unknown): PlainNbt => {
         return `${typeName}:${scalar}`;
     }
 
-    throw new TypeError(`not an NBT tag: ${String(value)}`);
+    throw new ProtocolCodecErrors.NotNbtTag({ value: String(value) });
 };

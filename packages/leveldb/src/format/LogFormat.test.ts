@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
-
-import { CorruptionError } from '../Errors';
 import { LOG_BLOCK_SIZE, LOG_HEADER_SIZE, LogWriter, frameLogRecord, readLogRecords } from './LogFormat';
 import type { LogCorruption } from './LogFormat';
 import { ValueType, encodeInternalKey } from './InternalKey';
 import { WriteBatch } from './WriteBatch';
+import { CorruptionError } from '@jsprismarine/errors/leveldb';
 
 const roundTrip = (records: Buffer[]): Buffer[] => {
     const writer = new LogWriter();

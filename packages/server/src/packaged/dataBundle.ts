@@ -12,6 +12,7 @@
  * refuses any path that could escape it.
  */
 import { gunzipSync, gzipSync } from 'node:zlib';
+import { ServerErrors } from '@jsprismarine/errors/server';
 
 /** One encoded file: where it goes, relative to the extraction root, and its bytes. */
 export type DataBundleFiles = ReadonlyMap<string, Uint8Array>;
@@ -44,25 +45,25 @@ export const isSafeBundlePath = (path: string): boolean => {
  */
 export const decodeDataBundle = (blob: Uint8Array): Map<string, Uint8Array> => {
     const bytes = gunzipSync(blob);
-    if (bytes.byteLength < 4) throw new Error('data bundle is truncated');
+    if (bytes.byteLength < 4) throw new ServerErrors.DataBundleTruncated();
 
     const indexLength = bytes.readUInt32LE(0);
     const indexEnd = 4 + indexLength;
-    if (indexEnd > bytes.byteLength) throw new Error('data bundle index is truncated');
+    if (indexEnd > bytes.byteLength) throw new ServerErrors.DataBundleIndexTruncated();
 
     const index: unknown = JSON.parse(bytes.toString('utf8', 4, indexEnd));
-    if (!Array.isArray(index)) throw new Error('data bundle index is not a list');
+    if (!Array.isArray(index)) throw new ServerErrors.DataBundleIndexNotList();
 
     const files = new Map<string, Uint8Array>();
     let cursor = indexEnd;
     for (const entry of index) {
         if (!Array.isArray(entry) || typeof entry[0] !== 'string' || typeof entry[1] !== 'number')
-            throw new Error('data bundle index entry is malformed');
+            throw new ServerErrors.InvalidDataBundleIndexEntry();
 
         const [path, size] = entry;
-        if (!isSafeBundlePath(path)) throw new Error(`data bundle path escapes the extraction root: ${path}`);
+        if (!isSafeBundlePath(path)) throw new ServerErrors.DataBundlePathEscapes({ path });
         if (!Number.isInteger(size) || size < 0 || cursor + size > bytes.byteLength)
-            throw new Error(`data bundle entry is truncated: ${path}`);
+            throw new ServerErrors.DataBundleEntryTruncated({ path });
 
         files.set(path, bytes.subarray(cursor, cursor + size));
         cursor += size;

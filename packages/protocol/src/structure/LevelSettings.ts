@@ -8,6 +8,7 @@ import Experiments from './Experiments';
 import type SpawnSettings from './SpawnSettings';
 
 import type { GameRule } from '../packet/StartGamePacket';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /** The docs' EditorWorldType: what kind of editor world, if any, the level is. */
 export enum EditorWorldType {
@@ -319,6 +320,6 @@ export default class LevelSettings extends NetworkStructure {
      */
     public deserialize(stream: NetworkBinaryStream): void {
         void stream;
-        throw new Error('LevelSettings.deserialize is not implemented; decode StartGamePacket instead.');
+        throw new ProtocolCodecErrors.LevelSettingsNotDecodable();
     }
 }

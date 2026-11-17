@@ -14,6 +14,8 @@ import type { ServerName, ServerNameSnapshot } from './utils/ServerName';
 import { validateSocketBufferOptions } from './SocketBuffers';
 import type { SocketBufferOptions } from './SocketBuffers';
 import { UDP_HEADER_SIZE } from './Constants';
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
+import { asError } from '@jsprismarine/errors/common';
 
 /**
  * Where a compiled Bun executable embedded the socket worker, defined by
@@ -65,9 +67,9 @@ export interface SharedPortRings {
 }
 
 /** Raised when the bounded main-to-worker ring has no room for a complete message. */
-export class RakNetBackpressureError extends Error {
+export class RakNetBackpressureError extends RaknetErrors.WorkerQueueIsFull {
     public constructor(queuedBytes: number, capacity: number) {
-        super(`RakNet worker queue is full (${queuedBytes}/${capacity} bytes queued)`);
+        super({ queuedBytes, capacity });
         this.name = 'RakNetBackpressureError';
     }
 }
@@ -139,8 +141,8 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
 
     /** Starts the worker and binds its UDP socket. */
     public start(address: string, port: number): void {
-        if (this.worker) throw new Error('Worker RakNet socket has already been started');
-        if (this.stopped) throw new Error('Cannot start a stopped Worker RakNet socket');
+        if (this.worker) throw new RaknetErrors.WorkerSocketAlreadyStarted();
+        if (this.stopped) throw new RaknetErrors.StartStoppedWorkerSocket();
         this.address = address;
 
         this.readyPromise = new Promise<void>((resolve, reject) => {
@@ -197,13 +199,13 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         worker.on('message', (message: unknown) => this.handleWorkerMessage(message));
         worker.on('error', (error: Error) => this.handleWorkerFailure(error));
         worker.on('exit', (code: number) => {
-            if (!this.stopped) this.handleWorkerFailure(new Error(`RakNet worker exited with code ${code}`));
+            if (!this.stopped) this.handleWorkerFailure(new RaknetErrors.WorkerExitedWithCode({ code }));
         });
     }
 
     /** Resolves when the worker has bound the UDP socket. */
     public waitUntilReady(): Promise<void> {
-        if (!this.readyPromise) return Promise.reject(new Error('Worker RakNet socket has not been started'));
+        if (!this.readyPromise) return Promise.reject(new RaknetErrors.WorkerSocketNotStarted());
         return this.readyPromise;
     }
 
@@ -366,7 +368,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
     }
 
     private writeCommand(parts: readonly Uint8Array[]): void {
-        if (this.stopped) throw new Error('Cannot send through a stopped RakNet worker');
+        if (this.stopped) throw new RaknetErrors.SendOnStoppedWorker();
         if (!this.outbound.tryWriteParts(parts)) {
             const metrics = this.outbound.getMetrics();
             throw new RakNetBackpressureError(metrics.queuedBytes, metrics.capacity);
@@ -382,7 +384,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
             if (sharedPort === undefined) return;
             Promise.resolve(sharedPort.attach(message.wakePort)).then(
                 (outboundWakePort) => this.worker?.postMessage({ type: 'rings-attached', outboundWakePort }),
-                (error: unknown) => this.handleWorkerFailure(error instanceof Error ? error : new Error(String(error)))
+                (error: unknown) => this.handleWorkerFailure(asError(error))
             );
             return;
         }
@@ -403,7 +405,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         }
 
         if (message.type === 'failure' && 'text' in message && typeof message.text === 'string') {
-            this.handleWorkerFailure(new Error(message.text));
+            this.handleWorkerFailure(new RaknetErrors.WorkerFailed({ message: message.text }));
         }
     }
 

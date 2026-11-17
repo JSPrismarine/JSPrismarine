@@ -1,5 +1,6 @@
 import type Dgram from 'node:dgram';
 import type { Logger } from './RakNetPeer';
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
 
 /** Requested UDP socket buffer sizes. The operating system may grant less. */
 export interface SocketBufferOptions {
@@ -22,7 +23,7 @@ export const validateSocketBufferOptions = (options: SocketBufferOptions): void 
         ['send', options.sendBufferSize ?? 4 * 1024 * 1024]
     ] as const) {
         if (!Number.isSafeInteger(size) || size <= 0) {
-            throw new RangeError(`UDP ${name} buffer size must be a positive safe integer, got ${size}`);
+            throw new RaknetErrors.InvalidUdpBufferSize({ name, size });
         }
     }
 };

@@ -2,6 +2,7 @@ import type { EntityInstance } from '@jsprismarine/entities';
 import type { GoalWorld } from '@jsprismarine/entity-goals';
 
 import type { ServerWorldAdapter, ServerWorldSource } from './adapter';
+import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 
 /** A world source whose captured adapters can be redirected after a startup snapshot restores. */
 export interface RebindableServerWorldSource {
@@ -35,7 +36,9 @@ export const createRebindableServerWorldSource = (initial: ServerWorldSource): R
                         const nextOwner = resolve();
                         const nextValue: unknown = Reflect.get(nextOwner, property, nextOwner);
                         if (typeof nextValue !== 'object' || nextValue === null) {
-                            throw new TypeError(`World source member ${String(property)} changed from an object`);
+                            throw new PrismarineContentErrors.WorldSourceMemberReplaced({
+                                property: String(property)
+                            });
                         }
                         return nextValue;
                     });

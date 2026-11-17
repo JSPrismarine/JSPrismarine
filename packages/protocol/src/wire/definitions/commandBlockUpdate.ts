@@ -16,6 +16,7 @@ import { SINCE_2259 } from '../wireGates';
 import type { CommandBlockMode } from '../../packet/CommandBlockUpdatePacket';
 import type BlockPos from '../../structure/BlockPos';
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** The entity or block targeted by a command block update. */
 export type CommandBlockTarget =
@@ -63,7 +64,7 @@ export const commandBlockTarget = t.custom<CommandBlockTarget>(
                     isConditional: t.bool.read(stream)
                 };
             default:
-                throw new Error(`Unknown command block target alternative ${selector}`);
+                throw new ProtocolWireErrors.UnknownCommandBlockTargetAlternative({ selector });
         }
     }
 );

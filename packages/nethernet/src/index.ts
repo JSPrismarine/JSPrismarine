@@ -35,10 +35,10 @@ export type { IdentityKeyFormat, IdentityProof, NetherNetIdentityOptions, Verifi
 export { DEFAULT_ACCEPT_TIMEOUT_MS, NetherNetServer } from './NetherNetServer';
 export type { NetherNetServerOptions, SignalResponder } from './NetherNetServer';
 export { decodeJoinStatus, joinStatusJson } from './NetherNetStatus';
-export { exchangeOffer, JoinRefusedError, probeJoin } from './joinByAddress';
+export { exchangeOffer, probeJoin } from './joinByAddress';
 export type { JoinProbe, SignalingAddress } from './joinByAddress';
 export type { NetherNetStatus } from './NetherNetStatus';
-export { loadNativeDriver, nativeDriver, NetherNetUnavailableError } from './nativeDriver';
+export { loadNativeDriver, nativeDriver } from './nativeDriver';
 export type { NativeDriverOptions, NativeLogLine } from './nativeDriver';
 export { decodeDiscoveryPacket, DiscoveryPacketType, encodeDiscoveryPacket } from './protocol/Discovery';
 export type { DiscoveryMessage, DiscoveryPacket, DiscoveryRequest, DiscoveryResponse } from './protocol/Discovery';
@@ -60,7 +60,6 @@ export {
     hasPublicCandidate,
     parsePublicIp,
     parseUdpPorts,
-    UdpPortsError,
     withAdvertisedCandidates,
     withDialedCandidates,
     withMappedCandidates

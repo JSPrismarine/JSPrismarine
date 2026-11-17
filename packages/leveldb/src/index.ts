@@ -1,5 +1,4 @@
 export { CompressionType } from './compression/Compression';
-export { CorruptionError, DatabaseLockedError, UnsupportedVersionError } from './Errors';
 export { Database } from './Database';
 export { WriteBatch } from './format/WriteBatch';
 export { replaceFileAtomically } from './db/Storage';

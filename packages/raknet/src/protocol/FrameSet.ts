@@ -2,6 +2,7 @@ import assert from 'assert';
 import BitFlags from './BitFlags';
 import Frame from './Frame';
 import Packet from './Packet';
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
 
 // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L133
 export const DATAGRAM_HEADER_BYTE_LENGTH = 6;
@@ -33,7 +34,7 @@ export default class FrameSet extends Packet {
         this.frames = [];
         do {
             if (this.frames.length >= MAX_FRAMES_PER_DATAGRAM) {
-                throw new Error(`Datagram holds more than ${MAX_FRAMES_PER_DATAGRAM} frames`);
+                throw new RaknetErrors.TooManyFramesInDatagram({ maxFramesPerDatagram: MAX_FRAMES_PER_DATAGRAM });
             }
             this.frames.push(new Frame().fromBinary(this));
         } while (!this.feof());

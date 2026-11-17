@@ -5,6 +5,7 @@ import { InetAddress } from '@jsprismarine/raknet';
 import type { ConnectionId, ConnectionIds } from './ConnectionId';
 import { KeyedTransport } from './KeyedTransport';
 import type { TransportCapabilities, TransportConnection } from './Transport';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * What NetherNet does on its own. DTLS encrypts the data channel, so the session skips the
@@ -86,10 +87,10 @@ export class NetherNetTransportConnection implements TransportConnection {
      */
     public sendFrame(payload: Buffer): void {
         if (payload[0] !== BATCH_PACKET_ID) {
-            throw new Error(`A NetherNet frame must be a batch, got id 0x${payload[0]?.toString(16)}`);
+            throw new PrismarineNetworkErrors.NethernetFrameNotBatch({ payload: payload[0]?.toString(16) });
         }
         if (payload.byteLength > this.capabilities.maxFrameSize) {
-            throw new RangeError(`A ${payload.byteLength} byte frame exceeds NetherNet's message limit`);
+            throw new PrismarineNetworkErrors.FrameTooLargeForNethernet({ byteLength: payload.byteLength });
         }
         if (this.peer.closed) return;
         this.peer.send(payload.subarray(1));

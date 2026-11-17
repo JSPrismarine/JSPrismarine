@@ -1,3 +1,5 @@
+import { RaknetErrors } from '@jsprismarine/errors/raknet';
+
 const CONTROL_SLOTS = 8;
 const CONTROL_BYTES = Int32Array.BYTES_PER_ELEMENT * CONTROL_SLOTS;
 const RECORD_LENGTH_BYTES = 4;
@@ -35,16 +37,15 @@ export default class SharedByteRing {
             capacity > 0x40000000 ||
             (capacity & (capacity - 1)) !== 0
         ) {
-            throw new RangeError(
-                `A shared byte ring needs a power-of-two capacity from 8 to 2^30 bytes; got ${capacity}`
-            );
+            throw new RaknetErrors.InvalidRingCapacity({ capacity });
         }
 
         const shared = memory ?? new SharedArrayBuffer(CONTROL_BYTES + capacity);
         if (shared.byteLength !== CONTROL_BYTES + capacity) {
-            throw new RangeError(
-                `Shared byte ring memory has ${shared.byteLength} bytes; expected ${CONTROL_BYTES + capacity}`
-            );
+            throw new RaknetErrors.RingMemoryWrongSize({
+                byteLength: shared.byteLength,
+                value: CONTROL_BYTES + capacity
+            });
         }
 
         this.shared = shared;
@@ -127,7 +128,7 @@ export default class SharedByteRing {
 
         const length = this.readUInt32(readAt);
         if (length > this.bytes.byteLength - RECORD_LENGTH_BYTES) {
-            throw new RangeError(`Shared byte ring contains an invalid ${length}-byte record`);
+            throw new RaknetErrors.InvalidRingRecord({ length });
         }
 
         const totalLength = RECORD_LENGTH_BYTES + length;

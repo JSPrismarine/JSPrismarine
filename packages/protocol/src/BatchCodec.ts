@@ -1,6 +1,7 @@
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { CompressionSettings } from './CompressionCodec';
 import { CompressionCodec } from './CompressionCodec';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /** The id every batch carries, and the only packet id RakNet ever sees from Minecraft. */
 export const BATCH_PACKET_ID = 0xfe;
@@ -78,7 +79,7 @@ export class BatchCodec {
      * @returns The non-final raw-deflate fragment for that packet.
      */
     public encodeFullFlushFragment(packet: Buffer): Buffer {
-        if (this.compression === null) throw new Error('Full-flush fragments require negotiated compression');
+        if (this.compression === null) throw new ProtocolCodecErrors.FragmentWithoutCompression();
 
         return this.compression.compressFullFlush(BatchCodec.joinPackets([packet]));
     }
@@ -89,7 +90,7 @@ export class BatchCodec {
      * @returns The non-final raw-deflate fragment for that packet.
      */
     public encodeFullFlushFragmentAsync(packet: Buffer): Promise<Buffer> {
-        if (this.compression === null) throw new Error('Full-flush fragments require negotiated compression');
+        if (this.compression === null) throw new ProtocolCodecErrors.FragmentWithoutCompression();
 
         return this.compression.compressFullFlushAsync(BatchCodec.joinPackets([packet]));
     }
@@ -110,9 +111,10 @@ export class BatchCodec {
         const algorithm = this.compression.algorithmFor(payload.byteLength);
         if (algorithm !== PacketCompressionAlgorithm.ZLIB) return this.encode(packets);
         if (packets.length !== fragments.length) {
-            throw new RangeError(
-                `Packet and fragment counts differ: ${packets.length} packets, ${fragments.length} fragments`
-            );
+            throw new ProtocolCodecErrors.FragmentCountMismatch({
+                packetsCount: packets.length,
+                fragmentsCount: fragments.length
+            });
         }
 
         return BatchCodec.frame(algorithm, Buffer.concat([...fragments, FINAL_DEFLATE_BLOCK]));
@@ -148,9 +150,10 @@ export class BatchCodec {
     /** Strips the id and, when compression is on, the algorithm byte. */
     private split(batch: Buffer): { algorithm: PacketCompressionAlgorithm; body: Buffer } {
         if (batch.byteLength < 1 || batch[0] !== BATCH_PACKET_ID) {
-            throw new Error(
-                `Not a batch: expected id 0x${BATCH_PACKET_ID.toString(16)}, got 0x${batch[0]?.toString(16)}`
-            );
+            throw new ProtocolCodecErrors.NotBatch({
+                batchPacketId: BATCH_PACKET_ID.toString(16),
+                batch: batch[0]?.toString(16)
+            });
         }
 
         if (this.compression === null) {
@@ -158,7 +161,7 @@ export class BatchCodec {
         }
 
         if (batch.byteLength < 2) {
-            throw new Error('Truncated batch: compression is negotiated but the algorithm byte is missing');
+            throw new ProtocolCodecErrors.BatchMissingCompressionByte();
         }
 
         return { algorithm: CompressionCodec.fromPrefix(batch[1]!), body: batch.subarray(2) };
@@ -221,14 +224,14 @@ export class BatchCodec {
             cursor = next;
 
             if (length === 0) {
-                throw new Error(`Malformed batch: zero length packet at offset ${start}`);
+                throw new ProtocolCodecErrors.EmptyBatchPacket({ start });
             }
             if (length > payload.byteLength - cursor) {
-                throw new Error(
-                    `Malformed batch: packet at offset ${start} declares ${length} bytes, ${
-                        payload.byteLength - cursor
-                    } remain`
-                );
+                throw new ProtocolCodecErrors.BatchPacketTruncated({
+                    start,
+                    length,
+                    value: payload.byteLength - cursor
+                });
             }
 
             packets.push(payload.subarray(cursor, cursor + length));
@@ -245,7 +248,7 @@ export class BatchCodec {
 
         for (let shift = 0; shift <= 28; shift += 7) {
             if (cursor >= buffer.byteLength) {
-                throw new Error(`Malformed batch: varint at offset ${offset} runs past the end of the payload`);
+                throw new ProtocolCodecErrors.BatchLengthTruncated({ offset });
             }
 
             const byte = buffer[cursor++]!;
@@ -256,7 +259,7 @@ export class BatchCodec {
                 // over-long encoding such as `ff ff ff ff 7f` would decode to the same
                 // value as the canonical `ff ff ff ff 0f`.
                 if (shift === 28 && (byte & 0x70) !== 0) {
-                    throw new Error(`Malformed batch: varint at offset ${offset} overflows 32 bits`);
+                    throw new ProtocolCodecErrors.BatchLengthOverflow({ offset });
                 }
 
                 // `>>> 0` because the accumulator is int32: without it everything from 2^31
@@ -265,6 +268,6 @@ export class BatchCodec {
             }
         }
 
-        throw new Error(`Malformed batch: varint at offset ${offset} did not terminate after 5 bytes`);
+        throw new ProtocolCodecErrors.BatchLengthUnterminated({ offset });
     }
 }

@@ -7,10 +7,10 @@ import { CompressionType } from '../compression/Compression';
 import { bloomFilter2MayContain, createBloomFilter2 } from './BloomFilter';
 import { compareBytewise } from '../util/Comparator';
 import { MAX_SEQUENCE, ValueType, compareInternalKeys, encodeInternalKey, lookupKey } from './InternalKey';
-import { CorruptionError } from '../Errors';
 import { FOOTER_LENGTH, TABLE_MAGIC, decodeFooter, encodeFooter } from './Footer';
 import { TableBuilder } from './TableBuilder';
 import { TableReader, bufferSource } from './TableReader';
+import { CorruptionError } from '@jsprismarine/errors/leveldb';
 
 const key = (text: string) => Buffer.from(text);
 

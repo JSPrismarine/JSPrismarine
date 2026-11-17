@@ -6,6 +6,7 @@ import type { Aquifer, AquiferVolume } from './Aquifer';
 import { createDisabledAquifer, createNoiseAquifer, NoiseBasedAquifer } from './Aquifer';
 import type { FluidPicker } from './FluidPicker';
 import { AIR, createGlobalFluidPicker } from './FluidPicker';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** The registry name the aquifer random factory is keyed by. */
 export const AQUIFER_SEED = 'minecraft:aquifer';
@@ -383,7 +384,7 @@ export class ChunkSampler {
         const volume = this.volumeDensityBounds;
         const values = this.volumeDensityValues;
         if (evaluator === undefined || volume === undefined || values === undefined) {
-            throw new Error('Volume density workspace is missing');
+            throw new WorldgenErrors.MissingVolumeWorkspace();
         }
 
         volume.minX = firstX;
@@ -464,7 +465,7 @@ export class ChunkSampler {
         try {
             const density = this.finalDensity(this.context, x, y, z);
             if (density > 0) {
-                throw new Error(`Skipped cell had positive scalar density ${density} at ${x},${y},${z}`);
+                throw new WorldgenErrors.SkippedCellWasSolid({ density, x, y, z });
             }
 
             const substance = aquifer.computeSubstance(x, y, z, density);
@@ -472,11 +473,15 @@ export class ChunkSampler {
             const scalarScheduleFluidUpdate =
                 substance !== undefined && substance !== AIR && aquifer.shouldScheduleFluidUpdate();
             if (scalarState !== expectedState || scalarScheduleFluidUpdate !== expectedScheduleFluidUpdate) {
-                throw new Error(
-                    `Skipped cell differed from scalar sampling at ${x},${y},${z}: ` +
-                        `global=${expectedState}/${expectedScheduleFluidUpdate}, ` +
-                        `scalar=${scalarState}/${scalarScheduleFluidUpdate}`
-                );
+                throw new WorldgenErrors.SkippedCellMismatch({
+                    x,
+                    y,
+                    z,
+                    expectedState,
+                    expectedScheduleFluidUpdate,
+                    scalarState,
+                    scalarScheduleFluidUpdate
+                });
             }
         } finally {
             this.context.interpolationBuffersEnabled = bufferingBeforeSample;

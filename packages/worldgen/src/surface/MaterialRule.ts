@@ -5,6 +5,7 @@ import { normalizeIdentifier, typeName } from '../identifier';
 import type { VerticalAnchor } from './VerticalAnchor';
 import { parseVerticalAnchor } from './VerticalAnchor';
 import { asObject, integer, number } from '../json';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** Which side of a solid run a `stone_depth` condition counts from. */
 export type CaveSurface = 'floor' | 'ceiling';
@@ -88,7 +89,7 @@ export const MATERIAL_CONDITION_TYPES = [
 
 const boolean = (value: unknown, path: string, fallback?: boolean): boolean => {
     if (value === undefined && fallback !== undefined) return fallback;
-    if (typeof value !== 'boolean') throw new TypeError(`${path}: expected a boolean, got ${JSON.stringify(value)}`);
+    if (typeof value !== 'boolean') throw new WorldgenErrors.ExpectedBoolean({ path, value: JSON.stringify(value) });
     return value;
 };
 
@@ -101,7 +102,7 @@ const blockState = (value: unknown, path: string): string => {
 
 const caveSurface = (value: unknown, path: string): CaveSurface => {
     if (value === 'floor' || value === 'ceiling') return value;
-    throw new TypeError(`${path}: expected "floor" or "ceiling", got ${JSON.stringify(value)}`);
+    throw new WorldgenErrors.ExpectedCaveSurface({ path, value: JSON.stringify(value) });
 };
 
 /** The registries a material rule document can reference. */
@@ -152,7 +153,7 @@ export class MaterialRuleData {
         const cached = this.ruleCache.get(id);
         if (cached) return cached;
         const raw = this.source.materialRules.get(id);
-        if (raw === undefined) throw new RangeError(`No material rule is registered as ${id}`);
+        if (raw === undefined) throw new WorldgenErrors.NoMaterialRuleIsRegistered({ id });
         const parsed = this.withCycleCheck(`rule ${id}`, () => this.parseRule(raw, id));
         this.ruleCache.set(id, parsed);
         return parsed;
@@ -168,7 +169,7 @@ export class MaterialRuleData {
         const cached = this.conditionCache.get(id);
         if (cached) return cached;
         const raw = this.source.materialConditions.get(id);
-        if (raw === undefined) throw new RangeError(`No material condition is registered as ${id}`);
+        if (raw === undefined) throw new WorldgenErrors.NoMaterialConditionIsRegistered({ id });
         const parsed = this.withCycleCheck(`condition ${id}`, () => this.parseCondition(raw, id));
         this.conditionCache.set(id, parsed);
         return parsed;
@@ -193,7 +194,7 @@ export class MaterialRuleData {
             case 'sequence': {
                 const sequence = raw['sequence'];
                 if (!Array.isArray(sequence) || sequence.length === 0) {
-                    throw new TypeError(`${path}.sequence: expected a non-empty array`);
+                    throw new WorldgenErrors.EmptySurfaceSequence({ path });
                 }
                 return {
                     type: 'sequence',
@@ -216,7 +217,7 @@ export class MaterialRuleData {
                     )
                 };
             default:
-                throw new TypeError(`${path}: unknown material rule type ${JSON.stringify(raw['type'])}`);
+                throw new WorldgenErrors.UnknownMaterialRuleType({ path, type: JSON.stringify(raw['type']) });
         }
     }
 
@@ -287,7 +288,7 @@ export class MaterialRuleData {
                     surfaceType: caveSurface(raw['surface_type'], `${path}.surface_type`)
                 };
             default:
-                throw new TypeError(`${path}: unknown material condition type ${JSON.stringify(raw['type'])}`);
+                throw new WorldgenErrors.UnknownMaterialConditionType({ path, type: JSON.stringify(raw['type']) });
         }
     }
 
@@ -298,7 +299,7 @@ export class MaterialRuleData {
             if (typeof entry === 'string' && entry.startsWith('#')) {
                 const expand = this.source.biomeTag;
                 if (!expand) {
-                    throw new RangeError(`${entryPath}: ${entry} is a biome tag and no tag resolver was supplied`);
+                    throw new WorldgenErrors.BiomeTagWithoutResolver({ entryPath, entry });
                 }
                 return [...expand(normalizeIdentifier(entry.slice(1)))];
             }
@@ -308,7 +309,10 @@ export class MaterialRuleData {
 
     private withCycleCheck<T>(key: string, parse: () => T): T {
         if (this.resolving.has(key)) {
-            throw new RangeError(`Material ${key} references itself through ${[...this.resolving].join(' -> ')}`);
+            throw new WorldgenErrors.SurfaceRuleCycle({
+                key,
+                resolving: [...this.resolving].join(' -> ')
+            });
         }
         this.resolving.add(key);
         try {

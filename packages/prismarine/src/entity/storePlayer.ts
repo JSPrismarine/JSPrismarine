@@ -48,6 +48,7 @@ import { PlayerComponents } from './playerComponents';
 import { addFood, setSaturation } from './playerHunger';
 import { HAND_SLOT_FIELD, HEAD_YAW_FIELD, SHOWN_PLAYER_COMPONENTS, SHOWN_PLAYER_SLOTS, slotKey } from './playerShown';
 import type { PlayerShownForm } from './playerShown';
+import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /** Who a store player is, as the login named them. */
 export interface StorePlayerIdentity {
@@ -164,8 +165,9 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
      * @throws {Error} When the entity has another id, or the player already has an entity.
      */
     public attach(entity: DataEntity, systems?: Pick<PlayerSystems, 'attach'>): void {
-        if (entity.id !== this.id) throw new Error(`store player ${this.id} cannot take entity ${entity.id}`);
-        if (this.attached !== undefined) throw new Error(`store player ${this.id} is already in a store`);
+        if (entity.id !== this.id)
+            throw new PrismarineEntityErrors.StorePlayerEntityMismatch({ id: this.id, entityId: entity.id });
+        if (this.attached !== undefined) throw new PrismarineEntityErrors.StorePlayerAlreadyAttached({ id: this.id });
         const { position, yaw, pitch, tags, statusEffects } = this.held;
         const health = this.attributes.getValue(AttributeIds.Health);
         entity.position = position;
@@ -542,7 +544,8 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** Writes back a logged field the player keeps beside its components: the hand slot or the head yaw. */
     private restoreField(field: string, value: PlainData): boolean {
         if (field !== HAND_SLOT_FIELD && field !== HEAD_YAW_FIELD) return false;
-        if (typeof value !== 'number') throw new TypeError(`${field} cannot hold ${String(value)}`);
+        if (typeof value !== 'number')
+            throw new PrismarineEntityErrors.InvalidPlayerField({ field, value: String(value) });
         if (field === HEAD_YAW_FIELD) this.lookingHeadYaw = value;
         else this.inventory.setHandSlot(value);
         return true;

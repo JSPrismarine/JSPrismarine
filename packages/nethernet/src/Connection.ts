@@ -3,6 +3,7 @@ import { EventEmitter } from 'node:events';
 import { provesKey } from './NetherNetIdentity';
 import type { IdentityProof } from './NetherNetIdentity';
 import type { DriverChannel, DriverPeer } from './WebRtcDriver';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /**
  * The most payload one data channel message carries, as Bedrock sends it: its `a=max-message-size`
@@ -55,12 +56,14 @@ export const segmentBytesFor = (description: string): number => {
  * @throws {RangeError} When the message is empty or needs more than {@link MAX_SEGMENTS} segments.
  */
 export const segment = (message: Uint8Array, segmentBytes = SEGMENT_BYTES): Buffer[] => {
-    if (message.byteLength === 0) throw new RangeError('A NetherNet message cannot be empty');
+    if (message.byteLength === 0) throw new NethernetErrors.MessageCannotBeEmpty();
     const count = Math.ceil(message.byteLength / segmentBytes);
     if (count > MAX_SEGMENTS) {
-        throw new RangeError(
-            `A ${message.byteLength} byte message is longer than NetherNet's ${MAX_SEGMENTS} segments of ${segmentBytes}`
-        );
+        throw new NethernetErrors.MessageTooLongToSegment({
+            byteLength: message.byteLength,
+            maxSegments: MAX_SEGMENTS,
+            segmentBytes
+        });
     }
     const segments: Buffer[] = [];
     for (let index = 0; index < count; index++) {
@@ -92,14 +95,14 @@ export class Reassembler {
      *   message grows past the limit.
      */
     public push(data: Buffer): Buffer | undefined {
-        if (data.byteLength < 2) throw new Error('A NetherNet segment needs a count and at least one byte');
+        if (data.byteLength < 2) throw new NethernetErrors.EmptySegment();
         const left = data[0]!;
         if (this.parts.length > 0 && left !== this.remaining - 1) {
-            throw new Error(`A NetherNet segment says ${left} more follow, where ${this.remaining - 1} were due`);
+            throw new NethernetErrors.SegmentOutOfSequence({ left, value: this.remaining - 1 });
         }
         this.bytes += data.byteLength - 1;
         if (this.bytes > this.maxBytes) {
-            throw new Error(`A NetherNet message is longer than the ${this.maxBytes} bytes accepted`);
+            throw new NethernetErrors.MessageTooLarge({ maxBytes: this.maxBytes });
         }
         this.remaining = left;
         this.parts.push(data.subarray(1));
@@ -226,7 +229,7 @@ export class Connection extends EventEmitter {
      * @throws {RangeError} When the message is empty or too long to segment.
      */
     public send(message: Uint8Array): number {
-        if (this.closed) throw new Error('The NetherNet connection is closed');
+        if (this.closed) throw new NethernetErrors.ConnectionIsClosed();
         const reliable = this.reliable;
         if (reliable === undefined || reliable.readyState === 'connecting') {
             this.queue.push(message);

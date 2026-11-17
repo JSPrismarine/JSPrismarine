@@ -11,6 +11,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /**
  * Which alternative of the `Update` variant a `PlayerUpdateEntityOverridesPacket` carries. The
@@ -61,7 +62,7 @@ const entityOverrideUpdate = t.custom<EntityOverrideUpdate>(
     'EntityOverrideUpdate',
     (s, update) => {
         const name = UPDATE_TYPE_NAMES[update.type];
-        if (name === undefined) throw new Error(`Unknown entity override update type ${update.type}`);
+        if (name === undefined) throw new ProtocolWireErrors.UnknownEntityOverrideUpdateType({ type: update.type });
 
         t.varuint32.write(s, update.type);
         t.string.write(s, name);
@@ -79,7 +80,7 @@ const entityOverrideUpdate = t.custom<EntityOverrideUpdate>(
     },
     (s) => {
         const type = t.varuint32.read(s);
-        if (type >= UPDATE_TYPE_NAMES.length) throw new Error(`Unknown entity override update type ${type}`);
+        if (type >= UPDATE_TYPE_NAMES.length) throw new ProtocolWireErrors.UnknownEntityOverrideUpdateType({ type });
         t.string.read(s);
 
         switch (type) {
@@ -91,7 +92,7 @@ const entityOverrideUpdate = t.custom<EntityOverrideUpdate>(
             case EntityOverrideUpdateType.RemoveOverride:
                 return { type };
             default:
-                throw new Error(`Unknown entity override update type ${type}`);
+                throw new ProtocolWireErrors.UnknownEntityOverrideUpdateType({ type });
         }
     }
 );

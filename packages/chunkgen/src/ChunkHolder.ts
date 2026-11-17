@@ -2,6 +2,7 @@ import type { ChunkStatus } from './ChunkStatus';
 import { isOrAfter, parentOfStatus } from './ChunkStatus';
 import type { ChunkStep } from './ChunkStep';
 import type { StagedChunk } from './StagedChunk';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /**
  * Runs one status over a chunk and hands back the chunk at that status.
@@ -19,7 +20,7 @@ export type ChunkStepBody<TChunk extends StagedChunk> = (chunk: TChunk) => TChun
  * `GenerationChunkHolder.acquireStatusBump` for the same reason: the ladder is climbed one rung at
  * a time, so a request that skips a rung is a scheduler bug rather than a request to catch up.
  */
-export class ChunkStepOutOfOrderError extends Error {
+export class ChunkStepOutOfOrderError extends ChunkgenErrors.ChunkStepOutOfOrder {
     public override name = 'ChunkStepOutOfOrderError';
 
     public constructor(
@@ -30,10 +31,7 @@ export class ChunkStepOutOfOrderError extends Error {
         /** The highest status the holder has started, or undefined when it has started none. */
         public readonly started: ChunkStatus | undefined
     ) {
-        super(
-            `The chunk at ${chunkX}, ${chunkZ} cannot start ${requested}: it has started ` +
-                `${started ?? 'no status'}, and a chunk climbs the ladder one rung at a time.`
-        );
+        super({ chunkX, chunkZ, requested, started: started ?? 'no status' });
     }
 }
 
@@ -43,7 +41,7 @@ export class ChunkStepOutOfOrderError extends Error {
  * This means the scheduler ran a layer before the layer below it finished. A body that reads a
  * status its own step did not declare raises `ChunkReadOutOfWindowError` instead.
  */
-export class ChunkNotReadyError extends Error {
+export class ChunkNotReadyError extends ChunkgenErrors.ChunkNotReady {
     public override name = 'ChunkNotReadyError';
 
     public constructor(
@@ -54,9 +52,7 @@ export class ChunkNotReadyError extends Error {
         /** The status the chunk has reached, or undefined when no status has run on it. */
         public readonly reached: ChunkStatus | undefined
     ) {
-        super(
-            `The chunk at ${chunkX}, ${chunkZ} was read at ${requested} while it holds ` + `${reached ?? 'no status'}.`
-        );
+        super({ chunkX, chunkZ, requested, reached: reached ?? 'no status' });
     }
 }
 
@@ -134,7 +130,7 @@ export class ChunkHolder<TChunk extends StagedChunk> {
      */
     public release(): number {
         if (this.references === 0) {
-            throw new RangeError(`The chunk at ${this.chunkX}, ${this.chunkZ} has no reference left to release.`);
+            throw new ChunkgenErrors.ChunkReleasedTooOften({ chunkX: this.chunkX, chunkZ: this.chunkZ });
         }
         this.references -= 1;
         return this.references;

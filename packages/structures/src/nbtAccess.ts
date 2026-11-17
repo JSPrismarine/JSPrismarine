@@ -5,8 +5,7 @@
  * narrow once and the rest of the package stays typed.
  */
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-
-import { StructureFormatError } from './types';
+import { StructuresErrors } from '@jsprismarine/errors/structures';
 
 /** Every numeric tag wrapper the reader produces for a whole or fractional number. */
 type NumericTag = Types.ByteVal | Types.ShortVal | Types.NumberVal | Types.FloatVal | Types.DoubleVal;
@@ -65,7 +64,7 @@ export const tripleAt = (compound: NBTTagCompound, key: string, context: string)
     const values = numberListAt(compound, key);
     const [x, y, z] = values;
     if (values.length !== 3 || x === undefined || y === undefined || z === undefined) {
-        throw new StructureFormatError(`${context}: expected ${key} to be three numbers, found ${values.length}`);
+        throw new StructuresErrors.ExpectedThreeNumbers({ context, key, valuesCount: values.length });
     }
     return [x, y, z];
 };

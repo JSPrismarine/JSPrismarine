@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { SignalStructure, SignalType } from './protocol/Signal';
 import { HttpSignaling } from './HttpSignaling';
-import { exchangeOffer, JoinRefusedError, probeJoin } from './joinByAddress';
+import { JoinRefusedError } from '@jsprismarine/errors/nethernet';
+import { exchangeOffer, probeJoin } from './joinByAddress';
 import { joinStatusJson } from './NetherNetStatus';
 import type { NetherNetStatus } from './NetherNetStatus';
 

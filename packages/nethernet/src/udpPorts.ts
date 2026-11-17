@@ -1,6 +1,7 @@
 import { isIPv4, isIPv6 } from 'node:net';
 
 import { familyOf, isPublicAddress, sameAddress } from './addresses';
+import { NethernetErrors } from '@jsprismarine/errors/nethernet';
 
 /** An inclusive range of UDP ports. */
 export interface PortRange {
@@ -33,13 +34,8 @@ const INVALID_PORT = 'Invalid Port. Port must be in the range [ 1, 65535 ]';
 const NOT_AN_IP =
     'expected an IPv4 literal, raw or [bracketed] IPv6 literal, or empty; do not include a port or hostname.';
 
-/** Thrown for a setting Bedrock Dedicated Server 1.26.70.24 refuses, with its message. */
-export class UdpPortsError extends Error {
-    public override readonly name = 'UdpPortsError';
-}
-
 const fail = (message: string): never => {
-    throw new UdpPortsError(`server-udp-ports: ${message}`);
+    throw new NethernetErrors.InvalidServerUdpPorts({ message });
 };
 
 /** A port, or the setting's invalid-port error. */
@@ -88,7 +84,7 @@ export const parsePublicIp = (setting: string): string | undefined => {
     const text = setting.trim();
     if (text === '') return undefined;
     const address = ipLiteral(text);
-    if (address === undefined) throw new UdpPortsError(`Invalid value '${text}' for server-public-ip: ${NOT_AN_IP}`);
+    if (address === undefined) throw new NethernetErrors.InvalidServerPublicIp({ text, notAnIp: NOT_AN_IP });
     return address;
 };
 

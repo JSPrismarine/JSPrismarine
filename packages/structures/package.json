@@ -75,6 +75,7 @@
     },
     "dependencies": {
         "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/mapping": "workspace:*",
         "@jsprismarine/nbt": "workspace:*"
     }

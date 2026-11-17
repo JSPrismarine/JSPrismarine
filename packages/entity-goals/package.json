@@ -68,6 +68,7 @@
     "dependencies": {
         "@jsprismarine/content": "workspace:*",
         "@jsprismarine/entities": "workspace:*",
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/math": "workspace:*"
     },
     "devDependencies": {

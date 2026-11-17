@@ -3,6 +3,7 @@ import { layoutAt } from '../wire/WireLayout';
 import FieldNetworkPacket from '../FieldNetworkPacket';
 
 import type { ProtocolContext } from '../ProtocolContext';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**
  * The jigsaw structure rules: how villages, bastions, trail ruins and the rest are assembled
@@ -31,7 +32,7 @@ export default class JigsawStructureDataPacket extends FieldNetworkPacket {
     public encodePayload(context?: ProtocolContext): void {
         const structureData = this.structureData ?? context?.jigsawStructureData;
         if (structureData === undefined) {
-            throw new Error('JigsawStructureDataPacket requires structure data in the packet or protocol context');
+            throw new ProtocolCodecErrors.MissingJigsawStructureData();
         }
 
         layoutAt(jigsawStructureDataPacket, this.codecProtocol).encode(this, { structureData });

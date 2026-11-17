@@ -31,6 +31,7 @@ import { SINCE_2225, UNTIL_2225 } from '../wireGates';
 import type { PayloadOf } from '../define';
 import type { ItemStackRequest } from '../structures/ItemStackRequest';
 import type { AuthInputItemUse, PlayerBlockAction } from '../structures/PlayerAuthInput';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** Two little-endian floats, `x` then `y`: a rotation or a movement vector. */
 const vec2 = t.record({ x: t.lf32, y: t.lf32 });
@@ -50,7 +51,10 @@ const inputData = t.custom<Set<number>>(
     (stream) => {
         const flagCount = stream.readUnsignedVarInt();
         if (flagCount > INPUT_FLAG_COUNT) {
-            throw new RangeError(`PlayerAuthInput claims ${flagCount} input flags; there are ${INPUT_FLAG_COUNT}`);
+            throw new ProtocolWireErrors.TooManyInputFlags({
+                flagCount,
+                inputFlagCount: INPUT_FLAG_COUNT
+            });
         }
         return new Set(Array.from({ length: flagCount }, () => stream.readVarInt()));
     }
@@ -83,9 +87,10 @@ const itemUse = t.custom<AuthInputItemUse>(
             : [];
         const actionCount = stream.readUnsignedVarInt();
         if (actionCount > MAX_INVENTORY_ACTIONS) {
-            throw new RangeError(
-                `A PlayerAuthInput item use carried ${actionCount} actions; the docs allow ${MAX_INVENTORY_ACTIONS}`
-            );
+            throw new ProtocolWireErrors.TooManyItemUseActions({
+                actionCount,
+                maxInventoryActions: MAX_INVENTORY_ACTIONS
+            });
         }
         const actions = Array.from({ length: actionCount }, () => readInventoryAction(stream));
 
@@ -111,9 +116,10 @@ const blockActions = t.custom<PlayerBlockAction[]>(
     (stream) => {
         const actionCount = stream.readUnsignedVarInt();
         if (actionCount > MAX_BLOCK_ACTIONS) {
-            throw new RangeError(
-                `PlayerAuthInput claims ${actionCount} block actions; the docs allow ${MAX_BLOCK_ACTIONS}`
-            );
+            throw new ProtocolWireErrors.TooManyBlockActions({
+                actionCount,
+                maxBlockActions: MAX_BLOCK_ACTIONS
+            });
         }
         return Array.from({ length: actionCount }, () => blockAction.read(stream));
     }

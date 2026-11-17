@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { DatabaseLockedError } from '../Errors';
 import { LOCK_FILE_NAME } from '../util/FileNames';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 /**
  * Holds a database directory against a second writer.
@@ -69,7 +69,7 @@ export class DirectoryLock {
         const file = path.join(directory, LOCK_FILE_NAME);
 
         if (DirectoryLock.held.has(resolved)) {
-            throw new DatabaseLockedError(directory, undefined, process.pid);
+            throw new LeveldbErrors.DatabaseLockedByRunningProcess({ path: directory, pid: process.pid });
         }
 
         try {
@@ -81,7 +81,7 @@ export class DirectoryLock {
                 // EBUSY, EPERM or EACCES: something has the file open at the OS level and will not
                 // share it. On Windows that is what a running Minecraft looks like.
                 if (code === 'EBUSY' || code === 'EPERM' || code === 'EACCES') {
-                    throw new DatabaseLockedError(directory, error);
+                    throw new LeveldbErrors.DatabaseLocked({ path: directory }, { cause: error });
                 }
 
                 throw error;
@@ -89,7 +89,10 @@ export class DirectoryLock {
 
             const owner = DirectoryLock.readOwner(file);
             if (owner !== null && DirectoryLock.isRunning(owner)) {
-                throw new DatabaseLockedError(directory, error, owner.pid);
+                throw new LeveldbErrors.DatabaseLockedByRunningProcess(
+                    { path: directory, pid: owner.pid },
+                    { cause: error }
+                );
             }
 
             return DirectoryLock.takeOver(resolved, file, directory, error);
@@ -117,14 +120,14 @@ export class DirectoryLock {
             fs.unlinkSync(file);
         } catch (error) {
             if (errnoCode(error) !== 'ENOENT') {
-                throw new DatabaseLockedError(directory, error);
+                throw new LeveldbErrors.DatabaseLocked({ path: directory }, { cause: error });
             }
         }
 
         try {
             return DirectoryLock.create(resolved, file);
         } catch {
-            throw new DatabaseLockedError(directory, cause);
+            throw new LeveldbErrors.DatabaseLocked({ path: directory }, { cause });
         }
     }
 

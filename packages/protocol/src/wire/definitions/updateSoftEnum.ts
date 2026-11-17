@@ -9,6 +9,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** What to do with the values in a soft enum update. */
 export enum SoftEnumUpdateType {
@@ -41,7 +42,7 @@ const updateType = t.custom<SoftEnumUpdateType>(
             case SoftEnumUpdateType.REPLACE:
                 return type;
             default:
-                throw new Error(`Unknown soft enum update type ${type}`);
+                throw new ProtocolWireErrors.UnknownSoftEnumUpdateType({ type });
         }
     }
 );

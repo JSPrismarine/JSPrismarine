@@ -1,6 +1,7 @@
 import type { RequestChunkRadiusPacket } from '@jsprismarine/protocol';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /**
  * Answers a view distance request with the smallest radius every side can take.
@@ -21,7 +22,7 @@ export default class RequestChunkRadiusHandler implements InputLaneHandler<Reque
     /** Grants a radius and records the exchange at debug level, since the join hinges on it. */
     public handle(packet: RequestChunkRadiusPacket, { session, log, config, step }: InputContext): undefined {
         const request = packet.getPacketData();
-        if (request === null) throw new Error('RequestChunkRadiusPacket has no payload');
+        if (request === null) throw new PrismarineNetworkErrors.ChunkRadiusRequestNotDecoded();
 
         const limits = [request.radius, config.getViewDistance()];
         if (request.maxRadius > 0) {

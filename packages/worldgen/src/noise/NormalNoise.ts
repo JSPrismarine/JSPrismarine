@@ -5,6 +5,7 @@ import { createLegacyNetherFbm } from './LegacyFbmInitializer';
 import type { NoiseStack } from './NoiseStack';
 import { NoiseStackBuilder } from './NoiseStack';
 import { PerlinNoise } from './PerlinNoise';
+import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 const TARGET_DEVIATION = 1 / 3;
 const INPUT_FACTOR = 1.0181268882175227;
@@ -42,10 +43,10 @@ interface OctaveInfo {
 const readNumber = (value: unknown, field: string, fallback?: number): number => {
     if (value === undefined) {
         if (fallback !== undefined) return fallback;
-        throw new TypeError(`Noise parameters are missing the required field ${field}`);
+        throw new WorldgenErrors.MissingNoiseParameter({ field });
     }
     if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new TypeError(`Noise parameter ${field} must be a finite number`);
+        throw new WorldgenErrors.InvalidNoiseParameter({ field });
     }
     return value;
 };
@@ -55,7 +56,7 @@ const readNormalization = (value: unknown): NoiseNormalization => {
     if (value === true) return 'enabled';
     if (value === false) return 'disabled';
     if (value === 'legacy') return 'legacy';
-    throw new TypeError(`Noise parameter normalize must be a boolean or "legacy", got ${JSON.stringify(value)}`);
+    throw new WorldgenErrors.InvalidNoiseNormalization({ value: JSON.stringify(value) });
 };
 
 /**
@@ -66,7 +67,7 @@ const readNormalization = (value: unknown): NoiseNormalization => {
  */
 export const parseNoiseParameters = (source: unknown): NoiseParameters => {
     if (typeof source !== 'object' || source === null || Array.isArray(source)) {
-        throw new TypeError('Noise parameters must be a JSON object');
+        throw new WorldgenErrors.NoiseParametersNotObject();
     }
     // A parsed JSON document is `unknown`; the reads below check every field.
     const raw = source as Record<string, unknown>;
@@ -76,22 +77,23 @@ export const parseNoiseParameters = (source: unknown): NoiseParameters => {
     const baseAmplitude = readNumber(raw['base_amplitude'], 'base_amplitude', 1);
     const modifierSource = raw['amplitude_modifiers'];
     if (modifierSource !== undefined && !Array.isArray(modifierSource)) {
-        throw new TypeError('Noise parameter amplitude_modifiers must be an array');
+        throw new WorldgenErrors.InvalidAmplitudeModifiers();
     }
     const amplitudeModifiers = (modifierSource ?? []).map((entry, index) =>
         readNumber(entry, `amplitude_modifiers[${index}]`)
     );
 
     if (!Number.isInteger(baseOctave) || baseOctave < -32 || baseOctave > 32) {
-        throw new RangeError(`Noise parameter base_octave must be an integer in [-32, 32], got ${baseOctave}`);
+        throw new WorldgenErrors.InvalidBaseOctave({ baseOctave });
     }
     if (!Number.isInteger(octaveCount) || octaveCount < 1 || octaveCount > 32) {
-        throw new RangeError(`Noise parameter octave_count must be an integer in [1, 32], got ${octaveCount}`);
+        throw new WorldgenErrors.InvalidOctaveCount({ octaveCount });
     }
     if (amplitudeModifiers.length > 0 && amplitudeModifiers.length !== octaveCount) {
-        throw new RangeError(
-            `amplitude_modifiers had size ${amplitudeModifiers.length}, but octave_count was ${octaveCount}`
-        );
+        throw new WorldgenErrors.AmplitudeModifierCountMismatch({
+            amplitudeModifiersCount: amplitudeModifiers.length,
+            octaveCount
+        });
     }
 
     return {
@@ -211,7 +213,7 @@ export class NormalNoise {
      * @throws When `amplitudes` is empty, as Java does.
      */
     public static parity(baseOctave: number, amplitudes: readonly number[]): NormalNoise {
-        if (amplitudes.length === 0) throw new RangeError('Need at least 1 amplitude');
+        if (amplitudes.length === 0) throw new WorldgenErrors.NoiseHasNoAmplitudes();
 
         const octaves = buildOctaves(baseOctave, 1, amplitudes.length, true, amplitudes);
         const newFactor = computeNormalizationFactor(

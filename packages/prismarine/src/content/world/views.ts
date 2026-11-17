@@ -48,6 +48,7 @@ import {
     WATER_SOURCE_CONVERSION,
     fireSpreadRadius
 } from './gameRules';
+import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 
 /**
  * Reads the built content.
@@ -155,7 +156,7 @@ const lightDampeningOf = (content: ServerContent, block: HookBlock): number => {
 const DEFAULT_FLAMMABLE = (() => {
     const parsed = flammable.schema({});
     if (!parsed.ok || typeof parsed.value === 'boolean') {
-        throw new Error('the minecraft:flammable schema rejected its own defaults');
+        throw new PrismarineContentErrors.FlammableDefaultsRejected();
     }
     return parsed.value;
 })();

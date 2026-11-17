@@ -15,6 +15,7 @@ import type { Generator } from './Generator';
 import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
 import { builtInGeneratorFactories } from './generators/factories/builtIn';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** Everything a factory may read while building one dimension's generator. */
 export interface GeneratorBuildContext {
@@ -111,7 +112,7 @@ export class GeneratorFactories {
      */
     public register(factory: GeneratorFactory): void {
         if (this.factories.has(factory.kind)) {
-            throw new Error(`A generator factory for ${factory.kind} is already registered`);
+            throw new PrismarineWorldErrors.DuplicateGeneratorFactory({ kind: factory.kind });
         }
         this.factories.set(factory.kind, factory);
     }
@@ -126,7 +127,10 @@ export class GeneratorFactories {
         const kind = context.stem.generator.type;
         const factory = this.factories.get(kind);
         if (factory === undefined) {
-            throw new Error(`Unknown generator kind ${kind}. Registered kinds: ${this.kinds().join(', ')}`);
+            throw new PrismarineWorldErrors.UnknownGeneratorKind({
+                kind,
+                kinds: this.kinds().join(', ')
+            });
         }
 
         const generator = factory.build(context);

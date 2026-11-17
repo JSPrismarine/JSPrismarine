@@ -23,6 +23,7 @@ import type { TerrainTaskInput } from './DataDrivenGenerator';
 import { hasValidBlending } from './javaBlending';
 import { DataDrivenGenerator, isPipelineKey } from './DataDrivenGenerator';
 import { readRegistryBundle } from './registryBundle';
+import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /**
  * What a worker is handed once, to build its terrain pipeline from.
@@ -40,14 +41,11 @@ export interface TerrainPipelineSetup {
 }
 
 /** Raised when the pool hands a worker a task it has no body for. */
-export class UnsupportedWorkerStatusError extends Error {
+export class UnsupportedWorkerStatusError extends PrismarineGenerationErrors.UnsupportedWorkerStatus {
     public override name = 'UnsupportedWorkerStatusError';
 
     public constructor(status: string) {
-        super(
-            `A generation worker runs terrain and nothing else, so it cannot run ${status}. ` +
-                'Every other status either writes into its neighbors or needs state the main thread keeps.'
-        );
+        super({ status });
     }
 }
 
@@ -86,7 +84,7 @@ const isTerrainInput = (value: unknown): value is TerrainTaskInput =>
  * @throws TypeError when the setup is not a terrain pipeline's.
  */
 export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
-    if (!isSetup(setup)) throw new TypeError('A terrain worker needs a registry bundle in shared memory.');
+    if (!isSetup(setup)) throw new PrismarineGenerationErrors.TerrainWorkerWithoutRegistryBundle();
 
     const generator = new DataDrivenGenerator({
         registries: readRegistryBundle(setup.registryBundle, setup.sharedClimateParameters),
@@ -104,9 +102,10 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
         async run(task: GenerationTask): Promise<GenerationResult> {
             if (task.status !== 'terrain') throw new UnsupportedWorkerStatusError(task.status);
             if (!isTerrainInput(task.input)) {
-                throw new TypeError(
-                    `The terrain task at ${task.chunkX}, ${task.chunkZ} carries no seed and pipeline key.`
-                );
+                throw new PrismarineGenerationErrors.IncompleteTerrainTask({
+                    chunkX: task.chunkX,
+                    chunkZ: task.chunkZ
+                });
             }
 
             const tile = await generator.buildTerrainTile(

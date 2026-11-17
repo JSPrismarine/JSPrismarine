@@ -1,6 +1,7 @@
 import { createCipheriv, createHash } from 'node:crypto';
 
 import type { Cipheriv } from 'node:crypto';
+import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /** How many bytes of the SHA-256 travel as the checksum. */
 const CHECKSUM_LENGTH = 8;
@@ -56,7 +57,7 @@ export class EncryptionCodec {
      */
     public constructor(private readonly key: Buffer) {
         if (key.byteLength !== 32) {
-            throw new Error(`An encryption key is 32 bytes, got ${key.byteLength}`);
+            throw new ProtocolCodecErrors.InvalidEncryptionKey({ byteLength: key.byteLength });
         }
 
         // Counter mode, so encrypting and decrypting are the same operation and one direction
@@ -84,7 +85,10 @@ export class EncryptionCodec {
         const body = this.receiveStream.update(batch.subarray(1));
 
         if (body.byteLength < CHECKSUM_LENGTH) {
-            throw new Error(`An encrypted batch is at least ${CHECKSUM_LENGTH} bytes, got ${body.byteLength}`);
+            throw new ProtocolCodecErrors.EncryptedBatchTooShort({
+                checksumLength: CHECKSUM_LENGTH,
+                byteLength: body.byteLength
+            });
         }
 
         const payload = body.subarray(0, body.byteLength - CHECKSUM_LENGTH);
@@ -92,9 +96,11 @@ export class EncryptionCodec {
         const expected = this.checksum(this.receiveCounter++, payload);
 
         if (!carried.equals(expected)) {
-            throw new Error(
-                `Checksum mismatch on batch ${this.receiveCounter - 1n}: expected ${expected.toString('hex')}, got ${carried.toString('hex')}`
-            );
+            throw new ProtocolCodecErrors.BatchChecksumMismatch({
+                value: this.receiveCounter - 1n,
+                expected: expected.toString('hex'),
+                carried: carried.toString('hex')
+            });
         }
 
         return Buffer.concat([header, payload]);

@@ -26,8 +26,8 @@ import type { RandomSource } from './random';
 import type { Rotation } from './tableShape';
 import { transformPosition, transformedSize } from './transform';
 import type { BedrockBlockState, BedrockStructureTemplate, TemplatePosition } from './types';
-import { StructureFormatError } from './types';
 import { isRecord } from './isRecord';
+import { StructuresErrors } from '@jsprismarine/errors/structures';
 
 /** A facing, in Java's own vocabulary, which both jigsaw fields use. */
 export type Direction = 'down' | 'up' | 'north' | 'south' | 'east' | 'west';
@@ -310,10 +310,10 @@ export const jigsawStateFor = (front: Direction, top: Direction): BedrockBlockSt
     stateByOrientation.get(`${front}|${top}`);
 
 const parsePoolElement = (definition: unknown): PoolElement => {
-    if (!isRecord(definition)) throw new StructureFormatError('pool element: expected an object');
+    if (!isRecord(definition)) throw new StructuresErrors.PoolElementExpectedObject();
     const type = definition.element_type;
     if (typeof type !== 'string' || !POOL_ELEMENT_TYPES.includes(type as PoolElementType)) {
-        throw new StructureFormatError(`pool element: unknown element_type ${String(type)}`);
+        throw new StructuresErrors.PoolElementUnknownElementType({ type: String(type) });
     }
 
     const nested = Array.isArray(definition.elements) ? definition.elements.map(parsePoolElement) : undefined;
@@ -339,11 +339,11 @@ const parsePoolElement = (definition: unknown): PoolElement => {
  */
 export const parseTemplatePool = (definition: unknown): TemplatePool => {
     if (!isRecord(definition) || !Array.isArray(definition.elements)) {
-        throw new StructureFormatError('template pool: no elements');
+        throw new StructuresErrors.TemplatePoolNoElements();
     }
     return {
         elements: definition.elements.map((entry) => {
-            if (!isRecord(entry)) throw new StructureFormatError('template pool: an entry is not an object');
+            if (!isRecord(entry)) throw new StructuresErrors.TemplatePoolEntryIsNotObject();
             return {
                 element: parsePoolElement(entry.element),
                 weight: typeof entry.weight === 'number' ? entry.weight : 1

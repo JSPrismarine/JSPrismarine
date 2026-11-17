@@ -1,3 +1,5 @@
+import { ClientErrors } from '@jsprismarine/errors/client';
+
 /**
  * A small, seeded pseudo-random generator.
  *
@@ -58,7 +60,7 @@ export default class Random {
     }
 
     public pick<T>(items: readonly T[]): T {
-        if (items.length === 0) throw new Error('Cannot pick from an empty list');
+        if (items.length === 0) throw new ClientErrors.PickFromEmptyList();
 
         return items[this.nextInt(0, items.length - 1)]!;
     }

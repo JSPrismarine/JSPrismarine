@@ -30,13 +30,14 @@ import type {
     WorkerPipeline,
     WorkerPipelineFactory
 } from './GenerationPool';
+import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /** Raised when the module the pool named is not a pipeline module. */
-export class MissingPipelineFactoryError extends Error {
+export class MissingPipelineFactoryError extends ChunkgenErrors.MissingPipelineFactory {
     public override name = 'MissingPipelineFactoryError';
 
     public constructor(specifier: string) {
-        super(`${specifier} does not export createGenerationPipeline, so a worker has no status bodies to run.`);
+        super({ specifier });
     }
 }
 
@@ -47,10 +48,7 @@ export class MissingPipelineFactoryError extends Error {
  * here it is the difference between two workers building two different worlds.
  */
 const refuseMathRandom = (): never => {
-    throw new Error(
-        'Math.random is seeded per V8 isolate, so a chunk that used it would depend on which ' +
-            'worker built it. Draw from the seed and the position instead.'
-    );
+    throw new ChunkgenErrors.MathRandomInGeneration();
 };
 
 /** Whether a dynamically imported export is the factory a pipeline module owes. */
@@ -74,14 +72,14 @@ const workerStartupSlot = workerStartupStats === undefined ? undefined : Atomics
 let workerHeapSnapshotWritten = false;
 
 if (workerHeapStats !== undefined && workerHeapSlot !== undefined && workerHeapSlot >= workerHeapStats.length) {
-    throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker heap stats buffer`);
+    throw new ChunkgenErrors.WorkerHasNoHeapStatsSlot({ threadId });
 }
 if (
     workerStartupStats !== undefined &&
     workerStartupSlot !== undefined &&
     workerStartupSlot > BigInt(Math.floor((workerStartupStats.length - 1) / 3))
 ) {
-    throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker startup stats buffer`);
+    throw new ChunkgenErrors.WorkerHasNoStartupStatsSlot({ threadId });
 }
 
 const load = async (): Promise<WorkerPipeline> => {

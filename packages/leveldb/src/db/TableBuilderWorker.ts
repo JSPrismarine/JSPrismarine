@@ -25,9 +25,10 @@ import type {
     TableWorkerTask,
     WorkerTableMetadata
 } from './TableWorkerProtocol';
+import { LeveldbErrors } from '@jsprismarine/errors/leveldb';
 
 const port = parentPort;
-if (port === null) throw new Error('TableBuilderWorker must run in a worker thread');
+if (port === null) throw new LeveldbErrors.TableWorkerOutsideWorkerThread();
 
 const tableOptions = (options: BuildTableTask['options']): TableBuilderOptions => ({
     ...options,

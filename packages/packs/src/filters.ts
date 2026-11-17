@@ -1,4 +1,5 @@
 import { isRecord } from './isRecord';
+import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /**
  * The Bedrock filter grammar, shared by entity definitions, spawn rules and
@@ -92,11 +93,6 @@ export interface FilterGroup {
 /** A parsed filter: one test or a combinator over nested filters. */
 export type Filter = FilterTest | FilterGroup;
 
-/** Error thrown when a filter value does not follow the grammar. */
-export class FilterParseError extends Error {
-    public override name = 'FilterParseError';
-}
-
 /**
  * The legacy shorthand where the key names the test and carries its subject,
  * and the value is what the test compares against. The skeleton's
@@ -116,15 +112,13 @@ const SHORTHANDS: Record<string, { readonly test: string; readonly subject: Filt
  */
 export const parseFilter = (value: unknown): Filter => {
     if (Array.isArray(value)) return { kind: 'group', combinator: 'all_of', filters: value.map(parseFilter) };
-    if (!isRecord(value))
-        throw new FilterParseError(`a filter must be an object or array, got ${JSON.stringify(value)}`);
+    if (!isRecord(value)) throw new PacksErrors.InvalidFilter({ value: JSON.stringify(value) });
 
     const keys = Object.keys(value);
     const groupKeys = keys.filter((key) => key in GROUP_ALIASES);
     if (groupKeys.length > 0) {
         const rest = keys.filter((key) => !(key in GROUP_ALIASES));
-        if (rest.length > 0)
-            throw new FilterParseError(`a filter group map holds only combinator keys, got ${rest.join(', ')}`);
+        if (rest.length > 0) throw new PacksErrors.FilterGroupMixesKeys({ rest: rest.join(', ') });
         const clauses = groupKeys.map((key) => parseGroup(key, value[key]));
         return clauses.length === 1 ? clauses[0]! : { kind: 'group', combinator: 'all_of', filters: clauses };
     }
@@ -138,7 +132,7 @@ export const parseFilter = (value: unknown): Filter => {
 /** Parses one clause of a group map; its value is a whole filter group. */
 const parseGroup = (key: string, members: unknown): FilterGroup => {
     if (!Array.isArray(members) && !isRecord(members))
-        throw new FilterParseError(`${key} must hold a filter or an array of filters, got ${JSON.stringify(members)}`);
+        throw new PacksErrors.InvalidFilterGroupMembers({ key, members: JSON.stringify(members) });
     return {
         kind: 'group',
         combinator: GROUP_ALIASES[key]!,
@@ -154,7 +148,7 @@ const parseShorthand = (spec: { readonly test: string; readonly subject: FilterS
 };
 
 const parseTest = (value: Record<string, unknown>): FilterTest => {
-    if (typeof value.test !== 'string') throw new FilterParseError('a filter test needs a string test name');
+    if (typeof value.test !== 'string') throw new PacksErrors.FilterTestHasNoName();
 
     const test: FilterTest = {
         kind: 'test',
@@ -164,12 +158,12 @@ const parseTest = (value: Record<string, unknown>): FilterTest => {
     };
     if (value.domain !== undefined) {
         if (typeof value.domain !== 'string' && typeof value.domain !== 'number' && typeof value.domain !== 'boolean')
-            throw new FilterParseError('domain must be a string, number or boolean');
+            throw new PacksErrors.InvalidFilterDomain();
         test.domain = value.domain;
     }
     if (value.value !== undefined) {
         if (typeof value.value !== 'string' && typeof value.value !== 'number' && typeof value.value !== 'boolean')
-            throw new FilterParseError('value must be a string, number or boolean');
+            throw new PacksErrors.InvalidFilterValue();
         test.value = value.value;
     }
     return test;
@@ -179,21 +173,21 @@ const parseSubject = (value: unknown): FilterSubject => {
     if (value === undefined) return 'self';
     if (typeof value === 'number') {
         const subject = FILTER_SUBJECTS[value];
-        if (!subject) throw new FilterParseError(`unknown integer subject ${value}`);
+        if (!subject) throw new PacksErrors.UnknownIntegerSubject({ value });
         return subject;
     }
     const subject = FILTER_SUBJECTS.find((name) => name === value);
     if (subject) return subject;
-    throw new FilterParseError(`unknown subject ${JSON.stringify(value)}`);
+    throw new PacksErrors.UnknownSubject({ value: JSON.stringify(value) });
 };
 
 const parseOperator = (value: unknown): FilterOperator => {
     if (value === undefined) return '==';
     if (typeof value === 'number') {
         const operator = OPERATOR_CODES[value];
-        if (!operator) throw new FilterParseError(`unknown integer operator ${value}`);
+        if (!operator) throw new PacksErrors.UnknownIntegerOperator({ value });
         return operator;
     }
     if (typeof value === 'string' && OPERATOR_ALIASES[value]) return OPERATOR_ALIASES[value];
-    throw new FilterParseError(`unknown operator ${JSON.stringify(value)}`);
+    throw new PacksErrors.UnknownOperator({ value: JSON.stringify(value) });
 };

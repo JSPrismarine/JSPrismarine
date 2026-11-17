@@ -8,6 +8,7 @@ import type {
     FilterWorldView
 } from '@jsprismarine/entities';
 import { EntityTypes } from '@jsprismarine/entities';
+import { EntityGoalsErrors } from '@jsprismarine/errors/entity-goals';
 
 import type { ControlFlag } from '@jsprismarine/entities';
 import { createGoalEntityRegistry } from './register';
@@ -201,7 +202,10 @@ export class GoalHarness {
             }
         ]);
         const errors = diagnostics.filter((entry) => entry.severity === 'error');
-        if (errors.length > 0) throw new Error(errors.map((entry) => entry.message).join('; '));
+        if (errors.length > 0)
+            throw new EntityGoalsErrors.TestEntityDidNotLoad({
+                diagnostics: errors.map((entry) => entry.message).join('; ')
+            });
 
         this.entity = types.spawn(identifier, {
             environment: {
