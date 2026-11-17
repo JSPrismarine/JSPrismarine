@@ -13,6 +13,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { ScriptLog, WorldScripts } from '@jsprismarine/script-host/host/WorldScripts';
+import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
 
 import type { ScriptWatchdogConfig } from '../config/Config';
 import { isRecord } from '../utils/isRecord';
@@ -162,6 +163,14 @@ export class LevelScripts {
     /** Runs the script flush, for a level ticked by hand rather than through its world. */
     public flush(): void {
         this.runtime.flush();
+    }
+
+    /**
+     * Takes a client's answer to a form one of the level's scripts showed. The next script flush
+     * settles the form, and an answer for a form the scripts did not send is dropped there.
+     */
+    public answerForm(response: ScriptFormResponse): void {
+        this.world.answerForm(response);
     }
 
     /** Reloads every pack's scripts, as `/reload` does. */

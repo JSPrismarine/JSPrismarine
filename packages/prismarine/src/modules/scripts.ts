@@ -1,4 +1,6 @@
 import type { Module } from '@jsprismarine/kernel';
+import ClientboundCloseFormPacket from '@jsprismarine/protocol/packet/ClientboundCloseFormPacket';
+import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormRequestPacket';
 
 import type Server from '../Server';
 import { LevelScripts } from '../scripting/LevelScripts';
@@ -44,7 +46,12 @@ export const scriptsModule = (server: Server): Module => ({
                             sendMessage: (message) =>
                                 void session
                                     .sendMessage(message)
-                                    .catch((error: unknown) => server.getLogger().error(error))
+                                    .catch((error: unknown) => server.getLogger().error(error)),
+                            showForm: (formId, formUiJson) =>
+                                session.released(
+                                    session.send(Object.assign(new ModalFormRequestPacket(), { formId, formUiJson }))
+                                ),
+                            closeForms: () => session.released(session.send(new ClientboundCloseFormPacket({})))
                         })),
                 weather: level.getWeather(),
                 chat: server.getChatManager(),
