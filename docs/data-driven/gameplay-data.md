@@ -247,9 +247,12 @@ all 1914 criteria in its bucket. The three recipe triggers and
 `player_generates_container_loot` are indexed by the element their event names, so a
 `recipe_unlocked` event evaluates one criterion rather than 1739.
 
-Completion is announced to the world with Bedrock's `chat.type.achievement` key. The name in it is
-the advancement's translation key or its id, because a Java advancement's title names a string like
-`advancements.story.mine_stone.title` and a Bedrock client has no such string.
+Completion is announced to the world with Bedrock's `chat.type.achievement` key, which each client
+renders in its own language. The name in it is in English: a Java advancement's title names a
+string like `advancements.story.mine_stone.title`, a Bedrock client has no such string, and the
+server reads the text from the Java strings that `ensure:worldgen` extracts into the cache, or from
+the `en_us.json` that `JSP_JAVA_LANG` names. Without them the name is the translation key, or the
+advancement id for a title with neither a key nor text.
 
 Of the four reward hooks the engine declares, only `grantExperience` is bound. Vanilla uses
 `experience` on 23 files and `recipes` on 1739, and the recipe rewards report a warning instead of

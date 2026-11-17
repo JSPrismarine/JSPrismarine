@@ -244,7 +244,7 @@ let nextRuntimeId = 1n << 40n;
  * The item actor port is the real one, built over the same player, so the two triggers whose
  * call site is inside it are driven by the call site rather than by the helper.
  */
-const scene = () => {
+const scene = (english: ReadonlyMap<string, string> = new Map()) => {
     const runtimeId = nextRuntimeId++;
     /** Whoever is holding the item, as the item runtime names one: this scene's player. */
     const source = { identifier: 'minecraft:player', runtimeId: Number(runtimeId) };
@@ -252,7 +252,7 @@ const scene = () => {
     const announced: Array<{ key: string; parameters: string[] }> = [];
     const inventory = new HumanInventory();
 
-    const server = stub<Server>({ getContent: () => built });
+    const server = stub<Server>({ getContent: () => built, getJavaEnglish: () => english });
     const world = stub<World>({
         getViewers: () => [player],
         getActor: (id: bigint) => (id === runtimeId ? (player.getActor() ?? null) : null),
@@ -415,9 +415,20 @@ describe('earning vanilla advancements by playing', () => {
         expect(announced).toEqual([]);
 
         advancementPickedUpItem(player, cobblestone);
+        // With no Java strings to name it by, the key is all there is.
         expect(announced).toEqual([
             { key: 'chat.type.achievement', parameters: [player.getName(), 'advancements.story.mine_stone.title'] }
         ]);
+    });
+
+    it('names a completion in English, since a Bedrock client has no string for the Java key', () => {
+        const { player, inventory, announced } = scene(new Map([['advancements.story.mine_stone.title', 'Stone Age']]));
+        const cobblestone = new Item({ name: 'minecraft:cobblestone' });
+        inventory.setItem(0, new ContainerEntry({ item: cobblestone, count: 1 }));
+
+        advancementPickedUpItem(player, cobblestone);
+
+        expect(announced).toEqual([{ key: 'chat.type.achievement', parameters: [player.getName(), 'Stone Age'] }]);
     });
 
     it('earns husbandry/root the first time the player eats anything', () => {

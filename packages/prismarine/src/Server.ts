@@ -14,6 +14,8 @@ import { seededRandom } from '@jsprismarine/predicates';
 import type { SeededRandomState, StatefulRandomSource } from '@jsprismarine/predicates';
 import type { LootSequencesState } from '@jsprismarine/loot';
 import type { ChatManager } from './chat/ChatManager';
+import { loadJavaEnglish } from './advancement/javaEnglish';
+import type { JavaEnglish } from './advancement/javaEnglish';
 import { lootBuildReport, lootSummary, lootWarning } from './content/lootReport';
 import { buildServerContent } from './content/ServerContent';
 import type { ServerContent } from './content/ServerContent';
@@ -178,6 +180,8 @@ export default class Server {
      * private and {@link Server.getContent} throws rather than handing out `undefined`.
      */
     private content: ServerContent | undefined;
+    /** Java's English strings, read the first time an advancement is announced. */
+    private javaEnglish: JavaEnglish | undefined;
 
     /**
      * The world the content acts through, kept beside the content it was built for.
@@ -843,6 +847,15 @@ export default class Server {
     public getContent(): ServerContent {
         if (!this.content) throw new Error('the content was read before the pack stack was built');
         return this.content;
+    }
+
+    /**
+     * Java Edition's English strings, which name what a Bedrock client has no string for.
+     *
+     * @returns {JavaEnglish} Translation key to text, empty when the cache has no strings.
+     */
+    public getJavaEnglish(): JavaEnglish {
+        return (this.javaEnglish ??= loadJavaEnglish());
     }
 
     /**

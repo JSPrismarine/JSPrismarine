@@ -21,6 +21,7 @@ import { TextPacketType } from '@jsprismarine/protocol';
 import { advancementsOf } from './progress';
 import { isRecord } from '../utils/isRecord';
 import type { KeyedPlayerHolder } from '../keyedPlayer';
+import type { JavaEnglish } from './javaEnglish';
 
 /** A player who hears an announcement: its session. */
 interface AnnouncementRecipient {
@@ -69,17 +70,17 @@ export const raiseAdvancement = <K extends TriggerName>(
  * achievement %s" - and it is sent translated so a client in another language
  * reads its own. The name is a different matter: a Java advancement's title is
  * a chat component naming a key like `advancements.story.mine_stone.title`,
- * and a Bedrock client has no such string, so what goes out is the key or the
- * literal text the component carries, and the advancement id when it carries
- * neither. Teaching the client the real names needs a resource pack with those
- * keys in it, which is a different job from this one.
+ * and a Bedrock client has no such string, so a `%` in front of it would show
+ * the key all the same. The server names it in English from Java's own strings,
+ * and falls back to the key, or to the advancement id when the title carries
+ * neither a key nor text.
  */
 const announce = async (player: RaisingPlayer, server: Server, id: string): Promise<void> => {
     const advancement = server.getContent().advancements.get(id);
     const display = advancement?.display;
     if (display?.announceToChat === false || display === undefined) return;
 
-    const name = titleOf(display.title) ?? id;
+    const name = titleOf(display.title, server.getJavaEnglish()) ?? id;
 
     await Promise.all(
         player
@@ -99,11 +100,13 @@ const announce = async (player: RaisingPlayer, server: Server, id: string): Prom
 /**
  * A readable name out of a chat component, which the engine keeps as the JSON
  * it parsed. Turning a component into text belongs to a text layer this server
- * does not have yet, so this takes the one field that is already a string.
+ * does not have yet, so this takes the one field that is already a string, and
+ * a `translate` key's English text when Java's strings have it.
  */
-const titleOf = (title: unknown): string | undefined => {
+const titleOf = (title: unknown, english: JavaEnglish): string | undefined => {
     if (typeof title === 'string') return title;
     if (!isRecord(title)) return undefined;
     if (typeof title.text === 'string') return title.text;
-    return typeof title.translate === 'string' ? title.translate : undefined;
+    if (typeof title.translate !== 'string') return undefined;
+    return english.get(title.translate) ?? title.translate;
 };
