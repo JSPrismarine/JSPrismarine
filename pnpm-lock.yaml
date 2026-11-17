@@ -1865,6 +1865,18 @@ importers:
         specifier: 5.1.0
         version: 5.1.0(@types/node@26.6.6)(@vitest/coverage-v8@5.1.0)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
+  packages/script-types:
+    devDependencies:
+      '@jsprismarine/script-host':
+        specifier: workspace:*
+        version: link:../script-host
+      rimraf:
+        specifier: 6.1.4
+        version: 6.1.4
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   packages/server:
     dependencies:
       '@jsprismarine/chunkgen':
