@@ -542,6 +542,42 @@ system.run(() => {
         expect(scripts.debugTarget('4f2b6b3a-0000-4000-8000-00000000ffff')).toBeUndefined();
     });
 
+    it('names each pack once its context is ready, so a debugger attached there stops at its first line', () => {
+        const uuid = '4f2b6b3a-0000-4000-8000-000000000003';
+        const pack = writePack(`const label = 'top level';\nconsole.warn(label);`, '2.0.0', 'early', uuid);
+        const log = new Log();
+        const lines: number[] = [];
+        const scripts = new WorldScripts({
+            library,
+            world: new MemoryWorld(),
+            packs: [pack],
+            config: readScriptConfig(undefined),
+            log,
+            seed: 1n,
+            onPackLoaded: (moduleUuid, target) => {
+                expect(moduleUuid).toBe(uuid);
+                const debug = target.engine.attachDebugger(
+                    {
+                        paused: () => {
+                            lines.push(debug.frames()[0]?.line ?? 0);
+                            debug.detach();
+                            return 'resume';
+                        },
+                        poll: () => undefined
+                    },
+                    { context: target.context }
+                );
+                debug.setBreakpoints('scripts/main.js', [1]);
+            }
+        });
+        runtimes.push(scripts);
+
+        scripts.startEarly();
+
+        expect(lines).toEqual([1]);
+        expect(log.printed()).toEqual(['top level']);
+    });
+
     it('refuses a pack the config does not allow a module, with BDS’s message', () => {
         const pack = writePack(`console.warn('ran');`, '2.0.0', 'refused');
         const log = new Log();

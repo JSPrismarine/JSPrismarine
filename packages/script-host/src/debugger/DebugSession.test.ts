@@ -163,6 +163,16 @@ describe('the debugger protocol handshake', () => {
     it('fails when the extension leaves before it answers', () => {
         expect(() => handshake([]).session.handshake()).toThrow(DebuggerConnectionError);
     });
+
+    it('offers the protocol without waiting, and the handshake that follows does not offer it again', () => {
+        const { extension, session } = handshake([accept()]);
+
+        session.offer();
+        session.offer();
+        expect(extension.events().map((event) => event.type)).toEqual(['ProtocolEvent']);
+        expect(session.handshake()).toBe(plugin.module_uuid);
+        expect(extension.events().map((event) => event.type)).toEqual(['ProtocolEvent']);
+    });
 });
 
 describe.skipIf(!scriptHostAvailable())('a debugger session', () => {

@@ -211,10 +211,57 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      moved to TypeScript in `src/debugger/`. The existing step tests keep their counts. The pinned
      QuickJS gives a frame slot only to variables a closure captures, so an evaluation borrows the
      slot of any other variable and leaves a closure it makes with a copy.
-   - Left for the world host: the `script-debugger-*` and `*-script-debugging` properties,
-     `/script debugger listen|connect|detach` and auto-attach, the socket's thread and the bridge
-     to the world thread, attaching the engine of the pack `targetModuleUUID` picks, a `poll` between ticks,
-     never attaching during a replay, and the VS Code check against a scenario pack.
+   - The world host (2026-11-17): the `script-debugger-*` and `*-script-debugging` properties in
+     `config.json`, `/script debugger listen|connect|close` with `detach` as an alias of `close`,
+     auto-attach before the scripts start, `DebuggerThread` for the sockets, a handshake that
+     waits between ticks for the extension's answer, the attach to the pack `targetModuleUUID`
+     picks, a `poll` after each message, and no socket at all when the server is a replay.
+   - Learned, from the pinned BDS 1.26.51.1's console, wire and `en_US.lang`: the commands print
+     `Debugger listening on port %s`, `Debugger connected to host %s on port %s` once the
+     handshake passes, and `Debugger closed`, the last even with nothing open. A failed connect or
+     a refused listener prints `Failed to start debugger`, and the properties' refusals
+     `Inbound connections are disabled` and `Outbound connections are disabled`. With
+     `force-inbound-debug-port` set, `/help` lists `/script debugger listen` with no port and a
+     port is a syntax error. BDS has no `detach`. Listening on 0 printed port 0, and 70000 printed
+     4464.
+   - Learned: an attach logs `[Scripting] Debugger attached to [<ip>] on port [<port>].` as a
+     warning and sends it as a `PrintEvent` of level 2. A refused handshake logs BDS's line as an
+     error, sends it as a level 3 `PrintEvent` and closes, and in connect mode BDS then connects
+     once more. The extension leaving logs `[Scripting] Debugger connection closed.` BDS blocks
+     its server on the handshake: a connection that never answers stopped its ticks and its
+     console. JSPrismarine offers the protocol and answers once the reply is there instead.
+   - Learned: auto-attach logs `Debugger auto-attach waiting for [<n>] seconds.` first, so the
+     timeout is in seconds, then `did not connect.`, `did not connect, but is still listening.`
+     or a `failed,` line for disabled connections or a bad address. Connect mode tried for the
+     whole timeout. An invalid connect address also logs BDS's `Invalid script debugger connect
+     address` line.
+   - Learned: BDS offers protocol 10, writes `require_passcode: false` out, lists every pack with
+     a script module as a plugin, and names files from the pack's `scripts/` folder: a breakpoint
+     on `main.js` verified and one on `scripts/main.js` did not. It streams `StatEvent2` every
+     tick, sends a `SchemaEvent` after attaching, forwards the content log as `PrintEvent`s,
+     sends `ThreadEvent` exited and new around `/reload`, and sends a `terminated` event before
+     `close` drops the connection. BDS's listener reset every connection on this host, so its
+     listen-mode handshake was not captured.
+   - Left: `/reload` ends the debugger session instead of keeping it across the new engine as BDS
+     does; the extension's command box (`minecraftCommand`), the `terminated` event, the stats
+     and schema events and the profiler are not implemented; the VS Code check below has not run,
+     because VS Code is not available on the host that built this.
+   - Checking it with VS Code: install the Minecraft Bedrock Debugger extension
+     (`mojang-studios.minecraft-debugger`) and run
+     `pnpm --filter @jsprismarine/script-host run build:native`. Give the server a flat world,
+     `"content-world-packs": ["<checkout>/packages/parity/scenarios/system-tasks/tasks"]`,
+     `"allow-inbound-script-debugging": true`, `"force-inbound-debug-port": 19144`,
+     `"script-debugger-auto-attach": "listen"` and `"script-debugger-auto-attach-timeout": 120`
+     in `config.json`, and start it with `pnpm dev`. It logs that auto-attach is waiting. Open the
+     pack's folder in VS Code, set a breakpoint on `record('run A');` in `scripts/main.js`, and
+     start an `attach` configuration of type `minecraft-js` with `"mode": "connect"`,
+     `"localRoot": "${workspaceFolder}/scripts/"`, `"port": 19144` and
+     `"targetModuleUuid": "13f251b3-41c9-4271-b2d1-d4abde28890b"`. The server logs `Debugger
+     attached`, starts the scripts, and the first tick stops at the breakpoint with `main.js` on
+     top of the call stack, and the server does not tick while it is stopped. Inspect a variable, continue, and
+     run `script debugger close` on the console: VS Code's session ends and the server prints
+     `Debugger closed`. For the other direction, set `"mode": "listen"` and run
+     `script debugger connect localhost 19144` with `allow-outbound-script-debugging` on.
 8. [x] [#3205](https://github.com/JSPrismarine/JSPrismarine/issues/3205) **The corpus.** The manifest, the fetch script and the usage counter, starting from the
    candidates in the research note. Count beta packs too. Order slices 9 onward by the counts.
    - Learned (2026-11-17): the corpus is 19 packs from 13 repositories, 11 of them stable on

@@ -280,22 +280,30 @@ between calls into the engine.
 `src/debugger/` speaks the protocol of Mojang's Minecraft Bedrock Debugger for VS Code
 (`Mojang/minecraft-debugger`), at version `DEBUGGER_PROTOCOL_VERSION`, so the extension attaches
 to JSPrismarine as it attaches to Bedrock Dedicated Server (BDS). The work splits across two
-threads, because a stopped script blocks the thread its engine runs on:
+threads, because a stopped script blocks the thread its engine runs on, and that thread cannot
+read a socket while the extension inspects the script:
 
-- On a thread with an event loop, `listenForDebugger` waits for the extension (the extension's
-  `connect` mode, `/script debugger listen`) and `connectToDebugger` reaches one that listens
-  (its `listen` mode, `/script debugger connect`). Both default to `DEFAULT_DEBUGGER_PORT`. A
-  listener on an address other than loopback needs a passcode, and refuses to start without one
-  with BDS's message. `DebuggerSocket` frames each message as its length in 8 hexadecimal digits,
-  a newline, and the JSON with a newline after it. It closes a connection whose header states a
-  body over `MAX_RECEIVED_FRAME_LENGTH`, before the body arrives.
-- `DebuggerChannelBridge` hands the socket's messages to the engine's thread. There,
-  `PortDebuggerChannel` reads them with `receiveMessageOnPort`, and waits on a shared counter
-  while a script is stopped, since that thread's event loop does not run.
-- `ScriptDebugSession` runs on the engine's thread. `handshake` offers the protocol, the
-  passcode requirement and the packs, and refuses a wrong version, a wrong passcode or an unknown
-  `targetModuleUUID` with BDS's messages. `attach` takes the engine and the context of the pack
-  the extension picked, which `WorldScripts.debugTarget` finds, and handles its breakpoints until
+- `DebuggerThread` (`./debugger/thread`) starts a worker that owns the sockets. Its `listen`
+  waits for the extension (the extension's `connect` mode, `/script debugger listen`) and its
+  `connect` reaches one that listens (its `listen` mode, `/script debugger connect`). Both
+  default to `DEFAULT_DEBUGGER_PORT`, and each closes the listener and connection the thread
+  held before. A listener on an address other than loopback needs a passcode, and refuses to
+  start without one with BDS's message. The worker frames each message as its length in 8
+  hexadecimal digits, a newline, and the JSON with a newline after it, and it closes a
+  connection whose header states a body over `MAX_RECEIVED_FRAME_LENGTH` before the body
+  arrives. The worker does not keep the process alive.
+- For each connection, the thread's `connected` event hands the starting thread a
+  `DebuggerChannelEndpoint`, with the extension's address and port. A `DebuggerChannelBridge`
+  in the worker feeds it, and `PortDebuggerChannel` reads it with `receiveMessageOnPort`,
+  waiting on a shared counter while a script is stopped, since the engine thread's event loop
+  does not run then. The `activity` event follows every message the extension sends and the
+  connection's close, so the engine's thread knows when to poll without a timer.
+- `ScriptDebugSession` runs on the engine's thread. `offer` sends the protocol event, with the
+  passcode requirement and the packs, without waiting, and `handshake` checks the answer:
+  it refuses a wrong version, a wrong passcode or an unknown `targetModuleUUID` with BDS's
+  messages. A host that must not block on an extension that never answers calls `handshake`
+  only once a message has arrived. `attach` takes the engine and the context of the pack the
+  extension picked, which `WorldScripts.debugTarget` finds, and handles its breakpoints until
   it sends `resume`. Only that context's scripts stop, so another pack's `scripts/main.js` never
   hits a breakpoint set for this one. While a script is stopped, the session answers
   `stackTrace`, `scopes`, `variables`, `evaluate`, `continue`, `next`, `stepIn`, `stepOut` and
@@ -303,22 +311,40 @@ threads, because a stopped script blocks the thread its engine runs on:
   these points, the session detaches from the engine, so a new debugger can attach.
 
 ```ts
-// On the thread with the event loop:
-const listener = await listenForDebugger({ port, address, passcode });
-const bridge = new DebuggerChannelBridge();
-listener.connection.then((socket) => bridge.connect(socket));
-worldThread.postMessage({ debugger: bridge.endpoint }, [bridge.endpoint.port]);
+import { ScriptDebugSession } from '@jsprismarine/script-host/debugger/DebugSession';
+import { PortDebuggerChannel } from '@jsprismarine/script-host/debugger/channel';
+import { DebuggerThread } from '@jsprismarine/script-host/debugger/thread';
 
-// On the world's thread:
-const session = new ScriptDebugSession(new PortDebuggerChannel(endpoint), { plugins, passcode });
-const target = session.handshake(); // the script module UUID the extension picked
-const picked = target === undefined ? undefined : worldScripts.debugTarget(target);
-if (picked !== undefined) session.attach(picked.engine, picked.context);
-// then session.poll() between ticks, and session.detach() for /script debugger detach
+let session: ScriptDebugSession | undefined;
+let attached = false;
+const thread = new DebuggerThread({
+    connected({ endpoint }) {
+        session = new ScriptDebugSession(new PortDebuggerChannel(endpoint), { plugins, passcode });
+        session.offer();
+    },
+    activity() {
+        if (session === undefined) return;
+        if (attached) {
+            session.poll(); // between ticks
+            return;
+        }
+        const target = session.handshake(); // the script module UUID the extension picked
+        const picked = target === undefined ? undefined : worldScripts.debugTarget(target);
+        if (picked !== undefined) session.attach(picked.engine, picked.context);
+        attached = picked !== undefined;
+    }
+});
+await thread.listen({ port: 19144, address: '127.0.0.1', passcode });
+// session.detach() and thread.close() for /script debugger close
 ```
 
-The host does not implement the extension's profiler, diagnostics or `debugger-request`
-messages yet. It answers a `debugger-request` as refused.
+The sketch leaves out what JSPrismarine's world host adds: a peek at the channel, so `handshake`
+never waits, BDS's refusal printed to the debug console, and an attach that waits for
+`WorldScripts`' `onPackLoaded` when the picked pack has not loaded yet, which is how a debugger
+attached at startup stops at a pack's first line. The host does not implement the extension's
+profiler, diagnostics or `debugger-request` messages yet. It answers a `debugger-request` as
+refused.
+
 ## Running a world's scripts
 
 `WorldScripts` is the script runtime of one world: one engine, a context for each pack, and the
@@ -392,6 +418,10 @@ record it:
   implemented, and which are not.
 - **Reload.** `reload` sends `system.beforeEvents.shutdown`, then runs every pack again from its
   top level, as BDS's `/reload` does. `system.currentTick` carries on.
+- **Debugging.** `debugTarget` finds the engine and context of a loaded pack by its script module
+  UUID. The `onPackLoaded` option names each pack once its context is ready and before its top
+  level runs, so a debugger attached there stops at the pack's first line. `reload` replaces the
+  engine, so a debugger attached before it has to attach again.
 
 ### Forms
 
