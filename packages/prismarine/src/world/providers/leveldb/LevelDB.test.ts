@@ -20,7 +20,7 @@ import {
     encodePlayerServerKey
 } from './LevelDBKeys';
 import { Database } from '@jsprismarine/leveldb';
-import { decodeLevelDat } from './LevelDat';
+import { decodeLevelDat, encodeLevelDat } from './LevelDat';
 import type { DimensionType } from '../../DimensionType';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from '../../DimensionType';
 import { VANILLA_DIMENSION_TYPES } from '../../vanillaDimensionTypes';
@@ -270,6 +270,43 @@ describe('world', () => {
                 expect(level.root.getLong('RandomSeed', 0n)).toBe(seed);
             }
         );
+
+        it('writes an experiment that is on as Bedrock does, and reads it back', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath, 'MyWorld');
+            await provider.enable();
+            expect(provider.readLevelData()?.experiments).toEqual([]);
+            provider.saveLevelData({ experiments: ['gametest'] });
+
+            const experiments = decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat'))).root.getCompound(
+                'experiments',
+                false
+            );
+            expect(experiments?.getByte('gametest', 0)).toBe(1);
+            expect(experiments?.getByte('experiments_ever_used', 0)).toBe(1);
+            expect(experiments?.getByte('saved_with_toggled_experiments', 0)).toBe(1);
+            expect(provider.readLevelData()?.experiments).toEqual(['gametest']);
+            await provider.disable();
+        });
+
+        it('keeps the experiments of a level.dat it does not implement', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath, 'MyWorld');
+            await provider.enable();
+            const file = path.join(worldPath, 'level.dat');
+            const level = decodeLevelDat(fs.readFileSync(file));
+            const toggles = new NBTTagCompound('experiments');
+            toggles.addValue('data_driven_items', new Types.ByteVal(1));
+            toggles.addValue('gametest', new Types.ByteVal(0));
+            level.root.addValue('experiments', toggles);
+            fs.writeFileSync(file, encodeLevelDat(level));
+
+            expect(provider.readLevelData()?.experiments).toEqual([]);
+            provider.saveLevelData({ time: 5 });
+            const saved = decodeLevelDat(fs.readFileSync(file)).root.getCompound('experiments', false);
+            expect(saved?.getByte('data_driven_items', 0)).toBe(1);
+            await provider.disable();
+        });
 
         it('keeps the RandomSeed of a world saved before the seed was 64 bit', async () => {
             const worldPath = scratch();

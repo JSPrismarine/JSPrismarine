@@ -452,6 +452,24 @@ describe('Level', () => {
             await reopened.level.disable();
         });
 
+        it('keeps an experiment its config turned on in level.dat, so it stays on without the config', async () => {
+            const { level } = buildLevel('experimental', { config: { experiments: ['gametest'] } });
+            await level.enable();
+            expect(level.getExperiments()).toEqual(['gametest']);
+            await level.save();
+            await level.disable();
+
+            const reopened = buildLevel('experimental');
+            await reopened.level.enable();
+            expect(reopened.level.getExperiments()).toEqual(['gametest']);
+            await reopened.level.disable();
+
+            const plain = buildLevel('plain');
+            await plain.level.enable();
+            expect(plain.level.getExperiments()).toEqual([]);
+            await plain.level.disable();
+        });
+
         it('fails replay capture when the save pass cannot commit', async () => {
             const { level, provider } = buildLevel('capture-save-failure');
             await level.enable();

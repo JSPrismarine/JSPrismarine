@@ -31,6 +31,7 @@ import type BaseProvider from '../world/providers/BaseProvider';
 import { RespawnSearch } from '../world/RespawnSearch';
 import { WorldWeather } from '../world/Weather';
 import type { World } from '../world/World';
+import type { WorldExperiment } from '../world/WorldExperiments';
 import type { LegacyWorldEntity } from '../world/WorldPersistence';
 import { testEntityServer } from './entityServer';
 import { stub } from './stub.test.helper';
@@ -73,6 +74,8 @@ export interface FakeLevelOptions {
      * it for one dimension's world. `world(id)` answers the one whose dimension type has that id.
      */
     readonly worlds?: () => readonly World[];
+    /** The Bedrock experiments the level runs with. Defaults to none. */
+    readonly experiments?: readonly WorldExperiment[];
 }
 
 /**
@@ -127,6 +130,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         seed: options.seed ?? 0n,
         getName: () => options.name ?? 'test',
         getServer: () => server,
+        getExperiments: () => options.experiments ?? [],
         getProvider: () => {
             if (options.provider === undefined) throw new PrismarineServerErrors.FakeLevelWithoutProvider();
             return options.provider;

@@ -53,6 +53,8 @@ export interface NormalizedWorldData {
     readonly preset: string;
     /** The entry's own `dimensions`, plus an Overworld stem translated from old flat `layers`. */
     readonly dimensions: Readonly<Record<string, DimensionConfig>>;
+    /** The entry's `experiments`, kept as written. */
+    readonly experiments?: WorldData['experiments'];
     /**
      * One sentence per old key the entry used, written for a log line. Empty when the entry
      * already spells everything the new way, which is what a caller that logs these once per
@@ -131,16 +133,24 @@ export const normalizeWorldData = (data: LegacyWorldData, knownKinds: readonly s
         }
     }
 
-    return { seed, provider, preset: preset ?? DEFAULT_WORLD_PRESET, dimensions, deprecations };
+    return {
+        seed,
+        provider,
+        preset: preset ?? DEFAULT_WORLD_PRESET,
+        dimensions,
+        ...(data.experiments === undefined ? {} : { experiments: data.experiments }),
+        deprecations
+    };
 };
 
 /**
  * The entry to write back to the file for a normalized world: the new keys only, with
  * `provider` and `dimensions` left out when there is nothing to say.
  */
-export const worldDataOf = ({ seed, provider, preset, dimensions }: NormalizedWorldData): WorldData => ({
+export const worldDataOf = ({ seed, provider, preset, dimensions, experiments }: NormalizedWorldData): WorldData => ({
     preset,
     ...(provider === undefined ? {} : { provider }),
     seed,
-    ...(Object.keys(dimensions).length === 0 ? {} : { dimensions })
+    ...(Object.keys(dimensions).length === 0 ? {} : { dimensions }),
+    ...(experiments === undefined ? {} : { experiments })
 });

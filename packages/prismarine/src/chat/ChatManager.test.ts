@@ -8,7 +8,7 @@ import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import { Chat, ChatType } from './Chat';
 import { ChatManager, chatRecipientOf } from './ChatManager';
-import type { ChatDelivery, ChatRecipient, ChatRecipientServer } from './ChatManager';
+import type { ChatDelivery, ChatRecipient, ChatRecipientServer, PlayerChatIntent } from './ChatManager';
 
 /** A recipient keyed by its name, as a player with no XUID is, that records each line it is sent. */
 const recipient = (name: string, { op = false } = {}) => {
@@ -143,6 +143,45 @@ describe('ChatManager', () => {
         expect(late.lines).toEqual([]);
         // The listeners after the one that canceled still run, and see the cancel.
         expect(later).toEqual([true]);
+    });
+
+    it("runs a player's chat past the guards before the `chat` event, and a veto stops it there", async () => {
+        const events = new KernelEventBus<ServerEvents>();
+        const chat = new ChatManager(events);
+        const steve = recipient('Steve');
+        chat.join(steve.player);
+        const posted: string[] = [];
+        events.on('chat', (event) => void posted.push(event.getChat().getMessage()));
+        const seen: PlayerChatIntent[] = [];
+        chat.addGuard((intent) => {
+            seen.push(intent);
+            return intent.message === 'cancel me' ? { veto: true } : { veto: false, intent };
+        });
+        const player: CommandExecutor & { getRuntimeId(): bigint } = { ...sender('Alex'), getRuntimeId: () => 7n };
+
+        await chat.send(new Chat({ sender: player, message: 'hello', type: ChatType.CHAT }));
+        await chat.send(new Chat({ sender: player, message: 'cancel me', type: ChatType.CHAT }));
+        await chat.send(say('cancel me'));
+
+        expect(seen).toEqual([
+            { sender: 7n, message: 'hello' },
+            { sender: 7n, message: 'cancel me' }
+        ]);
+        expect(posted).toEqual(['hello', 'cancel me']);
+        expect(steve.lines.map((line) => line.message)).toEqual(['hello', 'cancel me']);
+    });
+
+    it('stops running a guard once it is removed', async () => {
+        const chat = new ChatManager(new KernelEventBus<ServerEvents>());
+        const remove = chat.addGuard(() => ({ veto: true }));
+        remove();
+        const steve = recipient('Steve');
+        chat.join(steve.player);
+        const player: CommandExecutor & { getRuntimeId(): bigint } = { ...sender('Alex'), getRuntimeId: () => 7n };
+
+        await chat.send(new Chat({ sender: player, message: 'hello', type: ChatType.CHAT }));
+
+        expect(steve.lines).toHaveLength(1);
     });
 
     it('delivers when a listener cancels only after its first wait', async () => {

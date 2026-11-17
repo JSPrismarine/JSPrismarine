@@ -51,6 +51,8 @@ import type { RaidRecord } from './raid/RaidManager';
 import type { DragonFightState, LegacyWorldEntity, SavedRaid, WorldPersistenceData } from './WorldPersistence';
 import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from './WorldPersistence';
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
+import type { WorldExperiment } from './WorldExperiments';
+import { levelExperiments } from './WorldExperiments';
 
 /** What older versions wrote beside the save before the provider kept the level's state. */
 const LEGACY_LEVEL_DATA_FILE_NAME = 'level.json';
@@ -167,6 +169,7 @@ export class Level {
     private readonly chunkHost: 'process' | 'in-process' | undefined;
     private readonly terrainCache: TerrainCacheSettings | undefined;
     private readonly config: WorldConfig;
+    private experiments: readonly WorldExperiment[];
     private readonly handlers: WorldHandlersFactory | undefined;
     private readonly onWorldBuilt: ((world: World) => void) | undefined;
 
@@ -247,6 +250,7 @@ export class Level {
         this.chunkHost = options.chunkHost;
         this.terrainCache = options.terrainCache;
         this.config = options.config ?? {};
+        this.experiments = levelExperiments(this.config.experiments, undefined);
         this.handlers = options.handlers;
         this.onWorldBuilt = options.onWorldBuilt;
 
@@ -343,6 +347,14 @@ export class Level {
     /** The one provider every dimension of this save reads and writes through. */
     public getProvider(): BaseProvider {
         return this.provider;
+    }
+
+    /**
+     * The Bedrock experiments the level runs with: the ones its `worlds.<name>` entry lists and the
+     * ones its `level.dat` has on, read once the level opens.
+     */
+    public getExperiments(): readonly WorldExperiment[] {
+        return this.experiments;
     }
 
     /** The resolved level stems by dimension id, in the order the level was given them. */
@@ -855,8 +867,9 @@ export class Level {
 
         // The clock is written to `level.dat` alone, so it is read back from there; without it
         // every boot started the day over at tick zero.
-        const time = this.provider.readLevelData()?.time;
-        if (time !== undefined) this.currentTick = time;
+        const levelDat = this.provider.readLevelData();
+        if (levelDat?.time !== undefined) this.currentTick = levelDat.time;
+        this.experiments = levelExperiments(this.config.experiments, levelDat?.experiments);
     }
 
     private async readLegacyLevelData(): Promise<WorldPersistenceData | null> {
@@ -1024,7 +1037,8 @@ export class Level {
                 ...(position === undefined ? {} : { spawn: position }),
                 time: this.currentTick,
                 stems,
-                netherScale: this.netherScale()
+                netherScale: this.netherScale(),
+                experiments: this.experiments
             }
         };
     }

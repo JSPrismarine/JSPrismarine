@@ -75,6 +75,7 @@ import type { DimensionType } from '../../DimensionType';
 import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
+import { WORLD_EXPERIMENTS } from '../../WorldExperiments';
 import type { LevelDatInputs, StoredChunkReader } from '../Provider';
 import type { ChunkSaveContext, PendingFluidTicksToSave } from '../ChunkSaveContext';
 import { createChunkSaveContext } from '../ChunkSaveContext';
@@ -108,6 +109,9 @@ const DEFAULT_SPAWN_Y = Dimensions.Overworld.minY + 100;
 
 /** Java's Nether `coordinate_scale`, which is also the game's `NetherScale` default. */
 const DEFAULT_NETHER_SCALE = Dimensions.Nether.java.coordinateScale;
+
+/** The `level.dat` compound that holds a world's experiment toggles. */
+const LEVEL_DAT_EXPERIMENTS = 'experiments';
 
 const DATABASE_DIRECTORY = 'db';
 const WORLD_DATA_KEY = Buffer.from('jsprismarine:world_data', 'ascii');
@@ -1618,6 +1622,14 @@ export default class LevelDB extends BaseProvider {
         }
         if (level.time !== undefined) root.addValue('Time', new Types.LongVal(BigInt(Math.trunc(level.time))));
         if (level.netherScale !== undefined) root.addValue('NetherScale', new Types.NumberVal(level.netherScale));
+        if (level.experiments !== undefined && level.experiments.length > 0) {
+            const toggles = root.getCompound(LEVEL_DAT_EXPERIMENTS, false) ?? new NBTTagCompound(LEVEL_DAT_EXPERIMENTS);
+            root.addValue(LEVEL_DAT_EXPERIMENTS, toggles);
+            for (const experiment of level.experiments) toggles.addValue(experiment, new Types.ByteVal(1));
+            // The two flags Bedrock sets beside the first toggle a world turns on.
+            toggles.addValue('experiments_ever_used', new Types.ByteVal(1));
+            toggles.addValue('saved_with_toggled_experiments', new Types.ByteVal(1));
+        }
         if (level.stems !== undefined) {
             const overworld = level.stems[OVERWORLD_STEM_ID]?.generator;
             root.addValue('Generator', new Types.NumberVal(levelDatGeneratorOf(overworld)));
@@ -1632,17 +1644,20 @@ export default class LevelDB extends BaseProvider {
     }
 
     /**
-     * The clock `level.dat` holds, which {@link LevelDB.saveLevelData} writes as `Time`.
+     * The clock `level.dat` holds, which {@link LevelDB.saveLevelData} writes as `Time`, and the
+     * experiments this server implements that it has on.
      *
-     * Null before the file exists. A file without the tag, which this server never writes but
+     * Null before the file exists. A file without `Time`, which this server never writes but
      * another might, answers no clock, so the level starts its own at zero.
      */
     public override readLevelData(): LevelDatInputs | null {
         const level = readLevelDat(this.getPath());
         if (level === null) return null;
 
+        const toggles = level.root.getCompound(LEVEL_DAT_EXPERIMENTS, false);
+        const experiments = WORLD_EXPERIMENTS.filter((experiment) => toggles?.getByte(experiment, 0) === 1);
         const time = level.root.getLong('Time', -1n);
-        return time < 0n ? {} : { time: Number(time) };
+        return time < 0n ? { experiments } : { time: Number(time), experiments };
     }
 
     /** Every chunk coordinate the database holds for one dimension, for tools that walk a world. */

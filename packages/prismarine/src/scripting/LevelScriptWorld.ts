@@ -8,6 +8,7 @@
  */
 import type { Weather } from '@jsprismarine/engine-systems';
 import type {
+    ChatSendIntent,
     Guard,
     ScriptWeather,
     ScriptWorld,
@@ -15,6 +16,7 @@ import type {
     WeatherChangeIntent
 } from '@jsprismarine/script-host/host/world';
 
+import type { ChatManager } from '../chat/ChatManager';
 import type { WeatherChange, WorldWeather } from '../world/Weather';
 
 /** A player of the level, as the scripts reach one. */
@@ -33,6 +35,8 @@ export interface ScriptWorldSources {
     players(): readonly ScriptWorldPlayer[];
     /** The level's weather. */
     readonly weather: WorldWeather;
+    /** The server's chat, whose guard stage a player's line goes past. */
+    readonly chat: Pick<ChatManager, 'addGuard'>;
     /** The wall clock the input step admitted for the current tick, in milliseconds since the epoch. */
     clock(): number;
 }
@@ -105,6 +109,18 @@ export class LevelScriptWorld implements ScriptWorld {
                     duration: verdict.intent.duration
                 }
             };
+        });
+    }
+
+    /**
+     * Adds a script guard to the chat of the level's players, under the ids the scripts know
+     * them by. A line from a player in another level goes past it.
+     */
+    public guardChat(guard: Guard<ChatSendIntent>): () => void {
+        return this.sources.chat.addGuard((intent) => {
+            const sender = String(intent.sender);
+            if (!this.players().includes(sender)) return { veto: false, intent };
+            return guard({ sender, message: intent.message }).veto ? { veto: true } : { veto: false, intent };
         });
     }
 
