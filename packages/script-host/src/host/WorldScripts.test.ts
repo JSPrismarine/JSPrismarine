@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptHostLibrary } from '../ScriptEngine';
-import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
+import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/library.test.helper';
 import type { ScriptPack } from './pack';
 import { readScriptConfig, readScriptPack } from './pack';
 import type { CriticalException, WatchdogSettings } from './WorldScripts';
@@ -83,6 +83,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
         const world = options.world ?? new MemoryWorld();
         const log = new Log();
         const scripts = new WorldScripts({
+            server: TEST_SERVER,
             library,
             world,
             packs,
@@ -548,6 +549,7 @@ system.run(() => {
         const log = new Log();
         const lines: number[] = [];
         const scripts = new WorldScripts({
+            server: TEST_SERVER,
             library,
             world: new MemoryWorld(),
             packs: [pack],
@@ -582,6 +584,7 @@ system.run(() => {
         const pack = writePack(`console.warn('ran');`, '2.0.0', 'refused');
         const log = new Log();
         const scripts = new WorldScripts({
+            server: TEST_SERVER,
             library,
             world: new MemoryWorld(),
             packs: [
@@ -637,6 +640,62 @@ system.run(() => {
         ]);
         expect(log.printed()).toEqual(['ran']);
     });
+
+    it("continues an async callback after its await in the flush, with the pack's promise jobs", () => {
+        const { scripts, log } = start([
+            writePack(`import { system, world } from '@minecraft/server';
+                system.run(async () => { await null; console.warn('system.run'); });
+                world.afterEvents.worldLoad.subscribe(async () => { await null; console.warn('worldLoad'); });`)
+        ]);
+        scripts.flush();
+
+        expect(log.printed()).toEqual(['system.run', 'worldLoad']);
+    });
+
+    describe('@jsprismarine/server', () => {
+        it('resolves a dynamic import without a manifest entry, to frozen values the server supplied', () => {
+            const { scripts, log } = start([
+                writePack(`import { world } from '@minecraft/server';
+                    world.afterEvents.worldLoad.subscribe(async () => {
+                        const jsp = await import('@jsprismarine/server');
+                        const again = await import('@jsprismarine/server');
+                        console.warn(JSON.stringify(Object.keys(jsp)));
+                        console.warn(JSON.stringify(jsp.jsprismarine));
+                        console.warn(Object.isFrozen(jsp.jsprismarine), jsp.jsprismarine instanceof Object, jsp === again);
+                    });`)
+            ]);
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                '["jsprismarine"]',
+                JSON.stringify({ name: 'JSPrismarine', ...TEST_SERVER }),
+                'true true true'
+            ]);
+        });
+
+        it('resolves a static import too, since a module under @jsprismarine/ needs no manifest entry', () => {
+            const { log } = start([
+                writePack(`import { jsprismarine } from '@jsprismarine/server'; console.warn(jsprismarine.name);`)
+            ]);
+
+            expect(log.printed()).toEqual(['JSPrismarine']);
+        });
+
+        it('rejects another @jsprismarine/ module and an undeclared @minecraft/ one with BDS’s message', () => {
+            const { scripts, log } = start([
+                writePack(`import { world } from '@minecraft/server';
+                    const attempt = (name) => import(name).then(() => console.warn(name + ' resolved'), (error) => console.warn(String(error)));
+                    world.afterEvents.worldLoad.subscribe(() => attempt('@jsprismarine/other').then(() => attempt('@minecraft/server-net')));`)
+            ]);
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'ReferenceError: Module [@jsprismarine/other] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?',
+                'ReferenceError: Module [@minecraft/server-net] is unrecognized. If this is a Native module, did you remember to add it to your manifest.json?'
+            ]);
+        });
+    });
+
     describe('the core members', () => {
         /** Runs `body` once the world has loaded, printing each line it returns through `console.warn`. */
         const run = (body: string, world = new MemoryWorld()) => {

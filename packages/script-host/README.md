@@ -381,6 +381,7 @@ const scripts = new WorldScripts({
     packs: directories.map(readScriptPack).filter((pack) => pack !== undefined),
     config: readScriptConfig('config'), // BDS's config/ folder
     log: console,
+    server: { version: '0.22.0', minecraftVersion: '1.26.50', protocolVersion: 2193 }, // what @jsprismarine/server reports
     seed: worldSeed,
     watchdog: watchdogSettings({ 'script-watchdog-hang-threshold': '10000' }),
     onShutdown: (reason) => server.stop()

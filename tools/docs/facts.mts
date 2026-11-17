@@ -27,6 +27,7 @@ import { DEFAULT_BLOCK_SIZE } from '../../packages/leveldb/src/format/TableBuild
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
 import { WORLD_EXPERIMENTS } from '../../packages/prismarine/src/world/WorldExperiments.ts';
 import { SCRIPT_MODULE_HISTORIES } from '../../packages/script-host/src/generated/scriptModules.ts';
+import { JSPRISMARINE_SERVER } from '../../packages/script-host/src/host/jsprismarineServer.ts';
 import { currentBeta } from '../../packages/script-host/src/shape/resolve.ts';
 import {
     HEIGHT_BLENDING_RANGE_CHUNKS,
@@ -235,12 +236,26 @@ async function configFacts() {
     };
 }
 
-/** The beta Script API versions a pack can declare, read from the generated script module histories. */
+/**
+ * The beta Script API versions a pack can declare, read from the generated script module histories,
+ * and the members of `@jsprismarine/server`, read from the definition its runtime and typings share.
+ */
 function scriptingFacts() {
     const history = SCRIPT_MODULE_HISTORIES['@minecraft/server'];
     const beta = history === undefined ? undefined : currentBeta(history);
     if (beta === undefined) throw new Error('The docs facts no longer find a beta of @minecraft/server.');
-    return { 'scripting.serverBeta': beta };
+    const members = Object.entries(JSPRISMARINE_SERVER).flatMap(([name, member]) => [
+        [inlineCode(name), 'object', member.summary],
+        ...Object.entries(member.properties).map(([key, property]) => [
+            inlineCode(`${name}.${key}`),
+            'value' in property ? inlineCode(JSON.stringify(property.value)) : property.type,
+            property.summary
+        ])
+    ]);
+    return {
+        'scripting.serverBeta': beta,
+        'scripting.jspModule.table': `\n${table(['Member', 'Type', 'What it is'], members)}\n`
+    };
 }
 
 /** The events `Server.on` accepts, read from the `ServerEvents` map that types it. */

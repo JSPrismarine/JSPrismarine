@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptHostLibrary } from '../ScriptEngine';
-import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
+import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/library.test.helper';
 import { MemoryWorld } from '../testing/memoryWorld.test.helper';
 import type { ScriptPack } from './pack';
 import { readScriptConfig, readScriptPack } from './pack';
@@ -71,6 +71,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts custom content', () => {
         const world = new MemoryWorld();
         const log = new Log();
         const scripts = new WorldScripts({
+            server: TEST_SERVER,
             library,
             world,
             packs: [writePack(source, version)],

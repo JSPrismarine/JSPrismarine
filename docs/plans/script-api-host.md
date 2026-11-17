@@ -484,8 +484,23 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       members of `SimulatedPlayer` and most `Test` assertions throw `NotImplementedError`.
 15. [ ] [#3212](https://github.com/JSPrismarine/JSPrismarine/issues/3212) **`@minecraft/server-net` and `@minecraft/server-admin`.** Responses as inputs, and the
     permissions BDS requires.
-16. [ ] [#3213](https://github.com/JSPrismarine/JSPrismarine/issues/3213) **`@jsprismarine/server`.** The first JSP-only members, the npm typings package, and a
+16. [x] [#3213](https://github.com/JSPrismarine/JSPrismarine/issues/3213) **`@jsprismarine/server`.** The first JSP-only members, the npm typings package, and a
     docs page with the detect-and-fall-back pattern.
+    - Done: the module exports `jsprismarine`, a frozen object with the server's `name`,
+      `version`, `minecraftVersion` and `protocolVersion`, which the embedder passes to
+      `WorldScripts`. One definition in `packages/script-host/src/host/jsprismarineServer.ts`
+      builds each pack's namespace, the typings and the member table on the
+      [guide page](../guide/jsprismarine-module.md). The `jsp-detect` scenario of
+      `scripting.lifecycle` shows the pattern.
+    - Learned: the npm name `@jsprismarine/server` is the server package's, so the typings are
+      `@jsprismarine/script-types`, which declares the module by name for a project's `types`. It
+      stays private with the script host until slice 18. BDS 1.26.51.1 rejects a static import
+      of the module with the same `Module [@jsprismarine/server] is unrecognized` message as
+      `import()`, so the file that holds it does not load. An `async` callback passed straight to
+      `system.run` or `subscribe` never ran past its first `await`, because the host called it
+      outside its pack's context; it now runs in the pack's context.
+    - Left: no member that acts on the world yet. A pack feature-tests a member a later version
+      adds with `'name' in module`.
 17. [ ] [#3214](https://github.com/JSPrismarine/JSPrismarine/issues/3214) **The docs.** Rewrite [Extending JSPrismarine](../guide/extending.md) around script packs,
     with embedding as the lower-level option.
 18. [ ] [#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215) **Every platform.** The native builds for each platform ADR 0006 lists. Then drop `"private": true` from `@jsprismarine/script-host` and list it again in the docs site's
