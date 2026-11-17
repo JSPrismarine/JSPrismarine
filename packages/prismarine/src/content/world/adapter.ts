@@ -141,6 +141,14 @@ export interface ContentBlockAccess {
     destroy?(at: ContentPosition, options?: BlockDestroyOptions): boolean;
     /** Tells the six neighbors of a position that it changed. */
     notifyNeighbors(at: ContentPosition): void;
+    /**
+     * Settles the block at a position against its six neighbors, which is Java's
+     * `Block.updateFromNeighbourShapes` as `LevelChunk.postProcessGeneration` runs it on a newly
+     * generated chunk. What the block's families write tells no neighbor and drops nothing.
+     *
+     * Left out by an adapter that dispatches no block hooks.
+     */
+    updateShape?(at: ContentPosition): void;
     /** A block entity's stored data, or undefined when the position has none. */
     data(at: ContentPosition): BlockEntityData | undefined;
     /** Replaces a block entity's data whole. */

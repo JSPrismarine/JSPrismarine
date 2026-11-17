@@ -160,7 +160,7 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
 
 ### Blocks and items (`src/block/`, `src/item/`)
 
-- `blocks.get`, `blocks.set`, `blocks.data`, `blocks.setData`, `blocks.notifyNeighbors`,
+- `blocks.get`, `blocks.set`, `blocks.data`, `blocks.setData`, `blocks.notifyNeighbors`, `blocks.updateShape`,
   `blocks.power`, over chunk storage and the block entity index.
 - The optional `items` group: `stateOf`, `environment`, `targetOf`, `includes`, `transform`,
   `effectsOf` and `perform`. `perform` takes one `ItemWorldAction`, a tagged union of 28 variants,

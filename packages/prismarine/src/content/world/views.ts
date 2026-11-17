@@ -72,6 +72,13 @@ export interface ServerBlockWorld extends BlockWorld {
      * @param level - The level's name, or undefined for the default level.
      */
     at(dimension: string, level?: string): BlockWorldActions;
+    /**
+     * Settles one block against its neighbors; see `ContentBlockAccess.updateShape`.
+     * @param at - The block's position.
+     * @param dimension - The namespaced dimension identifier.
+     * @param level - The level's name, or undefined for the default level.
+     */
+    updateShape(at: ContentPosition, dimension: string, level?: string): void;
 }
 
 /** The nine content world interfaces, all backed by one adapter. */
@@ -105,7 +112,10 @@ export const contentWorldViews = (
     const main = () => world.at(defaultDimension);
 
     return {
-        blockWorld: { at: (dimension, level) => blockActionsOf(world.at(dimension, level), content) },
+        blockWorld: {
+            at: (dimension, level) => blockActionsOf(world.at(dimension, level), content),
+            updateShape: (at, dimension, level) => world.at(dimension, level).blocks.updateShape?.(at)
+        },
         // The world the interaction started in, level and all, so an item used in a second level
         // acts on that level, where `blockWorld.at` sends its block writes, and not on the
         // default level's world of the same dimension.

@@ -2,19 +2,19 @@
  * The `blocks` group of `ServerWorldAdapter`, as the block and item
  * subsystem owes it.
  *
- * Twelve of the eighteen members of `ContentBlockAccess` belong here: reading,
- * writing, moving, and destroying a block; reading and writing block entity
- * records; neighbor notification; redstone power; and entity-event dispatch. The other
- * six - light, sky light, chunk loading, the surface column, and two biome reads - belong
- * to the world subsystem, which is why this exports the twelve as their own
- * type rather than the whole interface.
+ * The members of `ContentBlockAccess` that belong here: reading, writing,
+ * moving, and destroying a block; reading and writing block entity records;
+ * neighbor notification and shape updates; redstone power; and entity-event
+ * dispatch. The rest - light, sky light, chunk loading, the surface column, and
+ * two biome reads - belong to the world subsystem, which is why this exports
+ * its own members as their own type rather than the whole interface.
  *
  * It is a factory rather than a wired-in object because the composition root
  * assembles the four subsystems' groups into one adapter; this module only
  * knows how to build its own.
  */
 import { BLOCK_FACES } from '@jsprismarine/blocks';
-import type { BlockStateValue, HookBlock } from '@jsprismarine/blocks';
+import type { BlockFace, BlockStateValue, HookBlock } from '@jsprismarine/blocks';
 import {
     MAX_CHAINED_NEIGHBOR_UPDATES,
     bestNeighborSignal,
@@ -45,6 +45,7 @@ export type ContentBlockGroup = Pick<
     | 'data'
     | 'setData'
     | 'notifyNeighbors'
+    | 'updateShape'
     | 'power'
     | 'signal'
     | 'directSignal'
@@ -156,6 +157,12 @@ const hooksOf = (content: ContentLookup, identifier: string, states: Readonly<Re
  */
 const reactingBlocks = new WeakMap<object, Map<string, boolean>>();
 
+/**
+ * The order Java's `Block.updateFromNeighbourShapes` asks a block's six neighbors in, its
+ * `BlockBehaviour.UPDATE_SHAPE_ORDER`.
+ */
+const UPDATE_SHAPE_ORDER = ['west', 'east', 'north', 'south', 'down', 'up'] as const satisfies readonly BlockFace[];
+
 /** Whether a block identifier has a family that declares `onNeighborChanged`. */
 const reactsToNeighbors = (content: ContentLookup, identifier: string): boolean => {
     const built = content();
@@ -201,10 +208,17 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
      */
     let chainedUpdates = 0;
     let dispatching = false;
+    /**
+     * Whether {@link updateShape} is running. Java writes what a shape update decides with flags
+     * that tell no neighbor and drop nothing, so while it runs a write notifies nobody and a
+     * block that breaks leaves no item.
+     */
+    let shaping = false;
     const stack: NeighborNotification[] = [];
     let queued: NeighborNotification[] = [];
 
     const notifyNeighbors = (at: ContentPosition): void => {
+        if (shaping) return;
         const changed = hookBlockAt(storage, dimension, at);
         if (!changed) return;
         if (chainedUpdates >= MAX_CHAINED_NEIGHBOR_UPDATES) return;
@@ -274,6 +288,35 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         }
     };
 
+    /**
+     * Java's `Block.updateFromNeighbourShapes` followed by the write `LevelChunk.postProcessGeneration`
+     * makes with its result: the block hears from each of its six neighbors in turn, in Java's
+     * order, and what its families write tells no neighbor and drops nothing.
+     *
+     * A neighbor the storage cannot read is skipped rather than reported as air, because a
+     * block that reads an unloaded chunk as empty would let go of a wall it is fixed to.
+     */
+    const updateShape = (at: ContentPosition): void => {
+        if (shaping) return;
+        shaping = true;
+        try {
+            for (const face of UPDATE_SHAPE_ORDER) {
+                // Read again for every face: a family may have rewritten or removed the block.
+                const block = hookBlockAt(storage, dimension, at);
+                if (block === undefined || !reactsToNeighbors(content, block.identifier)) return;
+                const neighbor = hookBlockAt(storage, dimension, relative(at, face));
+                if (neighbor === undefined) continue;
+                hooksOf(content, block.identifier, block.states)?.dispatch('onNeighborChanged', {
+                    block,
+                    face,
+                    neighbor
+                });
+            }
+        } finally {
+            shaping = false;
+        }
+    };
+
     const destroy = storage.destroy;
     const move = storage.move;
 
@@ -284,7 +327,8 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         // Passed through rather than reimplemented: the hook, the roll and the ground all
         // belong to the world the storage is over. Absent when the storage cannot do it,
         // which is what makes a family fall back to its own drop.
-        destroy: destroy && ((at, options) => destroy(at, options)),
+        // A shape update removes a block without its loot, so it answers that the drop was handled.
+        destroy: destroy && ((at, options) => shaping || destroy(at, options)),
         executeEntityEvent: (at, entity, name) => {
             const block = hookBlockAt(storage, dimension, at);
             if (block === undefined) return;
@@ -325,6 +369,7 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
             if (withNeighbors) notifyNeighbors(at);
         },
         notifyNeighbors,
+        updateShape,
         data: (at) => blockEntities.at(at),
         setData: (at, data) => blockEntities.put(at, data),
         // Java's `Level.getBestNeighborSignal`. The engine world is projected out

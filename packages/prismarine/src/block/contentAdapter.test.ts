@@ -225,6 +225,96 @@ describe('block', () => {
             expect(seen).toEqual([]);
         });
 
+        it("settles a block against each loaded neighbor in Java's shape update order", () => {
+            const { blocks } = harness({
+                '0,0,0': lamp,
+                '-1,0,0': stone,
+                '1,0,0': stone,
+                '0,0,-1': stone,
+                '0,-1,0': stone,
+                '0,1,0': stone
+            });
+            const seen = watchNeighborHooks();
+
+            blocks.updateShape?.({ x: 0, y: 0, z: 0 });
+
+            // Java's `UPDATE_SHAPE_ORDER` is west, east, north, south, down, up; the south
+            // neighbor is unloaded and skipped rather than read as air.
+            expect(seen).toEqual(['0,0,0 west', '0,0,0 east', '0,0,0 north', '0,0,0 down', '0,0,0 up']);
+        });
+
+        it('asks nothing of a block whose families react to nothing', () => {
+            const { blocks } = harness({ '0,0,0': stone, '0,1,0': stone });
+            const seen = watchNeighborHooks();
+
+            blocks.updateShape?.({ x: 0, y: 0, z: 0 });
+
+            expect(seen).toEqual([]);
+        });
+
+        it('stops asking once a family has replaced the block with one that reacts to nothing', () => {
+            const { blocks } = harness({ '0,0,0': lamp, '-1,0,0': stone, '1,0,0': stone });
+            const seen: string[] = [];
+            vi.spyOn(HookTable.prototype, 'dispatch').mockImplementation(function (hook, ...args) {
+                if (hook !== 'onNeighborChanged') return;
+                const event = args[0] as { block: { position: ContentPosition }; face: string };
+                seen.push(event.face);
+                blocks.set(event.block.position, stone, true);
+            });
+
+            blocks.updateShape?.({ x: 0, y: 0, z: 0 });
+
+            expect(seen).toEqual(['west']);
+        });
+
+        it('tells no neighbor and rolls no loot for what a shape update writes', () => {
+            const destroyed: string[] = [];
+            const { storage } = mapStorage({ '0,0,0': lamp, '0,1,0': lamp, '-1,0,0': stone });
+            let content: ServerContent | undefined;
+            const blocks = createContentBlockGroup({
+                storage: {
+                    ...storage,
+                    destroy: (at) => {
+                        destroyed.push(key(at));
+                        return true;
+                    }
+                },
+                blockEntities: mapBlockEntities(),
+                content: () => content!
+            });
+            const unwired = unwiredWorld();
+            content = buildServerContent(
+                fixtureContentOptions({
+                    world: singleDimension({ ...unwired, blocks: { ...unwired.blocks, ...blocks } })
+                })
+            );
+
+            const told: string[] = [];
+            vi.spyOn(HookTable.prototype, 'dispatch').mockImplementation(function (hook, ...args) {
+                if (hook !== 'onNeighborChanged') return;
+                const event = args[0] as { block: { position: ContentPosition }; face: string };
+                told.push(`${key(event.block.position)} ${event.face}`);
+                if (key(event.block.position) !== '0,0,0') return;
+                // What `popBlock` does to a torch that lost its wall.
+                const rolled = blocks.destroy?.(event.block.position) ?? false;
+                expect(rolled).toBe(true);
+                blocks.set(event.block.position, { identifier: 'minecraft:air', states: {} }, true);
+                blocks.notifyNeighbors(event.block.position);
+            });
+
+            blocks.updateShape?.({ x: 0, y: 0, z: 0 });
+
+            expect(told).toEqual(['0,0,0 west']);
+            expect(destroyed).toEqual([]);
+            expect(blocks.get({ x: 0, y: 0, z: 0 })?.identifier).toBe('minecraft:air');
+
+            // Outside a shape update both work as before.
+            blocks.notifyNeighbors({ x: 0, y: 0, z: 0 });
+            expect(told).toContain('0,1,0 down');
+            blocks.destroy?.({ x: 0, y: 1, z: 0 });
+            expect(destroyed).toEqual(['0,1,0']);
+        });
+
         it('notifies the neighbors only when the write asks for it', () => {
             const { blocks } = harness({ '0,1,0': lamp });
             const seen = watchNeighborHooks();

@@ -46,3 +46,22 @@ export const notifyContentNeighbors = (world: NeighborWorld, at: ContentPosition
         server.getLogger().error(error);
     }
 };
+
+/**
+ * Settles the block at a position against its six neighbors, Java's
+ * `Block.updateFromNeighbourShapes`; see `ContentBlockAccess.updateShape`.
+ *
+ * Does nothing on a server with no content build, and logs a behavior that throws, as
+ * {@link notifyContentNeighbors} does.
+ */
+export const updateContentShape = (world: NeighborWorld, at: ContentPosition): void => {
+    const server = world.getServer();
+    const content = server.getContent();
+    if (content === undefined) return;
+
+    try {
+        content.world.blockWorld.updateShape(at, world.getDimension().name, world.getLevel().name);
+    } catch (error: unknown) {
+        server.getLogger().error(error);
+    }
+};
