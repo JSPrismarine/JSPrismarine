@@ -69,7 +69,9 @@ const TIME_SPEC_TICKS: Record<TimeSpec, number> = {
 const setTime = (context: Context, ticks: number): number => {
     const current = source(context);
     current.host.world.setTime(ticks);
-    return report(current, ticks === 0 ? 1 : ticks, `Set the time to ${ticks}`);
+    current.sendFeedback(`Set the time to ${ticks}`);
+    // A count of zero or less reads as a failure, and Bedrock's `time set` takes a negative time.
+    return ticks > 0 ? ticks : 1;
 };
 
 /** What `/locate` looks for, which is also the literal and the argument name of each form. */
@@ -355,7 +357,9 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
             .then(
                 lit('set')
                     .then(
-                        arg('amount', timeArgument({ min: 0 })).executes(
+                        // Bedrock's `time set` takes a plain integer, negative or not, and refuses a
+                        // fraction or a unit, so this is not Java's `time` argument.
+                        arg('amount', integerArgument()).executes(
                             command((context) => setTime(context, value<number>(context, 'amount')))
                         )
                     )

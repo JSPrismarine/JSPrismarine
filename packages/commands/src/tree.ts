@@ -91,11 +91,14 @@ export interface CommandRegistryOptions {
 /**
  * A command tree plus the metadata the Bedrock packet needs.
  *
- * The dispatcher is the Brigadier port's, unchanged, so Java fork and redirect
- * semantics run server-side exactly as upstream defines them.
+ * The dispatcher is the Brigadier port's, so Java fork and redirect semantics
+ * run server-side exactly as upstream defines them. It reads a command line as
+ * Bedrock does in two places: any run of spaces separates two arguments, and
+ * when no overload reads the whole line the error points at the first word
+ * none of them could read.
  */
 export class CommandRegistry<S> {
-    private readonly dispatcher = new CommandDispatcher<S>();
+    private readonly dispatcher = new CommandDispatcher<S>(null, { spaceRuns: true, farthestFailure: true });
     private readonly metadata = new Map<string, CommandMetadata>();
     private readonly aliasOwners = new Map<string, string>();
     private readonly excluded = new Set<string>();

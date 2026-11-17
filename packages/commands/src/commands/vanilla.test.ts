@@ -90,7 +90,8 @@ describe('the command set', () => {
         // `/execute run <command>` then took the type id a real server writes, 90.
         // The chained subcommand pairs and parse symbols then took the form a real server sends.
         // Every overload a chain continues into, `/execute run` among them, then became chaining.
-        expect(digest).toBe('afc675789eda8741c1e636bb8765ed4dd9de54e0');
+        // `/effect` then took Bedrock's `effect <player> <effect>` and `effect <player> clear` forms.
+        expect(digest).toBe('f154666690425e9a73f870318b62dd4eb1e81a28');
     });
 });
 
@@ -470,6 +471,28 @@ describe('the entity commands', () => {
         expect(applied).toEqual([{ effect: 'minecraft:speed', seconds: 30, amplifier: 0, hidden: false }]);
     });
 
+    it('/effect takes the Bedrock form, with the targets before the effect', () => {
+        const applied: unknown[] = [];
+        const cleared: unknown[] = [];
+        const entities = {
+            select: () => [testEntity()],
+            addEffect: (_entity: EntityRef, effect: string, seconds: number, amplifier: number, hidden: boolean) => {
+                applied.push({ effect, seconds, amplifier, hidden });
+                return true;
+            },
+            clearEffect: (_entity: EntityRef, effect?: string) => {
+                cleared.push(effect);
+                return 1;
+            }
+        };
+        run('effect @s speed 10 1 true', { entities });
+        run('effect @s clear', { entities });
+        run('effect @s clear speed', { entities });
+
+        expect(applied).toEqual([{ effect: 'minecraft:speed', seconds: 10, amplifier: 1, hidden: true }]);
+        expect(cleared).toEqual([undefined, 'minecraft:speed']);
+    });
+
     it('/attribute base get reports the value and returns it truncated', () => {
         const feedback: string[] = [];
         const { results } = run(
@@ -592,6 +615,26 @@ describe('the world commands', () => {
             'time set '.length
         ]);
         expect(set).toEqual([]);
+    });
+
+    it('/time set takes a negative tick count and refuses a fraction, as Bedrock does', () => {
+        const set: number[] = [];
+        const feedback: string[] = [];
+        const world = { setTime: (ticks: number) => void set.push(ticks) };
+
+        run('time set -5', { world }, { feedback });
+        expect(set).toEqual([-5]);
+        expect(feedback).toEqual(['Set the time to -5']);
+
+        expect(() => run('time set 1.5', { world })).toThrow(CommandSyntaxException);
+        expect(set).toEqual([-5]);
+    });
+
+    it('reads any run of spaces between arguments', () => {
+        const set: number[] = [];
+        run('time   set    day', { world: { setTime: (ticks: number) => void set.push(ticks) } });
+
+        expect(set).toEqual([1000]);
     });
 
     it('/gamerule names every rule in the registry by its 1.21.11 id', () => {

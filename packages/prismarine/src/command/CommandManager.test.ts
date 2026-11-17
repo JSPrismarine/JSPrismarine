@@ -234,7 +234,11 @@ describe('command', () => {
             ['/give @s diamond abc', 'Syntax error: Unexpected "abc": at "s diamond >>abc<<"'],
             ['/gamerule doDaylightCycle notabool', 'Syntax error: Unexpected "notabool": at "ightCycle >>notabool<<"'],
             ['/weather clear abc', 'Syntax error: Unexpected "abc": at "her clear >>abc<<"'],
-            ['/difficulty bogus', 'Syntax error: Unexpected "bogus": at "ifficulty >>bogus<<"']
+            ['/difficulty bogus', 'Syntax error: Unexpected "bogus": at "ifficulty >>bogus<<"'],
+            ['/time   set   nonsense', 'Syntax error: Unexpected "nonsense": at "e   set   >>nonsense<<"'],
+            ['/time set 1.5', 'Syntax error: Unexpected "1.5": at "/time set >>1.5<<"'],
+            ['/tp ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ x', 'Syntax error: Unexpected "~": at "~ ~ ~ ~ ~ >>~<< ~ ~ ~ ~ ~"'],
+            ['/effect @a speed 10 1 notabool', 'Syntax error: Unexpected "notabool": at "peed 10 1 >>notabool<<"']
         ])('refuses %s with the syntax error BDS words', async (line, expected) => {
             const commandManager = managerOver({});
             await commandManager.enable();

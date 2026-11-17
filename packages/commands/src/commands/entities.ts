@@ -201,79 +201,72 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
         { description: 'Applies damage to entities.', ...CHEATS }
     );
 
-    registry.register(
-        lit('effect')
+    // What follows `targets` in each form. Java spells the two `effect give <targets> ...` and
+    // `effect clear <targets> ...`; Bedrock spells them `effect <targets> <effect> ...` and
+    // `effect <targets> clear ...`. Both are registered, so a Bedrock line reads as far as BDS
+    // reads it before a syntax error.
+    const clearEffects = () =>
+        command((context) => {
+            const current = source(context);
+            const cleared = select(current, value(context, 'targets')).reduce(
+                (total, entity) => total + current.host.entities.clearEffect(entity),
+                0
+            );
+            return report(current, cleared, `Cleared ${cleared} effects`);
+        });
+    const clearEffect = () =>
+        arg('effect', resourceArgument('minecraft:mob_effect')).executes(
+            command((context) => {
+                const current = source(context);
+                const effect = value<string>(context, 'effect');
+                const cleared = select(current, value(context, 'targets')).reduce(
+                    (total, entity) => total + current.host.entities.clearEffect(entity, effect),
+                    0
+                );
+                return report(current, cleared, `Cleared ${cleared} effects`);
+            })
+        );
+    const giveEffectArguments = () =>
+        arg('effect', resourceArgument('minecraft:mob_effect'))
+            .executes(command((context) => giveEffect(context, 30, 0, false)))
             .then(
-                lit('clear').then(
-                    arg('targets', entityArgument())
-                        .executes(
-                            command((context) => {
-                                const current = source(context);
-                                const cleared = select(current, value(context, 'targets')).reduce(
-                                    (total, entity) => total + current.host.entities.clearEffect(entity),
-                                    0
-                                );
-                                return report(current, cleared, `Cleared ${cleared} effects`);
-                            })
-                        )
-                        .then(
-                            arg('effect', resourceArgument('minecraft:mob_effect')).executes(
-                                command((context) => {
-                                    const current = source(context);
-                                    const effect = value<string>(context, 'effect');
-                                    const cleared = select(current, value(context, 'targets')).reduce(
-                                        (total, entity) => total + current.host.entities.clearEffect(entity, effect),
-                                        0
-                                    );
-                                    return report(current, cleared, `Cleared ${cleared} effects`);
-                                })
+                arg('seconds', integerArgument({ min: 0 }))
+                    .executes(command((context) => giveEffect(context, value<number>(context, 'seconds'), 0, false)))
+                    .then(
+                        arg('amplifier', integerArgument({ min: 0, max: 255 }))
+                            .executes(
+                                command((context) =>
+                                    giveEffect(
+                                        context,
+                                        value<number>(context, 'seconds'),
+                                        value<number>(context, 'amplifier'),
+                                        false
+                                    )
+                                )
                             )
-                        )
-                )
-            )
-            .then(
-                lit('give').then(
-                    arg('targets', entityArgument()).then(
-                        arg('effect', resourceArgument('minecraft:mob_effect'))
-                            .executes(command((context) => giveEffect(context, 30, 0, false)))
                             .then(
-                                arg('seconds', integerArgument({ min: 0 }))
-                                    .executes(
-                                        command((context) =>
-                                            giveEffect(context, value<number>(context, 'seconds'), 0, false)
+                                arg('hideParticles', enumArgument('Boolean', ['true', 'false'] as const)).executes(
+                                    command((context) =>
+                                        giveEffect(
+                                            context,
+                                            value<number>(context, 'seconds'),
+                                            value<number>(context, 'amplifier'),
+                                            value<string>(context, 'hideParticles') === 'true'
                                         )
                                     )
-                                    .then(
-                                        arg('amplifier', integerArgument({ min: 0, max: 255 }))
-                                            .executes(
-                                                command((context) =>
-                                                    giveEffect(
-                                                        context,
-                                                        value<number>(context, 'seconds'),
-                                                        value<number>(context, 'amplifier'),
-                                                        false
-                                                    )
-                                                )
-                                            )
-                                            .then(
-                                                arg(
-                                                    'hideParticles',
-                                                    enumArgument('Boolean', ['true', 'false'] as const)
-                                                ).executes(
-                                                    command((context) =>
-                                                        giveEffect(
-                                                            context,
-                                                            value<number>(context, 'seconds'),
-                                                            value<number>(context, 'amplifier'),
-                                                            value<string>(context, 'hideParticles') === 'true'
-                                                        )
-                                                    )
-                                                )
-                                            )
-                                    )
+                                )
                             )
                     )
-                )
+            );
+
+    registry.register(
+        lit('effect')
+            .then(lit('clear').then(arg('targets', entityArgument()).executes(clearEffects()).then(clearEffect())))
+            .then(lit('give').then(arg('targets', entityArgument()).then(giveEffectArguments())))
+            .then(
+                arg('targets', entityArgument())
+                    .then(lit('clear').executes(clearEffects()).then(clearEffect()))
+                    .then(giveEffectArguments())
             ),
         { description: 'Adds or removes status effects.', ...CHEATS }
     );
