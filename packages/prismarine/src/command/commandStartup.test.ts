@@ -69,8 +69,12 @@ const debugConfig = (levelName: string) =>
         }
     })();
 
-/** Writes the entity definitions this command integration test exercises. */
-const writeBehaviorPack = (at: string, identifiers: readonly string[]): void => {
+/**
+ * Writes the entity definitions this command integration test exercises.
+ *
+ * @param notSummonable - The identifiers whose definitions say `"is_summonable": false`.
+ */
+const writeBehaviorPack = (at: string, identifiers: readonly string[], notSummonable: readonly string[] = []): void => {
     const files: Record<string, unknown> = {
         'manifest.json': {
             format_version: 2,
@@ -87,7 +91,7 @@ const writeBehaviorPack = (at: string, identifiers: readonly string[]): void => 
         files[`entities/${index}-${identifier.replace(':', '_')}.json`] = {
             format_version: '1.21.0',
             'minecraft:entity': {
-                description: { identifier, is_spawnable: true, is_summonable: true },
+                description: { identifier, is_spawnable: true, is_summonable: !notSummonable.includes(identifier) },
                 components: {
                     'minecraft:health': { value: 40, max: 40 },
                     'minecraft:type_family': { family: [identifier.split(':')[1], 'mob'] }
@@ -603,7 +607,13 @@ describe('the command layer on a server with packs of its own', () => {
 
     beforeAll(async () => {
         root = mkdtempSync(path.join(tmpdir(), 'jsprismarine-command-content-'));
-        writeBehaviorPack(path.join(root, 'behaviorpack'), ['mypack:dragon', 'minecraft:villager_v2']);
+        // The villager pair and the fishing hook carry the vanilla pack's flags: the legacy
+        // `villager` is summonable, `villager_v2` and the projectile are not.
+        writeBehaviorPack(
+            path.join(root, 'behaviorpack'),
+            ['mypack:dragon', 'minecraft:villager', 'minecraft:villager_v2', 'minecraft:fishing_hook'],
+            ['minecraft:villager_v2', 'minecraft:fishing_hook']
+        );
         writeDatapack(path.join(root, 'datapack'));
         // `readContentSettings` reads this file out of `JSP_DIR`, before the
         // `Config` the server was handed is enabled, so the two fixtures go in
@@ -678,6 +688,18 @@ describe('the command layer on a server with packs of its own', () => {
         const villager = dataEntityAt(6, 6);
         expect(villager?.identifier).toBe('minecraft:villager_v2');
         expect(villager?.brainMob?.id).toBe('minecraft:villager');
+    });
+
+    it('refuses a type its definition marks not summonable, as Bedrock does', async () => {
+        // Mojang's `EntityType` enum leaves out every type the pack marks not summonable,
+        // so Bedrock Dedicated Server refuses these at parse.
+        for (const [type, x] of [
+            ['minecraft:fishing_hook', 7],
+            ['minecraft:villager_v2', 9]
+        ] as const) {
+            await expect(run(`/summon ${type} ${x} 70 ${x}`), type).resolves.toBe(false);
+            expect(dataEntityAt(x, x), type).toBeUndefined();
+        }
     });
 
     /**

@@ -23,7 +23,16 @@ import type {
     ServerContentItems
 } from '../content/ServerContent';
 import { stub } from '../testing/stub.test.helper';
-import { UNWIRED_COMMANDS, buildVanillaCommands, contentRegistryIds } from './vanillaCommands';
+import { UNWIRED_COMMANDS, buildVanillaCommands, contentRegistryIds, summonableEntityTypes } from './vanillaCommands';
+
+/** Registry entries for entity types that carry only their `summonable` flag. */
+const entityEntries = (flags: Record<string, boolean>) =>
+    Object.entries(flags)
+        .map(
+            ([identifier, summonable]) =>
+                [identifier, stub<EntityType>({ flags: { summonable, spawnable: true, experimental: false } })] as const
+        )
+        .values();
 
 /** Every command `@jsprismarine/commands` implements, wired here or not. */
 const implemented = [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES, ...BEDROCK_ONLY_COMMAND_NAMES];
@@ -102,7 +111,7 @@ describe('the vanilla command set this server runs', () => {
     it('reads the validated registries off the content build', () => {
         const content = stub<ServerContent>({
             entities: stub<ServerContentEntities>({
-                registry: stub<Registry<EntityType>>({ keys: () => ['mypack:dragon'] })
+                registry: stub<Registry<EntityType>>({ entries: () => entityEntries({ 'mypack:dragon': true }) })
             }),
             blocks: stub<ServerContentBlocks>({ types: new Map([['mypack:brass_block', stub<BlockType>()]]) }),
             items: stub<ServerContentItems>({ types: new Map([['mypack:wrench', stub<ItemType>()]]) }),
@@ -119,6 +128,36 @@ describe('the vanilla command set this server runs', () => {
             enchantments: ['mypack:keen'],
             damageTypes: ['mypack:acid']
         });
+    });
+
+    it('offers /summon only the entity types their definitions mark summonable', () => {
+        const registry = stub<Registry<EntityType>>({
+            entries: () =>
+                entityEntries({
+                    'minecraft:villager': true,
+                    'minecraft:villager_v2': false,
+                    'minecraft:fishing_hook': false,
+                    'jsprismarine:inert_actor': false,
+                    'mypack:dragon': true
+                })
+        });
+
+        expect(summonableEntityTypes(registry)).toEqual(['minecraft:villager', 'mypack:dragon']);
+    });
+
+    it('refuses at parse a type the pack marks not summonable', () => {
+        // Mojang's `EntityType` enum has no `fishing_hook` and no `inert_actor`, and the pack's
+        // list no longer adds them, so the line fails before it reaches the host.
+        const source = createCommandSource({ host: testCommandHost(), permissionLevel: 4 });
+        const registry = stub<Registry<EntityType>>({
+            entries: () => entityEntries({ 'minecraft:fishing_hook': false, 'jsprismarine:inert_actor': false })
+        });
+        const commands = buildVanillaCommands({ entityTypes: summonableEntityTypes(registry) });
+
+        for (const type of ['minecraft:fishing_hook', 'jsprismarine:inert_actor', 'minecraft:villager_v2']) {
+            expect(() => commands.getDispatcher().execute(`summon ${type} 0 0 0`, source), type).toThrow();
+        }
+        expect(() => commands.getDispatcher().execute('summon villager 0 0 0', source)).not.toThrow();
     });
 
     it('lets a pack entity through the parse gate it used to fail at', () => {

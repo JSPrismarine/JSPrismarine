@@ -16,6 +16,8 @@
  */
 import type { CommandSource, ContentRegistryIds } from '@jsprismarine/commands';
 import { CommandRegistry, registerVanillaCommands } from '@jsprismarine/commands';
+import type { Registry } from '@jsprismarine/content';
+import type { EntityType } from '@jsprismarine/entities';
 
 import type { ServerContent } from '../content/ServerContent';
 
@@ -35,6 +37,28 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
 };
 
 /**
+ * Whether `/summon` may create an entity of this type.
+ *
+ * The answer is the definition's `is_summonable` flag. Mojang's own
+ * `EntityType` command enum holds exactly the vanilla types the pack marks
+ * summonable, so a projectile, the player and an engine entity such as
+ * `jsprismarine:inert_actor` are refused, as Bedrock Dedicated Server refuses
+ * them.
+ *
+ * @param type - The entity type, or undefined when the pack does not declare it.
+ */
+export const isSummonable = (type: EntityType | undefined): boolean => type?.flags.summonable === true;
+
+/**
+ * The entity identifiers `/summon` offers and accepts: every declared type
+ * whose definition is summonable.
+ *
+ * @param registry - The content build's entity registry.
+ */
+export const summonableEntityTypes = (registry: Registry<EntityType>): string[] =>
+    [...registry.entries()].filter(([, type]) => isSummonable(type)).map(([identifier]) => identifier);
+
+/**
  * The four registries whose contents a command argument validates against.
  *
  * Mojang's published command enums are frozen at the version the table was
@@ -42,7 +66,8 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
  * `mypack:dragon` at parse for an entity this server can spawn. These four
  * are the registries a host verb resolves an id against and a pack can
  * extend, so each is offered alongside Mojang's list rather than instead of
- * it.
+ * it. The entity list holds only {@link summonableEntityTypes}, because
+ * `/summon` and `execute summon` are the only arguments that read it.
  *
  * The registries left out fail that test for their own reasons.
  * `minecraft:mob_effect` uses Mojang's published list because the host keeps
@@ -55,7 +80,7 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
  * @returns {ContentRegistryIds} One id list per validated registry.
  */
 export const contentRegistryIds = (content: ServerContent): ContentRegistryIds => ({
-    entityTypes: content.entities.registry.keys(),
+    entityTypes: summonableEntityTypes(content.entities.registry),
     blocks: [...content.blocks.types.keys()],
     items: [...content.items.types.keys()],
     enchantments: content.enchantments.ids,

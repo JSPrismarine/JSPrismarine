@@ -27,6 +27,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
 import { stemTarget } from '../../world/portal/DimensionTravel';
 import type { World } from '../../world/World';
+import { isSummonable } from '../vanillaCommands';
 import type { Scoreboard } from './scoreboard';
 import { scoreFactOf } from './scoreboard';
 import type { CommandPlayer } from './support';
@@ -138,18 +139,29 @@ const selectorFacts = (server: Server, scoreboard: Scoreboard): Partial<Selector
  * The runtime is the only thing that builds and drives entities through their
  * components, goals, and brain.
  *
+ * The typed identifier has to be summonable. The command argument already
+ * refuses the others at parse; the host checks again so that a caller that
+ * never went through the parser cannot spawn a projectile, or a player with
+ * no session behind it. The flag is read before the legacy rename in
+ * {@link spawnIdentifierOf}: `villager_v2` is not summonable, but `villager`
+ * is, and it is what `/summon villager` spawns.
+ *
+ * @param typed - The identifier as the command named it, namespaced.
  * @returns The summoned entity, or undefined when the loaded pack does not
- *   declare the identifier.
+ *   declare the identifier or does not allow summoning it.
  */
 const summonDataEntity = (
     world: World,
-    identifier: string,
+    typed: string,
     position: Vector3,
     rotation: Rotation,
     name: string | undefined
 ): EntityRef | undefined => {
     const live = world.dataEntities();
-    if (live === undefined || !live.runtime.content().entities.registry.has(identifier)) return undefined;
+    if (live === undefined || !isSummonable(live.runtime.content().entities.registry.get(typed))) return undefined;
+
+    const identifier = spawnIdentifierOf(typed);
+    if (!live.runtime.content().entities.registry.has(identifier)) return undefined;
 
     const spawned = live.runtime.spawn(
         identifier,
@@ -238,10 +250,10 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
         summon: (type: string, position: Vector3, rotation: Rotation, options): EntityRef | undefined => {
             if (options.nbt !== undefined) unsupported('entity NBT');
 
-            const identifier = spawnIdentifierOf(type.includes(':') ? type : `minecraft:${type}`);
+            const typed = type.includes(':') ? type : `minecraft:${type}`;
             const world = worldOf(server, options.dimension ?? 'minecraft:overworld');
 
-            return summonDataEntity(world, identifier, position, rotation, options.name);
+            return summonDataEntity(world, typed, position, rotation, options.name);
         },
 
         kill: (ref) => {

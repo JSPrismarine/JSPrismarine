@@ -367,7 +367,10 @@ describe('command', () => {
                     getContent: () =>
                         stub<ServerContent>({
                             entities: stub<ServerContent['entities']>({
-                                registry: stub<ServerContent['entities']['registry']>({ keys: () => [] })
+                                registry: stub<ServerContent['entities']['registry']>({
+                                    keys: () => [],
+                                    entries: () => []
+                                })
                             }),
                             blocks: stub<ServerContent['blocks']>({ types: new Map() }),
                             items: stub<ServerContent['items']>({ types: new Map() }),

@@ -126,11 +126,11 @@ const fixturePalette = (): BlockPalette =>
     new BlockPalette(BLOCKS.map((identifier) => [identifier, vanillaBlockPalette().entry(identifier)!.model]));
 
 /** One entity file, in the shape a behavior pack writes. */
-const entityFile = (identifier: string, body: Record<string, unknown>) =>
+const entityFile = (identifier: string, body: Record<string, unknown>, summonable = true) =>
     definitionOf('entities', identifier, {
         format_version: '1.21.0',
         'minecraft:entity': {
-            description: { identifier, is_spawnable: true, is_summonable: true },
+            description: { identifier, is_spawnable: true, is_summonable: summonable },
             ...body
         }
     });
@@ -412,20 +412,31 @@ const ENTITIES = new Map([
         })
     ],
     [
+        // Marked not summonable, as the vanilla file is: `/summon villager` reaches it through
+        // the legacy entity below.
         'minecraft:villager_v2',
-        entityFile('minecraft:villager_v2', {
-            components: {
-                ...MOB_BASE,
-                'minecraft:type_family': { family: ['villager', 'mob'] },
-                'minecraft:economy_trade_table': {
-                    table: 'trading/economy_trades/farmer_trades.json',
-                    display_name: 'entity.villager.farmer',
-                    persist_trades: true
-                },
-                'minecraft:behavior.trade_with_player': { priority: 1 }
-            }
-        })
+        entityFile(
+            'minecraft:villager_v2',
+            {
+                components: {
+                    ...MOB_BASE,
+                    'minecraft:type_family': { family: ['villager', 'mob'] },
+                    'minecraft:economy_trade_table': {
+                        table: 'trading/economy_trades/farmer_trades.json',
+                        display_name: 'entity.villager.farmer',
+                        persist_trades: true
+                    },
+                    'minecraft:behavior.trade_with_player': { priority: 1 }
+                }
+            },
+            false
+        )
     ],
+    // The pre-1.11 villager the vanilla pack still ships, summonable, and the name Mojang's
+    // `EntityType` enum lists.
+    ['minecraft:villager', entityFile('minecraft:villager', { components: MOB_BASE })],
+    // A projectile the vanilla pack marks not summonable.
+    ['minecraft:fishing_hook', entityFile('minecraft:fishing_hook', { components: MOB_BASE }, false)],
     [
         // A mob no written class answers to and no vanilla pack declares, which is the whole
         // point of the data path: the only thing that can build one is the content registry.
@@ -2896,12 +2907,19 @@ describe('the data-driven entity runtime over a live world', () => {
             ).toEqual(['minecraft:villager_v2']);
         });
 
-        it('leaves a Bedrock-only identifier as typed', () => {
-            // `villager_v2` is not a Java entity type, so the rename table does not touch it
-            // and the spelling a pack would use still works.
-            const ref = summon('minecraft:villager_v2', { x: 1.5, y: GROUND_Y, z: 1.5 });
+        it('refuses the identifier the legacy name spawns when it is typed directly', () => {
+            // `villager_v2` is marked `is_summonable: false`, and Mojang's `EntityType` enum
+            // leaves it out: Bedrock reaches it only through the legacy `villager`.
+            expect(summon('minecraft:villager_v2', { x: 1.5, y: GROUND_Y, z: 1.5 })).toBeUndefined();
+            expect(live.runtime.entities().toArray()).toEqual([]);
+        });
 
-            expect(ref?.type).toBe('minecraft:villager_v2');
+        it('refuses a type its definition marks not summonable', () => {
+            for (const identifier of ['minecraft:fishing_hook', 'jsprismarine:inert_actor']) {
+                expect(live.runtime.content().entities.registry.has(identifier), identifier).toBe(true);
+                expect(summon(identifier, { x: 1.5, y: GROUND_Y, z: 1.5 }), identifier).toBeUndefined();
+            }
+            expect(live.runtime.entities().toArray()).toEqual([]);
         });
 
         it('summons nothing for an identifier no pack and no class declares', () => {
