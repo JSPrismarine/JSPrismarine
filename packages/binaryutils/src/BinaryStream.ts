@@ -446,10 +446,12 @@ export class BinaryStream {
 
     /**
      * Writes a 32 bit (4 bytes) big-endian floating point number.
+     * An infinity is a float too, and is written as one; NaN is refused.
      * @param {number} v
      */
     public writeFloat(v: number): void {
-        this.doWriteAssertions(v, -3.4028234663852886e38, +3.4028234663852886e38);
+        if (Math.abs(v) !== Number.POSITIVE_INFINITY)
+            this.doWriteAssertions(v, -3.4028234663852886e38, +3.4028234663852886e38);
         this.ensureCapacity(4);
         this.writeBuffer!.writeFloatBE(v, this.writeIndex);
         this.writeIndex += 4;
@@ -466,10 +468,12 @@ export class BinaryStream {
 
     /**
      * Writes a 32 bit (4 bytes) little-endian floating point number.
+     * An infinity is a float too, and is written as one; NaN is refused.
      * @param {number} v
      */
     public writeFloatLE(v: number): void {
-        this.doWriteAssertions(v, -3.4028234663852886e38, +3.4028234663852886e38);
+        if (Math.abs(v) !== Number.POSITIVE_INFINITY)
+            this.doWriteAssertions(v, -3.4028234663852886e38, +3.4028234663852886e38);
         this.ensureCapacity(4);
         this.writeBuffer!.writeFloatLE(v, this.writeIndex);
         this.writeIndex += 4;

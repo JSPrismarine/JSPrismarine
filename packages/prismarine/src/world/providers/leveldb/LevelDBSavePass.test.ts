@@ -19,6 +19,7 @@ import { ChunkBiomes, PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import { Dimensions } from '../../DimensionType';
 import type { World } from '../../World';
 import { createChunkSaveContext } from '../ChunkSaveContext';
+import { Scoreboard } from '../../Scoreboard';
 import LevelDB from './LevelDB';
 
 /**
@@ -483,6 +484,43 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         await reopened.enable();
         expect((await reopened.readPlayerData('leaver'))?.position?.x).toBe(1);
         expect((await readBack(reopened, 0, 0)).getBlockRuntimeId(0, 16, 0)).toBe(stone);
+        await reopened.disable();
+    });
+
+    it("commits the world's dynamic properties and the scoreboard under BDS's keys, and reads them back", async () => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        const board = new Scoreboard();
+        board.add('kills', 'dummy', 'Kills');
+        board.setScore('Steve', 'kills', 3);
+        board.setDisplay('sidebar', 'kills', 'descending');
+        const dynamicProperties = new Map([['pack', new Map([['jsp:n', 1.5]])]]);
+
+        const pass = leveldb.beginSavePass();
+        pass.putLevelRecords({ dynamicProperties, scoreboard: board.saved() });
+        await pass.commit({ sync: true });
+        await leveldb.disable();
+
+        const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true, createIfMissing: false });
+        expect(database.has(Buffer.from('DynamicProperties'))).toBe(true);
+        expect(database.has(Buffer.from('scoreboard'))).toBe(true);
+        await database.close();
+
+        const reopened = provider(worldPath);
+        await reopened.enable();
+        const records = reopened.readLevelRecords();
+        expect(records?.dynamicProperties).toEqual(dynamicProperties);
+        const restored = new Scoreboard();
+        restored.restore(records?.scoreboard ?? board.saved());
+        expect(restored.score('Steve', 'kills')).toBe(3);
+        expect(restored.display('sidebar')).toEqual({ objective: 'kills', sortOrder: 'descending' });
+
+        // Emptied, both records go.
+        const empty = reopened.beginSavePass();
+        empty.putLevelRecords({ dynamicProperties: new Map(), scoreboard: new Scoreboard().saved() });
+        await empty.commit({ sync: true });
+        expect(reopened.readLevelRecords()).toBeNull();
         await reopened.disable();
     });
 });

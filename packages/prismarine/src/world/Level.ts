@@ -53,6 +53,8 @@ import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from 
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 import type { WorldExperiment } from './WorldExperiments';
 import { levelExperiments } from './WorldExperiments';
+import { LevelDynamicProperties } from './dynamicProperties';
+import { Scoreboard } from './Scoreboard';
 
 /** What older versions wrote beside the save before the provider kept the level's state. */
 const LEGACY_LEVEL_DATA_FILE_NAME = 'level.json';
@@ -185,6 +187,12 @@ export class Level {
 
     /** Bedrock's `SpawnX/Y/Z`: one spawn per save, in the Overworld. */
     private spawn: Vector3 | null = null;
+
+    /** The scripts' dynamic properties of the level, which BDS calls the world's. */
+    private readonly dynamicProperties = new LevelDynamicProperties();
+
+    /** The one scoreboard, which `/scoreboard` and the scripts share. */
+    private readonly scoreboard = new Scoreboard();
 
     /** The dragon fight the save held, handed to the End world's fight when it is created. */
     private storedDragonFight: DragonFightState | undefined;
@@ -681,6 +689,16 @@ export class Level {
         return this.gameRuleManager;
     }
 
+    /** The scripts' dynamic properties of the level, which its save writes as BDS's `DynamicProperties` record. */
+    public getDynamicProperties(): LevelDynamicProperties {
+        return this.dynamicProperties;
+    }
+
+    /** The level's scoreboard, which its save writes as BDS's `scoreboard` record. */
+    public getScoreboard(): Scoreboard {
+        return this.scoreboard;
+    }
+
     /** The level's weather: one cycle for the whole save, rendered where there is a sky. */
     public getWeather(): WorldWeather {
         return this.weather;
@@ -864,6 +882,11 @@ export class Level {
         if (stored.entities && this.provider.supportsChunkUnload !== true) this.legacy = stored.entities;
         this.storedDragonFight = stored.dragonFight;
         this.savedRaids = stored.raids ?? [];
+        const records = this.provider.readLevelRecords();
+        if (records !== null) {
+            this.dynamicProperties.restore(records.dynamicProperties);
+            this.scoreboard.restore(records.scoreboard);
+        }
 
         // The clock is written to `level.dat` alone, so it is read back from there; without it
         // every boot started the day over at tick zero.
@@ -1039,8 +1062,26 @@ export class Level {
                 stems,
                 netherScale: this.netherScale(),
                 experiments: this.experiments
+            },
+            records: {
+                dynamicProperties: this.dynamicProperties.all(),
+                scoreboard: this.scoreboard.saved((live) => this.savedActorId(live))
             }
         };
+    }
+
+    /**
+     * The saved id, Bedrock's `UniqueID`, of an entity in one of the level's worlds, by its
+     * runtime id. The cut gives an entity its id before the level's records are taken.
+     */
+    private savedActorId(live: string): bigint | undefined {
+        if (!/^\d+$/.test(live)) return undefined;
+        for (const world of this.worlds()) {
+            const actor = world.getActor(BigInt(live));
+            const nbt = actor?.persistentNbt;
+            if (nbt?.has('UniqueID')) return nbt.getLong('UniqueID', 0n);
+        }
+        return undefined;
     }
 
     /** The raids the save held, which the Overworld's raid manager starts from. */

@@ -68,7 +68,9 @@ import type { Level } from '../../Level';
 import Chunk from '../../chunk/Chunk';
 import type { ChunkPersistedState, ChunkSaveCutHook } from '../../chunk/Chunk';
 import type { ReadonlySubChunk } from '../../chunk/SubChunk';
-import type { ProviderSavePass } from '../SavePass';
+import type { LevelRecords, ProviderSavePass } from '../SavePass';
+import { dynamicPropertiesFromNbt, dynamicPropertiesToNbt } from '../../dynamicProperties';
+import { scoreboardFromNbt, scoreboardToNbt } from './ScoreboardCodec';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
 import type { DimensionType } from '../../DimensionType';
@@ -115,6 +117,10 @@ const LEVEL_DAT_EXPERIMENTS = 'experiments';
 
 const DATABASE_DIRECTORY = 'db';
 const WORLD_DATA_KEY = Buffer.from('jsprismarine:world_data', 'ascii');
+/** BDS's record of the world's script dynamic properties. */
+const DYNAMIC_PROPERTIES_KEY = Buffer.from('DynamicProperties', 'ascii');
+/** BDS's record of the scoreboard. */
+const SCOREBOARD_KEY = Buffer.from('scoreboard', 'ascii');
 const REPLAY_SNAPSHOT_FORMAT = 'jsprismarine-leveldb-replay-snapshot';
 const REPLAY_SNAPSHOT_VERSION = 1;
 const REPLAY_SNAPSHOT_FILES = [LEVEL_DAT_FILE_NAME, LEVEL_DAT_BACKUP_FILE_NAME, LEVEL_NAME_FILE_NAME] as const;
@@ -972,6 +978,28 @@ export default class LevelDB extends BaseProvider {
                 const value = this.levelRecordOf({ ...this.readWorldDataNow(), ...data });
                 if (!this.holds(WORLD_DATA_KEY, value)) batch.put(WORLD_DATA_KEY, value);
             },
+            putLevelRecords: ({ dynamicProperties, scoreboard }) => {
+                const records: ReadonlyArray<readonly [Buffer, NBTTagCompound | null]> = [
+                    [
+                        DYNAMIC_PROPERTIES_KEY,
+                        dynamicProperties.size === 0 ? null : dynamicPropertiesToNbt(dynamicProperties)
+                    ],
+                    [
+                        SCOREBOARD_KEY,
+                        scoreboard.objectives.length === 0 && scoreboard.participants.length === 0
+                            ? null
+                            : scoreboardToNbt(scoreboard)
+                    ]
+                ];
+                for (const [key, nbt] of records) {
+                    if (nbt === null) {
+                        if (this.mayHold(key)) batch.del(key);
+                        continue;
+                    }
+                    const value = this.writeActorNbt(nbt);
+                    if (!this.holds(key, value)) batch.put(key, value);
+                }
+            },
             get pendingEncodes() {
                 return pending;
             },
@@ -1641,6 +1669,24 @@ export default class LevelDB extends BaseProvider {
         }
 
         writeLevelDat(this.getPath(), { storageVersion: LEVEL_DAT_STORAGE_VERSION, root });
+    }
+
+    /**
+     * The world's dynamic properties and the scoreboard, from the records BDS keeps them in.
+     * @returns Null when the save holds neither.
+     */
+    public override readLevelRecords(): LevelRecords | null {
+        const properties = this.read(DYNAMIC_PROPERTIES_KEY);
+        const scoreboard = this.read(SCOREBOARD_KEY);
+        if (properties === null && scoreboard === null) return null;
+        return {
+            dynamicProperties:
+                properties === null ? new Map() : dynamicPropertiesFromNbt(this.readActorNbt(properties)),
+            scoreboard:
+                scoreboard === null
+                    ? { objectives: [], participants: [], displays: [], lastId: 0 }
+                    : scoreboardFromNbt(this.readActorNbt(scoreboard))
+        };
     }
 
     /**
