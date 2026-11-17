@@ -28,7 +28,6 @@ import { itemFromContent } from '../../item/itemFromContent';
 import { stemTarget } from '../../world/portal/DimensionTravel';
 import type { World } from '../../world/World';
 import { isSummonable } from '../vanillaCommands';
-import type { Scoreboard } from './scoreboard';
 import type { Scoreboard } from '../../world/Scoreboard';
 import { scoreFactOf } from './scoreboard';
 import type { CommandPlayer } from './support';

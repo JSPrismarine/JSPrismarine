@@ -11,6 +11,8 @@
         "incremental": false,
         "inlineSourceMap": false,
         "paths": {
+            "@jsprismarine/commands/*": ["../commands/dist/*"],
+            "@jsprismarine/content/*": ["../content/dist/*"],
             "@jsprismarine/entities/*": ["../entities/dist/*"],
             "@jsprismarine/entity-brains/*": ["../entity-brains/dist/*"],
             "@jsprismarine/entity-goals/*": ["../entity-goals/dist/*"],
