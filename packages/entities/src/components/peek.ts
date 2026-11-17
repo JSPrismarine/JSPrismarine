@@ -43,6 +43,15 @@ const PEEK_STATE = defineComponentState('minecraft:peek', {
  */
 export const peekAmount = (entity: EntityInstance): number | undefined => entity.componentState.get(PEEK_STATE)?.peek;
 
+/**
+ * How far a `minecraft:peek` state held as plain data has the shell open, for a reader that has
+ * the journaled or saved state rather than the entity, such as the entity replica.
+ *
+ * @param state - The component's state as the journal or a save carries it.
+ * @returns The amount, or undefined for anything that is not a peek state.
+ */
+export const peekAmountOf = (state: unknown): number | undefined => (PEEK_STATE.is(state) ? state.peek : undefined);
+
 const raise = (entity: EntityInstance, trigger: SensorTrigger | undefined): void => {
     if (trigger?.event !== undefined) entity.raise(trigger.event, trigger.target, 'minecraft:peek');
 };

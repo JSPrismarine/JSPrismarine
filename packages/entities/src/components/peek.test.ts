@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { EntityEnvironment, EntityInstance } from '../entityInstance';
 import { EntityTypes } from '../entityTypes';
-import { ATTACK_PEEK, IDLE_PEEK, peekAmount } from './peek';
+import { ATTACK_PEEK, IDLE_PEEK, peekAmount, peekAmountOf } from './peek';
 
 /** `minecraft:peek` by Java's `ShulkerPeekGoal` and `ShulkerAttackGoal`. */
 
@@ -45,5 +45,15 @@ describe('minecraft:peek', () => {
         target = undefined;
         entity.tick();
         expect(peekAmount(entity)).toBe(0);
+    });
+
+    it('reads the amount back from the state a journal or a save carries', () => {
+        const entity = spawn({ random: { next: () => 0 } });
+        entity.tick();
+        entity.tick();
+
+        expect(peekAmountOf(entity.componentState.snapshot()['minecraft:peek'])).toBe(IDLE_PEEK);
+        expect(peekAmountOf({ peek: 30 })).toBeUndefined();
+        expect(peekAmountOf(null)).toBeUndefined();
     });
 });
