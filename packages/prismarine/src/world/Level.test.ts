@@ -210,9 +210,14 @@ describe('Level', () => {
             // Not yet among the worlds that tick, save and answer `getWorldByDimension`: those
             // are the ones whose enabling has finished.
             expect([...level.worlds()]).toEqual([]);
+            expect(level.readyWorldOfType(Dimensions.Overworld.id)).toBeUndefined();
+            // The content adapter does see it, since the mobs its start region generates read it.
+            expect(level.builtWorldOfType(Dimensions.Overworld.id)).toBe(overworld);
             await enabling;
 
             expect([...level.worlds()]).toEqual([overworld]);
+            expect(level.builtWorldOfType(Dimensions.Overworld.id)).toBe(overworld);
+            expect(level.builtWorldOfType(Dimensions.Nether.id)).toBeUndefined();
             expect(builds).toEqual(new Map([[Dimensions.Overworld.id, 1]]));
             expect(await level.world(OVERWORLD_STEM_ID)).toBe(overworld);
             expect(level.loadedWorld(NETHER_STEM_ID)).toBeUndefined();

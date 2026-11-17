@@ -493,6 +493,20 @@ export class Level {
         return undefined;
     }
 
+    /**
+     * The world whose dimension type has this id, ready or still preparing its start region, or
+     * undefined. A world generating its start region already holds loaded chunks, and what that
+     * generation spawns, such as a village's villagers, reads its biome through the content adapter.
+     */
+    public builtWorldOfType(typeId: string): World | undefined {
+        const ready = this.readyWorldOfType(typeId);
+        if (ready !== undefined) return ready;
+        for (const entry of this.built.values()) {
+            if (entry.world.getDimension().id === typeId) return entry.world;
+        }
+        return undefined;
+    }
+
     /** Every world built so far, ready or not, which is what a shutdown has to close. */
     private *builtWorlds(): IterableIterator<World> {
         for (const entry of this.built.values()) yield entry.world;

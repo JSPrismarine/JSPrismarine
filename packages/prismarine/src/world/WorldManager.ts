@@ -462,12 +462,33 @@ export default class WorldManager implements Service {
      *   lazy.
      */
     public getWorldByDimension(dimension: string, level?: string): World | undefined {
+        return this.levelOf(level)?.readyWorldOfType(this.dimensionTypeId(dimension));
+    }
+
+    /**
+     * A level's world of a dimension for the content adapter: the ready one, or one still
+     * preparing its start region, whose generated mobs read the world as they spawn.
+     *
+     * @param dimension - As {@link WorldManager.getWorldByDimension} takes it.
+     * @param level - As {@link WorldManager.getWorldByDimension} takes it.
+     */
+    public getContentWorldByDimension(dimension: string, level?: string): World | undefined {
+        return this.levelOf(level)?.builtWorldOfType(this.dimensionTypeId(dimension));
+    }
+
+    /** The dimension type id a dimension name means, a vanilla Bedrock spelling resolved once. */
+    private dimensionTypeId(dimension: string): string {
         let wanted = this.dimensionIds.get(dimension);
         if (wanted === undefined) {
             wanted = dimensionByName(dimension)?.id ?? dimension;
             this.dimensionIds.set(dimension, wanted);
         }
-        return (level === undefined ? this.defaultLevel : this.levels.get(level))?.readyWorldOfType(wanted);
+        return wanted;
+    }
+
+    /** A level by folder name, or the default level when none is named. */
+    private levelOf(level: string | undefined): Level | undefined {
+        return level === undefined ? this.defaultLevel : this.levels.get(level);
     }
 
     /**

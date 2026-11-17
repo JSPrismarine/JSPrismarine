@@ -426,8 +426,9 @@ export default class Server {
             // By dimension rather than by name: the content packages address a world as
             // `minecraft:overworld`, and the default level has one world per dimension. A world
             // of another level passes its level, as `getEntityRuntime` does. A dimension still
-            // lazy answers undefined, as one nobody has entered holds nothing.
-            worldFor: (dimension, level) => this.worldManager.getWorldByDimension(dimension, level),
+            // lazy answers undefined, as one nobody has entered holds nothing. A world still
+            // preparing its start region answers, since what that generation spawns reads it.
+            worldFor: (dimension, level) => this.worldManager.getContentWorldByDimension(dimension, level),
             content: () => {
                 if (!this.content) throw new Error('the content world was read before the content was built');
                 return this.content;
