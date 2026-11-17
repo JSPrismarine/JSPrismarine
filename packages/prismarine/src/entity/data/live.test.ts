@@ -42,7 +42,7 @@ import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { moveStorePlayer } from './storePlayers';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import { entityCommandHost } from '../../command/host/entities';
-import { Scoreboard } from '../../command/host/scoreboard';
+import { Scoreboard } from '../../world/Scoreboard';
 import type WorldManager from '../../world/WorldManager';
 import type { DimensionTravel } from '../../world/portal/DimensionTravel';
 import type { Level } from '../../world/Level';
@@ -2010,7 +2010,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
             it('takes /damage and /kill as commands', async () => {
                 const { cow, body } = await cowAt(1.5);
-                const host = entityCommandHost(world.getServer(), new Scoreboard());
+                const host = entityCommandHost(world.getServer(), () => new Scoreboard());
                 const ref: EntityRef = {
                     id: body.getRuntimeId().toString(),
                     type: 'minecraft:cow',
@@ -2819,7 +2819,7 @@ describe('the data-driven entity runtime over a live world', () => {
     describe('summoning', () => {
         /** The `/summon` verb, over the same server the runtime is wired into. */
         const summon = (type: string, at: { x: number; y: number; z: number }, yaw = 0) =>
-            entityCommandHost(world.getServer(), new Scoreboard()).summon(type, at, { yaw, pitch: 0 }, {});
+            entityCommandHost(world.getServer(), () => new Scoreboard()).summon(type, at, { yaw, pitch: 0 }, {});
 
         it('summons a mob only a pack declares, with its components running', () => {
             const ref = summon('jsprismarine:dustling', { x: 2.5, y: GROUND_Y, z: 2.5 });
@@ -2837,7 +2837,7 @@ describe('the data-driven entity runtime over a live world', () => {
         });
 
         it('does not turn a summoned mob toward the sky with the command source pitch', () => {
-            entityCommandHost(world.getServer(), new Scoreboard()).summon(
+            entityCommandHost(world.getServer(), () => new Scoreboard()).summon(
                 'jsprismarine:dustling',
                 { x: 2.5, y: GROUND_Y, z: 2.5 },
                 { yaw: 37, pitch: -90 },
@@ -2862,7 +2862,7 @@ describe('the data-driven entity runtime over a live world', () => {
         });
 
         it('names a summoned mob in the store, where its actor shows the name', () => {
-            const host = entityCommandHost(world.getServer(), new Scoreboard());
+            const host = entityCommandHost(world.getServer(), () => new Scoreboard());
             const ref = host.summon(
                 'jsprismarine:dustling',
                 { x: 2.5, y: GROUND_Y, z: 2.5 },
@@ -2879,7 +2879,7 @@ describe('the data-driven entity runtime over a live world', () => {
         });
 
         it('kills a summoned mob through its actor, in the store', () => {
-            const host = entityCommandHost(world.getServer(), new Scoreboard());
+            const host = entityCommandHost(world.getServer(), () => new Scoreboard());
             const ref = summon('jsprismarine:dustling', { x: 2.5, y: GROUND_Y, z: 2.5 });
             if (ref === undefined) throw new Error('the dustling was not summoned');
 

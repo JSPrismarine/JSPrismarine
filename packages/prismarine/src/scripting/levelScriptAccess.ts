@@ -18,6 +18,7 @@ import type {
 
 import { getGametypeId } from '@jsprismarine/minecraft';
 import { readMcStructure } from '@jsprismarine/structures/bedrockTemplate';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import type { StoreActor } from '../entity/data/storeActors';
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -28,6 +29,14 @@ import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';
+import type { DynamicProperties, DynamicPropertyValue } from '../world/dynamicProperties';
+import {
+    DYNAMIC_PROPERTIES_TAG,
+    dynamicPropertiesFromNbt,
+    dynamicPropertiesToNbt,
+    withPropertyWrites
+} from '../world/dynamicProperties';
+import { scriptScoreboard } from './scriptScoreboard';
 
 /** A slot's stack as a script reads it, or null for an empty one. */
 const scriptItemOf = (item: Item | null): ScriptItem | null => {
@@ -81,6 +90,18 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             ...(name === undefined ? {} : { name }),
             ...(session === undefined ? {} : { inventorySize: session.getPlayer().getInventory().getSlotCount() })
         };
+    };
+    /** The runtime id of the entity in the level whose saved id, its `UniqueID`, is `saved`. */
+    const liveActor = (saved: bigint): string | undefined => {
+        for (const world of level.worlds()) {
+            for (const actor of world.getActors()) {
+                const nbt = present(actor) ? actor.persistentNbt : null;
+                if (nbt?.has('UniqueID') === true && nbt.getLong('UniqueID', 0n) === saved) {
+                    return String(actor.getRuntimeId());
+                }
+            }
+        }
+        return undefined;
     };
     const host = () => server.getCommandManager().getHost();
     const refOf = (actor: StoreActor) => ({
@@ -209,6 +230,43 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             const session = sessionOf(id);
             if (session !== undefined) session.released(session.setGamemode(getGametypeId(gameMode.toLowerCase())));
         },
+        dynamicProperties: (owner, pack) => {
+            if (owner === 'world') return level.getDynamicProperties().of(pack);
+            const actor = actorOf(owner.entity);
+            return actor === undefined ? undefined : (actorProperties(actor).get(pack) ?? new Map());
+        },
+        setDynamicProperties: (owner, pack, values) => {
+            if (owner === 'world') level.getDynamicProperties().write(pack, values);
+            else {
+                const actor = actorOf(owner.entity);
+                if (actor !== undefined) writeActorProperties(actor, pack, values);
+            }
+        },
+        clearDynamicProperties: (owner, pack) => {
+            if (owner === 'world') level.getDynamicProperties().clear(pack);
+            else {
+                const actor = actorOf(owner.entity);
+                const ids = actor === undefined ? [] : [...(actorProperties(actor).get(pack)?.keys() ?? [])];
+                if (actor !== undefined && ids.length > 0) {
+                    writeActorProperties(actor, pack, new Map(ids.map((id) => [id, undefined])));
+                }
+            }
+        },
+        scoreboard: scriptScoreboard(
+            level.getScoreboard(),
+            (id) => {
+                const actor = actorOf(id);
+                if (actor === undefined) return undefined;
+                const name = actor.getType() === 'minecraft:player' ? sessionOf(id)?.identity.name : undefined;
+                const nbt = actor.persistentNbt;
+                return {
+                    type: name === undefined ? 'Entity' : 'Player',
+                    name: name ?? id,
+                    ...(nbt?.has('UniqueID') === true ? { saved: nbt.getLong('UniqueID', 0n) } : {})
+                };
+            },
+            liveActor
+        ),
         runCommand: (command: string, source: ScriptCommandSource): ScriptCommandResult => {
             const manager = server.getCommandManager();
             if ('dimension' in source)
@@ -218,6 +276,32 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             return manager.runScriptCommand(command, { entity: actor });
         }
     };
+};
+
+/**
+ * An entity's dynamic properties, which it keeps in its actor record's `DynamicProperties` tag
+ * as BDS does. The record's tags this server does not model are a logged field of the entity, so
+ * a write reaches the change log and the next save.
+ */
+const actorProperties = (actor: StoreActor): DynamicProperties => {
+    const tag = actor.persistentNbt?.getCompound(DYNAMIC_PROPERTIES_TAG, false);
+    return tag === null || tag === undefined ? new Map() : dynamicPropertiesFromNbt(tag);
+};
+
+/** Writes some of one pack's dynamic properties of an entity into its actor record. */
+const writeActorProperties = (
+    actor: StoreActor,
+    pack: string,
+    values: ReadonlyMap<string, DynamicPropertyValue | undefined>
+): void => {
+    const nbt = actor.persistentNbt ?? new NBTTagCompound('');
+    const all = new Map(actorProperties(actor));
+    const next = withPropertyWrites(all.get(pack), values);
+    if (next === undefined) all.delete(pack);
+    else all.set(pack, next);
+    if (all.size === 0) nbt.remove(DYNAMIC_PROPERTIES_TAG);
+    else nbt.addChild(dynamicPropertiesToNbt(all, DYNAMIC_PROPERTIES_TAG));
+    actor.persistentNbt = nbt;
 };
 
 /**

@@ -10,7 +10,7 @@ import type { Level } from '../Level';
 import type Provider from './Provider';
 import type { LevelDatInputs } from './Provider';
 import type { ChunkSaveContext } from './ChunkSaveContext';
-import type { ProviderSavePass, SavePassStats } from './SavePass';
+import type { LevelRecords, ProviderSavePass, SavePassStats } from './SavePass';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
@@ -229,6 +229,8 @@ export default abstract class BaseProvider implements Provider {
             putLevelRecord: (data) => {
                 record = data;
             },
+            // A format without them keeps neither the dynamic properties nor the scoreboard.
+            putLevelRecords: () => {},
             pendingEncodes: 0,
             encode: () => 0,
             commit: async () => {
@@ -265,6 +267,14 @@ export default abstract class BaseProvider implements Provider {
 
     /** Persists provider-specific level metadata when the format supports it. */
     public saveLevelData(_level: LevelDatInputs): void {}
+
+    /**
+     * The level-wide records the save holds: the world's dynamic properties and the scoreboard.
+     * @returns Null for a format that keeps none, or a save that has none yet.
+     */
+    public readLevelRecords(): LevelRecords | null {
+        return null;
+    }
 
     /** Reads provider-specific level metadata back; null for a format that keeps none. */
     public readLevelData(): LevelDatInputs | null {

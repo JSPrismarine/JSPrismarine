@@ -14,7 +14,7 @@ import { entityCommandHost } from './entities';
 import { setItemSlot } from './inventory';
 import { runLootCommand } from './loot';
 import { RandomSequences } from './randomSequences';
-import { Scoreboard, scoreboardCommandHost } from './scoreboard';
+import { scoreboardCommandHost } from './scoreboard';
 import { serverSideCommandHost } from './server';
 import { unsupported } from './support';
 import { worldCommandHost } from './world';
@@ -55,7 +55,7 @@ const dataCommandHost = (server: Server, sequences: RandomSequences): DataComman
 /**
  * Builds the host the vanilla command set runs against.
  *
- * The scoreboard is built here, while the command manager owns and passes the
+ * The scoreboard is the default level's, while the command manager owns and passes the
  * random sequences so replay capture can save the same streams this host uses.
  *
  * @param server - The live server. Held rather than snapshotted: a command
@@ -69,7 +69,9 @@ export const serverCommandHost = (
     onStopRequested: (shutdown: Promise<void>) => void = () => {},
     sequences: RandomSequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed())
 ): CommandHost => {
-    const scoreboard = new Scoreboard();
+    // The default level's, which the scripts share and its save writes; read per command, since
+    // the host is built before the worlds load.
+    const scoreboard = () => server.getWorldManager().getDefaultLevel().getScoreboard();
 
     return {
         entities: entityCommandHost(server, scoreboard),
