@@ -261,7 +261,7 @@ describe.runIf(enabled)('the vanilla entity pack', { tags: ['real-data'] }, () =
         expect(chicken.hasComponent('minecraft:is_baby')).toBe(true);
     });
 
-    it('drops the vanilla turtle shell piece when a baby grows up', () => {
+    it('drops a turtle scute when a baby grows up', () => {
         const requests: unknown[] = [];
         const turtle = types.spawn('minecraft:turtle', {
             cause: 'born',
@@ -278,7 +278,9 @@ describe.runIf(enabled)('the vanilla entity pack', { tags: ['real-data'] }, () =
 
         for (let tick = 0; tick < 24_001; tick += 1) turtle.tick();
 
-        expect(requests).toEqual([{ kind: 'item', identifier: 'minecraft:turtle_shell_piece', count: 1 }]);
+        // The pack still writes the item's old name; Bedrock's item table knows it only as
+        // `turtle_scute`.
+        expect(requests).toEqual([{ kind: 'item', identifier: 'minecraft:turtle_scute', count: 1 }]);
         expect(turtle.hasComponent('minecraft:is_baby')).toBe(false);
     });
 
