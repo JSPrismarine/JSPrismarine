@@ -198,6 +198,41 @@ describe('the goal world over the entity runtime', () => {
         });
     });
 
+    describe('Java block states', () => {
+        it('reads and writes a block as Java names it, telling a cave vine under another from the tip', () => {
+            const world = new TestEntityWorld();
+            const fixture = fixtureOf(world);
+            const mob = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const goalWorld = goalWorldOf(mob.body, fixture.runtime);
+            const crop = { x: 3, y: FLOOR_Y + 1, z: 0 };
+            world.world.blocks.set(crop, { identifier: 'minecraft:beetroot', states: { growth: 0 } }, false);
+            const tip = { x: 5, y: FLOOR_Y + 2, z: 0 };
+            const vine = { x: 5, y: FLOOR_Y + 3, z: 0 };
+            world.world.blocks.set(
+                tip,
+                { identifier: 'minecraft:cave_vines', states: { growing_plant_age: 0 } },
+                false
+            );
+            world.world.blocks.set(
+                vine,
+                { identifier: 'minecraft:cave_vines', states: { growing_plant_age: 0 } },
+                false
+            );
+
+            expect(goalWorld.javaBlockAt(crop)).toEqual({ name: 'minecraft:beetroots', properties: { age: '0' } });
+            expect(goalWorld.javaBlockAt(tip)?.name).toBe('minecraft:cave_vines');
+            expect(goalWorld.javaBlockAt(vine)).toEqual({
+                name: 'minecraft:cave_vines_plant',
+                properties: { berries: 'false' }
+            });
+
+            goalWorld.setJavaBlock(crop, { name: 'minecraft:beetroots', properties: { age: '3' } });
+            goalWorld.setJavaBlock(vine, { name: 'minecraft:cave_vines_plant', properties: { berries: 'true' } });
+            expect(goalWorld.javaBlockAt(crop)).toEqual({ name: 'minecraft:beetroots', properties: { age: '3' } });
+            expect(world.world.blocks.get(vine)?.identifier).toBe('minecraft:cave_vines_body_with_berries');
+        });
+    });
+
     describe('daylight', () => {
         it("answers Java's bright-outside window from the level clock", () => {
             const daylight = fixtureOf(new TestEntityWorld({ dayTime: 6000 }));

@@ -1,4 +1,5 @@
 import type { RegisterableGoal } from '../goal';
+import { growsCrop } from './growsCrop';
 import { breakDoor } from './movement';
 import { goal } from '../goal';
 import { bodySchema, numberAt } from '../params';
@@ -160,4 +161,4 @@ export const flocking = goal<SchoolParams>({
 });
 
 /** The goals Bedrock writes as components rather than as `minecraft:behavior.*` entries. */
-export const componentGoals: readonly RegisterableGoal[] = [flocking, breakDoor];
+export const componentGoals: readonly RegisterableGoal[] = [flocking, breakDoor, growsCrop];

@@ -155,6 +155,12 @@ export interface GoalBlock {
 /** A block's state values, keyed by state name, such as a berry bush's `growth`. */
 export type GoalBlockStates = Readonly<Record<string, string | number | boolean>>;
 
+/** A Java block state: Java's block name and its properties, every value spelled as Java writes it. */
+export interface JavaBlockState {
+    readonly name: string;
+    readonly properties: Readonly<Record<string, string>>;
+}
+
 /** What a goal searches the world for, as the block-seeking goals describe it. */
 export interface BlockQuery {
     /** Identifiers to match; an empty or absent list matches every block. */
@@ -303,6 +309,14 @@ export interface GoalWorld {
     setBlock?(position: EntityPosition, identifier: string, states?: GoalBlockStates): void;
     /** The block at a position with its states, for the goals that read a crop's growth. */
     blockAt?(position: EntityPosition): { readonly identifier: string; readonly states: GoalBlockStates } | undefined;
+    /**
+     * The block at a position as Java's state: its Java name, such as `minecraft:beetroots`, and
+     * its properties in Java's spelling, for the goals that follow a Java block rule. Undefined
+     * when no Java state maps onto the block.
+     */
+    javaBlockAt?(position: EntityPosition): JavaBlockState | undefined;
+    /** Replaces the block at a position with the world's own block for a Java state, with block updates. */
+    setJavaBlock?(position: EntityPosition, state: JavaBlockState): void;
     /** Opens or closes the door at a position, either half; anything else is left alone. */
     setDoorOpen?(position: EntityPosition, open: boolean): void;
     /**

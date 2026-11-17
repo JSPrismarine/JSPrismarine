@@ -13,6 +13,7 @@
  * sleep.
  */
 import { canEntityAttack, canEntityAttackView, isShareablesParams } from '@jsprismarine/entities';
+import { bedrockBlockStateToJava, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
@@ -201,6 +202,13 @@ const nearestPlayerTo = (here: EntityPosition, scene: EntityScene, maxDistance: 
     return nearest;
 };
 
+/** Bedrock's cave vine blocks, which name a vine by its berries rather than by whether it is the tip. */
+const CAVE_VINES: ReadonlySet<string> = new Set([
+    'minecraft:cave_vines',
+    'minecraft:cave_vines_body_with_berries',
+    'minecraft:cave_vines_head_with_berries'
+]);
+
 /**
  * Builds the world seam for one entity's goals.
  *
@@ -343,6 +351,31 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         setBlock: (position, identifier, states = {}) =>
             scene.world.blocks.set(blockPositionOf(position), { identifier, states }, true),
         blockAt: (position) => scene.world.blocks.get(blockPositionOf(position)),
+        javaBlockAt: (position) => {
+            const at = blockPositionOf(position);
+            const block = scene.world.blocks.get(at);
+            if (block === undefined) return undefined;
+            const java = bedrockBlockStateToJava(block.identifier, block.states);
+            if (java.kind !== 'mapped') return undefined;
+            // Bedrock names a cave vine without berries the same whether it is the tip or not, where
+            // Java calls one with more vine under it `cave_vines_plant`.
+            const below = scene.world.blocks.get({ x: at.x, y: at.y - 1, z: at.z })?.identifier;
+            return java.java.name === 'minecraft:cave_vines' && below !== undefined && CAVE_VINES.has(below)
+                ? {
+                      name: 'minecraft:cave_vines_plant',
+                      properties: { berries: java.java.properties.berries ?? 'false' }
+                  }
+                : java.java;
+        },
+        setJavaBlock: (position, state) => {
+            const mapped = javaBlockStateToBedrock(state.name, state.properties);
+            if (mapped.kind === 'unknown') return;
+            scene.world.blocks.set(
+                blockPositionOf(position),
+                { identifier: mapped.bedrock.name, states: mapped.bedrock.states },
+                true
+            );
+        },
         setDoorOpen: (position, open) => setDoorOpen(scene.world.blocks, blockPositionOf(position), open),
         horizontalCollision: () => entity.horizontalCollision,
         breakDoor: (position) => {
