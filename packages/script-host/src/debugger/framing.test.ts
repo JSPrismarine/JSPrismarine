@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { DebuggerFramingError, FrameDecoder, encodeFrame } from './framing';
+import { DebuggerFramingError, FrameDecoder, MAX_RECEIVED_FRAME_LENGTH, encodeFrame } from './framing';
 
 /**
  * Frames as the extension writes them. `Session.sendDebuggeeMessage` in `src/session.ts` of
@@ -50,6 +50,12 @@ describe('debugger framing', () => {
         const decoder = new FrameDecoder();
         const byteByByte = [...stream].flatMap((byte) => decoder.push(Uint8Array.of(byte)));
         expect(byteByByte).toEqual(expected);
+
+        const sevens = new FrameDecoder();
+        const inSevens = Array.from({ length: Math.ceil(stream.byteLength / 7) }, (_, index) =>
+            stream.subarray(index * 7, index * 7 + 7)
+        ).flatMap((chunk) => sevens.push(chunk));
+        expect(inSevens).toEqual(expected);
     });
 
     it('counts the length in bytes, so text beyond ASCII round-trips', () => {
@@ -58,6 +64,39 @@ describe('debugger framing', () => {
 
         expect(Number.parseInt(frame.toString('ascii', 0, 8), 16)).toBe(Buffer.byteLength(JSON.stringify(message)) + 1);
         expect(new FrameDecoder().push(frame)).toEqual([message]);
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('refuses a header that states a body over the received-frame limit, before any body arrives', () => {
+        const header = (length: number): Buffer => Buffer.from(`${length.toString(16).padStart(8, '0')}\n`, 'ascii');
+
+        expect(() => new FrameDecoder().push(header(MAX_RECEIVED_FRAME_LENGTH))).not.toThrow();
+        expect(() => new FrameDecoder().push(header(MAX_RECEIVED_FRAME_LENGTH + 1))).toThrow(DebuggerFramingError);
+        expect(() => new FrameDecoder().push(Buffer.from('ffffffff\n'))).toThrow(DebuggerFramingError);
+    });
+
+    it('copies each byte of a body that arrives one byte at a time a bounded number of times', () => {
+        const message = {
+            type: 'request',
+            request: { request_seq: 1, command: 'evaluate', args: { expression: 'x'.repeat(4096) } }
+        };
+        const frame = encodeFrame(message);
+        const concat = Buffer.concat.bind(Buffer);
+        let copied = 0;
+        vi.spyOn(Buffer, 'concat').mockImplementation((list, totalLength) => {
+            const joined = concat(list, totalLength);
+            copied += joined.byteLength;
+            return joined;
+        });
+
+        const decoder = new FrameDecoder();
+        const messages = [...frame].flatMap((byte) => decoder.push(Uint8Array.of(byte)));
+
+        expect(messages).toEqual([message]);
+        expect(copied).toBeLessThanOrEqual(frame.byteLength);
     });
 
     it('refuses a header that is not 8 hexadecimal digits and a newline, and a body that is not JSON', () => {

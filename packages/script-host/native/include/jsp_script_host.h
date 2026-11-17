@@ -231,10 +231,14 @@ JSH_EXPORT void jsh_free(jsh_engine *engine, int32_t handle);
  */
 
 /*
- * Attaches the debugger. A running script sends JSH_OP_DEBUG_POLL once every `poll_lines` lines;
- * 0 or less never polls. Functions already running when it attaches do not report lines.
+ * Attaches the debugger to one context, or moves an attached one to it. Only that context's
+ * frames stop, at its breakpoints, steps, pause requests and thrown values, and count lines for
+ * polls; the other contexts' frames run as if no debugger were attached. The host's callbacks
+ * for a stop or a poll run with the watched context current. A running script sends
+ * JSH_OP_DEBUG_POLL once every `poll_lines` lines; 0 or less never polls. Functions already
+ * running when it attaches do not report lines. Returns JSH_INVALID for an unknown context.
  */
-JSH_EXPORT int32_t jsh_debug_attach(jsh_engine *engine, double poll_lines);
+JSH_EXPORT int32_t jsh_debug_attach(jsh_engine *engine, int32_t context, double poll_lines);
 /* Detaches the debugger and forgets its breakpoints. A stopped script goes on when the host returns. */
 JSH_EXPORT void jsh_debug_detach(jsh_engine *engine);
 /*
@@ -251,18 +255,23 @@ JSH_EXPORT int32_t jsh_debug_resume(jsh_engine *engine, int32_t mode);
 /*
  * Writes the stopped script's stack, innermost first, as a list with four values a frame: the
  * function's name, its file name, its line and its column. A native frame has an empty file name
- * and line 0. Returns the list's length.
+ * and line 0. The stack holds every context's frames, since a script can call into another
+ * context's through the host. Returns the list's length.
  */
 JSH_EXPORT int32_t jsh_debug_frames(jsh_engine *engine);
-/* Returns a handle to an object holding the variables of `frame` that `scope` names. */
+/*
+ * Returns a handle to an object holding the variables of `frame` that `scope` names. The global
+ * scope is the global object of the context the frame's function belongs to.
+ */
 JSH_EXPORT int32_t jsh_debug_scope(jsh_engine *engine, int32_t frame, int32_t scope);
 /* Returns a handle to the value the script stopped on with JSH_DEBUG_EXCEPTION, or to undefined. */
 JSH_EXPORT int32_t jsh_debug_exception(jsh_engine *engine);
 /*
  * Runs `source[length]`, which must be followed by a 0 byte, as if the function in `frame` ran it,
- * with that function's variables in scope; a frame of -1 runs it as a global script. The engine
- * keeps the stopped script's step counts as they were, and gives the evaluation a budget of its
- * own, JSH_DEBUG_EVALUATE_STEPS. Returns a handle to the result, or a status.
+ * with that function's variables in scope, in the context the function belongs to; a frame of -1
+ * runs it as a global script of the watched context. The engine keeps the stopped script's step
+ * counts as they were, and gives the evaluation a budget of its own, JSH_DEBUG_EVALUATE_STEPS.
+ * Returns a handle to the result, or a status.
  */
 JSH_EXPORT int32_t jsh_debug_evaluate(jsh_engine *engine, int32_t frame, const uint8_t *source, int32_t length);
 /*
