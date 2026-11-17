@@ -1,0 +1,311 @@
+{
+    "module": "@minecraft/server-admin",
+    "uuid": "53d7f2bf-bf9c-49c4-ad1f-7c803d947920",
+    "versions": [
+        {"version":"1.0.0-beta","stability":"beta","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server":"1.17.0"}}
+    ],
+    "resolves": {},
+    "declarations": {
+        "AdminBeforeEvents": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "asyncPlayerJoin": [
+                    {"from":"1.0.0-beta","kind":"property","type":"AsyncPlayerJoinBeforeEventSignal","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "AllowList": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "add": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"playerDetails","type":{"kind":"variant","types":["AllowListEntryNameInfo",{"kind":"external","module":"@minecraft/server","name":"Player"}]}},{"name":"ignorePlayerLimit","type":"boolean","default":false}],"throws":["AllowListModificationError",{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"undefined"}
+                ],
+                "clear": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ],
+                "contains": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"playerDetails","type":{"kind":"variant","types":["AllowListEntryNameInfo",{"kind":"external","module":"@minecraft/server","name":"Player"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"boolean"}
+                ],
+                "enabled": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                ],
+                "entries": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":"AllowListEntry"},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "reloadFile": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["AllowListFileReloadError"],"returns":"undefined"}
+                ],
+                "remove": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"playerDetails","type":{"kind":"variant","types":["AllowListEntryNameInfo",{"kind":"external","module":"@minecraft/server","name":"Player"}]}}],"throws":["AllowListModificationError",{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"undefined"}
+                ]
+            }
+        },
+        "AllowListEntry": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "ignoresPlayerLimit": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false}
+                ],
+                "name": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                ],
+                "xuid": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                ]
+            }
+        },
+        "AllowListEntryNameInfo": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "name": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                ],
+                "xuid": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                ]
+            }
+        },
+        "AllowListFileReloadError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "AllowListModificationError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "AsyncPlayerJoinBeforeEvent": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "allowJoin": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["DisconnectedError"],"returns":"undefined"}
+                ],
+                "disallowJoin": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"reason","type":{"kind":"optional","type":"string"},"default":null}],"throws":["DisconnectedError"],"returns":"undefined"}
+                ],
+                "disconnect": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"reason","type":{"kind":"optional","type":"string"},"default":null}],"throws":["DisconnectedError"],"returns":"undefined"}
+                ],
+                "isValid": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"boolean"}
+                ],
+                "name": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "persistentId": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "splitScreenSlot": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"PlayerSplitScreenSlot"}},"readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "AsyncPlayerJoinBeforeEventSignal": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "subscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["AsyncPlayerJoinBeforeEvent"],"returns":{"kind":"promise","type":"undefined"},"privilege":["default"]}}],"returns":{"kind":"closure","arguments":["AsyncPlayerJoinBeforeEvent"],"returns":{"kind":"promise","type":"undefined"},"privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["AsyncPlayerJoinBeforeEvent"],"returns":{"kind":"promise","type":"undefined"},"privilege":["default"]}}],"returns":"boolean"}
+                ]
+            }
+        },
+        "CannotDeopPlayerError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "CannotKickPlayerError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "DedicatedServerUtils": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "allowList": [
+                    {"from":"1.0.0-beta","kind":"property","type":"AllowList","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "levelStorage": [
+                    {"from":"1.0.0-beta","kind":"property","type":"LevelStorage","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "reloadCDNConfig": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "reloadPermissions": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "reloadScriptingConfig": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "stopServer": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                ]
+            }
+        },
+        "DisconnectedError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "id": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "LevelStorage": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "saveHold": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["LevelStorageSaveStateChangeError"],"returns":"undefined"}
+                ],
+                "saveQuery": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["LevelStorageSaveStateChangeError"],"returns":{"kind":"array","element":"LevelStorageQuerySnapshotFile"}}
+                ],
+                "saveResume": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["LevelStorageSaveStateChangeError"],"returns":"undefined"}
+                ]
+            }
+        },
+        "LevelStorageQuerySnapshotFile": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "fileName": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "fileSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int64","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "LevelStorageSaveStateChangeError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "PlayerAlreadyOpError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "SecretString": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"value","type":"string"}]}
+                ]
+            }
+        },
+        "ServerSecrets": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "get": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"name","type":"string"}],"returns":{"kind":"optional","type":"SecretString"}}
+                ],
+                "names": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":"string"},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "ServerVariables": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "get": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"name","type":"string"}],"returns":{"kind":"optional","type":"unknown"}}
+                ],
+                "names": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":"string"},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "TransferPlayerIpPortOptions": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "hostname": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false}
+                ],
+                "port": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint16","readOnly":false}
+                ]
+            }
+        },
+        "TransferPlayerNetherNetOptions": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "netherNetId": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false}
+                ]
+            }
+        },
+        "beforeEvents": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":"AdminBeforeEvents"}
+            ]
+        },
+        "dedicatedServer": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":{"kind":"optional","type":"DedicatedServerUtils"}}
+            ]
+        },
+        "deopPlayer": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"throws":["CannotDeopPlayerError",{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+            ]
+        },
+        "kickPlayer": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"reason","type":{"kind":"optional","type":"string"},"default":null}],"throws":["CannotKickPlayerError",{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":"undefined"}
+            ]
+        },
+        "opPlayer": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"PlayerAlreadyOpError"],"returns":"undefined"}
+            ]
+        },
+        "secrets": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":"ServerSecrets"}
+            ]
+        },
+        "transferPlayer": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"function","privilege":["default"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"options","type":{"kind":"variant","types":["TransferPlayerIpPortOptions","TransferPlayerNetherNetOptions"]}}],"returns":"undefined"}
+            ]
+        },
+        "variables": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":"ServerVariables"}
+            ]
+        }
+    }
+}

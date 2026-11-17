@@ -11,21 +11,34 @@ import { readScriptConfig, readScriptPack } from './pack';
 import type { CriticalException, WatchdogSettings } from './WorldScripts';
 import { WorldScripts } from './WorldScripts';
 import type { ScriptValue } from '../values';
-import type { Guard, ScriptWeather, ScriptWorld, ScriptWorldEvent, WeatherChangeIntent } from './world';
+import type { ChatSendIntent, Guard, ScriptWeather, ScriptWorld, ScriptWorldEvent, WeatherChangeIntent } from './world';
 
 /** A world in memory: one weather, its guards, and the messages it was sent. */
 class FakeWorld implements ScriptWorld {
     public now = 1_800_000_000_000;
     public readonly messages: string[] = [];
+    /** The chat lines the guards let through. */
+    public readonly chats: string[] = [];
+    public online: readonly string[] = [];
     private current: ScriptWeather = 'Clear';
     private readonly guards: Guard<WeatherChangeIntent>[] = [];
+    private readonly chatGuards: Guard<ChatSendIntent>[] = [];
     private readonly committed: ScriptWorldEvent[] = [];
 
     public dimensions(): readonly string[] {
         return ['minecraft:overworld', 'minecraft:nether', 'minecraft:the_end'];
     }
     public players(): readonly string[] {
-        return [];
+        return this.online;
+    }
+    /** A player types a line of chat. */
+    public chat(sender: string, message: string): void {
+        for (const guard of this.chatGuards) if (guard({ sender, message }).veto) return;
+        this.chats.push(`${sender}: ${message}`);
+    }
+    public guardChat(guard: Guard<ChatSendIntent>): () => void {
+        this.chatGuards.push(guard);
+        return () => this.chatGuards.splice(this.chatGuards.indexOf(guard), 1);
     }
     public sendMessage(message: string): void {
         this.messages.push(message);
@@ -119,7 +132,13 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
 
     const start = (
         packs: readonly ScriptPack[],
-        options: { world?: FakeWorld; seed?: bigint; watchdog?: WatchdogSettings; critical?: CriticalException[] } = {}
+        options: {
+            world?: FakeWorld;
+            seed?: bigint;
+            watchdog?: WatchdogSettings;
+            critical?: CriticalException[];
+            betaApis?: boolean;
+        } = {}
     ) => {
         const world = options.world ?? new FakeWorld();
         const log = new Log();
@@ -131,6 +150,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             log,
             seed: options.seed ?? 1n,
             ...(options.watchdog === undefined ? {} : { watchdog: options.watchdog }),
+            ...(options.betaApis === undefined ? {} : { betaApis: options.betaApis }),
             onShutdown: (reason) => options.critical?.push(reason)
         });
         runtimes.push(scripts);
@@ -229,6 +249,70 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
         world.now = 2000;
         scripts.flush();
         expect(log.printed()).toEqual(['1000 1000 true', '2000 2000 true']);
+    });
+
+    it('sends system.beforeEvents.watchdogTerminate before a shutdown, which a cancel stops', () => {
+        const source = `import { system } from '@minecraft/server';
+            system.beforeEvents.watchdogTerminate.subscribe((event) => {
+                console.warn('terminate', event.terminateReason);
+                event.cancel = true;
+            });
+            system.runTimeout(() => { while (true) {} }, 1);
+            system.runTimeout(() => { const recurse = () => recurse() + 1; try { recurse(); } catch {} }, 2);
+            system.runTimeout(() => console.warn('still running'), 3);`;
+        const critical: CriticalException[] = [];
+        const { scripts, log } = start([writePack(source, '2.11.0-beta')], {
+            watchdog: { hangSteps: 40, shutdown: true },
+            critical,
+            betaApis: true
+        });
+        for (let tick = 0; tick < 4; tick++) scripts.flush();
+
+        expect(log.printed()).toEqual(['terminate Hang', 'terminate StackOverflow', 'still running']);
+        expect(critical).toEqual([]);
+        expect(log.lines.filter((line) => line.includes('Unhandled critical exception'))).toEqual([]);
+    });
+
+    it('shuts down after a watchdogTerminate no script cancels', () => {
+        const source = `import { system } from '@minecraft/server';
+            system.beforeEvents.watchdogTerminate.subscribe((event) => console.warn('terminate', event.terminateReason));
+            system.runTimeout(() => { while (true) {} }, 1);`;
+        const critical: CriticalException[] = [];
+        const { scripts, log } = start([writePack(source, '2.11.0-beta')], {
+            watchdog: { hangSteps: 40, shutdown: true },
+            critical,
+            betaApis: true
+        });
+        for (let tick = 0; tick < 3; tick++) scripts.flush();
+
+        expect(log.printed()).toEqual(['terminate Hang']);
+        expect(critical).toEqual(['Hang']);
+    });
+
+    it("lets world.beforeEvents.chatSend cancel a player's chat, in restricted execution", () => {
+        const world = new FakeWorld();
+        world.online = ['7', '9'];
+        const { log } = start(
+            [
+                writePack(
+                    `import { Player, world } from '@minecraft/server';
+                    world.beforeEvents.chatSend.subscribe((event) => {
+                        console.warn(event.message, event.sender instanceof Player, event.sender === world.getAllPlayers()[1]);
+                        try { world.playMusic('record.cat'); } catch (error) { console.warn(String(error)); }
+                        if (event.message === 'cancel me') event.cancel = true;
+                    });`,
+                    '2.11.0-beta'
+                )
+            ],
+            { world, betaApis: true }
+        );
+
+        world.chat('9', 'hello');
+        world.chat('9', 'cancel me');
+
+        expect(world.chats).toEqual(['9: hello']);
+        const restricted = 'ReferenceError: Native function [World::playMusic] cannot be used in restricted execution.';
+        expect(log.printed()).toEqual(['hello true true', restricted, 'cancel me true true', restricted]);
     });
 
     it('lets a before-event veto or change the world’s action, and sends the after-event in the flush', () => {
@@ -360,5 +444,41 @@ system.run(() => {
         expect(log.lines).toContain(
             'error [Scripting] Plugin [refused - 1.0.0] - requesting dependency on module [@minecraft/server-net] but it is not configured to use it.'
         );
+    });
+
+    it('runs a pack that declares the beta BDS ships only while the Beta APIs experiment is on', () => {
+        const source = `import { WorldBeforeEvents } from '@minecraft/server'; console.warn(typeof WorldBeforeEvents);`;
+        const on = start([writePack(source, '2.11.0-beta', 'beta')], { betaApis: true });
+        const off = start([writePack(source, '2.11.0-beta', 'beta')]);
+
+        expect(on.log.printed()).toEqual(['function']);
+        expect(off.log.printed()).toEqual([]);
+        expect(off.log.lines).toContain(
+            'error [Scripting] Plugin [beta - 1.0.0] - requesting dependency on beta APIs [@minecraft/server - 2.11.0-beta], but the Beta APIs experiment is not enabled.'
+        );
+    });
+
+    it('logs that it made no context for a pack with an unknown version, and that the pack did not run', () => {
+        const { log } = start(
+            [
+                writePack('', '2.12.0-beta', 'newer'),
+                writePack('', '2.11.0', 'unshipped'),
+                writePack(`console.warn('ran');`, '2.0.0', 'stable')
+            ],
+            { betaApis: true }
+        );
+        const refusals = log.lines
+            .filter((line) => line.startsWith('error [Scripting] Plugin ['))
+            .map((line) => line.split('\n')[0]);
+
+        expect(refusals).toEqual([
+            'error [Scripting] Plugin [newer - 1.0.0] - failed to create context.',
+            'error [Scripting] Plugin [newer] - module [newer - 1.0.0] requested invalid version [2.12.0-beta] of [@minecraft/server].',
+            'error [Scripting] Plugin [unshipped - 1.0.0] - failed to create context.',
+            'error [Scripting] Plugin [unshipped] - module [unshipped - 1.0.0] requested invalid version [2.11.0] of [@minecraft/server].',
+            'error [Scripting] Plugin [newer - 1.0.0] - run failed, no runtime or context available.',
+            'error [Scripting] Plugin [unshipped - 1.0.0] - run failed, no runtime or context available.'
+        ]);
+        expect(log.printed()).toEqual(['ran']);
     });
 });

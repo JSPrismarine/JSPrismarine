@@ -36,12 +36,12 @@ import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
 import { scanCoverage } from './coverage';
 import { installInputsSource, randomState } from './inputs';
-import type { EventData, PackHost, SignalName } from './minecraftServer';
+import type { EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { serverImplementations } from './minecraftServer';
 import type { ScriptConfig, ScriptPack } from './pack';
 import { packLabel, packScripts, readPackFile } from './pack';
 import { TaskQueue } from './tasks';
-import type { ScriptWeather, ScriptWorld, ScriptWorldEvent, WeatherChangeIntent } from './world';
+import type { ChatSendIntent, ScriptWeather, ScriptWorld, ScriptWorldEvent, WeatherChangeIntent } from './world';
 
 /** Where the runtime writes the content log: what scripts print, their errors and the watchdog's. */
 export interface ScriptLog {
@@ -97,6 +97,11 @@ export interface WorldScriptsOptions {
     /** The world's behavior packs with a script module, in the order the world lists them. */
     readonly packs: readonly ScriptPack[];
     readonly config: ScriptConfig;
+    /**
+     * Whether the world turns on the Beta APIs experiment, which a pack that declares a beta
+     * module version needs. Off when absent, as in a world created without it.
+     */
+    readonly betaApis?: boolean;
     readonly log: ScriptLog;
     /** The world's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
@@ -170,7 +175,7 @@ export class WorldScripts {
     private privilege: Privilege = 'default';
     private tick = 0;
     private clock: number | undefined;
-    private releaseGuard: (() => void) | undefined;
+    private releaseGuards: (() => void)[] = [];
     private stopped = false;
 
     public constructor(options: WorldScriptsOptions) {
@@ -206,7 +211,12 @@ export class WorldScripts {
      * would refuse is left out, and the content log says why.
      */
     public startEarly(): void {
-        this.releaseGuard ??= this.options.world.guardWeather((intent) => this.weatherGuard(intent));
+        if (this.releaseGuards.length === 0) {
+            this.releaseGuards = [
+                this.options.world.guardWeather((intent) => this.weatherGuard(intent)),
+                this.options.world.guardChat((intent) => this.chatGuard(intent))
+            ];
+        }
         this.refreshClock();
         const early = this.loadPacks(2);
         this.withPrivilege('early_execution', () => {
@@ -277,8 +287,7 @@ export class WorldScripts {
     public shutdown(): void {
         if (this.stopped) return;
         this.teardown();
-        this.releaseGuard?.();
-        this.releaseGuard = undefined;
+        for (const release of this.releaseGuards.splice(0)) release();
     }
 
     private createEngine(): ScriptEngine {
@@ -316,27 +325,49 @@ export class WorldScripts {
         this.engine.destroy();
     }
 
-    /** Resolves and binds every pack of one lifecycle, each in a context of its own. */
+    /**
+     * Resolves and binds every pack of one lifecycle, each in a context of its own. A pack BDS
+     * makes no context for, because a module or version is unknown, is logged as BDS logs it: the
+     * reason after `failed to create context`, and `run failed` once the lifecycle's packs are loaded.
+     */
     private loadPacks(lifecycle: 1 | 2): LoadedPack[] {
         const loaded: LoadedPack[] = [];
+        const withoutContext: ScriptPack[] = [];
         for (const pack of this.options.packs) {
             if (lifecycleOf(pack) !== lifecycle) continue;
             const one = this.loadPack(pack, lifecycle);
-            if (one !== undefined) loaded.push(one);
+            if (one === 'no-context') withoutContext.push(pack);
+            else if (one !== undefined) loaded.push(one);
+        }
+        for (const pack of withoutContext) {
+            this.options.log.error(
+                `[Scripting] Plugin [${packLabel(pack)}] - run failed, no runtime or context available.`
+            );
         }
         return loaded;
     }
 
-    private loadPack(pack: ScriptPack, lifecycle: 1 | 2): LoadedPack | undefined {
+    /** Loads one pack, or logs why BDS would refuse it and returns undefined, or `no-context`. */
+    private loadPack(pack: ScriptPack, lifecycle: 1 | 2): LoadedPack | 'no-context' | undefined {
         const allowedModules = this.options.config.module(pack.moduleUuid).allowedModules;
         const shapes: ModuleShape[] = [];
         for (const dependency of pack.dependencies) {
-            const resolution = resolveDependency(dependency, { pack: packLabel(pack), allowedModules });
-            if (!resolution.ok) {
-                this.options.log.error(`[Scripting] ${resolution.message}`);
-                return undefined;
+            const resolution = resolveDependency(dependency, {
+                pack,
+                allowedModules,
+                betaApis: this.options.betaApis === true
+            });
+            if (resolution.ok) {
+                shapes.push(resolution.shape);
+                continue;
             }
-            shapes.push(resolution.shape);
+            if (resolution.reason === 'unknown-module' || resolution.reason === 'unknown-version') {
+                this.options.log.error(`[Scripting] Plugin [${packLabel(pack)}] - failed to create context.`);
+                this.options.log.error(`[Scripting] ${resolution.message}`);
+                return 'no-context';
+            }
+            this.options.log.error(`[Scripting] ${resolution.message}`);
+            return undefined;
         }
 
         const engine = this.engine;
@@ -543,6 +574,41 @@ export class WorldScripts {
         return { veto: false, intent: { ...intent, newWeather: data.newWeather, duration: data.duration } } as const;
     }
 
+    /** The chat action's scripting guard: `world.beforeEvents.chatSend`. */
+    private chatGuard(intent: ChatSendIntent) {
+        const sender = this.options.world.players().indexOf(intent.sender);
+        if (
+            this.stopped ||
+            sender < 0 ||
+            !this.subscriptions.some((each) => each.signal === 'ChatSendBeforeEventSignal')
+        ) {
+            return { veto: false, intent } as const;
+        }
+        this.refreshClock();
+        const data: EventData = { kind: 'chatBefore', cancel: false, message: intent.message, sender };
+        const tag = this.addEvent(data);
+        this.dispatch('ChatSendBeforeEventSignal', 'restricted_execution', (loaded) =>
+            this.create(loaded, 'ChatSendBeforeEvent', tag)
+        );
+        this.events.delete(tag);
+        return data.cancel ? ({ veto: true } as const) : ({ veto: false, intent } as const);
+    }
+
+    /**
+     * `system.beforeEvents.watchdogTerminate`, before a shutdown the watchdog is about to make.
+     * @returns Whether a script canceled it.
+     */
+    private watchdogTerminate(terminateReason: WatchdogTerminateReason): boolean {
+        if (!this.subscriptions.some((each) => each.signal === 'WatchdogTerminateBeforeEventSignal')) return false;
+        const data: EventData = { kind: 'watchdogTerminate', cancel: false, terminateReason };
+        const tag = this.addEvent(data);
+        this.dispatch('WatchdogTerminateBeforeEventSignal', 'restricted_execution', (loaded) =>
+            this.create(loaded, 'WatchdogTerminateBeforeEvent', tag)
+        );
+        this.events.delete(tag);
+        return data.cancel;
+    }
+
     private setWeather(dimension: string, weather: ScriptWeather, duration: number): void {
         this.options.world.setWeather(dimension, weather, duration);
     }
@@ -599,13 +665,21 @@ export class WorldScripts {
         }
     }
 
-    /** A critical exception: BDS logs it, and shuts the server down unless the watchdog says not to. */
+    /**
+     * A critical exception: BDS logs it, and shuts the server down unless the watchdog says not
+     * to. Before a shutdown for a hang or a stack overflow, `system.beforeEvents.watchdogTerminate`
+     * lets a script cancel it, and then BDS logs nothing more and the packs keep running. Where BDS
+     * logs the unhandled exception when no script cancels is not captured; this logs it after the
+     * event.
+     */
     private critical(loaded: LoadedPack, kind: CriticalException, detected: string): void {
         this.options.log.error(`[Scripting] ${detected}`);
+        const shutsDown = kind === 'OutOfMemory' || this.options.watchdog?.shutdown !== false;
+        if (shutsDown && kind !== 'OutOfMemory' && this.watchdogTerminate(kind)) return;
         this.options.log.error(
             `[Scripting] [Watchdog] Unhandled critical exception of type '${kind}' in behavior pack '${loaded.pack.name}'`
         );
-        if (kind === 'OutOfMemory' || this.options.watchdog?.shutdown !== false) {
+        if (shutsDown) {
             this.options.log.error('[Scripting] [Watchdog] Watchdog shutting down server');
             this.stopped = true;
             this.options.onShutdown?.(kind);

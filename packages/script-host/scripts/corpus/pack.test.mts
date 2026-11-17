@@ -16,12 +16,18 @@ describe('shapeVersionFor', () => {
         expect(shapeVersionFor(server, '1.3.0')).toBe(server.resolves['1']);
     });
 
-    it('gives a beta version without a generated shape the newest stable minor of its major version', () => {
-        expect(shapeVersionFor(server, '2.12.0-beta')).toBe(server.resolves['2']);
+    it('gives a beta version of the major version the shipped beta has that beta', () => {
+        expect(shapeVersionFor(server, '2.12.0-beta')).toBe('2.11.0-beta');
+        expect(shapeVersionFor(server, '2.8.0-beta')).toBe('2.11.0-beta');
+        expect(shapeVersionFor(server, 'beta')).toBe('2.11.0-beta');
+    });
+
+    it('gives a beta version of another major version the newest stable minor of that major', () => {
+        expect(shapeVersionFor(server, '1.17.0-beta')).toBe(server.resolves['1']);
     });
 
     it('gives an undeclared module the newest stable version', () => {
-        expect(shapeVersionFor(server, undefined)).toBe(server.versions.at(-1)?.version);
+        expect(shapeVersionFor(server, undefined)).toBe(server.resolves['2']);
     });
 });
 
@@ -64,14 +70,14 @@ describe('countPack', () => {
         expect(usage.files).toEqual({ javascript: 1, typescript: 1 });
         expect([...usage.modules.keys()]).toEqual(['@minecraft/server', '@minecraft/server-net']);
         const serverUse = usage.modules.get('@minecraft/server');
-        expect(serverUse).toMatchObject({ declared: '2.8.0-beta', stability: 'beta', shape: server.resolves['2'] });
+        expect(serverUse).toMatchObject({ declared: '2.8.0-beta', stability: 'beta', shape: '2.11.0-beta' });
         expect([...(serverUse?.uses.keys() ?? [])].sort()).toEqual([
             'World.getDimension',
             'World.sendMessage',
             'world'
         ]);
         expect(usage.modules.get('@minecraft/server-net')).toMatchObject({ declared: '1.0.0-beta', stability: 'beta' });
-        expect(usage.modules.get('@minecraft/server-net')?.shape).toBeUndefined();
+        expect(usage.modules.get('@minecraft/server-net')?.shape).toBe('1.0.0-beta');
     });
 
     it('names the pack when a source directory is missing', () => {

@@ -11,8 +11,8 @@ The plan that builds the rest of the script host on top of this package is
 [script-api-host.md](../../docs/plans/script-api-host.md).
 
 This release has the engine, with evaluation, host calls, limits and the sandbox; the shape of the
-Script API, every module, class and member of `@minecraft/server` and the other stable modules,
-generated from Mojang's metadata; and the runtime that loads a world's behavior packs and runs
+Script API, every module, class and member of `@minecraft/server` and the other modules, stable and
+beta, generated from Mojang's metadata; and the runtime that loads a world's behavior packs and runs
 their scripts, with the first members that have behavior.
 
 ## Running a script
@@ -114,7 +114,8 @@ The modules a pack imports, such as `@minecraft/server`, are generated rather th
 ([ADR 0022](../../docs/adr/0022-the-script-api-surface-is-generated.md)). `generate:shape` reads
 `metadata/script_modules` from the `bedrock-samples` checkout that
 `packages/bedrock-data/sources.json` pins, and writes one file per module to
-`src/generated/script-modules/`. Each file keeps every stable version of its module as history. A
+`src/generated/script-modules/`. Each file keeps every version of its module as history, the beta
+the pinned metadata ships included, such as `@minecraft/server` 2.11.0-beta. A
 class or member is a list of segments, each with the first version it appears in and, once Mojang
 removes or changes it, the last. A regeneration after a version bump therefore shows each added,
 changed or removed member as its own line in the diff.
@@ -129,9 +130,12 @@ runs under. `scripts/shape/overrides.mts` fills them, each with its evidence, an
 once the metadata records a value of its own, so a stale override cannot linger.
 
 A pack gets the newest stable minor version of the major version it declares, as on Bedrock
-Dedicated Server, so a pack that declares 2.0.0 sees every 2.x member the pinned server ships.
-`resolveDependency` does that resolution, and returns BDS's own content log message when it refuses
-a module.
+Dedicated Server, so a pack that declares 2.0.0 sees every 2.x member the pinned server ships. Beta
+versions do not follow semver. With the world's Beta APIs experiment on, a pack that declares a
+beta gets it only when it is the one beta the pinned server ships, such as `@minecraft/server`
+2.11.0-beta, and the version `beta` names that one. Any other version, beta or stable, is refused,
+as `2.12.0-beta` is on BDS. `resolveDependency` does that resolution, and returns BDS's own content
+log message when it refuses a module.
 
 ```ts
 import { ScriptHostLibrary } from '@jsprismarine/script-host';
@@ -141,7 +145,7 @@ import { resolveDependency } from '@jsprismarine/script-host/shape/resolve';
 
 const resolution = resolveDependency(
     { module_name: '@minecraft/server', version: '2.0.0' },
-    { pack: 'my pack - 1.0.0', allowedModules: ['@minecraft/server'] }
+    { pack: { name: 'my pack', version: '1.0.0' }, allowedModules: ['@minecraft/server'] }
 );
 
 const implementations = new ScriptApiImplementations().implement(
@@ -210,9 +214,10 @@ into a callback whose parameters the shape types, and from `getComponent('minecr
 `EntityInventoryComponent`. It counts a member on the class that declares it, so `player.kill()`
 counts as `Entity.kill`. A value it cannot follow, such as one passed in from another file, goes
 uncounted, so the counts are a lower bound. A member a pack adds to an API type through
-`declare module` is the pack's own and is not counted. The shape has no beta versions yet, so a beta
-pack resolves against the newest stable version of its major version, and members only a beta
-version has show up under "Not in the shape".
+`declare module` is the pack's own and is not counted. A beta pack resolves against the beta the
+pinned server ships when that beta has the pack's major version, whichever beta the pack names,
+since BDS serves only that one. A beta of another major version resolves against the newest
+stable version of its own major version.
 
 `scripts/corpus/corpus.test.mts` checks the counts against the corpus when every pinned repository
 is already cached, and skips otherwise, so an ordinary test run needs no network. Set
@@ -309,8 +314,9 @@ messages yet. It answers a `debugger-request` as refused.
 `WorldScripts` is the script runtime of one world: one engine, a context for each pack, and the
 lifecycle, system tasks, events and watchdog around them. It reaches the world only through
 `ScriptWorld` (`@jsprismarine/script-host/host/world`), a narrow interface the server implements
-with plain data: the dimensions, the players, `sendMessage`, the weather and its guard, the
-changes the world committed, and the clock the tick admitted. The host imports no world class.
+with plain data: the dimensions, the players, `sendMessage`, the weather and its guard, the guard
+on the players' chat, the changes the world committed, and the clock the tick admitted. The host
+imports no world class.
 
 ```ts
 import { readScriptConfig, readScriptPack } from '@jsprismarine/script-host/host/pack';
@@ -338,7 +344,10 @@ record it:
 - **Packs.** `readScriptPack` reads a pack's manifest. A pack gets each native module it declares
   at the newest stable minor of the declared major version, when `config/default/permissions.json`
   or `config/<script module uuid>/permissions.json` allows the module, and otherwise logs BDS's
-  message and does not load. A pack declaring `@minecraft/server` 1.x runs the version 1
+  message and does not load. A beta version loads only when the `betaApis` option says the world
+  has the Beta APIs experiment on, as `resolveDependency` describes. For a module or version the
+  pinned server does not ship, the runtime logs BDS's `failed to create context` and, once every
+  pack of the lifecycle has loaded, `run failed`. A pack declaring `@minecraft/server` 1.x runs the version 1
   lifecycle, any other the version 2 one. Each pack runs in a context of its own. An `import()`
   of a module the manifest does not declare rejects as on BDS, except `@jsprismarine/server`,
   which resolves, so a pack can detect JSPrismarine and fall back on BDS.
@@ -355,7 +364,12 @@ record it:
   catches. `watchdogSettings` converts BDS's millisecond threshold at `STEPS_PER_MILLISECOND`. A
   hang, a stack overflow, even a caught one, and an allocation past the memory limit are critical:
   the runtime logs BDS's lines and, unless `script-watchdog-enable-shutdown` is `false`, stops and
-  calls `onShutdown`.
+  calls `onShutdown`. Before it shuts down for a hang or a stack overflow, it sends the beta
+  `system.beforeEvents.watchdogTerminate`, and a script that cancels it keeps the server and its
+  packs running, as on BDS.
+- **Chat.** `world.beforeEvents.chatSend`, a beta event, is a guard the runtime adds to the
+  world's chat action through `ScriptWorld.guardChat`. It runs in restricted execution while the
+  line is sent, and a cancel drops the line before anyone gets it.
 - **Coverage.** When a pack loads, the runtime logs how many of the members its scripts name are
   implemented, and which are not.
 - **Reload.** `reload` sends `system.beforeEvents.shutdown`, then runs every pack again from its

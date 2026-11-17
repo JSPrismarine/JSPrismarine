@@ -228,7 +228,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      them, and `@minecraft/server-ui` forms in 11 packs in all. `WorldBeforeEvents.chatSend` and
      `playerPlaceBlock` are beta-only and used by 5 beta packs each, which supports doing slice 9
      first. `packages/script-host/corpus/ranking.md` has the full ranking.
-9. [ ] [#3206](https://github.com/JSPrismarine/JSPrismarine/issues/3206) **Beta modules.** Right after the skeleton, because 8 of the 19 corpus packs depend on a
+9. [x] [#3206](https://github.com/JSPrismarine/JSPrismarine/issues/3206) **Beta modules.** Right after the skeleton, because 8 of the 19 corpus packs depend on a
    beta `@minecraft/server`, and members 5 of them use, such as `WorldBeforeEvents.chatSend`, exist
    only in beta.
    - The Beta APIs experiment as a world setting, sent to clients and required by a pack that
@@ -237,6 +237,30 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      semver, so a `scripting.lifecycle` row records what BDS does with a pack that names another
      beta version.
    - From here on, breadth slices implement a member in the stable and beta shapes together.
+   - Learned (2026-11-17): BDS serves exactly one beta per module, the one it ships, and refuses
+     every other beta, older or newer, with `requested invalid version`, a `Current [beta]
+     version` line and the versions it ships. The word `beta` names the shipped one. A stable
+     version it does not ship, such as 2.11.0, gets the same message, not the unknown-module one.
+     Canopy and Construct (2.12.0-beta), Understudy (2.9.0-beta), UnRealm (2.7.0-beta),
+     XBlockFire (2.8.0-beta), the beta samples (2.2.0-beta) and ChestLockAddon (1.17.0-beta) do
+     not load on the pinned BDS; only LushWay's 2.11.0-beta does. The `beta-versions` and
+     `beta-experiment-off` rows record it, and goldens now keep BDS's plugin errors as
+     `refusals`.
+   - Learned: the Beta APIs experiment is `experiments.gametest` in `level.dat`, and BDS accepts a
+     staged `level.dat` that holds only the experiments and `Generator`. Without it, a beta of any
+     module gets the Beta APIs message, which BDS checks before the version. `3.0.0-alpha` loads
+     without the experiment and has no metadata, so JSPrismarine refuses it.
+   - Learned: a GameTest simulated player's `chat` raises `chatSend` on BDS, so a capture can chat
+     without a client: the `chat-send` scenario runs `/gametest run` and ships a 3 by 3 by 3
+     structure of air, which BDS loads even with a structure location. JSPrismarine's row waits
+     for `@minecraft/server-gametest` ([#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211)).
+   - Learned: a canceled `watchdogTerminate` leaves only the `hang detected` or `Stack overflow
+     detected` line; the unhandled-exception and shutdown lines do not follow. The event for a
+     caught stack overflow comes after the script's `catch` ran.
+   - Left: where BDS logs the unhandled exception when no script cancels `watchdogTerminate`, and
+     whether the event fires with `script-watchdog-enable-shutdown` off, are not captured; the
+     runtime sends it only before a shutdown and logs the unhandled exception after it.
+     `ChatSendBeforeEvent.targets` and `Player.name` have no behavior yet.
 10. [ ] [#3207](https://github.com/JSPrismarine/JSPrismarine/issues/3207) **Core server breadth.** Players, entities, blocks, dimensions, items and the events the
     corpus uses most, in batches. Each batch names the corpus packs it makes run.
 11. [ ] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the

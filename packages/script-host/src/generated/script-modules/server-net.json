@@ -1,0 +1,1344 @@
+{
+    "module": "@minecraft/server-net",
+    "uuid": "777b1798-13a6-401c-9cba-0cf17e31a81b",
+    "versions": [
+        {"version":"1.0.0-beta","stability":"beta","dependencies":{"@minecraft/common":"1.0.0","@minecraft/server":"1.17.0","@minecraft/server-admin":"1.0.0-beta"}}
+    ],
+    "resolves": {},
+    "declarations": {
+        "CloseAfterEventSignal": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "subscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WebSocketClientCloseAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["WebSocketClientCloseAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WebSocketClientCloseAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ]
+            }
+        },
+        "HttpClient": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "cancelAll": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"reason","type":"string"}],"returns":"undefined"}
+                ],
+                "get": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"uri","type":"string"}],"returns":{"kind":"promise","type":"HttpResponse"}}
+                ],
+                "request": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"config","type":"HttpRequest"}],"returns":{"kind":"promise","type":"HttpResponse"}}
+                ]
+            }
+        },
+        "HttpHeader": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"key","type":"string"},{"name":"value","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server-admin","name":"SecretString"},"string"]}}]}
+                ],
+                "key": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false,"get":["restricted_execution"],"set":["early_execution","restricted_execution"]}
+                ],
+                "value": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server-admin","name":"SecretString"},"string"]},"readOnly":false,"get":["restricted_execution"],"set":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "HttpRequest": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "addHeader": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"key","type":"string"},{"name":"value","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server-admin","name":"SecretString"},"string"]}}],"returns":"HttpRequest"}
+                ],
+                "body": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"ISerializable"},"string"]},"readOnly":false,"get":["restricted_execution"],"set":["early_execution","restricted_execution"]}
+                ],
+                "constructor": [
+                    {"from":"1.0.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"uri","type":"string"}]}
+                ],
+                "headers": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":"HttpHeader"},"readOnly":false,"get":["restricted_execution"],"set":["early_execution","restricted_execution"]}
+                ],
+                "method": [
+                    {"from":"1.0.0-beta","kind":"property","type":"HttpRequestMethod","readOnly":false,"get":["restricted_execution"],"set":["early_execution","restricted_execution"]}
+                ],
+                "setBody": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"body","type":{"kind":"variant","types":[{"kind":"external","module":"@minecraft/server","name":"ISerializable"},"string"]}}],"returns":"HttpRequest"}
+                ],
+                "setHeaders": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"headers","type":{"kind":"array","element":"HttpHeader"}}],"returns":"HttpRequest"}
+                ],
+                "setMethod": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"method","type":"HttpRequestMethod"}],"returns":"HttpRequest"}
+                ],
+                "setTimeout": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"timeout","type":"uint32"}],"returns":"HttpRequest"}
+                ],
+                "timeout": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint32","readOnly":false,"get":["restricted_execution"],"set":["early_execution","restricted_execution"]}
+                ],
+                "uri": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":false,"get":["restricted_execution"],"set":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "HttpRequestLimitExceededError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "inFlightRequests": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint64","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "maxConcurrentRequests": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint64","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "HttpRequestMethod": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "Delete": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Delete"}
+                ],
+                "Get": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Get"}
+                ],
+                "Head": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Head"}
+                ],
+                "Patch": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Patch"}
+                ],
+                "Post": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Post"}
+                ],
+                "Put": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"Put"}
+                ]
+            }
+        },
+        "HttpResponse": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "body": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "deserialize": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"identifier","type":"string"}],"throws":["SerializableParseError"],"returns":{"kind":"external","module":"@minecraft/server","name":"ISerializable"}}
+                ],
+                "headers": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":"HttpHeader"},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "request": [
+                    {"from":"1.0.0-beta","kind":"property","type":"HttpRequest","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "status": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint32","readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "HttpStatusCode": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "Accepted": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":202}
+                ],
+                "AlreadyReported": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":208}
+                ],
+                "BadGateway": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":502}
+                ],
+                "BadRequest": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":400}
+                ],
+                "ClientClosedRequest": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":499}
+                ],
+                "ClientRequestTimeout": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":498}
+                ],
+                "Conflict": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":409}
+                ],
+                "ConnectionClosedWithoutResponse": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":444}
+                ],
+                "Continue": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":100}
+                ],
+                "Created": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":201}
+                ],
+                "ExpectationFailed": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":417}
+                ],
+                "FailedDependency": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":424}
+                ],
+                "Forbidden": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":403}
+                ],
+                "Found": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":302}
+                ],
+                "GatewayTimeout": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":504}
+                ],
+                "Gone": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":410}
+                ],
+                "HttpVersionNotSupported": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":505}
+                ],
+                "IMUsed": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":226}
+                ],
+                "InsufficientStorage": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":507}
+                ],
+                "InternalServerError": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":500}
+                ],
+                "LengthRequired": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":411}
+                ],
+                "Locked": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":423}
+                ],
+                "LoopDetected": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":508}
+                ],
+                "MethodNotAllowed": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":405}
+                ],
+                "MisdirectedRequest": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":421}
+                ],
+                "MovedPermanently": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":301}
+                ],
+                "MultiStatus": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":207}
+                ],
+                "MultipleChoices": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":300}
+                ],
+                "NetworkAuthenticationRequired": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":511}
+                ],
+                "NetworkConnectionTimeoutError": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":599}
+                ],
+                "NoContent": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":204}
+                ],
+                "NonAuthoritativeInformation": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":203}
+                ],
+                "NotAcceptable": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":406}
+                ],
+                "NotExtended": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":510}
+                ],
+                "NotFound": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":404}
+                ],
+                "NotImplemented": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":501}
+                ],
+                "NotModified": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":304}
+                ],
+                "OK": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":200}
+                ],
+                "PartialContent": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":206}
+                ],
+                "PayloadTooLarge": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":413}
+                ],
+                "PaymentRequired": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":402}
+                ],
+                "PermanentRedirect": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":308}
+                ],
+                "PreconditionFailed": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":412}
+                ],
+                "PreconditionRequired": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":428}
+                ],
+                "Processing": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":102}
+                ],
+                "ProxyAuthenticationRequired": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":407}
+                ],
+                "RequestHeaderFieldsTooLarge": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":431}
+                ],
+                "RequestTimeout": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":408}
+                ],
+                "RequestURITooLong": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":414}
+                ],
+                "RequestedRangeNotSatisfiable": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":416}
+                ],
+                "ResetContent": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":205}
+                ],
+                "SeeOther": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":303}
+                ],
+                "ServiceUnavailable": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":503}
+                ],
+                "SwitchingProtocols": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":101}
+                ],
+                "TemporaryRedirect": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":307}
+                ],
+                "TooEarly": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":425}
+                ],
+                "TooManyRequests": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":429}
+                ],
+                "Unauthorized": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":401}
+                ],
+                "UnavailableForLegalReasons": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":451}
+                ],
+                "UnprocessableEntity": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":422}
+                ],
+                "UnsupportedMediaType": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":415}
+                ],
+                "UpgradeRequired": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":426}
+                ],
+                "UseProxy": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":305}
+                ],
+                "VariantAlsoNegotiates": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"HttpStatusCode","value":506}
+                ]
+            }
+        },
+        "InternalHttpRequestError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "errorCode": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int32","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "errorMessage": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "InternalWebSocketError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "errorCode": [
+                    {"from":"1.0.0-beta","kind":"property","type":"int32","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "errorMessage": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "MalformedUriError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "MessageAfterEventSignal": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "subscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WebSocketClientReceiveAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["WebSocketClientReceiveAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WebSocketClientReceiveAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ]
+            }
+        },
+        "NetworkBeforeEvents": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "packetReceive": [
+                    {"from":"1.0.0-beta","kind":"property","type":"PacketReceiveBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "packetSend": [
+                    {"from":"1.0.0-beta","kind":"property","type":"PacketSendBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "PacketEventOptions": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "ignoredPacketIds": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"PacketId"}},"readOnly":false}
+                ],
+                "monitoredPacketIds": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"PacketId"}},"readOnly":false}
+                ]
+            }
+        },
+        "PacketId": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "ActorEventPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ActorEventPacket"}
+                ],
+                "ActorPickRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ActorPickRequestPacket"}
+                ],
+                "AddActorPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AddActorPacket"}
+                ],
+                "AddBehaviorTreePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AddBehaviorTreePacket"}
+                ],
+                "AddItemActorPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AddItemActorPacket"}
+                ],
+                "AddPaintingPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AddPaintingPacket"}
+                ],
+                "AddPlayerPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AddPlayerPacket"}
+                ],
+                "AddVolumeEntityPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AddVolumeEntityPacket"}
+                ],
+                "AgentActionEventPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AgentActionEventPacket"}
+                ],
+                "AgentAnimationPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AgentAnimationPacket"}
+                ],
+                "AnimateEntityPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AnimateEntityPacket"}
+                ],
+                "AnimatePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AnimatePacket"}
+                ],
+                "AnvilDamagePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AnvilDamagePacket"}
+                ],
+                "AutomationClientConnectPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AutomationClientConnectPacket"}
+                ],
+                "AvailableActorIdentifiersPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AvailableActorIdentifiersPacket"}
+                ],
+                "AvailableCommandsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AvailableCommandsPacket"}
+                ],
+                "AwardAchievementPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"AwardAchievementPacket"}
+                ],
+                "BiomeDefinitionListPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"BiomeDefinitionListPacket"}
+                ],
+                "BlockActorDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"BlockActorDataPacket"}
+                ],
+                "BlockEventPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"BlockEventPacket"}
+                ],
+                "BlockPickRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"BlockPickRequestPacket"}
+                ],
+                "BookEditPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"BookEditPacket"}
+                ],
+                "BossEventPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"BossEventPacket"}
+                ],
+                "CameraAimAssistActorPriorityPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CameraAimAssistActorPriorityPacket"}
+                ],
+                "CameraAimAssistPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CameraAimAssistPacket"}
+                ],
+                "CameraAimAssistPresetsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CameraAimAssistPresetsPacket"}
+                ],
+                "CameraInstructionPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CameraInstructionPacket"}
+                ],
+                "CameraPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CameraPacket"}
+                ],
+                "CameraPresetsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CameraPresetsPacket"}
+                ],
+                "CameraShakePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CameraShakePacket"}
+                ],
+                "CameraSplinePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CameraSplinePacket"}
+                ],
+                "ChangeDimensionPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ChangeDimensionPacket"}
+                ],
+                "ChangeMobPropertyPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ChangeMobPropertyPacket"}
+                ],
+                "ChunkRadiusUpdatedPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ChunkRadiusUpdatedPacket"}
+                ],
+                "ClientCacheBlobStatusPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientCacheBlobStatusPacket"}
+                ],
+                "ClientCacheMissResponsePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientCacheMissResponsePacket"}
+                ],
+                "ClientCacheStatusPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientCacheStatusPacket"}
+                ],
+                "ClientCameraAimAssistPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientCameraAimAssistPacket"}
+                ],
+                "ClientMovementPredictionSyncPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientMovementPredictionSyncPacket"}
+                ],
+                "ClientToServerHandshakePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientToServerHandshakePacket"}
+                ],
+                "ClientboundAttributeLayerSyncPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundAttributeLayerSyncPacket"}
+                ],
+                "ClientboundCloseFormPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundCloseFormPacket"}
+                ],
+                "ClientboundControlSchemeSetPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundControlSchemeSetPacket"}
+                ],
+                "ClientboundDataDrivenUICloseScreenPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundDataDrivenUICloseScreenPacket"}
+                ],
+                "ClientboundDataDrivenUIReloadPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundDataDrivenUIReloadPacket"}
+                ],
+                "ClientboundDataDrivenUIShowScreenPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundDataDrivenUIShowScreenPacket"}
+                ],
+                "ClientboundDataStorePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundDataStorePacket"}
+                ],
+                "ClientboundDebugRendererPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundDebugRendererPacket"}
+                ],
+                "ClientboundMapItemDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundMapItemDataPacket"}
+                ],
+                "ClientboundTextureShiftPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundTextureShiftPacket"}
+                ],
+                "ClientboundUpdateSoundDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundUpdateSoundDataPacket"}
+                ],
+                "CodeBuilderPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CodeBuilderPacket"}
+                ],
+                "CodeBuilderSourcePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CodeBuilderSourcePacket"}
+                ],
+                "CommandBlockUpdatePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CommandBlockUpdatePacket"}
+                ],
+                "CommandOutputPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CommandOutputPacket"}
+                ],
+                "CommandRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CommandRequestPacket"}
+                ],
+                "CompletedUsingItemPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CompletedUsingItemPacket"}
+                ],
+                "ContainerClosePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ContainerClosePacket"}
+                ],
+                "ContainerOpenPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ContainerOpenPacket"}
+                ],
+                "ContainerRegistryCleanupPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ContainerRegistryCleanupPacket"}
+                ],
+                "ContainerSetDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ContainerSetDataPacket"}
+                ],
+                "CorrectPlayerMovePredictionPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CorrectPlayerMovePredictionPacket"}
+                ],
+                "CraftingDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CraftingDataPacket"}
+                ],
+                "CreatePhotoPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CreatePhotoPacket"}
+                ],
+                "CreativeContentPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CreativeContentPacket"}
+                ],
+                "CurrentStructureFeaturePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"CurrentStructureFeaturePacket"}
+                ],
+                "DeathInfoPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"DeathInfoPacket"}
+                ],
+                "DebugInfoPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"DebugInfoPacket"}
+                ],
+                "DimensionDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"DimensionDataPacket"}
+                ],
+                "DisconnectPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"DisconnectPacket"}
+                ],
+                "EditorNetworkPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"EditorNetworkPacket"}
+                ],
+                "EduUriResourcePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"EduUriResourcePacket"}
+                ],
+                "EducationSettingsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"EducationSettingsPacket"}
+                ],
+                "EmoteListPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"EmoteListPacket"}
+                ],
+                "EmotePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"EmotePacket"}
+                ],
+                "FeatureRegistryPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"FeatureRegistryPacket"}
+                ],
+                "GameRulesChangedPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"GameRulesChangedPacket"}
+                ],
+                "GameTestRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"GameTestRequestPacket"}
+                ],
+                "GameTestResultsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"GameTestResultsPacket"}
+                ],
+                "GraphicsOverrideParameterPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"GraphicsOverrideParameterPacket"}
+                ],
+                "GuiDataPickItemPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"GuiDataPickItemPacket"}
+                ],
+                "HurtArmorPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"HurtArmorPacket"}
+                ],
+                "InteractPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"InteractPacket"}
+                ],
+                "InventoryContentPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"InventoryContentPacket"}
+                ],
+                "InventorySlotPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"InventorySlotPacket"}
+                ],
+                "InventoryTransactionPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"InventoryTransactionPacket"}
+                ],
+                "ItemRegistryPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ItemRegistryPacket"}
+                ],
+                "ItemStackRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ItemStackRequestPacket"}
+                ],
+                "ItemStackResponsePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ItemStackResponsePacket"}
+                ],
+                "JigsawStructureDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"JigsawStructureDataPacket"}
+                ],
+                "LabTablePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LabTablePacket"}
+                ],
+                "LecternUpdatePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LecternUpdatePacket"}
+                ],
+                "LegacyTelemetryEventPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LegacyTelemetryEventPacket"}
+                ],
+                "LessonProgressPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LessonProgressPacket"}
+                ],
+                "LevelChunkPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LevelChunkPacket"}
+                ],
+                "LevelEventGenericPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LevelEventGenericPacket"}
+                ],
+                "LevelEventPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LevelEventPacket"}
+                ],
+                "LevelSoundEventPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LevelSoundEventPacket"}
+                ],
+                "LocatorBarPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LocatorBarPacket"}
+                ],
+                "LoginPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"LoginPacket"}
+                ],
+                "MapCreateLockedCopyPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MapCreateLockedCopyPacket"}
+                ],
+                "MapInfoRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MapInfoRequestPacket"}
+                ],
+                "MobArmorEquipmentPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MobArmorEquipmentPacket"}
+                ],
+                "MobEffectPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MobEffectPacket"}
+                ],
+                "MobEquipmentPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MobEquipmentPacket"}
+                ],
+                "ModalFormRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ModalFormRequestPacket"}
+                ],
+                "ModalFormResponsePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ModalFormResponsePacket"}
+                ],
+                "MotionPredictionHintsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MotionPredictionHintsPacket"}
+                ],
+                "MoveActorAbsolutePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MoveActorAbsolutePacket"}
+                ],
+                "MoveActorDeltaPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MoveActorDeltaPacket"}
+                ],
+                "MovePlayerPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MovePlayerPacket"}
+                ],
+                "MovementEffectPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MovementEffectPacket"}
+                ],
+                "MultiplayerSettingsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"MultiplayerSettingsPacket"}
+                ],
+                "NetworkChunkPublisherUpdatePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"NetworkChunkPublisherUpdatePacket"}
+                ],
+                "NetworkSettingsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"NetworkSettingsPacket"}
+                ],
+                "NetworkStackLatencyPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"NetworkStackLatencyPacket"}
+                ],
+                "NpcDialoguePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"NpcDialoguePacket"}
+                ],
+                "NpcRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"NpcRequestPacket"}
+                ],
+                "OnScreenTextureAnimationPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"OnScreenTextureAnimationPacket"}
+                ],
+                "OpenSignPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"OpenSignPacket"}
+                ],
+                "PacketViolationWarningPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PacketViolationWarningPacket"}
+                ],
+                "PartyChangedPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PartyChangedPacket"}
+                ],
+                "PartyDestinationCookieResponsePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PartyDestinationCookieResponsePacket"}
+                ],
+                "PhotoTransferPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PhotoTransferPacket"}
+                ],
+                "PlaySoundPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlaySoundPacket"}
+                ],
+                "PlayStatusPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayStatusPacket"}
+                ],
+                "PlayerActionPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerActionPacket"}
+                ],
+                "PlayerArmorDamagePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerArmorDamagePacket"}
+                ],
+                "PlayerAuthInputPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerAuthInputPacket"}
+                ],
+                "PlayerEnchantOptionsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerEnchantOptionsPacket"}
+                ],
+                "PlayerFogPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerFogPacket"}
+                ],
+                "PlayerHotbarPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerHotbarPacket"}
+                ],
+                "PlayerListPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerListPacket"}
+                ],
+                "PlayerLocationPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerLocationPacket"}
+                ],
+                "PlayerSkinPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerSkinPacket"}
+                ],
+                "PlayerStartItemCooldownPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerStartItemCooldownPacket"}
+                ],
+                "PlayerToggleCrafterSlotRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerToggleCrafterSlotRequestPacket"}
+                ],
+                "PlayerUpdateEntityOverridesPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PlayerUpdateEntityOverridesPacket"}
+                ],
+                "PositionTrackingDBClientRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PositionTrackingDBClientRequestPacket"}
+                ],
+                "PositionTrackingDBServerBroadcastPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PositionTrackingDBServerBroadcastPacket"}
+                ],
+                "PrimitiveShapesPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PrimitiveShapesPacket"}
+                ],
+                "PurchaseReceiptPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"PurchaseReceiptPacket"}
+                ],
+                "RecordStartedPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RecordStartedPacket"}
+                ],
+                "RefreshEntitlementsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RefreshEntitlementsPacket"}
+                ],
+                "RemoveActorPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RemoveActorPacket"}
+                ],
+                "RemoveObjectivePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RemoveObjectivePacket"}
+                ],
+                "RemoveVolumeEntityPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RemoveVolumeEntityPacket"}
+                ],
+                "RequestAbilityPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RequestAbilityPacket"}
+                ],
+                "RequestChunkRadiusPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RequestChunkRadiusPacket"}
+                ],
+                "RequestNetworkSettingsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RequestNetworkSettingsPacket"}
+                ],
+                "RequestPermissionsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RequestPermissionsPacket"}
+                ],
+                "ResourcePackChunkDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ResourcePackChunkDataPacket"}
+                ],
+                "ResourcePackChunkRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ResourcePackChunkRequestPacket"}
+                ],
+                "ResourcePackClientResponsePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ResourcePackClientResponsePacket"}
+                ],
+                "ResourcePackDataInfoPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ResourcePackDataInfoPacket"}
+                ],
+                "ResourcePackStackPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ResourcePackStackPacket"}
+                ],
+                "ResourcePacksInfoPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ResourcePacksInfoPacket"}
+                ],
+                "ResourcePacksReadyForValidationPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ResourcePacksReadyForValidationPacket"}
+                ],
+                "RespawnPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"RespawnPacket"}
+                ],
+                "ScriptMessagePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ScriptMessagePacket"}
+                ],
+                "SendPartyDestinationCookiePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SendPartyDestinationCookiePacket"}
+                ],
+                "ServerPlayerPostMovePositionPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerPlayerPostMovePositionPacket"}
+                ],
+                "ServerPresenceInfoPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerPresenceInfoPacket"}
+                ],
+                "ServerSettingsRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerSettingsRequestPacket"}
+                ],
+                "ServerSettingsResponsePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerSettingsResponsePacket"}
+                ],
+                "ServerStatsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerStatsPacket"}
+                ],
+                "ServerStoreInfoPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerStoreInfoPacket"}
+                ],
+                "ServerToClientHandshakePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerToClientHandshakePacket"}
+                ],
+                "ServerboundDataDrivenScreenClosedPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundDataDrivenScreenClosedPacket"}
+                ],
+                "ServerboundDataStorePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundDataStorePacket"}
+                ],
+                "ServerboundDiagnosticsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundDiagnosticsPacket"}
+                ],
+                "ServerboundLoadingScreenPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundLoadingScreenPacket"}
+                ],
+                "ServerboundPackSettingChangePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundPackSettingChangePacket"}
+                ],
+                "SetActorDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetActorDataPacket"}
+                ],
+                "SetActorLinkPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetActorLinkPacket"}
+                ],
+                "SetActorMotionPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetActorMotionPacket"}
+                ],
+                "SetCommandsEnabledPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetCommandsEnabledPacket"}
+                ],
+                "SetDefaultGameTypePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetDefaultGameTypePacket"}
+                ],
+                "SetDifficultyPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetDifficultyPacket"}
+                ],
+                "SetDisplayObjectivePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetDisplayObjectivePacket"}
+                ],
+                "SetHealthPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetHealthPacket"}
+                ],
+                "SetHudPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetHudPacket"}
+                ],
+                "SetLastHurtByPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetLastHurtByPacket"}
+                ],
+                "SetLocalPlayerAsInitializedPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetLocalPlayerAsInitializedPacket"}
+                ],
+                "SetPlayerFurnaceOptionsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetPlayerFurnaceOptionsPacket"}
+                ],
+                "SetPlayerGameTypePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetPlayerGameTypePacket"}
+                ],
+                "SetPlayerInventoryOptionsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetPlayerInventoryOptionsPacket"}
+                ],
+                "SetScorePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetScorePacket"}
+                ],
+                "SetScoreboardIdentityPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetScoreboardIdentityPacket"}
+                ],
+                "SetSpawnPositionPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetSpawnPositionPacket"}
+                ],
+                "SetTimePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetTimePacket"}
+                ],
+                "SetTitlePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetTitlePacket"}
+                ],
+                "SettingsCommandPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SettingsCommandPacket"}
+                ],
+                "ShowCreditsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ShowCreditsPacket"}
+                ],
+                "ShowProfilePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ShowProfilePacket"}
+                ],
+                "ShowStoreOfferPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ShowStoreOfferPacket"}
+                ],
+                "SimpleEventPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SimpleEventPacket"}
+                ],
+                "SimulationTypePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SimulationTypePacket"}
+                ],
+                "SpawnExperienceOrbPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SpawnExperienceOrbPacket"}
+                ],
+                "SpawnParticleEffectPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SpawnParticleEffectPacket"}
+                ],
+                "StartGamePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"StartGamePacket"}
+                ],
+                "StopSoundPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"StopSoundPacket"}
+                ],
+                "StructureBlockUpdatePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"StructureBlockUpdatePacket"}
+                ],
+                "StructureTemplateDataRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"StructureTemplateDataRequestPacket"}
+                ],
+                "StructureTemplateDataResponsePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"StructureTemplateDataResponsePacket"}
+                ],
+                "SubChunkPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SubChunkPacket"}
+                ],
+                "SubChunkRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SubChunkRequestPacket"}
+                ],
+                "SubClientLoginPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SubClientLoginPacket"}
+                ],
+                "SyncActorPropertyPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SyncActorPropertyPacket"}
+                ],
+                "SyncWorldClocksPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SyncWorldClocksPacket"}
+                ],
+                "TakeItemActorPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"TakeItemActorPacket"}
+                ],
+                "TextPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"TextPacket"}
+                ],
+                "TickingAreasLoadStatusPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"TickingAreasLoadStatusPacket"}
+                ],
+                "ToastRequestPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ToastRequestPacket"}
+                ],
+                "TransferPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"TransferPacket"}
+                ],
+                "TrimDataPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"TrimDataPacket"}
+                ],
+                "UnlockedRecipesPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UnlockedRecipesPacket"}
+                ],
+                "UpdateAbilitiesPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateAbilitiesPacket"}
+                ],
+                "UpdateAdventureSettingsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateAdventureSettingsPacket"}
+                ],
+                "UpdateAttributesPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateAttributesPacket"}
+                ],
+                "UpdateBlockPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateBlockPacket"}
+                ],
+                "UpdateBlockSyncedPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateBlockSyncedPacket"}
+                ],
+                "UpdateClientInputLocksPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateClientInputLocksPacket"}
+                ],
+                "UpdateClientOptionsPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateClientOptionsPacket"}
+                ],
+                "UpdateEquipPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateEquipPacket"}
+                ],
+                "UpdatePlayerGameTypePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdatePlayerGameTypePacket"}
+                ],
+                "UpdateSoftEnumPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateSoftEnumPacket"}
+                ],
+                "UpdateSubChunkBlocksPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateSubChunkBlocksPacket"}
+                ],
+                "UpdateTradePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"UpdateTradePacket"}
+                ],
+                "VoxelShapesPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"VoxelShapesPacket"}
+                ]
+            }
+        },
+        "PacketReceiveBeforeEventSignal": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "subscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PacketReceivedBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}},{"name":"options","type":{"kind":"optional","type":"PacketEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["PacketReceivedBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PacketReceivedBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
+                ]
+            }
+        },
+        "PacketReceivedBeforeEvent": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "cancel": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "packetId": [
+                    {"from":"1.0.0-beta","kind":"property","type":"PacketId","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "packetSize": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint32","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "sender": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "PacketSendBeforeEvent": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "cancel": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "packetId": [
+                    {"from":"1.0.0-beta","kind":"property","type":"PacketId","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "recipients": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":{"kind":"optional","type":{"kind":"external","module":"@minecraft/server","name":"Player"}}},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "PacketSendBeforeEventSignal": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "subscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PacketSendBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}},{"name":"options","type":{"kind":"optional","type":"PacketEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["PacketSendBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PacketSendBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
+                ]
+            }
+        },
+        "RequestBodyTooLargeError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "maxBytes": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint32","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "providedBytes": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint32","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "SerializableParseError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "TLSOnlyError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "uri": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "UriNotAllowedError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "uri": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "WebSocket": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "connect": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"uri","type":"string"},{"name":"headers","type":{"kind":"optional","type":{"kind":"array","element":"HttpHeader"}},"default":null}],"returns":{"kind":"promise","type":"WebSocketClient"}}
+                ]
+            }
+        },
+        "WebSocketClient": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "afterEvents": [
+                    {"from":"1.0.0-beta","kind":"property","type":"WebSocketClientAfterEvents","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "close": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["WebSocketNotConnectedError"],"returns":"undefined"}
+                ],
+                "isOpen": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "send": [
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"payload","type":"string"}],"throws":["RequestBodyTooLargeError","WebSocketNotConnectedError"],"returns":"undefined"}
+                ]
+            }
+        },
+        "WebSocketClientAfterEvents": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "close": [
+                    {"from":"1.0.0-beta","kind":"property","type":"CloseAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "message": [
+                    {"from":"1.0.0-beta","kind":"property","type":"MessageAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "WebSocketClientCloseAfterEvent": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "reason": [
+                    {"from":"1.0.0-beta","kind":"property","type":"WebSocketClientCloseReasons","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "WebSocketClientCloseReasons": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"enum"}
+            ],
+            "members": {
+                "ClosedByClient": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"WebSocketClientCloseReasons","value":1}
+                ],
+                "ClosedByServer": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"WebSocketClientCloseReasons","value":0}
+                ],
+                "IncomingPayloadsTooLarge": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"WebSocketClientCloseReasons","value":2}
+                ]
+            }
+        },
+        "WebSocketClientReceiveAfterEvent": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"class"}
+            ],
+            "members": {
+                "message": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "WebSocketConnectionFailedError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "errorCode": [
+                    {"from":"1.0.0-beta","kind":"property","type":"HttpStatusCode","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "uri": [
+                    {"from":"1.0.0-beta","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "WebSocketLimitExceededError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ],
+            "members": {
+                "connectedSockets": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint64","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "maxConcurrentConnections": [
+                    {"from":"1.0.0-beta","kind":"property","type":"uint64","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
+        },
+        "WebSocketNotConnectedError": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"error"}
+            ]
+        },
+        "beforeEvents": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":"NetworkBeforeEvents"}
+            ]
+        },
+        "http": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":"HttpClient"}
+            ]
+        },
+        "websocket": {
+            "segments": [
+                {"from":"1.0.0-beta","kind":"object","type":"WebSocket"}
+            ]
+        }
+    }
+}

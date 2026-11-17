@@ -75,15 +75,19 @@ const stabilityOf = (version: string | undefined): VersionStability =>
 
 /**
  * The generated version a declared version is counted against. A stable version gets what BDS
- * serves, the newest minor of its major version. A beta version gets itself when it is generated,
- * and otherwise the newest stable minor of its major version, which leaves its beta-only members
- * as unmatched.
+ * serves, the newest minor of its major version. A beta version gets the beta the pinned server
+ * ships when that beta has the same major version, whichever beta it names: BDS serves only that
+ * one and refuses a pack that names another, so it is the closest shape to what the pack was
+ * written against. A beta of another major version, such as `1.17.0-beta` beside a shipped
+ * `2.11.0-beta`, gets the newest stable minor of its own major version.
  */
 export const shapeVersionFor = (history: ModuleHistory, declared: string | undefined): string | undefined => {
     const newest = history.versions.filter((entry) => entry.stability === 'stable').at(-1)?.version;
     if (declared === undefined) return newest;
-    if (history.versions.some((entry) => entry.version === declared && entry.stability === 'beta')) return declared;
+    const beta = history.versions.filter((entry) => entry.stability === 'beta').at(-1)?.version;
+    if (declared === 'beta') return beta ?? newest;
     const major = parseVersion(declared)?.major;
+    if (stabilityOf(declared) === 'beta' && beta !== undefined && parseVersion(beta)?.major === major) return beta;
     return (major === undefined ? undefined : history.resolves[String(major)]) ?? newest;
 };
 

@@ -24,6 +24,13 @@ export interface WeatherChangeIntent {
     readonly duration: number;
 }
 
+/** A line of chat a player typed, which a script's before-event sees before anyone gets it. */
+export interface ChatSendIntent {
+    /** The id of the player who typed it, as {@link ScriptWorld.players} lists it. */
+    readonly sender: string;
+    readonly message: string;
+}
+
 /**
  * What a guard decides: let the action go on, with the intent it may have replaced, or veto it.
  */
@@ -56,6 +63,12 @@ export interface ScriptWorld {
      * @returns A function that removes it.
      */
     guardWeather(guard: Guard<WeatherChangeIntent>): () => void;
+    /**
+     * Adds a guard to the chat action of the world's players, which runs before any other
+     * player, the console or a plugin gets the line. A veto drops the line.
+     * @returns A function that removes it.
+     */
+    guardChat(guard: Guard<ChatSendIntent>): () => void;
     /** The changes the world committed since the last call, in the order it committed them. */
     takeEvents(): readonly ScriptWorldEvent[];
     /**
