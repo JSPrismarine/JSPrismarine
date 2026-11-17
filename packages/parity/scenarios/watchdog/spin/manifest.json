@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario watchdog spin",
+        "description": "Records what a hang and a caught stack overflow do to a pack. Written for packages/parity.",
+        "uuid": "dc6bf4f0-5483-4af3-934a-9644e7e5572d",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "c3979787-8ec2-44db-bfb8-f7ef88439388",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

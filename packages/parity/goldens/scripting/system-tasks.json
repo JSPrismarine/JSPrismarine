@@ -1,0 +1,163 @@
+{
+    "$comment": [
+        "What the scripts of scenario `system-tasks` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.lifecycle",
+    "scenario": "system-tasks",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "tasks",
+            "seq": 1,
+            "tick": 0,
+            "event": "worldLoad"
+        },
+        {
+            "pack": "tasks",
+            "seq": 2,
+            "tick": 0,
+            "event": "clearRun of an id already cleared"
+        },
+        {
+            "pack": "tasks",
+            "seq": 3,
+            "tick": 0,
+            "event": "clearRun of an id never issued"
+        },
+        {
+            "pack": "tasks",
+            "seq": 4,
+            "tick": 0,
+            "event": "run returns a number",
+            "value": "number"
+        },
+        {
+            "pack": "tasks",
+            "seq": 5,
+            "tick": 0,
+            "event": "run ids increase by one",
+            "value": 1
+        },
+        {
+            "pack": "tasks",
+            "seq": 6,
+            "tick": 0,
+            "event": "run that throws",
+            "value": 13
+        },
+        {
+            "pack": "tasks",
+            "seq": 7,
+            "tick": 0,
+            "event": "worldLoad promise job"
+        },
+        {
+            "pack": "tasks",
+            "seq": 8,
+            "tick": 0,
+            "event": "run A"
+        },
+        {
+            "pack": "tasks",
+            "seq": 9,
+            "tick": 0,
+            "event": "run A promise job"
+        },
+        {
+            "pack": "tasks",
+            "seq": 10,
+            "tick": 0,
+            "event": "run B"
+        },
+        {
+            "pack": "tasks",
+            "seq": 11,
+            "tick": 0,
+            "event": "runTimeout 0"
+        },
+        {
+            "pack": "tasks",
+            "seq": 12,
+            "tick": 0,
+            "event": "runTimeout without a delay"
+        },
+        {
+            "pack": "tasks",
+            "seq": 13,
+            "tick": 0,
+            "event": "runInterval 0 call 1"
+        },
+        {
+            "pack": "tasks",
+            "seq": 14,
+            "tick": 0,
+            "event": "runInterval without an interval call 1"
+        },
+        {
+            "pack": "tasks",
+            "seq": 15,
+            "tick": 0,
+            "event": "run that throws ran"
+        },
+        {
+            "pack": "tasks",
+            "seq": 16,
+            "tick": 0,
+            "event": "run after the one that throws"
+        },
+        {
+            "pack": "tasks",
+            "seq": 17,
+            "tick": 0,
+            "event": "run A nested runTimeout 0"
+        },
+        {
+            "pack": "tasks",
+            "seq": 18,
+            "tick": 1,
+            "event": "runInterval 0 call 2"
+        },
+        {
+            "pack": "tasks",
+            "seq": 19,
+            "tick": 1,
+            "event": "runInterval without an interval call 2"
+        },
+        {
+            "pack": "tasks",
+            "seq": 20,
+            "tick": 1,
+            "event": "run A nested run"
+        },
+        {
+            "pack": "tasks",
+            "seq": 21,
+            "tick": 2,
+            "event": "runTimeout 2"
+        },
+        {
+            "pack": "tasks",
+            "seq": 22,
+            "tick": 2,
+            "event": "runInterval 0 call 3"
+        },
+        {
+            "pack": "tasks",
+            "seq": 23,
+            "tick": 3,
+            "event": "runInterval 3 call 1"
+        },
+        {
+            "pack": "tasks",
+            "seq": 24,
+            "tick": 6,
+            "event": "runInterval 3 call 2"
+        }
+    ]
+}

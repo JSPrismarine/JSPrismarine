@@ -1,0 +1,79 @@
+{
+    "$comment": [
+        "What the scripts of scenario `contexts` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.engine",
+    "scenario": "contexts",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "first",
+            "seq": 1,
+            "tick": 0,
+            "event": "own global",
+            "value": "first"
+        },
+        {
+            "pack": "second",
+            "seq": 1,
+            "tick": 0,
+            "event": "the first pack global",
+            "value": "undefined"
+        },
+        {
+            "pack": "second",
+            "seq": 2,
+            "tick": 0,
+            "event": "the first pack built-in member",
+            "value": "undefined"
+        },
+        {
+            "pack": "first",
+            "seq": 2,
+            "tick": 0,
+            "event": "Math.random is a number in [0, 1)",
+            "value": true
+        },
+        {
+            "pack": "first",
+            "seq": 3,
+            "tick": 0,
+            "event": "Date.now is a whole number",
+            "value": true
+        },
+        {
+            "pack": "first",
+            "seq": 4,
+            "tick": 0,
+            "event": "new Date is a Date",
+            "value": true
+        },
+        {
+            "pack": "first",
+            "seq": 5,
+            "tick": 0,
+            "event": "Date called as a function is a string",
+            "value": "string"
+        },
+        {
+            "pack": "first",
+            "seq": 6,
+            "tick": 0,
+            "event": "Date with an argument keeps it",
+            "value": "1970-01-01T00:00:00.000Z"
+        },
+        {
+            "pack": "second",
+            "seq": 3,
+            "tick": 0,
+            "event": "the first pack global at worldLoad",
+            "value": "undefined"
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario system-tasks tasks",
+        "description": "Records when system.run, runTimeout and runInterval callbacks run. Written for packages/parity.",
+        "uuid": "aac52733-889b-4c87-abcb-f064ea7735a2",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "13f251b3-41c9-4271-b2d1-d4abde28890b",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

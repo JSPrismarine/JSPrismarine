@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario argument-errors args",
+        "description": "Records what Script API members throw for arguments the metadata refuses. Written for packages/parity.",
+        "uuid": "4485420f-209b-47d3-8ad7-acc03ecef238",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "d6de9155-10df-4d9a-bac9-5dd98b138f5d",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

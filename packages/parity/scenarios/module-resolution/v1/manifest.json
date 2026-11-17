@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario module-resolution v1",
+        "description": "Records which module version a @minecraft/server 1.3.0 pack gets. Written for packages/parity.",
+        "uuid": "76fa9af3-68a0-4152-8a1c-2476a139b767",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "a567acd9-2945-4e27-b671-6944623bddd3",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "1.3.0"
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario contexts first",
+        "description": "Writes to its global object, which another pack must not see. Written for packages/parity.",
+        "uuid": "9baa7dea-4935-425e-b4e5-7292400e2ad8",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "2b5c473b-e8ed-4a5f-a51e-b757ce5421ad",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

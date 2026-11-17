@@ -69,6 +69,31 @@ describe('readScenarioRecord', () => {
         );
     });
 
+    it('reads a pack that reloaded as two runs, each counting from 1', () => {
+        const record = readScenarioRecord(
+            [
+                logged('record {"pack":"v2","seq":1,"tick":0,"event":"top-level"}'),
+                logged('record {"pack":"v2","seq":2,"tick":-1,"event":"shutdown"}'),
+                logged('end {"pack":"v2","records":2}'),
+                logged('record {"pack":"v2","seq":1,"tick":0,"event":"top-level"}'),
+                logged('end {"pack":"v2","records":1}')
+            ],
+            ['v2'],
+            2
+        );
+        expect(record.observations.map(({ seq, event }) => `${seq} ${event}`)).toEqual([
+            '1 top-level',
+            '2 shutdown',
+            '1 top-level'
+        ]);
+    });
+
+    it('fails a pack that ended fewer times than the scenario runs it', () => {
+        expect(() => readScenarioRecord([logged('end {"pack":"v2","records":0}')], ['v2'], 2)).toThrow(
+            'Pack v2 ended 1 times, not 2.'
+        );
+    });
+
     it('accepts a pack that ended with no observations', () => {
         expect(readScenarioRecord([logged('end {"pack":"v2","records":0}')], ['v2']).observations).toEqual([]);
     });

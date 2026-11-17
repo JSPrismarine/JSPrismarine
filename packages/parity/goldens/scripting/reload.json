@@ -1,0 +1,78 @@
+{
+    "$comment": [
+        "What the scripts of scenario `reload` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.lifecycle",
+    "scenario": "reload",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "reloaded",
+            "seq": 1,
+            "tick": 0,
+            "event": "top-level",
+            "value": "first run"
+        },
+        {
+            "pack": "reloaded",
+            "seq": 2,
+            "tick": 0,
+            "event": "system.beforeEvents.startup"
+        },
+        {
+            "pack": "reloaded",
+            "seq": 3,
+            "tick": 0,
+            "event": "top-level system.run"
+        },
+        {
+            "pack": "reloaded",
+            "seq": 4,
+            "tick": 0,
+            "event": "world.afterEvents.worldLoad"
+        },
+        {
+            "pack": "reloaded",
+            "seq": 5,
+            "tick": 5,
+            "event": "ready for /reload"
+        },
+        {
+            "pack": "reloaded",
+            "seq": 6,
+            "tick": -1,
+            "event": "system.beforeEvents.shutdown"
+        },
+        {
+            "pack": "reloaded",
+            "seq": 1,
+            "tick": 0,
+            "event": "top-level",
+            "value": "after the reload"
+        },
+        {
+            "pack": "reloaded",
+            "seq": 2,
+            "tick": 0,
+            "event": "system.beforeEvents.startup"
+        },
+        {
+            "pack": "reloaded",
+            "seq": 3,
+            "tick": 0,
+            "event": "top-level system.run"
+        },
+        {
+            "pack": "reloaded",
+            "seq": 4,
+            "tick": 0,
+            "event": "world.afterEvents.worldLoad"
+        }
+    ]
+}
